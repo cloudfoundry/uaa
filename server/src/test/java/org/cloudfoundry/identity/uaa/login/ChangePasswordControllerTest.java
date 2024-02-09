@@ -59,7 +59,7 @@ class ChangePasswordControllerTest {
                 Collections.singletonList(UaaAuthority.UAA_USER),
                 new UaaAuthenticationDetails(false, null, UAA, "12345")
         );
-        authMethods = asList("pwd", "mfa", "otp");
+        authMethods = asList("pwd", "otp");
         authentication.setAuthenticationMethods(new LinkedHashSet<>(authMethods));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);

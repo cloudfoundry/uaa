@@ -127,7 +127,8 @@
         "scim.me",
         "cloud_controller.user"
       ],
-      "maxUsers": 1000
+      "maxUsers": 1000,
+      "checkOriginEnabled": true
     }
   },
   "name": "Demo Login Page",

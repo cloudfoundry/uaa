@@ -2,10 +2,8 @@ package org.cloudfoundry.identity.uaa.authentication.listener;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -22,7 +20,6 @@ class AuthenticationSuccessListenerTests {
     private AuthenticationSuccessListener listener;
     private ScimUserProvisioning mockScimUserProvisioning;
     private UaaAuthentication mockUaaAuthentication;
-    private MfaChecker mockMfaChecker;
     private ApplicationEventPublisher mockApplicationEventPublisher;
     private String id;
     private UaaUserPrototype userPrototype;
@@ -32,9 +29,8 @@ class AuthenticationSuccessListenerTests {
     void setUp() {
         mockUaaAuthentication = mock(UaaAuthentication.class);
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
-        mockMfaChecker = mock(MfaChecker.class);
         mockScimUserProvisioning = mock(ScimUserProvisioning.class);
-        listener = new AuthenticationSuccessListener(mockScimUserProvisioning, mockMfaChecker);
+        listener = new AuthenticationSuccessListener(mockScimUserProvisioning);
         listener.setApplicationEventPublisher(mockApplicationEventPublisher);
         id = "user-id";
         userPrototype = new UaaUserPrototype()
@@ -96,34 +92,10 @@ class AuthenticationSuccessListenerTests {
 
     @Test
     void provider_authentication_success_triggers_user_authentication_success() {
-        when(mockMfaChecker.isMfaEnabledForZoneId(anyString())).thenReturn(false);
         IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
                 user,
                 mockUaaAuthentication,
                 OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()
-        );
-        listener.onApplicationEvent(event);
-        verify(mockApplicationEventPublisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
-    }
-
-    @Test
-    void provider_authentication_success_does_not_trigger_user_authentication_success() {
-        when(mockMfaChecker.isMfaEnabledForZoneId(anyString())).thenReturn(true);
-        IdentityProviderAuthenticationSuccessEvent event = new IdentityProviderAuthenticationSuccessEvent(
-                user,
-                mockUaaAuthentication,
-                OriginKeys.UAA, IdentityZoneHolder.getCurrentZoneId()
-        );
-        listener.onApplicationEvent(event);
-        verifyNoInteractions(mockApplicationEventPublisher);
-    }
-
-    @Test
-    void mfa_authentication_success_triggers_user_authentication_success() {
-        MfaAuthenticationSuccessEvent event = new MfaAuthenticationSuccessEvent(
-                user,
-                mockUaaAuthentication,
-                "mfa-type", IdentityZoneHolder.getCurrentZoneId()
         );
         listener.onApplicationEvent(event);
         verify(mockApplicationEventPublisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));

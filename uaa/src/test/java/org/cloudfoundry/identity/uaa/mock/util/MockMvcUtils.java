@@ -15,8 +15,6 @@
 package org.cloudfoundry.identity.uaa.mock.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.warrenstrange.googleauth.GoogleAuthenticator;
-import com.warrenstrange.googleauth.GoogleAuthenticatorConfig;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
@@ -28,13 +26,9 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.login.Prompt;
-import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
-import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
-import org.cloudfoundry.identity.uaa.mfa.exception.MfaAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -193,111 +187,9 @@ public final class MockMvcUtils {
         return null;
     }
 
-    public static String performMfaPostVerifyWithCode(int code, MockMvc mvc, MockHttpSession session) throws Exception {
-        return performMfaPostVerifyWithCode(code, mvc, session, "localhost");
-    }
-
-    public static String performMfaPostVerifyWithCode(int code, MockMvc mvc, MockHttpSession session, String host) throws Exception {
-        return mvc.perform(post("/login/mfa/verify.do")
-          .param("code", Integer.toString(code))
-          .header("Host", host)
-          .session(session)
-          .with(cookieCsrf()))
-          .andExpect(status().is3xxRedirection())
-          .andExpect(redirectedUrl("/login/mfa/completed"))
-          .andReturn().getResponse().getRedirectedUrl();
-    }
-
-    public static int getMFACodeFromSession(MockHttpSession session) {
-        UserGoogleMfaCredentials activeCreds = (UserGoogleMfaCredentials) session.getAttribute("uaaMfaCredentials");
-        return getMfaCodeFromCredentials(activeCreds);
-    }
-
-    public static int getMfaCodeFromCredentials(UserGoogleMfaCredentials activeCreds) {
-        GoogleAuthenticator authenticator = new GoogleAuthenticator(new GoogleAuthenticatorConfig.GoogleAuthenticatorConfigBuilder().build());
-        return authenticator.getTotpPassword(activeCreds.getSecretKey());
-    }
-
     public static UaaAuthentication getUaaAuthentication(HttpSession session) {
         SecurityContext context = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         return (UaaAuthentication) context.getAuthentication();
-    }
-
-    public static ResultActions performMfaRegistrationInZone(String username, String password, MockMvc mockMvc, String host, String[] firstAuthMethods, String[] afterMfaAuthMethods) throws Exception {
-
-        //ldap login
-        MockHttpSession session = (MockHttpSession) mockMvc.perform(
-          post("/login.do")
-            .with(cookieCsrf())
-            .header(HOST, host)
-            .accept(MediaType.TEXT_HTML)
-            .param("username", username)
-            .param("password", password)
-        )
-          .andExpect(status().isFound())
-          .andExpect(redirectedUrl("/"))
-          .andReturn().getRequest().getSession(false);
-
-        assertTrue(getUaaAuthentication(session).isAuthenticated());
-        assertThat(getUaaAuthentication(session).getAuthenticationMethods(), containsInAnyOrder(firstAuthMethods));
-
-        //successful login, follow redirect
-        mockMvc.perform(
-          get("/")
-            .header(HOST, host)
-            .accept(MediaType.TEXT_HTML)
-            .session(session)
-        )
-          .andExpect(status().isFound())
-          .andExpect(redirectedUrl("/login/mfa/register"));
-
-        //follow redirect to mfa register
-        mockMvc.perform(
-          get("/login/mfa/register")
-            .header(HOST, host)
-            .accept(MediaType.TEXT_HTML)
-            .session(session)
-        )
-          .andExpect(status().isOk())
-          .andExpect(view().name("mfa/qr_code"));
-
-        //post MFA code
-        int code = MockMvcUtils.getMFACodeFromSession(session);
-        String location = MockMvcUtils.performMfaPostVerifyWithCode(code, mockMvc, session, host);
-        //follow redirect to completed
-        location = mockMvc.perform(get(location)
-          .session(session)
-          .header(HOST, host)
-        )
-          .andExpect(status().isFound())
-          .andExpect(redirectedUrl("http://" + host + "/"))
-          .andReturn().getResponse().getRedirectedUrl();
-
-        ResultActions resultActions = mockMvc.perform(get(location)
-          .session(session)
-          .header(HOST, host)
-        );
-
-        assertTrue(getUaaAuthentication(session).isAuthenticated());
-        assertThat(getUaaAuthentication(session).getAuthenticationMethods(), containsInAnyOrder(afterMfaAuthMethods));
-
-        return resultActions;
-    }
-
-    public static MfaProvider createMfaProvider(ApplicationContext context, IdentityZone zone) {
-        String zoneId = zone.getId();
-        MfaProvider provider = new MfaProvider();
-        provider.setName(new AlphanumericRandomValueStringGenerator(5).generate().toLowerCase());
-        provider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
-        provider.setIdentityZoneId(zoneId);
-        provider.setConfig(new GoogleMfaProviderConfig());
-        provider.getConfig().setIssuer(zone.getName());
-        MfaProviderProvisioning provisioning = context.getBean(MfaProviderProvisioning.class);
-        try {
-            return provisioning.create(provider, zoneId);
-        } catch (MfaAlreadyExistsException x) {
-            return provisioning.update(provider, zoneId);
-        }
     }
 
     public static File getLimitedModeStatusFile(ApplicationContext context) {
@@ -977,6 +869,10 @@ public final class MockMvcUtils {
         return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa(), status().isCreated());
     }
 
+    public static BaseClientDetails createClient(MockMvc mockMvc, IdentityZone identityZone, String accessToken, BaseClientDetails clientDetails) throws Exception {
+        return createClient(mockMvc, accessToken, clientDetails, identityZone, status().isCreated());
+    }
+
     public static void deleteClient(MockMvc mockMvc, String accessToken, String clientId, String zoneSubdomain) throws Exception {
         MockHttpServletRequestBuilder createClientDelete = delete("/oauth/clients/" + clientId)
           .header("Authorization", "Bearer " + accessToken)
@@ -1187,6 +1083,10 @@ public final class MockMvcUtils {
     }
 
     public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, String zoneId) throws Exception {
+        return getUserOAuthAccessTokenAuthCode(mockMvc, clientId, clientSecret, userId, username, password, scope, zoneId, OPAQUE);
+    }
+
+    public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, String zoneId, TokenFormat tokenFormat) throws Exception {
         String basicDigestHeaderValue = "Basic "
           + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + clientSecret)
           .getBytes()));
@@ -1208,7 +1108,7 @@ public final class MockMvcUtils {
           .session(session)
           .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE)
           .param(OAuth2Utils.RESPONSE_TYPE, "code")
-          .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+          .param(TokenConstants.REQUEST_TOKEN_FORMAT, tokenFormat.getStringValue())
           .param(OAuth2Utils.STATE, state)
           .param(OAuth2Utils.CLIENT_ID, clientId)
           .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
@@ -1449,18 +1349,6 @@ public final class MockMvcUtils {
         public String generate() {
             return "test" + counter.incrementAndGet();
         }
-    }
-
-    public static MfaProvider<GoogleMfaProviderConfig> constructGoogleMfaProvider() {
-        MfaProvider<GoogleMfaProviderConfig> res = new MfaProvider();
-        res.setName(new AlphanumericRandomValueStringGenerator(5).generate());
-        res.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
-        res.setConfig(constructGoogleProviderConfiguration());
-        return res;
-    }
-
-    public static GoogleMfaProviderConfig constructGoogleProviderConfiguration() {
-        return new GoogleMfaProviderConfig();
     }
 
     public static IdentityZone updateZone(MockMvc mockMvc, IdentityZone updatedZone) throws Exception {

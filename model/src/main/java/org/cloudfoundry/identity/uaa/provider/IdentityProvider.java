@@ -56,7 +56,10 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
     public static final String FIELD_IDENTITY_ZONE_ID = "identityZoneId";
     public static final String FIELD_CONFIG = "config";
     public static final String FIELD_TYPE = "type";
+    public static final String FIELD_ALIAS_ID = "aliasId";
+    public static final String FIELD_ALIAS_ZID = "aliasZid";
     //see deserializer at the bottom
+
     private String id;
     @NotNull
     private String originKey;
@@ -71,7 +74,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
     private Date lastModified = new Date();
     private boolean active = true;
     private String identityZoneId;
-
+    private String aliasId;
+    private String aliasZid;
     public Date getCreated() {
         return created;
     }
@@ -197,6 +201,24 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         return this;
     }
 
+    public String getAliasId() {
+        return aliasId;
+    }
+
+    public IdentityProvider<T> setAliasId(String aliasId) {
+        this.aliasId = aliasId;
+        return this;
+    }
+
+    public String getAliasZid() {
+        return aliasZid;
+    }
+
+    public IdentityProvider<T> setAliasZid(String aliasZid) {
+        this.aliasZid = aliasZid;
+        return this;
+    }
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -208,6 +230,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         result = prime * result + ((name == null) ? 0 : name.hashCode());
         result = prime * result + ((originKey == null) ? 0 : originKey.hashCode());
         result = prime * result + ((type == null) ? 0 : type.hashCode());
+        result = prime * result + ((aliasId == null) ? 0 : aliasId.hashCode());
+        result = prime * result + ((aliasZid == null) ? 0 : aliasZid.hashCode());
         result = prime * result + version;
         return result;
     }
@@ -256,6 +280,20 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                 return false;
         } else if (!type.equals(other.type))
             return false;
+        if (aliasId == null) {
+            if (other.aliasId != null) {
+                return false;
+            }
+        } else if (!aliasId.equals(other.aliasId)) {
+            return false;
+        }
+        if (aliasZid == null) {
+            if (other.aliasZid != null) {
+                return false;
+            }
+        } else if (!aliasZid.equals(other.aliasZid)) {
+            return false;
+        }
         if (version != other.version)
             return false;
         return true;
@@ -265,10 +303,33 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
     public String toString() {
         final StringBuffer sb = new StringBuffer("IdentityProvider{");
         sb.append("id='").append(id).append('\'');
+
+        sb.append(", identityZoneId=");
+        if (identityZoneId != null) {
+            sb.append('\'').append(identityZoneId).append('\'');
+        } else {
+            sb.append("null");
+        }
+
         sb.append(", originKey='").append(originKey).append('\'');
         sb.append(", name='").append(name).append('\'');
         sb.append(", type='").append(type).append('\'');
         sb.append(", active=").append(active);
+
+        sb.append(", aliasId=");
+        if (aliasId != null) {
+            sb.append('\'').append(aliasId).append('\'');
+        } else {
+            sb.append("null");
+        }
+
+        sb.append(", aliasZid=");
+        if (aliasZid != null) {
+            sb.append('\'').append(aliasZid).append('\'');
+        } else {
+            sb.append("null");
+        }
+
         sb.append('}');
         return sb.toString();
     }
@@ -304,6 +365,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             writeDateField(FIELD_LAST_MODIFIED, value.getLastModified(), gen);
             gen.writeBooleanField(FIELD_ACTIVE, value.isActive());
             gen.writeStringField(FIELD_IDENTITY_ZONE_ID, value.getIdentityZoneId());
+            gen.writeStringField(FIELD_ALIAS_ID, value.getAliasId());
+            gen.writeStringField(FIELD_ALIAS_ZID, value.getAliasZid());
             gen.writeEndObject();
         }
 
@@ -369,6 +432,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             result.setLastModified(getNodeAsDate(node, FIELD_LAST_MODIFIED));
             result.setActive(getNodeAsBoolean(node, FIELD_ACTIVE, true));
             result.setIdentityZoneId(getNodeAsString(node, FIELD_IDENTITY_ZONE_ID, null));
+            result.setAliasId(getNodeAsString(node, FIELD_ALIAS_ID, null));
+            result.setAliasZid(getNodeAsString(node, FIELD_ALIAS_ZID, null));
             return result;
         }
 

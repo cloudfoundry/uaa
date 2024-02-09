@@ -54,7 +54,6 @@ public class UaaAuthenticationFailureHandlerTests {
         failureHandler = new ExceptionMappingAuthenticationFailureHandler();
         Map<String, String> errorMap = new HashMap<>();
         errorMap.put("org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException", "/force_password_change");
-        errorMap.put("org.cloudfoundry.identity.uaa.authentication.MfaAuthenticationRequiredException", "/login/mfa/register");
         failureHandler.setExceptionMappings(errorMap);
         failureHandler = spy(failureHandler);
         cookieFactory = new CurrentUserCookieFactory(1234, false);

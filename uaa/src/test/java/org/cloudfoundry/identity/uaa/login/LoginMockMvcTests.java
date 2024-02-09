@@ -7,7 +7,6 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
@@ -104,7 +103,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.constructGoogleMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getMarissaSecurityContext;
 import static org.cloudfoundry.identity.uaa.security.web.CorsFilter.X_REQUESTED_WITH;
@@ -191,17 +189,6 @@ public class LoginMockMvcTests {
         String subdomain = new AlphanumericRandomValueStringGenerator(24).generate().toLowerCase();
         identityZone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, false, IdentityZoneHolder.getCurrentZoneId());
 
-        MfaProvider mfaProvider = constructGoogleMfaProvider();
-        mfaProvider = JsonUtils.readValue(mockMvc.perform(
-                post("/mfa-providers")
-                        .header("X-Identity-Zone-Id", identityZone.getId())
-                        .header("Authorization", "Bearer " + adminToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(mfaProvider)))
-                .andExpect(status().isCreated())
-                .andReturn().getResponse().getContentAsByteArray(), MfaProvider.class);
-
-        identityZone.getConfig().getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
         MockMvcUtils.updateIdentityZone(identityZone, webApplicationContext);
 
         originalLimitedModeStatusFile = MockMvcUtils.getLimitedModeStatusFile(webApplicationContext);
@@ -366,31 +353,6 @@ public class LoginMockMvcTests {
                 .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
                 .andExpect(model().attributeExists("prompts"))
                 .andExpect(content().string(containsString("/create_account")));
-    }
-
-    @Test
-    void testLoginMfaRedirect(
-            @Autowired ScimUserProvisioning scimUserProvisioning
-    ) throws Exception {
-        MockHttpSession session = new MockHttpSession();
-
-        ScimUser user = createUser(scimUserProvisioning, generator, identityZone.getId());
-
-        mockMvc.perform(post("/login.do")
-                .with(cookieCsrf())
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
-                .session(session)
-                .param("username", user.getUserName())
-                .param("password", user.getPassword()))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/"));
-
-        mockMvc.perform(get("/")
-                .with(cookieCsrf())
-                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
-                .session(session))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login/mfa/register"));
     }
 
     IdentityZone createZoneLinksZone() throws Exception {
@@ -1259,34 +1221,6 @@ public class LoginMockMvcTests {
                 .accept(APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("username")))
-                .andExpect(model().attribute("prompts", hasKey("password")));
-    }
-
-    @Test
-    void testDefaultMfaPrompt() throws Exception {
-        IdentityZone zone = createZoneLinksZone();
-        zone.getConfig().getMfaConfig().setEnabled(true);
-        MockMvcUtils.updateIdentityZone(zone, webApplicationContext);
-
-        mockMvc.perform(
-                get("/login")
-                        .accept(APPLICATION_JSON)
-                        .header("Host", zone.getSubdomain() + ".localhost")
-        )
-                .andExpect(status().isOk())
-                .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", hasKey("mfaCode")))
-                .andExpect(model().attribute("prompts", hasKey("username")))
-                .andExpect(model().attribute("prompts", hasKey("password")));
-
-        mockMvc.perform(
-                get("/login") //default zone
-                        .accept(APPLICATION_JSON)
-        )
-                .andExpect(status().isOk())
-                .andExpect(view().name("login"))
-                .andExpect(model().attribute("prompts", not(hasKey("mfaCode"))))
                 .andExpect(model().attribute("prompts", hasKey("username")))
                 .andExpect(model().attribute("prompts", hasKey("password")));
     }

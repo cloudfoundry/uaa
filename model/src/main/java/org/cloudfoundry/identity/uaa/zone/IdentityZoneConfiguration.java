@@ -40,7 +40,6 @@ public class IdentityZoneConfiguration {
     private BrandingInformation branding;
     private boolean accountChooserEnabled;
     private UserConfig userConfig = new UserConfig();
-    private MfaConfig mfaConfig = new MfaConfig();
     private String issuer;
     private String defaultIdentityProvider;
 
@@ -111,15 +110,6 @@ public class IdentityZoneConfiguration {
 
     public void setAccountChooserEnabled(boolean accountChooserEnabled) {
         this.accountChooserEnabled = accountChooserEnabled;
-    }
-
-    public MfaConfig getMfaConfig() {
-        return mfaConfig;
-    }
-
-    public IdentityZoneConfiguration setMfaConfig(MfaConfig mfaConfig) {
-        this.mfaConfig = mfaConfig;
-        return this;
     }
 
     public CorsPolicy getCorsPolicy() {

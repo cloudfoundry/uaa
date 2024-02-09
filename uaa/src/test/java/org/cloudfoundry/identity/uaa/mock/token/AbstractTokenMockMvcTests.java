@@ -3,9 +3,6 @@ package org.cloudfoundry.identity.uaa.mock.token;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentials;
-import org.cloudfoundry.identity.uaa.mfa.UserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -35,7 +32,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.*;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createMfaProvider;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
 import static org.junit.Assert.assertNull;
@@ -74,9 +70,7 @@ public abstract class AbstractTokenMockMvcTests {
     protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     protected IdentityZone zone;
-    protected MfaProvider mfaProvider;
     private IdentityZoneConfiguration uaaZoneConfig;
-    protected UserGoogleMfaCredentials credentials;
 
     @Autowired
     protected MockMvc mockMvc;
@@ -89,9 +83,6 @@ public abstract class AbstractTokenMockMvcTests {
 
     @Autowired
     protected UaaUserDatabase uaaUserDatabase;
-
-    @Autowired
-    protected UserGoogleMfaCredentialsProvisioning userGoogleMfaCredentialsProvisioning;
 
     Set<String> defaultAuthorities;
 
@@ -116,39 +107,8 @@ public abstract class AbstractTokenMockMvcTests {
     @AfterEach
     public void cleanup() {
         if (uaaZoneConfig != null) {
-            uaaZoneConfig.getMfaConfig().setEnabled(false).setProviderName(null);
             MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), uaaZoneConfig);
-            deleteMfaRegistrations();
         }
-    }
-
-    void deleteMfaRegistrations() {
-        jdbcTemplate.update("DELETE FROM user_google_mfa_credentials");
-    }
-
-    public void setupForMfaPasswordGrant() throws Exception {
-        String userId = uaaUserDatabase.retrieveUserByName("marissa", OriginKeys.UAA).getId();
-        setupForMfaPasswordGrant(userId);
-    }
-
-    protected void setupForMfaPasswordGrant(String userId) throws Exception {
-        uaaZoneConfig = MockMvcUtils.getZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId());
-
-        cleanup();
-
-        adminToken = testClient.getClientCredentialsOAuthAccessToken(
-                "admin",
-                "adminsecret",
-                "uaa.admin"
-        );
-        mfaProvider = createMfaProvider(webApplicationContext, IdentityZone.getUaa());
-
-        uaaZoneConfig.getMfaConfig().setEnabled(true).setProviderName(mfaProvider.getName());
-        MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), uaaZoneConfig);
-
-        credentials = userGoogleMfaCredentialsProvisioning.createUserCredentials(userId);
-        credentials.setMfaProviderId(mfaProvider.getId());
-        userGoogleMfaCredentialsProvisioning.saveUserCredentials(credentials);
     }
 
     protected String createUserForPasswordGrant(

@@ -39,7 +39,6 @@ import static org.mockito.Mockito.mock;
 public class GeneralIdentityZoneConfigurationValidatorTests {
 
     private IdentityZoneConfiguration zoneConfiguration;
-    private MfaConfigValidator mockMfaConfigValidator;
 
     @Parameterized.Parameters
     public static Object[][] parameters() {
@@ -222,8 +221,7 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
         samlConfig.setPrivateKeyPassword(legacyPassphrase);
         samlConfig.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
         samlConfig.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
-        mockMfaConfigValidator = mock(MfaConfigValidator.class);
-        validator = new GeneralIdentityZoneConfigurationValidator(mockMfaConfigValidator);
+        validator = new GeneralIdentityZoneConfigurationValidator();
         zoneConfiguration = new IdentityZoneConfiguration();
         BrandingInformation brandingInformation = new BrandingInformation();
         zoneConfiguration.setBranding(brandingInformation);
@@ -310,15 +308,6 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     public void validate_no_keys() throws Exception {
         samlConfig.setKeys(EMPTY_MAP);
         assertNull(samlConfig.getActiveKeyId());
-        validator.validate(zone, mode);
-    }
-
-    @Test
-    public void mfa_validation_exception_gets_thrown_back() throws Exception{
-        doThrow(new InvalidIdentityZoneConfigurationException("Invalid MFA Config")).when(mockMfaConfigValidator).validate(any(), any());
-
-        expection.expect(InvalidIdentityZoneConfigurationException.class);
-        expection.expectMessage("Invalid MFA Config");
         validator.validate(zone, mode);
     }
 

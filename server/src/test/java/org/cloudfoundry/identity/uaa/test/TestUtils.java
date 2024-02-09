@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
-import org.cloudfoundry.identity.uaa.mfa.MfaProviderBootstrap;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap;
@@ -59,10 +58,8 @@ public class TestUtils {
         jdbcTemplate.update("DELETE FROM oauth_code");
         jdbcTemplate.update("DELETE FROM revocable_tokens");
         jdbcTemplate.update("DELETE FROM sec_audit");
-        jdbcTemplate.update("DELETE FROM service_provider");
         jdbcTemplate.update("DELETE FROM user_info");
         jdbcTemplate.update("DELETE FROM users");
-        jdbcTemplate.update("DELETE FROM mfa_providers");
 
         seedUaaZoneSimilarToHowTheRealFlywayMigrationDoesIt(jdbcTemplate);
     }
@@ -95,7 +92,7 @@ public class TestUtils {
         for (String origin : origins) {
             String identityProviderId = UUID.randomUUID().toString();
             originMap.put(origin, identityProviderId);
-            jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,0,?,?,?,?,null,?)",identityProviderId, t, t, uaa.getId(),origin,origin,origin,true);
+            jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,0,?,?,?,?,null,?,null,null)",identityProviderId, t, t, uaa.getId(),origin,origin,origin,true);
         }
         jdbcTemplate.update("update oauth_client_details set identity_zone_id = ?",uaa.getId());
         List<String> clientIds = jdbcTemplate.queryForList("SELECT client_id from oauth_client_details", String.class);
@@ -109,7 +106,6 @@ public class TestUtils {
         tryCallAfterPropertiesSet(applicationContext, ScimExternalGroupBootstrap.class);
         tryCallAfterPropertiesSet(applicationContext, BootstrapSamlIdentityProviderData.class);
         tryCallAfterPropertiesSet(applicationContext, IdentityProviderBootstrap.class);
-        tryCallAfterPropertiesSet(applicationContext, MfaProviderBootstrap.class);
         tryCallAfterPropertiesSet(applicationContext, ScimGroupBootstrap.class);
         tryCallAfterPropertiesSet(applicationContext, ScimUserBootstrap.class);
 

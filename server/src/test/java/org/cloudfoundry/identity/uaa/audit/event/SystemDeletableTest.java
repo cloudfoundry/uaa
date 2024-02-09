@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -45,7 +43,6 @@ class SystemDeletableTest {
         verify(deletable, never()).deleteByOrigin(any(), any());
         verify(deletable, never()).deleteByClient(any(), any());
         verify(deletable, never()).deleteByUser(any(), any());
-        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
@@ -56,7 +53,6 @@ class SystemDeletableTest {
         verify(deletable, never()).deleteByOrigin(any(), any());
         verify(deletable, never()).deleteByClient(any(), any());
         verify(deletable, never()).deleteByUser(any(), any());
-        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
@@ -69,7 +65,6 @@ class SystemDeletableTest {
         verify(deletable, never()).deleteByOrigin(any(), any());
         verify(deletable, never()).deleteByClient(any(), any());
         verify(deletable, never()).deleteByUser(any(), any());
-        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
@@ -82,7 +77,6 @@ class SystemDeletableTest {
         verify(deletable, times(1)).deleteByOrigin("origin", "other-zone-id");
         verify(deletable, never()).deleteByClient(any(), any());
         verify(deletable, never()).deleteByUser(any(), any());
-        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
@@ -97,7 +91,6 @@ class SystemDeletableTest {
         verify(deletable, never()).deleteByIdentityZone(any());
         verify(deletable, never()).deleteByOrigin(any(), any());
         verify(deletable, never()).deleteByUser(any(), any());
-        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
@@ -115,7 +108,6 @@ class SystemDeletableTest {
         verify(deletable, never()).deleteByOrigin(any(), any());
         verify(deletable, never()).deleteByClient(any(), any());
         verify(deletable, times(1)).deleteByUser("uaaUser-id", "other-zone-id");
-        verify(deletable, never()).deleteByMfaProvider(any(), any());
     }
 
     @Test
@@ -133,18 +125,5 @@ class SystemDeletableTest {
         verify(deletable, never()).deleteByOrigin(any(), any());
         verify(deletable, never()).deleteByClient(any(), any());
         verify(deletable, times(1)).deleteByUser("scimUserId", "zoneId");
-        verify(deletable, never()).deleteByMfaProvider(any(), any());
-    }
-
-    @Test
-    void mfaEventReceived() {
-        MfaProvider<GoogleMfaProviderConfig> mfaProvider = new MfaProvider<GoogleMfaProviderConfig>().setId("provider1");
-        EntityDeletedEvent<MfaProvider> event = new EntityDeletedEvent<>(mfaProvider, authentication, null);
-        deletable.onApplicationEvent(event);
-        verify(deletable, never()).deleteByIdentityZone(any());
-        verify(deletable, never()).deleteByOrigin(any(), any());
-        verify(deletable, never()).deleteByClient(any(), any());
-        verify(deletable, never()).deleteByUser(any(), any());
-        verify(deletable, times(1)).deleteByMfaProvider(eq("provider1"), any());
     }
 }

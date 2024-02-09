@@ -22,7 +22,12 @@ public class UserConfig {
 
     private List<String> defaultGroups = DEFAULT_ZONE_GROUPS;
 
+    // in addition to defaultGroups, which are implicitely allowed
+    private List<String> allowedGroups = null;
+
     private int maxUsers = -1;
+
+    private boolean checkOriginEnabled;
 
     public List<String> getDefaultGroups() {
         return defaultGroups;
@@ -31,9 +36,6 @@ public class UserConfig {
     public void setDefaultGroups(List<String> defaultGroups) {
         this.defaultGroups = defaultGroups;
     }
-
-    // in addition to defaultGroups, which are implicitely allowed
-    private List<String> allowedGroups = null;
 
     public List<String> getAllowedGroups() {
         return allowedGroups;
@@ -64,5 +66,13 @@ public class UserConfig {
 
     public void setMaxUsers(int maxUsers) {
         this.maxUsers = maxUsers;
+    }
+
+    public boolean isCheckOriginEnabled() {
+        return this.checkOriginEnabled;
+    }
+
+    public void setCheckOriginEnabled(boolean checkOriginEnabled) {
+        this.checkOriginEnabled = checkOriginEnabled;
     }
 }
