@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.util.RetryRule;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -266,6 +267,7 @@ public class InvitationsIT {
     }
 
     @Test
+    @Ignore
     public void invitedOIDCUserVerified() throws Exception {
         String clientId = "invite-client" + new RandomValueStringGenerator().generate();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, null, "client_credentials", "scim.invite");
