@@ -30,6 +30,7 @@ ext["hsqldb.version"] = "2.7.2" // HSQL-DB used for tests but not supported for 
 ext["selenium.version"] = "${versions.seleniumVersion}" // Selenium for integration tests only
 ext["spring-framework.version"] = "${versions.springFrameworkVersion}" // Maintain spring until upgrade to spring boot 3.x, https://github.com/cloudfoundry/uaa/issues/2115
 ext["spring-security.version"] = "${versions.springSecurityVersion}" // Maintain spring until upgrade to spring boot 3.x, https://github.com/cloudfoundry/uaa/issues/2115
+ext["tomcat.version"] = "${versions.tomcatCargoVersion}" // Maintain tomcat until upgrade to spring boot 3.x, https://github.com/cloudfoundry/uaa/issues/2115
 
 ext {
     tomcatCargoVersion = "${versions.tomcatCargoVersion}"
