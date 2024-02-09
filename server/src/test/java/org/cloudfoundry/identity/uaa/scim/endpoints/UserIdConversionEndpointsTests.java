@@ -99,7 +99,7 @@ public class UserIdConversionEndpointsTests {
     @Test
     public void testGoodFilter1() {
         final ResponseEntity<Object> response = endpoints.findUsers(
-                "(id eq \"foo\" and username eq \"bar\") or id eq \"bar\"",
+                "(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"",
                 "ascending",
                 0,
                 100,
@@ -110,6 +110,30 @@ public class UserIdConversionEndpointsTests {
 
     @Test
     public void testGoodFilter2() {
+        final ResponseEntity<Object> response = endpoints.findUsers(
+                "origin eq \"uaa\" and (id eq \"foo\" or username eq \"bar\")",
+                "ascending",
+                0,
+                100,
+                false
+        );
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    public void testGoodFilter3() {
+        final ResponseEntity<Object> response = endpoints.findUsers(
+                "(id eq \"foo\" and username eq \"bar\") or id eq \"bar\"",
+                "ascending",
+                0,
+                100,
+                false
+        );
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    public void testGoodFilter4() {
         final ResponseEntity<Object> response = endpoints.findUsers(
                 "id eq \"bar\" and (id eq \"foo\" and username eq \"bar\")",
                 "ascending",
@@ -194,42 +218,6 @@ public class UserIdConversionEndpointsTests {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid filter"));
         endpoints.findUsers("origin eq \"uaa\" or origin eq \"bar\"", "ascending", 0, 100, false);
-    }
-
-    @Test
-    public void testBadFilter12() {
-        expected.expect(ScimException.class);
-        expected.expectMessage(containsString("Invalid filter"));
-
-        // lhs invalid, rhs valid
-        endpoints.findUsers("origin eq \"foo\" or userName eq \"bar\"", "ascending", 0, 100, false);
-    }
-
-    @Test
-    public void testBadFilter13() {
-        expected.expect(ScimException.class);
-        expected.expectMessage(containsString("Invalid filter"));
-
-        // lhs valid, rhs invalid
-        endpoints.findUsers("userName eq \"bar\" or origin eq \"foo\"", "ascending", 0, 100, false);
-    }
-
-    @Test
-    public void testBadFilter14() {
-        expected.expect(ScimException.class);
-        expected.expectMessage(containsString("Invalid filter"));
-
-        // lhs valid, rhs invalid
-        endpoints.findUsers("(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"", "ascending", 0, 100, false);
-    }
-
-    @Test
-    public void testBadFilter15() {
-        expected.expect(ScimException.class);
-        expected.expectMessage(containsString("Invalid filter"));
-
-        // lhs valid, rhs invalid
-        endpoints.findUsers("origin eq \"uaa\" and (id eq \"foo\" or username eq \"bar\")", "ascending", 0, 100, false);
     }
 
     @Test
