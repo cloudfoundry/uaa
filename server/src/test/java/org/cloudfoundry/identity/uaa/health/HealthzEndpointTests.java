@@ -50,7 +50,7 @@ class HealthzEndpointTests {
 
     @Test
     void getHealthz() {
-        assertEquals("No Check done.\n", endpoint.getHealthz(response));
+        assertEquals("UAA running. Database status unknown.\n", endpoint.getHealthz(response));
     }
 
     @Test

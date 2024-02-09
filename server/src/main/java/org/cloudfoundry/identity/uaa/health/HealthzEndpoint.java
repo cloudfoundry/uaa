@@ -55,7 +55,7 @@ public class HealthzEndpoint {
             return "stopping\n";
         } else {
             if (wasLastConnectionSuccessful == null) {
-                return "No Check done.\n";
+                return "UAA running. Database status unknown.\n";
             }
 
             if (wasLastConnectionSuccessful) {
