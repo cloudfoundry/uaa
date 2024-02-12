@@ -15,7 +15,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -47,17 +47,20 @@ public class UserIdConversionEndpoints implements InitializingBean {
     private final ScimUserProvisioning scimUserProvisioning;
     private final SecurityContextAccessor securityContextAccessor;
     private final ScimUserEndpoints scimUserEndpoints;
+    private final IdentityZoneManager identityZoneManager;
     private final boolean enabled;
 
     public UserIdConversionEndpoints(
             final SecurityContextAccessor securityContextAccessor,
             final ScimUserEndpoints scimUserEndpoints,
             final @Qualifier("scimUserProvisioning") ScimUserProvisioning scimUserProvisioning,
+            final IdentityZoneManager identityZoneManager,
             final @Value("${scim.userids_enabled:true}") boolean enabled
     ) {
         this.securityContextAccessor = securityContextAccessor;
         this.scimUserEndpoints = scimUserEndpoints;
         this.scimUserProvisioning = scimUserProvisioning;
+        this.identityZoneManager = identityZoneManager;
         this.enabled = enabled;
     }
 
@@ -94,7 +97,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 includeInactive,
                 FIELD_USERNAME,
                 sortOrder.equalsIgnoreCase("ascending"),
-                IdentityZoneHolder.getCurrentZoneId()
+                identityZoneManager.getCurrentIdentityZoneId()
         );
         final List<ScimUser> usersCurrentPage = UaaPagingUtils.subList(filteredUsers, startIndex, count);
 

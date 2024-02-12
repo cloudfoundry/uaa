@@ -38,6 +38,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -67,6 +68,7 @@ public class UserIdConversionEndpointsTests {
     private final ScimUserProvisioning scimUserProvisioning = mock(ScimUserProvisioning.class);
 
     private final MockedStatic<IdentityZoneHolder> idzHolderMockedStatic;
+    private final IdentityZoneManager identityZoneManager = mock(IdentityZoneManager.class);
 
     @SuppressWarnings("rawtypes")
     private final Collection authorities = AuthorityUtils
@@ -80,7 +82,7 @@ public class UserIdConversionEndpointsTests {
     @Before
     public void init() {
         mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
-        endpoints = new UserIdConversionEndpoints(mockSecurityContextAccessor, scimUserEndpoints, scimUserProvisioning, true);
+        endpoints = new UserIdConversionEndpoints(mockSecurityContextAccessor, scimUserEndpoints, scimUserProvisioning, identityZoneManager, true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn(authorities);
         when(mockSecurityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");
         when(scimUserEndpoints.getUserMaxCount()).thenReturn(10_000);
@@ -300,7 +302,7 @@ public class UserIdConversionEndpointsTests {
     @Test
     public void testDisabled() {
         arrangeCurrentIdentityZone("uaa");
-        endpoints = new UserIdConversionEndpoints(mockSecurityContextAccessor, scimUserEndpoints, scimUserProvisioning, false);
+        endpoints = new UserIdConversionEndpoints(mockSecurityContextAccessor, scimUserEndpoints, scimUserProvisioning, identityZoneManager, false);
         ResponseEntity<Object> response = endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100, false);
         Assert.assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         Assert.assertEquals("Illegal Operation: Endpoint not enabled.", response.getBody());
@@ -318,6 +320,7 @@ public class UserIdConversionEndpointsTests {
         identityZone.setId(idzId);
         idzHolderMockedStatic.when(IdentityZoneHolder::get).thenReturn(identityZone);
         idzHolderMockedStatic.when(IdentityZoneHolder::getCurrentZoneId).thenReturn(idzId);
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(idzId);
     }
 
     private void arrangeScimUsersForFilter(
