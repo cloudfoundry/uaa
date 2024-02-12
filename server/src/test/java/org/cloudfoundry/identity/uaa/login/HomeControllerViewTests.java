@@ -164,15 +164,23 @@ class HomeControllerViewTests extends TestClassNullifier {
     }
 
     @Test
-    void error500WithClassException() throws Exception {
+    void error500WithGenericException() throws Exception {
         mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception("bad")))
-            .andExpect(status().isOk())
-            .andExpect(content().string(containsString(customFooterText)))
-            .andExpect(content().string(containsString(base64ProductLogo)));
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @Test
+    void error500WithSAMLExceptionAsCause() throws Exception {
         mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new SAMLException("bad"))))
             .andExpect(status().isBadRequest())
             .andExpect(content().string(containsString(customFooterText)))
             .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @Test
+    void error500WithMetadataProviderExceptionCause() throws Exception {
         mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new MetadataProviderException("bad"))))
             .andExpect(status().isBadRequest())
             .andExpect(content().string(containsString(customFooterText)))
