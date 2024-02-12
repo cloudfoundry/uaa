@@ -397,27 +397,26 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             count = userMaxCount;
         }
 
-        final List<ScimUser> result;
+        List<ScimUser> input = new ArrayList<>();
+        List<ScimUser> result;
+        Set<String> attributes = StringUtils.commaDelimitedListToSet(attributesCommaSeparated);
         try {
             result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), identityZoneManager.getCurrentIdentityZoneId());
-        } catch (final IllegalArgumentException e1) {
+            for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
+                if (attributes.isEmpty() || attributes.stream().anyMatch("groups"::equalsIgnoreCase)) {
+                    syncGroups(user);
+                }
+                if (attributes.isEmpty() || attributes.stream().anyMatch("approvals"::equalsIgnoreCase)) {
+                    syncApprovals(user);
+                }
+                input.add(user);
+            }
+        } catch (IllegalArgumentException e) {
             String msg = "Invalid filter expression: [" + filter + "]";
             if (StringUtils.hasText(sortBy)) {
                 msg += " [" + sortBy + "]";
             }
             throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
-        }
-
-        List<ScimUser> input = new ArrayList<>();
-        Set<String> attributes = StringUtils.commaDelimitedListToSet(attributesCommaSeparated);
-        for (final ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
-            if (attributes.isEmpty() || attributes.stream().anyMatch("groups"::equalsIgnoreCase)) {
-                syncGroups(user);
-            }
-            if (attributes.isEmpty() || attributes.stream().anyMatch("approvals"::equalsIgnoreCase)) {
-                syncApprovals(user);
-            }
-            input.add(user);
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
