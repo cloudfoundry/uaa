@@ -170,48 +170,28 @@ public class UserIdConversionEndpointsTests {
 
     @Test
     public void testGoodFilter1() {
-        arrangeCurrentIdentityZone("uaa");
-        final ResponseEntity<Object> response = endpoints.findUsers(
-                "(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"",
-                "ascending",
-                0,
-                100,
-                false
-        );
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        testGoodFilter("(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"");
     }
 
     @Test
     public void testGoodFilter2() {
-        arrangeCurrentIdentityZone("uaa");
-        final ResponseEntity<Object> response = endpoints.findUsers(
-                "origin eq \"uaa\" and (id eq \"foo\" or username eq \"bar\")",
-                "ascending",
-                0,
-                100,
-                false
-        );
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        testGoodFilter("origin eq \"uaa\" and (id eq \"foo\" or username eq \"bar\")");
     }
 
     @Test
     public void testGoodFilter3() {
-        arrangeCurrentIdentityZone("uaa");
-        final ResponseEntity<Object> response = endpoints.findUsers(
-                "(id eq \"foo\" and username eq \"bar\") or id eq \"bar\"",
-                "ascending",
-                0,
-                100,
-                false
-        );
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        testGoodFilter("(id eq \"foo\" and username eq \"bar\") or id eq \"bar\"");
     }
 
     @Test
     public void testGoodFilter4() {
+        testGoodFilter("id eq \"bar\" and (id eq \"foo\" and username eq \"bar\")");
+    }
+
+    private void testGoodFilter(final String filter) {
         arrangeCurrentIdentityZone("uaa");
         final ResponseEntity<Object> response = endpoints.findUsers(
-                "id eq \"bar\" and (id eq \"foo\" and username eq \"bar\")",
+                filter,
                 "ascending",
                 0,
                 100,
