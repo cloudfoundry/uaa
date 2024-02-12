@@ -397,7 +397,16 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             count = userMaxCount;
         }
 
-        List<ScimUser> result = getScimUsers(filter, sortBy, sortOrder);
+        final List<ScimUser> result;
+        try {
+            result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), identityZoneManager.getCurrentIdentityZoneId());
+        } catch (final IllegalArgumentException e1) {
+            String msg = "Invalid filter expression: [" + filter + "]";
+            if (StringUtils.hasText(sortBy)) {
+                msg += " [" + sortBy + "]";
+            }
+            throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
+        }
 
         List<ScimUser> input = new ArrayList<>();
         Set<String> attributes = StringUtils.commaDelimitedListToSet(attributesCommaSeparated);
@@ -434,24 +443,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
-    }
-
-    public List<ScimUser> getScimUsers(
-            final String filter,
-            final String sortBy,
-            final String sortOrder
-    ) {
-        final List<ScimUser> result;
-        try {
-            result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), identityZoneManager.getCurrentIdentityZoneId());
-        } catch (final IllegalArgumentException e) {
-            String msg = "Invalid filter expression: [" + filter + "]";
-            if (StringUtils.hasText(sortBy)) {
-                msg += " [" + sortBy + "]";
-            }
-            throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
-        }
-        return result;
     }
 
     @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)

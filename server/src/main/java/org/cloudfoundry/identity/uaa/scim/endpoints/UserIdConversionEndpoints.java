@@ -1,22 +1,18 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static java.util.Collections.emptyList;
 import static java.util.stream.Collectors.toList;
-import static java.util.stream.Collectors.toSet;
 
 import javax.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
@@ -46,21 +42,20 @@ import com.unboundid.scim.sdk.SCIMFilter;
 public class UserIdConversionEndpoints implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private final IdentityProviderProvisioning identityProviderProvisioning;
+    private final ScimUserProvisioning scimUserProvisioning;
     private final SecurityContextAccessor securityContextAccessor;
     private final ScimUserEndpoints scimUserEndpoints;
-
-    private boolean enabled;
+    private final boolean enabled;
 
     public UserIdConversionEndpoints(
-            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
             final SecurityContextAccessor securityContextAccessor,
             final ScimUserEndpoints scimUserEndpoints,
+            final @Qualifier("scimUserProvisioning") ScimUserProvisioning scimUserProvisioning,
             final @Value("${scim.userids_enabled:true}") boolean enabled
     ) {
-        this.identityProviderProvisioning = identityProviderProvisioning;
         this.securityContextAccessor = securityContextAccessor;
         this.scimUserEndpoints = scimUserEndpoints;
+        this.scimUserProvisioning = scimUserProvisioning;
         this.enabled = enabled;
     }
 
@@ -92,7 +87,13 @@ public class UserIdConversionEndpoints implements InitializingBean {
         checkFilter(filter);
 
         // get all users for the given filter and the current page
-        final List<ScimUser> filteredUsers = getFilteredScimUsers(filter, sortOrder, includeInactive);
+        final List<ScimUser> filteredUsers = scimUserProvisioning.retrieveByScimFilter(
+                filter,
+                includeInactive,
+                "userName",
+                sortOrder.equalsIgnoreCase("ascending"),
+                IdentityZoneHolder.getCurrentZoneId()
+        );
         final List<ScimUser> usersCurrentPage = UaaPagingUtils.subList(filteredUsers, startIndex, count);
 
         // map to result structure
@@ -115,30 +116,6 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 ),
                 HttpStatus.OK
         );
-    }
-
-    private List<ScimUser> getFilteredScimUsers(
-            final String filter,
-            final String sortOrder,
-            final boolean includeInactive
-    ) {
-        final List<ScimUser> filteredScimUsers = scimUserEndpoints.getScimUsers(filter, "userName", sortOrder);
-
-        if (includeInactive) {
-            return filteredScimUsers;
-        }
-
-        // remove users from inactive IdPs
-        final List<IdentityProvider> activeIdentityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId());
-        if (activeIdentityProviders.isEmpty()) {
-            return emptyList();
-        }
-        final Set<String> originsOfActiveIdps = activeIdentityProviders.stream()
-                .map(IdentityProvider::getOriginKey)
-                .collect(toSet());
-        return filteredScimUsers.stream()
-                .filter(scimUser -> originsOfActiveIdps.contains(scimUser.getOrigin()))
-                .collect(toList());
     }
 
     @ExceptionHandler
