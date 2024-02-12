@@ -6,7 +6,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -164,7 +163,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 if (FIELD_ID.equalsIgnoreCase(name) ||
                         FIELD_USERNAME.equalsIgnoreCase(name)) {
                     return true;
-                } else if (OriginKeys.ORIGIN.equalsIgnoreCase(name)) {
+                } else if (FIELD_ORIGIN.equalsIgnoreCase(name)) {
                     return false;
                 } else {
                     throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
