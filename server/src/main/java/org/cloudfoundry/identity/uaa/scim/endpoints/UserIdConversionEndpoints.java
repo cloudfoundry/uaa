@@ -40,6 +40,10 @@ import com.unboundid.scim.sdk.SCIMFilter;
 
 @Controller
 public class UserIdConversionEndpoints implements InitializingBean {
+    private static final String FIELD_USERNAME = "userName";
+    private static final String FIELD_ID = "id";
+    private static final String FIELD_ORIGIN = "origin";
+
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final ScimUserProvisioning scimUserProvisioning;
@@ -90,7 +94,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         final List<ScimUser> filteredUsers = scimUserProvisioning.retrieveByScimFilter(
                 filter,
                 includeInactive,
-                "userName",
+                FIELD_USERNAME,
                 sortOrder.equalsIgnoreCase("ascending"),
                 IdentityZoneHolder.getCurrentZoneId()
         );
@@ -99,9 +103,9 @@ public class UserIdConversionEndpoints implements InitializingBean {
         // map to result structure
         final List<Map<String, String>> result = usersCurrentPage.stream()
                 .map(scimUser -> Map.of(
-                        "id", scimUser.getId(),
-                        "userName", scimUser.getUserName(),
-                        "origin", scimUser.getOrigin()
+                        FIELD_ID, scimUser.getId(),
+                        FIELD_USERNAME, scimUser.getUserName(),
+                        FIELD_ORIGIN, scimUser.getOrigin()
                 ))
                 .collect(toList());
 
@@ -111,7 +115,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
                         startIndex,
                         count,
                         filteredUsers.size(),
-                        new String[]{"id", "userName", "origin"},
+                        new String[]{FIELD_ID, FIELD_USERNAME, FIELD_ORIGIN},
                         Arrays.asList(ScimCore.SCHEMAS)
                 ),
                 HttpStatus.OK
@@ -156,8 +160,8 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 return containsIdOrUserNameClause(filter.getFilterComponents().get(1)) || resultLeftOperand;
             case EQUALITY:
                 String name = filter.getFilterAttribute().getAttributeName();
-                if ("id".equalsIgnoreCase(name) ||
-                        "userName".equalsIgnoreCase(name)) {
+                if (FIELD_ID.equalsIgnoreCase(name) ||
+                        FIELD_USERNAME.equalsIgnoreCase(name)) {
                     return true;
                 } else if (OriginKeys.ORIGIN.equalsIgnoreCase(name)) {
                     return false;
