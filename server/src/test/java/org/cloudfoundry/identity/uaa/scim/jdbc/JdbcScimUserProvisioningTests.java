@@ -235,27 +235,77 @@ class JdbcScimUserProvisioningTests {
     }
 
     @Test
-    void testRetrieveByScimFilter() {
-        final String origin1 = randomString();
-        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, origin1);
+    void retrieveByScimFilter_OnlyActive() {
+        final String originActive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originActive, true);
 
-        final String origin2 = randomString();
-        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, origin2);
+        final String originInactive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originInactive, false);
 
         final ScimUser user1 = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user1.addEmail("jo@blah.com");
-        user1.setOrigin(origin1);
+        user1.setOrigin(originActive);
         final ScimUser created1 = jdbcScimUserProvisioning.createUser(user1, "j7hyqpassX", currentIdentityZoneId);
 
         final ScimUser user2 = new ScimUser(null, "jo2@foo.com", "Jo", "User");
         user2.addEmail("jo2@blah.com");
-        user2.setOrigin(origin2);
+        user2.setOrigin(originInactive);
         final ScimUser created2 = jdbcScimUserProvisioning.createUser(user2, "j7hyqpassX", currentIdentityZoneId);
 
         final Function<String, List<String>> retrieveByScimFilter = (scimFilter) -> {
             final List<ScimUser> result = jdbcScimUserProvisioning.retrieveByScimFilter(
                     scimFilter,
                     false,
+                    "userName",
+                    true,
+                    currentIdentityZoneId
+            );
+            Assertions.assertThat(result).isNotNull();
+            final List<String> usernames = result.stream().map(ScimUser::getUserName).collect(toList());
+            Assertions.assertThat(usernames).isSorted();
+            return usernames;
+        };
+
+        // case 1: should return only user 1
+        String filter = String.format("id eq '%s' or origin eq '%s'", created1.getId(), created2.getOrigin());
+        List<String> usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames)
+                .hasSize(1)
+                .contains(created1.getUserName());
+
+        // case 2: should return empty list
+        filter = String.format("origin eq '%s'", created2.getOrigin());
+        usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames).isEmpty();
+
+        // case 3: should return empty list (filtered by origin and ID)
+        filter = String.format("origin eq '%s' and id eq '%s'", created2.getOrigin(), created2.getId());
+        usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames).isEmpty();
+    }
+
+    @Test
+    void retrieveByScimFilter_IncludeInactive() {
+        final String originActive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originActive, true);
+
+        final String originInactive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originInactive, false);
+
+        final ScimUser user1 = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user1.addEmail("jo@blah.com");
+        user1.setOrigin(originActive);
+        final ScimUser created1 = jdbcScimUserProvisioning.createUser(user1, "j7hyqpassX", currentIdentityZoneId);
+
+        final ScimUser user2 = new ScimUser(null, "jo2@foo.com", "Jo", "User");
+        user2.addEmail("jo2@blah.com");
+        user2.setOrigin(originInactive);
+        final ScimUser created2 = jdbcScimUserProvisioning.createUser(user2, "j7hyqpassX", currentIdentityZoneId);
+
+        final Function<String, List<String>> retrieveByScimFilter = (scimFilter) -> {
+            final List<ScimUser> result = jdbcScimUserProvisioning.retrieveByScimFilter(
+                    scimFilter,
+                    true,
                     "userName",
                     true,
                     currentIdentityZoneId
@@ -1269,7 +1319,11 @@ class JdbcScimUserProvisioningTests {
     }
 
     private static void addIdentityProvider(JdbcTemplate jdbcTemplate, String idzId, String originKey) {
-        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,?,?,?,'UNKNOWN')", UUID.randomUUID().toString(), idzId, originKey, originKey);
+        addIdentityProvider(jdbcTemplate, idzId, originKey, true);
+    }
+
+    private static void addIdentityProvider(JdbcTemplate jdbcTemplate, String idzId, String originKey, boolean active) {
+        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type,active) values (?,?,?,?,'UNKNOWN',?)", UUID.randomUUID().toString(), idzId, originKey, originKey, active);
     }
 
     private String randomString() {
