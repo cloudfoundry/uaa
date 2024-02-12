@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static java.util.stream.Collectors.toList;
-
 import javax.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
@@ -107,7 +105,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
                         FIELD_USERNAME, scimUser.getUserName(),
                         FIELD_ORIGIN, scimUser.getOrigin()
                 ))
-                .collect(toList());
+                .toList();
 
         return new ResponseEntity<>(
                 SearchResultsFactory.buildSearchResultFrom(
