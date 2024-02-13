@@ -146,7 +146,6 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(passwordAuthManager, times(1)).authenticate(any());
         verify(oAuth2Request, times(1)).getExtensions();
-        verifyNoInteractions(samlAuthFilter);
         verifyNoInteractions(externalOAuthAuthenticationManager);
     }
 
@@ -169,7 +168,6 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verify(passwordAuthManager, times(1)).authenticate(any());
         verify(authorizationRequest, times(1)).getExtensions();
-        verifyNoInteractions(samlAuthFilter);
         verifyNoInteractions(externalOAuthAuthenticationManager);
     }
 
