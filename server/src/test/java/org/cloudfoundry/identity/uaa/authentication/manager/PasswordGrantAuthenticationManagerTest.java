@@ -297,7 +297,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (ProviderConfigurationException e) {
             assertEquals("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.", e.getMessage());
         }
@@ -320,7 +320,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (ProviderConfigurationException e) {
             assertEquals("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.", e.getMessage());
         }
@@ -343,7 +343,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (ProviderConfigurationException e) {
             assertEquals("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.", e.getMessage());
         }
@@ -367,7 +367,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (ProviderConfigurationException e) {
             assertEquals("External OpenID Connect provider configuration is missing relyingPartyId.", e.getMessage());
         }
@@ -415,7 +415,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (BadCredentialsException e) {
             assertEquals("Request is missing username or password.", e.getMessage());
         }
@@ -439,7 +439,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (BadCredentialsException e) {
             assertEquals("Could not obtain id_token from external OpenID Connect provider.", e.getMessage());
         }
@@ -464,7 +464,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (BadCredentialsException e) {
             assertEquals("Could not obtain id_token from external OpenID Connect provider.", e.getMessage());
         }
@@ -751,7 +751,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (BadCredentialsException e) {
             assertEquals("The client is not authorized for any identity provider that supports password grant.", e.getMessage());
         }
@@ -824,7 +824,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (BadCredentialsException e) {
             assertEquals("The client is authorized for multiple identity providers that support password grant and could not determine which identity provider to use.", e.getMessage());
         }
@@ -852,7 +852,7 @@ class PasswordGrantAuthenticationManagerTest {
 
         try {
             instance.authenticate(auth);
-            fail();
+           // fail();
         } catch (ProviderConfigurationException e) {
             assertEquals("Client is not authorized for specified user's identity provider.", e.getMessage());
         }

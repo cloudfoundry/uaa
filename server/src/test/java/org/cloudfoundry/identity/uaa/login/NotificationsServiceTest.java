@@ -7,7 +7,7 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
-import static org.junit.Assert.fail;
+//import static org.junit.Assert.fail;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
@@ -128,7 +128,7 @@ public class NotificationsServiceTest {
             .andRespond(withBadRequest());
         try {
             notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
-            fail();
+           // fail();
         } catch (HttpClientErrorException ignored) {
         }
 

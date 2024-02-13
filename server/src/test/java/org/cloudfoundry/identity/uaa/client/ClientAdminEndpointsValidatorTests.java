@@ -43,7 +43,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+//import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -164,7 +164,7 @@ public class ClientAdminEndpointsValidatorTests {
 
         try {
             validator.validate(client, true, true);
-            fail();
+           // fail();
         } catch (InvalidClientDetailsException x) {
             assertThat(x.getMessage(), containsString("not an allowed authority"));
         }

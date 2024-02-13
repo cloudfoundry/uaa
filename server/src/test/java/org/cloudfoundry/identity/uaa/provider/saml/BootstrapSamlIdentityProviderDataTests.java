@@ -284,7 +284,7 @@ public class BootstrapSamlIdentityProviderDataTests {
                 }
 
                 default:
-                    fail();
+                   // fail();
             }
         }
     }

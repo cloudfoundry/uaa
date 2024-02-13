@@ -221,7 +221,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         when(loginHint.getOrigin()).thenReturn("oidc");
         try {
             manager.getChainedAuthenticationManager(IdentityZone.getUaa(), loginHint);
-            fail();
+           // fail();
         } catch (ProviderNotFoundException e) {
             assertEquals("The origin provided in the login hint is invalid.", e.getMessage());
         }

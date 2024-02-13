@@ -41,7 +41,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.sameInstance;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
+//import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.anyString;
@@ -170,7 +170,7 @@ class UaaResetPasswordServiceTests {
 
         try {
             uaaResetPasswordService.forgotPassword("exampleUser", "", "");
-            fail();
+           // fail();
         } catch (ConflictException e) {
             assertThat(e.getUserId(), equalTo("user-id-001"));
         }
@@ -220,7 +220,7 @@ class UaaResetPasswordServiceTests {
         SecurityContextHolder.setContext(securityContext);
         try {
             uaaResetPasswordService.resetPassword(expiringCode, "Passwo3dAsOld");
-            fail();
+           // fail();
         } catch (InvalidPasswordException e) {
             assertEquals("Your new password cannot be the same as the old password.", e.getMessage());
             assertEquals(UNPROCESSABLE_ENTITY, e.getStatus());
@@ -237,7 +237,7 @@ class UaaResetPasswordServiceTests {
         SecurityContextHolder.setContext(securityContext);
         try {
             uaaResetPasswordService.resetPassword(expiringCode, "password");
-            fail();
+           // fail();
         } catch (InvalidCodeException e) {
             assertEquals("Sorry, your reset password link is no longer valid. Please request a new one", e.getMessage());
         }

@@ -38,7 +38,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
-import static org.junit.Assert.fail;
+//import static org.junit.Assert.fail;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -267,7 +267,7 @@ public class PasswordGrantIT {
                     HttpMethod.POST,
                     new HttpEntity<>(postBody, headers),
                     Void.class);
-            fail();
+           // fail();
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }

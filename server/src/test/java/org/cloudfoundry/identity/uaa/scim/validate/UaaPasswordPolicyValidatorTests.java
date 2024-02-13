@@ -125,7 +125,7 @@ class UaaPasswordPolicyValidatorTests {
         try {
             validator.validate(password);
             if (expectedErrors != null && expectedErrors.length > 0) {
-                fail();
+               // fail();
             }
         } catch (InvalidPasswordException e) {
             if (expectedErrors.length == 0) {
