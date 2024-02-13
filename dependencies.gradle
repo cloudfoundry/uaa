@@ -16,7 +16,7 @@ versions.springSecuritySamlVersion = "1.0.10.RELEASE"
 versions.tomcatCargoVersion = "9.0.85"
 versions.guavaVersion = "33.0.0-jre"
 versions.seleniumVersion = "4.13.0"
-versions.braveVersion = "6.0.0"
+versions.braveVersion = "6.0.1"
 versions.jacksonVersion = "2.16.1"
 versions.jsonPathVersion = "2.9.0"
 
