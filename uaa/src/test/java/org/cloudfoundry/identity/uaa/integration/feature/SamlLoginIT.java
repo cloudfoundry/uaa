@@ -361,7 +361,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testSingleLogoutWithLogoutRedirect() {
+    public void testSingleLogoutWithNoLogoutUrlOnIDP_withLogoutRedirect() {
         String zoneId = "testzone2";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
