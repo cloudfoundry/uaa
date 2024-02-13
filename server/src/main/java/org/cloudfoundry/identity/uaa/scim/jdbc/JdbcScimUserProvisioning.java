@@ -31,9 +31,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
@@ -195,6 +197,32 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
         final SimpleSearchQueryConverter queryConverter = new SimpleSearchQueryConverter();
         validateOrderBy(queryConverter.map(sortBy));
+
+        /* since the two tables used in the query ('users' and 'identity_provider') have columns with identical names,
+         * we must ensure that the columns of 'users' are used in the WHERE clause generated for the SCIM filter */
+        final AttributeNameMapper attributeNameMapper = new AttributeNameMapper() {
+            @Override
+            public String mapToInternal(final String attr) {
+                // in the later query, 'users' will have the alias 'u'
+                return "u." + attr;
+            }
+
+            @Override
+            public String[] mapToInternal(final String[] attr) {
+                return Stream.of(attr).map(this::mapToInternal).toArray(String[]::new);
+            }
+
+            @Override
+            public String mapFromInternal(final String attr) {
+                return attr.substring(2);
+            }
+
+            @Override
+            public String[] mapFromInternal(final String[] attr) {
+                return Stream.of(attr).map(this::mapFromInternal).toArray(String[]::new);
+            }
+        };
+        queryConverter.setAttributeNameMapper(attributeNameMapper);
 
         // build WHERE clause
         final ProcessedFilter where = queryConverter.convert(filter, sortBy, ascending, zoneId);
