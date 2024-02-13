@@ -60,7 +60,6 @@ import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -83,8 +82,6 @@ import org.openqa.selenium.Cookie;
 import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.opensaml.saml2.core.AuthnContext;
-import org.opensaml.xml.ConfigurationException;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SAML_AUTH_SOURCE;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
@@ -150,17 +147,10 @@ public class SamlLoginIT {
     TestClient testClient;
 
     ServerRunning serverRunning = ServerRunning.isRunning();
-    private static SamlTestUtils samlTestUtils;
 
     @BeforeClass
-    public static void setupSamlUtils() {
+    public static void checkZoneDNSSupport() {
         assertTrue("Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-        samlTestUtils = new SamlTestUtils();
-        try {
-            samlTestUtils.initialize();
-        } catch (ConfigurationException e) {
-            samlTestUtils.initializeSimple();
-        }
     }
 
     @Before
