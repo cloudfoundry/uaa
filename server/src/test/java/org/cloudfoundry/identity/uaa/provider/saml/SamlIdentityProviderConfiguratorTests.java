@@ -150,27 +150,27 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @Test
     public void testAddNullProvider() {
-        fail();
-//        Assertions.assertThrows(NullPointerException.class, () -> configurator.validateSamlIdentityProviderDefinition(null));
+        Assertions.assertThrows(NullPointerException.class, () -> configurator.validateSamlIdentityProviderDefinition(null));
     }
 
-//    @Test
-//    public void testAddNullProviderAlias() {
-//        singleAdd.setIdpEntityAlias(null);
-//
-//        Assertions.assertThrows(NullPointerException.class, () -> {
-//            configurator.validateSamlIdentityProviderDefinition(singleAdd);
-//        });
-//    }
-//
-//    @Test
-//    public void testGetEntityID() throws Exception {
-//
-//        Timer t = new Timer();
-//        bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
-//        bootstrap.afterPropertiesSet();
-//        for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
-//            switch (def.getIdpEntityAlias()) {
+    @Test
+    public void testAddNullProviderAlias() {
+        singleAdd.setIdpEntityAlias(null);
+
+        Assertions.assertThrows(NullPointerException.class, () -> {
+            configurator.validateSamlIdentityProviderDefinition(singleAdd);
+        });
+    }
+
+    @Test
+    @Disabled("SAML test doesn't compile")
+    public void testGetEntityID() throws Exception {
+
+        Timer t = new Timer();
+        bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
+        bootstrap.afterPropertiesSet();
+        for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
+            switch (def.getIdpEntityAlias()) {
 //                case "okta-local": {
 //                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
 //                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJW", provider.getEntityID());
@@ -197,92 +197,96 @@ public class SamlIdentityProviderConfiguratorTests {
 //                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJW", provider.getEntityID());
 //                    break;
 //                }
-//                default:
-//                    fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
-//            }
-//        }
-//        t.cancel();
-//    }
-//
-//
-//    @Test
-//    public void testIdentityProviderDefinitionSocketFactoryTest() {
-//        singleAdd.setMetaDataLocation("http://www.test.org/saml/metadata");
-//        assertNull(singleAdd.getSocketFactoryClassName());
-//        singleAdd.setMetaDataLocation("https://www.test.org/saml/metadata");
-//        assertNull(singleAdd.getSocketFactoryClassName());
+                default:
+                    fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
+            }
+        }
+        t.cancel();
+    }
+
+
+    @Test
+    @Disabled("SAML test doesn't compile")
+    public void testIdentityProviderDefinitionSocketFactoryTest() {
+        singleAdd.setMetaDataLocation("http://www.test.org/saml/metadata");
+        assertNull(singleAdd.getSocketFactoryClassName());
+        singleAdd.setMetaDataLocation("https://www.test.org/saml/metadata");
+        assertNull(singleAdd.getSocketFactoryClassName());
 //        singleAdd.setSocketFactoryClassName(TLSProtocolSocketFactory.class.getName());
-//        assertNull(singleAdd.getSocketFactoryClassName());
-//    }
-//
-//    protected List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> clientIdpAliases) {
-//        SamlIdentityProviderDefinition def1 = new SamlIdentityProviderDefinition()
-//          .setMetaDataLocation(xml)
-//          .setIdpEntityAlias("simplesamlphp-url")
-//          .setNameID("sample-nameID")
-//          .setAssertionConsumerIndex(1)
-//          .setMetadataTrustCheck(true)
-//          .setLinkText("sample-link-test")
-//          .setIconUrl("sample-icon-url")
-//          .setZoneId("other-zone-id");
-//        IdentityProvider idp1 = mock(IdentityProvider.class);
-//        when(idp1.getType()).thenReturn(OriginKeys.SAML);
-//        when(idp1.getConfig()).thenReturn(def1);
-//
-//        IdentityProvider idp2 = mock(IdentityProvider.class);
-//        when(idp2.getType()).thenReturn(OriginKeys.SAML);
-//        when(idp2.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-2"));
-//
-//        IdentityProvider idp3 = mock(IdentityProvider.class);
-//        when(idp3.getType()).thenReturn(OriginKeys.SAML);
-//        when(idp3.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-3"));
-//
-//        when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp1, idp2));
-//
-//        return configurator.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
-//    }
-//
-//    @Test
-//    public void testGetIdentityProviderDefinititonsForAllowedProviders() {
-//        List<String> clientIdpAliases = asList("simplesamlphp-url", "okta-local-2");
-//        List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
-//        assertEquals(2, clientIdps.size());
-//        assertTrue(clientIdpAliases.contains(clientIdps.get(0).getIdpEntityAlias()));
-//        assertTrue(clientIdpAliases.contains(clientIdps.get(1).getIdpEntityAlias()));
-//    }
-//
-//    @Test
-//    public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() {
-//        List<String> clientIdpAliases = Collections.singletonList("non-existent");
-//        List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
-//        assertEquals(0, clientIdps.size());
-//    }
-//
-//    @Rule
-//    public ExpectedException expectedException = ExpectedException.none();
-//
-//    @BeforeEach
-//    public void setupHttp() {
-//        slowHttpServer = new SlowHttpServer();
-//    }
-//
-//    @AfterEach
-//    public void stopHttp() {
-//        slowHttpServer.stop();
-//    }
-//
-//    @Test
-//    public void shouldTimeoutWhenFetchingMetadataURL() {
-//        slowHttpServer.run();
-//
-//        expectedException.expect(NullPointerException.class);
-//
-//        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-//        def.setMetaDataLocation("https://localhost:23439");
-//        def.setSkipSslValidation(true);
-//
-//        Assertions.assertTimeout(ofSeconds(1), () -> {
+        assertNull(singleAdd.getSocketFactoryClassName());
+    }
+
+    protected List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> clientIdpAliases) {
+        SamlIdentityProviderDefinition def1 = new SamlIdentityProviderDefinition()
+          .setMetaDataLocation(xml)
+          .setIdpEntityAlias("simplesamlphp-url")
+          .setNameID("sample-nameID")
+          .setAssertionConsumerIndex(1)
+          .setMetadataTrustCheck(true)
+          .setLinkText("sample-link-test")
+          .setIconUrl("sample-icon-url")
+          .setZoneId("other-zone-id");
+        IdentityProvider idp1 = mock(IdentityProvider.class);
+        when(idp1.getType()).thenReturn(OriginKeys.SAML);
+        when(idp1.getConfig()).thenReturn(def1);
+
+        IdentityProvider idp2 = mock(IdentityProvider.class);
+        when(idp2.getType()).thenReturn(OriginKeys.SAML);
+        when(idp2.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-2"));
+
+        IdentityProvider idp3 = mock(IdentityProvider.class);
+        when(idp3.getType()).thenReturn(OriginKeys.SAML);
+        when(idp3.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-3"));
+
+        when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp1, idp2));
+
+        return configurator.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
+    }
+
+    @Test
+    @Disabled("SAML test fails")
+    public void testGetIdentityProviderDefinititonsForAllowedProviders() {
+        List<String> clientIdpAliases = asList("simplesamlphp-url", "okta-local-2");
+        List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
+        assertEquals(2, clientIdps.size());
+        assertTrue(clientIdpAliases.contains(clientIdps.get(0).getIdpEntityAlias()));
+        assertTrue(clientIdpAliases.contains(clientIdps.get(1).getIdpEntityAlias()));
+    }
+
+    @Test
+    @Disabled("SAML test fails")
+    public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() {
+        List<String> clientIdpAliases = Collections.singletonList("non-existent");
+        List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
+        assertEquals(0, clientIdps.size());
+    }
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
+
+    @BeforeEach
+    public void setupHttp() {
+        slowHttpServer = new SlowHttpServer();
+    }
+
+    @AfterEach
+    public void stopHttp() {
+        slowHttpServer.stop();
+    }
+
+    @Test
+    @Disabled("SAML test doesn't compile")
+    public void shouldTimeoutWhenFetchingMetadataURL() {
+        slowHttpServer.run();
+
+        expectedException.expect(NullPointerException.class);
+
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setMetaDataLocation("https://localhost:23439");
+        def.setSkipSslValidation(true);
+
+        Assertions.assertTimeout(ofSeconds(1), () -> {
 //            Assertions.assertThrows(NullPointerException.class, () -> configurator.configureURLMetadata(def));
-//        });
-//    }
+        });
+    }
 }
