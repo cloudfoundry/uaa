@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
-import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -25,7 +24,6 @@ public class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     @Disabled("SAML test doesn't compile")
     void getTokenUsingSaml2BearerGrant() throws Exception {
-        fail();
         SamlTestUtils samlTestUtils = new SamlTestUtils();
 //        samlTestUtils.initializeSimple();
 
