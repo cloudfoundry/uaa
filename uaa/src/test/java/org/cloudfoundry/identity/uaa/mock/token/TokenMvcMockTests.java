@@ -81,7 +81,6 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -105,7 +104,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -175,12 +173,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private String BADSECRET = "badsecret";
     protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    private static SamlTestUtils samlTestUtils = new SamlTestUtils();
-
-    @BeforeAll
-    static void initializeSamlUtils() {
-        samlTestUtils.initializeSimple();
-    }
 
     @BeforeEach
     void setup() {
