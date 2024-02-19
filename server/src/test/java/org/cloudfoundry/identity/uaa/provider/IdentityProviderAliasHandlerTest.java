@@ -33,198 +33,304 @@ class IdentityProviderAliasHandlerTest {
     private IdentityZoneProvisioning identityZoneProvisioning;
     @Mock
     private IdentityProviderProvisioning identityProviderProvisioning;
-    private IdentityProviderAliasHandler aliasHandler;
-
-    @BeforeEach
-    void setUp() {
-        aliasHandler = new IdentityProviderAliasHandler(
-                identityZoneProvisioning,
-                identityProviderProvisioning,
-                true
-        );
-    }
 
     @Nested
     class Validation {
-        @Nested
-        class ExistingAlias {
-            private static final String CUSTOM_ZONE_ID = UUID.randomUUID().toString();
+        private static final String CUSTOM_ZONE_ID = UUID.randomUUID().toString();
 
-            @Test
-            void shouldThrow_WhenExistingIdpHasAliasZidSetButNotAliasId() {
-                final IdentityProvider<?> existingIdp = getExampleIdp(null, CUSTOM_ZONE_ID);
+        abstract class AliasFeatureSwitchTestBase {
+            protected IdentityProviderAliasHandler aliasHandler;
 
-                final IdentityProvider<?> requestBody = getExampleIdp(null, CUSTOM_ZONE_ID);
-                requestBody.setName("some-new-name");
-
-                assertThatIllegalStateException().isThrownBy(() ->
-                        aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)
+            @BeforeEach
+            void setUp() {
+                final boolean aliasEntitiesEnabled = isAliasFeatureEnabled();
+                this.aliasHandler = new IdentityProviderAliasHandler(
+                        identityZoneProvisioning,
+                        identityProviderProvisioning,
+                        aliasEntitiesEnabled
                 );
             }
 
-            @Test
-            void shouldReturnFalse_WhenAliasPropertiesAreChanged() {
-                final String initialAliasId = UUID.randomUUID().toString();
-                final String initialAliasZid = CUSTOM_ZONE_ID;
+            protected abstract boolean isAliasFeatureEnabled();
+        }
 
-                final IdentityProvider<?> existingIdp = getExampleIdp(initialAliasId, initialAliasZid);
+        @Nested
+        class ExistingAlias {
+            @Nested
+            class AliasFeatureEnabled extends AliasFeatureSwitchTestBase {
+                @Override
+                protected boolean isAliasFeatureEnabled() {
+                    return true;
+                }
 
-                final IdentityProvider<?> requestBody = getExampleIdp(initialAliasId, initialAliasZid);
-                requestBody.setName("some-new-name");
+                @Test
+                void shouldThrow_AliasIdEmptyInExisting() {
+                    final IdentityProvider<?> existingIdp = getExampleIdp(null, CUSTOM_ZONE_ID);
 
-                final Runnable resetRequestBody = () -> {
-                    requestBody.setAliasId(initialAliasId);
-                    requestBody.setAliasZid(initialAliasZid);
-                };
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, CUSTOM_ZONE_ID);
+                    requestBody.setName("some-new-name");
 
-                // (1) only alias ID changed
-                requestBody.setAliasId(UUID.randomUUID().toString());
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-                resetRequestBody.run();
+                    assertThatIllegalStateException().isThrownBy(() ->
+                            aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)
+                    );
+                }
 
-                // (2) only alias ZID changed
-                requestBody.setAliasZid(UUID.randomUUID().toString());
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-                resetRequestBody.run();
+                @Test
+                void shouldReturnFalse_AliasPropsChangedInReqBody() {
+                    final String initialAliasId = UUID.randomUUID().toString();
+                    final String initialAliasZid = CUSTOM_ZONE_ID;
 
-                // (3) both changed
-                requestBody.setAliasId(UUID.randomUUID().toString());
-                requestBody.setAliasZid(UUID.randomUUID().toString());
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-                resetRequestBody.run();
+                    final IdentityProvider<?> existingIdp = getExampleIdp(initialAliasId, initialAliasZid);
 
-                // (4) only alias ID removed
-                requestBody.setAliasId(null);
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-                resetRequestBody.run();
+                    final IdentityProvider<?> requestBody = getExampleIdp(initialAliasId, initialAliasZid);
+                    requestBody.setName("some-new-name");
 
-                // (5) only alias ZID removed
-                requestBody.setAliasZid(null);
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-                resetRequestBody.run();
+                    final Runnable resetRequestBody = () -> {
+                        requestBody.setAliasId(initialAliasId);
+                        requestBody.setAliasZid(initialAliasZid);
+                    };
 
-                // (6) both removed
-                requestBody.setAliasId(null);
-                requestBody.setAliasZid(null);
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                    // (1) only alias ID changed
+                    requestBody.setAliasId(UUID.randomUUID().toString());
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                    resetRequestBody.run();
+
+                    // (2) only alias ZID changed
+                    requestBody.setAliasZid(UUID.randomUUID().toString());
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                    resetRequestBody.run();
+
+                    // (3) both changed
+                    requestBody.setAliasId(UUID.randomUUID().toString());
+                    requestBody.setAliasZid(UUID.randomUUID().toString());
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                    resetRequestBody.run();
+
+                    // (4) only alias ID removed
+                    requestBody.setAliasId(null);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                    resetRequestBody.run();
+
+                    // (5) only alias ZID removed
+                    requestBody.setAliasZid(null);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                    resetRequestBody.run();
+
+                    // (6) both removed
+                    requestBody.setAliasId(null);
+                    requestBody.setAliasZid(null);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                }
+
+                @Test
+                void shouldReturnTrue_AliasPropsUnchangedInReqBody() {
+                    final String aliasId = UUID.randomUUID().toString();
+                    final IdentityProvider<?> existingIdp = getExampleIdp(aliasId, CUSTOM_ZONE_ID);
+
+                    final IdentityProvider<?> requestBody = getExampleIdp(aliasId, CUSTOM_ZONE_ID);
+                    requestBody.setName("some-new-name");
+
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isTrue();
+                }
             }
 
-            @Test
-            void shouldReturnTrue_AliasPropertiesUnchanged() {
-                final String aliasId = UUID.randomUUID().toString();
-                final IdentityProvider<?> existingIdp = getExampleIdp(aliasId, CUSTOM_ZONE_ID);
+            @Nested
+            class AliasFeatureDisabled extends AliasFeatureSwitchTestBase {
+                @Override
+                protected boolean isAliasFeatureEnabled() {
+                    return false;
+                }
 
-                final IdentityProvider<?> requestBody = getExampleIdp(aliasId, CUSTOM_ZONE_ID);
-                requestBody.setName("some-new-name");
+                @Test
+                void shouldReturnFalse_NotBothAliasPropsEmptyInReqBody() {
+                    final String initialAliasId = UUID.randomUUID().toString();
+                    final String initialAliasZid = CUSTOM_ZONE_ID;
 
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isTrue();
+                    final IdentityProvider<?> existingIdp = getExampleIdp(initialAliasId, initialAliasZid);
+
+                    // (1) both alias props left unchanged
+                    IdentityProvider<?> requestBody = getExampleIdp(initialAliasId, initialAliasZid);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+
+                    // (2) alias ID unchanged, alias ZID changed
+                    requestBody = getExampleIdp(initialAliasId, "some-other-zid");
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+
+                    // (3) alias ID unchanged, alias ZID removed
+                    requestBody = getExampleIdp(initialAliasId, null);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+
+                    // (4) alias ID changed, alias ZID unchanged
+                    requestBody = getExampleIdp("some-other-id", initialAliasZid);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+
+                    // (5) alias ID changed, alias ZID changed
+                    requestBody = getExampleIdp("some-other-id", "some-other-zid");
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+
+                    // (6) alias ID changed, alias ZID removed
+                    requestBody = getExampleIdp("some-other-id", null);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+
+                    // (7) alias ID removed, alias ZID unchanged
+                    requestBody = getExampleIdp(null, initialAliasZid);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+
+                    // (8) alias ID removed, alias ZID changed
+                    requestBody = getExampleIdp(null, "some-other-zid");
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                }
+
+                @Test
+                void shouldReturnTrue_BothAliasPropsEmptyInReqBody() {
+                    final IdentityProvider<?> existingIdp = getExampleIdp(
+                            UUID.randomUUID().toString(),
+                            CUSTOM_ZONE_ID
+                    );
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, null);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isTrue();
+                }
             }
         }
 
         @Nested
         class NoExistingAlias {
+            abstract class NoExistingAliasTestBase extends AliasFeatureSwitchTestBase {
+                @ParameterizedTest
+                @MethodSource("existingIdpArgumentNoExistingAlias")
+                void shouldReturnFalse_AliasIdSetInReqBody(final IdentityProvider<?> existingIdp) {
+                    final IdentityProvider<?> requestBody = getExampleIdp(UUID.randomUUID().toString(), null);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                }
 
-            @ParameterizedTest
-            @MethodSource("existingIdpArgument")
-            void shouldReturnFalse_WhenAliasIdIsSet(final IdentityProvider<?> existingIdp) {
-                final IdentityProvider<?> requestBody = getExampleIdp(UUID.randomUUID().toString(), null);
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                @ParameterizedTest
+                @MethodSource("existingIdpArgumentNoExistingAlias")
+                void shouldReturnTrue_BothAliasPropsEmptyInReqBody(final IdentityProvider<?> existingIdp) {
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, null);
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isTrue();
+                }
+
+                /**
+                 * Provider for the 'existingIdp' argument for cases where no alias should exist, i.e., either an
+                 * original IdP with empty alias properties or no existing IdP.
+                 */
+                protected static Stream<IdentityProvider<?>> existingIdpArgumentNoExistingAlias() {
+                    return Stream.of(
+                            getExampleIdp(null, null), // update of existing IdP without alias
+                            null // creation of new IdP
+                    );
+                }
             }
 
-            @ParameterizedTest
-            @MethodSource("existingIdpArgument")
-            void shouldReturnTrue_WhenBothAliasFieldsAreNotSet(final IdentityProvider<?> existingIdp) {
-                final IdentityProvider<?> requestBody = getExampleIdp(null, null);
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isTrue();
+            @Nested
+            class AliasFeatureEnabled extends NoExistingAliasTestBase {
+                @Override
+                protected boolean isAliasFeatureEnabled() {
+                    return true;
+                }
+
+                @ParameterizedTest
+                @MethodSource("existingIdpArgumentNoExistingAlias")
+                void shouldReturnFalse_AliasZoneDoesNotExist(final IdentityProvider<?> existingIdp) {
+                    final String aliasZid = UUID.randomUUID().toString();
+                    arrangeZoneDoesNotExist(aliasZid);
+
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
+
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                }
+
+                @ParameterizedTest
+                @MethodSource("existingIdpArgumentNoExistingAlias")
+                void shouldReturnFalse_ZidAndAliasZidAreEqual(final IdentityProvider<?> existingIdp) {
+                    final String aliasZid = UUID.randomUUID().toString();
+                    arrangeZoneExists(aliasZid);
+
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
+                    requestBody.setIdentityZoneId(aliasZid);
+
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                }
+
+                @ParameterizedTest
+                @MethodSource("existingIdpArgumentNoExistingAlias")
+                void shouldReturnFalse_NeitherOfZidAndAliasZidIsUaa(final IdentityProvider<?> existingIdp) {
+                    final String aliasZid = UUID.randomUUID().toString();
+                    arrangeZoneExists(aliasZid);
+
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
+                    requestBody.setIdentityZoneId(UUID.randomUUID().toString());
+
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                }
+
+                @ParameterizedTest
+                @MethodSource
+                void shouldReturnFalse_AliasNotSupportedForIdpType(
+                        final IdentityProvider<?> existingIdp,
+                        final String typeAliasNotSupported
+                ) {
+                    final String aliasZid = UUID.randomUUID().toString();
+                    arrangeZoneExists(aliasZid);
+
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
+                    requestBody.setIdentityZoneId(UAA);
+                    requestBody.setType(typeAliasNotSupported);
+
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                }
+
+                private static Stream<Arguments> shouldReturnFalse_AliasNotSupportedForIdpType() {
+                    final Set<String> typesAliasNotSupported = Set.of(UNKNOWN, LDAP, UAA, KEYSTONE);
+                    return existingIdpArgumentNoExistingAlias().flatMap(existingIdpArgument ->
+                            typesAliasNotSupported.stream().map(typeAliasNotSupported ->
+                                    Arguments.of(existingIdpArgument, typeAliasNotSupported)
+                            ));
+                }
+
+                @ParameterizedTest
+                @MethodSource
+                void shouldReturnTrue_AliasSupportedForIdpType(
+                        final IdentityProvider<?> existingIdp,
+                        final String typeAliasSupported
+                ) {
+                    final String aliasZid = UUID.randomUUID().toString();
+                    arrangeZoneExists(aliasZid);
+
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
+                    requestBody.setIdentityZoneId(UAA);
+                    requestBody.setType(typeAliasSupported);
+
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isTrue();
+                }
+
+                private static Stream<Arguments> shouldReturnTrue_AliasSupportedForIdpType() {
+                    return existingIdpArgumentNoExistingAlias().flatMap(existingIdpArgument ->
+                            IDP_TYPES_ALIAS_SUPPORTED.stream().map(typeAliasSupported ->
+                                    Arguments.of(existingIdpArgument, typeAliasSupported)
+                            ));
+                }
             }
 
-            @ParameterizedTest
-            @MethodSource("existingIdpArgument")
-            void shouldReturnFalse_WhenOnlyAliasZidSetButZoneDoesNotExist(final IdentityProvider<?> existingIdp) {
-                final String aliasZid = UUID.randomUUID().toString();
-                arrangeZoneDoesNotExist(aliasZid);
+            @Nested
+            class AliasFeatureDisabled extends NoExistingAliasTestBase {
+                @Override
+                protected boolean isAliasFeatureEnabled() {
+                    return false;
+                }
 
-                final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
+                @Test
+                void shouldReturnFalse_OnlyAliasZidSetInReqBody() {
+                    final String initialAliasZid = CUSTOM_ZONE_ID;
 
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-            }
+                    final IdentityProvider<?> existingIdp = getExampleIdp(
+                            UUID.randomUUID().toString(),
+                            initialAliasZid
+                    );
+                    final IdentityProvider<?> requestBody = getExampleIdp(null, initialAliasZid);
 
-            @ParameterizedTest
-            @MethodSource("existingIdpArgument")
-            void shouldReturnFalse_WhenIdzAndAliasZidAreEqual(final IdentityProvider<?> existingIdp) {
-                final String aliasZid = UUID.randomUUID().toString();
-                arrangeZoneExists(aliasZid);
-
-                final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
-                requestBody.setIdentityZoneId(aliasZid);
-
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-            }
-
-            @ParameterizedTest
-            @MethodSource("existingIdpArgument")
-            void shouldReturnFalse_WhenNeitherIdzNorAliasZidIsUaa(final IdentityProvider<?> existingIdp) {
-                final String aliasZid = UUID.randomUUID().toString();
-                arrangeZoneExists(aliasZid);
-
-                final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
-                requestBody.setIdentityZoneId(UUID.randomUUID().toString());
-
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-            }
-
-            @ParameterizedTest
-            @MethodSource
-            void shouldReturnFalse_WhenAliasIsNotSupportedForIdpType(
-                    final IdentityProvider<?> existingIdp,
-                    final String typeAliasNotSupported
-            ) {
-                final String aliasZid = UUID.randomUUID().toString();
-                arrangeZoneExists(aliasZid);
-
-                final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
-                requestBody.setIdentityZoneId(UAA);
-                requestBody.setType(typeAliasNotSupported);
-
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
-            }
-
-            private static Stream<Arguments> shouldReturnFalse_WhenAliasIsNotSupportedForIdpType() {
-                final Set<String> typesAliasNotSupported = Set.of(UNKNOWN, LDAP, UAA, KEYSTONE);
-                return existingIdpArgument().flatMap(existingIdpArgument ->
-                        typesAliasNotSupported.stream().map(typeAliasNotSupported ->
-                                Arguments.of(existingIdpArgument, typeAliasNotSupported)
-                        ));
-            }
-
-            @ParameterizedTest
-            @MethodSource
-            void shouldReturnTrue_SuccessCase(
-                    final IdentityProvider<?> existingIdp,
-                    final String typeAliasSupported
-            ) {
-                final String aliasZid = UUID.randomUUID().toString();
-                arrangeZoneExists(aliasZid);
-
-                final IdentityProvider<?> requestBody = getExampleIdp(null, aliasZid);
-                requestBody.setIdentityZoneId(UAA);
-                requestBody.setType(typeAliasSupported);
-
-                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isTrue();
-            }
-
-            private static Stream<Arguments> shouldReturnTrue_SuccessCase() {
-                return existingIdpArgument().flatMap(existingIdpArgument ->
-                        IDP_TYPES_ALIAS_SUPPORTED.stream().map(typeAliasSupported ->
-                                Arguments.of(existingIdpArgument, typeAliasSupported)
-                        ));
-            }
-
-            private static Stream<IdentityProvider<?>> existingIdpArgument() {
-                return Stream.of(
-                        getExampleIdp(null, null), // update of existing IdP without alias
-                        null // creation of new IdP
-                );
+                    assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingIdp)).isFalse();
+                }
             }
         }
 
