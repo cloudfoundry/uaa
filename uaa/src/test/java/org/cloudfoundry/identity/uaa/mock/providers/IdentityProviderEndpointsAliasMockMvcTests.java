@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.providers;
 
+import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,7 +20,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -80,7 +81,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     private IdentityZone customZone;
     private String adminToken;
     private String identityToken;
-
+    private IdentityProviderAliasHandler idpEntityAliasHandler;
     private IdentityProviderEndpoints identityProviderEndpoints;
 
     @BeforeEach
@@ -95,7 +96,8 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 "zones.write");
         customZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
 
-        identityProviderEndpoints = Objects.requireNonNull(webApplicationContext.getBean(IdentityProviderEndpoints.class));
+        idpEntityAliasHandler = requireNonNull(webApplicationContext.getBean(IdentityProviderAliasHandler.class));
+        identityProviderEndpoints = requireNonNull(webApplicationContext.getBean(IdentityProviderEndpoints.class));
     }
 
     @Nested
@@ -1151,6 +1153,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
     }
 
     private void arrangeAliasFeatureEnabled(final boolean enabled) {
+        ReflectionTestUtils.setField(idpEntityAliasHandler, "aliasEntitiesEnabled", enabled);
         ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
     }
 
