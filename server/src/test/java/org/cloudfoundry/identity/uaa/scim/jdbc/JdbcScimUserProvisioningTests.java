@@ -263,6 +263,9 @@ class JdbcScimUserProvisioningTests {
         @BeforeEach
         void setUp() {
             currentIdentityZoneId = "currentIdentityZoneId-nested-" + randomString();
+            IdentityZone idz = new IdentityZone();
+            idz.setId(currentIdentityZoneId);
+            idzManager.setCurrentIdentityZone(idz);
         }
 
         @Test
@@ -1143,6 +1146,42 @@ class JdbcScimUserProvisioningTests {
             containsString("Invalid origin")
         );
         idzManager.getCurrentIdentityZone().getConfig().getUserConfig().setCheckOriginEnabled(false);
+    }
+
+    @Test
+    void cannotCreateUserWithInvalidIdentityZone() {
+        String userId = "user-"+randomString();
+        ScimUser scimUser = new ScimUser(userId, "user@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(userId+"@example.com");
+        scimUser.setEmails(Collections.singletonList(email));
+        scimUser.setPassword(randomString());
+        assertThrowsWithMessageThat(
+            InvalidScimResourceException.class,
+            () -> jdbcScimUserProvisioning.create(scimUser, "invalidZone-"+randomString()),
+            containsString("Invalid identity zone id")
+        );
+    }
+
+    @Test
+    void cannotUpdateUserWithWrongIdentityZone() {
+        String userId = "user-"+randomString();
+        ScimUser scimUser = new ScimUser(userId, "user@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(userId+"@example.com");
+        scimUser.setEmails(Collections.singletonList(email));
+        scimUser.setPassword(randomString());
+        scimUser.setZoneId("wrongZone-"+randomString());
+        try {
+            jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId);
+        } catch (Exception e) {
+            fail("Can't create test user");
+        }
+        assertThrowsWithMessageThat(
+            ScimResourceNotFoundException.class,
+            () -> jdbcScimUserProvisioning.update(userId, scimUser, currentIdentityZoneId),
+            containsString("does not exist")
+        );
     }
 
     private static String createUserForDelete(final JdbcTemplate jdbcTemplate, String zoneId) {
