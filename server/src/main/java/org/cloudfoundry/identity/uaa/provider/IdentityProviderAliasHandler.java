@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -39,7 +40,7 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
     }
 
     @Override
-    protected boolean additionalValidationChecksForNewAlias(final IdentityProvider<?> requestBody) {
+    protected boolean additionalValidationChecksForNewAlias(@NonNull final IdentityProvider<?> requestBody) {
         // check if aliases are supported for this IdP type
         return IDP_TYPES_ALIAS_SUPPORTED.contains(requestBody.getType());
     }
@@ -90,7 +91,7 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
         } catch (final IdpAlreadyExistsException e) {
             final String errorMessage = String.format(
                     "Could not create %s. An IdP with this origin already exists in the alias zone.",
-                    buildDescription(entity)
+                    entity.getAliasDescription()
             );
             throw new EntityAliasFailedException(errorMessage, HttpStatus.CONFLICT.value(), e);
         }

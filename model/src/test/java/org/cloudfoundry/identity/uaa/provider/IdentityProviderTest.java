@@ -91,4 +91,22 @@ class IdentityProviderTest {
         assertThat(idp2.equals(idp1)).isFalse();
     }
 
+    @Test
+    void testGetAliasDescription() {
+        final String customZoneId = "custom-zone";
+        final String aliasIdpId = "id-of-alias-idp";
+
+        final IdentityProvider<OIDCIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setId("12345");
+        idp.setName("some-name");
+        idp.setOriginKey("some-origin");
+        idp.setAliasZid(customZoneId);
+        idp.setAliasId(aliasIdpId);
+        idp.setActive(true);
+        idp.setIdentityZoneId(UAA);
+
+        assertThat(idp.getAliasDescription()).isEqualTo(
+                "IdentityProvider[id='12345',zid='uaa',aliasId='id-of-alias-idp',aliasZid='custom-zone']"
+        );
+    }
 }

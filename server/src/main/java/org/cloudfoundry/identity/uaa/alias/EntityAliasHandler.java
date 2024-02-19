@@ -45,7 +45,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
                 // at this point, we expect both properties to be set -> if not, the entity is in an inconsistent state
                 throw new IllegalStateException(String.format(
                         "Both alias ID and alias ZID expected to be set for existing entity %s.",
-                        buildDescription(existingEntity)
+                        existingEntity.getAliasDescription()
                 ));
             }
 
@@ -130,7 +130,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
             if (!hasText(existingEntity.getAliasId())) {
                 LOGGER.warn(
                         "The state of the entity {} before the update had an aliasZid set, but no aliasId.",
-                        buildDescription(existingEntity)
+                        existingEntity.getAliasDescription()
                 );
                 return originalEntity;
             }
@@ -139,7 +139,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
             if (aliasEntityOpt.isEmpty()) {
                 LOGGER.warn(
                         "The alias referenced in entity {} does not exist, therefore cannot break reference.",
-                        buildDescription(existingEntity)
+                        existingEntity.getAliasDescription()
                 );
                 return originalEntity;
             }
@@ -154,7 +154,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
                 throw new EntityAliasFailedException(
                         String.format(
                                 "Could not break reference to alias in entity %s.",
-                                buildDescription(existingEntity)
+                                existingEntity.getAliasDescription()
                         ), HttpStatus.UNPROCESSABLE_ENTITY.value(), e
                 );
             }
@@ -192,7 +192,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         } catch (final ZoneDoesNotExistsException e) {
             final String errorMessage = String.format(
                     "Could not create alias for %s, as alias zone does not exist.",
-                    buildDescription(originalEntity)
+                    originalEntity.getAliasDescription()
             );
             throw new EntityAliasFailedException(errorMessage, HttpStatus.UNPROCESSABLE_ENTITY.value(), e);
         }
@@ -233,19 +233,4 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
     protected abstract T updateEntity(final T entity, final String zoneId);
 
     protected abstract T createEntity(final T entity, final String zoneId) throws EntityAliasFailedException;
-
-    protected static <T extends EntityWithAlias> String buildDescription(final T entity) {
-        return String.format(
-                "%s[id=%s,zid=%s,aliasId=%s,aliasZid=%s]",
-                entity.getClass().getSimpleName(),
-                surroundWithSingleQuotesIfPresent(entity.getId()),
-                surroundWithSingleQuotesIfPresent(entity.getZoneId()),
-                surroundWithSingleQuotesIfPresent(entity.getAliasId()),
-                surroundWithSingleQuotesIfPresent(entity.getAliasZid())
-        );
-    }
-
-    private static String surroundWithSingleQuotesIfPresent(@Nullable final String input) {
-        return Optional.ofNullable(input).map(it -> "'" + it + "'").orElse(null);
-    }
 }
