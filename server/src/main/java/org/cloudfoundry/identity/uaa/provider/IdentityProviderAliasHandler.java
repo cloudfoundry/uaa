@@ -29,7 +29,7 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    protected IdentityProviderAliasHandler(
+    public IdentityProviderAliasHandler(
             @Qualifier("identityZoneProvisioning") final IdentityZoneProvisioning identityZoneProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning,
             @Value("${login.aliasEntitiesEnabled:false}") final boolean aliasEntitiesEnabled
