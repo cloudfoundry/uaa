@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.alias;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
-import static org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerTest.Validation_NoExistingAliasBase.ExistingEntityArgument.ENTITY_WITH_EMPTY_ALIAS_PROPS;
+import static org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerValidationTest.NoExistingAliasBase.ExistingEntityArgument.ENTITY_WITH_EMPTY_ALIAS_PROPS;
 
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -15,7 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
 
-public abstract class EntityAliasHandlerTest<T extends EntityWithAlias> {
+public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias> {
     private static final String CUSTOM_ZONE_ID = UUID.randomUUID().toString();
 
     protected abstract EntityAliasHandler<T> buildAliasHandler(final boolean aliasEntitiesEnabled);
@@ -30,7 +30,7 @@ public abstract class EntityAliasHandlerTest<T extends EntityWithAlias> {
 
     protected abstract void arrangeZoneDoesNotExist(@NonNull final String zoneId);
 
-    protected abstract class ValidationBase {
+    protected abstract class Base {
         protected EntityAliasHandler<T> aliasHandler;
 
         @BeforeEach
@@ -42,7 +42,7 @@ public abstract class EntityAliasHandlerTest<T extends EntityWithAlias> {
         protected abstract boolean isAliasFeatureEnabled();
     }
 
-    protected abstract class Validation_NoExistingAliasBase extends ValidationBase {
+    protected abstract class NoExistingAliasBase extends Base {
         @ParameterizedTest
         @MethodSource("existingEntityArgNoAlias")
         final void shouldReturnFalse_AliasIdSetInReqBody(final ExistingEntityArgument existingEntityArg) {
@@ -80,7 +80,7 @@ public abstract class EntityAliasHandlerTest<T extends EntityWithAlias> {
         }
     }
 
-    protected abstract class Validation_ExistingAlias_AliasFeatureDisabled extends ValidationBase {
+    protected abstract class ExistingAlias_AliasFeatureDisabled extends Base {
         @Override
         protected final boolean isAliasFeatureEnabled() {
             return false;
@@ -137,7 +137,7 @@ public abstract class EntityAliasHandlerTest<T extends EntityWithAlias> {
         }
     }
 
-    protected abstract class Validation_ExistingAlias_AliasFeatureEnabled extends ValidationBase {
+    protected abstract class ExistingAlias_AliasFeatureEnabled extends Base {
         @Override
         protected final boolean isAliasFeatureEnabled() {
             return true;
@@ -214,7 +214,7 @@ public abstract class EntityAliasHandlerTest<T extends EntityWithAlias> {
         }
     }
 
-    protected abstract class Validation_NoExistingAlias_AliasFeatureEnabled extends Validation_NoExistingAliasBase {
+    protected abstract class NoExistingAlias_AliasFeatureEnabled extends NoExistingAliasBase {
         @Override
         protected final boolean isAliasFeatureEnabled() {
             return true;
@@ -259,7 +259,7 @@ public abstract class EntityAliasHandlerTest<T extends EntityWithAlias> {
         }
     }
 
-    protected abstract class Validation_NoExistingAlias_AliasFeatureDisabled extends Validation_NoExistingAliasBase {
+    protected abstract class NoExistingAlias_AliasFeatureDisabled extends NoExistingAliasBase {
         @Override
         protected final boolean isAliasFeatureEnabled() {
             return false;
