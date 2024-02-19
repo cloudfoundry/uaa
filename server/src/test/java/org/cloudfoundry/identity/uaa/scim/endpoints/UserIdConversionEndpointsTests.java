@@ -121,6 +121,30 @@ public class UserIdConversionEndpointsTests {
     }
 
     @Test
+    public void testGoodFilter3() {
+        final ResponseEntity<Object> response = endpoints.findUsers(
+                "(id eq \"foo\" and username eq \"bar\") or id eq \"bar\"",
+                "ascending",
+                0,
+                100,
+                false
+        );
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
+    public void testGoodFilter4() {
+        final ResponseEntity<Object> response = endpoints.findUsers(
+                "id eq \"bar\" and (id eq \"foo\" and username eq \"bar\")",
+                "ascending",
+                0,
+                100,
+                false
+        );
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+    }
+
+    @Test
     public void testBadFilter1() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Wildcards are not allowed in filter."));
