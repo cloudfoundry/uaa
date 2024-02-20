@@ -59,7 +59,7 @@ public class HealthzEndpoint {
             }
 
             if (wasLastConnectionSuccessful) {
-                return "ok\n";
+                return "ok. Database connection successful.\n";
             } else {
                 response.setStatus(503);
                 return "Database Connection failed.\n";
