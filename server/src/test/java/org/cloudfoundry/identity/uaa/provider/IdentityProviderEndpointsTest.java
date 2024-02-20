@@ -93,6 +93,11 @@ class IdentityProviderEndpointsTest {
     void setup() {
         lenient().when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
         arrangeAliasEntitiesEnabled(true);
+
+        lenient().when(mockIdpAliasHandler.aliasPropertiesAreValid(any(), any()))
+                .thenReturn(true);
+        lenient().when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(any(), any()))
+                .then(invocationOnMock -> invocationOnMock.getArgument(0));
     }
 
     IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
