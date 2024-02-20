@@ -258,10 +258,15 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                 final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
                 return idpAliasHandler.ensureConsistencyOfAliasEntity(updatedOriginalIdp, existing);
             });
+        } catch (final IdpAlreadyExistsException e) {
+            return new ResponseEntity<>(body, CONFLICT);
         } catch (final EntityAliasFailedException e) {
             logger.warn("Could not create alias for {}", e.getMessage());
             final HttpStatus responseCode = Optional.ofNullable(HttpStatus.resolve(e.getHttpStatus())).orElse(INTERNAL_SERVER_ERROR);
             return new ResponseEntity<>(body, responseCode);
+        } catch (final Exception e) {
+            logger.warn("Unable to update IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId() + "]", e);
+            return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
         if (updatedIdp == null) {
             logger.warn(
