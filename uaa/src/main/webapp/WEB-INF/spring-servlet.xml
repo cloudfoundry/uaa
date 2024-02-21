@@ -338,7 +338,6 @@
     <import resource="spring/login-server-security.xml"/>
     <import resource="spring/oauth-endpoints.xml"/>
     <import resource="spring/scim-endpoints.xml"/>
-    <import resource="spring/mfa-endpoints.xml"/>
     <import resource="spring/multitenant-endpoints.xml"/>
     <import resource="spring/approvals-endpoints.xml"/>
     <import resource="spring/client-admin-endpoints.xml"/>
@@ -455,8 +454,7 @@
     <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getProviders"/>
 
     <bean id="identityZoneConfigurationBootstrap"
-          class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap"
-          depends-on="mfaProviderBootstrap">
+          class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
@@ -485,8 +483,6 @@
                            @config['login']['saml']['keys']}"/>
         <property name="disableSamlInResponseToCheck" value="${login.saml.disableInResponseToCheck:false}"/>
         <property name="defaultUserGroups" ref="defaultUserAuthorities"/>
-        <property name="mfaEnabled" value="${login.mfa.enabled:false}"/>
-        <property name="mfaProviderName" value="${login.mfa.providerName:#{null}}"/>
         <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}"/>
     </bean>
 
@@ -498,7 +494,6 @@
 
     <bean class="org.cloudfoundry.identity.uaa.authentication.listener.AuthenticationSuccessListener">
         <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning"/>
-        <constructor-arg name="checker" ref="mfaChecker"/>
     </bean>
 
     <bean id="autologinAuthenticationManager"

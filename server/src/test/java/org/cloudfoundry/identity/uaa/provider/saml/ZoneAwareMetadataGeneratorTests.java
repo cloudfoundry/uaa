@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -49,7 +49,7 @@ public class ZoneAwareMetadataGeneratorTests {
 
     @BeforeAll
     static void bootstrap() throws Exception {
-        Security.addProvider(new BouncyCastleProvider());
+        Security.addProvider(new BouncyCastleFipsProvider());
         DefaultBootstrap.bootstrap();
         NamedKeyInfoGeneratorManager keyInfoGeneratorManager = Configuration.getGlobalSecurityConfiguration().getKeyInfoGeneratorManager();
         keyInfoGeneratorManager.getManager(SAMLConstants.SAML_METADATA_KEY_INFO_GENERATOR);

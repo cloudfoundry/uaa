@@ -139,5 +139,6 @@ class IdentityZoneTest {
                             "scim.me", "cloud_controller.user"),
                             sampleIdentityZone.getConfig().getUserConfig().resultingAllowedGroups());
         assertEquals(1000, sampleIdentityZone.getConfig().getUserConfig().getMaxUsers());
+        assertEquals(true, sampleIdentityZone.getConfig().getUserConfig().isCheckOriginEnabled());
     }
 }

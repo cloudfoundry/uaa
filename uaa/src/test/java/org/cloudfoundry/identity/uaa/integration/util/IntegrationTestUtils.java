@@ -14,8 +14,6 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
-import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -186,29 +184,6 @@ public class IntegrationTestUtils {
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
         RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.DELETE, new URI(baseUrl + "/identity-zones/" + id));
         rest.exchange(request, Void.class);
-    }
-
-    public static MfaProvider createGoogleMfaProvider(String url, String token, MfaProvider<GoogleMfaProviderConfig> provider, String zoneSwitchId) {
-        RestTemplate template = new RestTemplate();
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Accept", APPLICATION_JSON_VALUE);
-        headers.add("Authorization", "bearer " + token);
-        headers.add("Content-Type", APPLICATION_JSON_VALUE);
-        if (hasText(zoneSwitchId)) {
-            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneSwitchId);
-        }
-        HttpEntity getHeaders = new HttpEntity<>(provider, headers);
-        ResponseEntity<MfaProvider> providerResponse = template.exchange(
-                url + "/mfa-providers",
-                HttpMethod.POST,
-                getHeaders,
-                MfaProvider.class
-        );
-        if (providerResponse.getStatusCode() == HttpStatus.CREATED) {
-            return providerResponse.getBody();
-        }
-        throw new RuntimeException("Invalid return code:" + providerResponse.getStatusCode());
-
     }
 
     public static class RegexMatcher extends TypeSafeMatcher<String> {

@@ -1,13 +1,47 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.unboundid.scim.sdk.AttributePath;
-import com.unboundid.scim.sdk.SCIMFilter;
+import static java.util.Arrays.asList;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.core.Is.is;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mfa.JdbcUserGoogleMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -38,7 +72,6 @@ import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,42 +98,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.servlet.View;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
-import static java.util.Arrays.asList;
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import com.unboundid.scim.sdk.AttributePath;
+import com.unboundid.scim.sdk.SCIMFilter;
 
 @DefaultTestContext
 @ExtendWith(ZoneSeederExtension.class)
@@ -153,7 +152,6 @@ class ScimUserEndpointsTests {
     private ScimUser dale;
 
     private PasswordValidator mockPasswordValidator;
-    private JdbcUserGoogleMfaCredentialsProvisioning mockJdbcUserGoogleMfaCredentialsProvisioning;
     private JdbcIdentityProviderProvisioning mockJdbcIdentityProviderProvisioning;
     private ApprovalStore mockApprovalStore;
 
@@ -194,7 +192,6 @@ class ScimUserEndpointsTests {
         jdbcScimUserProvisioning.setQueryConverter(filterConverter);
 
         mockJdbcIdentityProviderProvisioning = mock(JdbcIdentityProviderProvisioning.class);
-        mockJdbcUserGoogleMfaCredentialsProvisioning = mock(JdbcUserGoogleMfaCredentialsProvisioning.class);
         mockPasswordValidator = mock(PasswordValidator.class);
         ApplicationEventPublisher mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
 
@@ -219,7 +216,6 @@ class ScimUserEndpointsTests {
                 statuses,
                 mockPasswordValidator,
                 null,
-                mockJdbcUserGoogleMfaCredentialsProvisioning,
                 mockApprovalStore,
                 spiedScimGroupMembershipManager,
                 scimUserAliasHandler,
@@ -715,7 +711,7 @@ class ScimUserEndpointsTests {
     void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, null, null, 0),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, null, 0),
                 containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
     }
 
@@ -723,7 +719,7 @@ class ScimUserEndpointsTests {
     void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, null, null,-1),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, null, -1),
                 containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
     }
 
@@ -1158,32 +1154,6 @@ class ScimUserEndpointsTests {
         ScimUser createdUser = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
 
         assertEquals(OriginKeys.UAA, createdUser.getOrigin());
-    }
-
-    @Test
-    void deleteMfaRegistration() {
-        identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
-        scimUserEndpoints.deleteMfaRegistration(dale.getId());
-
-        verify(mockJdbcUserGoogleMfaCredentialsProvisioning).delete(dale.getId());
-    }
-
-    @Test
-    void deleteMfaRegistrationUserDoesNotExist() {
-        assertThrows(ScimResourceNotFoundException.class, () -> scimUserEndpoints.deleteMfaRegistration("invalidUserId"));
-    }
-
-    @Test
-    void deleteMfaRegistrationNoMfaConfigured() {
-        identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(true).setProviderName("mfaProvider"));
-        scimUserEndpoints.deleteMfaRegistration(dale.getId());
-    }
-
-    @Test
-    void deleteMfaRegistrationMfaNotEnabledInZone() {
-        identityZone.getConfig().setMfaConfig(new MfaConfig().setEnabled(false));
-
-        scimUserEndpoints.deleteMfaRegistration(dale.getId());
     }
 
     private void validatePasswordForUaaOriginOnly(VerificationMode verificationMode, String origin, String expectedPassword) {

@@ -17,8 +17,6 @@ public class PostgresDbMigrationIntegrationTest extends DbMigrationIntegrationTe
     private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_CATALOG = ? AND TABLE_NAME = LOWER(?) AND CONSTRAINT_NAME LIKE LOWER(?)";
     private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_CATALOG = ? and TABLE_NAME != 'schema_version' AND TABLE_SCHEMA != 'pg_catalog'";
     private String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
-    private String fetchColumnTypeFromTable = "SELECT udt_name FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
-    private String fetchIsNullableFromTable = "SELECT is_nullable FROM information_schema.columns WHERE table_name = ? and TABLE_SCHEMA = ? and column_name = ?";
 
     @Override
     protected String onlyRunTestsForActiveSpringProfileName() {
@@ -41,65 +39,5 @@ public class PostgresDbMigrationIntegrationTest extends DbMigrationIntegrationTe
         } catch (Exception e) {
             fail("oauth_code table should auto increment primary key when inserting data.");
         }
-    }
-
-    @Test
-    public void mfaTableAddsTwoNewColumns() {
-        MigrationTest migrationTest = new MigrationTest() {
-            @Override
-            public String getTargetMigration() {
-                return "4.13.0";
-            }
-
-            @Override
-            public void runAssertions() throws Exception {
-                String keyColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable,
-                  String.class,
-                  "user_google_mfa_credentials",
-                  jdbcTemplate.getDataSource().getConnection().getSchema(),
-                  "encryption_key_label"
-                );
-                assertThat(keyColumnType, is("varchar"));
-
-                String encryptedValidationCodeColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable,
-                  String.class,
-                  "user_google_mfa_credentials",
-                  jdbcTemplate.getDataSource().getConnection().getSchema(),
-                  "encrypted_validation_code"
-                );
-                assertThat(encryptedValidationCodeColumnType, is("varchar"));
-
-                String encryptedValidationCodeIsNullable = jdbcTemplate.queryForObject(
-                  fetchIsNullableFromTable,
-                  String.class,
-                  "user_google_mfa_credentials",
-                  jdbcTemplate.getDataSource().getConnection().getSchema(),
-                  "encrypted_validation_code"
-                );
-                assertThat(encryptedValidationCodeIsNullable, is("YES"));
-
-                String validationCodeIsNullable = jdbcTemplate.queryForObject(
-                  fetchIsNullableFromTable,
-                  String.class,
-                  "user_google_mfa_credentials",
-                  jdbcTemplate.getDataSource().getConnection().getSchema(),
-                  "validation_code"
-                );
-                assertThat(validationCodeIsNullable, is("YES"));
-
-                String validationColumnType = jdbcTemplate.queryForObject(
-                  fetchColumnTypeFromTable,
-                  String.class,
-                  "user_google_mfa_credentials",
-                  jdbcTemplate.getDataSource().getConnection().getSchema(),
-                  "validation_code"
-                );
-                assertThat(validationColumnType, is("int4"));
-            }
-        };
-
-        migrationTestRunner.run(migrationTest);
     }
 }

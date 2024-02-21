@@ -1,66 +1,27 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.collections4.map.HashedMap;
-import org.apache.commons.httpclient.util.URIUtil;
-import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
-import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
-import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
-import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
-import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
-import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.oauth.token.Claims;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
-import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
-import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.SessionUtils;
-import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.cloudfoundry.identity.uaa.zone.UserConfig;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import java.net.URI;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import javax.servlet.http.HttpSession;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -91,27 +52,61 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
-import javax.servlet.http.HttpSession;
-import java.net.URI;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.nio.charset.StandardCharsets;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.collections4.map.HashedMap;
+import org.apache.commons.httpclient.util.URIUtil;
+import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
+import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
+import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
+import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
+import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 import static java.util.Collections.emptySet;
 import static org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils.getClaimsForToken;
@@ -123,13 +118,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -153,7 +146,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
-import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8_VALUE;
@@ -181,12 +173,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private String BADSECRET = "badsecret";
     protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    private static SamlTestUtils samlTestUtils = new SamlTestUtils();
-
-    @BeforeAll
-    static void initializeSamlUtils() {
-        samlTestUtils.initializeSimple();
-    }
 
     @BeforeEach
     void setup() {
@@ -870,57 +856,6 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
-    void testAuthorizeEndpointWithPromptNone_MfaRequired() throws Exception {
-        String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
-        clientDetails.setAutoApproveScopes(Collections.singletonList("uaa.user"));
-        clientDetails.setClientSecret("secret");
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Collections.singletonList("other.scope"));
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
-        clientDetailsService.addClientDetails(clientDetails);
-
-        String username = "testuser" + generator.generate();
-        String userScopes = "uaa.user,other.scope";
-        ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        super.setupForMfaPasswordGrant(developer.getId());
-
-        MockHttpSession session = getAuthenticatedSession(developer);
-
-        String state = generator.generate();
-
-        MvcResult result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
-                .param(OAuth2Utils.RESPONSE_TYPE, "code")
-                .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
-                .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
-                .andDo(print())
-                .andExpect(status().isFound())
-                .andReturn();
-
-        String url = result.getResponse().getHeader("Location");
-        assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "interaction_required")));
-
-        setAuthentication(session, developer, false, "mfa", "pwd", "otp");
-        result = mockMvc.perform(get("/oauth/authorize")
-                .session(session)
-                .param(OAuth2Utils.RESPONSE_TYPE, "code")
-                .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
-                .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
-                .andDo(print())
-                .andExpect(status().isFound())
-                .andReturn();
-        url = result.getResponse().getHeader("Location");
-        assertThat(url, containsString(TEST_REDIRECT_URI));
-        assertThat(url, not(containsString("error")));
-        assertThat(url, not(containsString("login_required")));
-        assertThat(url, not(containsString("interaction_required")));
-    }
-
-    @Test
     void testAuthorizeEndpointWithPromptNone_ForcePasswordChangeRequired() throws Exception {
         String clientId = "testclient" + generator.generate();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
@@ -934,7 +869,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String userScopes = "uaa.user,other.scope";
         ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
         MockHttpSession session = new MockHttpSession();
-        setAuthentication(session, developer, true, "pwd", "mfa", "otp");
+        setAuthentication(session, developer, true, "pwd", "otp");
 
         String state = generator.generate();
 
@@ -952,7 +887,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String url = result.getResponse().getHeader("Location");
         assertTrue(url.startsWith(UaaUrlUtils.addQueryParameter(TEST_REDIRECT_URI, "error", "interaction_required")));
 
-        setAuthentication(session, developer, false, "mfa", "pwd", "otp");
+        setAuthentication(session, developer, false, "pwd", "otp");
         result = mockMvc.perform(get("/oauth/authorize")
                 .session(session)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")

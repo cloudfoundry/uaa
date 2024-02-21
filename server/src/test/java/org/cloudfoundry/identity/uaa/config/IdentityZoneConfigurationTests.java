@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.Links;
-import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
@@ -103,12 +102,6 @@ public class IdentityZoneConfigurationTests {
     public void deserializeClientSecretPolicyJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, ClientSecretPolicy.class);
-    }
-
-    @Test
-    public void deserializeMfaConfigJSON_withUnknownProperties_doesNotFail() {
-        String config = "{ \"unknown-property\": \"unknown-value\"}";
-        JsonUtils.readValue(config, MfaConfig.class);
     }
 
     @Test

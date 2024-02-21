@@ -106,7 +106,6 @@ class ScimUserBootstrapTests {
                 null,
                 null,
                 null,
-                null,
                 jdbcScimGroupMembershipManager,
                 null,
                 null,

@@ -1,12 +1,40 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import java.lang.reflect.Modifier;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.ui.ExtendedModelMap;
+import org.springframework.ui.Model;
+import org.springframework.web.HttpMediaTypeNotAcceptableException;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -17,7 +45,6 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
-import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
@@ -35,42 +62,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
-import org.springframework.security.web.savedrequest.DefaultSavedRequest;
-import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.ui.ExtendedModelMap;
-import org.springframework.ui.Model;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.web.HttpMediaTypeNotAcceptableException;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
-import java.lang.reflect.Modifier;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
 import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
@@ -118,7 +112,6 @@ class LoginInfoEndpointTests {
     private IdentityProvider uaaIdentityProvider;
     private IdentityZoneConfiguration originalConfiguration;
     private ExternalOAuthProviderConfigurator configurator;
-    private MfaChecker spiedMfaChecker;
 
     @BeforeEach
     void setUp() {
@@ -142,7 +135,6 @@ class LoginInfoEndpointTests {
         UaaRandomStringUtil randomStringUtil = mock(UaaRandomStringUtil.class);
         when(randomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
         configurator = new ExternalOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher, randomStringUtil);
-        spiedMfaChecker = spy(new MfaChecker(mock(IdentityZoneProvisioning.class)));
         extendedModelMap = new ExtendedModelMap();
     }
 
@@ -487,30 +479,6 @@ class LoginInfoEndpointTests {
         check_links_urls(zone);
     }
 
-    private void mfa_prompt(IdentityZone zone) {
-        zone.getConfig().getMfaConfig().setEnabled(true);
-        IdentityZoneHolder.set(zone);
-        String baseUrl = check_links_urls(zone);
-        Map mapPrompts = (Map) extendedModelMap.get("prompts");
-        assertNotNull(mapPrompts.get("mfaCode"));
-        assertEquals(
-                "MFA Code ( Register at " + addSubdomainToUrl(baseUrl, IdentityZoneHolder.get().getSubdomain()) + " )",
-                ((String[]) mapPrompts.get("mfaCode"))[1]
-        );
-    }
-
-    @Test
-    void mfa_prompt_in_default_zone() {
-        IdentityZone zone = IdentityZone.getUaa();
-        mfa_prompt(zone);
-    }
-
-    @Test
-    void mfa_prompt_in_non_default_zone() {
-        IdentityZone zone = MultitenancyFixture.identityZone("test", "test");
-        mfa_prompt(zone);
-    }
-
     private String check_links_urls(IdentityZone zone) {
         IdentityZoneHolder.set(zone);
         String baseUrl = "http://uaa.domain.com";
@@ -626,31 +594,8 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void generatePasscodeForKnownUaaPrincipal() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        Map<String, Object> model = new HashMap<>();
-        assertEquals("passcode", endpoint.generatePasscode(model, marissa));
-        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), new UaaAuthenticationDetails(new MockHttpServletRequest()));
-        assertEquals("passcode", endpoint.generatePasscode(model, uaaAuthentication));
-        ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken = new ExpiringUsernameAuthenticationToken(marissa, "");
-        UaaAuthentication samlAuthenticationToken = new LoginSamlAuthenticationToken(marissa, expiringUsernameAuthenticationToken).getUaaAuthentication(emptyList(), emptySet(), new LinkedMultiValueMap<>());
-        assertEquals("passcode", endpoint.generatePasscode(model, samlAuthenticationToken));
-        //token with a UaaPrincipal should always work
-        assertEquals("passcode", endpoint.generatePasscode(model, expiringUsernameAuthenticationToken));
-    }
-
-    @Test
-    void generatePasscodeForUnknownUaaPrincipal() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        Map<String, Object> model = new HashMap<>();
-        ExpiringUsernameAuthenticationToken token = new ExpiringUsernameAuthenticationToken("princpal", "");
-        assertThrows(LoginInfoEndpoint.UnknownPrincipalException.class, () -> endpoint.generatePasscode(model, token));
-    }
-
-    @Test
     void promptLogic() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        IdentityZoneHolder.get().getConfig().getMfaConfig().setEnabled(true);
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"), singletonList(MediaType.TEXT_HTML));
         assertNotNull("prompts attribute should be present", extendedModelMap.get("prompts"));
         assertTrue("prompts should be a Map for Html content", extendedModelMap.get("prompts") instanceof Map);
@@ -659,17 +604,15 @@ class LoginInfoEndpointTests {
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNull(mapPrompts.get("passcode"));
-        assertNull(mapPrompts.get("mfaCode"));
 
         extendedModelMap.clear();
         endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
         assertNotNull("prompts attribute should be present", extendedModelMap.get("prompts"));
         assertTrue("prompts should be a Map for JSON content", extendedModelMap.get("prompts") instanceof Map);
         mapPrompts = (Map) extendedModelMap.get("prompts");
-        assertEquals("there should be two prompts for html", 3, mapPrompts.size());
+        assertEquals("there should be two prompts for html", 2, mapPrompts.size());
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
-        assertNotNull(mapPrompts.get("mfaCode"));
         assertNull(mapPrompts.get("passcode"));
 
         //add a SAML IDP, should make the passcode prompt appear
@@ -679,11 +622,10 @@ class LoginInfoEndpointTests {
         assertNotNull("prompts attribute should be present", extendedModelMap.get("prompts"));
         assertTrue("prompts should be a Map for JSON content", extendedModelMap.get("prompts") instanceof Map);
         mapPrompts = (Map) extendedModelMap.get("prompts");
-        assertEquals("there should be three prompts for html", 4, mapPrompts.size());
+        assertEquals("there should be three prompts for html", 3, mapPrompts.size());
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNotNull(mapPrompts.get("passcode"));
-        assertNotNull(mapPrompts.get("mfaCode"));
 
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
@@ -1019,31 +961,6 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         assertThrows(HttpMediaTypeNotAcceptableException.class,
                 () -> endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_XML)));
-    }
-
-    @Test
-    void generateAutologinCodeFailsWhenMfaRequired() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-
-        doReturn(true).when(spiedMfaChecker).isMfaEnabled(any(IdentityZone.class));
-
-        assertThrowsWithMessageThat(
-                BadCredentialsException.class,
-                () -> endpoint.generateAutologinCode(mock(AutologinRequest.class), "Basic 1234"),
-                is("MFA is required")
-        );
-    }
-
-    @Test
-    void performAutologinFailsWhenMfaRequired() {
-        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        doReturn(true).when(spiedMfaChecker).isMfaEnabled(any(IdentityZone.class));
-
-        assertThrowsWithMessageThat(
-                BadCredentialsException.class,
-                () -> endpoint.performAutologin(new MockHttpSession()),
-                is("MFA is required")
-        );
     }
 
     @Test
@@ -1827,7 +1744,6 @@ class LoginInfoEndpointTests {
                 new InMemoryExpiringCodeStore(new TimeServiceImpl()),
                 externalLoginUrl,
                 baseUrl,
-                spiedMfaChecker,
                 configurator,
                 mockIdentityProviderProvisioning,
                 "",

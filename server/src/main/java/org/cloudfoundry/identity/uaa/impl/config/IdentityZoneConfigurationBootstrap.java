@@ -44,8 +44,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private boolean selfServiceLinksEnabled = true;
     private String homeRedirect = null;
     private Map<String,Object> selfServiceLinks;
-    private boolean mfaEnabled;
-    private String mfaProviderName;
     private List<String> logoutRedirectWhitelist;
     private String logoutRedirectParameterName;
     private String logoutDefaultRedirectUrl;
@@ -93,8 +91,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setDisableInResponseToCheck(disableSamlInResponseToCheck);
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
         definition.setAccountChooserEnabled(accountChooserEnabled);
-        definition.getMfaConfig().setEnabled(mfaEnabled);
-        definition.getMfaConfig().setProviderName(mfaProviderName);
         definition.setDefaultIdentityProvider(defaultIdentityProvider);
 
         samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
@@ -147,22 +143,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setClientSecretPolicy(ClientSecretPolicy clientSecretPolicy) {
         this.clientSecretPolicy = clientSecretPolicy;
-    }
-
-    public void setMfaEnabled(boolean mfaEnabled) {
-        this.mfaEnabled = mfaEnabled;
-    }
-
-    public void setMfaProviderName(String mfaProviderName) {
-        this.mfaProviderName = mfaProviderName;
-    }
-
-    public String getMfaProviderName() {
-        return mfaProviderName;
-    }
-
-    public boolean isMfaEnabled()  {
-        return mfaEnabled;
     }
 
     public IdentityZoneConfigurationBootstrap setSamlKeys(Map<String, Map<String, String>> samlKeys) {

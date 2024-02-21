@@ -55,6 +55,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -450,6 +451,85 @@ class IdentityProviderEndpointsTest {
         Assertions.assertThat(idpUpdateCall2.getAliasId()).isBlank();
         Assertions.assertThat(idpUpdateCall2.getAliasZid()).isBlank();
         assertIdpsAreEqualApartFromAliasProperties(idpUpdateCall2, aliasIdp);
+    }
+
+    @Test
+    void testUpdateIdpWithExistingAlias_AliasFeatureDisabled_ShouldIgnoreMissingAliasId() throws MetadataProviderException {
+        final String zone1Id = UAA;
+        final String zone2Id = UUID.randomUUID().toString();
+
+        final String idpId = UUID.randomUUID().toString();
+        final String aliasIdpId = UUID.randomUUID().toString();
+
+        // arrange original IdP exists in zone 1
+        final IdentityProvider<?> idp = new IdentityProvider<>();
+        idp.setType(OIDC10);
+        idp.setId(idpId);
+        idp.setIdentityZoneId(zone1Id);
+        idp.setAliasId(aliasIdpId);
+        idp.setAliasZid(zone2Id);
+
+        // arrange existing IdP has no alias ID
+        final IdentityProvider<?> existingIdp = shallowCloneIdp(idp);
+        existingIdp.setAliasId(null);
+        when(mockIdentityProviderProvisioning.retrieve(idpId, zone1Id)).thenReturn(existingIdp);
+
+        // mock update of original IdP
+        when(mockIdentityProviderProvisioning.update(idp, zone1Id))
+                .then(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        // alias feature is now disabled
+        arrangeAliasEntitiesEnabled(false);
+
+        // update the original IdP -> reference to alias will be broken, alias will be ignored
+        idp.setName("some-new-name");
+        idp.setAliasId(null);
+        idp.setAliasZid(null);
+        final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(idpId, idp, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        final IdentityProvider<?> responseBody = response.getBody();
+        Assertions.assertThat(responseBody).isEqualTo(idp);
+    }
+
+    @Test
+    void testUpdateIdpWithExistingAlias_AliasFeatureDisabled_ShouldIgnoreMissingAlias() throws MetadataProviderException {
+        final String zone1Id = UAA;
+        final String zone2Id = UUID.randomUUID().toString();
+
+        final String idpId = UUID.randomUUID().toString();
+        final String aliasIdpId = UUID.randomUUID().toString();
+
+        // arrange original IdP exists in zone 1
+        final IdentityProvider<?> idp = new IdentityProvider<>();
+        idp.setType(OIDC10);
+        idp.setId(idpId);
+        idp.setIdentityZoneId(zone1Id);
+        idp.setAliasId(aliasIdpId);
+        idp.setAliasZid(zone2Id);
+
+        // arrange existing IdP has no alias ID
+        final IdentityProvider<?> existingIdp = shallowCloneIdp(idp);
+        when(mockIdentityProviderProvisioning.retrieve(idpId, zone1Id)).thenReturn(existingIdp);
+
+        // arrange alias IdP does not exist
+        when(mockIdentityProviderProvisioning.retrieve(aliasIdpId, zone2Id))
+                .thenThrow(new EmptyResultDataAccessException(1));
+
+        // mock update of original IdP
+        when(mockIdentityProviderProvisioning.update(idp, zone1Id))
+                .then(invocationOnMock -> invocationOnMock.getArgument(0));
+
+        // alias feature is now disabled
+        arrangeAliasEntitiesEnabled(false);
+
+        // update the original IdP -> reference to alias will be broken, alias will be ignored
+        idp.setName("some-new-name");
+        idp.setAliasId(null);
+        idp.setAliasZid(null);
+        final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(idpId, idp, true);
+        Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        final IdentityProvider<?> responseBody = response.getBody();
+        Assertions.assertThat(responseBody).isEqualTo(idp);
     }
 
     @Test

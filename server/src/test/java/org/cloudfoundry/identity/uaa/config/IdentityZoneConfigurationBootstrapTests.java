@@ -1,14 +1,9 @@
 package org.cloudfoundry.identity.uaa.config;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
-import org.cloudfoundry.identity.uaa.mfa.GeneralMfaProviderValidator;
-import org.cloudfoundry.identity.uaa.mfa.GoogleMfaProviderConfig;
-import org.cloudfoundry.identity.uaa.mfa.JdbcMfaProviderProvisioning;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
-import org.cloudfoundry.identity.uaa.mfa.MfaProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
@@ -19,7 +14,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.MfaConfigValidator;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.jupiter.api.BeforeEach;
@@ -76,25 +70,13 @@ public class IdentityZoneConfigurationBootstrapTests {
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
 
-        GeneralMfaProviderValidator mfaProviderValidator = new GeneralMfaProviderValidator();
-        MfaProviderProvisioning mfaProvisoning = new JdbcMfaProviderProvisioning(jdbcTemplate, mfaProviderValidator);
-
-        MfaProvider<GoogleMfaProviderConfig> provider = new MfaProvider<>();
-        provider.setName("testProvider");
-        provider.setType(MfaProvider.MfaProviderType.GOOGLE_AUTHENTICATOR);
-        provider.setConfig(new GoogleMfaProviderConfig());
-        provider.setIdentityZoneId("uaa");
-        mfaProvisoning.create(provider, "uaa");
-
-        MfaConfigValidator mfaConfigValidator = new MfaConfigValidator(mfaProvisoning);
-
-        GeneralIdentityZoneConfigurationValidator configValidator = new GeneralIdentityZoneConfigurationValidator(mfaConfigValidator);
+        GeneralIdentityZoneConfigurationValidator configValidator = new GeneralIdentityZoneConfigurationValidator();
 
         validator = new GeneralIdentityZoneValidator(configValidator);
         bootstrap.setValidator(validator);
 
         //For the SamlTestUtils keys we are using.
-        Security.addProvider(new BouncyCastleProvider());
+        Security.addProvider(new BouncyCastleFipsProvider());
     }
 
     @Test
@@ -296,33 +278,5 @@ public class IdentityZoneConfigurationBootstrapTests {
         bootstrap.afterPropertiesSet();
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         assertTrue(config.isIdpDiscoveryEnabled());
-    }
-
-    @Test
-    void testMfaDisabledByDefault() {
-        assertFalse(bootstrap.isMfaEnabled());
-    }
-
-    @Test
-    void testMfaDisabledWithInvalidName() throws Exception {
-        bootstrap.setMfaProviderName("NotExistingProvider");
-        assertThrows(InvalidIdentityZoneDetailsException.class, () -> bootstrap.afterPropertiesSet());
-    }
-
-    @Test
-    void testMfaEnabledValidName() throws Exception {
-        bootstrap.setMfaProviderName("testProvider");
-        bootstrap.setMfaEnabled(true);
-        bootstrap.afterPropertiesSet();
-        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
-        assertEquals("testProvider", config.getMfaConfig().getProviderName());
-        assertTrue(bootstrap.isMfaEnabled());
-    }
-
-    @Test
-    void testMfaEnabledInvalidName() throws Exception {
-        bootstrap.setMfaProviderName("InvalidProvider");
-        bootstrap.setMfaEnabled(true);
-        assertThrows(InvalidIdentityZoneDetailsException.class, () -> bootstrap.afterPropertiesSet());
     }
 }

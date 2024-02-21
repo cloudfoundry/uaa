@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.mfa.UserMfaCredentialsProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
@@ -125,7 +124,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private final Map<Class<? extends Exception>, HttpStatus> statuses;
     private final PasswordValidator passwordValidator;
     private final ExpiringCodeStore codeStore;
-    private final UserMfaCredentialsProvisioning mfaCredentialsProvisioning;
     private final ApprovalStore approvalStore;
     private final ScimGroupMembershipManager membershipManager;
     private final int userMaxCount;
@@ -150,7 +148,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final @Qualifier("exceptionToStatusMap") Map<Class<? extends Exception>, HttpStatus> statuses,
             final PasswordValidator passwordValidator,
             final ExpiringCodeStore codeStore,
-            final UserMfaCredentialsProvisioning mfaCredentialsProvisioning,
             final ApprovalStore approvalStore,
             final ScimGroupMembershipManager membershipManager,
             final ScimUserAliasHandler aliasHandler,
@@ -171,7 +168,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.statuses = statuses;
         this.passwordValidator = passwordValidator;
         this.codeStore = codeStore;
-        this.mfaCredentialsProvisioning = mfaCredentialsProvisioning;
         this.approvalStore = approvalStore;
         this.userMaxCount = userMaxCount;
         this.membershipManager = membershipManager;
@@ -512,14 +508,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         return status;
-    }
-
-    @RequestMapping(value = "/Users/{userId}/mfa", method = RequestMethod.DELETE)
-    @ResponseStatus(HttpStatus.OK)
-    public void deleteMfaRegistration(@PathVariable String userId) {
-        ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
-
-        mfaCredentialsProvisioning.delete(user.getId());
     }
 
     private ScimUser syncGroups(ScimUser user) {
