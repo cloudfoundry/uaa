@@ -17,6 +17,9 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
@@ -35,6 +38,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -80,6 +84,7 @@ class JdbcScimUserProvisioningTests {
     private String joeId;
     private String currentIdentityZoneId;
     private IdentityZoneManager idzManager;
+    private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning = mock(JdbcIdentityZoneProvisioning.class);
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -104,6 +109,8 @@ class JdbcScimUserProvisioningTests {
         idzManager.setCurrentIdentityZone(idz);
 
         jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager);
+
+        ReflectionTestUtils.setField(jdbcScimUserProvisioning, "jdbcIdentityZoneProvisioning", jdbcIdentityZoneProvisioning);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
@@ -324,6 +331,22 @@ class JdbcScimUserProvisioningTests {
         private static final String CUSTOM_ZONE_ID = UUID.randomUUID().toString();
         private static final String PASSWORD = "some-password";
         private static final String ENCODED_PASSWORD = "{noop}" + PASSWORD;
+
+        @BeforeEach
+        void setUp() {
+            // arrange user config exists for custom zone
+            arrangeUserConfigExistsForZone(UAA);
+            arrangeUserConfigExistsForZone(CUSTOM_ZONE_ID);
+        }
+
+        private void arrangeUserConfigExistsForZone(final String zoneId) {
+            final IdentityZone zone = mock(IdentityZone.class);
+            when(jdbcIdentityZoneProvisioning.retrieve(zoneId)).thenReturn(zone);
+            final IdentityZoneConfiguration zoneConfig = mock(IdentityZoneConfiguration.class);
+            when(zone.getConfig()).thenReturn(zoneConfig);
+            final UserConfig userConfig = mock(UserConfig.class);
+            when(zoneConfig.getUserConfig()).thenReturn(userConfig);
+        }
 
         @ParameterizedTest
         @MethodSource("fromUaaToCustomZoneAndViceVersa")
