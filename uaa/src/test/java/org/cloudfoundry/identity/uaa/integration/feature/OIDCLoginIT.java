@@ -47,7 +47,6 @@ import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.WebDriver;
-import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -126,6 +125,8 @@ public class OIDCLoginIT {
 
     @Autowired
     TestClient testClient;
+
+    private static final String PASSWORD_AUTHN_CTX = "urn:oasis:names:tc:SAML:2.0:ac:classes:Password";
 
     private ServerRunning serverRunning = ServerRunning.isRunning();
 
@@ -515,7 +516,7 @@ public class OIDCLoginIT {
             assertNotNull("id_token should contain ACR claim", claims.get(ClaimConstants.ACR));
             Map<String, Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
             assertNotNull("acr claim should contain values attribute", acr.get("values"));
-            assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
+            assertThat((List<String>) acr.get("values"), containsInAnyOrder(PASSWORD_AUTHN_CTX));
 
             UserInfoResponse userInfo = IntegrationTestUtils.getUserInfo(zoneUrl, authCodeTokenResponse.get("access_token"));
 
