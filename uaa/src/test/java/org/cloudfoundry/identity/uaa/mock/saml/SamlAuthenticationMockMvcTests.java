@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.BaseMatcher;
@@ -30,33 +29,23 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.context.WebApplicationContext;
-import org.xml.sax.InputSource;
 
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-import java.io.StringReader;
 import java.util.*;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static org.apache.logging.log4j.Level.DEBUG;
 import static org.apache.logging.log4j.Level.WARN;
 import static org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding.X_VCAP_REQUEST_ID_HEADER;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -72,7 +61,6 @@ class SamlAuthenticationMockMvcTests {
     private IdentityZone idpZone;
     private String spZoneEntityId;
     private IdentityProvider<SamlIdentityProviderDefinition> idp;
-    private SamlServiceProvider samlServiceProvider;
 
     @Autowired
     private MockMvc mockMvc;
@@ -166,29 +154,6 @@ class SamlAuthenticationMockMvcTests {
         )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://" + idpZone.getSubdomain() + ".localhost:8080/uaa/login"));
-    }
-
-    @Disabled("The test depends on IDP endpoints, which was removed.")
-    @Test
-    void validateStaticAttributes(
-    ) throws Exception {
-        createIdp();
-
-        samlServiceProvider.getConfig().getStaticCustomAttributes().put("portal_id", "portal");
-        samlServiceProvider.getConfig().getStaticCustomAttributes().put("portal_emails", Arrays.asList("portal1@portal.test", "portal2@portal.test"));
-
-        String samlResponse = performIdpAuthentication();
-        String xml = extractAssertion(samlResponse, true);
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        String emails = (String) xpath.evaluate("//*[local-name()='Attribute'][@*[local-name()='Name' and .='portal_emails']]", new InputSource(new StringReader(xml)), XPathConstants.STRING);
-        assertThat(emails, containsString("portal1@portal.test"));
-        assertThat(emails, containsString("portal2@portal.test"));
-    }
-
-    private ResultActions postSamlResponse(
-            final String xml
-    ) throws Exception {
-        return postSamlResponse(xml, "", "", "");
     }
 
     private ResultActions postSamlResponse(
@@ -306,23 +271,6 @@ class SamlAuthenticationMockMvcTests {
         }
     }
 
-    private String performIdpAuthentication() throws Exception {
-        return performIdpAuthentication(Collections.singletonList("uaa.user"));
-    }
-
-    private String performIdpAuthentication(List<String> authorityNames) throws Exception {
-        List<GrantedAuthority> grantedAuthorityList = authorityNames.stream().map(UaaAuthority::authority).collect(Collectors.toList());
-        RequestPostProcessor marissa = securityContext(getUaaSecurityContext("marissa", webApplicationContext, idpZone.getId(), grantedAuthorityList));
-        return mockMvc.perform(
-                get("/saml/idp/initiate")
-                        .header("Host", idpZone.getSubdomain() + ".localhost")
-                        .param("sp", spZoneEntityId)
-                        .with(marissa)
-        )
-                .andDo(print())
-                .andReturn().getResponse().getContentAsString();
-    }
-
     private String getSamlMetadata(String subdomain, String url) throws Exception {
         return mockMvc.perform(
                 get(url)
@@ -372,11 +320,6 @@ class SamlAuthenticationMockMvcTests {
                 webApplicationContext,
                 adminClient, IdentityZoneHolder.getCurrentZoneId()
         ).getIdentityZone();
-    }
-
-    private static String extractAssertion(String response, boolean decode) {
-        String searchFor = "name=\"SAMLResponse\" value=\"";
-        return extractFormParameter(searchFor, response, decode);
     }
 
     private static String extractSamlRequest(String response) {
