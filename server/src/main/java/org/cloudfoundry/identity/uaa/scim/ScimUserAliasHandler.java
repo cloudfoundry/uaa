@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.Optional;
 
-import org.cloudfoundry.identity.uaa.EntityAliasHandler;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -24,9 +25,10 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
             @Qualifier("identityZoneProvisioning") final IdentityZoneProvisioning identityZoneProvisioning,
             final ScimUserProvisioning scimUserProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning,
-            final IdentityZoneManager identityZoneManager
+            final IdentityZoneManager identityZoneManager,
+            @Value("${login.aliasEntitiesEnabled:false}") final boolean aliasEntitiesEnabled
     ) {
-        super(identityZoneProvisioning);
+        super(identityZoneProvisioning, aliasEntitiesEnabled);
         this.scimUserProvisioning = scimUserProvisioning;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.identityZoneManager = identityZoneManager;

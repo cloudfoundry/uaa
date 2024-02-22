@@ -18,9 +18,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.cloudfoundry.identity.uaa.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -246,7 +246,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                     identityZoneManager.getCurrentIdentityZoneId()
             );
             return aliasHandler.ensureConsistencyOfAliasEntity(
-                    originalScimUser
+                    originalScimUser,
+                    null
             );
         });
 

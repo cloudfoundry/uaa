@@ -17,7 +17,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.function.Supplier;
 
-import org.cloudfoundry.identity.uaa.EntityAliasHandler.EntityAliasResult;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -111,7 +112,7 @@ class IdentityProviderEndpointsAliasTest extends IdentityProviderEndpointsTestBa
             persistedAliasIdp.setAliasId(originalIdpId);
             persistedAliasIdp.setAliasZid(UAA);
 
-            when(mockIdentityProviderAliasHandler.ensureConsistencyOfAliasEntity(persistedOriginalIdp)).thenReturn(
+            when(mockIdentityProviderAliasHandler.ensureConsistencyOfAliasEntity(persistedOriginalIdp, null)).thenReturn(
                     new EntityAliasResult<>(
                             persistedOriginalIdpWithAlias,
                             persistedAliasIdp
@@ -226,7 +227,7 @@ class IdentityProviderEndpointsAliasTest extends IdentityProviderEndpointsTestBa
             originalIdpAfterAliasCreation.setAliasId(aliasIdpId);
             originalIdpAfterAliasCreation.setAliasZid(customZoneId);
 
-            when(mockIdentityProviderAliasHandler.ensureConsistencyOfAliasEntity(requestBody))
+            when(mockIdentityProviderAliasHandler.ensureConsistencyOfAliasEntity(requestBody, existingIdp))
                     .thenReturn(new EntityAliasResult<>(originalIdpAfterAliasCreation, aliasIdp));
 
             final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(existingIdpId, requestBody, true);

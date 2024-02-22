@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa;
 
+import java.util.Optional;
+
 import org.springframework.lang.Nullable;
 
 /**
@@ -19,4 +21,22 @@ public interface EntityWithAlias {
     String getAliasZid();
 
     void setAliasZid(String aliasZid);
+
+    /**
+     * Get a description of the entity including its alias properties, e.g., for logging.
+     */
+    default String getAliasDescription() {
+        return String.format(
+                "%s[id=%s,zid=%s,aliasId=%s,aliasZid=%s]",
+                getClass().getSimpleName(),
+                surroundWithSingleQuotesIfPresent(getId()),
+                surroundWithSingleQuotesIfPresent(getZoneId()),
+                surroundWithSingleQuotesIfPresent(getAliasId()),
+                surroundWithSingleQuotesIfPresent(getAliasZid())
+        );
+    }
+
+    private static String surroundWithSingleQuotesIfPresent(@Nullable final String input) {
+        return Optional.ofNullable(input).map(it -> "'" + it + "'").orElse(null);
+    }
 }

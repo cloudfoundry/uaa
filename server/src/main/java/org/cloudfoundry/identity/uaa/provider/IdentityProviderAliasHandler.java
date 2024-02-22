@@ -7,12 +7,16 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import java.util.Optional;
 import java.util.Set;
 
-import org.cloudfoundry.identity.uaa.EntityAliasHandler;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -26,16 +30,17 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    protected IdentityProviderAliasHandler(
+    public IdentityProviderAliasHandler(
             @Qualifier("identityZoneProvisioning") final IdentityZoneProvisioning identityZoneProvisioning,
-            final IdentityProviderProvisioning identityProviderProvisioning
+            final IdentityProviderProvisioning identityProviderProvisioning,
+            @Value("${login.aliasEntitiesEnabled:false}") final boolean aliasEntitiesEnabled
     ) {
-        super(identityZoneProvisioning);
+        super(identityZoneProvisioning, aliasEntitiesEnabled);
         this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
     @Override
-    protected boolean additionalValidationChecksForNewAlias(final IdentityProvider<?> requestBody) {
+    protected boolean additionalValidationChecksForNewAlias(@NonNull final IdentityProvider<?> requestBody) {
         // check if aliases are supported for this IdP type
         return IDP_TYPES_ALIAS_SUPPORTED.contains(requestBody.getType());
     }
@@ -52,18 +57,14 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
 
     @Override
     protected IdentityProvider<?> cloneEntity(final IdentityProvider<?> originalEntity) {
-        final IdentityProvider aliasIdp = new IdentityProvider<>();
-        aliasIdp.setActive(originalEntity.isActive());
-        aliasIdp.setName(originalEntity.getName());
-        aliasIdp.setOriginKey(originalEntity.getOriginKey());
-        aliasIdp.setType(originalEntity.getType());
-        aliasIdp.setConfig(originalEntity.getConfig());
-        aliasIdp.setSerializeConfigRaw(originalEntity.isSerializeConfigRaw());
-        // reference the ID and zone ID of the initial IdP entry
-        aliasIdp.setAliasZid(originalEntity.getIdentityZoneId());
-        aliasIdp.setAliasId(originalEntity.getId());
-        aliasIdp.setIdentityZoneId(originalEntity.getAliasZid());
-        return aliasIdp;
+        final IdentityProvider clonedIdp = new IdentityProvider<>();
+        clonedIdp.setActive(originalEntity.isActive());
+        clonedIdp.setName(originalEntity.getName());
+        clonedIdp.setOriginKey(originalEntity.getOriginKey());
+        clonedIdp.setType(originalEntity.getType());
+        clonedIdp.setConfig(originalEntity.getConfig());
+        clonedIdp.setSerializeConfigRaw(originalEntity.isSerializeConfigRaw());
+        return clonedIdp;
     }
 
     @Override
@@ -85,6 +86,14 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
 
     @Override
     protected IdentityProvider<?> createEntity(final IdentityProvider<?> entity, final String zoneId) {
-        return identityProviderProvisioning.create(entity, zoneId);
+        try {
+            return identityProviderProvisioning.create(entity, zoneId);
+        } catch (final IdpAlreadyExistsException e) {
+            final String errorMessage = String.format(
+                    "Could not create %s. An IdP with this origin already exists in the alias zone.",
+                    entity.getAliasDescription()
+            );
+            throw new EntityAliasFailedException(errorMessage, HttpStatus.CONFLICT.value(), e);
+        }
     }
 }

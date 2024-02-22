@@ -114,6 +114,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return this;
     }
 
+    @Override
     public String getId() {
         return id;
     }
