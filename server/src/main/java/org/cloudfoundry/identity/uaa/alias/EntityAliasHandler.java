@@ -148,8 +148,9 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
             aliasEntity.setAliasId(null);
             aliasEntity.setAliasZid(null);
 
+            final T updatedAliasEntity;
             try {
-                updateEntity(aliasEntity, aliasEntity.getZoneId());
+                updatedAliasEntity = updateEntity(aliasEntity, aliasEntity.getZoneId());
             } catch (final DataAccessException e) {
                 throw new EntityAliasFailedException(
                         String.format(
@@ -160,7 +161,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
             }
 
             // no change required in the original entity since its aliasId and aliasZid were already set to null
-            return new EntityAliasResult<>(originalEntity, aliasEntity);
+            return new EntityAliasResult<>(originalEntity, updatedAliasEntity);
         }
 
         if (!hasText(originalEntity.getAliasZid())) {

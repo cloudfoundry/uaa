@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
@@ -147,7 +148,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             createdIdp = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> createdOriginalIdp = identityProviderProvisioning.create(body, zoneId);
-                return idpAliasHandler.ensureConsistencyOfAliasEntity(createdOriginalIdp, null);
+                final EntityAliasResult<IdentityProvider<?>> aliasResult = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                        createdOriginalIdp,
+                        null
+                );
+                return aliasResult.originalEntity();
             });
         } catch (final IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
@@ -256,7 +261,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             updatedIdp = transactionTemplate.execute(txStatus -> {
                 final IdentityProvider<?> updatedOriginalIdp = identityProviderProvisioning.update(body, zoneId);
-                return idpAliasHandler.ensureConsistencyOfAliasEntity(updatedOriginalIdp, existing);
+                final EntityAliasResult<IdentityProvider<?>> aliasResult = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                        updatedOriginalIdp,
+                        existing
+                );
+                return aliasResult.originalEntity();
             });
         } catch (final IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);

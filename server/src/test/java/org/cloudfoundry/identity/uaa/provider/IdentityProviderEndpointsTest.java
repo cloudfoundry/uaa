@@ -98,7 +98,10 @@ class IdentityProviderEndpointsTest {
         lenient().when(mockIdpAliasHandler.aliasPropertiesAreValid(any(), any()))
                 .thenReturn(true);
         lenient().when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(any(), any()))
-                .then(invocationOnMock -> invocationOnMock.getArgument(0));
+                .then(invocationOnMock -> {
+                    final IdentityProvider<?> originalIdp = invocationOnMock.getArgument(0);
+                    return new EntityAliasResult<IdentityProvider<?>>(originalIdp, null);
+                });
     }
 
     IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
