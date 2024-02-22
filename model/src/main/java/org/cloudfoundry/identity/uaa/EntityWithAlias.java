@@ -4,6 +4,8 @@ import java.util.Optional;
 
 import org.springframework.lang.Nullable;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 /**
  * An entity that can have an alias in another identity zone.
  */
@@ -25,6 +27,7 @@ public interface EntityWithAlias {
     /**
      * Get a description of the entity including its alias properties, e.g., for logging.
      */
+    @JsonIgnore
     default String getAliasDescription() {
         return String.format(
                 "%s[id=%s,zid=%s,aliasId=%s,aliasZid=%s]",
