@@ -15,7 +15,6 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -28,11 +27,9 @@ import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -48,9 +45,6 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
 class SamlAuthenticationMockMvcTests {
@@ -111,49 +105,6 @@ class SamlAuthenticationMockMvcTests {
     @AfterEach
     void putBackOriginalLogger() {
         loggingAuditService.setLogger(originalAuditServiceLogger);
-    }
-
-    @Disabled("The test depends on IDP endpoints, which was removed.")
-    @Test
-    void sendAuthnRequestToIdp() throws Exception {
-        createIdp();
-
-        String idpEntityId = idpZone.getSubdomain() + ".cloudfoundry-saml-login";
-        MvcResult mvcResult = mockMvc.perform(
-                get("/uaa/saml/discovery")
-                        .contextPath("/uaa")
-                        .header(HOST, spZone.getSubdomain() + ".localhost:8080")
-                        .param("returnIDParam", "idp")
-                        .param("entityID", spZoneEntityId)
-                        .param("idp", idp.getOriginKey())
-                        .param("isPassive", "true")
-        )
-                .andExpect(status().isFound())
-                .andReturn();
-
-        mvcResult = mockMvc.perform(
-                get(mvcResult.getResponse().getRedirectedUrl())
-                        .contextPath("/uaa")
-                        .header(HOST, spZone.getSubdomain() + ".localhost:8080")
-                        .session((MockHttpSession) mvcResult.getRequest().getSession())
-
-        )
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andReturn();
-
-        String body = mvcResult.getResponse().getContentAsString();
-        String relayState = extractRelayState(body);
-        String samlRequest = extractSamlRequest(body);
-        mockMvc.perform(
-                post("/uaa/saml/idp/SSO/alias/" + idpEntityId)
-                        .contextPath("/uaa")
-                        .header(HOST, idpZone.getSubdomain() + ".localhost:8080")
-                        .param("RelayState", relayState)
-                        .param("SAMLRequest", samlRequest)
-        )
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://" + idpZone.getSubdomain() + ".localhost:8080/uaa/login"));
     }
 
     private ResultActions postSamlResponse(
@@ -320,28 +271,5 @@ class SamlAuthenticationMockMvcTests {
                 webApplicationContext,
                 adminClient, IdentityZoneHolder.getCurrentZoneId()
         ).getIdentityZone();
-    }
-
-    private static String extractSamlRequest(String response) {
-        String searchFor = "name=\"SAMLRequest\" value=\"";
-        return extractFormParameter(searchFor, response, false);
-    }
-
-    private static String extractRelayState(String response) {
-        String searchFor = "name=\"RelayState\" value=\"";
-        return extractFormParameter(searchFor, response, false);
-    }
-
-    private static String extractFormParameter(String searchFor, String response, boolean decode) {
-        int start = response.indexOf(searchFor) + searchFor.length();
-        assertThat("Must find the SAML response in output\n" + response, start, greaterThan(searchFor.length()));
-        int end = response.indexOf("\"/>", start);
-        assertThat("Must find the SAML response in output\n" + response, end, greaterThan(start));
-        String encoded = response.substring(start, end);
-        if (decode) {
-            return new String(Base64.getDecoder().decode(encoded));
-        } else {
-            return encoded;
-        }
     }
 }
