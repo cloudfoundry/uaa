@@ -1,64 +1,44 @@
 package org.cloudfoundry.identity.uaa.mock.providers;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.alias.AliasMockMvcTestBase;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.token.Claims;
-import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.ThrowingSupplier;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.web.context.WebApplicationContext;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
@@ -66,36 +46,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
  * Tests regarding the handling of "aliasId" and "aliasZid" properties of identity providers.
  */
 @DefaultTestContext
-class IdentityProviderEndpointsAliasMockMvcTests {
-    private static final AlphanumericRandomValueStringGenerator RANDOM_STRING_GENERATOR = new AlphanumericRandomValueStringGenerator(8);
-
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private TestClient testClient;
-
-    @Autowired
-    private WebApplicationContext webApplicationContext;
-
-    private final Map<String, String> accessTokenCache = new HashMap<>();
-    private IdentityZone customZone;
-    private String adminToken;
-    private String identityToken;
+class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
     private IdentityProviderAliasHandler idpEntityAliasHandler;
     private IdentityProviderEndpoints identityProviderEndpoints;
 
     @BeforeEach
     void setUp() throws Exception {
-        adminToken = testClient.getClientCredentialsOAuthAccessToken(
-                "admin",
-                "adminsecret",
-                "");
-        identityToken = testClient.getClientCredentialsOAuthAccessToken(
-                "identity",
-                "identitysecret",
-                "zones.write");
-        customZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
+        setUpTokensAndCustomZone();
 
         idpEntityAliasHandler = requireNonNull(webApplicationContext.getBean(IdentityProviderAliasHandler.class));
         identityProviderEndpoints = requireNonNull(webApplicationContext.getBean(IdentityProviderEndpoints.class));
@@ -1219,7 +1176,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             }
         }
 
-
         private MvcResult deleteIdpAndReturnResult(final IdentityZone zone, final String id) throws Exception {
             final String accessTokenForZone1 = getAccessTokenForZone(zone.getId());
             final MockHttpServletRequestBuilder deleteRequestBuilder = delete("/identity-providers/" + id)
@@ -1261,78 +1217,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         assertThat(aliasIdp.isActive()).isEqualTo(idp.isActive());
 
         // it is expected that the two entities have differing values for 'lastmodified', 'created' and 'version'
-    }
-
-    private IdentityProvider<?> createIdpWithAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-        final IdentityProvider<?> provider = buildOidcIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
-        final IdentityProvider<?> createdOriginalIdp = createIdp(zone1, provider);
-        assertThat(createdOriginalIdp.getAliasId()).isNotBlank();
-        assertThat(createdOriginalIdp.getAliasZid()).isNotBlank();
-        return createdOriginalIdp;
-    }
-
-    private IdentityProvider<?> createIdp(final IdentityZone zone, final IdentityProvider<?> idp) throws Exception {
-        final MvcResult createResult = createIdpAndReturnResult(zone, idp);
-        assertThat(createResult.getResponse().getStatus()).isEqualTo(HttpStatus.CREATED.value());
-        return JsonUtils.readValue(createResult.getResponse().getContentAsString(), IdentityProvider.class);
-    }
-
-    private MvcResult createIdpAndReturnResult(final IdentityZone zone, final IdentityProvider<?> idp) throws Exception {
-        final MockHttpServletRequestBuilder createRequestBuilder = post("/identity-providers")
-                .param("rawConfig", "true")
-                .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()))
-                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getSubdomain())
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(idp));
-        return mockMvc.perform(createRequestBuilder).andReturn();
-    }
-
-    private <T> T executeWithTemporarilyEnabledAliasFeature(
-            final boolean aliasFeatureEnabledBeforeAction,
-            final ThrowingSupplier<T> action
-    ) throws Throwable {
-        arrangeAliasFeatureEnabled(true);
-        try {
-            return action.get();
-        } finally {
-            arrangeAliasFeatureEnabled(aliasFeatureEnabledBeforeAction);
-        }
-    }
-
-    private String getAccessTokenForZone(final String zoneId) throws Exception {
-        final String cacheLookupResult = accessTokenCache.get(zoneId);
-        if (cacheLookupResult != null) {
-            return cacheLookupResult;
-        }
-
-        final List<String> scopesForZone = getScopesForZone(zoneId, "admin");
-
-        final ScimUser adminUser = MockMvcUtils.createAdminForZone(
-                mockMvc,
-                adminToken,
-                String.join(",", scopesForZone),
-                IdentityZone.getUaaZoneId()
-        );
-        final String accessToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(
-                mockMvc,
-                "identity",
-                "identitysecret",
-                adminUser.getId(),
-                adminUser.getUserName(),
-                adminUser.getPassword(),
-                String.join(" ", scopesForZone),
-                IdentityZone.getUaaZoneId(),
-                TokenConstants.TokenFormat.JWT // use JWT for later checking if all scopes are present
-        );
-
-        // check if the token contains the expected scopes
-        final Claims claims = UaaTokenUtils.getClaimsFromTokenString(accessToken);
-        assertThat(claims.getScope()).hasSameElementsAs(scopesForZone);
-
-        // cache the access token
-        accessTokenCache.put(zoneId, accessToken);
-
-        return accessToken;
     }
 
     private Optional<IdentityProvider<?>> readIdpFromZoneIfExists(final String zoneId, final String id) throws Exception {
@@ -1426,85 +1310,9 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         assertThat(config.get().getRelyingPartySecret()).isBlank();
     }
 
-    private static List<String> getScopesForZone(final String zoneId, final String... scopes) {
-        return Stream.of(scopes).map(scope -> String.format("zones.%s.%s", zoneId, scope)).collect(toList());
-    }
-
-    private static IdentityProvider<?> buildOidcIdpWithAliasProperties(
-            final String idzId,
-            final String aliasId,
-            final String aliasZid
-    ) {
-        final String originKey = RANDOM_STRING_GENERATOR.generate();
-        return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey, OIDC10);
-    }
-
-    private static IdentityProvider<?> buildUaaIdpWithAliasProperties(
-            final String idzId,
-            final String aliasId,
-            final String aliasZid
-    ) {
-        final String originKey = RANDOM_STRING_GENERATOR.generate();
-        return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey, UAA);
-    }
-
-    private void arrangeAliasFeatureEnabled(final boolean enabled) {
+    @Override
+    protected void arrangeAliasFeatureEnabled(final boolean enabled) {
         ReflectionTestUtils.setField(idpEntityAliasHandler, "aliasEntitiesEnabled", enabled);
         ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
-    }
-
-    private static IdentityProvider<?> buildIdpWithAliasProperties(
-            final String idzId,
-            final String aliasId,
-            final String aliasZid,
-            final String originKey,
-            final String type
-    ) {
-        final AbstractIdentityProviderDefinition definition = buildIdpDefinition(type);
-
-        final IdentityProvider<AbstractIdentityProviderDefinition> provider = new IdentityProvider<>();
-        provider.setIdentityZoneId(idzId);
-        provider.setAliasId(aliasId);
-        provider.setAliasZid(aliasZid);
-        provider.setName(originKey);
-        provider.setOriginKey(originKey);
-        provider.setType(type);
-        provider.setConfig(definition);
-        provider.setActive(true);
-        return provider;
-    }
-
-    private static AbstractIdentityProviderDefinition buildIdpDefinition(final String type) {
-        switch (type) {
-            case OIDC10:
-                final OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-                try {
-                    return definition
-                            .setAuthUrl(new URL("https://www.example.com/oauth/authorize"))
-                            .setLinkText("link text")
-                            .setRelyingPartyId("relying-party-id")
-                            .setRelyingPartySecret("relying-party-secret")
-                            .setShowLinkText(true)
-                            .setSkipSslValidation(true)
-                            .setTokenKey("key")
-                            .setTokenKeyUrl(new URL("https://www.example.com/token_keys"))
-                            .setTokenUrl(new URL("https://wwww.example.com/oauth/token"));
-                } catch (final MalformedURLException e) {
-                    throw new RuntimeException(e);
-                }
-            case UAA:
-                final PasswordPolicy passwordPolicy = new PasswordPolicy();
-                passwordPolicy.setExpirePasswordInMonths(1);
-                passwordPolicy.setMaxLength(100);
-                passwordPolicy.setMinLength(10);
-                passwordPolicy.setRequireDigit(1);
-                passwordPolicy.setRequireUpperCaseCharacter(1);
-                passwordPolicy.setRequireLowerCaseCharacter(1);
-                passwordPolicy.setRequireSpecialCharacter(1);
-                passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
-                return new UaaIdentityProviderDefinition(passwordPolicy, null);
-            default:
-                throw new IllegalArgumentException("IdP type not supported.");
-        }
     }
 }
