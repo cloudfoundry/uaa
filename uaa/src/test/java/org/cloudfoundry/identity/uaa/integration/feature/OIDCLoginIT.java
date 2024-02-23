@@ -452,7 +452,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    @Ignore("SAML test doesn't compile")
+    @Ignore("SAML test fails")
     public void successfulLoginWithOIDC_and_SAML_Provider_PlusRefreshRotation() throws Exception {
         SamlIdentityProviderDefinition saml = IntegrationTestUtils.createSimplePHPSamlIDP("simplesamlphp", OriginKeys.UAA);
         saml.setLinkText("SAML Login");
