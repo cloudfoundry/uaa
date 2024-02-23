@@ -82,20 +82,20 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=?, alias_id=?, alias_zid=? where id=? and version=? and identity_zone_id=?";
 
-    public static final String DEACTIVATE_USER_SQL = "update users set active=? where ((id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?))";
+    public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=? and identity_zone_id=?";
     private static final String DEACTIVATE_USER_WITH_VERSION_SQL = DEACTIVATE_USER_SQL + " and version=?";
 
     public static final String VERIFY_USER_SQL = "update users set verified=? where id=? and identity_zone_id=?";
     private static final String VERIFY_USER_WITH_VERSION_SQL = VERIFY_USER_SQL + " and version=?";
 
-    public static final String DELETE_USER_SQL = "delete from users where ((id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?))";
+    public static final String DELETE_USER_SQL = "delete from users where id=? and identity_zone_id=?";
     private static final String DELETE_USER_WITH_VERSION_SQL = DELETE_USER_SQL + " and version=?";
 
-    public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where (id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?)";
+    public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=? and identity_zone_id=?";
 
-    public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where (id=? and identity_zone_id=?) or (alias_id=? and alias_zid=?)";
+    public static final String UPDATE_PASSWORD_CHANGE_REQUIRED_SQL = "update users set passwd_change_required=? where id=? and identity_zone_id=?";
 
     public static final String UPDATE_LAST_LOGON_TIME_SQL = JdbcUaaUserDatabase.DEFAULT_UPDATE_USER_LAST_LOGON;
 
@@ -333,7 +333,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (checkPasswordMatches(id, newPassword, zoneId)) {
             return; //we don't want to update the same password
         }
-        final ScimUser user = retrieve(id, zoneId);
         final String encNewPassword = passwordEncoder.encode(newPassword);
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, ps -> {
             Timestamp t = new Timestamp(System.currentTimeMillis());
@@ -342,17 +341,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             ps.setTimestamp(3, getPasswordLastModifiedTimestamp(t));
             ps.setString(4, id);
             ps.setString(5, zoneId);
-            ps.setString(6, id); // alias_id
-            ps.setString(7, zoneId); // alias_zid
         });
         if (updated == 0) {
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
         }
-        if (!user.hasAliasUser() && updated != 1) {
+        if (updated != 1) {
             throw new ScimResourceConstraintFailedException("User " + id + " duplicated");
-        }
-        if (user.hasAliasUser() && updated != 2) {
-            throw new ScimResourceConstraintFailedException("User " + id + " has alias user, but its record was not updated");
         }
     }
 
@@ -381,19 +375,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     @Override
     public void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired, String zoneId) throws ScimResourceNotFoundException {
-        final ScimUser user = retrieve(userId, zoneId);
         int updated = jdbcTemplate.update(UPDATE_PASSWORD_CHANGE_REQUIRED_SQL, ps -> {
             ps.setBoolean(1, passwordChangeRequired);
             ps.setString(2, userId);
             ps.setString(3, zoneId);
-            ps.setString(4, userId); // alias_id
-            ps.setString(5, zoneId); // alias_zid
         });
         if (updated == 0) {
             throw new ScimResourceNotFoundException("User " + userId + " does not exist");
-        }
-        if (user.hasAliasUser() && updated != 2) {
-            throw new ScimResourceConstraintFailedException("User " + userId + " has alias user, but not both records were updated");
         }
     }
 
@@ -403,26 +391,22 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return deactivateOnDelete ? deactivateUser(user, version, zoneId) : deleteUser(user, version, zoneId);
     }
 
-    /**
-     * Deactivate a user as well as its alias user, if present.
-     */
     private ScimUser deactivateUser(ScimUser user, int version, String zoneId) {
         logger.debug("Deactivating user: " + user.getId());
         int updated;
         if (version < 0) {
             // Ignore
-            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL, false, user.getId(), zoneId, user.getId(), zoneId);
+            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL, false, user.getId(), zoneId);
         } else {
-            updated = jdbcTemplate.update(DEACTIVATE_USER_WITH_VERSION_SQL, false, user.getId(), zoneId, user.getId(), zoneId, version);
+            updated = jdbcTemplate.update(DEACTIVATE_USER_WITH_VERSION_SQL, false, user.getId(), zoneId, version);
         }
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
                             "Attempt to update a user (%s) with wrong version: expected=%d but found=%d", user.getId(),
                             user.getVersion(), version));
         }
-        final int expectedNumberOfUpdatedUsers = user.hasAliasUser() ? 2 : 1;
-        if (updated != expectedNumberOfUpdatedUsers) {
-            throw new IncorrectResultSizeDataAccessException(expectedNumberOfUpdatedUsers);
+        if (updated > 1) {
+            throw new IncorrectResultSizeDataAccessException(1);
         }
         user.setActive(false);
         return user;
@@ -462,21 +446,17 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return user;
     }
 
-    /**
-     * Delete a user as well as its alias user, if present.
-     */
     protected int deleteUser(String userId, int version, String zoneId) {
         logger.debug("Deleting user: " + userId);
         int updated;
 
         if (version < 0) {
-            updated = jdbcTemplate.update(DELETE_USER_SQL, userId, zoneId, userId, zoneId);
+            updated = jdbcTemplate.update(DELETE_USER_SQL, userId, zoneId);
         }
         else {
-            updated = jdbcTemplate.update(DELETE_USER_WITH_VERSION_SQL, userId, zoneId, userId, zoneId, version);
+            updated = jdbcTemplate.update(DELETE_USER_WITH_VERSION_SQL, userId, zoneId, version);
         }
         return updated;
-
     }
 
     public void setDeactivateOnDelete(boolean deactivateOnDelete) {
