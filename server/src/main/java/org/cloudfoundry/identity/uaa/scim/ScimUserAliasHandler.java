@@ -11,7 +11,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
@@ -36,25 +36,33 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
 
     @Override
     protected boolean additionalValidationChecksForNewAlias(final ScimUser requestBody) {
-        // check if the IdP also exists as an alias IdP in the alias zone
-        final IdentityProvider<?> idpInAliasZone;
-        try {
-            idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(
-                    requestBody.getOrigin(),
-                    requestBody.getAliasZid()
-            );
-        } catch (final DataAccessException e) {
-            throw new ScimException(
-                    String.format("No IdP with the origin '%s' exists in the alias zone.", requestBody.getOrigin()),
-                    HttpStatus.BAD_REQUEST
-            );
-        }
-
-        final IdentityProvider<?> idpInCurrentZone = identityProviderProvisioning.retrieveByOrigin(
+        /* check if an IdP with the user's origin exists in both the current and the alias zone and that they are
+         * aliases of each other */
+        final IdentityProvider<?> idpInAliasZone = retrieveIdpByOrigin(
+                requestBody.getOrigin(),
+                requestBody.getAliasZid()
+        );
+        final IdentityProvider<?> idpInCurrentZone = retrieveIdpByOrigin(
                 requestBody.getOrigin(),
                 identityZoneManager.getCurrentIdentityZoneId()
         );
-        return EntityAliasHandler.isCorrectAliasPair(idpInCurrentZone, idpInAliasZone);
+        return EntityAliasHandler.isValidAliasPair(idpInCurrentZone, idpInAliasZone);
+    }
+
+    private IdentityProvider<?> retrieveIdpByOrigin(final String originKey, final String zoneId) {
+        final IdentityProvider<?> idpInAliasZone;
+        try {
+            idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(
+                    originKey,
+                    zoneId
+            );
+        } catch (final EmptyResultDataAccessException e) {
+            throw new ScimException(
+                    String.format("No IdP with the origin '%s' exists in the zone '%s'.", originKey, zoneId),
+                    HttpStatus.BAD_REQUEST
+            );
+        }
+        return idpInAliasZone;
     }
 
     @Override

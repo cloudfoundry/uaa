@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.alias;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.util.StringUtils.hasText;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
@@ -236,7 +237,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
 
     protected abstract T createEntity(final T entity, final String zoneId) throws EntityAliasFailedException;
 
-    protected static <T extends EntityWithAlias> boolean isCorrectAliasPair(final T entity1, final T entity2) {
+    protected static <T extends EntityWithAlias> boolean isValidAliasPair(final T entity1, final T entity2) {
         // check if both entities have an alias
         final boolean entity1HasAlias = hasText(entity1.getAliasId()) && hasText(entity1.getAliasZid());
         final boolean entity2HasAlias = hasText(entity2.getAliasId()) && hasText(entity2.getAliasZid());
@@ -245,10 +246,10 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         }
 
         // check if they reference each other
-        final boolean entity1ReferencesEntity2 = entity1.getAliasId().equals(entity2.getId())
-                && entity1.getAliasZid().equals(entity2.getZoneId());
-        final boolean entity2ReferencesEntity1 = entity2.getAliasId().equals(entity1.getId())
-                && entity2.getAliasZid().equals(entity1.getZoneId());
+        final boolean entity1ReferencesEntity2 = Objects.equals(entity1.getAliasId(), entity2.getId()) &&
+                Objects.equals(entity1.getAliasZid(), entity2.getZoneId());
+        final boolean entity2ReferencesEntity1 = Objects.equals(entity2.getAliasId(), entity1.getId()) &&
+                Objects.equals(entity2.getAliasZid(), entity1.getZoneId());
         return entity1ReferencesEntity2 && entity2ReferencesEntity1;
     }
 
