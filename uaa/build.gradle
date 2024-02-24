@@ -88,6 +88,8 @@ dependencies {
     testImplementation(libraries.springSecurityLdap)
 //    testImplementation(libraries.springSecuritySaml)
     testImplementation(libraries.springSecurityTest)
+    implementation("org.opensaml:opensaml:2.6.6")
+    implementation("org.opensaml:xmltooling:1.4.6")
     testImplementation(libraries.springBootStarterMail)
     testImplementation(libraries.mockito)
     testImplementation(libraries.tomcatJdbc)

@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-//import org.opensaml.saml2.metadata.IDPSSODescriptor;
-//import org.opensaml.saml2.metadata.SingleLogoutService;
-//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.opensaml.saml2.metadata.IDPSSODescriptor;
+import org.opensaml.saml2.metadata.SingleLogoutService;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 //import org.springframework.security.saml.SAMLConstants;

@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-//import org.opensaml.ws.message.decoder.MessageDecoder;
-//import org.opensaml.ws.message.encoder.MessageEncoder;
-//import org.opensaml.ws.security.SecurityPolicyRule;
-//import org.opensaml.ws.transport.InTransport;
-//import org.opensaml.ws.transport.OutTransport;
-//import org.opensaml.ws.transport.http.HttpServletRequestAdapter;
+import org.opensaml.ws.message.decoder.MessageDecoder;
+import org.opensaml.ws.message.encoder.MessageEncoder;
+import org.opensaml.ws.security.SecurityPolicyRule;
+import org.opensaml.ws.transport.InTransport;
+import org.opensaml.ws.transport.OutTransport;
+import org.opensaml.ws.transport.http.HttpServletRequestAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 //import org.springframework.security.saml.context.SAMLMessageContext;
@@ -26,30 +26,30 @@ public class SamlResponseLoggerBinding /* implements SAMLBinding */ {
     public static final String X_VCAP_REQUEST_ID_HEADER = "X-Vcap-Request-Id";
 
 //    @Override
-//    public boolean supports(InTransport transport) {
-//        if (!(transport instanceof HttpServletRequestAdapter)) {
-//            return false;
-//        }
-//
-//        HttpServletRequest httpServletRequest = ((HttpServletRequestAdapter) transport).getWrappedRequest();
-//        LOGGER.warn("Malformed SAML response. More details at log level DEBUG.");
-//
-//        if (httpServletRequest == null) {
-//            LOGGER.debug("HttpServletRequest is null - no information to log");
-//            return false;
-//        }
-//
-//        if (LOGGER.isDebugEnabled()) {
-//            LOGGER.debug("Method: {}, Params (name/size): {}, Content-type: {}, Request-size: {}, {}: {}",
-//                    httpServletRequest.getMethod(),
-//                    describeParameters(httpServletRequest),
-//                    httpServletRequest.getContentType(),
-//                    httpServletRequest.getContentLength(),
-//                    X_VCAP_REQUEST_ID_HEADER,
-//                    httpServletRequest.getHeader(X_VCAP_REQUEST_ID_HEADER));
-//        }
-//        return false;
-//    }
+    public boolean supports(InTransport transport) {
+        if (!(transport instanceof HttpServletRequestAdapter)) {
+            return false;
+        }
+
+        HttpServletRequest httpServletRequest = ((HttpServletRequestAdapter) transport).getWrappedRequest();
+        LOGGER.warn("Malformed SAML response. More details at log level DEBUG.");
+
+        if (httpServletRequest == null) {
+            LOGGER.debug("HttpServletRequest is null - no information to log");
+            return false;
+        }
+
+        if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("Method: {}, Params (name/size): {}, Content-type: {}, Request-size: {}, {}: {}",
+                    httpServletRequest.getMethod(),
+                    describeParameters(httpServletRequest),
+                    httpServletRequest.getContentType(),
+                    httpServletRequest.getContentLength(),
+                    X_VCAP_REQUEST_ID_HEADER,
+                    httpServletRequest.getHeader(X_VCAP_REQUEST_ID_HEADER));
+        }
+        return false;
+    }
 
     private static String describeParameters(HttpServletRequest t) {
         if (t == null || t.getParameterMap() == null) {
@@ -83,19 +83,19 @@ public class SamlResponseLoggerBinding /* implements SAMLBinding */ {
     }
 
 //    @Override
-//    public boolean supports(OutTransport transport) {
-//        return false;
-//    }
+    public boolean supports(OutTransport transport) {
+        return false;
+    }
 
 //    @Override
-//    public MessageDecoder getMessageDecoder() {
-//        return null;
-//    }
+    public MessageDecoder getMessageDecoder() {
+        return null;
+    }
 
 //    @Override
-//    public MessageEncoder getMessageEncoder() {
-//        return null;
-//    }
+    public MessageEncoder getMessageEncoder() {
+        return null;
+    }
 
 //    @Override
     public String getBindingURI() {

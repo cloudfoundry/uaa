@@ -15,12 +15,12 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-//import org.opensaml.ws.message.decoder.MessageDecoder;
-//import org.opensaml.ws.message.encoder.MessageEncoder;
-//import org.opensaml.ws.transport.InTransport;
-//import org.opensaml.ws.transport.http.HTTPInTransport;
-//import org.opensaml.ws.transport.http.HTTPTransport;
-//import org.opensaml.xml.parse.ParserPool;
+import org.opensaml.ws.message.decoder.MessageDecoder;
+import org.opensaml.ws.message.encoder.MessageEncoder;
+import org.opensaml.ws.transport.InTransport;
+import org.opensaml.ws.transport.http.HTTPInTransport;
+import org.opensaml.ws.transport.http.HTTPTransport;
+import org.opensaml.xml.parse.ParserPool;
 //import org.springframework.security.saml.processor.HTTPPostBinding;
 
 public class SamlAssertionBinding /* extends HTTPPostBinding */ {
@@ -46,17 +46,17 @@ public class SamlAssertionBinding /* extends HTTPPostBinding */ {
 //    }
 
 //    @Override
-//    public boolean supports(InTransport transport) {
-//        if (transport instanceof HTTPInTransport) {
-//            HTTPTransport t = (HTTPTransport) transport;
-//            return "POST".equalsIgnoreCase(t.getHTTPMethod()) && t.getParameterValue("assertion") != null;
-//        } else {
-//            return false;
-//        }
-//    }
+    public boolean supports(InTransport transport) {
+        if (transport instanceof HTTPInTransport) {
+            HTTPTransport t = (HTTPTransport) transport;
+            return "POST".equalsIgnoreCase(t.getHTTPMethod()) && t.getParameterValue("assertion") != null;
+        } else {
+            return false;
+        }
+    }
 
 //    @Override
-//    public String getBindingURI() {
-//        return "urn:oasis:names:tc:SAML:2.0:bindings:URI";
-//    }
+    public String getBindingURI() {
+        return "urn:oasis:names:tc:SAML:2.0:bindings:URI";
+    }
 }

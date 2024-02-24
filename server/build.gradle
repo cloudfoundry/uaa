@@ -29,6 +29,9 @@ dependencies {
 //        exclude(module: "bcprov-ext-jdk15on")
 //        exclude(module: "xalan")
 //    }
+    implementation("org.opensaml:opensaml:2.6.6")
+    implementation("org.opensaml:openws:1.5.6")
+    implementation("org.opensaml:xmltooling:1.4.6")
     implementation(libraries.jodaTime)
     implementation(libraries.commonsHttpClient)
     implementation(libraries.xmlSecurity)

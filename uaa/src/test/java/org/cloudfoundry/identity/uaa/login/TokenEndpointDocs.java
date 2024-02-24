@@ -400,7 +400,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     @Disabled("SAML test doesn't compile")
     void getTokenUsingSaml2BearerGrant() throws Exception {
         SamlTestUtils samlTestUtils = new SamlTestUtils();
-//        samlTestUtils.initializeSimple();
+        samlTestUtils.initializeSimple();
 
         final String subdomain = "68uexx";
         //all our SAML defaults use :8080/uaa/ so we have to use that here too
