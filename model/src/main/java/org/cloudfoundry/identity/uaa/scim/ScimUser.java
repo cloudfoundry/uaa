@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
+import org.springframework.lang.NonNull;
 import org.springframework.util.Assert;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -422,7 +423,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         return groups;
     }
 
-    public void setGroups(Collection<Group> groups) {
+    public void setGroups(@NonNull Collection<Group> groups) {
         this.groups = new LinkedHashSet<>(groups);
     }
 
@@ -655,13 +656,6 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
     @JsonIgnore
     public String getFamilyName() {
         return name == null ? null : name.getFamilyName();
-    }
-
-    /**
-     * Determine whether this user references an alias user in another IdZ.
-     */
-    public boolean hasAliasUser() {
-        return hasText(aliasId) && hasText(aliasZid);
     }
 
     /**

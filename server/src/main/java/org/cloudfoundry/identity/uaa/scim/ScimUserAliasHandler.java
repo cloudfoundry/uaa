@@ -79,13 +79,16 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
     protected ScimUser cloneEntity(final ScimUser originalEntity) {
         final ScimUser aliasUser = new ScimUser();
 
-        aliasUser.setTitle(originalEntity.getTitle());
-        aliasUser.setDisplayName(originalEntity.getDisplayName());
         aliasUser.setName(originalEntity.getName());
+        aliasUser.setDisplayName(originalEntity.getDisplayName());
         aliasUser.setNickName(originalEntity.getNickName());
-        aliasUser.setPhoneNumbers(originalEntity.getPhoneNumbers());
+        aliasUser.setUserName(originalEntity.getUserName());
+
         aliasUser.setEmails(originalEntity.getEmails());
         aliasUser.setPrimaryEmail(originalEntity.getPrimaryEmail());
+        aliasUser.setPhoneNumbers(originalEntity.getPhoneNumbers());
+
+        aliasUser.setTitle(originalEntity.getTitle());
         aliasUser.setLocale(originalEntity.getLocale());
         aliasUser.setTimezone(originalEntity.getTimezone());
         aliasUser.setProfileUrl(originalEntity.getProfileUrl());
@@ -99,7 +102,9 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         aliasUser.setVerified(originalEntity.isVerified());
 
         aliasUser.setApprovals(originalEntity.getApprovals());
-        aliasUser.setGroups(originalEntity.getGroups());
+        if (originalEntity.getGroups() != null) {
+            aliasUser.setGroups(originalEntity.getGroups());
+        }
 
         aliasUser.setOrigin(originalEntity.getOrigin());
         aliasUser.setExternalId(originalEntity.getExternalId());
@@ -131,6 +136,6 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
 
     @Override
     protected ScimUser createEntity(final ScimUser entity, final String zoneId) {
-        return scimUserProvisioning.create(entity, zoneId);
+        return scimUserProvisioning.createUser(entity, entity.getPassword(), zoneId);
     }
 }

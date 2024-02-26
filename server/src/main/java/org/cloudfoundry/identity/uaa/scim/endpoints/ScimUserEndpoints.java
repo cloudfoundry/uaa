@@ -245,6 +245,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                     user.getPassword(),
                     identityZoneManager.getCurrentIdentityZoneId()
             );
+            originalScimUser.setPassword(user.getPassword());
             return aliasHandler.ensureConsistencyOfAliasEntity(
                     originalScimUser,
                     null
