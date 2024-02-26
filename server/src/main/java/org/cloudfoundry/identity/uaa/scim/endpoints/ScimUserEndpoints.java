@@ -246,10 +246,16 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                     identityZoneManager.getCurrentIdentityZoneId()
             );
             originalScimUser.setPassword(user.getPassword());
-            return aliasHandler.ensureConsistencyOfAliasEntity(
+            final EntityAliasResult<ScimUser> aliasResultTmp = aliasHandler.ensureConsistencyOfAliasEntity(
                     originalScimUser,
                     null
             );
+            // ensure that password is removed in response
+            aliasResultTmp.originalEntity().setPassword(null);
+            if (aliasResultTmp.aliasEntity() != null) {
+                aliasResultTmp.aliasEntity().setPassword(null);
+            }
+            return aliasResultTmp;
         });
 
         // sync approvals and groups for original user
