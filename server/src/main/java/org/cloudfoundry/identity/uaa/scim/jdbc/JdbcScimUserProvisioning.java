@@ -16,8 +16,6 @@ import static java.sql.Types.VARCHAR;
 import static java.util.stream.Collectors.joining;
 import static org.springframework.util.StringUtils.hasText;
 
-import javax.annotation.Nullable;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -638,17 +636,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         jdbcTemplate.update(UPDATE_LAST_LOGON_TIME_SQL, timeService.getCurrentTimeMillis(), id, zoneId);
     }
 
-    @Nullable
-    private UserConfig getUserConfig(String zoneId) {
+    private UserConfig getUserConfig(String zoneId) throws InvalidScimResourceException {
         try {
             IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
             return (currentZone.getId().equals(zoneId)) ?
                 currentZone.getConfig().getUserConfig() :
                 jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig();
         } catch (ZoneDoesNotExistsException e) {
-            logger.debug("could not retrieve identity zone with id: {}", zoneId);
+            throw new InvalidScimResourceException(String.format("Invalid identity zone id: %s", zoneId));
         }
-        return null;
     }
 
     private void validateUserLimit(String zoneId, UserConfig userConfig) {
