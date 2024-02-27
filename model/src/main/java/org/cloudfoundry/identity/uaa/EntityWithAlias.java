@@ -14,14 +14,26 @@ public interface EntityWithAlias {
 
     String getZoneId();
 
+    /**
+     * @return the ID of the alias entity
+     */
     @Nullable
     String getAliasId();
 
+    /**
+     * @param aliasId the ID of the alias entity
+     */
     void setAliasId(String aliasId);
 
+    /**
+     * @return the ID of the identity zone in which an alias of the entity is maintained
+     */
     @Nullable
     String getAliasZid();
 
+    /**
+     * @param aliasZid the ID of the identity zone in which an alias of the entity is maintained
+     */
     void setAliasZid(String aliasZid);
 
     /**
