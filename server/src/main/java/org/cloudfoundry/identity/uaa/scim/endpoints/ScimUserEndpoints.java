@@ -126,6 +126,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private final ExpiringCodeStore codeStore;
     private final ApprovalStore approvalStore;
     private final ScimGroupMembershipManager membershipManager;
+    private final boolean aliasEntitiesEnabled;
     private final int userMaxCount;
     private final HttpMessageConverter<?>[] messageConverters;
     private final AtomicInteger scimUpdates;
@@ -152,6 +153,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final ScimGroupMembershipManager membershipManager,
             final ScimUserAliasHandler aliasHandler,
             final @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
+            @Value("${login.aliasEntitiesEnabled:false}") final boolean aliasEntitiesEnabled,
             final @Value("${userMaxCount:500}") int userMaxCount
     ) {
         if (userMaxCount <= 0) {
@@ -169,6 +171,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.passwordValidator = passwordValidator;
         this.codeStore = codeStore;
         this.approvalStore = approvalStore;
+        this.aliasEntitiesEnabled = aliasEntitiesEnabled;
         this.userMaxCount = userMaxCount;
         this.membershipManager = membershipManager;
         this.messageConverters = new HttpMessageConverter[] {
