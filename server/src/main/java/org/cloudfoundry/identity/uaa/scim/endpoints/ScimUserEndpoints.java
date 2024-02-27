@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.isEmpty;
 
 import javax.servlet.http.HttpServletRequest;
@@ -13,6 +14,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -81,6 +83,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -350,6 +353,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.DELETE)
     @ResponseBody
+    @Transactional
     public ScimUser deleteUser(@PathVariable String userId,
                                @RequestHeader(value = "If-Match", required = false) String etag,
                                HttpServletRequest request,
@@ -357,6 +361,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
         throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
+
         membershipManager.removeMembersByMemberId(userId, identityZoneManager.getCurrentIdentityZoneId());
         scimUserProvisioning.delete(userId, version, identityZoneManager.getCurrentIdentityZoneId());
         scimDeletes.incrementAndGet();
@@ -369,6 +374,49 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             );
             logger.debug("User delete event sent[" + userId + "]");
         }
+
+        // handle alias user, if present
+        final boolean hasAlias = hasText(user.getAliasId()) && hasText(user.getAliasZid());
+        if (!hasAlias) {
+            // no further action necessary
+            return user;
+        }
+
+        final Optional<ScimUser> aliasUserOpt = aliasHandler.retrieveAliasEntity(user);
+        if (aliasUserOpt.isEmpty()) {
+            logger.warn(
+                    "Attempted to delete or break reference to alias of user '{}', but it was not present.",
+                    user.getId()
+            );
+            return user;
+        }
+        final ScimUser aliasUser = aliasUserOpt.get();
+
+        if (!aliasEntitiesEnabled) {
+            // just break the reference in the alias user
+            aliasUser.setAliasId(null);
+            aliasUser.setAliasZid(null);
+            scimUserProvisioning.update(aliasUser.getId(), aliasUser, aliasUser.getZoneId());
+
+            // return original user
+            return user;
+        }
+
+        // also remove alias user
+        membershipManager.removeMembersByMemberId(aliasUser.getId(), aliasUser.getZoneId());
+        scimUserProvisioning.delete(aliasUser.getId(), aliasUser.getVersion(), aliasUser.getZoneId());
+        scimDeletes.incrementAndGet();
+        if (publisher != null) {
+            publisher.publishEvent(
+                    new EntityDeletedEvent<>(
+                            aliasUser,
+                            SecurityContextHolder.getContext().getAuthentication(),
+                            aliasUser.getZoneId()
+                    )
+            );
+            logger.debug("User delete event sent[" + userId + "]");
+        }
+
         return user;
     }
 
@@ -465,7 +513,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             }
         } catch (IllegalArgumentException e) {
             String msg = "Invalid filter expression: [" + filter + "]";
-            if (StringUtils.hasText(sortBy)) {
+            if (hasText(sortBy)) {
                 msg += " [" + sortBy + "]";
             }
             throw new ScimException(HtmlUtils.htmlEscape(msg), HttpStatus.BAD_REQUEST);
