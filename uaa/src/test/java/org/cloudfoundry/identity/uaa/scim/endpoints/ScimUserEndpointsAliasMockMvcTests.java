@@ -4,6 +4,7 @@ import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,6 +23,7 @@ import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -447,6 +449,92 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         }
     }
 
+    @Nested
+    class Delete {
+        abstract class DeleteBase {
+            protected final boolean aliasFeatureEnabled;
+
+            protected DeleteBase(final boolean aliasFeatureEnabled) {
+                this.aliasFeatureEnabled = aliasFeatureEnabled;
+            }
+
+            @BeforeEach
+            void setUp() {
+                arrangeAliasFeatureEnabled(aliasFeatureEnabled);
+            }
+
+            @AfterEach
+            void tearDown() {
+                arrangeAliasFeatureEnabled(true);
+            }
+
+            @Test
+            final void shouldIgnoreDanglingReference_UaaToCustomZone() throws Throwable {
+                shouldIgnoreDanglingReference(IdentityZone.getUaa(), customZone);
+            }
+
+            @Test
+            final void shouldIgnoreDanglingReference_CustomToUaaZone() throws Throwable {
+                shouldIgnoreDanglingReference(customZone, IdentityZone.getUaa());
+            }
+
+            private void shouldIgnoreDanglingReference(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                final IdentityProvider<?> idpWithAlias = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+
+                final ScimUser userWithAlias = buildScimUser(
+                        idpWithAlias.getOriginKey(),
+                        zone1.getId(),
+                        null,
+                        zone2.getId()
+                );
+                final ScimUser createdUserWithAlias = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createScimUser(zone1, userWithAlias)
+                );
+                assertThat(createdUserWithAlias.getAliasId()).isNotBlank();
+                assertThat(createdUserWithAlias.getAliasZid()).isNotBlank();
+
+                // create dangling reference by removing alias user directly in DB
+                deleteUserViaDb(createdUserWithAlias.getAliasId(), createdUserWithAlias.getAliasZid());
+
+                // deletion should still work
+                shouldSuccessfullyDeleteUser(createdUserWithAlias, zone1);
+            }
+        }
+
+        @Nested
+        class AliasFeatureEnabled extends DeleteBase {
+            protected AliasFeatureEnabled() {
+                super(true);
+            }
+        }
+
+        @Nested
+        class AliasFeatureDisabled extends DeleteBase {
+            protected AliasFeatureDisabled() {
+                super(false);
+            }
+        }
+
+        private void shouldSuccessfullyDeleteUser(final ScimUser user, final IdentityZone zone) throws Exception {
+            final MvcResult result = deleteScimUserAndReturnResult(user.getId(), zone);
+            assertThat(result.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
+        }
+
+        private MvcResult deleteScimUserAndReturnResult(final String userId, final IdentityZone zone) throws Exception {
+            final MockHttpServletRequestBuilder deleteRequestBuilder = delete("/Users/" + userId)
+                    .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()))
+                    .header(IdentityZoneSwitchingFilter.HEADER, zone.getSubdomain());
+            return mockMvc.perform(deleteRequestBuilder).andReturn();
+        }
+    }
+
     private static void assertIsCorrectAliasPair(final ScimUser originalUser, final ScimUser aliasUser) {
         assertThat(originalUser).isNotNull();
         assertThat(aliasUser).isNotNull();
@@ -566,6 +654,13 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         );
         assertThat(searchResults).isNotNull();
         return searchResults.getResources();
+    }
+
+    private void deleteUserViaDb(final String id, final String zoneId) {
+        final JdbcScimUserProvisioning scimUserProvisioning = webApplicationContext
+                .getBean(JdbcScimUserProvisioning.class);
+        final int rowsDeleted = scimUserProvisioning.deleteByUser(id, zoneId);
+        assertThat(rowsDeleted).isEqualTo(1);
     }
 
     @Override
