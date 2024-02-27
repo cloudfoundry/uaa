@@ -43,6 +43,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
     private IdentityProviderAliasHandler idpEntityAliasHandler;
     private IdentityProviderEndpoints identityProviderEndpoints;
     private ScimUserAliasHandler scimUserAliasHandler;
+    private ScimUserEndpoints scimUserEndpoints;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -51,6 +52,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         idpEntityAliasHandler = requireNonNull(webApplicationContext.getBean(IdentityProviderAliasHandler.class));
         identityProviderEndpoints = requireNonNull(webApplicationContext.getBean(IdentityProviderEndpoints.class));
         scimUserAliasHandler = requireNonNull(webApplicationContext.getBean(ScimUserAliasHandler.class));
+        scimUserEndpoints = requireNonNull(webApplicationContext.getBean(ScimUserEndpoints.class));
     }
 
     @Nested
@@ -513,6 +515,41 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             protected AliasFeatureEnabled() {
                 super(true);
             }
+
+            @Test
+            void shouldAlsoDeleteAliasUser_UaaToCustomZone() throws Throwable {
+                shouldAlsoDeleteAliasUser(IdentityZone.getUaa(), customZone);
+            }
+
+            @Test
+            void shouldAlsoDeleteAliasUser_CustomToUaaZone() throws Throwable {
+                shouldAlsoDeleteAliasUser(customZone, IdentityZone.getUaa());
+            }
+
+            private void shouldAlsoDeleteAliasUser(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                final IdentityProvider<?> idpWithAlias = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+
+                final ScimUser userWithAlias = buildScimUser(
+                        idpWithAlias.getOriginKey(),
+                        zone1.getId(),
+                        null,
+                        zone2.getId()
+                );
+                final ScimUser createdUserWithAlias = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createScimUser(zone1, userWithAlias)
+                );
+
+                // should remove both the user and its alias
+                shouldSuccessfullyDeleteUser(createdUserWithAlias, zone1);
+                assertUserDoesNotExist(createdUserWithAlias.getAliasId(), zone2.getId());
+            }
         }
 
         @Nested
@@ -532,6 +569,11 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()))
                     .header(IdentityZoneSwitchingFilter.HEADER, zone.getSubdomain());
             return mockMvc.perform(deleteRequestBuilder).andReturn();
+        }
+
+        private void assertUserDoesNotExist(final String id, final String zoneId) throws Exception {
+            final Optional<ScimUser> user = readUserFromZoneIfExists(id, zoneId);
+            assertThat(user).isNotPresent();
         }
     }
 
@@ -656,6 +698,29 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         return searchResults.getResources();
     }
 
+    private Optional<ScimUser> readUserFromZoneIfExists(final String id, final String zoneId) throws Exception {
+        final MockHttpServletRequestBuilder getRequestBuilder = get("/Users/" + id)
+                .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
+                .header("Authorization", "Bearer " + getAccessTokenForZone(zoneId));
+        final MvcResult getResult = mockMvc.perform(getRequestBuilder).andReturn();
+        final int responseStatus = getResult.getResponse().getStatus();
+        assertThat(responseStatus).isIn(404, 200);
+
+        switch (responseStatus) {
+            case 404:
+                return Optional.empty();
+            case 200:
+                final ScimUser responseBody = JsonUtils.readValue(
+                        getResult.getResponse().getContentAsString(),
+                        ScimUser.class
+                );
+                return Optional.ofNullable(responseBody);
+            default:
+                // should not happen
+                return Optional.empty();
+        }
+    }
+
     private void deleteUserViaDb(final String id, final String zoneId) {
         final JdbcScimUserProvisioning scimUserProvisioning = webApplicationContext
                 .getBean(JdbcScimUserProvisioning.class);
@@ -668,5 +733,6 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         ReflectionTestUtils.setField(idpEntityAliasHandler, "aliasEntitiesEnabled", enabled);
         ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
         ReflectionTestUtils.setField(scimUserAliasHandler, "aliasEntitiesEnabled", enabled);
+        ReflectionTestUtils.setField(scimUserEndpoints, "aliasEntitiesEnabled", enabled);
     }
 }
