@@ -557,6 +557,49 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             protected AliasFeatureDisabled() {
                 super(false);
             }
+
+            @Test
+            void shouldBreakReferenceToAliasUser_UaaToCustomZone() throws Throwable {
+                shouldBreakReferenceToAliasUser(IdentityZone.getUaa(), customZone);
+            }
+
+            @Test
+            void shouldBreakReferenceToAliasUser_CustomToUaaZone() throws Throwable {
+                shouldBreakReferenceToAliasUser(customZone, IdentityZone.getUaa());
+            }
+
+            private void shouldBreakReferenceToAliasUser(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                final IdentityProvider<?> idpWithAlias = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+
+                final ScimUser userWithAlias = buildScimUser(
+                        idpWithAlias.getOriginKey(),
+                        zone1.getId(),
+                        null,
+                        zone2.getId()
+                );
+                final ScimUser createdUserWithAlias = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createScimUser(zone1, userWithAlias)
+                );
+
+                shouldSuccessfullyDeleteUser(createdUserWithAlias, zone1);
+
+                // the alias user should still be present with only its reference to the original user removed
+                final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
+                        createdUserWithAlias.getAliasId(),
+                        zone2.getId()
+                );
+                assertThat(aliasUserOpt).isPresent();
+                final ScimUser aliasUser = aliasUserOpt.get();
+                assertThat(aliasUser.getAliasId()).isBlank();
+                assertThat(aliasUser.getAliasZid()).isBlank();
+            }
         }
 
         private void shouldSuccessfullyDeleteUser(final ScimUser user, final IdentityZone zone) throws Exception {
