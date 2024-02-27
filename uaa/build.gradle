@@ -84,9 +84,6 @@ dependencies {
     testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
     testImplementation(libraries.springSecurityLdap)
-//    testImplementation(libraries.springSecuritySaml) {
-//        exclude(module: "commons-httpclient")
-//    }
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.springBootStarterMail)
     testImplementation(libraries.mockito)
