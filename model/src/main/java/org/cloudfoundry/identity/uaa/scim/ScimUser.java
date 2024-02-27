@@ -212,6 +212,27 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
             this.honorificSuffix = honorificSuffix;
         }
 
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final Name name = (Name) o;
+            return Objects.equals(formatted, name.formatted)
+                    && Objects.equals(familyName, name.familyName)
+                    && Objects.equals(givenName, name.givenName)
+                    && Objects.equals(middleName, name.middleName)
+                    && Objects.equals(honorificPrefix, name.honorificPrefix)
+                    && Objects.equals(honorificSuffix, name.honorificSuffix);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(formatted, familyName, givenName, middleName, honorificPrefix, honorificSuffix);
+        }
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -453,7 +474,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.displayName = displayName;
     }
 
-    String getNickName() {
+    public String getNickName() {
         return nickName;
     }
 
@@ -461,7 +482,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.nickName = nickName;
     }
 
-    String getProfileUrl() {
+    public String getProfileUrl() {
         return profileUrl;
     }
 
@@ -485,7 +506,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.userType = userType;
     }
 
-    String getPreferredLanguage() {
+    public String getPreferredLanguage() {
         return preferredLanguage;
     }
 
@@ -501,7 +522,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.locale = locale;
     }
 
-    String getTimezone() {
+    public String getTimezone() {
         return timezone;
     }
 

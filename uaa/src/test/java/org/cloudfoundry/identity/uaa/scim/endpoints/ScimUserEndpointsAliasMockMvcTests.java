@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -221,17 +222,15 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                         zone2.getId()
                 );
                 final ScimUser createdScimUser = createScimUser(zone1, scimUser);
-                assertThat(createdScimUser.getAliasId()).isNotBlank();
-                assertThat(createdScimUser.getAliasZid()).isNotBlank();
 
+                // find alias user
                 final List<ScimUser> usersZone2 = readRecentlyCreatedUsersInZone(zone2);
                 final Optional<ScimUser> aliasUserOpt = usersZone2.stream()
                         .filter(user -> user.getId().equals(createdScimUser.getAliasId()))
                         .findFirst();
                 assertThat(aliasUserOpt).isPresent();
-                final ScimUser aliasUser = aliasUserOpt.get();
-                assertThat(aliasUser.getAliasId()).isNotBlank().isEqualTo(createdScimUser.getId());
-                assertThat(aliasUser.getAliasZid()).isNotBlank().isEqualTo(createdScimUser.getZoneId());
+
+                assertIsCorrectAliasPair(createdScimUser, aliasUserOpt.get());
             }
 
             @Test
@@ -446,6 +445,63 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             final MvcResult result = createScimUserAndReturnResult(zone, scimUser);
             assertThat(result.getResponse().getStatus()).isEqualTo(expectedStatus.value());
         }
+    }
+
+    private static void assertIsCorrectAliasPair(final ScimUser originalUser, final ScimUser aliasUser) {
+        assertThat(originalUser).isNotNull();
+        assertThat(aliasUser).isNotNull();
+
+        // 'id' field will differ
+        assertThat(originalUser.getId()).isNotBlank().isNotEqualTo(aliasUser.getId());
+        assertThat(aliasUser.getId()).isNotBlank().isNotEqualTo(originalUser.getId());
+
+        // 'aliasId' and 'aliasZid' should point to the other entity, respectively
+        assertThat(originalUser.getAliasId()).isNotBlank().isEqualTo(aliasUser.getId());
+        assertThat(aliasUser.getAliasId()).isNotBlank().isEqualTo(originalUser.getId());
+        assertThat(originalUser.getAliasZid()).isNotBlank().isEqualTo(aliasUser.getZoneId());
+        assertThat(aliasUser.getAliasZid()).isNotBlank().isEqualTo(originalUser.getZoneId());
+
+        // the other properties should be equal
+
+        assertThat(originalUser.getUserName()).isEqualTo(aliasUser.getUserName());
+        assertThat(originalUser.getUserType()).isEqualTo(aliasUser.getUserType());
+
+        assertThat(originalUser.getOrigin()).isEqualTo(aliasUser.getOrigin());
+        assertThat(originalUser.getExternalId()).isEqualTo(aliasUser.getExternalId());
+
+        assertThat(originalUser.getTitle()).isEqualTo(aliasUser.getTitle());
+        assertThat(originalUser.getName()).isEqualTo(aliasUser.getName());
+        assertThat(originalUser.getDisplayName()).isEqualTo(aliasUser.getDisplayName());
+        assertThat(originalUser.getNickName()).isEqualTo(aliasUser.getNickName());
+
+        assertThat(originalUser.getEmails()).isEqualTo(aliasUser.getEmails());
+        assertThat(originalUser.getPrimaryEmail()).isEqualTo(aliasUser.getPrimaryEmail());
+        assertThat(originalUser.getPhoneNumbers()).isEqualTo(aliasUser.getPhoneNumbers());
+
+        assertThat(originalUser.getLocale()).isEqualTo(aliasUser.getLocale());
+        assertThat(originalUser.getPreferredLanguage()).isEqualTo(aliasUser.getPreferredLanguage());
+        assertThat(originalUser.getTimezone()).isEqualTo(aliasUser.getTimezone());
+
+        assertThat(originalUser.getProfileUrl()).isEqualTo(aliasUser.getProfileUrl());
+
+        assertThat(originalUser.getPassword()).isEqualTo(aliasUser.getPassword());
+        assertThat(originalUser.getSalt()).isEqualTo(aliasUser.getSalt());
+        assertThat(originalUser.getPasswordLastModified()).isEqualTo(aliasUser.getPasswordLastModified());
+        assertThat(originalUser.getLastLogonTime()).isEqualTo(aliasUser.getLastLogonTime());
+
+        assertThat(originalUser.isActive()).isEqualTo(aliasUser.isActive());
+        assertThat(originalUser.isVerified()).isEqualTo(aliasUser.isVerified());
+
+        // TODO groups and approvals
+
+        final ScimMeta originalUserMeta = originalUser.getMeta();
+        assertThat(originalUserMeta).isNotNull();
+        final ScimMeta aliasUserMeta = aliasUser.getMeta();
+        assertThat(aliasUserMeta).isNotNull();
+        // 'created', 'lastModified' and 'version' are expected to be different
+        assertThat(originalUserMeta.getAttributes()).isEqualTo(aliasUserMeta.getAttributes());
+
+        assertThat(originalUser.getSchemas()).isEqualTo(aliasUser.getSchemas());
     }
 
     private static ScimUser buildScimUser(

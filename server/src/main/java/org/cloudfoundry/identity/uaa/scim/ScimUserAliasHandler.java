@@ -79,19 +79,24 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
     protected ScimUser cloneEntity(final ScimUser originalEntity) {
         final ScimUser aliasUser = new ScimUser();
 
+        aliasUser.setUserName(originalEntity.getUserName());
+        aliasUser.setUserType(originalEntity.getUserType());
+
+        aliasUser.setOrigin(originalEntity.getOrigin());
+        aliasUser.setExternalId(originalEntity.getExternalId());
+
+        aliasUser.setTitle(originalEntity.getTitle());
         aliasUser.setName(originalEntity.getName());
         aliasUser.setDisplayName(originalEntity.getDisplayName());
         aliasUser.setNickName(originalEntity.getNickName());
-        aliasUser.setUserName(originalEntity.getUserName());
 
         aliasUser.setEmails(originalEntity.getEmails());
         aliasUser.setPrimaryEmail(originalEntity.getPrimaryEmail());
         aliasUser.setPhoneNumbers(originalEntity.getPhoneNumbers());
 
-        aliasUser.setTitle(originalEntity.getTitle());
         aliasUser.setLocale(originalEntity.getLocale());
         aliasUser.setTimezone(originalEntity.getTimezone());
-        aliasUser.setProfileUrl(originalEntity.getProfileUrl());
+        aliasUser.setProfileUrl(originalEntity.getProfileUrl()); // TODO should this be equal?
 
         aliasUser.setPassword(originalEntity.getPassword());
         aliasUser.setSalt(originalEntity.getSalt());
@@ -99,16 +104,12 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         aliasUser.setLastLogonTime(originalEntity.getLastLogonTime());
 
         aliasUser.setActive(originalEntity.isActive());
-        aliasUser.setVerified(originalEntity.isVerified());
+        aliasUser.setVerified(originalEntity.isVerified()); // TODO should this be true initially?
 
         aliasUser.setApprovals(originalEntity.getApprovals());
         if (originalEntity.getGroups() != null) {
             aliasUser.setGroups(originalEntity.getGroups());
         }
-
-        aliasUser.setOrigin(originalEntity.getOrigin());
-        aliasUser.setExternalId(originalEntity.getExternalId());
-        aliasUser.setUserType(originalEntity.getUserType());
 
         aliasUser.setMeta(originalEntity.getMeta());
         aliasUser.setSchemas(originalEntity.getSchemas());
