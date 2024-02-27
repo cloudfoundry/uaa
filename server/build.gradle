@@ -25,10 +25,7 @@ dependencies {
     implementation(libraries.owaspEsapi) {
         transitive = false
     }
-//    implementation(libraries.springSecuritySaml) {
-//        exclude(module: "bcprov-ext-jdk15on")
-//        exclude(module: "xalan")
-//    }
+    implementation(libraries.springSecuritySamlServiceProvider)
     implementation(libraries.jodaTime)
     implementation(libraries.commonsHttpClient)
     implementation(libraries.xmlSecurity)
