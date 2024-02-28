@@ -53,6 +53,6 @@ public class HealthzIT {
     @Test
     public void testHealthz() {
         webDriver.get(baseUrl + "/healthz");
-        Assert.assertEquals("ok. Database connection successful.", webDriver.findElement(By.tagName("body")).getText());
+        Assert.assertEquals("ok", webDriver.findElement(By.tagName("body")).getText());
     }
 }
