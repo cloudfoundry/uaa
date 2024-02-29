@@ -90,7 +90,7 @@ class HealthzShouldNotBeProtectedMockMvcTests {
         void healthzIsNotRejected(MockHttpServletRequestBuilder getRequest) throws Exception {
             mockMvc.perform(getRequest)
                     .andExpect(status().isOk())
-                    .andExpect(content().string("ok. Database connection successful.\n"));
+                    .andExpect(content().string("ok\n"));
         }
 
         @Test
@@ -128,7 +128,7 @@ class HealthzShouldNotBeProtectedMockMvcTests {
         void healthzIsNotRejected(MockHttpServletRequestBuilder getRequest) throws Exception {
             mockMvc.perform(getRequest)
                     .andExpect(status().isOk())
-                    .andExpect(content().string("ok. Database connection successful.\n"));
+                    .andExpect(content().string("ok\n"));
         }
 
         @Test

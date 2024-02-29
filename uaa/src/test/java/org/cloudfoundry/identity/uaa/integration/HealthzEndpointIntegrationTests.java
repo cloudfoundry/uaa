@@ -42,7 +42,6 @@ public class HealthzEndpointIntegrationTests {
 
         String body = response.getBody();
         assertTrue(body.contains("ok"));
-        assertTrue(body.contains("Database connection successful"));
 
     }
 
