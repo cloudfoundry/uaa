@@ -378,14 +378,17 @@ _Response Fields_
   Added in UAA 3.3.0
 </aside>
 
-When an access token is revoked using this endpoint, the UAA Introspect Token endpoint (``/introspect``)
-will respond with ``"active": false`` when presented with the revoked access token.
+Both access and refresh tokens can be passed to the ``/revoke`` endpoint.
+
+When an access token is successfully passed to the ``/revoke`` endpoint, and then when the same token is
+passed to the UAA Introspect Token endpoint (``/introspect``), the UAA Introspect Token endpoint
+will respond with ``"active": false``.
 
 If the access token is in the JWT format (as opposed to the opaque format), the server config ``uaa.jwt.revocable`` or
 the Identity Zone config ``config.tokenPolicy.jwtRevocable`` must be set to ``true`` for
-this feature to work. However, OAuth resource servers are generally not required to call the UAA Introspect
-Token endpoint to validate the status of the token. Once issued, a valid access token
-in the JWT format is generally considered valid until its expiry. Hence, we do not recommend
+the revocation to work. However, OAuth resource servers are not required to call the UAA Introspect
+Token endpoint to validate the token. Once issued, from a security point of view, a valid access token
+in the JWT format should be considered valid until its expiry. Hence, we do not recommend
 relying on this endpoint to revoke access tokens in the JWT format. If the ability
 to remove/limit access after the tokens are issued is important to you, we recommend the following instead:
 
@@ -395,11 +398,11 @@ the UAA Introspect Token endpoint to validate that the tokens have not been revo
 (e.g. a few minutes), and when needed, revoke the more long-lived refresh tokens so that they
 may no longer be used to obtain refreshed access tokens.
 
-When a refresh token is in the opaque format and revoked using this endpoint, the refresh token
-will no longer be considered valid when used to perform the Refresh Token grant.
+When a refresh token in the opaque format is successfully passed to the ``/revoke`` endpoint,
+the refresh token can no longer be used to perform the Refresh Token grant.
 When a refresh token is in the JWT format, the server config ``uaa.jwt.revocable`` or
 the Identity Zone config ``config.tokenPolicy.jwtRevocable`` must be set to ``true`` for
-this feature to work.
+the "Revoke a single token" endpoint (``/oauth/token/revoke/{tokenId}``) to work.
 
 ### Revoke all tokens for a user
 
