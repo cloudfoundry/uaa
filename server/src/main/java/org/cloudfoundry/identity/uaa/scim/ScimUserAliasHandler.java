@@ -2,10 +2,13 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.Optional;
 
+import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -91,14 +94,17 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         aliasUser.setNickName(originalEntity.getNickName());
 
         aliasUser.setEmails(originalEntity.getEmails());
-        aliasUser.setPrimaryEmail(originalEntity.getPrimaryEmail());
         aliasUser.setPhoneNumbers(originalEntity.getPhoneNumbers());
 
         aliasUser.setLocale(originalEntity.getLocale());
         aliasUser.setTimezone(originalEntity.getTimezone());
         aliasUser.setProfileUrl(originalEntity.getProfileUrl()); // TODO should this be equal?
 
-        aliasUser.setPassword(originalEntity.getPassword());
+        final String passwordOriginalEntity = scimUserProvisioning.retrievePasswordForUser(
+                originalEntity.getId(),
+                originalEntity.getZoneId()
+        );
+        aliasUser.setPassword(passwordOriginalEntity);
         aliasUser.setSalt(originalEntity.getSalt());
         aliasUser.setPasswordLastModified(originalEntity.getPasswordLastModified());
         aliasUser.setLastLogonTime(originalEntity.getLastLogonTime());
@@ -111,7 +117,6 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
             aliasUser.setGroups(originalEntity.getGroups());
         }
 
-        aliasUser.setMeta(originalEntity.getMeta());
         aliasUser.setSchemas(originalEntity.getSchemas());
 
         // aliasId, aliasZid, id and zoneId are set in the parent class
@@ -137,6 +142,14 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
 
     @Override
     protected ScimUser createEntity(final ScimUser entity, final String zoneId) {
-        return scimUserProvisioning.createUser(entity, entity.getPassword(), zoneId);
+        try {
+            return scimUserProvisioning.createUser(entity, entity.getPassword(), zoneId);
+        } catch (final ScimResourceAlreadyExistsException e) {
+            final String errorMessage = String.format(
+                    "Could not create %s. A user with the same username already exists in the alias zone.",
+                    entity.getAliasDescription()
+            );
+            throw new EntityAliasFailedException(errorMessage, HttpStatus.CONFLICT.value(), e);
+        }
     }
 }

@@ -22,6 +22,7 @@ import java.util.stream.Collectors;
 
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -312,15 +313,44 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = getVersion(userId, etag);
         user.setVersion(version);
 
+        final ScimUser existingScimUser = scimUserProvisioning.retrieve(
+                userId,
+                identityZoneManager.getCurrentIdentityZoneId()
+        );
+        if (!aliasHandler.aliasPropertiesAreValid(user, existingScimUser)) {
+            throw new ScimException("The fields 'aliasId' and/or 'aliasZid' are invalid.", HttpStatus.BAD_REQUEST);
+        }
+
+        final ScimUser scimUser;
         try {
-            ScimUser updated = scimUserProvisioning.update(userId, user, identityZoneManager.getCurrentIdentityZoneId());
-            scimUpdates.incrementAndGet();
-            ScimUser scimUser = syncApprovals(syncGroups(updated));
-            addETagHeader(httpServletResponse, scimUser);
-            return scimUser;
+            scimUser = transactionTemplate.execute(txStatus -> {
+                final ScimUser updatedOriginalUser = scimUserProvisioning.update(
+                        userId,
+                        user,
+                        identityZoneManager.getCurrentIdentityZoneId()
+                );
+                scimUpdates.incrementAndGet();
+                final ScimUser updatedOriginalUserSynced = syncApprovals(syncGroups(updatedOriginalUser));
+
+                final EntityAliasResult<ScimUser> aliasResult = aliasHandler.ensureConsistencyOfAliasEntity(
+                        updatedOriginalUserSynced,
+                        existingScimUser
+                );
+                if (aliasResult.aliasEntity() != null) {
+                    scimUpdates.incrementAndGet();
+                    syncApprovals(syncGroups(aliasResult.aliasEntity()));
+                }
+
+                return aliasResult.originalEntity();
+            });
         } catch (OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
+        } catch (final EntityAliasFailedException e) {
+            throw new ScimException(e.getMessage(), e.getCause(), HttpStatus.resolve(e.getHttpStatus()));
         }
+
+        addETagHeader(httpServletResponse, scimUser);
+        return scimUser;
     }
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PATCH)
