@@ -398,11 +398,18 @@ the UAA Introspect Token endpoint to validate that the tokens have not been revo
 (e.g. a few minutes), and when needed, revoke the more long-lived refresh tokens so that they
 may no longer be used to obtain refreshed access tokens.
 
-When a refresh token in the opaque format is successfully passed to the ``/revoke`` endpoint,
+When a refresh token is successfully passed to the ``/revoke`` endpoint,
 the refresh token can no longer be used to perform the Refresh Token grant.
-When a refresh token is in the JWT format, the server config ``uaa.jwt.revocable`` or
-the Identity Zone config ``config.tokenPolicy.jwtRevocable`` must be set to ``true`` for
-the "Revoke a single token" endpoint (``/oauth/token/revoke/{tokenId}``) to work.
+
+Refresh tokens in any format can be revoked using the "Revoke all tokens for a user" endpoint (``/oauth/token/revoke/user/{userId}``),
+the "Revoke all tokens for a client" endpoint (``/oauth/token/revoke/client/{clientId}``), or
+the "Revoke all tokens for a user and client combination" endpoint (``/oauth/token/revoke/user/{userId}/client/{clientId}``).
+
+Refresh tokens in the opaque format can be individually revoked using
+the "Revoke a single token" endpoint (``/oauth/token/revoke/{tokenId}``).
+However, refresh tokens in the JWT format can only be individually revoked using
+the "Revoke a single token" endpoint when the server config ``uaa.jwt.revocable`` or
+the Identity Zone config ``config.tokenPolicy.jwtRevocable`` is set to ``true``.
 
 ### Revoke all tokens for a user
 
