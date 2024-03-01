@@ -21,15 +21,21 @@ import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.JWTParser;
 import com.nimbusds.jwt.SignedJWT;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
+import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.util.Arrays;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -108,5 +114,33 @@ public class CommonSignerTest {
         CommonSigner signer = new CommonSigner(null, macSigningKey, "http://localhost/uaa");
         assertEquals(UaaMacSigner.SUPPORTED_ALGORITHMS, signer.supportedJWSAlgorithms());
         assertNotNull(signer.getJCAContext());
+    }
+
+    @Test
+    public void test_nimbus_singing_with_single_aud_value() throws JOSEException, ParseException {
+        // given
+        Map<String, Object> objectMap = Map.of("sub","1234567890", "name", "John Doe", "aud", Arrays.asList("single"));
+        // when
+        CommonSigner signer = new CommonSigner("id", rsaSigningKey, "http://localhost/uaa");
+        assertEquals("RS256", signer.algorithm());
+        assertEquals("id", signer.keyId());
+        JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.RS256).type(JOSEObjectType.JWT).build();
+        JWTClaimsSet claimsSet = JWTClaimsSet.parse(objectMap);
+        SignedJWT resultedJwt = new SignedJWT(header, claimsSet);
+        resultedJwt.sign(signer);
+        String payLoadString = JWTParser.parse(resultedJwt.serialize()).getParsedParts()[1].decodeToString();
+        // then
+        assertThat(payLoadString, Matchers.containsString("\"aud\":\"single\""));
+    }
+
+    @Test
+    public void test_uaa_singing_with_single_aud_value() throws JOSEException, ParseException {
+        // given
+        Map<String, Object> objectMap = Map.of("sub","1234567890", "name", "John Doe", "aud", Arrays.asList("single"));
+        // when
+        String uaaResultedJwt = JwtHelper.encode(objectMap, KeyInfoBuilder.build("id", rsaSigningKey, "http://localhost/uaa")).getEncoded();
+        String payLoadString = JWTParser.parse(uaaResultedJwt).getParsedParts()[1].decodeToString();
+        // then
+        assertThat(payLoadString, Matchers.containsString("\"aud\":[\"single\"]"));
     }
 }
