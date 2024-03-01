@@ -380,7 +380,7 @@ _Response Fields_
 
 Both access and refresh tokens can be passed to the ``/revoke`` endpoint.
 
-When an access token is successfully passed to the ``/revoke`` endpoint, and then when the same token is
+When the ``/revoke`` endpoint is successfully invoked with an access token, and then when the same token is
 passed to the UAA Introspect Token endpoint (``/introspect``), the UAA Introspect Token endpoint
 will respond with ``"active": false``.
 
@@ -398,7 +398,7 @@ the UAA Introspect Token endpoint to validate that the tokens have not been revo
 (e.g. a few minutes), and when needed, revoke the more long-lived refresh tokens so that they
 may no longer be used to obtain refreshed access tokens.
 
-When a refresh token is successfully passed to the ``/revoke`` endpoint,
+When the ``/revoke`` endpoint is successfully invoked with a refresh token,
 the refresh token can no longer be used to perform the Refresh Token grant.
 
 Refresh tokens in any format can be revoked using the "Revoke all tokens for a user" endpoint (``/oauth/token/revoke/user/{userId}``),
