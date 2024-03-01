@@ -893,6 +893,256 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             public AliasFeatureDisabled() {
                 super(false);
             }
+
+            @Nested
+            class ExistingAlias {
+                @Test
+                void shouldAccept_OnlyAliasPropsSetToNull_UaaToCustomZone() throws Throwable {
+                    shouldAccept_OnlyAliasPropsSetToNull(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldAccept_OnlyAliasPropsSetToNull_CustomToUaaZone() throws Throwable {
+                    shouldAccept_OnlyAliasPropsSetToNull(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldAccept_OnlyAliasPropsSetToNull(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpAndUserWithAlias(zone1, zone2)
+                    );
+
+                    final String initialAliasId = createdScimUser.getAliasId();
+                    assertThat(initialAliasId).isNotBlank();
+
+                    final String initialAliasZid = createdScimUser.getAliasZid();
+                    assertThat(initialAliasZid).isNotBlank().isEqualTo(zone2.getId());
+
+                    createdScimUser.setAliasId(null);
+                    createdScimUser.setAliasZid(null);
+                    final ScimUser updatedScimUser = updateUserPut(zone1, createdScimUser);
+
+                    assertThat(updatedScimUser.getAliasId()).isBlank();
+                    assertThat(updatedScimUser.getAliasZid()).isBlank();
+
+                    // reference should also be broken in alias user
+                    assertReferenceIsBrokenInAlias(initialAliasId, initialAliasZid);
+                }
+
+                @Test
+                void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged_UaaToCustomZone() throws Throwable {
+                    shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged_CustomToUaaZone() throws Throwable {
+                    shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpAndUserWithAlias(zone1, zone2)
+                    );
+
+                    final String initialAliasId = createdScimUser.getAliasId();
+                    assertThat(initialAliasId).isNotBlank();
+
+                    final String initialAliasZid = createdScimUser.getAliasZid();
+                    assertThat(initialAliasZid).isNotBlank().isEqualTo(zone2.getId());
+
+                    createdScimUser.setAliasId(null);
+                    createdScimUser.setAliasZid(null);
+                    final String newNickName = "some-new-nickname";
+                    createdScimUser.setNickName(newNickName);
+                    final ScimUser updatedScimUser = updateUserPut(zone1, createdScimUser);
+
+                    assertThat(updatedScimUser.getAliasId()).isBlank();
+                    assertThat(updatedScimUser.getAliasZid()).isBlank();
+
+                    // reference should also be broken in alias user
+                    assertReferenceIsBrokenInAlias(initialAliasId, initialAliasZid);
+                    final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(initialAliasId, initialAliasZid);
+                    assertThat(aliasUserOpt).isPresent();
+                    assertThat(aliasUserOpt.get().getNickName()).isNotEqualTo(newNickName);
+                }
+
+                @Test
+                void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser_UaaToCustomZone() throws Throwable {
+                    shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser_CustomToUaaZone() throws Throwable {
+                    shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpAndUserWithAlias(zone1, zone2)
+                    );
+
+                    // remove aliasId field directly in DB
+                    createdScimUser.setAliasId(null);
+                    final ScimUser scimUserWithIncompleteRef = updateUserViaDb(createdScimUser, zone1.getId());
+
+                    scimUserWithIncompleteRef.setAliasZid(null);
+                    final ScimUser updatedScimUser = updateUserViaDb(scimUserWithIncompleteRef, zone1.getId());
+                    assertThat(updatedScimUser.getAliasId()).isBlank();
+                    assertThat(updatedScimUser.getAliasZid()).isBlank();
+                }
+
+                @Test
+                void shouldAccept_ShouldIgnoreDanglingRef_UaaToCustomZone() throws Throwable {
+                    shouldAccept_ShouldIgnoreDanglingRef(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldAccept_ShouldIgnoreDanglingRef_CustomToUaaZone() throws Throwable {
+                    shouldAccept_ShouldIgnoreDanglingRef(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldAccept_ShouldIgnoreDanglingRef(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpAndUserWithAlias(zone1, zone2)
+                    );
+                    final String aliasId = createdScimUser.getAliasId();
+                    assertThat(aliasId).isNotBlank();
+                    final String aliasZid = createdScimUser.getAliasZid();
+                    assertThat(aliasZid).isNotBlank();
+
+                    // create dangling reference by deleting alias
+                    deleteUserViaDb(aliasId, aliasZid);
+
+                    // should ignore dangling reference in update
+                    createdScimUser.setAliasId(null);
+                    createdScimUser.setAliasZid(null);
+                    updateUserPut(zone1, createdScimUser);
+                }
+
+                @Test
+                void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted_UaaToCustomZone() throws Throwable {
+                    shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted_CustomToUaaZone() throws Throwable {
+                    shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpAndUserWithAlias(zone1, zone2)
+                    );
+
+                    createdScimUser.setNickName("some-new-nickname");
+                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                }
+
+                @Test
+                void shouldReject_OnlyAliasIdSetToNull_UaaToCustomZone() throws Throwable {
+                    shouldReject_OnlyAliasIdSetToNull(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldReject_OnlyAliasIdSetToNull_CustomToUaaZone() throws Throwable {
+                    shouldReject_OnlyAliasIdSetToNull(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_OnlyAliasIdSetToNull(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpAndUserWithAlias(zone1, zone2)
+                    );
+
+                    createdScimUser.setAliasId(null);
+                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                }
+
+                @Test
+                void shouldReject_OnlyAliasZidSetToNull_UaaToCustomZone() throws Throwable {
+                    shouldReject_OnlyAliasZidSetToNull(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldReject_OnlyAliasZidSetToNull_CustomToUaaZone() throws Throwable {
+                    shouldReject_OnlyAliasZidSetToNull(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_OnlyAliasZidSetToNull(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpAndUserWithAlias(zone1, zone2)
+                    );
+
+                    createdScimUser.setAliasZid(null);
+                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                }
+
+                private void assertReferenceIsBrokenInAlias(
+                        final String initialAliasId,
+                        final String initialAliasZid
+                ) throws Exception {
+                    final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
+                            initialAliasId,
+                            initialAliasZid
+                    );
+                    assertThat(aliasUserOpt).isPresent();
+                    final ScimUser aliasUser = aliasUserOpt.get();
+                    assertThat(aliasUser.getAliasId()).isBlank();
+                    assertThat(aliasUser.getAliasZid()).isBlank();
+                }
+            }
+
+            @Nested
+            class NoExistingAlias {
+                @Test
+                void shouldReject_OnlyAliasZidSet_UaaToCustomZone() throws Throwable {
+                    shouldReject_OnlyAliasZidSet(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldReject_OnlyAliasZidSet_CustomToUaaZone() throws Throwable {
+                    shouldReject_OnlyAliasZidSet(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_OnlyAliasZidSet(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAliasAndUserWithoutAlias(zone1, zone2)
+                    );
+
+                    createdScimUser.setAliasZid(zone2.getId());
+                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                }
+            }
         }
 
         private ScimUser updateUserPut(final IdentityZone zone, final ScimUser scimUser) throws Exception {
