@@ -5,8 +5,10 @@ import com.nimbusds.jose.Header;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.Payload;
 import com.nimbusds.jose.crypto.bc.BouncyCastleFIPSProviderSingleton;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
@@ -20,7 +22,6 @@ import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
-import com.nimbusds.jwt.SignedJWT;
 import com.nimbusds.jwt.proc.BadJWTException;
 import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
@@ -149,8 +150,8 @@ class JwtHeader {
 class JwtImpl implements Jwt {
 
     private static final String INVALID_TOKEN = "Invalid token";
-    private final String parsedJwtObject;
-    private final JWT signedJwtObject;
+    private final JWT parsedJwtObject;
+    private final JWSObject signedJwsObject;
     private final JwtHeader header;
     private final CharSequence content;
     private final JWSSigner signature;
@@ -170,9 +171,9 @@ class JwtImpl implements Jwt {
         try {
             this.claimsSet = JWTClaimsSet.parse(Optional.ofNullable(payLoad).orElseThrow(() -> new JOSEException("Payload null")));
             JWSHeader joseHeader = JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class));
-            SignedJWT signedJWT = new SignedJWT(joseHeader, claimsSet);
-            signedJWT.sign(signature);
-            signedJwtObject = signedJWT;
+            JWSObject jwsObject = new JWSObject(joseHeader, new Payload(payLoad));
+            jwsObject.sign(signature);
+            signedJwsObject = jwsObject;
         } catch (ParseException | JOSEException e) {
             throw new InvalidTokenException(INVALID_TOKEN, e);
         }
@@ -182,11 +183,11 @@ class JwtImpl implements Jwt {
         if (!StringUtils.hasLength(token)) {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
         }
+        this.signedJwsObject = null;
         try {
-            this.signedJwtObject = JWTParser.parse(token);
-            this.claimsSet = signedJwtObject.getJWTClaimsSet();
-            this.header = new JwtHeader(JsonUtils.convertValue(signedJwtObject.getHeader().toJSONObject(), HeaderParameters.class));
-            this.parsedJwtObject = token;
+            this.parsedJwtObject =  JWTParser.parse(token);
+            this.claimsSet = parsedJwtObject.getJWTClaimsSet();
+            this.header = new JwtHeader(JsonUtils.convertValue(parsedJwtObject.getHeader().toJSONObject(), HeaderParameters.class));
         } catch (ParseException e) {
             throw new InvalidTokenException(INVALID_TOKEN, e);
         }
@@ -200,14 +201,14 @@ class JwtImpl implements Jwt {
      */
     @Override
     public void verifySignature(Verifier verifier) {
-        if (signedJwtObject != null && verifier instanceof SignatureVerifier signatureVerifier) {
-            validateClientJWToken(signedJwtObject, signatureVerifier.getJwkSet());
+        if (parsedJwtObject != null && verifier instanceof SignatureVerifier signatureVerifier) {
+            validateClientJWToken(parsedJwtObject, signatureVerifier.getJwkSet());
             return;
-        } else if (signedJwtObject != null && verifier instanceof ChainedSignatureVerifier chainedSignatureVerifier) {
+        } else if (parsedJwtObject != null && verifier instanceof ChainedSignatureVerifier chainedSignatureVerifier) {
             Exception last = new InvalidSignatureException("No matching keys found.");
             for (SignatureVerifier delegate : chainedSignatureVerifier.getDelegates()) {
                 try {
-                    validateClientJWToken(signedJwtObject, delegate.getJwkSet(((JWSHeader) signedJwtObject.getHeader()).getKeyID()));
+                    validateClientJWToken(parsedJwtObject, delegate.getJwkSet(((JWSHeader) parsedJwtObject.getHeader()).getKeyID()));
                     //success
                     return;
                 } catch (Exception e) {
@@ -230,7 +231,7 @@ class JwtImpl implements Jwt {
 
     @Override
     public String getEncoded() {
-        return isJwtParsedOrCreated() ? parsedJwtObject : getEncodedSignedJwt();
+        return isJwtParsedOrCreated() ? parsedJwtObject.serialize() : getEncodedSignedJwt();
     }
 
     private boolean isJwtParsedOrCreated() {
@@ -238,7 +239,7 @@ class JwtImpl implements Jwt {
     }
 
     private String getEncodedSignedJwt() {
-        return signature != null && signedJwtObject != null ? signedJwtObject.serialize() : "";
+        return signature != null && signedJwsObject != null ? signedJwsObject.serialize() : "";
     }
 
     @Override
