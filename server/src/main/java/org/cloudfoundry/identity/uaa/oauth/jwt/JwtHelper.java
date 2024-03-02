@@ -153,7 +153,6 @@ class JwtImpl implements Jwt {
     private final JWT parsedJwtObject;
     private final JWSObject signedJwsObject;
     private final JwtHeader header;
-    private final CharSequence content;
     private final JWSSigner signature;
     private final JWTClaimsSet claimsSet;
 
@@ -167,11 +166,9 @@ class JwtImpl implements Jwt {
         this.header = header;
         this.signature = signature;
         this.parsedJwtObject = null;
-        this.content = null;
         try {
             this.claimsSet = JWTClaimsSet.parse(Optional.ofNullable(payLoad).orElseThrow(() -> new JOSEException("Payload null")));
-            JWSHeader joseHeader = JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class));
-            JWSObject jwsObject = new JWSObject(joseHeader, new Payload(payLoad));
+            JWSObject jwsObject = new JWSObject(JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class)), new Payload(payLoad));
             jwsObject.sign(signature);
             signedJwsObject = jwsObject;
         } catch (ParseException | JOSEException e) {
@@ -183,7 +180,6 @@ class JwtImpl implements Jwt {
         if (!StringUtils.hasLength(token)) {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
         }
-        this.signedJwsObject = null;
         try {
             this.parsedJwtObject =  JWTParser.parse(token);
             this.claimsSet = parsedJwtObject.getJWTClaimsSet();
@@ -191,7 +187,7 @@ class JwtImpl implements Jwt {
         } catch (ParseException e) {
             throw new InvalidTokenException(INVALID_TOKEN, e);
         }
-        this.content = null;
+        this.signedJwsObject = null;
         this.signature = null;
     }
     /**
@@ -221,7 +217,7 @@ class JwtImpl implements Jwt {
     }
 
     public String getClaims() {
-        return content != null ? String.valueOf(content) : claimsSet.toString();
+        return claimsSet.toString();
     }
 
     @Override
