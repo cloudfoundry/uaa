@@ -56,7 +56,7 @@ class HealthzEndpointTests {
     @Test
     void getHealthz_connectionSuccess() {
         endpoint.isDataSourceConnectionAvailable();
-        assertEquals("ok. Database connection successful.\n", endpoint.getHealthz(response));
+        assertEquals("ok\n", endpoint.getHealthz(response));
     }
     @Test
     void getHealthz_connectionFailed() throws SQLException {
