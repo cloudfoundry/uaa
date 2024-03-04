@@ -1102,20 +1102,6 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     createdScimUser.setAliasZid(null);
                     shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
-
-                private void assertReferenceIsBrokenInAlias(
-                        final String initialAliasId,
-                        final String initialAliasZid
-                ) throws Exception {
-                    final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
-                            initialAliasId,
-                            initialAliasZid
-                    );
-                    assertThat(aliasUserOpt).isPresent();
-                    final ScimUser aliasUser = aliasUserOpt.get();
-                    assertThat(aliasUser.getAliasId()).isBlank();
-                    assertThat(aliasUser.getAliasZid()).isBlank();
-                }
             }
 
             @Nested
@@ -1176,22 +1162,6 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             final MvcResult result = updateUserPutAndReturnResult(zone, scimUser);
             assertThat(result.getResponse().getStatus()).isEqualTo(expectedStatusCode.value());
         }
-    }
-
-    private ScimUser createIdpWithAliasAndUserWithoutAlias(
-            final IdentityZone zone1,
-            final IdentityZone zone2
-    ) throws Throwable {
-        final IdentityProvider<?> idpWithAlias = createIdpWithAlias(zone1, zone2);
-
-        // create user without alias
-        final ScimUser scimUser = buildScimUser(
-                idpWithAlias.getOriginKey(),
-                zone1.getId(),
-                null,
-                null
-        );
-        return createScimUser(zone1, scimUser);
     }
 
     @Nested
@@ -1435,6 +1405,20 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         assertThat(originalUser.getSchemas()).isEqualTo(aliasUser.getSchemas());
     }
 
+    private void assertReferenceIsBrokenInAlias(
+            final String initialAliasId,
+            final String initialAliasZid
+    ) throws Exception {
+        final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
+                initialAliasId,
+                initialAliasZid
+        );
+        assertThat(aliasUserOpt).isPresent();
+        final ScimUser aliasUser = aliasUserOpt.get();
+        assertThat(aliasUser.getAliasId()).isBlank();
+        assertThat(aliasUser.getAliasZid()).isBlank();
+    }
+
     private static ScimUser buildScimUser(
             final String origin,
             final String zoneId,
@@ -1480,6 +1464,22 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(scimUser));
         return mockMvc.perform(createRequestBuilder).andReturn();
+    }
+
+    private ScimUser createIdpWithAliasAndUserWithoutAlias(
+            final IdentityZone zone1,
+            final IdentityZone zone2
+    ) throws Throwable {
+        final IdentityProvider<?> idpWithAlias = createIdpWithAlias(zone1, zone2);
+
+        // create user without alias
+        final ScimUser scimUser = buildScimUser(
+                idpWithAlias.getOriginKey(),
+                zone1.getId(),
+                null,
+                null
+        );
+        return createScimUser(zone1, scimUser);
     }
 
     private List<ScimUser> readRecentlyCreatedUsersInZone(final IdentityZone zone) throws Exception {
