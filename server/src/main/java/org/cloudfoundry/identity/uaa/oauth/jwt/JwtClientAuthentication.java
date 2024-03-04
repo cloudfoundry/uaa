@@ -50,7 +50,7 @@ public class JwtClientAuthentication {
   public static final String GRANT_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
   public static final String CLIENT_ASSERTION = "client_assertion";
   public static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
-  private static final Pattern DYNAMIC_VALUE_PARAMETER_PATTERN = Pattern.compile("^\\$\\{(?<name>[\\w\\-]+)(:+(?<default>[\\w:./=+\\-]+)*+)?}$");
+  private static final Pattern DYNAMIC_VALUE_PARAMETER_PATTERN = Pattern.compile("^\\$\\{(?<name>[\\w\\-]++)(:++(?<default>[\\w:./=+\\-]++)*+)?}$");
 
   // no signature check with invalid algorithms
   private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
