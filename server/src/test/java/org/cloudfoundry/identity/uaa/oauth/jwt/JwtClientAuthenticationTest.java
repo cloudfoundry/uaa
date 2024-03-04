@@ -30,6 +30,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -164,13 +165,16 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientAssertionCustomSingingKey() throws ParseException, JOSEException {
-    // Given
-    mockKeyInfoService("myKey", JwtHelperX5tTest.CERTIFICATE_1);
+  void testGetClientAssertionUsingCustomSingingKeyFromEnivoronment() throws ParseException, JOSEException {
+    // Given: register 2 keys, default KEY_ID, customer one key-id-321
+    mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
-    customClaims.put("kid", "myKey");
+    customClaims.put("kid", "${JWT_CLIENT_KEY:" + KEY_ID + "}");
     config.setJwtClientAuthentication(customClaims);
     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    Properties props = System.getProperties();
+    // define property to use custom key
+    props.setProperty("JWT_CLIENT_KEY", "key-id-321");
     // When
     params = jwtClientAuthentication.getClientAuthenticationParameters(params, config);
     // Then
@@ -179,7 +183,53 @@ class JwtClientAuthenticationTest {
     String clientAssertion = (String) params.get("client_assertion").get(0);
     validateClientAssertionOidcComplaint(clientAssertion);
     JWSHeader header = getJwtHeader(clientAssertion);
-    assertEquals("myKey", header.getKeyID());
+    assertEquals("key-id-321", header.getKeyID());
+    assertNull(header.getJWKURL());
+  }
+
+  @Test
+  void testGetClientAssertionUsingCustomSingingKeyFromEnivoronmentNoDefault() throws ParseException, JOSEException {
+    // Given: register 2 keys, default KEY_ID, customer one key-id-321
+    mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
+    HashMap customClaims = new HashMap<>();
+    customClaims.put("kid", "${JWT_CLIENT_KEY}");
+    config.setJwtClientAuthentication(customClaims);
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    Properties props = System.getProperties();
+    // define property to use custom key
+    props.setProperty("JWT_CLIENT_KEY", "key-id-321");
+    // When
+    params = jwtClientAuthentication.getClientAuthenticationParameters(params, config);
+    // Then
+    assertTrue(params.containsKey("client_assertion"));
+    assertTrue(params.containsKey("client_assertion_type"));
+    String clientAssertion = (String) params.get("client_assertion").get(0);
+    validateClientAssertionOidcComplaint(clientAssertion);
+    JWSHeader header = getJwtHeader(clientAssertion);
+    assertEquals("key-id-321", header.getKeyID());
+    assertNull(header.getJWKURL());
+  }
+
+  @Test
+  void testGetClientAssertionUsingCustomSingingKeyFromEnivoronmentUseDefault() throws ParseException, JOSEException {
+    // Given: register 2 keys, default KEY_ID, customer one key-id-321
+    mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
+    HashMap customClaims = new HashMap<>();
+    customClaims.put("kid", "${JWT_CLIENT_KEY:" + KEY_ID + "}");
+    config.setJwtClientAuthentication(customClaims);
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    Properties props = System.getProperties();
+    // ensure no property is set
+    props.remove("JWT_CLIENT_KEY");
+    // When
+    params = jwtClientAuthentication.getClientAuthenticationParameters(params, config);
+    // Then
+    assertTrue(params.containsKey("client_assertion"));
+    assertTrue(params.containsKey("client_assertion_type"));
+    String clientAssertion = (String) params.get("client_assertion").get(0);
+    validateClientAssertionOidcComplaint(clientAssertion);
+    JWSHeader header = getJwtHeader(clientAssertion);
+    assertEquals(KEY_ID, header.getKeyID());
     assertNull(header.getJWKURL());
   }
 

@@ -40,12 +40,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isNotEmpty;
 
 public class JwtClientAuthentication {
 
   public static final String GRANT_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
   public static final String CLIENT_ASSERTION = "client_assertion";
   public static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
+  private static final Pattern DYNAMIC_VALUE_PARAMETER_PATTERN = Pattern.compile("^\\$\\{(?<name>[\\w\\-]+)(:+(?<default>[\\w:./=+\\-]+)*+)?}$");
 
   // no signature check with invalid algorithms
   private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
@@ -67,9 +72,9 @@ public class JwtClientAuthentication {
 
   public String getClientAssertion(OIDCIdentityProviderDefinition config) {
     HashMap<String, String> jwtClientConfiguration = Optional.ofNullable(getJwtClientConfigurationElements(config.getJwtClientAuthentication())).orElse(new HashMap<>());
-    String issuer = Optional.ofNullable(jwtClientConfiguration.get("iss")).orElse(config.getRelyingPartyId());
-    String audience = Optional.ofNullable(jwtClientConfiguration.get("aud")).orElse(config.getTokenUrl().toString());
-    String kid = Optional.ofNullable(jwtClientConfiguration.get("kid")).orElse(keyInfoService.getActiveKey().keyId());
+    String issuer = readJwtClientOption(jwtClientConfiguration.get("iss"), config.getRelyingPartyId());
+    String audience = readJwtClientOption(jwtClientConfiguration.get("aud"), config.getTokenUrl().toString());
+    String kid = readJwtClientOption(jwtClientConfiguration.get("kid"), keyInfoService.getActiveKey().keyId());
     Claims claims = new Claims();
     claims.setAud(Arrays.asList(audience));
     claims.setSub(config.getRelyingPartyId());
@@ -157,5 +162,33 @@ public class JwtClientAuthentication {
     } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
       throw new BadCredentialsException("Untrusted client_assertion", e);
     }
+  }
+
+  private String readJwtClientOption(String jwtClientOption, String defaultOption) {
+    String value;
+    if (isNotEmpty(jwtClientOption)) {
+      Matcher matcher = getDynamicValueMatcher(jwtClientOption);
+      if (matcher.find()) {
+        value = Optional.ofNullable(getDynamicValue(matcher)).orElse(getDefaultValue(matcher));
+      } else {
+        value = jwtClientOption;
+      }
+    } else {
+      value = defaultOption;
+    }
+    return value;
+  }
+
+  private static Matcher getDynamicValueMatcher(String value) {
+    return DYNAMIC_VALUE_PARAMETER_PATTERN.matcher(value);
+  }
+
+  private static String getDynamicValue(Matcher m) {
+    String environmentName = m.group("name");
+    return Optional.ofNullable(System.getProperty(environmentName)).orElse(System.getenv(environmentName));
+  }
+
+  private static String getDefaultValue(Matcher m) {
+    return m.group("default");
   }
 }
