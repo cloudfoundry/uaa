@@ -1,18 +1,25 @@
-package org.cloudfoundry.identity.uaa.web;
-
-import org.cloudfoundry.identity.uaa.health.HealthzEndpoint;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.mock.web.MockHttpServletResponse;
+package org.cloudfoundry.identity.uaa.health;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import javax.sql.DataSource;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.mock.web.MockHttpServletResponse;
 
 class HealthzEndpointTests {
 
@@ -21,11 +28,19 @@ class HealthzEndpointTests {
     private HealthzEndpoint endpoint;
     private MockHttpServletResponse response;
     private Thread shutdownHook;
+    private DataSource dataSource;
+    private Connection connection;
+    private Statement statement;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws SQLException {
         Runtime mockRuntime = mock(Runtime.class);
-        endpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN, mockRuntime);
+        dataSource = mock(DataSource.class);
+        connection = mock(Connection.class);
+        statement = mock(Statement.class);
+        when(dataSource.getConnection()).thenReturn(connection);
+        when(connection.createStatement()).thenReturn(statement);
+        endpoint = new HealthzEndpoint(SLEEP_UPON_SHUTDOWN, mockRuntime, dataSource);
         response = new MockHttpServletResponse();
 
         ArgumentCaptor<Thread> threadArgumentCaptor = ArgumentCaptor.forClass(Thread.class);
@@ -35,7 +50,20 @@ class HealthzEndpointTests {
 
     @Test
     void getHealthz() {
-        assertEquals("ok\n", endpoint.getHealthz(response));
+        assertEquals("UAA running. Database status unknown.\n", endpoint.getHealthz(response));
+    }
+
+    @Test
+    void getHealthz_connectionSuccess() {
+        endpoint.isDataSourceConnectionAvailable();
+        assertEquals("ok. Database connection successful.\n", endpoint.getHealthz(response));
+    }
+    @Test
+    void getHealthz_connectionFailed() throws SQLException {
+        when(statement.execute(anyString())).thenThrow(new SQLException());
+        endpoint.isDataSourceConnectionAvailable();
+        assertEquals("Database Connection failed.\n", endpoint.getHealthz(response));
+        assertEquals(503, response.getStatus());
     }
 
     @Test
@@ -54,7 +82,8 @@ class HealthzEndpointTests {
         @BeforeEach
         void setUp() {
             Runtime mockRuntime = mock(Runtime.class);
-            endpoint = new HealthzEndpoint(-1, mockRuntime);
+            DataSource dataSource = mock(DataSource.class);
+            endpoint = new HealthzEndpoint(-1, mockRuntime, dataSource);
             response = new MockHttpServletResponse();
 
             ArgumentCaptor<Thread> threadArgumentCaptor = ArgumentCaptor.forClass(Thread.class);
