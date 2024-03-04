@@ -2,10 +2,12 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import static java.util.Objects.requireNonNull;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -14,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.alias.AliasMockMvcTestBase;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -32,6 +35,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -454,11 +460,11 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
     }
 
     @Nested
-    class UpdatePut {
-        abstract class UpdatePutBase {
+    class Update {
+        abstract class UpdateBase {
             protected final boolean aliasFeatureEnabled;
 
-            protected UpdatePutBase(final boolean aliasFeatureEnabled) {
+            protected UpdateBase(final boolean aliasFeatureEnabled) {
                 this.aliasFeatureEnabled = aliasFeatureEnabled;
             }
 
@@ -472,17 +478,20 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 arrangeAliasFeatureEnabled(true);
             }
 
-            @Test
-            final void shouldReject_NoExistingAlias_AliasIdSet_UaaToCustomZone() throws Throwable {
-                shouldReject_NoExistingAlias_AliasIdSet(IdentityZone.getUaa(), customZone);
+            @ParameterizedTest
+            @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+            final void shouldReject_NoExistingAlias_AliasIdSet_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                shouldReject_NoExistingAlias_AliasIdSet(method, IdentityZone.getUaa(), customZone);
             }
 
-            @Test
-            final void shouldReject_NoExistingAlias_AliasIdSet_CustomToUaaZone() throws Throwable {
-                shouldReject_NoExistingAlias_AliasIdSet(customZone, IdentityZone.getUaa());
+            @ParameterizedTest
+            @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+            final void shouldReject_NoExistingAlias_AliasIdSet_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                shouldReject_NoExistingAlias_AliasIdSet(method, customZone, IdentityZone.getUaa());
             }
 
             private void shouldReject_NoExistingAlias_AliasIdSet(
+                    final HttpMethod method,
                     final IdentityZone zone1,
                     final IdentityZone zone2
             ) throws Throwable {
@@ -500,30 +509,32 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 final ScimUser createdScimUser = createScimUser(zone1, scimUser);
 
                 createdScimUser.setAliasId(UUID.randomUUID().toString());
-                shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
             }
-
         }
 
         @Nested
-        class AliasFeatureEnabled extends UpdatePutBase {
+        class AliasFeatureEnabled extends UpdateBase {
             public AliasFeatureEnabled() {
                 super(true);
             }
 
             @Nested
             class ExistingAlias {
-                @Test
-                void shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser_UaaToCustomZone() throws Throwable {
-                    shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser_CustomToUaaZone() throws Throwable {
-                    shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldAccept_AliasPropsNotChanged_ShouldPropagateChangesToAliasUser(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -534,7 +545,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     final String newUserName = "some-new-username";
                     createdScimUser.setUserName(newUserName);
-                    final ScimUser updatedScimUser = updateUserPut(zone1, createdScimUser);
+                    final ScimUser updatedScimUser = updateUser(method, zone1, createdScimUser);
                     assertThat(updatedScimUser.getUserName()).isEqualTo(newUserName);
 
                     final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
@@ -546,17 +557,20 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     assertIsCorrectAliasPair(updatedScimUser, aliasUserOpt.get());
                 }
 
-                @Test
-                void shouldAccept_ShouldFixDanglingReference_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldFixDanglingReference(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_ShouldFixDanglingReference_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_ShouldFixDanglingReference(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldAccept_ShouldFixDanglingReference_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldFixDanglingReference(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_ShouldFixDanglingReference_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_ShouldFixDanglingReference(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldAccept_ShouldFixDanglingReference(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -573,7 +587,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     // update the original user
                     final String newUserName = "some-new-username";
                     createdScimUser.setUserName(newUserName);
-                    final ScimUser updatedScimUser = updateUserPut(zone1, createdScimUser);
+                    final ScimUser updatedScimUser = updateUser(method, zone1, createdScimUser);
                     assertThat(updatedScimUser.getUserName()).isEqualTo(newUserName);
 
                     // the dangling reference should be fixed
@@ -587,17 +601,20 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     assertIsCorrectAliasPair(updatedScimUser, newAliasUserOpt.get());
                 }
 
-                @Test
-                void shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone_UaaToCustomZone() throws Throwable {
-                    shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone_CustomToUaaZone() throws Throwable {
-                    shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_DanglingReferenceButConflictingUserAlreadyExistsInAliasZone(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -622,20 +639,23 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     // update the original user - fixing the dangling ref. not possible since conflicting user exists
                     createdScimUser.setNickName("some-new-nickname");
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.CONFLICT);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.CONFLICT);
                 }
 
-                @Test
-                void shouldReject_AliasIdSetInExistingButAliasZidNot_UaaToCustomZone() throws Throwable {
-                    shouldReject_AliasIdSetInExistingButAliasZidNot(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_AliasIdSetInExistingButAliasZidNot_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_AliasIdSetInExistingButAliasZidNot(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_AliasIdSetInExistingButAliasZidNot_CustomToUaaZone() throws Throwable {
-                    shouldReject_AliasIdSetInExistingButAliasZidNot(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_AliasIdSetInExistingButAliasZidNot_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_AliasIdSetInExistingButAliasZidNot(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_AliasIdSetInExistingButAliasZidNot(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -653,20 +673,23 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     // otherwise valid update should now fail
                     createdScimUser.setAliasId(initialAliasId);
                     createdScimUser.setUserName("some-new-username");
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.INTERNAL_SERVER_ERROR);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-                @Test
-                void shouldReject_AliasPropertiesChanged_UaaToCustomZone() throws Throwable {
-                    shouldReject_AliasPropertiesChanged(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_AliasPropertiesChanged_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_AliasPropertiesChanged(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_AliasPropertiesChanged_CustomToUaaZone() throws Throwable {
-                    shouldReject_AliasPropertiesChanged(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_AliasPropertiesChanged_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_AliasPropertiesChanged(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_AliasPropertiesChanged(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -675,21 +698,24 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                             () -> createIdpAndUserWithAlias(zone1, zone2)
                     );
 
-                    createdScimUser.setAliasZid(null);
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    createdScimUser.setAliasZid(StringUtils.EMPTY);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
-                @Test
-                void shouldReject_DanglingReferenceAndZoneNotExisting_UaaToCustomZone() throws Throwable {
-                    shouldReject_DanglingReferenceAndZoneNotExisting(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_DanglingReferenceAndZoneNotExisting_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_DanglingReferenceAndZoneNotExisting(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_DanglingReferenceAndZoneNotExisting_CustomToUaaZone() throws Throwable {
-                    shouldReject_DanglingReferenceAndZoneNotExisting(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_DanglingReferenceAndZoneNotExisting_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_DanglingReferenceAndZoneNotExisting(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_DanglingReferenceAndZoneNotExisting(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -704,23 +730,26 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     // updating the user should fail - the dangling reference cannot be fixed
                     userWithDanglingRef.setUserName("some-new-username");
-                    shouldRejectUpdatePut(zone1, userWithDanglingRef, HttpStatus.UNPROCESSABLE_ENTITY);
+                    shouldRejectUpdate(method, zone1, userWithDanglingRef, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
             }
 
             @Nested
             class NoExistingAlias {
-                @Test
-                void shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldAccept_ShouldCreateNewAliasIfOnlyAliasZidSet(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -730,7 +759,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     );
 
                     createdScimUser.setAliasZid(zone2.getId());
-                    final ScimUser updatedScimUser = updateUserPut(zone1, createdScimUser);
+                    final ScimUser updatedScimUser = updateUser(method, zone1, createdScimUser);
                     assertThat(updatedScimUser.getAliasId()).isNotBlank();
                     assertThat(updatedScimUser.getAliasZid()).isNotBlank().isEqualTo(zone2.getId());
 
@@ -743,17 +772,20 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     assertIsCorrectAliasPair(updatedScimUser, aliasUser);
                 }
 
-                @Test
-                void shouldReject_ConflictingUserAlreadyExistsInAliasZone_UaaToCustomZone() throws Throwable {
-                    shouldReject_ConflictingUserAlreadyExistsInAliasZone(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_ConflictingUserAlreadyExistsInAliasZone_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_ConflictingUserAlreadyExistsInAliasZone(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_ConflictingUserAlreadyExistsInAliasZone_CustomToUaaZone() throws Throwable {
-                    shouldReject_ConflictingUserAlreadyExistsInAliasZone(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_ConflictingUserAlreadyExistsInAliasZone_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_ConflictingUserAlreadyExistsInAliasZone(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_ConflictingUserAlreadyExistsInAliasZone(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -774,20 +806,23 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     // try to update the user with aliasZid set to zone 2 - should fail
                     createdUserWithoutAlias.setAliasZid(zone2.getId());
-                    shouldRejectUpdatePut(zone1, createdUserWithoutAlias, HttpStatus.CONFLICT);
+                    shouldRejectUpdate(method, zone1, createdUserWithoutAlias, HttpStatus.CONFLICT);
                 }
 
-                @Test
-                void shouldReject_OriginIdpHasNoAlias_UaaToCustomZone() throws Exception {
-                    shouldReject_OriginIdpHasNoAlias(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OriginIdpHasNoAlias_UaaToCustomZone(final HttpMethod method) throws Exception {
+                    shouldReject_OriginIdpHasNoAlias(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_OriginIdpHasNoAlias_CustomToUaaZone() throws Exception {
-                    shouldReject_OriginIdpHasNoAlias(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OriginIdpHasNoAlias_CustomToUaaZone(final HttpMethod method) throws Exception {
+                    shouldReject_OriginIdpHasNoAlias(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_OriginIdpHasNoAlias(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Exception {
@@ -812,11 +847,12 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     // try to update user with aliasZid set to zone 2 - should fail
                     createdUserWithoutAlias.setAliasZid(zone2.getId());
-                    shouldRejectUpdatePut(zone1, createdUserWithoutAlias, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdUserWithoutAlias, HttpStatus.BAD_REQUEST);
                 }
 
-                @Test
-                void shouldReject_OriginIdpHasAliasToDifferentZone() throws Throwable {
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OriginIdpHasAliasToDifferentZone(final HttpMethod method) throws Throwable {
                     final IdentityZone zone1 = IdentityZone.getUaa();
                     final IdentityZone zone2 = customZone;
                     final IdentityZone zone3 = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
@@ -829,11 +865,12 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     // try to update user with aliasZid set to a different custom zone (zone 3) - should fail
                     createdScimUser.setAliasZid(zone3.getId());
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
-                @Test
-                void shouldReject_ReferencedAliasZoneDesNotExist() throws Throwable {
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_ReferencedAliasZoneDesNotExist(final HttpMethod method) throws Throwable {
                     final IdentityZone zone1 = IdentityZone.getUaa();
 
                     final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
@@ -843,20 +880,23 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     // update user with aliasZid set to a non-existing - should fail
                     createdScimUser.setAliasZid(UUID.randomUUID().toString());
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
-                @Test
-                void shouldReject_AliasZidSetToSameZone_UaaToCustomZone() throws Throwable {
-                    shouldReject_AliasZidSetToSameZone(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_AliasZidSetToSameZone_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_AliasZidSetToSameZone(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_AliasZidSetToSameZone_CustomToUaaZone() throws Throwable {
-                    shouldReject_AliasZidSetToSameZone(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_AliasZidSetToSameZone_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_AliasZidSetToSameZone(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_AliasZidSetToSameZone(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -867,11 +907,12 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     // update user with alias in same zone - should fail
                     createdScimUser.setAliasZid(zone1.getId());
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
-                @Test
-                void shouldReject_AliasZidSetToDifferentCustomZone() throws Throwable {
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_AliasZidSetToDifferentCustomZone(final HttpMethod method) throws Throwable {
                     final IdentityZone zone1 = customZone;
                     final IdentityZone zone2 = IdentityZone.getUaa();
 
@@ -883,30 +924,33 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     // update user with aliasZid set to a different custom zone - should fail
                     final IdentityZone otherCustomZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
                     createdScimUser.setAliasZid(otherCustomZone.getId());
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
             }
         }
 
         @Nested
-        class AliasFeatureDisabled extends UpdatePutBase {
+        class AliasFeatureDisabled extends UpdateBase {
             public AliasFeatureDisabled() {
                 super(false);
             }
 
             @Nested
             class ExistingAlias {
-                @Test
-                void shouldAccept_OnlyAliasPropsSetToNull_UaaToCustomZone() throws Throwable {
-                    shouldAccept_OnlyAliasPropsSetToNull(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_OnlyAliasPropsSetToNull_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_OnlyAliasPropsSetToNull(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldAccept_OnlyAliasPropsSetToNull_CustomToUaaZone() throws Throwable {
-                    shouldAccept_OnlyAliasPropsSetToNull(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_OnlyAliasPropsSetToNull_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_OnlyAliasPropsSetToNull(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldAccept_OnlyAliasPropsSetToNull(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -921,9 +965,9 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     final String initialAliasZid = createdScimUser.getAliasZid();
                     assertThat(initialAliasZid).isNotBlank().isEqualTo(zone2.getId());
 
-                    createdScimUser.setAliasId(null);
-                    createdScimUser.setAliasZid(null);
-                    final ScimUser updatedScimUser = updateUserPut(zone1, createdScimUser);
+                    createdScimUser.setAliasId(StringUtils.EMPTY);
+                    createdScimUser.setAliasZid(StringUtils.EMPTY);
+                    final ScimUser updatedScimUser = updateUser(method, zone1, createdScimUser);
 
                     assertThat(updatedScimUser.getAliasId()).isBlank();
                     assertThat(updatedScimUser.getAliasZid()).isBlank();
@@ -932,17 +976,20 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     assertReferenceIsBrokenInAlias(initialAliasId, initialAliasZid);
                 }
 
-                @Test
-                void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged_UaaToCustomZone() throws Throwable {
-                    shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged_CustomToUaaZone() throws Throwable {
-                    shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -957,11 +1004,11 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     final String initialAliasZid = createdScimUser.getAliasZid();
                     assertThat(initialAliasZid).isNotBlank().isEqualTo(zone2.getId());
 
-                    createdScimUser.setAliasId(null);
-                    createdScimUser.setAliasZid(null);
+                    createdScimUser.setAliasId(StringUtils.EMPTY);
+                    createdScimUser.setAliasZid(StringUtils.EMPTY);
                     final String newNickName = "some-new-nickname";
                     createdScimUser.setNickName(newNickName);
-                    final ScimUser updatedScimUser = updateUserPut(zone1, createdScimUser);
+                    final ScimUser updatedScimUser = updateUser(method, zone1, createdScimUser);
 
                     assertThat(updatedScimUser.getAliasId()).isBlank();
                     assertThat(updatedScimUser.getAliasZid()).isBlank();
@@ -973,17 +1020,20 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     assertThat(aliasUserOpt.get().getNickName()).isNotEqualTo(newNickName);
                 }
 
-                @Test
-                void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -996,23 +1046,26 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     createdScimUser.setAliasId(null);
                     final ScimUser scimUserWithIncompleteRef = updateUserViaDb(createdScimUser, zone1.getId());
 
-                    scimUserWithIncompleteRef.setAliasZid(null);
-                    final ScimUser updatedScimUser = updateUserViaDb(scimUserWithIncompleteRef, zone1.getId());
+                    scimUserWithIncompleteRef.setAliasZid(StringUtils.EMPTY);
+                    final ScimUser updatedScimUser = updateUser(method, zone1, scimUserWithIncompleteRef);
                     assertThat(updatedScimUser.getAliasId()).isBlank();
                     assertThat(updatedScimUser.getAliasZid()).isBlank();
                 }
 
-                @Test
-                void shouldAccept_ShouldIgnoreDanglingRef_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingRef(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_ShouldIgnoreDanglingRef_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_ShouldIgnoreDanglingRef(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldAccept_ShouldIgnoreDanglingRef_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingRef(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldAccept_ShouldIgnoreDanglingRef_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldAccept_ShouldIgnoreDanglingRef(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldAccept_ShouldIgnoreDanglingRef(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -1029,22 +1082,25 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     deleteUserViaDb(aliasId, aliasZid);
 
                     // should ignore dangling reference in update
-                    createdScimUser.setAliasId(null);
-                    createdScimUser.setAliasZid(null);
-                    updateUserPut(zone1, createdScimUser);
+                    createdScimUser.setAliasId(StringUtils.EMPTY);
+                    createdScimUser.setAliasZid(StringUtils.EMPTY);
+                    updateUser(method, zone1, createdScimUser);
                 }
 
-                @Test
-                void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted_UaaToCustomZone() throws Throwable {
-                    shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted_CustomToUaaZone() throws Throwable {
-                    shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -1054,20 +1110,23 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     );
 
                     createdScimUser.setNickName("some-new-nickname");
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
-                @Test
-                void shouldReject_OnlyAliasIdSetToNull_UaaToCustomZone() throws Throwable {
-                    shouldReject_OnlyAliasIdSetToNull(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OnlyAliasIdSetToNull_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OnlyAliasIdSetToNull(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_OnlyAliasIdSetToNull_CustomToUaaZone() throws Throwable {
-                    shouldReject_OnlyAliasIdSetToNull(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OnlyAliasIdSetToNull_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OnlyAliasIdSetToNull(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_OnlyAliasIdSetToNull(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -1077,20 +1136,23 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     );
 
                     createdScimUser.setAliasId(null);
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
-                @Test
-                void shouldReject_OnlyAliasZidSetToNull_UaaToCustomZone() throws Throwable {
-                    shouldReject_OnlyAliasZidSetToNull(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OnlyAliasZidSetToNull_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OnlyAliasZidSetToNull(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_OnlyAliasZidSetToNull_CustomToUaaZone() throws Throwable {
-                    shouldReject_OnlyAliasZidSetToNull(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OnlyAliasZidSetToNull_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OnlyAliasZidSetToNull(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_OnlyAliasZidSetToNull(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -1100,23 +1162,26 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     );
 
                     createdScimUser.setAliasZid(null);
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
             }
 
             @Nested
             class NoExistingAlias {
-                @Test
-                void shouldReject_OnlyAliasZidSet_UaaToCustomZone() throws Throwable {
-                    shouldReject_OnlyAliasZidSet(IdentityZone.getUaa(), customZone);
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OnlyAliasZidSet_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OnlyAliasZidSet(method, IdentityZone.getUaa(), customZone);
                 }
 
-                @Test
-                void shouldReject_OnlyAliasZidSet_CustomToUaaZone() throws Throwable {
-                    shouldReject_OnlyAliasZidSet(customZone, IdentityZone.getUaa());
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void shouldReject_OnlyAliasZidSet_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OnlyAliasZidSet(method, customZone, IdentityZone.getUaa());
                 }
 
                 private void shouldReject_OnlyAliasZidSet(
+                        final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -1126,13 +1191,17 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     );
 
                     createdScimUser.setAliasZid(zone2.getId());
-                    shouldRejectUpdatePut(zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
             }
         }
 
-        private ScimUser updateUserPut(final IdentityZone zone, final ScimUser scimUser) throws Exception {
-            final MvcResult result = updateUserPutAndReturnResult(zone, scimUser);
+        private ScimUser updateUser(
+                final HttpMethod method,
+                final IdentityZone zone,
+                final ScimUser scimUser
+        ) throws Exception {
+            final MvcResult result = updateUserAndReturnResult(method, zone, scimUser);
             final MockHttpServletResponse response = result.getResponse();
             assertThat(response).isNotNull();
             assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
@@ -1142,24 +1211,43 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             );
         }
 
-        private MvcResult updateUserPutAndReturnResult(final IdentityZone zone, final ScimUser scimUser) throws Exception {
+        private MvcResult updateUserAndReturnResult(
+                final HttpMethod method,
+                final IdentityZone zone,
+                final ScimUser scimUser
+        ) throws Exception {
             final String userId = scimUser.getId();
             assertThat(userId).isNotBlank();
-            final MockHttpServletRequestBuilder updateRequestBuilder = put("/Users/" + userId)
+
+            MockHttpServletRequestBuilder updateRequestBuilder;
+            switch (method) {
+                case PUT:
+                    updateRequestBuilder = put("/Users/" + userId);
+                    break;
+                case PATCH:
+                    updateRequestBuilder = patch("/Users/" + userId);
+                    break;
+                default:
+                    fail("Encountered invalid HTTP method: " + method);
+                    return null;
+            }
+            updateRequestBuilder = updateRequestBuilder
                     .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()))
                     .header(IdentityZoneSwitchingFilter.HEADER, zone.getSubdomain())
                     .header("If-Match", scimUser.getVersion())
                     .contentType(APPLICATION_JSON)
                     .content(JsonUtils.writeValueAsString(scimUser));
+
             return mockMvc.perform(updateRequestBuilder).andReturn();
         }
 
-        private void shouldRejectUpdatePut(
+        private void shouldRejectUpdate(
+                final HttpMethod method,
                 final IdentityZone zone,
                 final ScimUser scimUser,
                 final HttpStatus expectedStatusCode
         ) throws Exception {
-            final MvcResult result = updateUserPutAndReturnResult(zone, scimUser);
+            final MvcResult result = updateUserAndReturnResult(method, zone, scimUser);
             assertThat(result.getResponse().getStatus()).isEqualTo(expectedStatusCode.value());
         }
     }

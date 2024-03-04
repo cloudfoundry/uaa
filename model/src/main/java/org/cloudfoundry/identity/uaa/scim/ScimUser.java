@@ -881,6 +881,9 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
             }
             setPhoneNumbers(current);
         }
+
+        ofNullable(patch.getAliasId()).ifPresent(this::setAliasId);
+        ofNullable(patch.getAliasZid()).ifPresent(this::setAliasZid);
     }
 
 }
