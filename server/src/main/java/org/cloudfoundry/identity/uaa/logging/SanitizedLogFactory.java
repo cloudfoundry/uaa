@@ -27,19 +27,27 @@ public class SanitizedLogFactory {
         }
 
         public void info(String message) {
-            fallback.info(() -> LogSanitizerUtil.sanitize(message));
+            if (fallback.isInfoEnabled()) {
+                fallback.info(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void warn(String message) {
-            fallback.warn(() -> LogSanitizerUtil.sanitize(message));
+            if (fallback.isWarnEnabled()) {
+                fallback.warn(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void debug(String message) {
-            fallback.debug(() -> LogSanitizerUtil.sanitize(message));
+            if (fallback.isDebugEnabled()) {
+                fallback.debug(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void debug(String message, Throwable t) {
-            fallback.debug(() -> LogSanitizerUtil.sanitize(message), t);
+            if (fallback.isDebugEnabled()) {
+                fallback.debug(LogSanitizerUtil.sanitize(message), t);
+            }
         }
     }
 }
