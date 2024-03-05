@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.junit.jupiter.api.function.ThrowingSupplier;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -50,6 +51,7 @@ public abstract class AliasMockMvcTestBase {
     private TestClient testClient;
 
     protected IdentityZone customZone;
+    protected IdentityZone uaaZone;
     private String adminToken;
     protected String identityToken;
 
@@ -63,6 +65,12 @@ public abstract class AliasMockMvcTestBase {
                 "identitysecret",
                 "zones.write");
         customZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
+
+        // look up UAA zone
+        final JdbcIdentityZoneProvisioning zoneProvisioning = webApplicationContext.getBean(
+                JdbcIdentityZoneProvisioning.class
+        );
+        uaaZone = zoneProvisioning.retrieve(IdentityZone.getUaaZoneId());
     }
 
     protected static AbstractIdentityProviderDefinition buildIdpDefinition(final String type) {
