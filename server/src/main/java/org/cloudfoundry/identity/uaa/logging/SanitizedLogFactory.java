@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.logging;
+package org.coundfoundry.identity.uaa.logging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +16,10 @@ public class SanitizedLogFactory {
         private Logger fallback;
 
         public SanitizedLog(Logger logger) {
+            setFallback(logger);
+        }
+
+        public void setFallback(Logger logger) {
             this.fallback = logger;
         }
 
@@ -24,19 +28,39 @@ public class SanitizedLogFactory {
         }
 
         public void info(String message) {
-            fallback.info(LogSanitizerUtil.sanitize(message));
+            fallback.info(sanitizeLog(message));
+        }
+
+        public void info(String message, Throwable t) {
+            fallback.info(sanitizeLog(message), t);
         }
 
         public void warn(String message) {
-            fallback.warn(LogSanitizerUtil.sanitize(message));
+            fallback.warn(sanitizeLog(message));
+        }
+
+        public void warn(String message, Throwable t) {
+            fallback.warn(sanitizeLog(message), t);
         }
 
         public void debug(String message) {
-            fallback.debug(LogSanitizerUtil.sanitize(message));
+            fallback.debug(sanitizeLog(message));
         }
 
         public void debug(String message, Throwable t) {
-            fallback.debug(LogSanitizerUtil.sanitize(message), t);
+            fallback.debug(sanitizeLog(message), t);
+        }
+
+        public void error(String message) {
+            fallback.error(sanitizeLog(message));
+        }
+
+        public void error(String message, Throwable t) {
+            fallback.error(sanitizeLog(message), t);
+        }
+
+        public static String sanitizeLog(String message) {
+            return LogSanitizerUtil.sanitize(message);
         }
     }
 }
