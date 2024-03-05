@@ -1,9 +1,9 @@
-package org.coundfoundry.identity.uaa.logging;
+package org.cloudfoundry.identity.uaa.logging;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
+/** TODO remove fork
  * Returns Log instance that replaces \n, \r, \t with a | to prevent log forging.
  */
 public class SanitizedLogFactory {
@@ -59,7 +59,15 @@ public class SanitizedLogFactory {
             fallback.error(sanitizeLog(message), t);
         }
 
-        public static String sanitizeLog(String message) {
+        public void trace(String message) {
+            fallback.trace(sanitizeLog(message));
+        }
+
+        public void trace(String message, Throwable t) {
+            fallback.trace(sanitizeLog(message), t);
+        }
+
+        protected static String sanitizeLog(String message) {
             return LogSanitizerUtil.sanitize(message);
         }
     }
