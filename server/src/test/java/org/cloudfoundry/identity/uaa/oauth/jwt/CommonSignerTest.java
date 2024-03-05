@@ -110,7 +110,7 @@ public class CommonSignerTest {
     }
 
     @Test
-    public void test_mac_signing_options() throws JOSEException, ParseException {
+    public void test_mac_signing_options() {
         CommonSigner signer = new CommonSigner(null, macSigningKey, "http://localhost/uaa");
         assertEquals(UaaMacSigner.SUPPORTED_ALGORITHMS, signer.supportedJWSAlgorithms());
         assertNotNull(signer.getJCAContext());
@@ -134,7 +134,7 @@ public class CommonSignerTest {
     }
 
     @Test
-    public void test_uaa_singing_with_single_aud_value() throws JOSEException, ParseException {
+    public void test_uaa_singing_with_single_aud_value() throws ParseException {
         // given
         Map<String, Object> objectMap = Map.of("sub","1234567890", "name", "John Doe", "aud", Arrays.asList("single"));
         // when
