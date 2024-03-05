@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.logging;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** TODO remove fork
+/**
  * Returns Log instance that replaces \n, \r, \t with a | to prevent log forging.
  */
 public class SanitizedLogFactory {
