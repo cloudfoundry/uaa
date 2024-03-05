@@ -1,12 +1,14 @@
 package org.cloudfoundry.identity.uaa.scim;
 
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptySet;
+
 import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -112,10 +114,9 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         aliasUser.setActive(originalEntity.isActive());
         aliasUser.setVerified(originalEntity.isVerified()); // TODO should this be true initially?
 
-        aliasUser.setApprovals(originalEntity.getApprovals());
-        if (originalEntity.getGroups() != null) {
-            aliasUser.setGroups(originalEntity.getGroups());
-        }
+        // the alias user won't have any groups or approvals in the alias zone, they need to be assigned separately
+        aliasUser.setApprovals(emptySet());
+        aliasUser.setGroups(emptyList());
 
         aliasUser.setSchemas(originalEntity.getSchemas());
 

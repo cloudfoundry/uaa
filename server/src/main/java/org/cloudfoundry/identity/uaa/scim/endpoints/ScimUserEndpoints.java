@@ -78,6 +78,7 @@ import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -275,19 +276,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
         persistedUser = syncApprovals(syncGroups(persistedUser));
 
-        // if present, sync approvals and groups for alias user
-        final ScimUser aliasScimUser = aliasResult.aliasEntity();
-        if (aliasScimUser != null) {
-            if (user.getApprovals() != null) {
-                for (final Approval approval : user.getApprovals()) {
-                    final Approval clonedApproval = Approval.clone(approval);
-                    clonedApproval.setUserId(aliasScimUser.getId());
-                    approvalStore.addApproval(clonedApproval, aliasScimUser.getZoneId());
-                }
-            }
-            syncApprovals(syncGroups(aliasScimUser));
-        }
-
         addETagHeader(response, persistedUser);
         return persistedUser;
     }
@@ -338,7 +326,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 );
                 if (aliasResult.aliasEntity() != null) {
                     scimUpdates.incrementAndGet();
-                    syncApprovals(syncGroups(aliasResult.aliasEntity()));
                 }
 
                 return aliasResult.originalEntity();
@@ -599,9 +586,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return status;
     }
 
-    private ScimUser syncGroups(ScimUser user) {
+    @Nullable
+    private ScimUser syncGroups(@Nullable ScimUser user) {
         if (user == null) {
-            return user;
+            return null;
         }
 
         Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false, identityZoneManager.getCurrentIdentityZoneId());
@@ -619,6 +607,9 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return user;
     }
 
+    /**
+     * Look up the approvals for the given user and keep only those that are currently active.
+     */
     private ScimUser syncApprovals(ScimUser user) {
         if (user == null || approvalStore == null) {
             return user;
