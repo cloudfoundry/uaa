@@ -9,6 +9,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import org.apache.commons.lang3.RandomStringUtils;
+
 public class SanitizedLogFactoryTest {
 
     private final String dirtyMessage = "one\ntwo\tthree\rfour";
@@ -24,7 +26,7 @@ public class SanitizedLogFactoryTest {
         mockLog = mock(Logger.class);
         when(mockLog.isDebugEnabled()).thenReturn(true);
         log = new SanitizedLogFactory.SanitizedLog(mockLog);
-        ex = new Exception();
+        ex = new Exception(RandomStringUtils.randomAlphanumeric(8));
     }
 
     @Test
