@@ -16,10 +16,6 @@ public class SanitizedLogFactory {
         private Logger fallback;
 
         public SanitizedLog(Logger logger) {
-            setFallback(logger);
-        }
-
-        public void setFallback(Logger logger) {
             this.fallback = logger;
         }
 
