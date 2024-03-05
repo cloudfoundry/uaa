@@ -152,14 +152,4 @@ public class Approval {
         return this;
     }
 
-    public static Approval clone(final Approval original) {
-        final Approval clone = new Approval();
-        clone.userId = original.userId;
-        clone.clientId = original.clientId;
-        clone.scope = original.scope;
-        clone.status = original.status;
-        clone.expiresAt = original.expiresAt;
-        clone.lastUpdatedAt = original.lastUpdatedAt;
-        return clone;
-    }
 }
