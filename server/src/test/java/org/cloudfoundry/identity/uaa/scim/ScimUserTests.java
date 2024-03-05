@@ -30,6 +30,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.Assert.*;
 
@@ -495,6 +496,21 @@ public class ScimUserTests {
         assertNull(user.getPreviousLogonTime());
     }
 
+    @Test
+    public void testPatchAliasId() {
+        final String aliasId = UUID.randomUUID().toString();
+        patch.setAliasId(aliasId);
+        user.patch(patch);
+        Assertions.assertThat(user.getAliasId()).isEqualTo(aliasId);
+    }
+
+    @Test
+    public void testPatchAliasZid() {
+        final String aliasZid = UUID.randomUUID().toString();
+        patch.setAliasZid(aliasZid);
+        user.patch(patch);
+        Assertions.assertThat(user.getAliasZid()).isEqualTo(aliasZid);
+    }
 
     @Test
     public void testPatchUserSetPrimaryEmail() {
