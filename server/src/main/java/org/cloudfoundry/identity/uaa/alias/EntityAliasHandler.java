@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.alias;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.util.StringUtils.hasText;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
