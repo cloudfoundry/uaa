@@ -14,7 +14,6 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
-import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +80,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
                 when(identityProviderProvisioning.update(argThat(new IdpWithAliasMatcher(existingAliasIdp)), eq(customZoneId)))
                         .then(invocationOnMock -> invocationOnMock.getArgument(0));
 
-                final EntityAliasResult<IdentityProvider<?>> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
                         requestBody,
                         existingIdp
                 );
@@ -91,10 +90,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
                 updatedAliasIdp.setName(newName);
 
                 assertThat(result).isNotNull();
-                assertThat(result.originalEntity()).isNotNull();
-                assertIdpsAreEqualApartFromTimestamps(requestBody, result.originalEntity());
-                assertThat(result.aliasEntity()).isNotNull();
-                assertIdpsAreEqualApartFromTimestamps(updatedAliasIdp, result.aliasEntity());
+                assertIdpsAreEqualApartFromTimestamps(requestBody, result);
             }
 
             @Test
@@ -157,12 +153,12 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
                 when(identityProviderProvisioning.update(argThat(new IdpWithAliasMatcher(UAA, originalIdpId, newAliasIdpId, customZoneId)), eq(UAA)))
                         .then(invocationOnMock -> invocationOnMock.getArgument(0));
 
-                final EntityAliasResult<IdentityProvider<?>> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
                         requestBody,
                         existingIdp
                 );
-                assertThat(result.originalEntity().getAliasId()).isEqualTo(newAliasIdpId);
-                assertThat(result.originalEntity().getAliasZid()).isEqualTo(customZoneId);
+                assertThat(result.getAliasId()).isEqualTo(newAliasIdpId);
+                assertThat(result.getAliasZid()).isEqualTo(customZoneId);
 
                 // should update original IdP with new aliasId
                 final ArgumentCaptor<IdentityProvider> originalIdpCaptor = ArgumentCaptor.forClass(IdentityProvider.class);
@@ -194,7 +190,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
 
                 // should ignore dangling reference
                 assertThat(idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp))
-                        .isEqualTo(new EntityAliasResult<>(originalIdp, null));
+                        .isEqualTo(originalIdp);
             }
 
             @Test
@@ -214,7 +210,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
 
                 // should ignore dangling reference
                 assertThat(idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp))
-                        .isEqualTo(new EntityAliasResult<>(originalIdp, null));
+                        .isEqualTo(originalIdp);
             }
 
             @Test
@@ -254,11 +250,11 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
                 final IdentityProvider<?> originalIdp = shallowCloneIdp(existingIdp);
                 originalIdp.setName("some-new-name");
 
-                final EntityAliasResult<IdentityProvider<?>> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
                         originalIdp,
                         existingIdp
                 );
-                assertThat(result).isEqualTo(new EntityAliasResult<>(originalIdp, null));
+                assertThat(result).isEqualTo(originalIdp);
             }
         }
         @Nested
@@ -302,12 +298,12 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
                 when(identityProviderProvisioning.update(any(), eq(UAA)))
                         .then(invocationOnMock -> invocationOnMock.getArgument(0));
 
-                final EntityAliasResult<IdentityProvider<?>> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
                         requestBody,
                         existingIdp
                 );
-                assertThat(result.originalEntity().getAliasId()).isEqualTo(aliasIdpId);
-                assertThat(result.originalEntity().getAliasZid()).isEqualTo(customZoneId);
+                assertThat(result.getAliasId()).isEqualTo(aliasIdpId);
+                assertThat(result.getAliasZid()).isEqualTo(customZoneId);
             }
         }
 

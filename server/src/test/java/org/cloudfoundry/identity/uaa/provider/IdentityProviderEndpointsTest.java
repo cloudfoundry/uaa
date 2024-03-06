@@ -39,7 +39,6 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
-import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -98,10 +97,7 @@ class IdentityProviderEndpointsTest {
         lenient().when(mockIdpAliasHandler.aliasPropertiesAreValid(any(), any()))
                 .thenReturn(true);
         lenient().when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(any(), any()))
-                .then(invocationOnMock -> {
-                    final IdentityProvider<?> originalIdp = invocationOnMock.getArgument(0);
-                    return new EntityAliasResult<IdentityProvider<?>>(originalIdp, null);
-                });
+                .then(invocationOnMock -> invocationOnMock.getArgument(0));
     }
 
     IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> getExternalOAuthProvider() {
@@ -408,10 +404,8 @@ class IdentityProviderEndpointsTest {
                 final IdentityProvider originalIdpWithAliasId = shallowCloneIdp(createdOriginalIdp);
                 final String aliasIdpId = UUID.randomUUID().toString();
                 originalIdpWithAliasId.setAliasId(aliasIdpId);
-                final EntityAliasResult aliasResult = mock(EntityAliasResult.class);
-                when(aliasResult.originalEntity()).thenReturn(originalIdpWithAliasId);
                 when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(createdOriginalIdp, null))
-                        .thenReturn(aliasResult);
+                        .thenReturn(originalIdpWithAliasId);
 
                 final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(
                         requestBody,
@@ -516,12 +510,10 @@ class IdentityProviderEndpointsTest {
                 final IdentityProvider originalIdpWithAliasId = shallowCloneIdp(updatedOriginalIdp);
                 final String aliasIdpId = UUID.randomUUID().toString();
                 originalIdpWithAliasId.setAliasId(aliasIdpId);
-                final EntityAliasResult mockAliasResult = mock(EntityAliasResult.class);
-                when(mockAliasResult.originalEntity()).thenReturn(originalIdpWithAliasId);
                 when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(
                         updatedOriginalIdp,
                         existingIdp
-                )).thenReturn(mockAliasResult);
+                )).thenReturn(originalIdpWithAliasId);
 
                 final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(
                         originalIdpId,
