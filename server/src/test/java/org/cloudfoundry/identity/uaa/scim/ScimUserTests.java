@@ -513,6 +513,18 @@ public class ScimUserTests {
     }
 
     @Test
+    public void testAliasPropertiesGettersAndSetters() {
+        final String aliasId = UUID.randomUUID().toString();
+        final String aliasZid = UUID.randomUUID().toString();
+
+        final ScimUser scimUser = new ScimUser("id", "uname", "gname", "fname");
+        scimUser.setAliasId(aliasId);
+        scimUser.setAliasZid(aliasZid);
+        Assertions.assertThat(scimUser.getAliasId()).isEqualTo(aliasId);
+        Assertions.assertThat(scimUser.getAliasZid()).isEqualTo(aliasZid);
+    }
+
+    @Test
     public void testPatchUserSetPrimaryEmail() {
         ScimUser.Email newMail = new ScimUser.Email();
         newMail.setPrimary(true);
@@ -669,20 +681,6 @@ public class ScimUserTests {
         setAndPatchAndValidate("displayname", --pos);
 
         assertEquals(0, pos);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 
     public void setAndPatchAndValidate(String attribute, int nullable) {
