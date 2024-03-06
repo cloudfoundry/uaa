@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
-import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler.EntityAliasResult;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -247,27 +246,23 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         // create the user and an alias for it if necessary
-        final EntityAliasResult<ScimUser> aliasResult = transactionTemplate.execute(txStatus -> {
+        ScimUser persistedUser = transactionTemplate.execute(txStatus -> {
             final ScimUser originalScimUser = scimUserProvisioning.createUser(
                     user,
                     user.getPassword(),
                     identityZoneManager.getCurrentIdentityZoneId()
             );
             originalScimUser.setPassword(user.getPassword());
-            final EntityAliasResult<ScimUser> aliasResultTmp = aliasHandler.ensureConsistencyOfAliasEntity(
+            return aliasHandler.ensureConsistencyOfAliasEntity(
                     originalScimUser,
                     null
             );
-            // ensure that password is removed in response
-            aliasResultTmp.originalEntity().setPassword(null);
-            if (aliasResultTmp.aliasEntity() != null) {
-                aliasResultTmp.aliasEntity().setPassword(null);
-            }
-            return aliasResultTmp;
         });
 
+        // ensure that password is removed in response
+        persistedUser.setPassword(null);
+
         // sync approvals and groups for original user
-        ScimUser persistedUser = aliasResult.originalEntity();
         if (user.getApprovals() != null) {
             for (final Approval approval : user.getApprovals()) {
                 approval.setUserId(persistedUser.getId());
@@ -319,16 +314,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 );
                 scimUpdates.incrementAndGet();
                 final ScimUser updatedOriginalUserSynced = syncApprovals(syncGroups(updatedOriginalUser));
-
-                final EntityAliasResult<ScimUser> aliasResult = aliasHandler.ensureConsistencyOfAliasEntity(
+                return aliasHandler.ensureConsistencyOfAliasEntity(
                         updatedOriginalUserSynced,
                         existingScimUser
                 );
-                if (aliasResult.aliasEntity() != null) {
-                    scimUpdates.incrementAndGet();
-                }
-
-                return aliasResult.originalEntity();
             });
         } catch (OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());

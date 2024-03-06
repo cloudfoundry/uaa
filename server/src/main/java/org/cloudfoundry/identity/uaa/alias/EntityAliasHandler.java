@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.alias;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.util.StringUtils.hasText;
 
-import java.util.Objects;
 import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
@@ -112,13 +111,13 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
      * is already set.
      *
      * @param originalEntity the original entity
-     * @return the original entity as well as the alias entity (if affected) after the operation
+     * @return the original entity after the operation
      * @throws EntityAliasFailedException if a new alias entity needs to be created, but the zone referenced in
      *                                    'aliasZid' does not exist
      * @throws EntityAliasFailedException if 'aliasId' and 'aliasZid' are set in the original entity, but the
      *                                    referenced alias entity could not be found
      */
-    public final EntityAliasResult<T> ensureConsistencyOfAliasEntity(
+    public final T ensureConsistencyOfAliasEntity(
             @NonNull final T originalEntity,
             @Nullable final T existingEntity
     ) throws EntityAliasFailedException {
@@ -133,7 +132,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
                         "The state of the entity {} before the update had an aliasZid set, but no aliasId.",
                         existingEntity.getAliasDescription()
                 );
-                return new EntityAliasResult<>(originalEntity, null);
+                return originalEntity;
             }
 
             final Optional<T> aliasEntityOpt = retrieveAliasEntity(existingEntity);
@@ -142,16 +141,15 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
                         "The alias referenced in entity {} does not exist, therefore cannot break reference.",
                         existingEntity.getAliasDescription()
                 );
-                return new EntityAliasResult<>(originalEntity, null);
+                return originalEntity;
             }
 
             final T aliasEntity = aliasEntityOpt.get();
             aliasEntity.setAliasId(null);
             aliasEntity.setAliasZid(null);
 
-            final T updatedAliasEntity;
             try {
-                updatedAliasEntity = updateEntity(aliasEntity, aliasEntity.getZoneId());
+                updateEntity(aliasEntity, aliasEntity.getZoneId());
             } catch (final DataAccessException e) {
                 throw new EntityAliasFailedException(
                         String.format(
@@ -162,12 +160,12 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
             }
 
             // no change required in the original entity since its aliasId and aliasZid were already set to null
-            return new EntityAliasResult<>(originalEntity, updatedAliasEntity);
+            return originalEntity;
         }
 
         if (!hasText(originalEntity.getAliasZid())) {
             // no alias handling is necessary
-            return new EntityAliasResult<>(originalEntity, null);
+            return originalEntity;
         }
 
         final T aliasEntity = buildAliasEntity(originalEntity);
@@ -184,8 +182,8 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         // update the existing alias entity
         if (existingAliasEntity != null) {
             setId(aliasEntity, existingAliasEntity.getId());
-            final T updatedAliasEntity = updateEntity(aliasEntity, originalEntity.getAliasZid());
-            return new EntityAliasResult<>(originalEntity, updatedAliasEntity);
+            updateEntity(aliasEntity, originalEntity.getAliasZid());
+            return originalEntity;
         }
 
         // check if IdZ referenced in 'aliasZid' exists
@@ -204,8 +202,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
 
         // update alias ID in original entity
         originalEntity.setAliasId(persistedAliasEntity.getId());
-        final T updatedOriginalEntity = updateEntity(originalEntity, originalEntity.getZoneId());
-        return new EntityAliasResult<>(updatedOriginalEntity, persistedAliasEntity);
+        return updateEntity(originalEntity, originalEntity.getZoneId());
     }
 
     private T buildAliasEntity(final T originalEntity) {
@@ -251,11 +248,5 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         final boolean entity2ReferencesEntity1 = Objects.equals(entity2.getAliasId(), entity1.getId()) &&
                 Objects.equals(entity2.getAliasZid(), entity1.getZoneId());
         return entity1ReferencesEntity2 && entity2ReferencesEntity1;
-    }
-
-    public record EntityAliasResult<T extends EntityWithAlias>(
-            @NonNull T originalEntity,
-            @Nullable T aliasEntity
-    ) {
     }
 }
