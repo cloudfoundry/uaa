@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 /**
  * Returns Log instance that replaces \n, \r, \t with a | to prevent log forging.
  */
+@SuppressWarnings({"javasecurity:S5145", "javasecurity:S2629"}) // sanitize log messages
 public class SanitizedLogFactory {
 
     public static SanitizedLog getLog(Class<?> clazz) {
