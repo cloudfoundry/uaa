@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -16,12 +17,16 @@ public class EncryptionKeyService {
     private final List<EncryptionKey> encryptionKeys;
 
     public EncryptionKeyService(
-            final @Value("${encryption.active_key_label}") String activeKeyLabel,
-            final @Value("#{@config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
+            final @Value("${encryption.active_key_label:none}") String activeKeyLabel,
+            final @Value("#{@config['encryption']==null ? null : @config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
         if (UaaStringUtils.isNullOrEmpty(activeKeyLabel)) {
             throw new NoActiveEncryptionKeyProvided(
               "UAA cannot be started without encryption key value uaa.encryption.active_key_label"
             );
+        } else if ("none".equals(activeKeyLabel)) {
+            activeKey = null;
+            this.encryptionKeys = Collections.emptyList();
+            return;
         }
 
         List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream()
