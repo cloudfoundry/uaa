@@ -413,8 +413,7 @@ class ScimUserEndpointsMockMvcTests {
 
         // the response should not contain JSON fields for the alias properties
         final String responseBodyAsString = response.getContentAsString();
-        Assertions.assertThat(responseBodyAsString).isNotBlank();
-        Assertions.assertThat(responseBodyAsString).doesNotContain("alias");
+        Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
 
         // both alias properties should be empty
         final ScimUser createdUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
@@ -447,8 +446,7 @@ class ScimUserEndpointsMockMvcTests {
 
         // the response should not contain JSON fields for the alias properties
         final String responseBodyAsString = updateResponse.getContentAsString();
-        Assertions.assertThat(responseBodyAsString).isNotBlank();
-        Assertions.assertThat(responseBodyAsString).doesNotContain("alias");
+        Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
 
         // both alias properties should be empty
         final ScimUser updatedUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
@@ -481,8 +479,7 @@ class ScimUserEndpointsMockMvcTests {
 
         // the response should not contain JSON fields for the alias properties
         final String responseBodyAsString = updateResponse.getContentAsString();
-        Assertions.assertThat(responseBodyAsString).isNotBlank();
-        Assertions.assertThat(responseBodyAsString).doesNotContain("alias");
+        Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
 
         // both alias properties should be empty
         final ScimUser updatedUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
