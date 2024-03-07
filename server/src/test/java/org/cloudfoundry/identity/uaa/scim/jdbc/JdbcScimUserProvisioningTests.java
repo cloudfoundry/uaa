@@ -235,7 +235,7 @@ class JdbcScimUserProvisioningTests {
     }
 
     @Test
-    void retrieveByScimFilter_OnlyActive() {
+    void retrieveByScimFilterOnlyActive() {
         final String originActive = randomString();
         addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originActive, true);
 
@@ -253,9 +253,8 @@ class JdbcScimUserProvisioningTests {
         final ScimUser created2 = jdbcScimUserProvisioning.createUser(user2, "j7hyqpassX", currentIdentityZoneId);
 
         final Function<String, List<String>> retrieveByScimFilter = (scimFilter) -> {
-            final List<ScimUser> result = jdbcScimUserProvisioning.retrieveByScimFilter(
+            final List<ScimUser> result = jdbcScimUserProvisioning.retrieveByScimFilterOnlyActive(
                     scimFilter,
-                    false,
                     "userName",
                     true,
                     currentIdentityZoneId
@@ -303,9 +302,8 @@ class JdbcScimUserProvisioningTests {
         final ScimUser created2 = jdbcScimUserProvisioning.createUser(user2, "j7hyqpassX", currentIdentityZoneId);
 
         final Function<String, List<String>> retrieveByScimFilter = (scimFilter) -> {
-            final List<ScimUser> result = jdbcScimUserProvisioning.retrieveByScimFilter(
+            final List<ScimUser> result = jdbcScimUserProvisioning.query(
                     scimFilter,
-                    true,
                     "userName",
                     true,
                     currentIdentityZoneId

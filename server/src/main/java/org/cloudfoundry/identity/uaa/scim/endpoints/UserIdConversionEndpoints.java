@@ -91,13 +91,17 @@ public class UserIdConversionEndpoints implements InitializingBean {
         checkFilter(filter);
 
         // get all users for the given filter and the current page
-        final List<ScimUser> filteredUsers = scimUserProvisioning.retrieveByScimFilter(
-                filter,
-                includeInactive,
-                FIELD_USERNAME,
-                sortOrder.equalsIgnoreCase("ascending"),
-                identityZoneManager.getCurrentIdentityZoneId()
-        );
+        final boolean ascending = sortOrder.equalsIgnoreCase("ascending");
+        final List<ScimUser> filteredUsers;
+        if (includeInactive) {
+            filteredUsers = scimUserProvisioning.query(
+                    filter, FIELD_USERNAME, ascending, identityZoneManager.getCurrentIdentityZoneId()
+            );
+        } else {
+            filteredUsers = scimUserProvisioning.retrieveByScimFilterOnlyActive(
+                    filter, FIELD_USERNAME, ascending, identityZoneManager.getCurrentIdentityZoneId()
+            );
+        }
         final List<ScimUser> usersCurrentPage = UaaPagingUtils.subList(filteredUsers, startIndex, count);
 
         // map to result structure

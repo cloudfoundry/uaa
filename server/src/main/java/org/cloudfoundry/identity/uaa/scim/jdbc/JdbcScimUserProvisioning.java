@@ -176,23 +176,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return jdbcTemplate.query(USER_BY_USERNAME_AND_ZONE_QUERY , mapper, username, zoneId);
     }
 
-    /**
-     * This method should behave similar to {@link JdbcScimUserProvisioning#query(String, String, boolean, String)},
-     * with the filtering for active IdPs (if required) being the only difference.
-     */
     @Override
-    public List<ScimUser> retrieveByScimFilter(
+    public List<ScimUser> retrieveByScimFilterOnlyActive(
             final String filter,
-            final boolean includeInactive,
             final String sortBy,
             final boolean ascending,
             final String zoneId
     ) {
-        if (includeInactive) {
-            // no filtering for active IdPs necessary
-            return query(filter, sortBy, ascending, zoneId);
-        }
-
         final SimpleSearchQueryConverter queryConverter = new SimpleSearchQueryConverter();
         validateOrderBy(queryConverter.map(sortBy));
 

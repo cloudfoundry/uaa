@@ -309,8 +309,12 @@ public class UserIdConversionEndpointsTests {
             final boolean includeInactive,
             final String zoneId
     ) {
-        when(scimUserProvisioning.retrieveByScimFilter(filter, includeInactive, "userName", true, zoneId))
-                .thenReturn(allScimUsers);
+        if (includeInactive) {
+            when(scimUserProvisioning.query(filter, "userName", true, zoneId)).thenReturn(allScimUsers);
+        } else {
+            when(scimUserProvisioning.retrieveByScimFilterOnlyActive(filter, "userName", true, zoneId))
+                    .thenReturn(allScimUsers);
+        }
     }
 
     private void assertEndpointReturnsCorrectResult(

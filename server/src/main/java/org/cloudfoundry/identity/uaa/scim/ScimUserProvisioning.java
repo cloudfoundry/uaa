@@ -29,9 +29,11 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
 
     List<ScimUser> retrieveByUsernameAndZone(String username, String zoneId);
 
-    List<ScimUser> retrieveByScimFilter(
+    /**
+     * Retrieve all users that satisfy the given SCIM filter and stem from active IdPs.
+     */
+    List<ScimUser> retrieveByScimFilterOnlyActive(
             String filter,
-            boolean includeInactive,
             String sortBy,
             boolean ascending,
             String zoneId
