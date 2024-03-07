@@ -8,8 +8,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class SanitizedLogFactory {
 
-    private SanitizedLogFactory() {
-    }
+    private SanitizedLogFactory() { }
 
     public static SanitizedLog getLog(Class<?> clazz) {
         return new SanitizedLog(LogManager.getLogger(clazz));
@@ -32,9 +31,21 @@ public class SanitizedLogFactory {
             }
         }
 
+        public void info(String message, Throwable t) {
+            if (fallback.isInfoEnabled()) {
+                fallback.info(LogSanitizerUtil.sanitize(message), t);
+            }
+        }
+
         public void warn(String message) {
             if (fallback.isWarnEnabled()) {
                 fallback.warn(LogSanitizerUtil.sanitize(message));
+            }
+        }
+
+        public void warn(String message, Throwable t) {
+            if (fallback.isWarnEnabled()) {
+                fallback.warn(LogSanitizerUtil.sanitize(message), t);
             }
         }
 
@@ -47,6 +58,30 @@ public class SanitizedLogFactory {
         public void debug(String message, Throwable t) {
             if (fallback.isDebugEnabled()) {
                 fallback.debug(LogSanitizerUtil.sanitize(message), t);
+            }
+        }
+
+        public void error(String message) {
+            if (fallback.isErrorEnabled()) {
+                fallback.error(LogSanitizerUtil.sanitize(message));
+            }
+        }
+
+        public void error(String message, Throwable t) {
+            if (fallback.isErrorEnabled()) {
+                fallback.error(LogSanitizerUtil.sanitize(message), t);
+            }
+        }
+
+        public void trace(String message) {
+            if (fallback.isTraceEnabled()) {
+                fallback.trace(LogSanitizerUtil.sanitize(message));
+            }
+        }
+
+        public void trace(String message, Throwable t) {
+            if (fallback.isTraceEnabled()) {
+                fallback.trace(LogSanitizerUtil.sanitize(message), t);
             }
         }
     }
