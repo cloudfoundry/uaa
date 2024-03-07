@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -60,10 +61,8 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     }
                 }
             }
-            if (!StringUtils.isEmpty(config.getIssuer())) {
-                if (tokenPolicy == null || StringUtils.isEmpty(tokenPolicy.getActiveKeyId())) {
-                    throw new InvalidIdentityZoneConfigurationException("You cannot set issuer value unless you have set your own signing key for this identity zone.");
-                }
+            if (UaaStringUtils.isNotEmpty(config.getIssuer()) && ((tokenPolicy == null || UaaStringUtils.isNullOrEmpty(tokenPolicy.getActiveKeyId())))) {
+                throw new InvalidIdentityZoneConfigurationException("You cannot set issuer value unless you have set your own signing key for this identity zone.");
             }
 
             validateRegexStrings(config.getCorsPolicy().getXhrConfiguration().getAllowedUris(), "config.corsPolicy.xhrConfiguration.allowedUris");
@@ -89,7 +88,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
         if (uris != null) {
             for (String uri : uris) {
                 try {
-                    Pattern.compile(uri);
+                    Pattern.compile(UaaStringUtils.getCleanedUserControlString(uri));
                 } catch (PatternSyntaxException patternSyntaxException) {
                     throw new InvalidIdentityZoneConfigurationException(String.format("Invalid value in %s: '%s'.", fieldName, uri), patternSyntaxException);
                 }

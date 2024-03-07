@@ -31,9 +31,6 @@ import java.util.Map;
 import static java.util.Collections.EMPTY_MAP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 
 @RunWith(Parameterized.class)
 public class GeneralIdentityZoneConfigurationValidatorTests {
@@ -308,6 +305,16 @@ public class GeneralIdentityZoneConfigurationValidatorTests {
     public void validate_no_keys() throws Exception {
         samlConfig.setKeys(EMPTY_MAP);
         assertNull(samlConfig.getActiveKeyId());
+        validator.validate(zone, mode);
+    }
+
+    @Test
+    public void validate_isser_no_keys() throws Exception {
+        samlConfig.setKeys(EMPTY_MAP);
+        zone.getConfig().setIssuer("http://localhost/new");
+        assertNull(samlConfig.getActiveKeyId());
+        expection.expect(InvalidIdentityZoneConfigurationException.class);
+        expection.expectMessage("You cannot set issuer value unless you have set your own signing key for this identity zone.");
         validator.validate(zone, mode);
     }
 
