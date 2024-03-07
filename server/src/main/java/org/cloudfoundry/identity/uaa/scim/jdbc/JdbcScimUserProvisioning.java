@@ -161,6 +161,16 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @Override
+    public String retrievePasswordForUser(final String id, final String zoneId) {
+        return jdbcTemplate.queryForObject(
+                READ_PASSWORD_SQL,
+                new Object[]{id, zoneId},
+                new int[]{VARCHAR, VARCHAR},
+                String.class
+        );
+    }
+
+    @Override
     public List<ScimUser> retrieveByEmailAndZone(String email, String origin, String zoneId) {
         return jdbcTemplate.query(USER_BY_EMAIL_AND_ORIGIN_AND_ZONE_QUERY, mapper, email, origin, zoneId);
     }
