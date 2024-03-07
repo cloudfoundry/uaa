@@ -8,8 +8,7 @@ import org.apache.logging.log4j.Logger;
  */
 public class SanitizedLogFactory {
 
-    private SanitizedLogFactory() {
-    }
+    private SanitizedLogFactory() { }
 
     public static SanitizedLog getLog(Class<?> clazz) {
         return new SanitizedLog(LogManager.getLogger(clazz));
