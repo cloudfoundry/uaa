@@ -1,16 +1,18 @@
 package org.cloudfoundry.identity.uaa.logging;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Returns Log instance that replaces \n, \r, \t with a | to prevent log forging.
  */
-@SuppressWarnings({"javasecurity:S5145", "java:S2629"}) // sanitize log messages
 public class SanitizedLogFactory {
 
+    private SanitizedLogFactory() {
+    }
+
     public static SanitizedLog getLog(Class<?> clazz) {
-        return new SanitizedLog(LoggerFactory.getLogger(clazz));
+        return new SanitizedLog(LogManager.getLogger(clazz));
     }
 
     public static class SanitizedLog {
@@ -25,47 +27,63 @@ public class SanitizedLogFactory {
         }
 
         public void info(String message) {
-            fallback.info(sanitizeLog(message));
+            if (fallback.isInfoEnabled()) {
+                fallback.info(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void info(String message, Throwable t) {
-            fallback.info(sanitizeLog(message), t);
+            if (fallback.isInfoEnabled()) {
+                fallback.info(LogSanitizerUtil.sanitize(message), t);
+            }
         }
 
         public void warn(String message) {
-            fallback.warn(sanitizeLog(message));
+            if (fallback.isWarnEnabled()) {
+                fallback.warn(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void warn(String message, Throwable t) {
-            fallback.warn(sanitizeLog(message), t);
+            if (fallback.isWarnEnabled()) {
+                fallback.warn(LogSanitizerUtil.sanitize(message), t);
+            }
         }
 
         public void debug(String message) {
-            fallback.debug(sanitizeLog(message));
+            if (fallback.isDebugEnabled()) {
+                fallback.debug(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void debug(String message, Throwable t) {
-            fallback.debug(sanitizeLog(message), t);
+            if (fallback.isDebugEnabled()) {
+                fallback.debug(LogSanitizerUtil.sanitize(message), t);
+            }
         }
 
         public void error(String message) {
-            fallback.error(sanitizeLog(message));
+            if (fallback.isErrorEnabled()) {
+                fallback.error(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void error(String message, Throwable t) {
-            fallback.error(sanitizeLog(message), t);
+            if (fallback.isErrorEnabled()) {
+                fallback.error(LogSanitizerUtil.sanitize(message), t);
+            }
         }
 
         public void trace(String message) {
-            fallback.trace(sanitizeLog(message));
+            if (fallback.isTraceEnabled()) {
+                fallback.trace(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void trace(String message, Throwable t) {
-            fallback.trace(sanitizeLog(message), t);
-        }
-
-        protected static String sanitizeLog(String message) {
-            return LogSanitizerUtil.sanitize(message);
+            if (fallback.isTraceEnabled()) {
+                fallback.trace(LogSanitizerUtil.sanitize(message), t);
+            }
         }
     }
 }

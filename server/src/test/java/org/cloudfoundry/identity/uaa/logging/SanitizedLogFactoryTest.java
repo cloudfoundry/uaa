@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.logging;
 
-import org.slf4j.Logger;
-import org.junit.Assert;
+import org.apache.logging.log4j.Logger;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -24,31 +23,13 @@ public class SanitizedLogFactoryTest {
     @Before
     public void setUp() {
         mockLog = mock(Logger.class);
-        when(mockLog.isDebugEnabled()).thenReturn(true);
         log = new SanitizedLogFactory.SanitizedLog(mockLog);
         ex = new Exception(RandomStringUtils.randomAlphanumeric(8));
     }
 
     @Test
-    public void testSanitizeDebug() {
-        Assert.assertTrue(log.isDebugEnabled());
-        log.debug(dirtyMessage);
-        verify(mockLog).debug(sanitizedMsg);
-        log.debug(dirtyMessage, ex);
-        verify(mockLog).debug(sanitizedMsg, ex);
-    }
-
-    @Test
-    public void testSanitizeDebugCleanMessage() {
-        Assert.assertTrue(log.isDebugEnabled());
-        log.debug(cleanMessage);
-        verify(mockLog).debug(cleanMessage);
-        log.debug(cleanMessage, ex);
-        verify(mockLog).debug(cleanMessage, ex);
-    }
-
-    @Test
     public void testSanitizeInfo() {
+        when(mockLog.isInfoEnabled()).thenReturn(true);
         log.info(dirtyMessage);
         verify(mockLog).info(sanitizedMsg);
         log.info(dirtyMessage, ex);
@@ -57,6 +38,7 @@ public class SanitizedLogFactoryTest {
 
     @Test
     public void testSanitizeInfoCleanMessage() {
+        when(mockLog.isInfoEnabled()).thenReturn(true);
         log.info(cleanMessage);
         verify(mockLog).info(cleanMessage);
         log.info(cleanMessage, ex);
@@ -64,7 +46,26 @@ public class SanitizedLogFactoryTest {
     }
 
     @Test
+    public void testSanitizeDebug() {
+        when(mockLog.isDebugEnabled()).thenReturn(true);
+        log.debug(dirtyMessage);
+        verify(mockLog).debug(sanitizedMsg);
+        log.debug(dirtyMessage, ex);
+        verify(mockLog).debug(sanitizedMsg, ex);
+    }
+
+    @Test
+    public void testSanitizeDebugCleanMessage() {
+        when(mockLog.isDebugEnabled()).thenReturn(true);
+        log.debug(cleanMessage);
+        verify(mockLog).debug(cleanMessage);
+        log.debug(cleanMessage, ex);
+        verify(mockLog).debug(cleanMessage, ex);
+    }
+
+    @Test
     public void testSanitizeWarn() {
+        when(mockLog.isWarnEnabled()).thenReturn(true);
         log.warn(dirtyMessage);
         verify(mockLog).warn(sanitizedMsg);
         log.warn(dirtyMessage, ex);
@@ -73,6 +74,7 @@ public class SanitizedLogFactoryTest {
 
     @Test
     public void testSanitizeWarnCleanMessage() {
+        when(mockLog.isWarnEnabled()).thenReturn(true);
         log.warn(cleanMessage);
         verify(mockLog).warn(cleanMessage);
         log.warn(cleanMessage, ex);
@@ -81,6 +83,7 @@ public class SanitizedLogFactoryTest {
 
     @Test
     public void testSanitizeError() {
+        when(mockLog.isErrorEnabled()).thenReturn(true);
         log.error(dirtyMessage);
         verify(mockLog).error(sanitizedMsg);
         log.error(dirtyMessage, ex);
@@ -89,6 +92,7 @@ public class SanitizedLogFactoryTest {
 
     @Test
     public void testSanitizeErrorCleanMessage() {
+        when(mockLog.isErrorEnabled()).thenReturn(true);
         log.error(cleanMessage);
         verify(mockLog).error(cleanMessage);
         log.error(cleanMessage, ex);
@@ -97,6 +101,7 @@ public class SanitizedLogFactoryTest {
 
     @Test
     public void testSanitizeTrace() {
+        when(mockLog.isTraceEnabled()).thenReturn(true);
         log.trace(dirtyMessage);
         verify(mockLog).trace(sanitizedMsg);
         log.trace(dirtyMessage, ex);
@@ -105,17 +110,10 @@ public class SanitizedLogFactoryTest {
 
     @Test
     public void testSanitizeTraceCleanMessage() {
+        when(mockLog.isTraceEnabled()).thenReturn(true);
         log.trace(cleanMessage);
         verify(mockLog).trace(cleanMessage);
         log.trace(cleanMessage, ex);
         verify(mockLog).trace(cleanMessage, ex);
-    }
-
-    @Test
-    public void testSanitizeLog() {
-        String logMsg = SanitizedLogFactory.SanitizedLog.sanitizeLog(dirtyMessage);
-        Assert.assertEquals(sanitizedMsg, logMsg);
-        logMsg = SanitizedLogFactory.SanitizedLog.sanitizeLog(cleanMessage);
-        Assert.assertEquals(cleanMessage, logMsg);
     }
 }
