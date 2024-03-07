@@ -6,9 +6,12 @@ public class LogSanitizerUtil {
 
     public static final String SANITIZED_FLAG = "[SANITIZED]";
 
+    private LogSanitizerUtil() {
+    }
+
     @Nullable
     public static String sanitize(String original) {
-        if (original == null) return original;
+        if (original == null) return null;
 
         String cleaned = original.replace("\r","|")
                 .replace("\n","|")

@@ -1,15 +1,18 @@
 package org.cloudfoundry.identity.uaa.logging;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  * Returns Log instance that replaces \n, \r, \t with a | to prevent log forging.
  */
 public class SanitizedLogFactory {
 
+    private SanitizedLogFactory() {
+    }
+
     public static SanitizedLog getLog(Class<?> clazz) {
-        return new SanitizedLog(LoggerFactory.getLogger(clazz));
+        return new SanitizedLog(LogManager.getLogger(clazz));
     }
 
     public static class SanitizedLog {
@@ -24,19 +27,27 @@ public class SanitizedLogFactory {
         }
 
         public void info(String message) {
-            fallback.info(LogSanitizerUtil.sanitize(message));
+            if (fallback.isInfoEnabled()) {
+                fallback.info(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void warn(String message) {
-            fallback.warn(LogSanitizerUtil.sanitize(message));
+            if (fallback.isWarnEnabled()) {
+                fallback.warn(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void debug(String message) {
-            fallback.debug(LogSanitizerUtil.sanitize(message));
+            if (fallback.isDebugEnabled()) {
+                fallback.debug(LogSanitizerUtil.sanitize(message));
+            }
         }
 
         public void debug(String message, Throwable t) {
-            fallback.debug(LogSanitizerUtil.sanitize(message), t);
+            if (fallback.isDebugEnabled()) {
+                fallback.debug(LogSanitizerUtil.sanitize(message), t);
+            }
         }
     }
 }
