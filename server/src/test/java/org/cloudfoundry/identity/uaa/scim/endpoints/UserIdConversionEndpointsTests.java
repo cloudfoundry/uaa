@@ -247,18 +247,20 @@ class UserIdConversionEndpointsTests {
         final boolean lastPageIncomplete = expectedUsers.size() % resultsPerPage != 0;
         final int expectedPages = expectedUsers.size() / resultsPerPage + (lastPageIncomplete ? 1 : 0);
 
-        final Function<Integer, ResponseEntity<Object>> fetchNextPage = (startIndex) -> endpoints.findUsers(
-                filter, "ascending", startIndex, resultsPerPage, includeInactive
-        );
+        final Function<Integer, SearchResults<Map<String, Object>>> fetchNextPage = (startIndex) -> {
+            final ResponseEntity<Object> response = endpoints.findUsers(
+                    filter, "ascending", startIndex, resultsPerPage, includeInactive
+            );
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isNotNull().isInstanceOf(SearchResults.class);
+            return (SearchResults<Map<String, Object>>) response.getBody();
+        };
 
         // collect all users in several pages
         final List<Map<String, Object>> observedUsers = new ArrayList<>();
         int currentStartIndex = 1;
         for (int i = 0; i < expectedPages; i++) {
-            final ResponseEntity<Object> response = fetchNextPage.apply(currentStartIndex);
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(response.getBody()).isNotNull().isInstanceOf(SearchResults.class);
-            final SearchResults<Map<String, Object>> responseBody = (SearchResults<Map<String, Object>>) response.getBody();
+            final SearchResults<Map<String, Object>> responseBody = fetchNextPage.apply(currentStartIndex);
             assertThat(responseBody.getTotalResults()).isEqualTo(expectedUsers.size());
 
             final int expectedNumberOfResultsInPage;
@@ -276,10 +278,7 @@ class UserIdConversionEndpointsTests {
         }
 
         // check next page -> should be empty
-        final ResponseEntity<Object> response = fetchNextPage.apply(currentStartIndex);
-        assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody()).isNotNull().isInstanceOf(SearchResults.class);
-        final SearchResults<Map<String, Object>> responseBody = (SearchResults<Map<String, Object>>) response.getBody();
+        final SearchResults<Map<String, Object>> responseBody = fetchNextPage.apply(currentStartIndex);;
         assertThat(responseBody.getTotalResults()).isEqualTo(expectedUsers.size());
         assertThat(responseBody.getResources()).isNotNull().isEmpty();
 
