@@ -18,6 +18,10 @@ import org.cloudfoundry.identity.uaa.oauth.beans.ApplicationContextProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetchingException;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
@@ -58,6 +62,7 @@ class JwtClientAuthenticationTest {
 
   @BeforeEach
   void setup() throws MalformedURLException, JOSEException {
+    IdentityZoneHolder.set(IdentityZone.getUaa());
     jwtClientAuthentication = new JwtClientAuthentication(keyInfoService);
     config = new OIDCIdentityProviderDefinition();
     config.setTokenUrl(new URL("http://localhost:8080/uaa/oauth/token"));
@@ -65,6 +70,11 @@ class JwtClientAuthenticationTest {
     config.setJwtClientAuthentication(true);
     mockKeyInfoService(null, JwtHelperX5tTest.CERTIFICATE_1);
     mockApplicationContext(Map.of());
+  }
+
+  @AfterEach
+  void cleanup() {
+    IdentityZoneHolder.clear();
   }
 
   @Test
@@ -169,9 +179,10 @@ class JwtClientAuthenticationTest {
 
   @Test
   void testGetClientAssertionUsingCustomSingingKeyFromEnivoronment() throws ParseException, JOSEException {
-    // Given: register 2 keys, default KEY_ID, customer one key-id-321
+    // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
+    // reference to customer one key-id-321 and set default
     customClaims.put("kid", "${jwt.client.kid:" + KEY_ID + "}");
     config.setJwtClientAuthentication(customClaims);
     MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -191,16 +202,15 @@ class JwtClientAuthenticationTest {
 
   @Test
   void testGetClientAssertionUsingCustomSingingKeyFromEnivoronmentNoDefault() throws ParseException, JOSEException {
-    // Given: register 2 keys, default KEY_ID, customer one key-id-321
+    // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
+    // reference to customer one key-id-321
     customClaims.put("kid", "${jwt.client.kid}");
     config.setJwtClientAuthentication(customClaims);
-    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-    Map<String, Object> keyMap = Map.of("jwt.client.kid", "key-id-321");
-    mockApplicationContext(keyMap);
+    mockApplicationContext(Map.of("jwt.client.kid", "key-id-321"));
     // When
-    params = jwtClientAuthentication.getClientAuthenticationParameters(params, config);
+    MultiValueMap<String, String> params = jwtClientAuthentication.getClientAuthenticationParameters(new LinkedMultiValueMap<>(), config);
     // Then
     assertTrue(params.containsKey("client_assertion"));
     assertTrue(params.containsKey("client_assertion_type"));
@@ -213,15 +223,16 @@ class JwtClientAuthenticationTest {
 
   @Test
   void testGetClientAssertionUsingCustomSingingKeyFromEnivoronmentUseDefault() throws ParseException, JOSEException {
-    // Given: register 2 keys, default KEY_ID, customer one key-id-321
+    // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
+    // reference in jwtClientAuthentication to customer key, but this does not exist, then use default KEY_ID
     customClaims.put("kid", "${jwt.client.kid:" + KEY_ID + "}");
     config.setJwtClientAuthentication(customClaims);
-    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    // empty application context
     mockApplicationContext(Map.of());
     // When
-    params = jwtClientAuthentication.getClientAuthenticationParameters(params, config);
+    MultiValueMap<String, String> params = jwtClientAuthentication.getClientAuthenticationParameters(new LinkedMultiValueMap<>(), config);
     // Then
     assertTrue(params.containsKey("client_assertion"));
     assertTrue(params.containsKey("client_assertion_type"));
@@ -230,6 +241,26 @@ class JwtClientAuthenticationTest {
     JWSHeader header = getJwtHeader(clientAssertion);
     assertEquals(KEY_ID, header.getKeyID());
     assertNull(header.getJWKURL());
+  }
+
+  @Test
+  void testGetClientAssertionUsingCustomSingingKeyFromEnivoronmentButNotInDefaultZone() throws JOSEException {
+    // Given: register 2 keys
+    mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
+    HashMap customClaims = new HashMap<>();
+    // reference in jwtClientAuthentication to custom key, but call it not from UAA zone
+    customClaims.put("kid", "${jwt.client.kid}");
+    config.setJwtClientAuthentication(customClaims);
+    mockApplicationContext(Map.of("jwt.client.kid", "key-id-321"));
+    IdentityZone currentZone = IdentityZone.getUaa();
+    // modify to custom zone
+    currentZone.setId(new AlphanumericRandomValueStringGenerator().generate());
+    currentZone.setSubdomain(new AlphanumericRandomValueStringGenerator().generate());
+    IdentityZoneHolder.set(currentZone);
+    // Expect
+    Exception exception = assertThrows(BadCredentialsException.class, () ->
+        jwtClientAuthentication.getClientAuthenticationParameters(new LinkedMultiValueMap<>(), config));
+    assertEquals("Missing requested signing key", exception.getMessage());
   }
 
   @Test
@@ -255,8 +286,9 @@ class JwtClientAuthenticationTest {
 
   @Test
   void testGetClientAssertionUsingCustomSingingPrivateKeyFromEnivoronment() throws ParseException, JOSEException {
-    // Given: register 2 keys, default KEY_ID, customer one key-id-321
+    // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
+    // add reference in jwtClientAuthentication to customer one key-id-321
     HashMap customClaims = new HashMap<>();
     customClaims.put("kid", "${jwt.client.kid}");
     customClaims.put("key", "${jwt.client.key}");
@@ -280,7 +312,7 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientIdOfClientAssertion() throws ParseException {
+  void testGetClientIdOfClientAssertion() {
     // When
     String clientAssertion = (String) jwtClientAuthentication.getClientAssertion(config);
     // Then
@@ -361,7 +393,7 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientIdOfInvalidClientAssertion() throws ParseException {
+  void testGetClientIdOfInvalidClientAssertion() {
     // Then
     assertThrows(BadCredentialsException.class, () -> jwtClientAuthentication.getClientId(INVALID_CLIENT_JWT));
     assertThrows(BadCredentialsException.class, () -> jwtClientAuthentication.getClientId("eyXXX"));

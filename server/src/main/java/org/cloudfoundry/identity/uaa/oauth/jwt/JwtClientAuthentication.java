@@ -29,7 +29,8 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetchingException;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.springframework.core.env.Environment;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.util.MultiValueMap;
 
@@ -85,9 +86,7 @@ public class JwtClientAuthentication {
     claims.setJti(UUID.randomUUID().toString().replace("-", ""));
     claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
     claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
-    KeyInfo localKeyInfo = loadKeyInfo(jwtClientConfiguration, kid);
-    KeyInfo signingKeyInfo = localKeyInfo != null ? localKeyInfo :
-        Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
+    KeyInfo signingKeyInfo = loadKeyInfo(keyInfoService, jwtClientConfiguration, kid);
     return signingKeyInfo.verifierCertificate().isPresent() ?
         JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
         JwtHelper.encode(claims.getClaimMap(), signingKeyInfo).getEncoded();
@@ -169,19 +168,23 @@ public class JwtClientAuthentication {
     }
   }
 
-  private static KeyInfo loadKeyInfo(HashMap<String, String> jwtClientConfiguration, String kid) {
+  private static KeyInfo loadKeyInfo(KeyInfoService keyInfoService, HashMap<String, String> jwtClientConfiguration, String kid) {
+    KeyInfo keyInfo;
     String signingKey = readJwtClientOption(jwtClientConfiguration.get("key"), null);
     if (signingKey == null) {
-      return null;
+      keyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
+    } else {
+      String signingAlg = readJwtClientOption(jwtClientConfiguration.get("alg"), JWSAlgorithm.RS256.getName());
+      String signingCert = readJwtClientOption(jwtClientConfiguration.get("cert"), null);
+      keyInfo = KeyInfoBuilder.build(kid, signingKey, UaaStringUtils.DEFAULT_UAA_URL, signingAlg, signingCert);
     }
-    String signingAlg = readJwtClientOption(jwtClientConfiguration.get("alg"), "RS256");
-    String signingCert = readJwtClientOption(jwtClientConfiguration.get("cert"), null);
-    return KeyInfoBuilder.build(kid, signingKey, UaaStringUtils.DEFAULT_UAA_URL, signingAlg, signingCert);
+    return keyInfo;
   }
 
   private static String readJwtClientOption(String jwtClientOption, String defaultOption) {
     String value;
     if (isNotEmpty(jwtClientOption)) {
+      // check if dynamic value means, a reference to another section in uaa yaml is defined
       Matcher matcher = getDynamicValueMatcher(jwtClientOption);
       if (matcher.find()) {
         value = Optional.ofNullable(getDynamicValue(matcher)).orElse(getDefaultValue(matcher));
@@ -198,9 +201,14 @@ public class JwtClientAuthentication {
     return DYNAMIC_VALUE_PARAMETER_PATTERN.matcher(value);
   }
 
+  @SuppressWarnings("java:S1874")
   private static String getDynamicValue(Matcher m) {
-    Environment appEnvironment = ApplicationContextProvider.getApplicationContext().getEnvironment();
-    return appEnvironment.getProperty(m.group("name"));
+    /* return a reference from application environment only if in default zone */
+    if (!IdentityZoneHolder.isUaa()) {
+      return null;
+    }
+    ApplicationContext applicationContext = ApplicationContextProvider.getApplicationContext();
+    return applicationContext != null ? applicationContext.getEnvironment().getProperty(m.group("name")) : null;
   }
 
   private static String getDefaultValue(Matcher m) {
