@@ -30,6 +30,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -120,7 +121,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
     @Test
     public void jwtClientAuthenticationTrue() {
         Map<String, Map> definitions = new HashMap<>();
-        idpDefinitionMap.put("jwtclientAuthentication", new Boolean(true));
+        idpDefinitionMap.put("jwtclientAuthentication", Boolean.valueOf (true));
         idpDefinitionMap.put("type", OriginKeys.OIDC10);
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
@@ -143,7 +144,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
     @Test
     public void jwtClientAuthenticationInvalidType() {
         Map<String, Map> definitions = new HashMap<>();
-        idpDefinitionMap.put("jwtclientAuthentication", new Integer(1));
+        idpDefinitionMap.put("jwtclientAuthentication", Integer.valueOf(1));
         idpDefinitionMap.put("type", OriginKeys.OIDC10);
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
@@ -165,6 +166,24 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
         assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
         assertEquals("issuer", (((Map<String, String>)((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).get("iss")));
+    }
+
+    @Test
+    public void jwtClientAuthenticationWith2EntriesButNewOneMustWin() {
+        // given: 2 similar entry because of issue #2752
+        idpDefinitionMap.put("jwtclientAuthentication", Map.of("iss", "issuer"));
+        idpDefinitionMap.put("jwtClientAuthentication", Map.of("iss", "trueIssuer"));
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        Map<String, Map> definitions = new HashMap<>();
+        definitions.put("test", idpDefinitionMap);
+        // when: load beans from uaa.yml
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        // then
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
+        assertNotEquals("issuer", (((Map<String, String>)((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).get("iss")));
+        assertEquals("trueIssuer", (((Map<String, String>)((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).get("iss")));
     }
 
     @Test
