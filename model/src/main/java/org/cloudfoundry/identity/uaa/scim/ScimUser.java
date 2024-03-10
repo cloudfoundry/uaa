@@ -23,9 +23,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
+import org.springframework.lang.NonNull;
 import org.springframework.util.Assert;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -33,6 +35,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import lombok.Setter;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
@@ -45,7 +49,7 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
-public class ScimUser extends ScimCore<ScimUser> {
+public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Group {
@@ -208,6 +212,27 @@ public class ScimUser extends ScimCore<ScimUser> {
             this.honorificSuffix = honorificSuffix;
         }
 
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final Name name = (Name) o;
+            return Objects.equals(formatted, name.formatted)
+                    && Objects.equals(familyName, name.familyName)
+                    && Objects.equals(givenName, name.givenName)
+                    && Objects.equals(middleName, name.middleName)
+                    && Objects.equals(honorificPrefix, name.honorificPrefix)
+                    && Objects.equals(honorificSuffix, name.honorificSuffix);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(formatted, familyName, givenName, middleName, honorificPrefix, honorificSuffix);
+        }
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -349,6 +374,12 @@ public class ScimUser extends ScimCore<ScimUser> {
 
     private String zoneId = null;
 
+    @Setter
+    private String aliasZid = null;
+
+    @Setter
+    private String aliasId = null;
+
     private String salt = null;
 
     private Date passwordLastModified = null;
@@ -413,7 +444,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         return groups;
     }
 
-    public void setGroups(Collection<Group> groups) {
+    public void setGroups(@NonNull Collection<Group> groups) {
         this.groups = new LinkedHashSet<>(groups);
     }
 
@@ -443,7 +474,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         this.displayName = displayName;
     }
 
-    String getNickName() {
+    public String getNickName() {
         return nickName;
     }
 
@@ -451,7 +482,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         this.nickName = nickName;
     }
 
-    String getProfileUrl() {
+    public String getProfileUrl() {
         return profileUrl;
     }
 
@@ -475,7 +506,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         this.userType = userType;
     }
 
-    String getPreferredLanguage() {
+    public String getPreferredLanguage() {
         return preferredLanguage;
     }
 
@@ -491,7 +522,7 @@ public class ScimUser extends ScimCore<ScimUser> {
         this.locale = locale;
     }
 
-    String getTimezone() {
+    public String getTimezone() {
         return timezone;
     }
 
@@ -532,12 +563,23 @@ public class ScimUser extends ScimCore<ScimUser> {
         return this;
     }
 
+    @Override
     public String getZoneId() {
         return zoneId;
     }
 
     public void setZoneId(String zoneId) {
         this.zoneId = zoneId;
+    }
+
+    @Override
+    public String getAliasId() {
+        return aliasId;
+    }
+
+    @Override
+    public String getAliasZid() {
+        return aliasZid;
     }
 
     public String getSalt() {
@@ -839,6 +881,9 @@ public class ScimUser extends ScimCore<ScimUser> {
             }
             setPhoneNumbers(current);
         }
+
+        ofNullable(patch.getAliasId()).ifPresent(this::setAliasId);
+        ofNullable(patch.getAliasZid()).ifPresent(this::setAliasZid);
     }
 
 }
