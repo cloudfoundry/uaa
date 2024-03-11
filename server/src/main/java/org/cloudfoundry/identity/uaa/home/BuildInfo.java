@@ -15,7 +15,7 @@ import java.util.Properties;
 public class BuildInfo implements InitializingBean {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    @Value("${uaa.url:http://localhost:8080/uaa}")
+    @Value("${uaa.url:#{T(org.cloudfoundry.identity.uaa.util.UaaStringUtils).DEFAULT_UAA_URL}}")
     private String uaaUrl;
     private String version;
     private String commitId;

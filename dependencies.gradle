@@ -17,7 +17,7 @@ versions.tomcatCargoVersion = "9.0.86"
 versions.guavaVersion = "33.0.0-jre"
 versions.seleniumVersion = "4.18.1"
 versions.braveVersion = "6.0.2"
-versions.jacksonVersion = "2.16.1"
+versions.jacksonVersion = "2.16.2"
 versions.jsonPathVersion = "2.9.0"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
@@ -50,7 +50,7 @@ libraries.braveInstrumentationSpringWebmvc = "io.zipkin.brave:brave-instrumentat
 libraries.braveContextSlf4j = "io.zipkin.brave:brave-context-slf4j:${versions.braveVersion}"
 libraries.commonsIo = "commons-io:commons-io:2.15.1"
 libraries.dumbster = "dumbster:dumbster:1.6"
-libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:6.8.0.202311291450-r"
+libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:6.9.0.202403050737-r"
 libraries.flywayCore = "org.flywaydb:flyway-core"
 libraries.greenmail = "com.icegreen:greenmail:1.6.15"
 libraries.guava = "com.google.guava:guava:${versions.guavaVersion}"
