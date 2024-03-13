@@ -1,10 +1,21 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:security="http://www.springframework.org/schema/security"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
-              http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd">
 
+<b:beans xmlns="http://www.springframework.org/schema/security"
+         xmlns:b="http://www.springframework.org/schema/beans"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd">
+
+    <relying-party-registrations>
+        <relying-party-registration registration-id="one"
+                                    metadata-location="https://dev-73893672.okta.com/app/exkef5al7mopEta1B5d7/sso/saml/metadata"
+                                    single-logout-service-response-location="{baseUrl}/logout/saml2/slo">
+        </relying-party-registration>
+        <relying-party-registration registration-id="example"
+                                    metadata-location="https://dev-73893672.okta.com/app/exkef5al7mopEta1B5d7/sso/saml/metadata"
+                                    single-logout-service-response-location="{baseUrl}/logout/saml2/slo">
+        </relying-party-registration>
+    </relying-party-registrations>
 
 <!--    &lt;!&ndash; Register authentication manager with SAML provider &ndash;&gt;-->
 <!--    <security:authentication-manager id="samlAuthenticationManager">-->
@@ -57,9 +68,9 @@
 <!--        <property name="metadata" ref="metadata"/>-->
 <!--    </bean>-->
 
-    <bean id="samlEntityID" class="java.lang.String">
-        <constructor-arg value="${login.entityID:unit-test-sp}"/>
-    </bean>
+    <b:bean id="samlEntityID" class="java.lang.String">
+        <b:constructor-arg value="${login.entityID:unit-test-sp}" />
+    </b:bean>
 
 <!--    <bean id="samlSPAlias" class="java.lang.String">-->
 <!--        <constructor-arg value="${login.saml.entityIDAlias:${login.entityID:unit-test-sp}}"/>-->
@@ -81,6 +92,8 @@
 <!--        <property name="entityId" ref="samlEntityID"/>-->
 <!--        <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>-->
 <!--    </bean>-->
+
+<b:bean id="aggregateConfiguration" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfiguration" />
 
 <!--    &lt;!&ndash; Filter automatically generates default SP metadata &ndash;&gt;-->
 <!--    <bean id="metadataGeneratorFilter" class="org.springframework.security.saml.metadata.MetadataGeneratorFilter">-->
@@ -316,4 +329,4 @@
 <!--            <constructor-arg value="${login.idpMetadata:null}"/>-->
 <!--        </bean>-->
 <!--    </beans>-->
-</beans>
+</b:beans>
