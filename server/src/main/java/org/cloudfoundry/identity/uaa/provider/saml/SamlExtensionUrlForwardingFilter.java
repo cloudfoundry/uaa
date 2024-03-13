@@ -47,6 +47,9 @@ public class SamlExtensionUrlForwardingFilter extends OncePerRequestFilter {
             return;
         }
         String forwardUrl = urlMapping.get(request.getServletPath());
+        if (forwardUrl == null) {
+            forwardUrl = urlMapping.get(request.getRequestURI());
+        }
         RequestDispatcher dispatcher = request.getRequestDispatcher(forwardUrl);
         dispatcher.forward(request, response);
     }
