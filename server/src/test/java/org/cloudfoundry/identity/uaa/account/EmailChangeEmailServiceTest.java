@@ -304,25 +304,22 @@ class EmailChangeEmailServiceTest {
         codeData.put("client_id", clientId);
         codeData.put("redirect_uri", redirectUri);
         codeData.put("email", "new@example.com");
-        when(mockExpiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
-
-        // set up the e-mail redirect URL for the client
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
         clientDetails.addAdditionalInformation(CHANGE_EMAIL_REDIRECT_URL, "http://fallback.url/redirect");
-        when(mockMultitenantClientServices.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
 
-        // the user with the old e-mail should exist
+        when(mockExpiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", username, "", "");
         user.setPrimaryEmail("user@example.com");
         when(mockScimUserProvisioning.retrieve("user-001", zoneId)).thenReturn(user);
 
+        when(mockMultitenantClientServices.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
+
         Map<String, String> response = emailChangeEmailService.completeVerification("the_secret_code");
 
-        // the user should have been updated with a new primary e-mail address
-        ScimUser updatedUser = new ScimUser("user-001", username, "", "");
-        updatedUser.setPrimaryEmail("new@example.com");
-        verify(mockScimUserProvisioning).update("user-001", updatedUser, zoneId);
+        ScimUser updatedUser = new ScimUser("user-001", "new@example.com", "", "");
+        user.setPrimaryEmail("new@example.com");
 
+        verify(mockScimUserProvisioning).update("user-001", updatedUser, zoneId);
         return response;
     }
 
