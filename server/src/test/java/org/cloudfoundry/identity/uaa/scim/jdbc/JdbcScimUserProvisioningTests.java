@@ -71,7 +71,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.test.util.ReflectionTestUtils;
 
 
 @WithDatabaseContext
@@ -112,9 +111,7 @@ class JdbcScimUserProvisioningTests {
         idzManager = new IdentityZoneManagerImpl();
         idzManager.setCurrentIdentityZone(idz);
 
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager);
-
-        ReflectionTestUtils.setField(jdbcScimUserProvisioning, "jdbcIdentityZoneProvisioning", jdbcIdentityZoneProvisioning);
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();

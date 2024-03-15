@@ -143,13 +143,24 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             JdbcTemplate jdbcTemplate,
             JdbcPagingListFactory pagingListFactory,
             final PasswordEncoder passwordEncoder,
-            IdentityZoneManager identityZoneManager) {
+            IdentityZoneManager identityZoneManager
+    ) {
+        this(jdbcTemplate, pagingListFactory, passwordEncoder, identityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate));
+    }
+
+    public JdbcScimUserProvisioning(
+            final JdbcTemplate jdbcTemplate,
+            final JdbcPagingListFactory pagingListFactory,
+            final PasswordEncoder passwordEncoder,
+            final IdentityZoneManager identityZoneManager,
+            final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning
+    ) {
         super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
         setQueryConverter(new SimpleSearchQueryConverter());
         this.passwordEncoder = passwordEncoder;
-        this.jdbcIdentityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
         this.identityZoneManager = identityZoneManager;
     }
 
