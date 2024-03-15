@@ -212,6 +212,27 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
             this.honorificSuffix = honorificSuffix;
         }
 
+        @Override
+        public boolean equals(final Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            final Name name = (Name) o;
+            return Objects.equals(formatted, name.formatted)
+                    && Objects.equals(familyName, name.familyName)
+                    && Objects.equals(givenName, name.givenName)
+                    && Objects.equals(middleName, name.middleName)
+                    && Objects.equals(honorificPrefix, name.honorificPrefix)
+                    && Objects.equals(honorificSuffix, name.honorificSuffix);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(formatted, familyName, givenName, middleName, honorificPrefix, honorificSuffix);
+        }
     }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -873,5 +894,53 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         ofNullable(patchName.getHonorificPrefix()).ifPresent(currentName::setHonorificPrefix);
         ofNullable(patchName.getHonorificSuffix()).ifPresent(currentName::setHonorificSuffix);
         setName(currentName);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
+        final ScimUser scimUser = (ScimUser) o;
+        return active == scimUser.active
+                && verified == scimUser.verified
+                && Objects.equals(userName, scimUser.userName)
+                && Objects.equals(name, scimUser.name)
+                && Objects.equals(emails, scimUser.emails)
+                && Objects.equals(groups, scimUser.groups)
+                && Objects.equals(approvals, scimUser.approvals)
+                && Objects.equals(phoneNumbers, scimUser.phoneNumbers)
+                && Objects.equals(displayName, scimUser.displayName)
+                && Objects.equals(nickName, scimUser.nickName)
+                && Objects.equals(profileUrl, scimUser.profileUrl)
+                && Objects.equals(title, scimUser.title)
+                && Objects.equals(userType, scimUser.userType)
+                && Objects.equals(preferredLanguage, scimUser.preferredLanguage)
+                && Objects.equals(locale, scimUser.locale)
+                && Objects.equals(timezone, scimUser.timezone)
+                && Objects.equals(origin, scimUser.origin)
+                && Objects.equals(externalId, scimUser.externalId)
+                && Objects.equals(zoneId, scimUser.zoneId)
+                && Objects.equals(aliasZid, scimUser.aliasZid)
+                && Objects.equals(aliasId, scimUser.aliasId)
+                && Objects.equals(salt, scimUser.salt)
+                && Objects.equals(passwordLastModified, scimUser.passwordLastModified)
+                && Objects.equals(previousLogonTime, scimUser.previousLogonTime)
+                && Objects.equals(lastLogonTime, scimUser.lastLogonTime)
+                && Objects.equals(password, scimUser.password);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), userName, name, emails, groups, approvals, phoneNumbers, displayName,
+                nickName, profileUrl, title, userType, preferredLanguage, locale, timezone, active, verified, origin,
+                externalId, zoneId, aliasZid, aliasId, salt, passwordLastModified, previousLogonTime, lastLogonTime,
+                password);
     }
 }
