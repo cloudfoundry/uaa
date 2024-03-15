@@ -452,10 +452,11 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         user.setPhoneNumbers(Collections.singletonList(p1));
 
-        assertThatIllegalArgumentException().isThrownBy(() -> {
-            p1.setType(null);
-            user.addPhoneNumber(p1.getValue());
-        });
+        // should reject adding duplicate phone number if the existing has a type set to null
+        p1.setType(null);
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> user.addPhoneNumber(p1.getValue()))
+                .withMessageStartingWith("Already contains phoneNumber");
     }
 
     @Test
