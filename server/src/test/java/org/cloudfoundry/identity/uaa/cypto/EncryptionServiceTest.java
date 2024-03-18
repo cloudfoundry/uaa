@@ -11,6 +11,8 @@ import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.not;
 
+import static org.junit.Assert.assertNotNull;
+
 public class EncryptionServiceTest {
     private EncryptionService service;
     @BeforeClass
@@ -43,5 +45,10 @@ public class EncryptionServiceTest {
         byte[] ciphertext = service.encrypt("bob");
         assertThat(ciphertext, is(notNullValue()));
         new EncryptionService("invalid-password").decrypt(ciphertext);
+    }
+
+    @Test
+    public void initShouldWorkWithEmptyKey() {
+        assertNotNull(new EncryptionService(new EncryptionKeyService(null, null)));
     }
 }
