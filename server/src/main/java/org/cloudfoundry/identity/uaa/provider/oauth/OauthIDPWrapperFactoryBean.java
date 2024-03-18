@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,24 +89,28 @@ public class OauthIDPWrapperFactoryBean {
             idpDefinitionMap.get("passwordGrantEnabled") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
         oidcIdentityProviderDefinition.setSetForwardHeader(idpDefinitionMap.get("setForwardHeader") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
         oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
-        setJwtClientAuthentication("jwtclientAuthentication", idpDefinitionMap, oidcIdentityProviderDefinition);
+        setJwtClientAuthentication(idpDefinitionMap, oidcIdentityProviderDefinition);
         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
         rawDef = oidcIdentityProviderDefinition;
         provider.setType(OriginKeys.OIDC10);
         return rawDef;
     }
 
-    private static void setJwtClientAuthentication(String entry, Map<String, Object> map, OIDCIdentityProviderDefinition definition) {
-        if (map.get(entry) != null) {
-            if (map.get(entry) instanceof Boolean) {
-                boolean jwtClientAuthentication = (Boolean) map.get(entry);
-                if (jwtClientAuthentication) {
-                    definition.setJwtClientAuthentication(new HashMap<>());
+    private static void setJwtClientAuthentication(Map<String, Object> map, OIDCIdentityProviderDefinition definition) {
+        Object jwtClientAuthDetails = getJwtClientAuthenticationDetails(map, List.of("jwtClientAuthentication", "jwtclientAuthentication"));
+        if (jwtClientAuthDetails != null) {
+            if (jwtClientAuthDetails instanceof Boolean boolValue) {
+                if (boolValue.booleanValue()) {
+                    definition.setJwtClientAuthentication(Collections.emptyMap());
                 }
-            } else if (map.get(entry) instanceof HashMap) {
-                definition.setJwtClientAuthentication(map.get(entry));
+            } else if (jwtClientAuthDetails instanceof Map) {
+                definition.setJwtClientAuthentication(jwtClientAuthDetails);
             }
         }
+    }
+
+    private static Object getJwtClientAuthenticationDetails(Map<String, Object> uaaYamlMap, List<String> entryInUaaYaml) {
+        return entryInUaaYaml.stream().filter(e -> uaaYamlMap.get(e) != null).findFirst().map(uaaYamlMap::get).orElse(null);
     }
 
     public static IdentityProviderWrapper getIdentityProviderWrapper(String origin, AbstractExternalOAuthIdentityProviderDefinition rawDef, IdentityProvider provider, boolean override) {

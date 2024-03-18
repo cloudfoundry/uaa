@@ -1,5 +1,35 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import static java.util.stream.Collectors.toList;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
+
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.function.Function;
+
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -31,33 +61,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.fail;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNotSame;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
 class JdbcScimUserProvisioningTests {
@@ -229,6 +232,108 @@ class JdbcScimUserProvisioningTests {
         jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, IdentityZone.getUaaZoneId()));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{LOGIN_SERVER, IdentityZone.getUaaZoneId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[]{created.getId()}, Integer.class), is(0));
+    }
+
+    @Test
+    void retrieveByScimFilterOnlyActive() {
+        final String originActive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originActive, true);
+
+        final String originInactive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originInactive, false);
+
+        final ScimUser user1 = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user1.addEmail("jo@blah.com");
+        user1.setOrigin(originActive);
+        final ScimUser created1 = jdbcScimUserProvisioning.createUser(user1, "j7hyqpassX", currentIdentityZoneId);
+
+        final ScimUser user2 = new ScimUser(null, "jo2@foo.com", "Jo", "User");
+        user2.addEmail("jo2@blah.com");
+        user2.setOrigin(originInactive);
+        final ScimUser created2 = jdbcScimUserProvisioning.createUser(user2, "j7hyqpassX", currentIdentityZoneId);
+
+        final Function<String, List<String>> retrieveByScimFilter = (scimFilter) -> {
+            final List<ScimUser> result = jdbcScimUserProvisioning.retrieveByScimFilterOnlyActive(
+                    scimFilter,
+                    "userName",
+                    true,
+                    currentIdentityZoneId
+            );
+            Assertions.assertThat(result).isNotNull();
+            final List<String> usernames = result.stream().map(ScimUser::getUserName).collect(toList());
+            Assertions.assertThat(usernames).isSorted();
+            return usernames;
+        };
+
+        // case 1: should return only user 1
+        String filter = String.format("id eq '%s' or origin eq '%s'", created1.getId(), created2.getOrigin());
+        List<String> usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames)
+                .hasSize(1)
+                .contains(created1.getUserName());
+
+        // case 2: should return empty list
+        filter = String.format("origin eq '%s'", created2.getOrigin());
+        usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames).isEmpty();
+
+        // case 3: should return empty list (filtered by origin and ID)
+        filter = String.format("origin eq '%s' and id eq '%s'", created2.getOrigin(), created2.getId());
+        usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames).isEmpty();
+    }
+
+    @Test
+    void retrieveByScimFilter_IncludeInactive() {
+        final String originActive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originActive, true);
+
+        final String originInactive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originInactive, false);
+
+        final ScimUser user1 = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user1.addEmail("jo@blah.com");
+        user1.setOrigin(originActive);
+        final ScimUser created1 = jdbcScimUserProvisioning.createUser(user1, "j7hyqpassX", currentIdentityZoneId);
+
+        final ScimUser user2 = new ScimUser(null, "jo2@foo.com", "Jo", "User");
+        user2.addEmail("jo2@blah.com");
+        user2.setOrigin(originInactive);
+        final ScimUser created2 = jdbcScimUserProvisioning.createUser(user2, "j7hyqpassX", currentIdentityZoneId);
+
+        final Function<String, List<String>> retrieveByScimFilter = (scimFilter) -> {
+            final List<ScimUser> result = jdbcScimUserProvisioning.query(
+                    scimFilter,
+                    "userName",
+                    true,
+                    currentIdentityZoneId
+            );
+            Assertions.assertThat(result).isNotNull();
+            final List<String> usernames = result.stream().map(ScimUser::getUserName).collect(toList());
+            Assertions.assertThat(usernames).isSorted();
+            return usernames;
+        };
+
+        // case 1: should return both
+        String filter = String.format("id eq '%s' or origin eq '%s'", created1.getId(), created2.getOrigin());
+        List<String> usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames)
+                .hasSize(2)
+                .contains(created1.getUserName(), created2.getUserName());
+
+        // case 2: should return user 2
+        filter = String.format("origin eq '%s'", created2.getOrigin());
+        usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames)
+                .hasSize(1)
+                .contains(created2.getUserName());
+
+        // case 3: should return user 2 (filtered by origin and ID)
+        filter = String.format("origin eq '%s' and id eq '%s'", created2.getOrigin(), created2.getId());
+        usernames = retrieveByScimFilter.apply(filter);
+        Assertions.assertThat(usernames)
+                .hasSize(1)
+                .contains(created2.getUserName());
     }
 
     @Test
@@ -1251,7 +1356,11 @@ class JdbcScimUserProvisioningTests {
     }
 
     private static void addIdentityProvider(JdbcTemplate jdbcTemplate, String idzId, String originKey) {
-        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,?,?,?,'UNKNOWN')", UUID.randomUUID().toString(), idzId, originKey, originKey);
+        addIdentityProvider(jdbcTemplate, idzId, originKey, true);
+    }
+
+    private static void addIdentityProvider(JdbcTemplate jdbcTemplate, String idzId, String originKey, boolean active) {
+        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type,active) values (?,?,?,?,'UNKNOWN',?)", UUID.randomUUID().toString(), idzId, originKey, originKey, active);
     }
 
     private String randomString() {
