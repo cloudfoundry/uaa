@@ -440,6 +440,19 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             }
 
             @Test
+            void shouldReject_ReferencedZoneDoesNotExist() throws Exception {
+                final IdentityZone zone = IdentityZone.getUaa();
+                final IdentityProvider<?> existingIdp = createIdp(
+                        zone,
+                        buildUaaIdpWithAliasProperties(zone.getId(), null, null)
+                );
+
+                existingIdp.setAliasZid(UUID.randomUUID().toString()); // non-existing zone
+
+                shouldRejectUpdate(zone, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+
+            @Test
             void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged_UaaToCustomZone() throws Exception {
                 shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(IdentityZone.getUaa(), customZone);
             }
@@ -895,6 +908,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     originalIdp.setAliasId(null);
                     shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
+
                 @Test
                 void shouldReject_OnlyAliasZidSetToNull_UaaToCustomZone() throws Throwable {
                     shouldReject_OnlyAliasZidSetToNull(IdentityZone.getUaa(), customZone);
