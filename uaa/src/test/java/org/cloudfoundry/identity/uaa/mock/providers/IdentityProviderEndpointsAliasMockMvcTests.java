@@ -453,6 +453,26 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
                     shouldRejectUpdate(zone, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
+
+                @Test
+                void shouldReject_AliasNotSupportedForIdpType_UaaToCustomZone() throws Exception {
+                    shouldReject_AliasNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldReject_AliasNotSupportedForIdpType_CustomZone() throws Exception {
+                    shouldReject_AliasNotSupportedForIdpType(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_AliasNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+                    final IdentityProvider<?> uaaIdp = buildUaaIdpWithAliasProperties(zone1.getId(), null, null);
+                    final IdentityProvider<?> createdProvider = createIdp(zone1, uaaIdp);
+                    assertThat(createdProvider.getAliasZid()).isBlank();
+
+                    // try to create an alias for the IdP -> should fail because of the IdP's type
+                    createdProvider.setAliasZid(zone2.getId());
+                    shouldRejectUpdate(zone1, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
             }
 
             @Test
@@ -612,27 +632,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
                 existingIdp.setName("some-new-name");
                 shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
-            }
-
-            // TODO no existing alias
-            @Test
-            void shouldReject_AliasNotSupportedForIdpType_UaaToCustomZone() throws Exception {
-                shouldReject_AliasNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
-            }
-
-            @Test
-            void shouldReject_AliasNotSupportedForIdpType_CustomZone() throws Exception {
-                shouldReject_AliasNotSupportedForIdpType(customZone, IdentityZone.getUaa());
-            }
-
-            private void shouldReject_AliasNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-                final IdentityProvider<?> uaaIdp = buildUaaIdpWithAliasProperties(zone1.getId(), null, null);
-                final IdentityProvider<?> createdProvider = createIdp(zone1, uaaIdp);
-                assertThat(createdProvider.getAliasZid()).isBlank();
-
-                // try to create an alias for the IdP -> should fail because of the IdP's type
-                createdProvider.setAliasZid(zone2.getId());
-                shouldRejectUpdate(zone1, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
             }
 
             @Test
