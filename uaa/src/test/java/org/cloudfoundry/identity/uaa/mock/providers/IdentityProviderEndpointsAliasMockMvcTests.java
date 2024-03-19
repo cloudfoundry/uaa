@@ -635,7 +635,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 shouldRejectUpdate(zone1, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
             }
 
-            // TODO existing alias
             @Test
             void shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone_UaaToCustomZone() throws Throwable {
                 shouldReject_ExistingAlias_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(IdentityZone.getUaa(), customZone);
@@ -671,7 +670,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
             }
 
-            // TODO no existing alias
             @Test
             void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone_UaaToCustomZone() throws Exception {
                 shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(IdentityZone.getUaa(), customZone);
