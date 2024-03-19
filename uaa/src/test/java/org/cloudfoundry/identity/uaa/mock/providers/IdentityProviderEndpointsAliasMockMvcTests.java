@@ -1166,6 +1166,12 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         return Optional.of(idp);
     }
 
+    private IdentityProvider<?> updateIdpViaDb(final String zoneId, final IdentityProvider<?> idp) {
+        final JdbcIdentityProviderProvisioning identityProviderProvisioning = webApplicationContext
+                .getBean(JdbcIdentityProviderProvisioning.class);
+        return identityProviderProvisioning.update(idp, zoneId);
+    }
+
     private static void assertRelyingPartySecretIsRedacted(final IdentityProvider<?> identityProvider) {
         assertThat(identityProvider.getType()).isEqualTo(OIDC10);
         final Optional<AbstractExternalOAuthIdentityProviderDefinition<?>> config = Optional.ofNullable(identityProvider.getConfig())
