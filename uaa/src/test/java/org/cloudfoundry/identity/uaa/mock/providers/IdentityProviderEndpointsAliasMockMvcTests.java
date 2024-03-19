@@ -660,30 +660,29 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                                     Arguments.of(aliasIdValue, aliasZidValue)
                             ));
                 }
-            }
 
-            // TODO existing alias
-            @Test
-            void shouldReject_ExistingAlias_CannotFixDanglingRefAsAliasZoneIsNotExisting_UaaToCustomZone() throws Throwable {
-                final IdentityZone zone1 = IdentityZone.getUaa();
-                final IdentityZone zone2 = customZone;
+                @Test
+                void shouldReject_ExistingAlias_CannotFixDanglingRefAsAliasZoneIsNotExisting_UaaToCustomZone() throws Throwable {
+                    final IdentityZone zone1 = IdentityZone.getUaa();
+                    final IdentityZone zone2 = customZone;
 
-                final IdentityProvider<?> existingIdp = executeWithTemporarilyEnabledAliasFeature(
-                        aliasFeatureEnabled,
-                        () -> createIdpWithAlias(zone1, zone2)
-                );
+                    final IdentityProvider<?> existingIdp = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAlias(zone1, zone2)
+                    );
 
-                // delete alias IdP
-                deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
+                    // delete alias IdP
+                    deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
 
-                /* change alias zid to a non-existing zone directly in DB, so that fixing the dangling reference
-                 * will fail because the alias zone does not exist */
-                final String nonExistingZoneId = UUID.randomUUID().toString();
-                existingIdp.setAliasZid(nonExistingZoneId);
-                updateIdpViaDb(zone1.getId(), existingIdp);
+                    /* change alias zid to a non-existing zone directly in DB, so that fixing the dangling reference
+                     * will fail because the alias zone does not exist */
+                    final String nonExistingZoneId = UUID.randomUUID().toString();
+                    existingIdp.setAliasZid(nonExistingZoneId);
+                    updateIdpViaDb(zone1.getId(), existingIdp);
 
-                existingIdp.setName("some-new-name");
-                shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                    existingIdp.setName("some-new-name");
+                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
             }
 
             @Test
