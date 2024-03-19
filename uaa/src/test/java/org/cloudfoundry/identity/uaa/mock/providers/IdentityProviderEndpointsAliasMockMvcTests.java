@@ -565,16 +565,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
 
                 @Test
-                void shouldReject_ExistingAlias_AliasIdNotSetInPayload_UaaToCustomZone() throws Exception {
-                    shouldReject_ExistingAlias_AliasIdNotSetInPayload(IdentityZone.getUaa(), customZone);
+                void shouldReject_AliasIdNotSetInPayload_UaaToCustomZone() throws Exception {
+                    shouldReject_AliasIdNotSetInPayload(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldReject_ExistingAlias_AliasIdNotSetInPayload_CustomToUaaZone() throws Exception {
-                    shouldReject_ExistingAlias_AliasIdNotSetInPayload(customZone, IdentityZone.getUaa());
+                void shouldReject_AliasIdNotSetInPayload_CustomToUaaZone() throws Exception {
+                    shouldReject_AliasIdNotSetInPayload(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldReject_ExistingAlias_AliasIdNotSetInPayload(
+                private void shouldReject_AliasIdNotSetInPayload(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Exception {
@@ -586,16 +586,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
 
                 @Test
-                void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias_UaaToCustomZone() throws Exception {
-                    shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(IdentityZone.getUaa(), customZone);
+                void shouldAccept_ShouldFixDanglingRefByCreatingNewAlias_UaaToCustomZone() throws Exception {
+                    shouldAccept_ShouldFixDanglingRefByCreatingNewAlias(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias_CustomToUaaZone() throws Exception {
-                    shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(customZone, IdentityZone.getUaa());
+                void shouldAccept_ShouldFixDanglingRefByCreatingNewAlias_CustomToUaaZone() throws Exception {
+                    shouldAccept_ShouldFixDanglingRefByCreatingNewAlias(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+                private void shouldAccept_ShouldFixDanglingRefByCreatingNewAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
                     final IdentityProvider<?> idp = createIdpWithAlias(zone1, zone2);
 
                     // delete the alias IdP directly in the DB -> after that, there is a dangling reference
@@ -662,7 +662,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
 
                 @Test
-                void shouldReject_ExistingAlias_CannotFixDanglingRefAsAliasZoneIsNotExisting_UaaToCustomZone() throws Throwable {
+                void shouldReject_CannotFixDanglingRefAsAliasZoneIsNotExisting_UaaToCustomZone() throws Throwable {
                     final IdentityZone zone1 = IdentityZone.getUaa();
                     final IdentityZone zone2 = customZone;
 
@@ -686,16 +686,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             }
 
             @Test
-            void shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone_UaaToCustomZone() throws Throwable {
-                shouldReject_ExistingAlias_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(IdentityZone.getUaa(), customZone);
+            void shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone_UaaToCustomZone() throws Throwable {
+                shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(IdentityZone.getUaa(), customZone);
             }
 
             @Test
-            void shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone_CustomToUaaZone() throws Throwable {
-                shouldReject_ExistingAlias_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(customZone, IdentityZone.getUaa());
+            void shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone_CustomToUaaZone() throws Throwable {
+                shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(customZone, IdentityZone.getUaa());
             }
 
-            private void shouldReject_ExistingAlias_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(
+            private void shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(
                     final IdentityZone zone1,
                     final IdentityZone zone2
             ) throws Throwable {
