@@ -503,6 +503,25 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     providerInZone1.setAliasZid(zone2.getId());
                     shouldRejectUpdate(zone1, providerInZone1, HttpStatus.CONFLICT);
                 }
+
+                @Test
+                void shouldReject_AliasZidSetToSameZone_UaaZone() throws Exception {
+                    shouldReject_AliasZidSetToSameZone(IdentityZone.getUaa());
+                }
+
+                @Test
+                void shouldReject_AliasZidSetToSameZone_CustomZone() throws Exception {
+                    shouldReject_AliasZidSetToSameZone(customZone);
+                }
+
+                private void shouldReject_AliasZidSetToSameZone(final IdentityZone zone) throws Exception {
+                    final IdentityProvider<?> idp = createIdp(
+                            zone,
+                            buildOidcIdpWithAliasProperties(zone.getId(), null, null)
+                    );
+                    idp.setAliasZid(zone.getId());
+                    shouldRejectUpdate(zone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
             }
 
             @Test
@@ -709,25 +728,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 // try to create an alias in another custom zone -> should fail
                 idpInCustomZone.setAliasZid("not-uaa");
                 shouldRejectUpdate(customZone, idpInCustomZone, HttpStatus.UNPROCESSABLE_ENTITY);
-            }
-
-            @Test
-            void shouldReject_AliasZidSetToSameZone_UaaZone() throws Exception {
-                shouldReject_AliasZidSetToSameZone(IdentityZone.getUaa());
-            }
-
-            @Test
-            void shouldReject_AliasZidSetToSameZone_CustomZone() throws Exception {
-                shouldReject_AliasZidSetToSameZone(customZone);
-            }
-
-            private void shouldReject_AliasZidSetToSameZone(final IdentityZone zone) throws Exception {
-                final IdentityProvider<?> idp = createIdp(
-                        zone,
-                        buildOidcIdpWithAliasProperties(zone.getId(), null, null)
-                );
-                idp.setAliasZid(zone.getId());
-                shouldRejectUpdate(zone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
             }
         }
 
