@@ -402,16 +402,19 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             }
 
             @Test
-            void shouldAccept_ShouldCreateAliasIdp_UaaToCustomZone() throws Exception {
-                shouldAccept_ShouldCreateAliasIdp(IdentityZone.getUaa(), customZone);
+            void shouldAccept_ShouldCreateNewAlias_UaaToCustomZone() throws Exception {
+                shouldAccept_ShouldCreateNewAlias(IdentityZone.getUaa(), customZone);
             }
 
             @Test
-            void shouldAccept_ShouldCreateAliasIdp_CustomToUaaZone() throws Exception {
-                shouldAccept_ShouldCreateAliasIdp(customZone, IdentityZone.getUaa());
+            void shouldAccept_ShouldCreateNewAlias_CustomToUaaZone() throws Exception {
+                shouldAccept_ShouldCreateNewAlias(customZone, IdentityZone.getUaa());
             }
 
-            private void shouldAccept_ShouldCreateAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            private void shouldAccept_ShouldCreateNewAlias(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Exception {
                 // create regular idp without alias properties in zone 1
                 final IdentityProvider<?> existingIdpWithoutAlias = createIdp(
                         zone1,
