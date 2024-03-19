@@ -834,38 +834,38 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     assertThat(aliasIdp.get().getAliasZid()).isNotBlank().isEqualTo(existingIdp.getIdentityZoneId());
                     assertThat(aliasIdp.get().getName()).isNotBlank().isEqualTo(initialName);
                 }
-            }
 
-            @Test
-            void shouldAccept_ShouldIgnoreDanglingReference_UaaToCustomZone() throws Throwable {
-                shouldAccept_ShouldIgnoreDanglingReference(IdentityZone.getUaa(), customZone);
-            }
+                @Test
+                void shouldAccept_ShouldIgnoreDanglingReference_UaaToCustomZone() throws Throwable {
+                    shouldAccept_ShouldIgnoreDanglingReference(IdentityZone.getUaa(), customZone);
+                }
 
-            @Test
-            void shouldAccept_ShouldIgnoreDanglingReference_CustomToUaaZone() throws Throwable {
-                shouldAccept_ShouldIgnoreDanglingReference(customZone, IdentityZone.getUaa());
-            }
+                @Test
+                void shouldAccept_ShouldIgnoreDanglingReference_CustomToUaaZone() throws Throwable {
+                    shouldAccept_ShouldIgnoreDanglingReference(customZone, IdentityZone.getUaa());
+                }
 
-            private void shouldAccept_ShouldIgnoreDanglingReference(
-                    final IdentityZone zone1,
-                    final IdentityZone zone2
-            ) throws Throwable {
-                final IdentityProvider<?> existingIdp = executeWithTemporarilyEnabledAliasFeature(
-                        aliasFeatureEnabled,
-                        () -> createIdpWithAlias(zone1, zone2)
-                );
+                private void shouldAccept_ShouldIgnoreDanglingReference(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final IdentityProvider<?> existingIdp = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAlias(zone1, zone2)
+                    );
 
-                // create dangling reference by removing alias IdP directly in DB
-                deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
+                    // create dangling reference by removing alias IdP directly in DB
+                    deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
 
-                // update original IdP
-                existingIdp.setAliasId(null);
-                existingIdp.setAliasZid(null);
-                existingIdp.setName("some-new-name");
-                final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
-                assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-                assertThat(updatedIdp.getAliasId()).isBlank();
-                assertThat(updatedIdp.getAliasZid()).isBlank();
+                    // update original IdP
+                    existingIdp.setAliasId(null);
+                    existingIdp.setAliasZid(null);
+                    existingIdp.setName("some-new-name");
+                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
+                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
+                    assertThat(updatedIdp.getAliasId()).isBlank();
+                    assertThat(updatedIdp.getAliasZid()).isBlank();
+                }
             }
 
             @Test
