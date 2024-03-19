@@ -4,12 +4,6 @@ servlet:
     encode-base64: true
 
 
-encryption:
-  active_key_label: CHANGE-THIS-KEY
-  encryption_keys:
-  - label: CHANGE-THIS-KEY
-    passphrase: CHANGEME
-
 issuer:
   uri: http://localhost:8080/uaa
 
