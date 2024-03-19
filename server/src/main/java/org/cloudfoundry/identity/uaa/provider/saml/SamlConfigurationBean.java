@@ -27,6 +27,10 @@ public class SamlConfigurationBean implements InitializingBean {
     signatureAlgorithm = s;
   }
 
+  public SignatureAlgorithm getSignatureAlgorithm() {
+    return signatureAlgorithm;
+  }
+
   @Override
   public void afterPropertiesSet() {
     BasicSecurityConfiguration config = (BasicSecurityConfiguration) Configuration.getGlobalSecurityConfiguration();
