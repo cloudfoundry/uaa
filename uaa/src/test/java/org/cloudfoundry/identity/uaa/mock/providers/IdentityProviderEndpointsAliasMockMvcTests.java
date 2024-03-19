@@ -835,8 +835,8 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                         idpBeforeUpdate.getAliasZid(),
                         idpBeforeUpdate.getAliasId()
                 );
-                assertThat(aliasIdpBeforeUpdateOpt).isPresent();
-                aliasIdpBeforeUpdate = aliasIdpBeforeUpdateOpt.get();
+                aliasIdpBeforeUpdate = aliasIdpBeforeUpdateOpt
+                        .orElse(null); // for test cases involving dangling references, the alias might not exist even though one is referenced
             } else {
                 aliasIdpBeforeUpdate = null;
             }
