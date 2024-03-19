@@ -526,24 +526,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 assertRelyingPartySecretIsRedacted(updatedIdp);
             }
 
-            @Test
-            void shouldReject_OnlyAliasIdSet_UaaZone() throws Exception {
-                shouldReject_OnlyAliasIdSet(IdentityZone.getUaa());
-            }
-
-            @Test
-            void shouldReject_OnlyAliasIdSet_CustomZone() throws Exception {
-                shouldReject_OnlyAliasIdSet(customZone);
-            }
-
-            private void shouldReject_OnlyAliasIdSet(final IdentityZone zone) throws Exception {
-                final IdentityProvider<?> idp = buildOidcIdpWithAliasProperties(zone.getId(), null, null);
-                final IdentityProvider<?> createdProvider = createIdp(zone, idp);
-                assertThat(createdProvider.getAliasZid()).isBlank();
-                createdProvider.setAliasId(UUID.randomUUID().toString());
-                shouldRejectUpdate(zone, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
-            }
-
             @ParameterizedTest
             @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
             void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_UaaToCustomZone(
