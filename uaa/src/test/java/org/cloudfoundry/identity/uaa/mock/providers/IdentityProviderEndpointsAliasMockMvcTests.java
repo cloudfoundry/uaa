@@ -587,6 +587,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                         ));
             }
 
+            // TODO existing alias
             @Test
             void shouldReject_ExistingAlias_CannotFixDanglingRefAsAliasZoneIsNotExisting_UaaToCustomZone() throws Throwable {
                 final IdentityZone zone1 = IdentityZone.getUaa();
@@ -610,6 +611,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
             }
 
+            // TODO no existing alias
             @Test
             void shouldReject_AliasNotSupportedForIdpType_UaaToCustomZone() throws Exception {
                 shouldReject_AliasNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
@@ -628,6 +630,41 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 // try to create an alias for the IdP -> should fail because of the IdP's type
                 createdProvider.setAliasZid(zone2.getId());
                 shouldRejectUpdate(zone1, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
+            }
+
+            @Test
+            void shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone_UaaToCustomZone() throws Throwable {
+                shouldReject_ExistingAlias_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(IdentityZone.getUaa(), customZone);
+            }
+
+            @Test
+            void shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone_CustomToUaaZone() throws Throwable {
+                shouldReject_ExistingAlias_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(customZone, IdentityZone.getUaa());
+            }
+
+            private void shouldReject_ExistingAlias_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                final IdentityProvider<?> existingIdp = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+
+                // delete alias IdP and create a new one in zone 2 without alias but with the same origin
+                deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
+                final IdentityProvider<?> newIdpWithSameOrigin = buildOidcIdpWithAliasProperties(
+                        zone2.getId(),
+                        null,
+                        null
+                );
+                newIdpWithSameOrigin.setOriginKey(existingIdp.getOriginKey());
+                createIdp(zone2, newIdpWithSameOrigin);
+
+                existingIdp.setAliasId(null);
+                existingIdp.setAliasZid(null);
+                existingIdp.setName("some-new-name");
+                shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
             }
 
             @Test
