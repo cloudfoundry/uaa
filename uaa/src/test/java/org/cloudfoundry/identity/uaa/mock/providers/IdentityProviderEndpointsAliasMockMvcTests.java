@@ -473,6 +473,36 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     createdProvider.setAliasZid(zone2.getId());
                     shouldRejectUpdate(zone1, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
+
+                @Test
+                void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone_UaaToCustomZone() throws Exception {
+                    shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone_CustomToUaaZone() throws Exception {
+                    shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+                    // create IdP with origin key in zone 2
+                    final IdentityProvider<?> existingIdpInZone2 = buildOidcIdpWithAliasProperties(zone2.getId(), null, null);
+                    createIdp(zone2, existingIdpInZone2);
+
+                    // create IdP with same origin key in zone 1
+                    final IdentityProvider<?> idp = buildIdpWithAliasProperties(
+                            zone1.getId(),
+                            null,
+                            null,
+                            existingIdpInZone2.getOriginKey(), // same origin key
+                            OIDC10
+                    );
+                    final IdentityProvider<?> providerInZone1 = createIdp(zone1, idp);
+
+                    // update the alias ZID to zone 2, where an IdP with this origin already exists -> should fail
+                    providerInZone1.setAliasZid(zone2.getId());
+                    shouldRejectUpdate(zone1, providerInZone1, HttpStatus.CONFLICT);
+                }
             }
 
             @Test
@@ -667,36 +697,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 existingIdp.setAliasZid(null);
                 existingIdp.setName("some-new-name");
                 shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
-            }
-
-            @Test
-            void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone_UaaToCustomZone() throws Exception {
-                shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(IdentityZone.getUaa(), customZone);
-            }
-
-            @Test
-            void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone_CustomToUaaZone() throws Exception {
-                shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(customZone, IdentityZone.getUaa());
-            }
-
-            private void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-                // create IdP with origin key in zone 2
-                final IdentityProvider<?> existingIdpInZone2 = buildOidcIdpWithAliasProperties(zone2.getId(), null, null);
-                createIdp(zone2, existingIdpInZone2);
-
-                // create IdP with same origin key in zone 1
-                final IdentityProvider<?> idp = buildIdpWithAliasProperties(
-                        zone1.getId(),
-                        null,
-                        null,
-                        existingIdpInZone2.getOriginKey(), // same origin key
-                        OIDC10
-                );
-                final IdentityProvider<?> providerInZone1 = createIdp(zone1, idp);
-
-                // update the alias ZID to zone 2, where an IdP with this origin already exists -> should fail
-                providerInZone1.setAliasZid(zone2.getId());
-                shouldRejectUpdate(zone1, providerInZone1, HttpStatus.CONFLICT);
             }
 
             @Test
