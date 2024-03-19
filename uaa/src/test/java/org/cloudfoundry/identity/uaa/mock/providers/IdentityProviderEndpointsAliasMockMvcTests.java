@@ -512,16 +512,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             }
 
             @Test
-            void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp_UaaToCustomZone() throws Exception {
-                shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(IdentityZone.getUaa(), customZone);
+            void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias_UaaToCustomZone() throws Exception {
+                shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(IdentityZone.getUaa(), customZone);
             }
 
             @Test
-            void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp_CustomToUaaZone() throws Exception {
-                shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(customZone, IdentityZone.getUaa());
+            void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias_CustomToUaaZone() throws Exception {
+                shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(customZone, IdentityZone.getUaa());
             }
 
-            private void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+            private void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
                 final IdentityProvider<?> idp = createIdpWithAlias(zone1, zone2);
 
                 // delete the alias IdP directly in the DB -> after that, there is a dangling reference
