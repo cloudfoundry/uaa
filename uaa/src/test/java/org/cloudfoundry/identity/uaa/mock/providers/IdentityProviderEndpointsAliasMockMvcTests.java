@@ -711,41 +711,41 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     originalIdp.setName("some-new-name");
                     shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
-            }
 
-            @Test
-            void shouldAccept_SetOnlyAliasPropertiesToNull_UaaToCustomZone() throws Throwable {
-                shouldAccept_SetOnlyAliasPropertiesToNull(IdentityZone.getUaa(), customZone);
-            }
+                @Test
+                void shouldAccept_SetOnlyAliasPropertiesToNull_UaaToCustomZone() throws Throwable {
+                    shouldAccept_SetOnlyAliasPropertiesToNull(IdentityZone.getUaa(), customZone);
+                }
 
-            @Test
-            void shouldAccept_SetOnlyAliasPropertiesToNull_CustomToUaaZone() throws Throwable {
-                shouldAccept_SetOnlyAliasPropertiesToNull(customZone, IdentityZone.getUaa());
-            }
+                @Test
+                void shouldAccept_SetOnlyAliasPropertiesToNull_CustomToUaaZone() throws Throwable {
+                    shouldAccept_SetOnlyAliasPropertiesToNull(customZone, IdentityZone.getUaa());
+                }
 
-            private void shouldAccept_SetOnlyAliasPropertiesToNull(
-                    final IdentityZone zone1,
-                    final IdentityZone zone2
-            ) throws Throwable {
-                final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
-                        aliasFeatureEnabled,
-                        () -> createIdpWithAlias(zone1, zone2)
-                );
+                private void shouldAccept_SetOnlyAliasPropertiesToNull(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAlias(zone1, zone2)
+                    );
 
-                final String initialAliasId = originalIdp.getAliasId();
-                assertThat(initialAliasId).isNotBlank();
-                final String initialAliasZid = originalIdp.getAliasZid();
-                assertThat(initialAliasZid).isNotBlank();
+                    final String initialAliasId = originalIdp.getAliasId();
+                    assertThat(initialAliasId).isNotBlank();
+                    final String initialAliasZid = originalIdp.getAliasZid();
+                    assertThat(initialAliasZid).isNotBlank();
 
-                // change non-alias property without setting alias properties to null
-                originalIdp.setAliasId(null);
-                originalIdp.setAliasZid(null);
-                final IdentityProvider<?> updatedIdp = updateIdp(zone1, originalIdp);
-                assertThat(updatedIdp.getAliasId()).isBlank();
-                assertThat(updatedIdp.getAliasZid()).isBlank();
+                    // change non-alias property without setting alias properties to null
+                    originalIdp.setAliasId(null);
+                    originalIdp.setAliasZid(null);
+                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, originalIdp);
+                    assertThat(updatedIdp.getAliasId()).isBlank();
+                    assertThat(updatedIdp.getAliasZid()).isBlank();
 
-                // the alias IdP should have its reference removed
-                assertReferenceWasRemovedFromAlias(initialAliasId, initialAliasZid);
+                    // the alias IdP should have its reference removed
+                    assertReferenceWasRemovedFromAlias(initialAliasId, initialAliasZid);
+                }
             }
 
             @Test
