@@ -892,32 +892,31 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     originalIdp.setAliasId(null);
                     shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
-            }
+                @Test
+                void shouldReject_OnlyAliasZidSetToNull_UaaToCustomZone() throws Throwable {
+                    shouldReject_OnlyAliasZidSetToNull(IdentityZone.getUaa(), customZone);
+                }
 
-            @Test
-            void shouldReject_OnlyAliasZidSetToNull_UaaToCustomZone() throws Throwable {
-                shouldReject_OnlyAliasZidSetToNull(IdentityZone.getUaa(), customZone);
-            }
+                @Test
+                void shouldReject_OnlyAliasZidSetToNull_CustomToUaaZone() throws Throwable {
+                    shouldReject_OnlyAliasZidSetToNull(customZone, IdentityZone.getUaa());
+                }
 
-            @Test
-            void shouldReject_OnlyAliasZidSetToNull_CustomToUaaZone() throws Throwable {
-                shouldReject_OnlyAliasZidSetToNull(customZone, IdentityZone.getUaa());
-            }
+                private void shouldReject_OnlyAliasZidSetToNull(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAlias(zone1, zone2)
+                    );
 
-            private void shouldReject_OnlyAliasZidSetToNull(
-                    final IdentityZone zone1,
-                    final IdentityZone zone2
-            ) throws Throwable {
-                final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
-                        aliasFeatureEnabled,
-                        () -> createIdpWithAlias(zone1, zone2)
-                );
+                    assertThat(originalIdp.getAliasId()).isNotBlank();
+                    assertThat(originalIdp.getAliasZid()).isNotBlank();
 
-                assertThat(originalIdp.getAliasId()).isNotBlank();
-                assertThat(originalIdp.getAliasZid()).isNotBlank();
-
-                originalIdp.setAliasZid(null);
-                shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                    originalIdp.setAliasZid(null);
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
             }
         }
 
