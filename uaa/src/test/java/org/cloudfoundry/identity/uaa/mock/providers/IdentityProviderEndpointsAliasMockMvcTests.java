@@ -584,42 +584,42 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     existingIdp.setName("some-new-name");
                     shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
-            }
 
-            @Test
-            void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias_UaaToCustomZone() throws Exception {
-                shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(IdentityZone.getUaa(), customZone);
-            }
+                @Test
+                void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias_UaaToCustomZone() throws Exception {
+                    shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(IdentityZone.getUaa(), customZone);
+                }
 
-            @Test
-            void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias_CustomToUaaZone() throws Exception {
-                shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(customZone, IdentityZone.getUaa());
-            }
+                @Test
+                void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias_CustomToUaaZone() throws Exception {
+                    shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(customZone, IdentityZone.getUaa());
+                }
 
-            private void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-                final IdentityProvider<?> idp = createIdpWithAlias(zone1, zone2);
+                private void shouldAccept_ExistingAlias_ShouldFixDanglingRefByCreatingNewAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+                    final IdentityProvider<?> idp = createIdpWithAlias(zone1, zone2);
 
-                // delete the alias IdP directly in the DB -> after that, there is a dangling reference
-                deleteIdpViaDb(idp.getOriginKey(), zone2.getId());
+                    // delete the alias IdP directly in the DB -> after that, there is a dangling reference
+                    deleteIdpViaDb(idp.getOriginKey(), zone2.getId());
 
-                // update some other property on the original IdP
-                idp.setName("some-new-name");
-                final IdentityProvider<?> updatedIdp = updateIdp(zone1, idp);
-                assertThat(updatedIdp.getAliasId()).isNotBlank().isNotEqualTo(idp.getAliasId());
-                assertThat(updatedIdp.getAliasZid()).isNotBlank().isEqualTo(idp.getAliasZid());
+                    // update some other property on the original IdP
+                    idp.setName("some-new-name");
+                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, idp);
+                    assertThat(updatedIdp.getAliasId()).isNotBlank().isNotEqualTo(idp.getAliasId());
+                    assertThat(updatedIdp.getAliasZid()).isNotBlank().isEqualTo(idp.getAliasZid());
 
-                // check if the new alias IdP is present and has the correct properties
-                final String id = updatedIdp.getAliasId();
-                final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
-                assertThat(aliasIdp).isPresent();
-                assertIdpReferencesOtherIdp(updatedIdp, aliasIdp.get());
-                assertOtherPropertiesAreEqual(updatedIdp, aliasIdp.get());
+                    // check if the new alias IdP is present and has the correct properties
+                    final String id = updatedIdp.getAliasId();
+                    final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
+                    assertThat(aliasIdp).isPresent();
+                    assertIdpReferencesOtherIdp(updatedIdp, aliasIdp.get());
+                    assertOtherPropertiesAreEqual(updatedIdp, aliasIdp.get());
 
-                // check if both have the same non-empty relying party secret
-                assertIdpAndAliasHaveSameRelyingPartySecretInDb(updatedIdp);
+                    // check if both have the same non-empty relying party secret
+                    assertIdpAndAliasHaveSameRelyingPartySecretInDb(updatedIdp);
 
-                // check if the returned IdP has a redacted relying party secret
-                assertRelyingPartySecretIsRedacted(updatedIdp);
+                    // check if the returned IdP has a redacted relying party secret
+                    assertRelyingPartySecretIsRedacted(updatedIdp);
+                }
             }
 
             @ParameterizedTest
