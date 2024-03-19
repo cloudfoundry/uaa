@@ -524,42 +524,45 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
             }
 
-            @Test
-            void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged_UaaToCustomZone() throws Exception {
-                shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(IdentityZone.getUaa(), customZone);
-            }
+            @Nested
+            class ExistingAlias {
+                @Test
+                void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged_UaaToCustomZone() throws Exception {
+                    shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(IdentityZone.getUaa(), customZone);
+                }
 
-            @Test
-            void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged_CustomToUaaZone() throws Exception {
-                shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(customZone, IdentityZone.getUaa());
-            }
+                @Test
+                void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged_CustomToUaaZone() throws Exception {
+                    shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(customZone, IdentityZone.getUaa());
+                }
 
-            private void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-                // create an IdP with an alias
-                final IdentityProvider<?> originalIdp = createIdpWithAlias(zone1, zone2);
+                private void shouldAccept_OtherPropertiesOfIdpWithAliasAreChanged(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+                    // create an IdP with an alias
+                    final IdentityProvider<?> originalIdp = createIdpWithAlias(zone1, zone2);
 
-                // update other property
-                final String newName = "new name";
-                originalIdp.setName(newName);
-                final IdentityProvider<?> updatedOriginalIdp = updateIdp(zone1, originalIdp);
-                assertThat(updatedOriginalIdp).isNotNull();
-                assertThat(updatedOriginalIdp.getAliasId()).isNotBlank();
-                assertThat(updatedOriginalIdp.getAliasZid()).isNotBlank();
-                assertThat(updatedOriginalIdp.getAliasZid()).isEqualTo(zone2.getId());
-                assertThat(updatedOriginalIdp.getName()).isNotBlank().isEqualTo(newName);
+                    // update other property
+                    final String newName = "new name";
+                    originalIdp.setName(newName);
+                    final IdentityProvider<?> updatedOriginalIdp = updateIdp(zone1, originalIdp);
+                    assertThat(updatedOriginalIdp).isNotNull();
+                    assertThat(updatedOriginalIdp.getAliasId()).isNotBlank();
+                    assertThat(updatedOriginalIdp.getAliasZid()).isNotBlank();
+                    assertThat(updatedOriginalIdp.getAliasZid()).isEqualTo(zone2.getId());
+                    assertThat(updatedOriginalIdp.getName()).isNotBlank().isEqualTo(newName);
 
-                // check if the change is propagated to the alias IdP
-                final String id = updatedOriginalIdp.getAliasId();
-                final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
-                assertThat(aliasIdp).isPresent();
-                assertIdpReferencesOtherIdp(aliasIdp.get(), updatedOriginalIdp);
-                assertThat(aliasIdp.get().getName()).isNotBlank().isEqualTo(newName);
+                    // check if the change is propagated to the alias IdP
+                    final String id = updatedOriginalIdp.getAliasId();
+                    final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
+                    assertThat(aliasIdp).isPresent();
+                    assertIdpReferencesOtherIdp(aliasIdp.get(), updatedOriginalIdp);
+                    assertThat(aliasIdp.get().getName()).isNotBlank().isEqualTo(newName);
 
-                // check if both have the same non-empty relying party secret in the DB
-                assertIdpAndAliasHaveSameRelyingPartySecretInDb(updatedOriginalIdp);
+                    // check if both have the same non-empty relying party secret in the DB
+                    assertIdpAndAliasHaveSameRelyingPartySecretInDb(updatedOriginalIdp);
 
-                // check if the returned IdP has a redacted relying party secret
-                assertRelyingPartySecretIsRedacted(updatedOriginalIdp);
+                    // check if the returned IdP has a redacted relying party secret
+                    assertRelyingPartySecretIsRedacted(updatedOriginalIdp);
+                }
             }
 
             @Test
