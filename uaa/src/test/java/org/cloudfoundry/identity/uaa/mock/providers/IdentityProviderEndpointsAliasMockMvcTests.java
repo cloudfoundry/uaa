@@ -683,28 +683,34 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
             }
 
-            @Test
-            void shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged_UaaToCustomZone() throws Throwable {
-                shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged(IdentityZone.getUaa(), customZone);
-            }
+            /**
+             * Test handling of IdPs with an existing alias when the alias feature is now switched off.
+             */
+            @Nested
+            class ExistingAlias {
+                @Test
+                void shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged_UaaToCustomZone() throws Throwable {
+                    shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged(IdentityZone.getUaa(), customZone);
+                }
 
-            @Test
-            void shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged_CustomToUaaZone() throws Throwable {
-                shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged(customZone, IdentityZone.getUaa());
-            }
+                @Test
+                void shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged_CustomToUaaZone() throws Throwable {
+                    shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged(customZone, IdentityZone.getUaa());
+                }
 
-            private void shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged(
-                    final IdentityZone zone1,
-                    final IdentityZone zone2
-            ) throws Throwable {
-                final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
-                        aliasFeatureEnabled,
-                        () -> createIdpWithAlias(zone1, zone2)
-                );
+                private void shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAlias(zone1, zone2)
+                    );
 
-                // change non-alias property without setting alias properties to null
-                originalIdp.setName("some-new-name");
-                shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                    // change non-alias property without setting alias properties to null
+                    originalIdp.setName("some-new-name");
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
             }
 
             @Test
