@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -96,6 +97,51 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         customZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
 
         identityProviderEndpoints = Objects.requireNonNull(webApplicationContext.getBean(IdentityProviderEndpoints.class));
+    }
+
+    @Nested
+    class Read {
+        @Nested
+        class AliasFeatureDisabled {
+            @BeforeEach
+            void setUp() {
+                arrangeAliasFeatureEnabled(false);
+            }
+
+            @AfterEach
+            void tearDown() {
+                arrangeAliasFeatureEnabled(true);
+            }
+
+            @Test
+            void shouldStillReturnAliasPropertiesOfIdpsWithAliasCreatedBeforehand_UaaToCustomZone() throws Throwable {
+                shouldStillReturnAliasPropertiesOfIdpsWithAliasCreatedBeforehand(IdentityZone.getUaa(), customZone);
+            }
+
+            @Test
+            void shouldStillReturnAliasPropertiesOfIdpsWithAliasCreatedBeforehand_CustomToUaaZone() throws Throwable {
+                shouldStillReturnAliasPropertiesOfIdpsWithAliasCreatedBeforehand(customZone, IdentityZone.getUaa());
+            }
+
+            private void shouldStillReturnAliasPropertiesOfIdpsWithAliasCreatedBeforehand(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                final IdentityProvider<?> existingIdp = executeWithTemporarilyEnabledAliasFeature(
+                        true,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+
+                final List<IdentityProvider<?>> allIdps = readAllIdpsInZone(zone1);
+                assertThat(allIdps).isNotNull();
+                final Optional<IdentityProvider<?>> createdIdp = allIdps.stream()
+                        .filter(it -> it.getOriginKey().equals(existingIdp.getOriginKey()))
+                        .findFirst();
+                assertThat(createdIdp).isPresent();
+                assertThat(createdIdp.get()).isEqualTo(existingIdp);
+                assertThat(createdIdp.get().getAliasZid()).isEqualTo(zone2.getId());
+            }
+        }
     }
 
     @Nested
