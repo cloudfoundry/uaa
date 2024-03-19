@@ -656,6 +656,33 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 super(false);
             }
 
+            @Nested
+            class NoExistingAlias {
+                @Test
+                void shouldReject_AliasZidSet_UaaToCustomZone() throws Throwable {
+                    shouldReject_AliasZidSet(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldReject_AliasZidSet_CustomToUaaZone() throws Throwable {
+                    shouldReject_AliasZidSet(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_AliasZidSet(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Exception {
+                    final IdentityProvider<?> existingIdp = createIdp(
+                            zone1,
+                            buildOidcIdpWithAliasProperties(zone1.getId(), null, null)
+                    );
+
+                    // setting the alias zid should fail
+                    existingIdp.setAliasZid(zone2.getId());
+                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
+            }
+
             @Test
             void shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged_UaaToCustomZone() throws Throwable {
                 shouldReject_OtherPropertiesChangedWhileAliasPropertiesUnchanged(IdentityZone.getUaa(), customZone);
