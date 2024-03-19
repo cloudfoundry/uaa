@@ -620,46 +620,46 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     // check if the returned IdP has a redacted relying party secret
                     assertRelyingPartySecretIsRedacted(updatedIdp);
                 }
-            }
 
-            @ParameterizedTest
-            @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
-            void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_UaaToCustomZone(
-                    final String newAliasId,
-                    final String newAliasZid
-            ) throws Throwable {
-                shouldReject_ChangingAliasPropertiesOfIdpWithAlias(newAliasId, newAliasZid, IdentityZone.getUaa(), customZone);
-            }
+                @ParameterizedTest
+                @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
+                void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_UaaToCustomZone(
+                        final String newAliasId,
+                        final String newAliasZid
+                ) throws Throwable {
+                    shouldReject_ChangingAliasPropertiesOfIdpWithAlias(newAliasId, newAliasZid, IdentityZone.getUaa(), customZone);
+                }
 
-            @ParameterizedTest
-            @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
-            void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_CustomToUaaZone(
-                    final String newAliasId,
-                    final String newAliasZid
-            ) throws Throwable {
-                shouldReject_ChangingAliasPropertiesOfIdpWithAlias(newAliasId, newAliasZid, customZone, IdentityZone.getUaa());
-            }
+                @ParameterizedTest
+                @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
+                void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_CustomToUaaZone(
+                        final String newAliasId,
+                        final String newAliasZid
+                ) throws Throwable {
+                    shouldReject_ChangingAliasPropertiesOfIdpWithAlias(newAliasId, newAliasZid, customZone, IdentityZone.getUaa());
+                }
 
-            private void shouldReject_ChangingAliasPropertiesOfIdpWithAlias(
-                    final String newAliasId,
-                    final String newAliasZid,
-                    final IdentityZone zone1,
-                    final IdentityZone zone2
-            ) throws Throwable {
-                final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
-                        aliasFeatureEnabled,
-                        () -> createIdpWithAlias(zone1, zone2)
-                );
-                originalIdp.setAliasId(newAliasId);
-                originalIdp.setAliasZid(newAliasZid);
-                shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
-            }
+                private void shouldReject_ChangingAliasPropertiesOfIdpWithAlias(
+                        final String newAliasId,
+                        final String newAliasZid,
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAlias(zone1, zone2)
+                    );
+                    originalIdp.setAliasId(newAliasId);
+                    originalIdp.setAliasZid(newAliasZid);
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
 
-            private static Stream<Arguments> shouldReject_ChangingAliasPropertiesOfIdpWithAlias() {
-                return Stream.of(null, "", "other").flatMap(aliasIdValue ->
-                        Stream.of(null, "", "other").map(aliasZidValue ->
-                                Arguments.of(aliasIdValue, aliasZidValue)
-                        ));
+                private static Stream<Arguments> shouldReject_ChangingAliasPropertiesOfIdpWithAlias() {
+                    return Stream.of(null, "", "other").flatMap(aliasIdValue ->
+                            Stream.of(null, "", "other").map(aliasZidValue ->
+                                    Arguments.of(aliasIdValue, aliasZidValue)
+                            ));
+                }
             }
 
             // TODO existing alias
