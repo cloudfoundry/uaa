@@ -16,21 +16,25 @@ package org.cloudfoundry.identity.uaa.security.web;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
 
-    private static final Logger logger = LoggerFactory.getLogger(FixHttpsSchemeRequest.class);
+    private static final Logger logger = LogManager.getLogger();
+    private static final String X_FORWARDED_PROTO = "X-Forwarded-Proto";
+    private static final String HTTPS = "https";
+    private static final String HTTP = "http";
 
     @Override
     public String getScheme() {
         String scheme = super.getScheme();
-        logger.debug("Request X-Forwarded-Proto " + super.getHeader("X-Forwarded-Proto"));
+        logger.log(Level.DEBUG, () -> "Request X-Forwarded-Proto " + super.getHeader(X_FORWARDED_PROTO));
 
-        if ("http".equals(scheme) &&
-                        "https".equals(super.getHeader("X-Forwarded-Proto"))) {
-            scheme = "https";
+        if (HTTP.equals(scheme) &&
+                        HTTPS.equals(super.getHeader(X_FORWARDED_PROTO))) {
+            scheme = HTTPS;
         }
         return scheme;
     }
@@ -39,8 +43,8 @@ public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
     public int getServerPort() {
         int port = super.getServerPort();
         String scheme = super.getScheme();
-        if ("http".equals(scheme) &&
-                        "https".equals(super.getHeader("X-Forwarded-Proto"))) {
+        if (HTTP.equals(scheme) &&
+                        HTTPS.equals(super.getHeader(X_FORWARDED_PROTO))) {
             port = 443;
         }
         return port;
@@ -58,8 +62,8 @@ public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
         url.append(scheme);
         url.append("://");
         url.append(getServerName());
-        if ((scheme.equals("http") && (port != 80))
-                        || (scheme.equals("https") && (port != 443))) {
+        if ((scheme.equals(HTTP) && (port != 80))
+                        || (scheme.equals(HTTPS) && (port != 443))) {
             url.append(':');
             url.append(port);
         }
