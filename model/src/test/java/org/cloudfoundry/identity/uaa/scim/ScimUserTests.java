@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -30,7 +29,9 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.junit.Assert.*;
 
 /**
@@ -363,8 +364,6 @@ public class ScimUserTests {
         Group group2 = new Group("id", "display", Group.Type.DIRECT);
         assertEquals(group1, group2);
         assertEquals(group2, group1);
-        assertEquals(group1, group1);
-        assertEquals(group2, group2);
         assertNotEquals(null, group1);
         assertNotEquals(group1, new Object());
         group1.setValue(null);
@@ -451,14 +450,12 @@ public class ScimUserTests {
         assertEquals("type", p1.getType());
         ScimUser user = new ScimUser();
         user.setPhoneNumbers(Collections.singletonList(p1));
-        try {
-            p1.setType(null);
-            user.addPhoneNumber(p1.getValue());
-            fail();
-        }catch (IllegalArgumentException ignored) {
 
-        }
-
+        // should reject adding duplicate phone number if the existing has a type set to null
+        p1.setType(null);
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> user.addPhoneNumber(p1.getValue()))
+                .withMessageStartingWith("Already contains phoneNumber");
     }
 
     @Test
@@ -495,6 +492,33 @@ public class ScimUserTests {
         assertNull(user.getPreviousLogonTime());
     }
 
+    @Test
+    public void testPatchAliasId() {
+        final String aliasId = UUID.randomUUID().toString();
+        patch.setAliasId(aliasId);
+        user.patch(patch);
+        assertEquals(aliasId, user.getAliasId());
+    }
+
+    @Test
+    public void testPatchAliasZid() {
+        final String aliasZid = UUID.randomUUID().toString();
+        patch.setAliasZid(aliasZid);
+        user.patch(patch);
+        assertEquals(aliasZid, user.getAliasZid());
+    }
+
+    @Test
+    public void testAliasPropertiesGettersAndSetters() {
+        final String aliasId = UUID.randomUUID().toString();
+        final String aliasZid = UUID.randomUUID().toString();
+
+        final ScimUser scimUser = new ScimUser("id", "uname", "gname", "fname");
+        scimUser.setAliasId(aliasId);
+        scimUser.setAliasZid(aliasZid);
+        assertEquals(aliasId, scimUser.getAliasId());
+        assertEquals(aliasZid, scimUser.getAliasZid());
+    }
 
     @Test
     public void testPatchUserSetPrimaryEmail() {
@@ -587,7 +611,7 @@ public class ScimUserTests {
     @Test
     public void testPatchUserRejectChangingOrigin() {
         patch.setOrigin("some-new-origin");
-        Assertions.assertThatIllegalArgumentException().isThrownBy(() -> user.patch(patch))
+        assertThatIllegalArgumentException().isThrownBy(() -> user.patch(patch))
                         .withMessage("Cannot change origin in patch of user.");
     }
 
@@ -653,20 +677,6 @@ public class ScimUserTests {
         setAndPatchAndValidate("displayname", --pos);
 
         assertEquals(0, pos);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     }
 
     public void setAndPatchAndValidate(String attribute, int nullable) {
