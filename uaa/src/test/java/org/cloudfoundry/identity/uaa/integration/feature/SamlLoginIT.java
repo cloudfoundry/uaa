@@ -12,7 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -199,6 +201,34 @@ public class SamlLoginIT {
             new Page(webDriver).clearCookies();
         }
         SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+    }
+
+    @Test
+    public void testSamlSPMetadata() throws IOException {
+        String command = "curl -k http://localhost:8080/uaa/saml/metadata";
+        Process process = Runtime.getRuntime().exec(command);
+        BufferedReader stdInput = new BufferedReader(new
+                InputStreamReader(process.getInputStream()));
+
+        StringBuilder samlSpMetadata = new StringBuilder();
+        String line;
+        while ((line = stdInput.readLine()) != null) {
+            samlSpMetadata.append(line);
+        }
+
+        // The SAML SP metadata should match the following UAA configs:
+        // login.entityID
+        assertThat(samlSpMetadata.toString(), containsString("entityID=\"cloudfoundry-saml-login\""));
+        // login.saml.signatureAlgorithm
+        assertThat(samlSpMetadata.toString(), containsString("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
+        // login.saml.signRequest
+        assertThat(samlSpMetadata.toString(), containsString("AuthnRequestsSigned=\"true\""));
+        // login.saml.wantAssertionSigned
+        assertThat(samlSpMetadata.toString(), containsString("WantAssertionsSigned=\"true\""));
+        // login.saml.nameID
+        assertThat(samlSpMetadata.toString(), containsString("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"));
+
+        process.destroy();
     }
 
     @Test
