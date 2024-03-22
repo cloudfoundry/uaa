@@ -382,7 +382,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-                accessTokenFieldDescriptor,
+                fieldWithPath("access_token").description("This field is always `null`."),
                 tokenTypeFieldDescriptor,
                 expiresInFieldDescriptor,
                 scopeFieldDescriptorWhenUserToken,
