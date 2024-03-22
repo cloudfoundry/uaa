@@ -704,7 +704,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
                 fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
                 fieldWithPath("config.jwtClientAuthentication").optional(null).type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. "+
-                        "<br>Please note that you can precise the created JWT for client authentication, e.g. if your IdP follows OAuth2 standard according to RFC 7523. For standard OIDC compliance, set true without any further sub-parameters. The supported sub-parameters are " +
+                        "<br>For standard OIDC compliance, set this field to `true`. Alternatively, you can further configure the created JWT for client authentication by setting this parameter to an Object containing sub-parameters, e.g. if your IdP follows OAuth2 standard according to RFC 7523. The supported sub-parameters are " +
                         "<ul><li>    `kid` <small><mark>UAA 76.18.0</mark></small> Custom key from your defined keys, defaults to `activeKeyId` </li>" +
                         "<li>        `iss` Custom issuer, see RFC 7523, defaults to `relyingPartyId` </li>" +
                         "<li>        `aud` Custom audience, see RFC 7523, defaults to `tokenUrl` </li></ul>"),
