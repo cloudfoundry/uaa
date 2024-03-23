@@ -24,8 +24,6 @@
         <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>
 
-    <bean id="identityZoneManager" class="org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl" />
-
     <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory"/>
@@ -34,7 +32,6 @@
         <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}"/>
         <property name="timeService" ref="timeService"/>
         <constructor-arg name="passwordEncoder" ref="nonCachingPasswordEncoder"/>
-        <constructor-arg name="identityZoneManager" ref="identityZoneManager" />
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
