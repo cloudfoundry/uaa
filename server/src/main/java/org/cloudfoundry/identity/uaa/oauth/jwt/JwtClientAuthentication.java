@@ -29,7 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetchingException;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.util.MultiValueMap;
@@ -201,10 +201,9 @@ public class JwtClientAuthentication {
     return DYNAMIC_VALUE_PARAMETER_PATTERN.matcher(value);
   }
 
-  @SuppressWarnings("java:S1874")
   private static String getDynamicValue(Matcher m) {
     /* return a reference from application environment only if in default zone */
-    if (!IdentityZoneHolder.isUaa()) {
+    if (!(new IdentityZoneManagerImpl().isCurrentZoneUaa())) {
       return null;
     }
     ApplicationContext applicationContext = ApplicationContextProvider.getApplicationContext();
