@@ -112,7 +112,7 @@ class JdbcScimUserProvisioningTests {
         idzManager = new IdentityZoneManagerImpl();
         idzManager.setCurrentIdentityZone(idz);
 
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, new TimeServiceImpl());
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, new TimeServiceImpl(), new SimpleSearchQueryConverter());
         jdbcScimUserProvisioning.setDeactivateOnDelete(true);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
@@ -673,7 +673,7 @@ class JdbcScimUserProvisioningTests {
     void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
-        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), jdbcIdentityZoneProvisioning, new TimeServiceImpl()) {
+        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), jdbcIdentityZoneProvisioning, new TimeServiceImpl(), new SimpleSearchQueryConverter()) {
             @Override
             public ScimUser retrieve(String id, String zoneId) {
                 ScimUser createdUserId = new ScimUser();

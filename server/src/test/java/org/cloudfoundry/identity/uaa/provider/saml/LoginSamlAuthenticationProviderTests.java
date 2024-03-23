@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -185,7 +186,7 @@ class LoginSamlAuthenticationProviderTests {
         groupProvisioning.createOrGet(new ScimGroup(null, UAA_USER, identityZoneManager.getCurrentIdentityZone().getId()), identityZoneManager.getCurrentIdentityZone().getId());
         providerDefinition = new SamlIdentityProviderDefinition();
 
-        userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl());
+        userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl(), new SimpleSearchQueryConverter());
 
 
         uaaSamlUser = groupProvisioning.create(new ScimGroup(null, UAA_SAML_USER, IdentityZone.getUaaZoneId()), identityZoneManager.getCurrentIdentityZone().getId());

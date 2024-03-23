@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -101,7 +102,7 @@ class JdbcScimGroupMembershipManagerTests {
         dbUtils = new DbUtils();
 
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
-        JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl());
+        JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl(), new SimpleSearchQueryConverter());
         jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
 
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(

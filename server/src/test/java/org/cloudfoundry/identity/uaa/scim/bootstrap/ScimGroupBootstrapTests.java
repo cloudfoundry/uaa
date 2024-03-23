@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
@@ -65,7 +66,7 @@ class ScimGroupBootstrapTests {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         DbUtils dbUtils = new DbUtils();
         gDB = new JdbcScimGroupProvisioning(template, pagingListFactory, dbUtils);
-        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl());
+        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl(), new SimpleSearchQueryConverter());
         mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null, dbUtils);
         mDB.setScimGroupProvisioning(gDB);
 

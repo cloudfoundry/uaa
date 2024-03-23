@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -147,12 +148,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             @Qualifier("nonCachingPasswordEncoder") final PasswordEncoder passwordEncoder,
             final IdentityZoneManager identityZoneManager,
             @Qualifier("identityZoneProvisioning") final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning,
-            @Qualifier("timeService") final TimeService timeService
+            @Qualifier("timeService") final TimeService timeService,
+            @Qualifier("scimUserQueryConverter") final SearchQueryConverter queryConverter
     ) {
         super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
-        setQueryConverter(new SimpleSearchQueryConverter());
+        setQueryConverter(queryConverter);
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
         this.identityZoneManager = identityZoneManager;
