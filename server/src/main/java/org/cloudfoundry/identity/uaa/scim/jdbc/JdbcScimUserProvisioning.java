@@ -59,6 +59,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -70,6 +71,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
+
+import com.google.common.annotations.VisibleForTesting;
 
 @Component("scimUserProvisioning")
 public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
@@ -129,7 +132,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private final PasswordEncoder passwordEncoder;
 
-    private boolean deactivateOnDelete = true;
+    @Value("${scim.delete.deactivate:false}")
+    private boolean deactivateOnDelete;
 
     private static final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
@@ -523,6 +527,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return updated;
     }
 
+    @VisibleForTesting
     public void setDeactivateOnDelete(boolean deactivateOnDelete) {
         this.deactivateOnDelete = deactivateOnDelete;
     }

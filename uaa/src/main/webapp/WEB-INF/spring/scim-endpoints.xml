@@ -26,7 +26,6 @@
 
     <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
         <property name="queryConverter" ref="scimUserQueryConverter"/>
-        <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}"/>
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">

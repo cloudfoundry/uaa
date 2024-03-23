@@ -113,6 +113,7 @@ class JdbcScimUserProvisioningTests {
         idzManager.setCurrentIdentityZone(idz);
 
         jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, new TimeServiceImpl());
+        jdbcScimUserProvisioning.setDeactivateOnDelete(true);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
