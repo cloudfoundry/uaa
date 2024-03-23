@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -133,8 +132,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private boolean deactivateOnDelete = true;
 
     private static final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
-
-    private Pattern usernamePattern = Pattern.compile("[\\p{L}+0-9+\\-_.@'!]+");
 
     private final TimeService timeService;
     private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
@@ -528,14 +525,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public void setDeactivateOnDelete(boolean deactivateOnDelete) {
         this.deactivateOnDelete = deactivateOnDelete;
-    }
-
-    /**
-     * Sets the regular expression which will be used to validate the username.
-     */
-    public void setUsernamePattern(String usernamePattern) {
-        Assert.hasText(usernamePattern, "Username pattern must not be empty");
-        this.usernamePattern = Pattern.compile(usernamePattern);
     }
 
     @Override
