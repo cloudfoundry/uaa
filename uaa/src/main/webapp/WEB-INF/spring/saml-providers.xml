@@ -301,6 +301,10 @@
 
     <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider" />
 
+    <bean id="defaultSamlConfig" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean">
+        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA1}"/>
+    </bean>
+
     <beans profile="fileMetadata">
         <bean id="metaDataUrl" class="java.lang.String">
             <constructor-arg value="${login.idpMetadataFile:null}"/>
