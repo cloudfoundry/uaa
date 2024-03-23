@@ -65,7 +65,7 @@ class ScimGroupBootstrapTests {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         DbUtils dbUtils = new DbUtils();
         gDB = new JdbcScimGroupProvisioning(template, pagingListFactory, dbUtils);
-        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl());
+        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl());
         mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null, dbUtils);
         mDB.setScimGroupProvisioning(gDB);
 

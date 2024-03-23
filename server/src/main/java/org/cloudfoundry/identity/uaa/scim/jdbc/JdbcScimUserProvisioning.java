@@ -51,7 +51,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -60,6 +59,7 @@ import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -69,8 +69,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
+@Component("scimUserProvisioning")
 public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     implements ScimUserProvisioning, ResourceMonitor<ScimUser>, SystemDeletable {
 
@@ -134,26 +136,17 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private Pattern usernamePattern = Pattern.compile("[\\p{L}+0-9+\\-_.@'!]+");
 
-    private TimeService timeService = new TimeServiceImpl();
-
+    private final TimeService timeService;
     private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
     private final IdentityZoneManager identityZoneManager;
 
     public JdbcScimUserProvisioning(
-            JdbcTemplate jdbcTemplate,
-            JdbcPagingListFactory pagingListFactory,
-            final PasswordEncoder passwordEncoder,
-            IdentityZoneManager identityZoneManager
-    ) {
-        this(jdbcTemplate, pagingListFactory, passwordEncoder, identityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate));
-    }
-
-    public JdbcScimUserProvisioning(
             final JdbcTemplate jdbcTemplate,
-            final JdbcPagingListFactory pagingListFactory,
-            final PasswordEncoder passwordEncoder,
+            @Qualifier("jdbcPagingListFactory") final JdbcPagingListFactory pagingListFactory,
+            @Qualifier("nonCachingPasswordEncoder") final PasswordEncoder passwordEncoder,
             final IdentityZoneManager identityZoneManager,
-            final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning
+            @Qualifier("identityZoneProvisioning") final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning,
+            @Qualifier("timeService") final TimeService timeService
     ) {
         super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
@@ -162,9 +155,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
         this.identityZoneManager = identityZoneManager;
-    }
-
-    public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
     }
 

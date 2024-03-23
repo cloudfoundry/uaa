@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -18,13 +18,15 @@ import java.util.Map;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Component;
 
 /**
  * Singleton factory for creating a JdbcPagingList instance with the correct DB
  * specific singleton "Adapter(s)"
- * 
+ *
  * @author Mike Youngstrom
  */
+@Component("jdbcPagingListFactory")
 public class JdbcPagingListFactory {
 
     private NamedParameterJdbcTemplate jdbcTemplate;
