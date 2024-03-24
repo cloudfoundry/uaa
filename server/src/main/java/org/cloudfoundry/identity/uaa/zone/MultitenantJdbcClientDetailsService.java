@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.util.DefaultJdbcListFactory;
 import org.springframework.security.oauth2.common.util.JdbcListFactory;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;

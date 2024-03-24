@@ -1,11 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator;
 import org.cloudfoundry.identity.uaa.oauth.advice.HttpMethodNotSupportedAdvice;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
@@ -82,16 +83,14 @@ public class UaaTokenEndpoint extends TokenEndpoint {
     }
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-    @Override
-    public ResponseEntity<OAuth2Exception> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {
+    public ResponseEntity<OAuth2Exception> handleHttpRequestMethodNotSupportedExceptionUaa(HttpRequestMethodNotSupportedException e) throws Exception {
         return new HttpMethodNotSupportedAdvice().handleMethodNotSupportedException(e);
     }
 
     @ExceptionHandler(Exception.class)
-    @Override
-    public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
+    public ResponseEntity<OAuth2Exception> handleExceptionUaa(Exception e) throws Exception {
         logger.error("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage(), e);
-        return getExceptionTranslator().translate(e);
+        return new UaaExceptionTranslator().translate(e);
     }
 
     /**

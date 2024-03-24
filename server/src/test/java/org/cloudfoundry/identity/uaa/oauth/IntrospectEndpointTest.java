@@ -8,7 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 
 import static org.junit.jupiter.api.Assertions.*;

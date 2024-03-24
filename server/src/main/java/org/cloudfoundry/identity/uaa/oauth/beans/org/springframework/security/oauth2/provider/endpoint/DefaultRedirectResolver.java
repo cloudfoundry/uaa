@@ -15,12 +15,12 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.beans.org.springframework.security.oauth2.provider.endpoint;
 
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidRequestException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.RedirectMismatchException;
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.RedirectResolver;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 

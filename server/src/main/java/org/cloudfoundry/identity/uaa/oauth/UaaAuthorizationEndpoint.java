@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.http.HttpHost;
 import org.apache.http.client.utils.URIUtils;
+import org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
@@ -18,17 +19,17 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
-import org.springframework.security.oauth2.common.exceptions.ClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
-import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
-import org.springframework.security.oauth2.common.exceptions.UnsupportedResponseTypeException;
-import org.springframework.security.oauth2.common.exceptions.UserDeniedAuthorizationException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.BadClientCredentialsException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.ClientAuthenticationException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidRequestException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.RedirectMismatchException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.UnapprovedClientAuthenticationException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.UnauthorizedClientException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.UnsupportedResponseTypeException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.UserDeniedAuthorizationException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -776,7 +777,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     private ModelAndView handleException(Exception e, ServletWebRequest webRequest) throws Exception {
 
-        ResponseEntity<OAuth2Exception> translate = getExceptionTranslator().translate(e);
+        ResponseEntity<OAuth2Exception> translate = new UaaExceptionTranslator().translate(e);
         if (webRequest.getResponse() != null) {
             webRequest.getResponse().setStatus(translate.getStatusCode().value());
         }

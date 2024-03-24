@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidTokenException;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
