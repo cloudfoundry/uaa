@@ -140,15 +140,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private final IdentityZoneManager identityZoneManager;
 
     public JdbcScimUserProvisioning(
-            JdbcTemplate jdbcTemplate,
-            JdbcPagingListFactory pagingListFactory,
-            final PasswordEncoder passwordEncoder,
-            IdentityZoneManager identityZoneManager
-    ) {
-        this(jdbcTemplate, pagingListFactory, passwordEncoder, identityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate));
-    }
-
-    public JdbcScimUserProvisioning(
             final JdbcTemplate jdbcTemplate,
             final JdbcPagingListFactory pagingListFactory,
             final PasswordEncoder passwordEncoder,
