@@ -20,13 +20,17 @@ import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.oauth.beans.ApplicationContextProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetchingException;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.springframework.context.ApplicationContext;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.util.MultiValueMap;
 
@@ -40,12 +44,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isNotEmpty;
 
 public class JwtClientAuthentication {
 
   public static final String GRANT_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
   public static final String CLIENT_ASSERTION = "client_assertion";
   public static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
+  private static final Pattern DYNAMIC_VALUE_PARAMETER_PATTERN = Pattern.compile("^\\$\\{(?<name>[\\w.\\-]++)(:++(?<default>[\\w:./=+\\-]++)*+)?}$");
 
   // no signature check with invalid algorithms
   private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
@@ -67,9 +76,9 @@ public class JwtClientAuthentication {
 
   public String getClientAssertion(OIDCIdentityProviderDefinition config) {
     HashMap<String, String> jwtClientConfiguration = Optional.ofNullable(getJwtClientConfigurationElements(config.getJwtClientAuthentication())).orElse(new HashMap<>());
-    String issuer = Optional.ofNullable(jwtClientConfiguration.get("iss")).orElse(config.getRelyingPartyId());
-    String audience = Optional.ofNullable(jwtClientConfiguration.get("aud")).orElse(config.getTokenUrl().toString());
-    String kid = Optional.ofNullable(jwtClientConfiguration.get("kid")).orElse(keyInfoService.getActiveKey().keyId());
+    String issuer = readJwtClientOption(jwtClientConfiguration.get("iss"), config.getRelyingPartyId());
+    String audience = readJwtClientOption(jwtClientConfiguration.get("aud"), config.getTokenUrl().toString());
+    String kid = readJwtClientOption(jwtClientConfiguration.get("kid"), keyInfoService.getActiveKey().keyId());
     Claims claims = new Claims();
     claims.setAud(Arrays.asList(audience));
     claims.setSub(config.getRelyingPartyId());
@@ -77,7 +86,7 @@ public class JwtClientAuthentication {
     claims.setJti(UUID.randomUUID().toString().replace("-", ""));
     claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
     claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
-    KeyInfo signingKeyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
+    KeyInfo signingKeyInfo = loadKeyInfo(keyInfoService, jwtClientConfiguration, kid);
     return signingKeyInfo.verifierCertificate().isPresent() ?
         JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
         JwtHelper.encode(claims.getClaimMap(), signingKeyInfo).getEncoded();
@@ -157,5 +166,51 @@ public class JwtClientAuthentication {
     } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
       throw new BadCredentialsException("Untrusted client_assertion", e);
     }
+  }
+
+  private static KeyInfo loadKeyInfo(KeyInfoService keyInfoService, HashMap<String, String> jwtClientConfiguration, String kid) {
+    KeyInfo keyInfo;
+    String signingKey = readJwtClientOption(jwtClientConfiguration.get("key"), null);
+    if (signingKey == null) {
+      keyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
+    } else {
+      String signingAlg = readJwtClientOption(jwtClientConfiguration.get("alg"), JWSAlgorithm.RS256.getName());
+      String signingCert = readJwtClientOption(jwtClientConfiguration.get("cert"), null);
+      keyInfo = KeyInfoBuilder.build(kid, signingKey, UaaStringUtils.DEFAULT_UAA_URL, signingAlg, signingCert);
+    }
+    return keyInfo;
+  }
+
+  private static String readJwtClientOption(String jwtClientOption, String defaultOption) {
+    String value;
+    if (isNotEmpty(jwtClientOption)) {
+      // check if dynamic value means, a reference to another section in uaa yaml is defined
+      Matcher matcher = getDynamicValueMatcher(jwtClientOption);
+      if (matcher.find()) {
+        value = Optional.ofNullable(getDynamicValue(matcher)).orElse(getDefaultValue(matcher));
+      } else {
+        value = jwtClientOption;
+      }
+    } else {
+      value = defaultOption;
+    }
+    return value;
+  }
+
+  private static Matcher getDynamicValueMatcher(String value) {
+    return DYNAMIC_VALUE_PARAMETER_PATTERN.matcher(value);
+  }
+
+  private static String getDynamicValue(Matcher m) {
+    /* return a reference from application environment only if in default zone */
+    if (!(new IdentityZoneManagerImpl().isCurrentZoneUaa())) {
+      return null;
+    }
+    ApplicationContext applicationContext = ApplicationContextProvider.getApplicationContext();
+    return applicationContext != null ? applicationContext.getEnvironment().getProperty(m.group("name")) : null;
+  }
+
+  private static String getDefaultValue(Matcher m) {
+    return m.group("default");
   }
 }
