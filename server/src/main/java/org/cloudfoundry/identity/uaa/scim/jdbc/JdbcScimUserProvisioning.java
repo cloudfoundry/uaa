@@ -530,7 +530,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     @VisibleForTesting
-    public void setDeactivateOnDelete(boolean deactivateOnDelete) {
+    protected void setDeactivateOnDelete(boolean deactivateOnDelete) {
         this.deactivateOnDelete = deactivateOnDelete;
     }
 
