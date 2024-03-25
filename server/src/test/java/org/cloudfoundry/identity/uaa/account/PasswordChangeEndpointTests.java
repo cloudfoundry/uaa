@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,8 +51,8 @@ class PasswordChangeEndpointTests {
         jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
                 jdbcTemplate,
                 new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
-                passwordEncoder, mockIdentityZoneManager, null, new TimeServiceImpl(),
-                new SimpleSearchQueryConverter());
+                passwordEncoder, mockIdentityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate),
+                new TimeServiceImpl(), new SimpleSearchQueryConverter());
 
         final RandomValueStringGenerator generator = new RandomValueStringGenerator();
 

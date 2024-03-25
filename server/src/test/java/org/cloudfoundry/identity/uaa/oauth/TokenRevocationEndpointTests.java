@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
@@ -73,7 +74,8 @@ public class TokenRevocationEndpointTests {
         ScimUserProvisioning userProvisioning = new JdbcScimUserProvisioning(
                 jdbcTemplate,
                 new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
-                passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl(), new SimpleSearchQueryConverter());
+                passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate),
+                new TimeServiceImpl(), new SimpleSearchQueryConverter());
         JdbcRevocableTokenProvisioning provisioning = spy(new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter, new TimeServiceImpl()));
         endpoint = spy(new TokenRevocationEndpoint(clientService, userProvisioning, provisioning));
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);

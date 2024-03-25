@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.joda.time.DateTime;
@@ -186,7 +187,7 @@ class LoginSamlAuthenticationProviderTests {
         groupProvisioning.createOrGet(new ScimGroup(null, UAA_USER, identityZoneManager.getCurrentIdentityZone().getId()), identityZoneManager.getCurrentIdentityZone().getId());
         providerDefinition = new SamlIdentityProviderDefinition();
 
-        userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl(), new SimpleSearchQueryConverter());
+        userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new TimeServiceImpl(), new SimpleSearchQueryConverter());
 
 
         uaaSamlUser = groupProvisioning.create(new ScimGroup(null, UAA_SAML_USER, IdentityZone.getUaaZoneId()), identityZoneManager.getCurrentIdentityZone().getId());
@@ -246,7 +247,7 @@ class LoginSamlAuthenticationProviderTests {
 
     @Test
     void testAuthenticateSimple() {
-        authprovider.authenticate(mockSamlAuthentication());
+        assertNotNull(authprovider.authenticate(mockSamlAuthentication()));
     }
 
     @Test

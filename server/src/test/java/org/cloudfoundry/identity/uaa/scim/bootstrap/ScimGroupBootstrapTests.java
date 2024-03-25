@@ -15,6 +15,7 @@ import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +67,7 @@ class ScimGroupBootstrapTests {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
         DbUtils dbUtils = new DbUtils();
         gDB = new JdbcScimGroupProvisioning(template, pagingListFactory, dbUtils);
-        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), null, new TimeServiceImpl(), new SimpleSearchQueryConverter());
+        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new TimeServiceImpl(), new SimpleSearchQueryConverter());
         mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null, dbUtils);
         mDB.setScimGroupProvisioning(gDB);
 
