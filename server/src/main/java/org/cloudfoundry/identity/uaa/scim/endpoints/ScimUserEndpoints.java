@@ -137,7 +137,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     public ScimUserEndpoints(
             final IdentityZoneManager identityZoneManager,
             final IsSelfCheck isSelfCheck,
-            final ScimUserProvisioning scimUserProvisioning,
+            final @Qualifier("scimUserProvisioning") ScimUserProvisioning scimUserProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning,
             final @Qualifier("scimUserProvisioning") ResourceMonitor<ScimUser> scimUserResourceMonitor,
             final @Qualifier("exceptionToStatusMap") Map<Class<? extends Exception>, HttpStatus> statuses,

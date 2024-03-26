@@ -3,12 +3,14 @@ package org.cloudfoundry.identity.uaa.account;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -49,7 +51,8 @@ class PasswordChangeEndpointTests {
         jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
                 jdbcTemplate,
                 new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
-                passwordEncoder, mockIdentityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate));
+                passwordEncoder, mockIdentityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate),
+                new TimeServiceImpl(), new SimpleSearchQueryConverter());
 
         final RandomValueStringGenerator generator = new RandomValueStringGenerator();
 

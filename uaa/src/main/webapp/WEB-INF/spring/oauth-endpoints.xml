@@ -543,8 +543,6 @@
         <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
-    <bean id="timeService" class="org.cloudfoundry.identity.uaa.util.TimeServiceImpl"/>
-
     <bean id="oauthAccessDeniedHandler"
           class="org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler"/>
 
