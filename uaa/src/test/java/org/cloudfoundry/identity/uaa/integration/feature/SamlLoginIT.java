@@ -12,9 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -29,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -204,31 +203,28 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void testSamlSPMetadata() throws IOException {
-        String command = "curl -k http://localhost:8080/uaa/saml/metadata";
-        Process process = Runtime.getRuntime().exec(command);
-        BufferedReader stdInput = new BufferedReader(new
-                InputStreamReader(process.getInputStream()));
-
-        StringBuilder samlSpMetadata = new StringBuilder();
-        String line;
-        while ((line = stdInput.readLine()) != null) {
-            samlSpMetadata.append(line);
-        }
+    public void testSamlSPMetadata() {
+        RestTemplate request = new RestTemplate();
+        ResponseEntity response = request.getForEntity(
+                baseUrl + "/saml/metadata", String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        String metadataXml = (String)response.getBody();
 
         // The SAML SP metadata should match the following UAA configs:
         // login.entityID
-        assertThat(samlSpMetadata.toString(), containsString("entityID=\"cloudfoundry-saml-login\""));
+        assertThat(metadataXml, containsString(
+                "entityID=\"cloudfoundry-saml-login\""));
         // login.saml.signatureAlgorithm
-        assertThat(samlSpMetadata.toString(), containsString("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
+        assertThat(metadataXml, containsString(
+                "<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
         // login.saml.signRequest
-        assertThat(samlSpMetadata.toString(), containsString("AuthnRequestsSigned=\"true\""));
+        assertThat(metadataXml, containsString("AuthnRequestsSigned=\"true\""));
         // login.saml.wantAssertionSigned
-        assertThat(samlSpMetadata.toString(), containsString("WantAssertionsSigned=\"true\""));
+        assertThat(metadataXml, containsString(
+                "WantAssertionsSigned=\"true\""));
         // login.saml.nameID
-        assertThat(samlSpMetadata.toString(), containsString("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"));
-
-        process.destroy();
+        assertThat(metadataXml, containsString(
+                "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"));
     }
 
     @Test
