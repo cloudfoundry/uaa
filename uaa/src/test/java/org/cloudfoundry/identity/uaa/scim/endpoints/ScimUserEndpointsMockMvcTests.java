@@ -436,10 +436,12 @@ class ScimUserEndpointsMockMvcTests {
 
         @Test
         void updateUser_ShouldIgnoreAliasProperties() throws Exception {
+            final String email = "john.doe.%s@example.com".formatted(RandomStringUtils.randomAlphabetic(5));
+
             // create user with empty alias properties
-            final ScimUser user = new ScimUser(null, "john.doe@example.com", "Joel", "D'sa");
+            final ScimUser user = new ScimUser(null, email, "Joel", "D'sa");
             user.setPassword("password");
-            user.setPrimaryEmail("john.doe@example.com");
+            user.setPrimaryEmail(email);
             user.setAliasId(null);
             user.setAliasZid(null);
             final ScimUser createdUser = createUser(user, scimReadWriteToken, null);
@@ -469,10 +471,12 @@ class ScimUserEndpointsMockMvcTests {
 
         @Test
         void patchUser_ShouldIgnoreAliasProperties() throws Exception {
+            final String email = "john.doe.%s@example.com".formatted(RandomStringUtils.randomAlphabetic(5));
+
             // create user with empty alias properties
-            final ScimUser user = new ScimUser(null, "john.doe@example.com", "Joel", "D'sa");
+            final ScimUser user = new ScimUser(null, email, "Joel", "D'sa");
             user.setPassword("password");
-            user.setPrimaryEmail("john.doe@example.com");
+            user.setPrimaryEmail(email);
             user.setAliasId(null);
             user.setAliasZid(null);
             final ScimUser createdUser = createUser(user, scimReadWriteToken, null);
