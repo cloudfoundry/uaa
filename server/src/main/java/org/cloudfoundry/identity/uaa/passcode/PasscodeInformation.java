@@ -61,8 +61,8 @@ public class PasscodeInformation {
             uaaPrincipal = getUaaPrincipal(castUaaPrincipal);
         } else if (principal instanceof UaaAuthentication castUaaAuthentication) {
             uaaPrincipal = getUaaPrincipal(castUaaAuthentication.getPrincipal());
-        } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
-            uaaPrincipal = getUaaPrincipal(samlTokenPrincipal.getUaaPrincipal());
+//        } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
+//            uaaPrincipal = getUaaPrincipal(samlTokenPrincipal.getUaaPrincipal());
         } else if (
                 principal instanceof Authentication castAuthentication &&
                   castAuthentication.getPrincipal() instanceof UaaPrincipal castUaaPrincipal

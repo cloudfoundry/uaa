@@ -12,7 +12,7 @@ package org.cloudfoundry.identity.uaa.provider.saml; /**************************
  *******************************************************************************/
 
 import org.junit.Test;
-import org.opensaml.xml.XMLObject;
+//import org.opensaml.xml.XMLObject;
 
 import static org.junit.Assert.*;
 
@@ -32,10 +32,10 @@ public class ComparableProviderTest {
             return zoneId;
         }
 
-        @Override
-        public XMLObject doGetMetadata() {
-            return null;
-        }
+//        @Override
+//        public XMLObject doGetMetadata() {
+//            return null;
+//        }
 
         @Override
         public byte[] fetchMetadata() {
