@@ -1091,6 +1091,13 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             void setUp() {
                 arrangeAliasFeatureEnabled(aliasFeatureEnabled);
             }
+        }
+
+        @Nested
+        class AliasFeatureEnabled extends DeleteBase {
+            public AliasFeatureEnabled() {
+                super(true);
+            }
 
             @Test
             void shouldIgnoreDanglingReferenceToAliasIdp_UaaToCustomZone() throws Throwable {
@@ -1102,7 +1109,10 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 shouldIgnoreDanglingReferenceToAliasIdp(customZone, IdentityZone.getUaa());
             }
 
-            private void shouldIgnoreDanglingReferenceToAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Throwable {
+            private void shouldIgnoreDanglingReferenceToAliasIdp(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
                 final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
                         aliasFeatureEnabled,
                         () -> createIdpWithAlias(zone1, zone2)
@@ -1155,21 +1165,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
                 assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
 
-                // alias IdP should still exist, but without reference to original IdP
-                assertAliasIdpAfterDeletion(aliasId, aliasZid);
-            }
-
-            protected abstract void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception;
-        }
-
-        @Nested
-        class AliasFeatureEnabled extends DeleteBase {
-            public AliasFeatureEnabled() {
-                super(true);
-            }
-
-            @Override
-            protected void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception {
                 // if the alias feature is enabled, the alias should also be removed
                 assertIdpDoesNotExist(aliasId, aliasZid);
             }
@@ -1181,13 +1176,43 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 super(false);
             }
 
-            @Override
-            protected void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception {
-                // if the alias feature is disabled, only the reference should be removed from the alias IdP
-                assertReferenceWasRemovedFromAlias(aliasId, aliasZid);
+            @Test
+            void shouldRejectDeletion_WhenAliasIdpExists_UaaToCustomZone() throws Throwable {
+                shouldRejectDeletion_WhenAliasIdpExists(IdentityZone.getUaa(), customZone);
+            }
+
+            @Test
+            void shouldRejectDeletion_WhenAliasIdpExists_CustomToUaaZone() throws Throwable {
+                shouldRejectDeletion_WhenAliasIdpExists(customZone, IdentityZone.getUaa());
+            }
+
+            private void shouldRejectDeletion_WhenAliasIdpExists(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                // create IdP in zone 1 with alias in zone 2
+                final IdentityProvider<?> idpInZone1 = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+                final String id = idpInZone1.getId();
+                assertThat(id).isNotBlank();
+                final String aliasId = idpInZone1.getAliasId();
+                assertThat(aliasId).isNotBlank();
+                final String aliasZid = idpInZone1.getAliasZid();
+                assertThat(aliasZid).isNotBlank().isEqualTo(zone2.getId());
+
+                // check if alias IdP is available in zone 2
+                final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId);
+                assertThat(aliasIdp).isPresent();
+                assertThat(aliasIdp.get().getAliasId()).isNotBlank().isEqualTo(id);
+                assertThat(aliasIdp.get().getAliasZid()).isNotBlank().isEqualTo(idpInZone1.getIdentityZoneId());
+
+                // delete IdP in zone 1 -> should be rejected since alias feature is disabled
+                final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
+                assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
             }
         }
-
 
         private MvcResult deleteIdpAndReturnResult(final IdentityZone zone, final String id) throws Exception {
             final String accessTokenForZone1 = getAccessTokenForZone(zone.getId());

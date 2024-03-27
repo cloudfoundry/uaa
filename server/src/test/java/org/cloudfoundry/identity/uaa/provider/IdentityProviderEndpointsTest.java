@@ -670,45 +670,22 @@ class IdentityProviderEndpointsTest {
             void testDeleteIdpWithAlias_AliasFeatureDisabled() {
                 arrangeAliasEntitiesEnabled(false);
 
+                // ensure event publisher is present
+                final ApplicationEventPublisher mockEventPublisher = mock(ApplicationEventPublisher.class);
+                identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
+
                 // arrange IdP with alias exists
                 final String customZoneId = UUID.randomUUID().toString();
                 final Pair<IdentityProvider<?>, IdentityProvider<?>> idpAndAlias = arrangeIdpWithAliasExists(UAA, customZoneId);
                 final IdentityProvider<?> idp = idpAndAlias.getLeft();
-                final IdentityProvider<?> aliasIdp = idpAndAlias.getRight();
 
-                final ApplicationEventPublisher mockEventPublisher = mock(ApplicationEventPublisher.class);
-                identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
-                doNothing().when(mockEventPublisher).publishEvent(any());
+                final ResponseEntity<IdentityProvider> response = identityProviderEndpoints.deleteIdentityProvider(
+                        idp.getId(),
+                        true
+                );
 
-                identityProviderEndpoints.deleteIdentityProvider(idp.getId(), true);
-
-                // the original IdP should be deleted
-                final ArgumentCaptor<EntityDeletedEvent<?>> entityDeletedEventCaptor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
-                verify(mockEventPublisher, times(1)).publishEvent(entityDeletedEventCaptor.capture());
-                final EntityDeletedEvent<?> event = entityDeletedEventCaptor.getValue();
-                Assertions.assertThat(event).isNotNull();
-                Assertions.assertThat(event.getIdentityZoneId()).isEqualTo(UAA);
-                Assertions.assertThat(((IdentityProvider<?>) event.getSource()).getId()).isEqualTo(idp.getId());
-
-                // instead of being deleted, the alias IdP should just have its reference to the original IdP removed
-                final ArgumentCaptor<IdentityProvider> updateIdpParamCaptor = ArgumentCaptor.forClass(IdentityProvider.class);
-                verify(mockIdentityProviderProvisioning).update(updateIdpParamCaptor.capture(), eq(customZoneId));
-                final IdentityProvider updateIdpParam = updateIdpParamCaptor.getValue();
-                Assertions.assertThat(updateIdpParam).isNotNull();
-                Assertions.assertThat(updateIdpParam.getAliasId()).isBlank();
-                Assertions.assertThat(updateIdpParam.getAliasZid()).isBlank();
-                assertIdpsAreEqualApartFromAliasProperties(updateIdpParam, aliasIdp);
-            }
-
-            private static void assertIdpsAreEqualApartFromAliasProperties(
-                    final IdentityProvider<?> idp1,
-                    final IdentityProvider<?> idp2
-            ) {
-                idp2.setAliasId(null);
-                idp1.setAliasId(null);
-                idp2.setAliasZid(null);
-                idp1.setAliasZid(null);
-                Assertions.assertThat(idp1).isEqualTo(idp2);
+                // deletion should be rejected
+                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
             }
 
             private Pair<IdentityProvider<?>, IdentityProvider<?>> arrangeIdpWithAliasExists(final String zone1Id, final String zone2Id) {
@@ -734,7 +711,7 @@ class IdentityProviderEndpointsTest {
                 aliasIdp.setIdentityZoneId(zone2Id);
                 aliasIdp.setAliasId(idpId);
                 aliasIdp.setAliasZid(zone1Id);
-                when(mockIdpAliasHandler.retrieveAliasEntity(idp)).thenReturn(Optional.of(aliasIdp));
+                lenient().when(mockIdpAliasHandler.retrieveAliasEntity(idp)).thenReturn(Optional.of(aliasIdp));
 
                 return Pair.of(idp, aliasIdp);
             }

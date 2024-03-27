@@ -225,6 +225,9 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
     protected abstract T cloneEntity(final T originalEntity);
 
     public final Optional<T> retrieveAliasEntity(final T originalEntity) {
+        if (!hasText(originalEntity.getAliasId()) || !hasText(originalEntity.getAliasZid())) {
+            return Optional.empty();
+        }
         return retrieveEntity(originalEntity.getAliasId(), originalEntity.getAliasZid());
     }
 
