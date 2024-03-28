@@ -37,8 +37,8 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         final boolean entityAlreadyHasAlias = existingEntity != null && hasText(existingEntity.getAliasZid());
         if (entityAlreadyHasAlias) {
             if (!aliasEntitiesEnabled) {
-                // if the feature is disabled, we only allow setting both alias properties to null
-                return !hasText(requestBody.getAliasId()) && !hasText(requestBody.getAliasZid());
+                // reject ANY update of an entity with an existing alias if the feature is disabled
+                return false;
             }
 
             if (!hasText(existingEntity.getAliasId())) {
