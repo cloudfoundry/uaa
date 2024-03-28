@@ -20,7 +20,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
@@ -40,7 +39,7 @@ public class JwtTokenGranter extends AbstractTokenGranter {
     protected JwtTokenGranter(AuthorizationServerTokenServices tokenServices,
                               MultitenantClientServices clientDetailsService,
                               OAuth2RequestFactory requestFactory) {
-        super(tokenServices, (ClientDetailsService) clientDetailsService, requestFactory, GRANT_TYPE_JWT_BEARER);
+        super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_JWT_BEARER);
         defaultSecurityContextAccessor = new org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor();
     }
 

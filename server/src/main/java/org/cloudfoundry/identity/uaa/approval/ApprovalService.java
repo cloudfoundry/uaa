@@ -7,7 +7,6 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 
 import java.util.Collection;
 import java.util.HashSet;

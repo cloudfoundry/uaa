@@ -52,7 +52,7 @@ public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
         if (GRANT_TYPE_CLIENT_CREDENTIALS.equalsIgnoreCase(tokenRequest.getGrantType())) {
             validateScope(tokenRequest.getScope(), getAuthorities(client.getAuthorities()), false);
         } else if (GRANT_TYPE_USER_TOKEN.equalsIgnoreCase(tokenRequest.getGrantType())) {
-            client = (ClientDetails) clientDetailsService.loadClientByClientId(tokenRequest.getRequestParameters().get(CLIENT_ID), IdentityZoneHolder.get().getId());
+            client = clientDetailsService.loadClientByClientId(tokenRequest.getRequestParameters().get(CLIENT_ID), IdentityZoneHolder.get().getId());
             validateScope(tokenRequest.getScope(), client.getScope(), true);
         } else {
             validateScope(tokenRequest.getScope(), client.getScope(), true);

@@ -14,7 +14,6 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 
 import java.util.*;
 

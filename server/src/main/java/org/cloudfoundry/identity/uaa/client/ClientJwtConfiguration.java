@@ -235,8 +235,8 @@ public class ClientJwtConfiguration implements Cloneable{
   @JsonIgnore
   public void writeValue(ClientDetails clientDetails) {
     if (clientDetails instanceof UaaClientDetails) {
-      UaaClientDetails uaaUaaClientDetails = (UaaClientDetails) clientDetails;
-      uaaUaaClientDetails.setClientJwtConfig(JsonUtils.writeValueAsString(this));
+      UaaClientDetails uaaClientDetails = (UaaClientDetails) clientDetails;
+      uaaClientDetails.setClientJwtConfig(JsonUtils.writeValueAsString(this));
     }
   }
 
@@ -250,8 +250,8 @@ public class ClientJwtConfiguration implements Cloneable{
   @JsonIgnore
   public static void resetConfiguration(ClientDetails clientDetails) {
     if (clientDetails instanceof UaaClientDetails) {
-      UaaClientDetails uaaUaaClientDetails = (UaaClientDetails) clientDetails;
-      uaaUaaClientDetails.setClientJwtConfig(null);
+      UaaClientDetails uaaClientDetails = (UaaClientDetails) clientDetails;
+      uaaClientDetails.setClientJwtConfig(null);
     }
   }
 

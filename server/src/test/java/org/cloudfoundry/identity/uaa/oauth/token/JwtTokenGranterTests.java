@@ -170,7 +170,7 @@ public class JwtTokenGranterTests {
     public void get_oauth2_authentication_validates_request() {
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("User authentication not found");
-        granter.getOAuth2Authentication((ClientDetails) client, tokenRequest);
+        granter.getOAuth2Authentication(client, tokenRequest);
         verify(granter, times(1)).validateRequest(same(tokenRequest));
     }
 
@@ -178,8 +178,8 @@ public class JwtTokenGranterTests {
     public void get_oauth2_authentication() {
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
         OAuth2Request request = mock(OAuth2Request.class);
-        when(requestFactory.createOAuth2Request((ClientDetails) same(client), same(tokenRequest))).thenReturn(request);
-        OAuth2Authentication result = granter.getOAuth2Authentication((ClientDetails) client, tokenRequest);
+        when(requestFactory.createOAuth2Request(same(client), same(tokenRequest))).thenReturn(request);
+        OAuth2Authentication result = granter.getOAuth2Authentication(client, tokenRequest);
         assertSame(request, result.getOAuth2Request());
         assertSame(uaaAuthentication, result.getUserAuthentication());
     }

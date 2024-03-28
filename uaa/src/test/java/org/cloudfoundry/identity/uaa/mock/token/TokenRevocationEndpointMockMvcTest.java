@@ -16,7 +16,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import java.util.Collections;
