@@ -218,7 +218,7 @@ public class SamlLoginIT {
         assertThat(metadataXml, containsString(
                 "<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
         assertThat(metadataXml, containsString(
-                "<ds:SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\"/>"));
+                "<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>"));
         // login.saml.signRequest
         assertThat(metadataXml, containsString("AuthnRequestsSigned=\"true\""));
         // login.saml.wantAssertionSigned
