@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
@@ -41,7 +41,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void testCreateLimitedClient() {
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails("valid-client", null, "openid", "authorization_code,password", "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails("valid-client", null, "openid", "authorization_code,password", "uaa.resource");
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
@@ -55,7 +55,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void testCreateClientNoNameIsInvalid() {
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails("", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails("", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
         clientDetails.setClientSecret("secret");
         assertThrows(InvalidClientDetailsException.class,
                 () -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
@@ -72,7 +72,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
             GRANT_TYPE_JWT_BEARER,
     })
     void testCreateClientNoSecretIsInvalid(final String grantType) {
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails("client", null, "openid", grantType, "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails("client", null, "openid", grantType, "uaa.resource");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
 
         assertThrowsWithMessageThat(
@@ -84,7 +84,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void testCreateClientNoSecretForImplicitIsValid() {
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails("client", null, "openid", "implicit", "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails("client", null, "openid", "implicit", "uaa.resource");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
         assertEquals(clientDetails.getAuthorizedGrantTypes(), validatedClientDetails.getAuthorizedGrantTypes());
@@ -92,7 +92,7 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void reject_invalid_grant_type() {
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails("client", null, "openid", "invalid_grant_type", "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails("client", null, "openid", "invalid_grant_type", "uaa.resource");
         clientDetails.addAdditionalInformation(ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         assertThrows(InvalidClientDetailsException.class,
                 () -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
@@ -100,14 +100,14 @@ class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     void testCreateAdminScopeClientIsInvalid() {
-        ClientDetails clientDetails = new UaaBaseClientDetails("admin-client", null, "uaa.admin", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
+        ClientDetails clientDetails = new UaaClientDetails("admin-client", null, "uaa.admin", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
         assertThrows(InvalidClientDetailsException.class,
                 () -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
     }
 
     @Test
     void testCreateAdminAuthorityClientIsInvalid() {
-        ClientDetails clientDetails = new UaaBaseClientDetails("admin-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.admin");
+        ClientDetails clientDetails = new UaaClientDetails("admin-client", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.admin");
         assertThrows(InvalidClientDetailsException.class,
                 () -> zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE));
     }

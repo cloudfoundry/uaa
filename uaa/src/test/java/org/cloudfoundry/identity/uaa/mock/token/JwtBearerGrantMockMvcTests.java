@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.JwtTokenUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -38,7 +39,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -61,12 +62,12 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     private static RandomValueStringGenerator generator = new RandomValueStringGenerator(12);
 
     MockMvcUtils.IdentityZoneCreationResult originZone;
-    UaaBaseClientDetails originClient;
+    UaaClientDetails originClient;
     ScimUser originUser;
 
     @BeforeEach
     public void setupJwtBearerTests() throws Exception {
-        originClient = new UaaBaseClientDetails(generator.generate(), "", "openid", "password", null);
+        originClient = new UaaClientDetails(generator.generate(), "", "openid", "password", null);
         originClient.setClientSecret(SECRET);
         String subdomain = generator.generate().toLowerCase();
         originZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, originClient, IdentityZoneHolder.getCurrentZoneId());
@@ -91,7 +92,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     void non_default_zone_jwt_grant_user_update() throws Exception {
-        UaaBaseClientDetails targetZoneClient = new UaaBaseClientDetails(generator.generate(), "", "openid", "password", null);
+        UaaClientDetails targetZoneClient = new UaaClientDetails(generator.generate(), "", "openid", "password", null);
         targetZoneClient.setClientSecret(SECRET);
         String subdomain = generator.generate().toLowerCase();
         IdentityZone targetZone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain,
@@ -133,7 +134,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     void non_default_zone_jwt_grant_user_update_same_zone_with_registration() throws Exception {
-        UaaBaseClientDetails targetZoneClient = new UaaBaseClientDetails(generator.generate(), "", "openid", "password",
+        UaaClientDetails targetZoneClient = new UaaClientDetails(generator.generate(), "", "openid", "password",
                 null);
         targetZoneClient.setClientSecret(SECRET);
         String subdomain = generator.generate().toLowerCase();
@@ -185,7 +186,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     void defaultZoneJwtGrantWithInternalIdp() throws Exception {
-        UaaBaseClientDetails defaultZoneClient = setUpClients(generator.generate(), "", "openid", "password", true);
+        UaaClientDetails defaultZoneClient = setUpClients(generator.generate(), "", "openid", "password", true);
         defaultZoneClient.setClientSecret(SECRET);
 
         IdentityZone defaultZone = IdentityZone.getUaa();
@@ -334,7 +335,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     ClientDetails createJwtBearerClient(IdentityZone zone) {
-        UaaBaseClientDetails details = new UaaBaseClientDetails(
+        UaaClientDetails details = new UaaClientDetails(
             generator.generate().toLowerCase(),
             "",
             "openid",

@@ -2,7 +2,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.event.TokenRevocationEvent;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
@@ -94,7 +95,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
     public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
         String zoneId = IdentityZoneHolder.get().getId();
-        UaaBaseClientDetails client = (UaaBaseClientDetails) clientDetailsService.loadClientByClientId(clientId, zoneId);
+        UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, zoneId);
         client.addAdditionalInformation(ClientConstants.TOKEN_SALT, generator.generate());
         clientDetailsService.updateClientDetails(client, zoneId);
         eventPublisher.publishEvent(new TokenRevocationEvent(null, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));

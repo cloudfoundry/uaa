@@ -15,9 +15,9 @@ public class UaaClientDetailsUserDetailsService implements UserDetailsService {
   }
 
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    UaaBaseClientDetails clientDetails;
+    UaaClientDetails clientDetails;
     try {
-      clientDetails = (UaaBaseClientDetails) clientDetailsService.loadClientByClientId(username);
+      clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(username);
     } catch (NoSuchClientException e) {
       throw new UsernameNotFoundException(e.getMessage(), e);
     }

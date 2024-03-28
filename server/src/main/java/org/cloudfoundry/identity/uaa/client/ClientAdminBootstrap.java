@@ -111,7 +111,7 @@ public class ClientAdminBootstrap implements
         autoApproveClients.removeAll(clientsToDelete);
         for (String clientId : autoApproveClients) {
             try {
-                UaaBaseClientDetails base = (UaaBaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
+                UaaClientDetails base = (UaaClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
                 logger.debug("Adding autoapprove flag to client: " + clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
@@ -125,7 +125,7 @@ public class ClientAdminBootstrap implements
         allowPublicClients.removeAll(clientsToDelete);
         for (String clientId : allowPublicClients) {
             try {
-                UaaBaseClientDetails base = (UaaBaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
+                UaaClientDetails base = (UaaClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.ALLOW_PUBLIC, true);
                 logger.debug("Adding allowpublic flag to client: {}", clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
@@ -159,7 +159,7 @@ public class ClientAdminBootstrap implements
             if (map.get("authorized-grant-types") == null) {
                 throw new InvalidClientDetailsException("Client must have at least one authorized-grant-type. client ID: " + clientId);
             }
-            UaaBaseClientDetails client = new UaaBaseClientDetails(clientId, (String) map.get("resource-ids"),
+            UaaClientDetails client = new UaaClientDetails(clientId, (String) map.get("resource-ids"),
                     (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                     (String) map.get("authorities"), getRedirectUris(map));
 
@@ -251,7 +251,7 @@ public class ClientAdminBootstrap implements
         }
     }
 
-    private boolean isMissingRedirectUris(UaaBaseClientDetails client) {
+    private boolean isMissingRedirectUris(UaaClientDetails client) {
         return client.getRegisteredRedirectUri() == null || client.getRegisteredRedirectUri().isEmpty();
     }
 

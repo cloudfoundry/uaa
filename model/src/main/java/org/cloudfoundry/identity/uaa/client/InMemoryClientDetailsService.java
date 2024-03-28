@@ -9,18 +9,18 @@ import java.util.Map;
 
 public class InMemoryClientDetailsService implements ClientDetailsService {
 
-  private Map<String, UaaBaseClientDetails> clientDetailsStore = new HashMap<String, UaaBaseClientDetails>();
+  private Map<String, UaaClientDetails> clientDetailsStore = new HashMap<String, UaaClientDetails>();
 
-  public UaaBaseClientDetails loadClientByClientId(String clientId) throws ClientRegistrationException {
-    UaaBaseClientDetails details = clientDetailsStore.get(clientId);
+  public UaaClientDetails loadClientByClientId(String clientId) throws ClientRegistrationException {
+    UaaClientDetails details = clientDetailsStore.get(clientId);
     if (details == null) {
       throw new NoSuchClientException("No client with requested id");
     }
     return details;
   }
 
-  public void setClientDetailsStore(Map<String, ? extends UaaBaseClientDetails> clientDetailsStore) {
-    this.clientDetailsStore = new HashMap<String, UaaBaseClientDetails>(clientDetailsStore);
+  public void setClientDetailsStore(Map<String, ? extends UaaClientDetails> clientDetailsStore) {
+    this.clientDetailsStore = new HashMap<String, UaaClientDetails>(clientDetailsStore);
   }
 
 }

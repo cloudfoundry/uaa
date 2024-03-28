@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.client;
 import org.cloudfoundry.identity.uaa.ProxyingBeanInfoMatcher;
 import org.hamcrest.Matcher;
 
-public interface UaaClientDetailsMatcher extends Matcher<UaaBaseClientDetails> {
+public interface UaaClientDetailsMatcher extends Matcher<UaaClientDetails> {
     static UaaClientDetailsMatcher aUaaClientDetails() {
         return ProxyingBeanInfoMatcher.proxying(UaaClientDetailsMatcher.class);
     }

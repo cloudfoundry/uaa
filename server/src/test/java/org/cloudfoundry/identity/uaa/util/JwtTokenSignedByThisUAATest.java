@@ -21,7 +21,8 @@ import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.cloudfoundry.identity.uaa.client.InMemoryClientDetailsService;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
@@ -114,7 +115,7 @@ public class JwtTokenSignedByThisUAATest {
     private InMemoryMultitenantClientServices inMemoryMultitenantClientServices;
     private UaaUserDatabase userDb;
     private UaaUser uaaUser;
-    private UaaBaseClientDetails uaaClient;
+    private UaaClientDetails uaaClient;
     private Collection<String> uaaUserGroups;
 
     private List<String> logEvents;
@@ -206,7 +207,7 @@ public class JwtTokenSignedByThisUAATest {
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
         inMemoryMultitenantClientServices = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
-        uaaClient = new UaaBaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
+        uaaClient = new UaaClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Collections.emptyList());
         inMemoryMultitenantClientServices.setClientDetailsStore(IdentityZone.getUaaZoneId(),
                 Collections.singletonMap(CLIENT_ID, uaaClient));
@@ -635,7 +636,7 @@ public class JwtTokenSignedByThisUAATest {
         clientDetailsService.setClientDetailsStore(
                 Collections.singletonMap(
                         "app",
-                        new UaaBaseClientDetails("app", "acme", "a.different.scope", GRANT_TYPE_AUTHORIZATION_CODE, "")
+                        new UaaClientDetails("app", "acme", "a.different.scope", GRANT_TYPE_AUTHORIZATION_CODE, "")
                 )
         );
 

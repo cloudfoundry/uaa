@@ -21,7 +21,8 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
@@ -444,7 +445,7 @@ public final class MockMvcUtils {
         IdentityZoneCreationResult zone = MockMvcUtils.createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null, zoneId);
 
         List<String> redirectUris = Arrays.asList(redirectUri, "http://" + zone.getIdentityZone().getSubdomain() + ".localhost");
-        UaaBaseClientDetails appClient = new UaaBaseClientDetails("app", "", "scim.invite", "client_credentials,password,authorization_code", "uaa.admin,clients.admin,scim.write,scim.read,scim.invite", String.join(",", redirectUris));
+        UaaClientDetails appClient = new UaaClientDetails("app", "", "scim.invite", "client_credentials,password,authorization_code", "uaa.admin,clients.admin,scim.write,scim.read,scim.invite", String.join(",", redirectUris));
 
         appClient.setClientSecret("secret");
         appClient = MockMvcUtils.createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone(),
@@ -657,7 +658,7 @@ public final class MockMvcUtils {
                                                        boolean useWebRequests,
                                                        String zoneId) throws Exception {
 
-        UaaBaseClientDetails client = new UaaBaseClientDetails("admin", null, null, "client_credentials",
+        UaaClientDetails client = new UaaClientDetails("admin", null, null, "client_credentials",
           "clients.admin,scim.read,scim.write,idps.write,uaa.admin", "http://redirect.url");
         client.setClientSecret("admin-secret");
 
@@ -858,11 +859,11 @@ public final class MockMvcUtils {
           ScimGroup.class);
     }
 
-    public static UaaBaseClientDetails createClient(MockMvc mockMvc, String accessToken, UaaBaseClientDetails clientDetails) throws Exception {
+    public static UaaClientDetails createClient(MockMvc mockMvc, String accessToken, UaaClientDetails clientDetails) throws Exception {
         return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa(), status().isCreated());
     }
 
-    public static UaaBaseClientDetails createClient(MockMvc mockMvc, IdentityZone identityZone, String accessToken, UaaBaseClientDetails clientDetails) throws Exception {
+    public static UaaClientDetails createClient(MockMvc mockMvc, IdentityZone identityZone, String accessToken, UaaClientDetails clientDetails) throws Exception {
         return createClient(mockMvc, accessToken, clientDetails, identityZone, status().isCreated());
     }
 
@@ -877,7 +878,7 @@ public final class MockMvcUtils {
           .andExpect(status().is(not(500)));
     }
 
-    public static UaaBaseClientDetails createClient(MockMvc mockMvc, String accessToken, UaaBaseClientDetails clientDetails,
+    public static UaaClientDetails createClient(MockMvc mockMvc, String accessToken, UaaClientDetails clientDetails,
                                                  IdentityZone zone, ResultMatcher status)
       throws Exception {
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
@@ -891,10 +892,10 @@ public final class MockMvcUtils {
         return JsonUtils.readValue(
           mockMvc.perform(createClientPost)
             .andExpect(status)
-            .andReturn().getResponse().getContentAsString(), UaaBaseClientDetails.class);
+            .andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
     }
 
-    public static UaaBaseClientDetails createClient(ApplicationContext context, UaaBaseClientDetails clientDetails, IdentityZone zone) {
+    public static UaaClientDetails createClient(ApplicationContext context, UaaClientDetails clientDetails, IdentityZone zone) {
 
         MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
         if (clientDetails.getClientSecret() == null) {
@@ -902,7 +903,7 @@ public final class MockMvcUtils {
             clientDetails.setClientSecret("");
         }
         service.addClientDetails(clientDetails, zone.getId());
-        return (UaaBaseClientDetails) service.loadClientByClientId(clientDetails.getClientId(), zone.getId());
+        return (UaaClientDetails) service.loadClientByClientId(clientDetails.getClientId(), zone.getId());
     }
 
     public static ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, List<String> scopes, List<String> grantTypes, String authorities) throws Exception {
@@ -934,13 +935,13 @@ public final class MockMvcUtils {
         return detailsModification;
     }
 
-    public static UaaBaseClientDetails updateClient(ApplicationContext context, UaaBaseClientDetails clientDetails, IdentityZone zone) {
+    public static UaaClientDetails updateClient(ApplicationContext context, UaaClientDetails clientDetails, IdentityZone zone) {
         MultitenantJdbcClientDetailsService service = context.getBean(MultitenantJdbcClientDetailsService.class);
         service.updateClientDetails(clientDetails, zone.getId());
-        return (UaaBaseClientDetails) service.loadClientByClientId(clientDetails.getClientId(), zone.getId());
+        return (UaaClientDetails) service.loadClientByClientId(clientDetails.getClientId(), zone.getId());
     }
 
-    public static UaaBaseClientDetails updateClient(MockMvc mockMvc, String accessToken, UaaBaseClientDetails clientDetails, IdentityZone zone)
+    public static UaaClientDetails updateClient(MockMvc mockMvc, String accessToken, UaaClientDetails clientDetails, IdentityZone zone)
       throws Exception {
         MockHttpServletRequestBuilder updateClientPut =
           put("/oauth/clients/" + clientDetails.getClientId())
@@ -955,10 +956,10 @@ public final class MockMvcUtils {
         return JsonUtils.readValue(
           mockMvc.perform(updateClientPut)
             .andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString(), UaaBaseClientDetails.class);
+            .andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
     }
 
-    public static UaaBaseClientDetails getClient(MockMvc mockMvc, String accessToken, String clientId, IdentityZone zone)
+    public static UaaClientDetails getClient(MockMvc mockMvc, String accessToken, String clientId, IdentityZone zone)
       throws Exception {
         MockHttpServletRequestBuilder readClientGet =
           get("/oauth/clients/" + clientId)
@@ -972,7 +973,7 @@ public final class MockMvcUtils {
         return JsonUtils.readValue(
           mockMvc.perform(readClientGet)
             .andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString(), UaaBaseClientDetails.class);
+            .andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
     }
 
     public static String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {

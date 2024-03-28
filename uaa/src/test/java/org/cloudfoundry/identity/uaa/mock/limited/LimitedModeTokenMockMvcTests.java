@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.mock.limited;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.codec.Base64;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 
 import java.io.File;
 
@@ -60,7 +61,7 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
 
     @Test
     void check_token_while_limited() throws Exception {
-        UaaBaseClientDetails client = setUpClients(generator.generate().toLowerCase(),
+        UaaClientDetails client = setUpClients(generator.generate().toLowerCase(),
                                                 "uaa.resource,clients.read",
                                                 "",
                                                 "client_credentials",

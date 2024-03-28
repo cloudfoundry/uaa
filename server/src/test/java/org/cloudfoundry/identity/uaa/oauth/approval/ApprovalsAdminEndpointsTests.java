@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -86,7 +86,7 @@ class ApprovalsAdminEndpointsTests {
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
 
         MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
-        UaaBaseClientDetails details = new UaaBaseClientDetails("c1", "scim,clients", "read,write",
+        UaaClientDetails details = new UaaClientDetails("c1", "scim,clients", "read,write",
                 "authorization_code, password, implicit, client_credentials", "update");
         details.setAutoApproveScopes(Collections.singletonList("true"));
         clientDetailsService.addClientDetails(details);

@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
@@ -350,7 +350,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(method = POST, value = "{identityZoneId}/clients")
     public ResponseEntity<? extends ClientDetails> createClient(
-            @PathVariable String identityZoneId, @RequestBody UaaBaseClientDetails clientDetails) {
+            @PathVariable String identityZoneId, @RequestBody UaaClientDetails clientDetails) {
         if (identityZoneId == null) {
             throw new ZoneDoesNotExistsException(identityZoneId);
         }
@@ -371,7 +371,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     }
 
     private ClientDetails removeSecret(ClientDetails createdClient) {
-        UaaBaseClientDetails response = (UaaBaseClientDetails) createdClient;
+        UaaClientDetails response = (UaaClientDetails) createdClient;
         response.setClientSecret(null);
         return response;
     }

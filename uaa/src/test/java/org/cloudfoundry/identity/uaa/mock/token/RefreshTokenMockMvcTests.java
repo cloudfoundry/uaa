@@ -41,7 +41,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 
 import java.time.Instant;
 import java.util.Collections;
@@ -103,7 +103,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     IdentityZone zone;
     ScimUser user;
-    UaaBaseClientDetails client;
+    UaaClientDetails client;
 
     private String refreshToken;
     private Map<String, String> keys;

@@ -15,7 +15,8 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -63,8 +64,8 @@ public class UserTokenGranterTest {
     private TokenRequest tokenRequest;
     private UaaAuthentication userAuthentication;
     private Map<String,String> requestParameters;
-    private UaaBaseClientDetails requestingClient;
-    private UaaBaseClientDetails receivingClient;
+    private UaaClientDetails requestingClient;
+    private UaaClientDetails receivingClient;
     private RevocableTokenProvisioning tokenStore;
 
     @Before
@@ -84,8 +85,8 @@ public class UserTokenGranterTest {
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        requestingClient = new UaaBaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_USER_TOKEN, null);
-        receivingClient =  new UaaBaseClientDetails("receivingId",null,"test.scope",GRANT_TYPE_REFRESH_TOKEN, null);
+        requestingClient = new UaaClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_USER_TOKEN, null);
+        receivingClient =  new UaaClientDetails("receivingId",null,"test.scope",GRANT_TYPE_REFRESH_TOKEN, null);
         when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
         when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()), anyString())).thenReturn(receivingClient);
         requestParameters = new HashMap<>();

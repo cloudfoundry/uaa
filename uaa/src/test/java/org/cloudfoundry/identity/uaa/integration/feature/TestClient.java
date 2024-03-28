@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
@@ -24,7 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -70,7 +71,7 @@ public class TestClient {
         return exchange.getBody().get("access_token").toString();
     }
 
-    public void createClient(String adminAccessToken, UaaBaseClientDetails clientDetails) {
+    public void createClient(String adminAccessToken, UaaClientDetails clientDetails) {
         restfulCreate(
             adminAccessToken,
             JsonUtils.writeValueAsString(clientDetails),

@@ -11,7 +11,8 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -206,7 +207,7 @@ public class DeprecatedUaaTokenServicesTests {
         IdTokenCreator idTokenCreator = mock(IdTokenCreator.class);
         when(idTokenCreator.create(any(), any(), any())).thenReturn(mock(IdToken.class));
 
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setScope(Sets.newHashSet("openid"));
 
         MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
@@ -771,7 +772,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApproved() {
-        UaaBaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
+        UaaClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(singleton("true"));
         tokenSupport.clientDetailsService.setClientDetailsStore(
           IdentityZoneHolder.get().getId(),
@@ -822,7 +823,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApprovedDowngradedRequest() {
-        UaaBaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
+        UaaClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(singleton("true"));
         tokenSupport.clientDetailsService.setClientDetailsStore(
           IdentityZoneHolder.get().getId(),
@@ -872,7 +873,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApproved() {
-        UaaBaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
+        UaaClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(tokenSupport.readScope);
         tokenSupport.clientDetailsService.setClientDetailsStore(
           IdentityZoneHolder.get().getId(),
@@ -942,7 +943,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testCreateAccessTokenRefreshGrantNoScopesAutoApprovedIncompleteApprovals() {
-        UaaBaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
+        UaaClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(emptyList());
         tokenSupport.clientDetailsService.setClientDetailsStore(
           IdentityZoneHolder.get().getId(),
@@ -997,7 +998,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApprovedButApprovalDenied() {
-        UaaBaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
+        UaaClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAutoApproveScopes(tokenSupport.requestedAuthScopes);
         tokenSupport.clientDetailsService.setClientDetailsStore(
           IdentityZoneHolder.get().getId(),
@@ -1293,7 +1294,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void testChangedExpiryForTokens() {
-        UaaBaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
+        UaaClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         clientDetails.setAccessTokenValiditySeconds(3600);
         clientDetails.setRefreshTokenValiditySeconds(36000);
         tokenSupport.clientDetailsService.setClientDetailsStore(
@@ -1381,7 +1382,7 @@ public class DeprecatedUaaTokenServicesTests {
           .setExpiresAt(expiresAt.getTime())
           .setStatus(ApprovalStatus.APPROVED), IdentityZoneHolder.get().getId());
 
-        UaaBaseClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
+        UaaClientDetails clientDetails = cloneClient(tokenSupport.defaultClient);
         // Back date the refresh token. Crude way to do this but i'm not sure of
         // another
         clientDetails.setRefreshTokenValiditySeconds(-36000);
@@ -1821,7 +1822,7 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void testLoadAuthenticationWithAnExpiredToken() {
-        UaaBaseClientDetails shortExpiryClient = tokenSupport.defaultClient;
+        UaaClientDetails shortExpiryClient = tokenSupport.defaultClient;
         shortExpiryClient.setAccessTokenValiditySeconds(1);
         tokenSupport.clientDetailsService.setClientDetailsStore(
           IdentityZoneHolder.get().getId(),
@@ -2147,8 +2148,8 @@ public class DeprecatedUaaTokenServicesTests {
         return tokenServices.createAccessToken(authentication);
     }
 
-    private UaaBaseClientDetails cloneClient(ClientDetails client) {
-        return new UaaBaseClientDetails(client);
+    private UaaClientDetails cloneClient(ClientDetails client) {
+        return new UaaClientDetails(client);
     }
 
     @SuppressWarnings("unchecked")

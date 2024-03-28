@@ -14,7 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,14 +42,14 @@ class WhitelistLogoutHandlerTest {
     private WhitelistLogoutHandler handler;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
-    private UaaBaseClientDetails client;
+    private UaaClientDetails client;
     private MultitenantClientServices clientDetailsService;
 
     @BeforeEach
     void setUp() {
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        client = new UaaBaseClientDetails(CLIENT_ID,"","","","","http://*.testing.com,http://testing.com");
+        client = new UaaClientDetails(CLIENT_ID,"","","","","http://*.testing.com,http://testing.com");
         clientDetailsService =  mock(MultitenantClientServices.class);
         handler = new WhitelistLogoutHandler(EMPTY_LIST);
         handler.setDefaultTargetUrl("/login");

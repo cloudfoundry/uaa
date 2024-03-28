@@ -2,7 +2,8 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -701,7 +702,7 @@ class LoginInfoEndpointTests {
         List<String> allowedProviders = Arrays.asList("my-client-awesome-idp1", "my-client-awesome-idp2", OriginKeys.LDAP);
 
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -736,7 +737,7 @@ class LoginInfoEndpointTests {
         List<String> allowedProviders = Arrays.asList("my-client-awesome-idp1", "my-client-awesome-idp2");
 
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -774,7 +775,7 @@ class LoginInfoEndpointTests {
         List<String> allowedProviders = Arrays.asList("uaa", "my-client-awesome-idp1");
 
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -792,7 +793,7 @@ class LoginInfoEndpointTests {
         MockHttpServletRequest request = getMockHttpServletRequest();
 
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
         when(clientDetailsService.loadClientByClientId(eq("client-id"), anyString())).thenReturn(clientDetails);
 
@@ -813,7 +814,7 @@ class LoginInfoEndpointTests {
         List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP);
 
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -1061,7 +1062,7 @@ class LoginInfoEndpointTests {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
 
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, null);
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -1084,7 +1085,7 @@ class LoginInfoEndpointTests {
 
         List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2");
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -1219,7 +1220,7 @@ class LoginInfoEndpointTests {
     public void testInvalidLoginHintLoginPageReturnsList() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
 
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
         when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
@@ -1634,7 +1635,7 @@ class LoginInfoEndpointTests {
 
         List<String> allowedProviders = singletonList("my-OIDC-idp1");
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -1659,7 +1660,7 @@ class LoginInfoEndpointTests {
 
         List<String> allowedProviders = singletonList("ldap");
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -1679,7 +1680,7 @@ class LoginInfoEndpointTests {
 
         List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "uaa");
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
         MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
@@ -1817,7 +1818,7 @@ class LoginInfoEndpointTests {
 
     private static MultitenantClientServices mockClientService(List<String> allowedProviders) {
         // mock Client service
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("client-id");
         if (allowedProviders != null) {
             clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));

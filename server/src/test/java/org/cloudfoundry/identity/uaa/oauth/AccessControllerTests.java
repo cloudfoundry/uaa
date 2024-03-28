@@ -2,7 +2,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -34,12 +35,12 @@ import static org.mockito.Mockito.when;
 class AccessControllerTests {
 
     private AccessController controller;
-    private UaaBaseClientDetails client;
+    private UaaClientDetails client;
     private ScimGroupProvisioning mockScimGroupProvisioning;
 
     @BeforeEach
     void setUp() {
-        client = new UaaBaseClientDetails();
+        client = new UaaClientDetails();
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
 

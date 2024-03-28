@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
@@ -18,18 +19,18 @@ import static java.util.Optional.ofNullable;
 
 public class InMemoryMultitenantClientServices extends MultitenantClientServices {
 
-    private ConcurrentMap<String, Map<String, UaaBaseClientDetails>> services = new ConcurrentHashMap<>();
+    private ConcurrentMap<String, Map<String, UaaClientDetails>> services = new ConcurrentHashMap<>();
 
     public InMemoryMultitenantClientServices(IdentityZoneManager identityZoneManager) {
         super(identityZoneManager);
     }
 
-    public void setClientDetailsStore(String zoneId, Map<String, UaaBaseClientDetails> store) {
+    public void setClientDetailsStore(String zoneId, Map<String, UaaClientDetails> store) {
         services.put(zoneId, store);
     }
 
-    public Map<String, UaaBaseClientDetails> getInMemoryService(String zoneId) {
-        Map<String, UaaBaseClientDetails> clientDetailsStore = new HashMap<>();
+    public Map<String, UaaClientDetails> getInMemoryService(String zoneId) {
+        Map<String, UaaClientDetails> clientDetailsStore = new HashMap<>();
         services.putIfAbsent(zoneId, clientDetailsStore);
         return services.get(zoneId);
     }
@@ -60,7 +61,7 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
 
     @Override
     public void addClientDetails(ClientDetails clientDetails, String zoneId) throws ClientAlreadyExistsException {
-        getInMemoryService(zoneId).put(clientDetails.getClientId(), (UaaBaseClientDetails) clientDetails);
+        getInMemoryService(zoneId).put(clientDetails.getClientId(), (UaaClientDetails) clientDetails);
     }
 
     @Override
@@ -70,7 +71,7 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
 
     @Override
     public void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException {
-        ofNullable((UaaBaseClientDetails) loadClientByClientId(clientId, zoneId)).ifPresent(client ->
+        ofNullable((UaaClientDetails) loadClientByClientId(clientId, zoneId)).ifPresent(client ->
                 client.setClientSecret(secret)
         );
     }
@@ -92,7 +93,7 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
 
     @Override
     public ClientDetails loadClientByClientId(String clientId, String zoneId) throws ClientRegistrationException {
-        UaaBaseClientDetails result = getInMemoryService(zoneId).get(clientId);
+        UaaClientDetails result = getInMemoryService(zoneId).get(clientId);
         if (result == null) {
             throw new NoSuchClientException("No client with requested id: " + clientId);
         }

@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -73,7 +73,7 @@ public class DomainFilterTest {
         "  </md:ContactPerson>\n" +
         "</md:EntityDescriptor>";
 
-    UaaBaseClientDetails client;
+    UaaClientDetails client;
     List<IdentityProvider> activeProviders = EMPTY_LIST;
     IdentityProvider uaaProvider;
     IdentityProvider ldapProvider;
@@ -91,7 +91,7 @@ public class DomainFilterTest {
 
     @Before
     public void setUp() {
-        client = new UaaBaseClientDetails("clientid","", "", "","","");
+        client = new UaaClientDetails("clientid","", "", "","","");
         uaaDef = new UaaIdentityProviderDefinition(null, null);
         ldapDef = new LdapIdentityProviderDefinition();
         samlDef1 = new SamlIdentityProviderDefinition()

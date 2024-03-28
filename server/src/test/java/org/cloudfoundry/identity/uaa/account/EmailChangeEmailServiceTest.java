@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -304,7 +305,7 @@ class EmailChangeEmailServiceTest {
         codeData.put("client_id", clientId);
         codeData.put("redirect_uri", redirectUri);
         codeData.put("email", "new@example.com");
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
         clientDetails.addAdditionalInformation(CHANGE_EMAIL_REDIRECT_URL, "http://fallback.url/redirect");
 
         when(mockExpiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));

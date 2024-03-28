@@ -12,7 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -145,7 +146,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters) {
 
         String clientId = authorizationParameters.get("client_id");
-        UaaBaseClientDetails clientDetails = (UaaBaseClientDetails)clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        UaaClientDetails clientDetails = (UaaClientDetails)clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
@@ -212,7 +213,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         }
     }
 
-    protected void checkClientIdpAuthorization(UaaBaseClientDetails client, UaaUser user) {
+    protected void checkClientIdpAuthorization(UaaClientDetails client, UaaUser user) {
         List<String> allowedProviders = (List<String>)client.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
 
 

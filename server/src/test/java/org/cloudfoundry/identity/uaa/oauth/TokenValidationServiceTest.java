@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import com.google.common.collect.Lists;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSSigner;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -68,7 +68,7 @@ public class TokenValidationServiceTest {
         mockMultitenantClientServices = mock(MultitenantClientServices.class);
         revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
 
-        when(mockMultitenantClientServices.loadClientByClientId(clientId, IdentityZoneHolder.get().getId())).thenReturn(new UaaBaseClientDetails(clientId, null, "foo.bar", null, null));
+        when(mockMultitenantClientServices.loadClientByClientId(clientId, IdentityZoneHolder.get().getId())).thenReturn(new UaaClientDetails(clientId, null, "foo.bar", null, null));
         UaaUser user = new UaaUser(userId, "marrisa", "koala", "marissa@gmail.com", buildGrantedAuthorities("foo.bar"), "Marissa", "Bloggs", null, null, null, null, true, null, null, null);
         when(userDatabase.retrieveUserById(userId)).thenReturn(user);
 

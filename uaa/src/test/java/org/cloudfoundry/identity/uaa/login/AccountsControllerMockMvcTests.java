@@ -2,7 +2,8 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -439,8 +440,8 @@ class AccountsControllerMockMvcTests {
         assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
-    private UaaBaseClientDetails getUaaBaseClientDetails() {
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+    private UaaClientDetails getUaaBaseClientDetails() {
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("myzoneclient");
         clientDetails.setClientSecret("myzoneclientsecret");
         clientDetails.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
@@ -557,8 +558,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(content().string(containsString("Please agree before continuing.")));
     }
 
-    private UaaBaseClientDetails createTestClient() throws Exception {
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+    private UaaClientDetails createTestClient() throws Exception {
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(200));
         clientDetails.setClientSecret("test-client-secret");
         clientDetails.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
@@ -576,7 +577,7 @@ class AccountsControllerMockMvcTests {
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
-        UaaBaseClientDetails clientDetails = createTestClient();
+        UaaClientDetails clientDetails = createTestClient();
 
 
         mockMvc.perform(post("/create_account.do")

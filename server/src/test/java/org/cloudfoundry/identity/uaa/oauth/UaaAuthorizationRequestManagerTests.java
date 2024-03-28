@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -57,7 +58,7 @@ class UaaAuthorizationRequestManagerTests {
 
     private Map<String, String> parameters = new HashMap<String, String>();
 
-    private UaaBaseClientDetails client = new UaaBaseClientDetails();
+    private UaaClientDetails client = new UaaClientDetails();
 
     private UaaUser user = null;
 
@@ -143,7 +144,7 @@ class UaaAuthorizationRequestManagerTests {
         when(oAuth2Authentication.getOAuth2Request()).thenReturn(oAuth2Request);
         when(oAuth2Request.getExtensions()).thenReturn(Map.of("client_auth_method", "none"));
         SecurityContextHolder.getContext().setAuthentication(oAuth2Authentication);
-        UaaBaseClientDetails recipient = new UaaBaseClientDetails("recipient", "requested", "requested.scope", "password", "");
+        UaaClientDetails recipient = new UaaClientDetails("recipient", "requested", "requested.scope", "password", "");
         parameters.put("scope", "requested.scope");
         parameters.put("client_id", recipient.getClientId());
         parameters.put("expires_in", "44000");
@@ -236,13 +237,13 @@ class UaaAuthorizationRequestManagerTests {
     @Test
     void testScopesValid() {
         parameters.put("scope","read");
-        factory.validateParameters(parameters, new UaaBaseClientDetails("foo", null, "read,write", "implicit", null));
+        factory.validateParameters(parameters, new UaaClientDetails("foo", null, "read,write", "implicit", null));
     }
 
     @Test
     void testScopesValidWithWildcard() {
         parameters.put("scope","read write space.1.developer space.2.developer");
-        factory.validateParameters(parameters, new UaaBaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null));
+        factory.validateParameters(parameters, new UaaClientDetails("foo", null, "read,write,space.*.developer", "implicit", null));
     }
 
     @Test
@@ -250,7 +251,7 @@ class UaaAuthorizationRequestManagerTests {
         parameters.put("scope","read write space.1.developer space.2.developer space.1.admin");
         assertThrowsWithMessageThat(InvalidScopeException.class,
                 () -> factory.validateParameters(parameters,
-                        new UaaBaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null)),
+                        new UaaClientDetails("foo", null, "read,write,space.*.developer", "implicit", null)),
                 Matchers.containsString("space.1.admin is invalid. Please use a valid scope name in the request"));
     }
 
@@ -259,7 +260,7 @@ class UaaAuthorizationRequestManagerTests {
         parameters.put("scope", "admin");
         assertThrowsWithMessageThat(InvalidScopeException.class,
                 () -> factory.validateParameters(parameters,
-                        new UaaBaseClientDetails("foo", null, "read,write", "implicit", null)),
+                        new UaaClientDetails("foo", null, "read,write", "implicit", null)),
                 Matchers.containsString("admin is invalid. Please use a valid scope name in the request"));
     }
 

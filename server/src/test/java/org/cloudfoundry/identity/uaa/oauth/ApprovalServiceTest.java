@@ -4,7 +4,7 @@ import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.Before;
 import org.junit.Rule;
@@ -29,7 +29,7 @@ public class ApprovalServiceTest {
     private ApprovalService approvalService;
     private TimeService timeService;
     private ApprovalStore approvalStore;
-    private UaaBaseClientDetails clientDetails;
+    private UaaClientDetails clientDetails;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -38,7 +38,7 @@ public class ApprovalServiceTest {
     public void setup() {
         timeService = mock(TimeService.class);
         approvalStore = mock(ApprovalStore.class);
-        clientDetails = new UaaBaseClientDetails(CLIENT_ID, null, "foo.read,bar.write", null, null);
+        clientDetails = new UaaClientDetails(CLIENT_ID, null, "foo.read,bar.write", null, null);
         approvalService = new ApprovalService(timeService, approvalStore);
     }
 

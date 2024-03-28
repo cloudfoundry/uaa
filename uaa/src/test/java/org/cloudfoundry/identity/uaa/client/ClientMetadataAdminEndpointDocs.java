@@ -128,10 +128,10 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
     String marissaToken = getUserAccessToken(clientId1);
 
     String clientId2 = generator.generate();
-    clients.addClientDetails(new UaaBaseClientDetails(clientId2, null, null, null, null));
+    clients.addClientDetails(new UaaClientDetails(clientId2, null, null, null, null));
 
     String clientId3 = generator.generate();
-    clients.addClientDetails(new UaaBaseClientDetails(clientId3, null, null, null, null));
+    clients.addClientDetails(new UaaClientDetails(clientId3, null, null, null, null));
     ClientMetadata client3Metadata = new ClientMetadata();
     client3Metadata.setClientId(clientId3);
     client3Metadata.setIdentityZoneId("uaa");
@@ -141,7 +141,7 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
     performUpdate(client3Metadata);
 
     String clientId4 = generator.generate();
-    clients.addClientDetails(new UaaBaseClientDetails(clientId4, null, null, null, null));
+    clients.addClientDetails(new UaaClientDetails(clientId4, null, null, null, null));
     ClientMetadata client4Metadata = new ClientMetadata();
     client4Metadata.setClientId(clientId4);
     client4Metadata.setIdentityZoneId("uaa");
@@ -212,7 +212,7 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
     }
 
     private void createClient(String clientId) throws Exception {
-        UaaBaseClientDetails newClient = new UaaBaseClientDetails(clientId, "oauth", "oauth.approvals", "password", "oauth.login","http://redirect.url");
+        UaaClientDetails newClient = new UaaClientDetails(clientId, "oauth", "oauth.approvals", "password", "oauth.login","http://redirect.url");
         newClient.setClientSecret("secret");
         MockHttpServletRequestBuilder createClient = post("/oauth/clients")
             .header("Authorization", "Bearer " + adminUserToken)

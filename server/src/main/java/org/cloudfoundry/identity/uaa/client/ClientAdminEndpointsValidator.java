@@ -103,11 +103,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     public ClientDetails validate(ClientDetails prototype, boolean create, boolean checkAdmin) throws InvalidClientDetailsException {
 
-        UaaBaseClientDetails client = new UaaBaseClientDetails(prototype);
-        if (prototype instanceof UaaBaseClientDetails) {
-            Set<String> scopes = ((UaaBaseClientDetails)prototype).getAutoApproveScopes();
+        UaaClientDetails client = new UaaClientDetails(prototype);
+        if (prototype instanceof UaaClientDetails) {
+            Set<String> scopes = ((UaaClientDetails)prototype).getAutoApproveScopes();
             if (scopes!=null) {
-                client.setAutoApproveScopes(((UaaBaseClientDetails) prototype).getAutoApproveScopes());
+                client.setAutoApproveScopes(((UaaClientDetails) prototype).getAutoApproveScopes());
             }
         }
 

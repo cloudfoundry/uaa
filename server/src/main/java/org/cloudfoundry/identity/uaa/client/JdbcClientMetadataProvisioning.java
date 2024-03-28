@@ -94,7 +94,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     protected void updateClientNameIfNotEmpty(ClientMetadata resource, String zoneId) {
         //we don't remove it, only set values
         if (hasText(resource.getClientName())) {
-            UaaBaseClientDetails client = (UaaBaseClientDetails) clientDetailsService.loadClientByClientId(resource.getClientId(), zoneId);
+            UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(resource.getClientId(), zoneId);
             client.addAdditionalInformation(CLIENT_NAME, resource.getClientName());
             clientDetailsService.updateClientDetails(client, zoneId);
         }

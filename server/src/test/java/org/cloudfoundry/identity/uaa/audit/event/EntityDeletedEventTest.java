@@ -23,7 +23,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -56,10 +56,10 @@ class EntityDeletedEventTest {
 
     @Test
     void getAuditEvent_UaaBaseClientDetails() {
-        UaaBaseClientDetails mockUaaBaseClientDetails = mock(UaaBaseClientDetails.class);
-        when(mockUaaBaseClientDetails.getClientId()).thenReturn(randomId);
+        UaaClientDetails mockUaaClientDetails = mock(UaaClientDetails.class);
+        when(mockUaaClientDetails.getClientId()).thenReturn(randomId);
 
-        checkAuditEventData(mockUaaBaseClientDetails, UaaBaseClientDetails.class, randomId);
+        checkAuditEventData(mockUaaClientDetails, UaaClientDetails.class, randomId);
     }
 
     @Test

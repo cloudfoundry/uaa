@@ -225,17 +225,17 @@ class ClientJwtConfigurationTest {
   void testConfiguration() {
     ClientJwtConfiguration configUri = JsonUtils.readValue(defaultJsonUri, ClientJwtConfiguration.class);
     ClientJwtConfiguration configKey = JsonUtils.readValue(defaultJsonKey, ClientJwtConfiguration.class);
-    UaaBaseClientDetails uaaUaaBaseClientDetails = new UaaBaseClientDetails();
-    uaaUaaBaseClientDetails.setClientJwtConfig(JsonUtils.writeValueAsString(configUri));
+    UaaClientDetails uaaUaaClientDetails = new UaaClientDetails();
+    uaaUaaClientDetails.setClientJwtConfig(JsonUtils.writeValueAsString(configUri));
 
-    configUri.writeValue(uaaUaaBaseClientDetails);
-    ClientJwtConfiguration readUriConfig = ClientJwtConfiguration.readValue(uaaUaaBaseClientDetails);
+    configUri.writeValue(uaaUaaClientDetails);
+    ClientJwtConfiguration readUriConfig = ClientJwtConfiguration.readValue(uaaUaaClientDetails);
     assertEquals(configUri, readUriConfig);
 
-    ClientJwtConfiguration.resetConfiguration(uaaUaaBaseClientDetails);
-    assertNull(ClientJwtConfiguration.readValue(uaaUaaBaseClientDetails));
-    configKey.writeValue(uaaUaaBaseClientDetails);
-    ClientJwtConfiguration readKeyConfig = ClientJwtConfiguration.readValue(uaaUaaBaseClientDetails);
+    ClientJwtConfiguration.resetConfiguration(uaaUaaClientDetails);
+    assertNull(ClientJwtConfiguration.readValue(uaaUaaClientDetails));
+    configKey.writeValue(uaaUaaClientDetails);
+    ClientJwtConfiguration readKeyConfig = ClientJwtConfiguration.readValue(uaaUaaClientDetails);
     assertEquals(configKey, readKeyConfig);
   }
 }

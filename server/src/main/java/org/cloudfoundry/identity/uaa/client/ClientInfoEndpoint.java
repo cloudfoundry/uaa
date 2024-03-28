@@ -45,7 +45,7 @@ public class ClientInfoEndpoint {
     @ResponseBody
     public ClientDetails clientinfo(Principal principal) {
         String clientId = principal.getName();
-        UaaBaseClientDetails client = new UaaBaseClientDetails(clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId()));
+        UaaClientDetails client = new UaaClientDetails(clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId()));
         client.setClientSecret(null);
         client.setAdditionalInformation(Collections.<String, Object> emptyMap());
         return client;

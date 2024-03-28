@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -256,7 +256,7 @@ class InvitationsEndpointMockMvcTests {
                     .andReturn();
 
             InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
-            UaaBaseClientDetails defaultClientDetails = new UaaBaseClientDetails();
+            UaaClientDetails defaultClientDetails = new UaaClientDetails();
             defaultClientDetails.setClientId("admin");
             assertResponseAndCodeCorrect(expiringCodeStore, new String[]{email}, redirectUrl, zoneSeeder.getIdentityZone(), invitationsResponse, defaultClientDetails);
 
@@ -267,7 +267,7 @@ class InvitationsEndpointMockMvcTests {
             String zonedClientId = "zonedClientId";
             String zonedClientSecret = "zonedClientSecret";
 
-            UaaBaseClientDetails zonedClientDetails = (UaaBaseClientDetails) MockMvcUtils.createClient(
+            UaaClientDetails zonedClientDetails = (UaaClientDetails) MockMvcUtils.createClient(
                     mockMvc,
                     MockMvcUtils.getZoneAdminToken(
                             mockMvc,
@@ -313,7 +313,7 @@ class InvitationsEndpointMockMvcTests {
             String scimInviteClientId = generator.generate();
             String scimInviteClientSecret = generator.generate();
 
-            UaaBaseClientDetails client = MockMvcUtils.getClientDetailsModification(
+            UaaClientDetails client = MockMvcUtils.getClientDetailsModification(
                     scimInviteClientId,
                     scimInviteClientSecret,
                     Collections.singleton("oauth"),

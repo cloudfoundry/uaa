@@ -1,7 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Lists;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -83,7 +84,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh Token with rotation")
   void testRefreshRotation() {
-    UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
@@ -113,7 +114,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh Token with allowpublic and rotation")
   void testRefreshPublicClientWithRotation() {
-    UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
@@ -145,7 +146,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh Token from public to empty authentication")
   void testRefreshPublicClientWithRotationAndEmpyAuthentication() {
-    UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
@@ -178,7 +179,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh Token with allowpublic but without rotation")
   void testRefreshPublicClientWithoutRotation() {
-    UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
@@ -204,7 +205,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh with allowpublic and rotation but existing token was not public")
   void testRefreshPublicClientButExistingTokenWasEmptyAuthentication() {
-    UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);

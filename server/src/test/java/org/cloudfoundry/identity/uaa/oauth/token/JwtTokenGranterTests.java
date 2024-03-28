@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -100,7 +100,7 @@ public class JwtTokenGranterTests {
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        client = new UaaBaseClientDetails("clientID",null,"uaa.user",GRANT_TYPE_JWT_BEARER, null);
+        client = new UaaClientDetails("clientID",null,"uaa.user",GRANT_TYPE_JWT_BEARER, null);
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), anyString())).thenReturn(client);
         requestParameters = new HashMap<>();
         requestParameters.put(OAuth2Utils.CLIENT_ID, client.getClientId());

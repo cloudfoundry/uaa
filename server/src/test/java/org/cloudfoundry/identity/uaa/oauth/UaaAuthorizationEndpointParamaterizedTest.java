@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -42,7 +43,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
     private static final String HTTP_SOME_OTHER_SITE_CALLBACK = "http://some.other.site/callback";
     private final SessionAuthenticationException authException = new SessionAuthenticationException("");
     private UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
-    private UaaBaseClientDetails client;
+    private UaaClientDetails client;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
     private MultitenantClientServices clientDetailsService;
@@ -69,7 +70,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
 
     @Before
     public void setup() {
-        client = new UaaBaseClientDetails("id", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", redirectUrl);
+        client = new UaaClientDetails("id", "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", redirectUrl);
         clientDetailsService = mock(MultitenantClientServices.class);
         redirectResolver = mock(RedirectResolver.class);
         calculator = mock(OpenIdSessionStateCalculator.class);
@@ -130,7 +131,7 @@ public class UaaAuthorizationEndpointParamaterizedTest {
 
     @Test
     public void test_redirect_honors_ant_matcher() throws Exception {
-        UaaBaseClientDetails client = new UaaBaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
+        UaaClientDetails client = new UaaClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
         request.setParameter(OAuth2Utils.REDIRECT_URI, "http://example.com/some/path");
         request.setParameter(OAuth2Utils.CLIENT_ID, client.getClientId());
         String zoneID = IdentityZoneHolder.get().getId();

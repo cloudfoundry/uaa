@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -15,7 +16,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import java.util.Collections;
@@ -51,7 +52,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         identityZoneProvisioning.update(defaultZone);
 
         try {
-            UaaBaseClientDetails client = setUpClients(
+            UaaClientDetails client = setUpClients(
                     generator.generate(),
                     "clients.write",
                     "openid",
@@ -101,7 +102,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         String revokerClientId = generator.generate();
         String resourceClientId = generator.generate();
 
-        UaaBaseClientDetails revokerClient =
+        UaaClientDetails revokerClient =
                 setUpClients(revokerClientId,
                         "tokens.revoke",
                         "openid",
@@ -110,7 +111,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 );
 
 
-        UaaBaseClientDetails targetClient =
+        UaaClientDetails targetClient =
                 setUpClients(resourceClientId,
                         "uaa.none",
                         "openid",
@@ -167,7 +168,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         String revokerClientId = generator.generate();
         String resourceClientId = generator.generate();
 
-        UaaBaseClientDetails revokerClient =
+        UaaClientDetails revokerClient =
                 setUpClients(revokerClientId,
                         scope,
                         "openid",
@@ -176,7 +177,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 );
 
 
-        UaaBaseClientDetails targetClient =
+        UaaClientDetails targetClient =
                 setUpClients(resourceClientId,
                         "uaa.none",
                         "openid",
@@ -222,7 +223,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     @Test
     void revokeOtherClientTokenForbidden() throws Exception {
         String resourceClientId = generator.generate();
-        UaaBaseClientDetails resourceClient = setUpClients(
+        UaaClientDetails resourceClient = setUpClients(
                 resourceClientId,
                 "uaa.resource",
                 "uaa.resource",
@@ -230,7 +231,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 true
         );
 
-        UaaBaseClientDetails client = setUpClients(
+        UaaClientDetails client = setUpClients(
                 generator.generate(),
                 "clients.write",
                 "openid",
@@ -283,8 +284,8 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
     @Test
     void test_Revoke_All_Client_Tokens() throws Exception {
-        UaaBaseClientDetails client = getAClientWithClientsRead();
-        UaaBaseClientDetails otherClient = getAClientWithClientsRead();
+        UaaClientDetails client = getAClientWithClientsRead();
+        UaaClientDetails otherClient = getAClientWithClientsRead();
 
         //this is the token we will revoke
         String readClientsToken =
@@ -355,7 +356,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
     @Test
     void test_Revoke_All_Tokens_For_User() throws Exception {
-        UaaBaseClientDetails client = getAClientWithClientsRead();
+        UaaClientDetails client = getAClientWithClientsRead();
 
         ScimUser user = setUpUser(generator.generate().toLowerCase() + "@test.org");
         user.setPassword("secret");
@@ -406,7 +407,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
     @Test
     void aUserCanRevokeTheirOwnToken() throws Exception {
-        UaaBaseClientDetails client = getAClientWithClientsRead();
+        UaaClientDetails client = getAClientWithClientsRead();
         ScimUser user = setUpUser(generator.generate().toLowerCase() + "@test.org");
         user.setPassword("secret");
 
@@ -445,8 +446,8 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     }
 
     private void revokeUserClientCombinationTokenWithAuth() throws Exception {
-        UaaBaseClientDetails client = getAClientWithClientsRead();
-        UaaBaseClientDetails otherClient = getAClientWithClientsRead();
+        UaaClientDetails client = getAClientWithClientsRead();
+        UaaClientDetails otherClient = getAClientWithClientsRead();
         IdentityZone zone = IdentityZoneHolder.get();
 
         ScimUser user1 = setUpUser(generator.generate().toLowerCase() + "@test.org");
@@ -549,7 +550,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     @Test
     void test_Revoke_Client_User_Combination_Token_With_Revoke_Scope() throws Exception {
         String revokerClientId = generator.generate();
-        UaaBaseClientDetails revokerClient =
+        UaaClientDetails revokerClient =
                 setUpClients(revokerClientId,
                         "tokens.revoke",
                         "openid",
@@ -570,8 +571,8 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         revokeUserClientCombinationTokenWithAuth();
     }
 
-    private UaaBaseClientDetails getAClientWithClientsRead() {
-        UaaBaseClientDetails client = setUpClients(
+    private UaaClientDetails getAClientWithClientsRead() {
+        UaaClientDetails client = setUpClients(
                 generator.generate(),
                 "clients.read",
                 "openid",

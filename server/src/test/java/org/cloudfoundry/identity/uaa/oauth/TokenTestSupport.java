@@ -22,7 +22,8 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -165,8 +166,8 @@ public class TokenTestSupport {
     List<String> expandedScopes;
     List<String> resourceIds;
     String expectedJson;
-    UaaBaseClientDetails defaultClient;
-    UaaBaseClientDetails clientWithoutRefreshToken;
+    UaaClientDetails defaultClient;
+    UaaClientDetails clientWithoutRefreshToken;
     OAuth2RequestFactory requestFactory;
     TokenPolicy tokenPolicy;
     RevocableTokenProvisioning tokenProvisioning;
@@ -213,21 +214,21 @@ public class TokenTestSupport {
         expectedJson = "[\""+READ+"\",\""+WRITE+"\",\""+OPENID+"\"]";
 
 
-        defaultClient = new UaaBaseClientDetails(
+        defaultClient = new UaaClientDetails(
             CLIENT_ID,
             SCIM+","+CLIENTS,
             READ+","+WRITE+","+OPENID+",uaa.offline_token",
             ALL_GRANTS_CSV,
             CLIENT_AUTHORITIES);
 
-        clientWithoutRefreshToken = new UaaBaseClientDetails(
+        clientWithoutRefreshToken = new UaaClientDetails(
             CLIENT_ID_NO_REFRESH_TOKEN_GRANT,
             SCIM+","+CLIENTS,
             READ+","+WRITE+","+OPENID+",uaa.offline_token",
                 GRANT_TYPE_AUTHORIZATION_CODE,
             CLIENT_AUTHORITIES);
 
-        Map<String, UaaBaseClientDetails> clientDetailsMap = new HashMap<>();
+        Map<String, UaaClientDetails> clientDetailsMap = new HashMap<>();
         clientDetailsMap.put(CLIENT_ID, defaultClient);
         clientDetailsMap.put(CLIENT_ID_NO_REFRESH_TOKEN_GRANT, clientWithoutRefreshToken);
 

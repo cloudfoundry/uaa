@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -50,7 +50,7 @@ class IdTokenCreatorTest {
     private String familyName;
     private String email;
     private UaaUser user;
-    private UaaBaseClientDetails clientDetails;
+    private UaaClientDetails clientDetails;
     private long previousLogonTime;
     private String phoneNumber;
     private Set<String> roles;
@@ -153,7 +153,7 @@ class IdTokenCreatorTest {
         excludedClaims = new HashSet<>();
 
         MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
-        clientDetails = new UaaBaseClientDetails();
+        clientDetails = new UaaClientDetails();
         clientDetails.setClientId(clientId);
         clientDetails.setClientSecret(clientsecret);
 

@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -30,7 +31,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestOperations;
@@ -402,7 +403,7 @@ public class SamlLoginIT {
                 .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
         String redirectUrl = zoneUrl + "/login?test=test";
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails("test-logout-redirect", null, null, GRANT_TYPE_AUTHORIZATION_CODE, null);
+        UaaClientDetails clientDetails = new UaaClientDetails("test-logout-redirect", null, null, GRANT_TYPE_AUTHORIZATION_CODE, null);
         clientDetails.setRegisteredRedirectUri(Collections.singleton(redirectUrl));
         clientDetails.setClientSecret("secret");
         IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, clientDetails);
@@ -470,7 +471,7 @@ public class SamlLoginIT {
         return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning);
     }
 
-    protected UaaBaseClientDetails createClientAndSpecifyProvider(String clientId, IdentityProvider provider,
+    protected UaaClientDetails createClientAndSpecifyProvider(String clientId, IdentityProvider provider,
             String redirectUri) {
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -492,8 +493,8 @@ public class SamlLoginIT {
                 email,
                 "secr3T");
 
-        UaaBaseClientDetails clientDetails =
-                new UaaBaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", redirectUri);
+        UaaClientDetails clientDetails =
+                new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", redirectUri);
         clientDetails.setClientSecret("secret");
         List<String> idps = Collections.singletonList(provider.getOriginKey());
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
@@ -581,7 +582,7 @@ public class SamlLoginIT {
         uaaProvider.setConfig(uaaDefinition);
         uaaProvider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,uaaProvider);
 
-        UaaBaseClientDetails uaaAdmin = new UaaBaseClientDetails("admin","","", "client_credentials","uaa.admin,scim.read,scim.write");
+        UaaClientDetails uaaAdmin = new UaaClientDetails("admin","","", "client_credentials","uaa.admin,scim.read,scim.write");
         uaaAdmin.setClientSecret("adminsecret");
         IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, uaaAdmin);
 
@@ -726,7 +727,7 @@ public class SamlLoginIT {
         List<String> idps = Collections.singletonList(provider.getOriginKey());
         String clientId = UUID.randomUUID().toString();
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", zoneUrl);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", zoneUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
@@ -799,7 +800,7 @@ public class SamlLoginIT {
         List<String> idps = Collections.singletonList(provider.getOriginKey());
 
         String adminClientInZone = new RandomValueStringGenerator().generate();
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(adminClientInZone, null, "openid", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write", zoneUrl);
+        UaaClientDetails clientDetails = new UaaClientDetails(adminClientInZone, null, "openid", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write", zoneUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
@@ -911,7 +912,7 @@ public class SamlLoginIT {
 
         // set up a test client
         String adminClientInZone = new RandomValueStringGenerator().generate();
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(adminClientInZone, null, "openid,user_attributes,roles", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
+        UaaClientDetails clientDetails = new UaaClientDetails(adminClientInZone, null, "openid,user_attributes,roles", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
@@ -1046,7 +1047,7 @@ public class SamlLoginIT {
         List<String> idps = Collections.singletonList(provider.getOriginKey());
 
         String adminClientInZone = new RandomValueStringGenerator().generate();
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(adminClientInZone, null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
+        UaaClientDetails clientDetails = new UaaClientDetails(adminClientInZone, null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
@@ -1213,7 +1214,7 @@ public class SamlLoginIT {
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/login");
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/login");
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
 
@@ -1233,7 +1234,7 @@ public class SamlLoginIT {
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/uaa/login");
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/uaa/login");
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         testClient.createClient(adminAccessToken, clientDetails);
@@ -1260,7 +1261,7 @@ public class SamlLoginIT {
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", baseUrl);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", baseUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
@@ -1282,7 +1283,7 @@ public class SamlLoginIT {
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/login");
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none", "http://localhost:8080/login");
         clientDetails.setClientSecret("secret");
         List<String> idps = Collections.singletonList("okta-local"); //not authorized for the current IDP
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);

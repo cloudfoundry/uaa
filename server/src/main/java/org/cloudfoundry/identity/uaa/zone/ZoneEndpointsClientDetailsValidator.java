@@ -3,7 +3,8 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -62,7 +63,7 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
                 throw new InvalidClientDetailsException("only the internal IdP ('uaa') is allowed");
             }
 
-            UaaBaseClientDetails validatedClientDetails = new UaaBaseClientDetails(clientDetails);
+            UaaClientDetails validatedClientDetails = new UaaClientDetails(clientDetails);
             validatedClientDetails.setAdditionalInformation(clientDetails.getAdditionalInformation());
             validatedClientDetails.setResourceIds(Collections.singleton("none"));
             validatedClientDetails.addAdditionalInformation(ClientConstants.CREATED_WITH, REQUIRED_SCOPE);

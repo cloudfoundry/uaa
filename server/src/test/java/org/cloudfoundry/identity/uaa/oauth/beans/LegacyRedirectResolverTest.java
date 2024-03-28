@@ -5,6 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
 import org.hamcrest.TypeSafeMatcher;
@@ -17,7 +18,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,7 +50,7 @@ class LegacyRedirectResolverTest {
     private final LegacyRedirectResolver resolver = new LegacyRedirectResolver();
 
     private static ClientDetails createClient(String id, String... redirectUris) {
-        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId(id);
         clientDetails.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         clientDetails.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUris)));
@@ -714,7 +715,7 @@ class LegacyRedirectResolverTest {
 
         @BeforeEach
         void setUp() {
-            mockClientDetails = mock(UaaBaseClientDetails.class);
+            mockClientDetails = mock(UaaClientDetails.class);
             when(mockClientDetails.getAuthorizedGrantTypes()).thenReturn(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         }
 

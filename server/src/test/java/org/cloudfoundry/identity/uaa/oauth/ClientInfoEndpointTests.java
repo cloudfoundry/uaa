@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,7 +39,7 @@ class ClientInfoEndpointTests {
     @BeforeEach
     void setUp() {
         clientId = "clientId-" + UUID.randomUUID().toString();
-        UaaBaseClientDetails baseClientDetails = new UaaBaseClientDetails(clientId, "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+        UaaClientDetails baseClientDetails = new UaaClientDetails(clientId, "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
         baseClientDetails.setClientSecret("bar");
         baseClientDetails.setAdditionalInformation(Collections.singletonMap("key", "value"));
 

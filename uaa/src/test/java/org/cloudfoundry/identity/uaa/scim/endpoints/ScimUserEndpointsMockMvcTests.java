@@ -85,7 +85,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -277,7 +277,7 @@ class ScimUserEndpointsMockMvcTests {
         MockMvcUtils.IdentityZoneCreationResult zoneResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, mockMvc, webApplicationContext, null, IdentityZoneHolder.getCurrentZoneId());
         String zonedClientId = "zonedClientId";
         String zonedClientSecret = "zonedClientSecret";
-        UaaBaseClientDetails zonedClientDetails = (UaaBaseClientDetails) MockMvcUtils.createClient(mockMvc,
+        UaaClientDetails zonedClientDetails = (UaaClientDetails) MockMvcUtils.createClient(mockMvc,
                 zoneResult.getZoneAdminToken(),
                 zonedClientId,
                 zonedClientSecret,

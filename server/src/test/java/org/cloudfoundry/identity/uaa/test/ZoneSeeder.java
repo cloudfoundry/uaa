@@ -5,7 +5,8 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -128,7 +129,7 @@ public class ZoneSeeder {
     }
 
     public ZoneSeeder withClientWithImplicitPasswordRefreshTokenGrants(String clientId, String commaSeparatedScopeNames) {
-        UaaBaseClientDetails newClient = new UaaBaseClientDetails(clientId,
+        UaaClientDetails newClient = new UaaClientDetails(clientId,
                 "none",
                 commaSeparatedScopeNames,
                 "implicit,password,refresh_token",
@@ -143,7 +144,7 @@ public class ZoneSeeder {
     public ZoneSeeder withClientWithImplicitAndAuthorizationCodeGrants(
             String clientId,
             String commaSeparatedRedirectUris) {
-        UaaBaseClientDetails newClient = new UaaBaseClientDetails(
+        UaaClientDetails newClient = new UaaClientDetails(
                 clientId,
                 "none",
                 "openid",
@@ -158,7 +159,7 @@ public class ZoneSeeder {
     }
 
     public ZoneSeeder withAdminClientWithClientCredentialsGrant() {
-        UaaBaseClientDetails newClient = new UaaBaseClientDetails(ADMIN_CLIENT_CREDENTIALS_CLIENT_ID,
+        UaaClientDetails newClient = new UaaClientDetails(ADMIN_CLIENT_CREDENTIALS_CLIENT_ID,
                 "none",
                 "uaa.none",
                 "client_credentials",

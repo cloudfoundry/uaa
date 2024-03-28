@@ -74,7 +74,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     }
 
     private String getUserAccessToken(String clientId) throws Exception {
-        UaaBaseClientDetails newClient = new UaaBaseClientDetails(clientId,
+        UaaClientDetails newClient = new UaaClientDetails(clientId,
                 "oauth",
                 "oauth.approvals",
                 "password",
@@ -99,10 +99,10 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
         String marissaToken = getUserAccessToken(clientId1);
 
         String clientId2 = generator.generate();
-        clients.addClientDetails(new UaaBaseClientDetails(clientId2, null, null, null, null));
+        clients.addClientDetails(new UaaClientDetails(clientId2, null, null, null, null));
 
         String clientId3 = generator.generate();
-        clients.addClientDetails(new UaaBaseClientDetails(clientId3, null, null, null, null));
+        clients.addClientDetails(new UaaClientDetails(clientId3, null, null, null, null));
         ClientMetadata client3Metadata = new ClientMetadata();
         client3Metadata.setClientId(clientId3);
         client3Metadata.setIdentityZoneId("uaa");
@@ -112,7 +112,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
         performUpdate(client3Metadata);
 
         String clientId4 = generator.generate();
-        clients.addClientDetails(new UaaBaseClientDetails(clientId4, null, null, null, null));
+        clients.addClientDetails(new UaaClientDetails(clientId4, null, null, null, null));
         ClientMetadata client4Metadata = new ClientMetadata();
         client4Metadata.setClientId(clientId4);
         client4Metadata.setIdentityZoneId("uaa");
@@ -155,7 +155,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     @Test
     void updateClientMetadata() throws Exception {
         String clientId = generator.generate();
-        clients.addClientDetails(new UaaBaseClientDetails(clientId, null, null, null, null));
+        clients.addClientDetails(new UaaClientDetails(clientId, null, null, null, null));
 
         ClientMetadata updatedClientMetadata = new ClientMetadata();
         updatedClientMetadata.setClientId(clientId);
@@ -203,7 +203,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     @Test
     void updateClientMetadata_WithNoClientIdInBody() throws Exception {
         String clientId = generator.generate();
-        clients.addClientDetails(new UaaBaseClientDetails(clientId, null, null, null, null));
+        clients.addClientDetails(new UaaClientDetails(clientId, null, null, null, null));
 
         ClientMetadata updatedClientMetadata = new ClientMetadata();
         updatedClientMetadata.setClientId(null);
@@ -246,7 +246,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     @Test
     void updateClientMetadata_ClientIdMismatch() throws Exception {
         String clientId = generator.generate();
-        clients.addClientDetails(new UaaBaseClientDetails(clientId, null, null, null, null));
+        clients.addClientDetails(new UaaClientDetails(clientId, null, null, null, null));
 
         ClientMetadata clientMetadata = new ClientMetadata();
         clientMetadata.setClientId("other-client-id");

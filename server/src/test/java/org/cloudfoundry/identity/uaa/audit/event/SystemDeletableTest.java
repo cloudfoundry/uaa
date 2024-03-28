@@ -13,7 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 
 import java.util.Arrays;
 
@@ -81,7 +81,7 @@ class SystemDeletableTest {
 
     @Test
     void clientDetailsEventReceived() {
-        UaaBaseClientDetails client = new UaaBaseClientDetails("clientId", "", "", "client_credentials", "uaa.none");
+        UaaClientDetails client = new UaaClientDetails("clientId", "", "", "client_credentials", "uaa.none");
         for (String zoneId : Arrays.asList("uaa", "zone1", "other-zone")) {
             EntityDeletedEvent<ClientDetails> event = new EntityDeletedEvent<>(client, authentication, zoneId);
             deletable.onApplicationEvent(event);

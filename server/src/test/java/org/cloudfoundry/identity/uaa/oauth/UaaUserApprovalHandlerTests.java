@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -27,7 +28,7 @@ class UaaUserApprovalHandlerTests {
     private UaaUserApprovalHandler handler;
     private AuthorizationRequest authorizationRequest;
     private Authentication userAuthentication;
-    private UaaBaseClientDetails client;
+    private UaaClientDetails client;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +48,7 @@ class UaaUserApprovalHandlerTests {
         userAuthentication = new UsernamePasswordAuthenticationToken("joe", "",
                 AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
 
-        client = new UaaBaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+        client = new UaaClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
         when(mockMultitenantClientServices.loadClientByClientId("client", currentIdentityZoneId)).thenReturn(client);
     }
 

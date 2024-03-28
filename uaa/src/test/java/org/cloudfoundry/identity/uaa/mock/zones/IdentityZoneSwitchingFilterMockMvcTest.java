@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -15,7 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
 
@@ -93,7 +94,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
     @Test
     void noSwitching() throws Exception {
         final String clientId = UUID.randomUUID().toString();
-        UaaBaseClientDetails client = new UaaBaseClientDetails(clientId, null, null, "client_credentials", null);
+        UaaClientDetails client = new UaaClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
 
         mockMvc.perform(post("/oauth/clients")
@@ -200,7 +201,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
 
     private static ClientDetails createClientInOtherZone(MockMvc mockMvc, RandomValueStringGenerator generator, String accessToken, ResultMatcher statusMatcher, String headerKey, String headerValue) throws Exception {
         String clientId = generator.generate();
-        UaaBaseClientDetails client = new UaaBaseClientDetails(clientId, null, null, "client_credentials", null);
+        UaaClientDetails client = new UaaClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
         mockMvc.perform(post("/oauth/clients")
                 .header(headerKey, headerValue)

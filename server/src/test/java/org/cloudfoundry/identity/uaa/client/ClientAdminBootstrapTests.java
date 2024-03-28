@@ -261,7 +261,7 @@ class ClientAdminBootstrapTests {
         map.put("authorities", "uaa.none");
         map.put("redirect-uri", "http://localhost/callback");
         map.put("jwks_uri", "https://localhost:8080/uaa");
-        UaaBaseClientDetails clientDetails = (UaaBaseClientDetails) doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        UaaClientDetails clientDetails = (UaaClientDetails) doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertNotNull(clientDetails.getClientJwtConfig());
     }
 
@@ -275,7 +275,7 @@ class ClientAdminBootstrapTests {
         map.put("authorities", "uaa.none");
         map.put("redirect-uri", "http://localhost/callback");
         map.put("jwks", "{\"kty\":\"RSA\",\"e\":\"AQAB\",\"kid\":\"key-1\",\"alg\":\"RS256\",\"n\":\"u_A1S-WoVAnHlNQ_1HJmOPBVxIdy1uSNsp5JUF5N4KtOjir9EgG9HhCFRwz48ykEukrgaK4ofyy_wRXSUJKW7Q\"}");
-        UaaBaseClientDetails clientDetails = (UaaBaseClientDetails) doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
+        UaaClientDetails clientDetails = (UaaClientDetails) doSimpleTest(map, clientAdminBootstrap, multitenantJdbcClientDetailsService, clients);
         assertNotNull(clientDetails.getClientJwtConfig());
     }
 
@@ -367,17 +367,17 @@ class ClientAdminBootstrapTests {
         @Test
         void simpleAddClientWithAutoApprove() {
             Map<String, Object> map = createClientMap(autoApproveId);
-            UaaBaseClientDetails output = new UaaBaseClientDetails(autoApproveId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            UaaClientDetails output = new UaaClientDetails(autoApproveId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
             output.setClientSecret("bar");
 
             doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(autoApproveId), anyString());
             clients.put((String) map.get("id"), map);
 
-            UaaBaseClientDetails expectedAdd = new UaaBaseClientDetails(output);
+            UaaClientDetails expectedAdd = new UaaClientDetails(output);
 
             clientAdminBootstrap.afterPropertiesSet();
             verify(multitenantJdbcClientDetailsService).addClientDetails(expectedAdd, "uaa");
-            UaaBaseClientDetails expectedUpdate = new UaaBaseClientDetails(expectedAdd);
+            UaaClientDetails expectedUpdate = new UaaClientDetails(expectedAdd);
             expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.AUTO_APPROVE, true));
             verify(multitenantJdbcClientDetailsService).updateClientDetails(expectedUpdate, "uaa");
         }
@@ -385,16 +385,16 @@ class ClientAdminBootstrapTests {
         @Test
         void simpleAddClientWithAllowPublic() {
             Map<String, Object> map = createClientMap(allowPublicId);
-            UaaBaseClientDetails output = new UaaBaseClientDetails(allowPublicId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            UaaClientDetails output = new UaaClientDetails(allowPublicId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
             output.setClientSecret("bar");
 
             doReturn(output).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(allowPublicId), anyString());
             clients.put((String) map.get("id"), map);
 
-            UaaBaseClientDetails expectedAdd = new UaaBaseClientDetails(output);
+            UaaClientDetails expectedAdd = new UaaClientDetails(output);
 
             clientAdminBootstrap.afterPropertiesSet();
-            UaaBaseClientDetails expectedUpdate = new UaaBaseClientDetails(expectedAdd);
+            UaaClientDetails expectedUpdate = new UaaClientDetails(expectedAdd);
             expectedUpdate.setAdditionalInformation(Collections.singletonMap(ClientConstants.ALLOW_PUBLIC, true));
             verify(multitenantJdbcClientDetailsService, times(1)).updateClientDetails(expectedUpdate, "uaa");
         }
@@ -402,7 +402,7 @@ class ClientAdminBootstrapTests {
         @Test
         void simpleAddClientWithAllowPublicNoClient() {
             Map<String, Object> map = createClientMap(allowPublicId);
-            UaaBaseClientDetails output = new UaaBaseClientDetails(allowPublicId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
+            UaaClientDetails output = new UaaClientDetails(allowPublicId, "none", "openid", "authorization_code,refresh_token", "uaa.none", "http://localhost/callback");
             output.setClientSecret("bar");
 
             doThrow(new NoSuchClientException(allowPublicId)).when(multitenantJdbcClientDetailsService).loadClientByClientId(eq(allowPublicId), anyString());
@@ -415,7 +415,7 @@ class ClientAdminBootstrapTests {
         @Test
         void overrideClient() {
             String clientId = randomValueStringGenerator.generate();
-            UaaBaseClientDetails foo = new UaaBaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+            UaaClientDetails foo = new UaaClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
             foo.setClientSecret("secret");
             multitenantJdbcClientDetailsService.addClientDetails(foo);
             reset(multitenantJdbcClientDetailsService);
@@ -455,7 +455,7 @@ class ClientAdminBootstrapTests {
             @Test
             void overrideClient_usingDefaultOverride() {
                 String clientId = randomValueStringGenerator.generate();
-                UaaBaseClientDetails foo = new UaaBaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+                UaaClientDetails foo = new UaaClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
                 foo.setClientSecret("secret");
                 multitenantJdbcClientDetailsService.addClientDetails(foo);
                 reset(multitenantJdbcClientDetailsService);
@@ -477,7 +477,7 @@ class ClientAdminBootstrapTests {
         @Test
         void overrideClientWithEmptySecret() {
             String clientId = randomValueStringGenerator.generate();
-            UaaBaseClientDetails foo = new UaaBaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+            UaaClientDetails foo = new UaaClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
             foo.setClientSecret("secret");
             multitenantJdbcClientDetailsService.addClientDetails(foo);
 
@@ -502,7 +502,7 @@ class ClientAdminBootstrapTests {
         @Test
         void doNotOverrideClientWithNullSecret() {
             String clientId = randomValueStringGenerator.generate();
-            UaaBaseClientDetails foo = new UaaBaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+            UaaClientDetails foo = new UaaClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
             foo.setClientSecret("secret");
             multitenantJdbcClientDetailsService.addClientDetails(foo);
 
@@ -527,7 +527,7 @@ class ClientAdminBootstrapTests {
         @Test
         void overrideClientByDefault() {
             String clientId = randomValueStringGenerator.generate();
-            UaaBaseClientDetails foo = new UaaBaseClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
+            UaaClientDetails foo = new UaaClientDetails(clientId, "", "openid", "client_credentials,password", "uaa.none");
             foo.setClientSecret("secret");
             multitenantJdbcClientDetailsService.addClientDetails(foo);
             reset(multitenantJdbcClientDetailsService);
@@ -710,7 +710,7 @@ class ClientAdminBootstrapTests {
     private static void createClientInDb(
             final String clientId,
             final MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService) {
-        UaaBaseClientDetails foo = new UaaBaseClientDetails(clientId, "none", "openid", "authorization_code,refresh_token", "uaa.none");
+        UaaClientDetails foo = new UaaClientDetails(clientId, "none", "openid", "authorization_code,refresh_token", "uaa.none");
         foo.setClientSecret("secret");
         foo.setRegisteredRedirectUri(Collections.singleton("http://localhost/callback"));
         multitenantJdbcClientDetailsService.addClientDetails(foo);

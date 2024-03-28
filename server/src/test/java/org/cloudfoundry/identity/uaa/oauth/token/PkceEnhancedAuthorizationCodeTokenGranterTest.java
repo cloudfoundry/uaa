@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationException;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -42,7 +43,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
   private MultitenantClientServices clientDetailsService;
   private OAuth2RequestFactory requestFactory;
   private OAuth2Request oAuth2Request;
-  private UaaBaseClientDetails requestingClient;
+  private UaaClientDetails requestingClient;
   private Map<String,String> requestParameters;
   private OAuth2Authentication authentication;
   private TokenRequest tokenRequest;
@@ -69,7 +70,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
 
-    requestingClient = new UaaBaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_AUTHORIZATION_CODE, null);
+    requestingClient = new UaaClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_AUTHORIZATION_CODE, null);
     when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
     when(authorizationCodeServices.consumeAuthorizationCode("1234")).thenReturn(authentication);
     when(authentication.getOAuth2Request()).thenReturn(oAuth2Request);

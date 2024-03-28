@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class UaaBaseClientDetails implements ClientDetails {
+public class UaaClientDetails implements ClientDetails {
 
     private static final long serialVersionUID = SpringSecurityCoreVersion.SERIAL_VERSION_UID;
 
@@ -71,10 +71,10 @@ public class UaaBaseClientDetails implements ClientDetails {
     @JsonProperty("client_jwt_config")
     private String clientJwtConfig;
 
-    public UaaBaseClientDetails() {
+    public UaaClientDetails() {
     }
 
-    public UaaBaseClientDetails(ClientDetails prototype) {
+    public UaaClientDetails(ClientDetails prototype) {
         this();
         this.setAccessTokenValiditySeconds(prototype.getAccessTokenValiditySeconds());
         this.setRefreshTokenValiditySeconds(prototype.getRefreshTokenValiditySeconds());
@@ -88,7 +88,7 @@ public class UaaBaseClientDetails implements ClientDetails {
         this.setAdditionalInformation(prototype.getAdditionalInformation());
     }
 
-    public UaaBaseClientDetails(String clientId, String resourceIds,
+    public UaaClientDetails(String clientId, String resourceIds,
         String scopes, String grantTypes, String authorities, String redirectUris) {
         this.clientId = clientId;
 
@@ -126,7 +126,7 @@ public class UaaBaseClientDetails implements ClientDetails {
         }
     }
 
-    public UaaBaseClientDetails(String clientId, String resourceIds,
+    public UaaClientDetails(String clientId, String resourceIds,
         String scopes, String grantTypes, String authorities) {
         this(clientId, resourceIds, scopes, grantTypes, authorities, null);
     }
@@ -297,7 +297,7 @@ public class UaaBaseClientDetails implements ClientDetails {
         if (getClass() != obj.getClass()) {
             return false;
         }
-        UaaBaseClientDetails other = (UaaBaseClientDetails) obj;
+        UaaClientDetails other = (UaaClientDetails) obj;
         if (accessTokenValiditySeconds == null) {
             if (other.accessTokenValiditySeconds != null) {
                 return false;

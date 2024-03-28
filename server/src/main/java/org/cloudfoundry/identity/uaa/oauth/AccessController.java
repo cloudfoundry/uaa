@@ -17,7 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -87,8 +87,8 @@ public class AccessController {
                     "No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
         } else {
             String clientId = clientAuthRequest.getClientId();
-            UaaBaseClientDetails client = (UaaBaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-            UaaBaseClientDetails modifiableClient = new UaaBaseClientDetails(client);
+            UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            UaaClientDetails modifiableClient = new UaaClientDetails(client);
             modifiableClient.setClientSecret(null);
             model.put("auth_request", clientAuthRequest);
             model.put("redirect_uri", getRedirectUri(modifiableClient, clientAuthRequest));

@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -158,32 +158,32 @@ public abstract class AbstractTokenMockMvcTests {
         return identityProviderProvisioning.create(defaultIdp, defaultIdp.getIdentityZoneId());
     }
 
-    protected UaaBaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, null);
     }
 
-    protected UaaBaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, null);
     }
 
-    protected UaaBaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, -1);
     }
 
-    protected UaaBaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, null);
     }
 
-    protected UaaBaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, zone, Collections.emptyMap());
     }
 
-    protected UaaBaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String, Object> additionalInfo) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String, Object> additionalInfo) {
         IdentityZone original = IdentityZoneHolder.get();
         if (zone != null) {
             IdentityZoneHolder.set(zone);
         }
-        UaaBaseClientDetails c = new UaaBaseClientDetails(id, "", scopes, grantTypes, authorities);
+        UaaClientDetails c = new UaaClientDetails(id, "", scopes, grantTypes, authorities);
         if (!GRANT_TYPE_IMPLICIT.equals(grantTypes)) {
             c.setClientSecret(SECRET);
         }
@@ -203,7 +203,7 @@ public abstract class AbstractTokenMockMvcTests {
         }
         try {
             clientDetailsService.addClientDetails(c);
-            return (UaaBaseClientDetails) clientDetailsService.loadClientByClientId(c.getClientId());
+            return (UaaClientDetails) clientDetailsService.loadClientByClientId(c.getClientId());
         } finally {
             IdentityZoneHolder.set(original);
         }

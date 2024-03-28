@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.oauth;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.OpenIdSessionStateCalculator;
 import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
@@ -11,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
-import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -50,7 +51,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
     void setup() throws Exception {
         TestClient testClient = new TestClient(mockMvc);
 
-        UaaBaseClientDetails client = new UaaBaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
+        UaaClientDetails client = new UaaClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
         client.setAutoApproveScopes(Collections.singletonList("openid"));
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.write uaa.admin");
         MockMvcUtils.createClient(mockMvc, adminToken, client);
@@ -97,7 +98,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
     @Test
     void testSilentAuthentication_whenScopesNotAutoApproved() throws Exception {
         MockMvcUtils.deleteClient(mockMvc, adminToken, "ant", "");
-        UaaBaseClientDetails client = new UaaBaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
+        UaaClientDetails client = new UaaClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
         MockMvcUtils.createClient(mockMvc, adminToken, client);
 
         MockHttpSession session = new MockHttpSession();

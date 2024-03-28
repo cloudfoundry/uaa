@@ -21,15 +21,15 @@ import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-class UaaBaseClientDetailsTest {
+class UaaClientDetailsTest {
 
   @Nested
     class Creation {
-        private UaaBaseClientDetails testClient;
+        private UaaClientDetails testClient;
 
         @BeforeEach
         void setUp() {
-            testClient = new UaaBaseClientDetails(
+            testClient = new UaaClientDetails(
                     "test",
                     "",
                     "test.none",
@@ -41,7 +41,7 @@ class UaaBaseClientDetailsTest {
         @Test
         void copiesUaaBaseClientDetails() {
             testClient.setClientSecret("secret");
-            UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
+            UaaClientDetails copy = new UaaClientDetails(testClient);
             assertThat(copy, is(
                     aUaaClientDetails()
                             .withClientId("test")
@@ -59,7 +59,7 @@ class UaaBaseClientDetailsTest {
         @Test
         void copiesAdditionalInformation() {
             testClient.setAdditionalInformation(Collections.singletonMap("key", "value"));
-            UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
+            UaaClientDetails copy = new UaaClientDetails(testClient);
             assertThat(copy, is(
                     aUaaClientDetails()
                             .withAdditionalInformation(allOf(aMapWithSize(1), hasEntry("key", "value")))
@@ -68,28 +68,28 @@ class UaaBaseClientDetailsTest {
 
         @Test
         void testClientJwtConfig() {
-          UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
+          UaaClientDetails copy = new UaaClientDetails(testClient);
           copy.setClientJwtConfig("test");
           assertEquals("test", copy.getClientJwtConfig());
         }
 
         @Test
         void testEquals() {
-          UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
-          UaaBaseClientDetails copy2 = new UaaBaseClientDetails(testClient);
+          UaaClientDetails copy = new UaaClientDetails(testClient);
+          UaaClientDetails copy2 = new UaaClientDetails(testClient);
           copy.setClientJwtConfig("test");
           assertNotEquals(copy, copy2);
-          assertNotEquals(copy, new UaaBaseClientDetails());
+          assertNotEquals(copy, new UaaClientDetails());
           copy.setClientJwtConfig(null);
           assertEquals(copy, copy2);
           assertEquals(copy, copy);
-          assertNotEquals(copy, new UaaBaseClientDetails());
+          assertNotEquals(copy, new UaaClientDetails());
         }
 
         @Test
         void testHashCode() {
-          UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
-          UaaBaseClientDetails copy2 = new UaaBaseClientDetails(testClient.getClientId(), "",
+          UaaClientDetails copy = new UaaClientDetails(testClient);
+          UaaClientDetails copy2 = new UaaClientDetails(testClient.getClientId(), "",
               "test.none", "", "test.admin", null);
           assertEquals(copy.hashCode(), copy2.hashCode());
           copy.setClientJwtConfig("test");
@@ -101,7 +101,7 @@ class UaaBaseClientDetailsTest {
     class WhenSettingScope {
         @Test
         void splitsScopesWhichIncludeAComma() {
-            UaaBaseClientDetails client = new UaaBaseClientDetails(new UaaBaseClientDetails());
+            UaaClientDetails client = new UaaClientDetails(new UaaClientDetails());
             client.setScope(Collections.singleton("foo,bar"));
             assertThat(client, is(
                     aUaaClientDetails().withScope(containsInAnyOrder("foo", "bar"))

@@ -95,7 +95,7 @@ public class JdbcQueryableClientDetailsService
 
         @Override
         public ClientDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
-            UaaBaseClientDetails details = new UaaBaseClientDetails(rs.getString(1), rs.getString(3), rs.getString(4),
+            UaaClientDetails details = new UaaClientDetails(rs.getString(1), rs.getString(3), rs.getString(4),
                     rs.getString(5), rs.getString(7), rs.getString(6));
             details.setClientSecret(rs.getString(2));
             if (rs.getObject(8) != null) {
