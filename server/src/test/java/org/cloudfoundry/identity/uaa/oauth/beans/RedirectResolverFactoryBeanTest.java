@@ -2,8 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver;
-import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.RedirectResolver;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -24,7 +23,7 @@ class RedirectResolverFactoryBeanTest {
         FactoryBean<RedirectResolver> factory = new RedirectResolverFactoryBean(false);
 
         RedirectResolver redirectResolver = factory.getObject();
-        assertThat(redirectResolver, instanceOf(DefaultRedirectResolver.class));
+        assertThat(redirectResolver, instanceOf(UaaDefaultRedirectResolver.class));
         assertThat(ReflectionTestUtils.getField(redirectResolver, "matchSubdomains"), is(false));
     }
 

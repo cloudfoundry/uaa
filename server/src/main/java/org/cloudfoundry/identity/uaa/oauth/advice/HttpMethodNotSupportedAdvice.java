@@ -1,15 +1,14 @@
 package org.cloudfoundry.identity.uaa.oauth.advice;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.IntrospectEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.OAuth2Exception;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
-import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,7 +19,7 @@ import static org.springframework.http.HttpStatus.NOT_ACCEPTABLE;
 public class HttpMethodNotSupportedAdvice {
 
     protected final Logger logger = LoggerFactory.getLogger(getClass());
-    private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
+    private UaaExceptionTranslator exceptionTranslator = new UaaExceptionTranslator();
 
     @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
     public ResponseEntity<OAuth2Exception> handleMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {

@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.exceptions.InvalidTokenException;
 
 public class TokenRevokedException extends InvalidTokenException {
     public TokenRevokedException(String msg) {
