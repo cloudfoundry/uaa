@@ -139,8 +139,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 final Optional<IdentityProvider<?>> createdIdp = allIdps.stream()
                         .filter(it -> it.getOriginKey().equals(existingIdp.getOriginKey()))
                         .findFirst();
-                assertThat(createdIdp).isPresent();
-                assertThat(createdIdp.get()).isEqualTo(existingIdp);
+                assertThat(createdIdp).isPresent().contains(existingIdp);
                 assertThat(createdIdp.get().getAliasZid()).isEqualTo(zone2.getId());
             }
         }
