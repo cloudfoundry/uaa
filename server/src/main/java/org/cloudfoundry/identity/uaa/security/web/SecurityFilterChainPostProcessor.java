@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
+import org.cloudfoundry.identity.uaa.provider.saml.SamlExtensionUrlForwardingFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -68,7 +69,14 @@ import java.util.Map.Entry;
     description = "Ability to dump requests through JMX"
 )
 public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
+    private SamlExtensionUrlForwardingFilter samlExtensionUrlForwardingFilter;
+
+    public void setSamlExtensionUrlForwardingFilter(SamlExtensionUrlForwardingFilter samlExtensionUrlForwardingFilter) {
+        this.samlExtensionUrlForwardingFilter = samlExtensionUrlForwardingFilter;
+    }
+
     public static class ReasonPhrase {
+
         private int code;
         private String phrase;
 
@@ -122,6 +130,8 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                         fc.getFilters().add(position,entry.getValue());
                     }
                 }
+                int httpsFilterPosition = fc.getFilters().indexOf(uaaFilter);
+                fc.getFilters().add(httpsFilterPosition + 1, samlExtensionUrlForwardingFilter);
             }
         }
 
