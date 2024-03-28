@@ -833,16 +833,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
 
                 @Test
-                void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties_UaaToCustomZone() throws Throwable {
-                    shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(IdentityZone.getUaa(), customZone);
+                void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties_UaaToCustomZone() throws Throwable {
+                    shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties_CustomToUaaZone() throws Throwable {
-                    shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(customZone, IdentityZone.getUaa());
+                void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties_CustomToUaaZone() throws Throwable {
+                    shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(
+                private void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -858,21 +858,11 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     final String initialName = originalIdp.getName();
                     assertThat(initialName).isNotBlank();
 
-                    // change non-alias property without setting alias properties to null
+                    // should reject update
                     originalIdp.setAliasId(null);
                     originalIdp.setAliasZid(null);
                     originalIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, originalIdp);
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-
-                    // apart from the alias reference being removed, the alias IdP should be left unchanged
-                    final Optional<IdentityProvider<?>> aliasIdpAfterUpdate = readIdpFromZoneIfExists(zone2.getId(), initialAliasId);
-                    assertThat(aliasIdpAfterUpdate).isPresent();
-                    assertThat(aliasIdpAfterUpdate.get().getAliasId()).isBlank();
-                    assertThat(aliasIdpAfterUpdate.get().getAliasZid()).isBlank();
-                    assertThat(aliasIdpAfterUpdate.get().getName()).isEqualTo(initialName);
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
