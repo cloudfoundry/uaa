@@ -1198,13 +1198,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         }
     }
 
-    private void assertReferenceWasRemovedFromAlias(final String aliasId, final String aliasZid) throws Exception {
-        final Optional<IdentityProvider<?>> aliasIdpAfterDeletion = readIdpFromZoneIfExists(aliasZid, aliasId);
-        assertThat(aliasIdpAfterDeletion).isPresent();
-        assertThat(aliasIdpAfterDeletion.get().getAliasId()).isBlank();
-        assertThat(aliasIdpAfterDeletion.get().getAliasZid()).isBlank();
-    }
-
     private static void assertIdpReferencesOtherIdp(final IdentityProvider<?> idp, final IdentityProvider<?> referencedIdp) {
         assertThat(idp).isNotNull();
         assertThat(referencedIdp).isNotNull();
