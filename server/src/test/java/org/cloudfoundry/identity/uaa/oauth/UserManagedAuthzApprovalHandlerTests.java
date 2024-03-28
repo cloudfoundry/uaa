@@ -16,7 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -37,7 +37,7 @@ class UserManagedAuthzApprovalHandlerTests {
     private UserManagedAuthzApprovalHandler handler;
 
     private ApprovalStore approvalStore;
-    private BaseClientDetails mockBaseClientDetails;
+    private UaaBaseClientDetails mockUaaBaseClientDetails;
 
     private String userId;
 
@@ -56,15 +56,15 @@ class UserManagedAuthzApprovalHandlerTests {
         approvalStore = new JdbcApprovalStore(jdbcTemplate);
 
         QueryableResourceManager<ClientDetails> mockClientDetailsService = mock(QueryableResourceManager.class);
-        mockBaseClientDetails = mock(BaseClientDetails.class);
+        mockUaaBaseClientDetails = mock(UaaBaseClientDetails.class);
         when(mockClientDetailsService.retrieve("foo",
-                currentIdentityZoneId)).thenReturn(mockBaseClientDetails);
-        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
+                currentIdentityZoneId)).thenReturn(mockUaaBaseClientDetails);
+        when(mockUaaBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
                 "cloud_controller.read",
                 "cloud_controller.write",
                 "openid",
                 "space.*.developer")));
-        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(Collections.emptySet());
+        when(mockUaaBaseClientDetails.getAutoApproveScopes()).thenReturn(Collections.emptySet());
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
@@ -221,11 +221,11 @@ class UserManagedAuthzApprovalHandlerTests {
         );
         request.setApproved(false);
 
-        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
+        when(mockUaaBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
                 "cloud_controller.read",
                 "cloud_controller.write",
                 "openid")));
-        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("true"));
+        when(mockUaaBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("true"));
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -378,11 +378,11 @@ class UserManagedAuthzApprovalHandlerTests {
         );
         request.setApproved(false);
 
-        when(mockBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
+        when(mockUaaBaseClientDetails.getScope()).thenReturn(new HashSet<>(Arrays.asList(
                 "cloud_controller.read",
                 "cloud_controller.write",
                 "openid")));
-        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("cloud_controller.write"));
+        when(mockUaaBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("cloud_controller.write"));
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -434,7 +434,7 @@ class UserManagedAuthzApprovalHandlerTests {
         autoApprovedScopes.add("space.*.developer");
         autoApprovedScopes.add("cloud_controller.write");
 
-        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
+        when(mockUaaBaseClientDetails.getAutoApproveScopes()).thenReturn(autoApprovedScopes);
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)
@@ -489,7 +489,7 @@ class UserManagedAuthzApprovalHandlerTests {
         );
         request.setApproved(false);
 
-        when(mockBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("true"));
+        when(mockUaaBaseClientDetails.getAutoApproveScopes()).thenReturn(singleton("true"));
 
         approvalStore.addApproval(new Approval()
                 .setUserId(userId)

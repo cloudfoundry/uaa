@@ -4,7 +4,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,15 +21,15 @@ import static org.hamcrest.collection.IsMapWithSize.aMapWithSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
-class UaaClientDetailsTest {
+class UaaBaseClientDetailsTest {
 
   @Nested
     class Creation {
-        private BaseClientDetails testClient;
+        private UaaBaseClientDetails testClient;
 
         @BeforeEach
         void setUp() {
-            testClient = new BaseClientDetails(
+            testClient = new UaaBaseClientDetails(
                     "test",
                     "",
                     "test.none",
@@ -40,9 +39,9 @@ class UaaClientDetailsTest {
         }
 
         @Test
-        void copiesBaseClientDetails() {
+        void copiesUaaBaseClientDetails() {
             testClient.setClientSecret("secret");
-            UaaClientDetails copy = new UaaClientDetails(testClient);
+            UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
             assertThat(copy, is(
                     aUaaClientDetails()
                             .withClientId("test")
@@ -60,7 +59,7 @@ class UaaClientDetailsTest {
         @Test
         void copiesAdditionalInformation() {
             testClient.setAdditionalInformation(Collections.singletonMap("key", "value"));
-            UaaClientDetails copy = new UaaClientDetails(testClient);
+            UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
             assertThat(copy, is(
                     aUaaClientDetails()
                             .withAdditionalInformation(allOf(aMapWithSize(1), hasEntry("key", "value")))
@@ -69,28 +68,28 @@ class UaaClientDetailsTest {
 
         @Test
         void testClientJwtConfig() {
-          UaaClientDetails copy = new UaaClientDetails(testClient);
+          UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
           copy.setClientJwtConfig("test");
           assertEquals("test", copy.getClientJwtConfig());
         }
 
         @Test
         void testEquals() {
-          UaaClientDetails copy = new UaaClientDetails(testClient);
-          UaaClientDetails copy2 = new UaaClientDetails(testClient);
+          UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
+          UaaBaseClientDetails copy2 = new UaaBaseClientDetails(testClient);
           copy.setClientJwtConfig("test");
           assertNotEquals(copy, copy2);
-          assertNotEquals(copy, new UaaClientDetails());
+          assertNotEquals(copy, new UaaBaseClientDetails());
           copy.setClientJwtConfig(null);
           assertEquals(copy, copy2);
           assertEquals(copy, copy);
-          assertNotEquals(copy, new BaseClientDetails());
+          assertNotEquals(copy, new UaaBaseClientDetails());
         }
 
         @Test
         void testHashCode() {
-          UaaClientDetails copy = new UaaClientDetails(testClient);
-          UaaClientDetails copy2 = new UaaClientDetails(testClient.getClientId(), "",
+          UaaBaseClientDetails copy = new UaaBaseClientDetails(testClient);
+          UaaBaseClientDetails copy2 = new UaaBaseClientDetails(testClient.getClientId(), "",
               "test.none", "", "test.admin", null);
           assertEquals(copy.hashCode(), copy2.hashCode());
           copy.setClientJwtConfig("test");
@@ -102,7 +101,7 @@ class UaaClientDetailsTest {
     class WhenSettingScope {
         @Test
         void splitsScopesWhichIncludeAComma() {
-            UaaClientDetails client = new UaaClientDetails(new BaseClientDetails());
+            UaaBaseClientDetails client = new UaaBaseClientDetails(new UaaBaseClientDetails());
             client.setScope(Collections.singleton("foo,bar"));
             assertThat(client, is(
                     aUaaClientDetails().withScope(containsInAnyOrder("foo", "bar"))

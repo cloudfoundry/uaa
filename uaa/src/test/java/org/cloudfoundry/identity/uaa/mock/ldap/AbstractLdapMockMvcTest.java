@@ -52,7 +52,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
@@ -667,7 +667,7 @@ public abstract class AbstractLdapMockMvcTest {
         // so we put both of these scopes on the client.
         String clientId = "roles_test_client";
         createClient(getWebApplicationContext(),
-                new BaseClientDetails(clientId, null, "roles,openid", "password,refresh_token", null),
+                new UaaBaseClientDetails(clientId, null, "roles,openid", "password,refresh_token", null),
                 zone.getZone().getIdentityZone()
         );
 

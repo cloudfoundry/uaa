@@ -17,7 +17,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -49,7 +49,7 @@ class LegacyRedirectResolverTest {
     private final LegacyRedirectResolver resolver = new LegacyRedirectResolver();
 
     private static ClientDetails createClient(String id, String... redirectUris) {
-        BaseClientDetails clientDetails = new BaseClientDetails();
+        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
         clientDetails.setClientId(id);
         clientDetails.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         clientDetails.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUris)));
@@ -714,7 +714,7 @@ class LegacyRedirectResolverTest {
 
         @BeforeEach
         void setUp() {
-            mockClientDetails = mock(BaseClientDetails.class);
+            mockClientDetails = mock(UaaBaseClientDetails.class);
             when(mockClientDetails.getAuthorizedGrantTypes()).thenReturn(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         }
 

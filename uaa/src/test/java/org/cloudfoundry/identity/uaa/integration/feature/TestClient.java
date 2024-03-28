@@ -24,7 +24,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -70,7 +70,7 @@ public class TestClient {
         return exchange.getBody().get("access_token").toString();
     }
 
-    public void createClient(String adminAccessToken, BaseClientDetails clientDetails) {
+    public void createClient(String adminAccessToken, UaaBaseClientDetails clientDetails) {
         restfulCreate(
             adminAccessToken,
             JsonUtils.writeValueAsString(clientDetails),

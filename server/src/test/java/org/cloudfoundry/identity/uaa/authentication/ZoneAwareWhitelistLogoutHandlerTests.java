@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutHandler;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -25,8 +26,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
@@ -44,7 +45,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
 
     private MockHttpServletRequest request = new MockHttpServletRequest();
     private MockHttpServletResponse response = new MockHttpServletResponse();
-    private BaseClientDetails client = new BaseClientDetails(CLIENT_ID, "", "", "", "", "http://*.testing.com,http://testing.com");
+    private UaaBaseClientDetails client = new UaaBaseClientDetails(CLIENT_ID, "", "", "", "", "http://*.testing.com,http://testing.com");
     private MultitenantClientServices clientDetailsService =  mock(MultitenantClientServices.class);
     private ExternalOAuthLogoutHandler oAuthLogoutHandler = mock(ExternalOAuthLogoutHandler.class);
     private KeyInfoService keyInfoService = mock(KeyInfoService.class);

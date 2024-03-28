@@ -9,7 +9,7 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.*;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
 import java.util.Collection;
@@ -62,7 +62,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
     }
 
     private boolean isAutoApprove(ClientDetails client, Collection<String> scopes) {
-        BaseClientDetails baseClient = (BaseClientDetails) client;
+        UaaBaseClientDetails baseClient = (UaaBaseClientDetails) client;
 
         if (baseClient.getAutoApproveScopes() == null) {
             return false;

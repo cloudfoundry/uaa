@@ -15,7 +15,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.web.context.support.GenericWebApplicationContext;
 
 import java.util.Collections;
@@ -51,7 +51,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         identityZoneProvisioning.update(defaultZone);
 
         try {
-            BaseClientDetails client = setUpClients(
+            UaaBaseClientDetails client = setUpClients(
                     generator.generate(),
                     "clients.write",
                     "openid",
@@ -101,7 +101,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         String revokerClientId = generator.generate();
         String resourceClientId = generator.generate();
 
-        BaseClientDetails revokerClient =
+        UaaBaseClientDetails revokerClient =
                 setUpClients(revokerClientId,
                         "tokens.revoke",
                         "openid",
@@ -110,7 +110,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 );
 
 
-        BaseClientDetails targetClient =
+        UaaBaseClientDetails targetClient =
                 setUpClients(resourceClientId,
                         "uaa.none",
                         "openid",
@@ -167,7 +167,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         String revokerClientId = generator.generate();
         String resourceClientId = generator.generate();
 
-        BaseClientDetails revokerClient =
+        UaaBaseClientDetails revokerClient =
                 setUpClients(revokerClientId,
                         scope,
                         "openid",
@@ -176,7 +176,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 );
 
 
-        BaseClientDetails targetClient =
+        UaaBaseClientDetails targetClient =
                 setUpClients(resourceClientId,
                         "uaa.none",
                         "openid",
@@ -222,7 +222,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     @Test
     void revokeOtherClientTokenForbidden() throws Exception {
         String resourceClientId = generator.generate();
-        BaseClientDetails resourceClient = setUpClients(
+        UaaBaseClientDetails resourceClient = setUpClients(
                 resourceClientId,
                 "uaa.resource",
                 "uaa.resource",
@@ -230,7 +230,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 true
         );
 
-        BaseClientDetails client = setUpClients(
+        UaaBaseClientDetails client = setUpClients(
                 generator.generate(),
                 "clients.write",
                 "openid",
@@ -283,8 +283,8 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
     @Test
     void test_Revoke_All_Client_Tokens() throws Exception {
-        BaseClientDetails client = getAClientWithClientsRead();
-        BaseClientDetails otherClient = getAClientWithClientsRead();
+        UaaBaseClientDetails client = getAClientWithClientsRead();
+        UaaBaseClientDetails otherClient = getAClientWithClientsRead();
 
         //this is the token we will revoke
         String readClientsToken =
@@ -355,7 +355,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
     @Test
     void test_Revoke_All_Tokens_For_User() throws Exception {
-        BaseClientDetails client = getAClientWithClientsRead();
+        UaaBaseClientDetails client = getAClientWithClientsRead();
 
         ScimUser user = setUpUser(generator.generate().toLowerCase() + "@test.org");
         user.setPassword("secret");
@@ -406,7 +406,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
 
     @Test
     void aUserCanRevokeTheirOwnToken() throws Exception {
-        BaseClientDetails client = getAClientWithClientsRead();
+        UaaBaseClientDetails client = getAClientWithClientsRead();
         ScimUser user = setUpUser(generator.generate().toLowerCase() + "@test.org");
         user.setPassword("secret");
 
@@ -445,8 +445,8 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     }
 
     private void revokeUserClientCombinationTokenWithAuth() throws Exception {
-        BaseClientDetails client = getAClientWithClientsRead();
-        BaseClientDetails otherClient = getAClientWithClientsRead();
+        UaaBaseClientDetails client = getAClientWithClientsRead();
+        UaaBaseClientDetails otherClient = getAClientWithClientsRead();
         IdentityZone zone = IdentityZoneHolder.get();
 
         ScimUser user1 = setUpUser(generator.generate().toLowerCase() + "@test.org");
@@ -549,7 +549,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
     @Test
     void test_Revoke_Client_User_Combination_Token_With_Revoke_Scope() throws Exception {
         String revokerClientId = generator.generate();
-        BaseClientDetails revokerClient =
+        UaaBaseClientDetails revokerClient =
                 setUpClients(revokerClientId,
                         "tokens.revoke",
                         "openid",
@@ -570,8 +570,8 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         revokeUserClientCombinationTokenWithAuth();
     }
 
-    private BaseClientDetails getAClientWithClientsRead() {
-        BaseClientDetails client = setUpClients(
+    private UaaBaseClientDetails getAClientWithClientsRead() {
+        UaaBaseClientDetails client = setUpClients(
                 generator.generate(),
                 "clients.read",
                 "openid",

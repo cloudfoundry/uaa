@@ -4,13 +4,13 @@ import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Date;
 import java.util.List;
@@ -29,7 +29,7 @@ public class ApprovalServiceTest {
     private ApprovalService approvalService;
     private TimeService timeService;
     private ApprovalStore approvalStore;
-    private BaseClientDetails clientDetails;
+    private UaaBaseClientDetails clientDetails;
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
@@ -38,7 +38,7 @@ public class ApprovalServiceTest {
     public void setup() {
         timeService = mock(TimeService.class);
         approvalStore = mock(ApprovalStore.class);
-        clientDetails = new BaseClientDetails(CLIENT_ID, null, "foo.read,bar.write", null, null);
+        clientDetails = new UaaBaseClientDetails(CLIENT_ID, null, "foo.read,bar.write", null, null);
         approvalService = new ApprovalService(timeService, approvalStore);
     }
 

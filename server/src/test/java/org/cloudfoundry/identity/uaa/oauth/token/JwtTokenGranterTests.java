@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -35,7 +36,6 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
 import java.util.Collections;
@@ -100,7 +100,7 @@ public class JwtTokenGranterTests {
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        client = new BaseClientDetails("clientID",null,"uaa.user",GRANT_TYPE_JWT_BEARER, null);
+        client = new UaaBaseClientDetails("clientID",null,"uaa.user",GRANT_TYPE_JWT_BEARER, null);
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), anyString())).thenReturn(client);
         requestParameters = new HashMap<>();
         requestParameters.put(OAuth2Utils.CLIENT_ID, client.getClientId());
@@ -170,7 +170,7 @@ public class JwtTokenGranterTests {
     public void get_oauth2_authentication_validates_request() {
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("User authentication not found");
-        granter.getOAuth2Authentication(client, tokenRequest);
+        granter.getOAuth2Authentication((ClientDetails) client, tokenRequest);
         verify(granter, times(1)).validateRequest(same(tokenRequest));
     }
 
@@ -178,8 +178,8 @@ public class JwtTokenGranterTests {
     public void get_oauth2_authentication() {
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
         OAuth2Request request = mock(OAuth2Request.class);
-        when(requestFactory.createOAuth2Request(same(client), same(tokenRequest))).thenReturn(request);
-        OAuth2Authentication result = granter.getOAuth2Authentication(client, tokenRequest);
+        when(requestFactory.createOAuth2Request((ClientDetails) same(client), same(tokenRequest))).thenReturn(request);
+        OAuth2Authentication result = granter.getOAuth2Authentication((ClientDetails) client, tokenRequest);
         assertSame(request, result.getOAuth2Request());
         assertSame(uaaAuthentication, result.getUserAuthentication());
     }

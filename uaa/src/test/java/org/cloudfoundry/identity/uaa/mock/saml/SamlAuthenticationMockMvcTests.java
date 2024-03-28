@@ -28,7 +28,7 @@ import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.context.WebApplicationContext;
@@ -77,7 +77,7 @@ class SamlAuthenticationMockMvcTests {
     ) throws Exception {
         this.jdbcIdentityProviderProvisioning = jdbcIdentityProviderProvisioning;
         generator = new RandomValueStringGenerator();
-        BaseClientDetails adminClient = new BaseClientDetails("admin", "", "", "client_credentials", "uaa.admin");
+        UaaBaseClientDetails adminClient = new UaaBaseClientDetails("admin", "", "", "client_credentials", "uaa.admin");
         adminClient.setClientSecret("adminsecret");
         spZone = createZone("uaa-acting-as-saml-proxy-zone-", adminClient);
         idpZone = createZone("uaa-acting-as-saml-idp-zone-", adminClient);
@@ -264,7 +264,7 @@ class SamlAuthenticationMockMvcTests {
         idp = jdbcIdentityProviderProvisioning.create(idp, spZone.getId());
     }
 
-    private IdentityZone createZone(String zoneIdPrefix, BaseClientDetails adminClient) throws Exception {
+    private IdentityZone createZone(String zoneIdPrefix, UaaBaseClientDetails adminClient) throws Exception {
         return MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                 zoneIdPrefix + generator.generate(),
                 mockMvc,

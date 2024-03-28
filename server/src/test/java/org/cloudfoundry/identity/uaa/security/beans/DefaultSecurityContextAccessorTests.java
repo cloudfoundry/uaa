@@ -21,7 +21,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -81,7 +81,7 @@ class DefaultSecurityContextAccessorTests {
 
     @Test
     void zoneAdminUserIsAdmin() {
-        BaseClientDetails client = new BaseClientDetails();
+        UaaBaseClientDetails client = new UaaBaseClientDetails();
         List<SimpleGrantedAuthority> authorities = new LinkedList<>();
         authorities.add(new SimpleGrantedAuthority("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         client.setAuthorities(authorities);
@@ -98,7 +98,7 @@ class DefaultSecurityContextAccessorTests {
 
     @Test
     void zoneAdminUserIsNotAdmin_BecauseOriginIsNotUaa() {
-        BaseClientDetails client = new BaseClientDetails();
+        UaaBaseClientDetails client = new UaaBaseClientDetails();
         List<SimpleGrantedAuthority> authorities = new LinkedList<>();
         authorities.add(new SimpleGrantedAuthority("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         client.setAuthorities(authorities);

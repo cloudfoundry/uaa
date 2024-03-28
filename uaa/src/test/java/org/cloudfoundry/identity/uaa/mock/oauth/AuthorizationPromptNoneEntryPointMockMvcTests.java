@@ -11,7 +11,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -50,7 +50,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
     void setup() throws Exception {
         TestClient testClient = new TestClient(mockMvc);
 
-        BaseClientDetails client = new BaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
+        UaaBaseClientDetails client = new UaaBaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
         client.setAutoApproveScopes(Collections.singletonList("openid"));
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.write uaa.admin");
         MockMvcUtils.createClient(mockMvc, adminToken, client);
@@ -97,7 +97,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
     @Test
     void testSilentAuthentication_whenScopesNotAutoApproved() throws Exception {
         MockMvcUtils.deleteClient(mockMvc, adminToken, "ant", "");
-        BaseClientDetails client = new BaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
+        UaaBaseClientDetails client = new UaaBaseClientDetails("ant", "", "openid", "implicit", "", "http://example.com/**");
         MockMvcUtils.createClient(mockMvc, adminToken, client);
 
         MockHttpSession session = new MockHttpSession();

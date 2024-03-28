@@ -35,7 +35,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -99,7 +99,7 @@ public class LoginPagePerformanceMockMvcTest {
         String subdomain = "oidc-discovery-" + generator.generate().toLowerCase();
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone.getConfig().setIdpDiscoveryEnabled(true);
-        BaseClientDetails client = new BaseClientDetails("admin", null, null, "client_credentials",
+        UaaBaseClientDetails client = new UaaBaseClientDetails("admin", null, null, "client_credentials",
                 "clients.admin,scim.read,scim.write,idps.write,uaa.admin", "http://redirect.url");
         client.setClientSecret("admin-secret");
         createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, client, zone, false, IdentityZoneHolder.getCurrentZoneId());
