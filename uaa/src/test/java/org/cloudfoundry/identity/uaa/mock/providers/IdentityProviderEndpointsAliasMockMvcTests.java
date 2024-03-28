@@ -861,16 +861,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(IdentityZone.getUaa(), customZone);
+                void shouldReject_AliasIdOfExistingIdpMissing_UaaToCustomZone() throws Throwable {
+                    shouldReject_AliasIdOfExistingIdpMissing(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(customZone, IdentityZone.getUaa());
+                void shouldReject_AliasIdOfExistingIdpMissing_CustomToUaaZone() throws Throwable {
+                    shouldReject_AliasIdOfExistingIdpMissing(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(
+                private void shouldReject_AliasIdOfExistingIdpMissing(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -892,17 +892,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     existingIdp.setAliasId(null);
                     existingIdp.setAliasZid(null);
                     existingIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-
-                    // alias IdP should still exist and not be modified
-                    final Optional<IdentityProvider<?>> aliasIdp = readIdpViaDb(initialAliasId, zone2.getId());
-                    assertThat(aliasIdp).isPresent();
-                    assertThat(aliasIdp.get().getAliasId()).isNotBlank().isEqualTo(existingIdp.getId());
-                    assertThat(aliasIdp.get().getAliasZid()).isNotBlank().isEqualTo(existingIdp.getIdentityZoneId());
-                    assertThat(aliasIdp.get().getName()).isNotBlank().isEqualTo(initialName);
+                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
