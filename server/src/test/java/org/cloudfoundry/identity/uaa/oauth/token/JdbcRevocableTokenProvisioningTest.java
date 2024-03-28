@@ -26,7 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -88,7 +88,7 @@ class JdbcRevocableTokenProvisioningTest {
     @ParameterizedTest
     @ArgumentsSource(IdentityZoneArgumentsProvider.class)
     void onApplicationEventCallsInternalDeleteMethod(IdentityZone zone) {
-        BaseClientDetails clientDetails = new BaseClientDetails("id", "", "", "", "", "");
+        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails("id", "", "", "", "", "");
         IdentityZoneHolder.set(zone);
         reset(jdbcRevocableTokenProvisioning);
         jdbcRevocableTokenProvisioning.onApplicationEvent(new EntityDeletedEvent<>(clientDetails, mock(UaaAuthentication.class), IdentityZoneHolder.getCurrentZoneId()));
@@ -99,7 +99,7 @@ class JdbcRevocableTokenProvisioningTest {
     @ParameterizedTest
     @ArgumentsSource(IdentityZoneArgumentsProvider.class)
     void revocableTokensDeletedWhenClientIs(IdentityZone zone) {
-        BaseClientDetails clientDetails = new BaseClientDetails(TEST_CLIENT_ID, "", "", "", "", "");
+        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails(TEST_CLIENT_ID, "", "", "", "", "");
         IdentityZoneHolder.set(zone);
         jdbcRevocableTokenProvisioning.create(revocableToken, IdentityZoneHolder.get().getId());
         assertEquals(1, getCountOfTokens(jdbcTemplate));

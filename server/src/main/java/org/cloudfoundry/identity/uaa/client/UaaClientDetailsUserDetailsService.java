@@ -1,10 +1,10 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
 
 public class UaaClientDetailsUserDetailsService implements UserDetailsService {
 
@@ -15,9 +15,9 @@ public class UaaClientDetailsUserDetailsService implements UserDetailsService {
   }
 
   public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    UaaClientDetails clientDetails;
+    UaaBaseClientDetails clientDetails;
     try {
-      clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(username);
+      clientDetails = (UaaBaseClientDetails) clientDetailsService.loadClientByClientId(username);
     } catch (NoSuchClientException e) {
       throw new UsernameNotFoundException(e.getMessage(), e);
     }

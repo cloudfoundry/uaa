@@ -39,7 +39,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -411,7 +411,7 @@ public class ScimGroupEndpointsMockMvcTests {
         @Test
         void getGroupsInOtherZone_withZoneAdminToken_returnsOkWithResults() throws Exception {
             String subdomain = new RandomValueStringGenerator(8).generate();
-            BaseClientDetails bootstrapClient = null;
+            UaaBaseClientDetails bootstrapClient = null;
             MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                     subdomain, mockMvc, webApplicationContext, bootstrapClient, IdentityZoneHolder.getCurrentZoneId()
             );
@@ -468,14 +468,14 @@ public class ScimGroupEndpointsMockMvcTests {
         @Test
         void getGroupsInOtherZone_withZoneUserToken_returnsOkWithResults() throws Exception {
             String subdomain = new RandomValueStringGenerator(8).generate();
-            BaseClientDetails bootstrapClient = null;
+            UaaBaseClientDetails bootstrapClient = null;
             MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                     subdomain, mockMvc, webApplicationContext, bootstrapClient, IdentityZoneHolder.getCurrentZoneId()
             );
 
             String zonedClientId = "zonedClientId";
             String zonedClientSecret = "zonedClientSecret";
-            BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(mockMvc, result.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"),
+            UaaBaseClientDetails zonedClientDetails = (UaaBaseClientDetails) MockMvcUtils.createClient(mockMvc, result.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"),
                     Collections.singletonList("scim.read"), Arrays.asList("client_credentials", "password"), "scim.read", null, result.getIdentityZone());
             zonedClientDetails.setClientSecret(zonedClientSecret);
 

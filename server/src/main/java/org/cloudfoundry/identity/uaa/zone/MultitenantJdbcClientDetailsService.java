@@ -3,9 +3,11 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -26,9 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.util.DefaultJdbcListFactory;
 import org.springframework.security.oauth2.common.util.JdbcListFactory;
-import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -192,7 +192,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                 clientDetails.getClientSecret() != null ?
                         passwordEncoder.encode(clientDetails.getClientSecret()) :
                         null;
-        clientDetailFieldsForUpdate[1] = (clientDetails instanceof UaaClientDetails) ? ((UaaClientDetails) clientDetails).getClientJwtConfig() : null;
+        clientDetailFieldsForUpdate[1] = (clientDetails instanceof UaaBaseClientDetails) ? ((UaaBaseClientDetails) clientDetails).getClientJwtConfig() : null;
         clientDetailFieldsForUpdate[clientDetailFieldsForUpdate.length - 1] = getUserId();
         return clientDetailFieldsForUpdate;
     }
@@ -295,8 +295,8 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     public void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
         ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);
         if (clientJwtConfiguration != null) {
-            UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
-            ClientJwtConfiguration existingConfig = ClientJwtConfiguration.readValue(uaaClientDetails);
+            UaaBaseClientDetails uaaUaaBaseClientDetails = (UaaBaseClientDetails) loadClientByClientId(clientId, zoneId);
+            ClientJwtConfiguration existingConfig = ClientJwtConfiguration.readValue(uaaUaaBaseClientDetails);
             ClientJwtConfiguration result = ClientJwtConfiguration.merge(existingConfig, clientJwtConfiguration, overwrite);
             if (result != null) {
                 updateClientJwtConfig(clientId, JsonUtils.writeValueAsString(result), zoneId);
@@ -315,8 +315,8 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
             clientJwtConfiguration = new ClientJwtConfiguration(keyConfig, null);
         }
         if (clientJwtConfiguration != null) {
-            UaaClientDetails uaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
-            ClientJwtConfiguration result = ClientJwtConfiguration.delete(ClientJwtConfiguration.readValue(uaaClientDetails), clientJwtConfiguration);
+            UaaBaseClientDetails uaaUaaBaseClientDetails = (UaaBaseClientDetails) loadClientByClientId(clientId, zoneId);
+            ClientJwtConfiguration result = ClientJwtConfiguration.delete(ClientJwtConfiguration.readValue(uaaUaaBaseClientDetails), clientJwtConfiguration);
             updateClientJwtConfig(clientId, result != null ? JsonUtils.writeValueAsString(result) : null, zoneId);
         } else {
             throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
@@ -330,7 +330,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
      */
     private static class ClientDetailsRowMapper implements RowMapper<ClientDetails> {
         public ClientDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
-            UaaClientDetails details = new UaaClientDetails(
+            UaaBaseClientDetails details = new UaaBaseClientDetails(
                     rs.getString(1),
                     rs.getString(4),
                     rs.getString(5),

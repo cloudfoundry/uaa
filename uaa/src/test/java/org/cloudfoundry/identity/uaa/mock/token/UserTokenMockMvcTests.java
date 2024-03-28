@@ -29,7 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 
 import java.util.Collections;
 import java.util.Map;
@@ -56,11 +56,11 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     void test_user_managed_token() throws Exception {
         String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
-        BaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
+        UaaBaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"), 50000);
 
         String requestorId = "requestingClient"+new RandomValueStringGenerator().generate();
-        BaseClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password,"+GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI,
+        UaaBaseClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password,"+GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"));
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
@@ -116,11 +116,11 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     void test_client_credentials_token() throws Exception {
         String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
-        BaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
+        UaaBaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"), 50000);
 
         String requestorId = "requestingClient"+new RandomValueStringGenerator().generate();
-        BaseClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "client_credentials,"+GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI,
+        UaaBaseClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "client_credentials,"+GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"));
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
@@ -152,11 +152,11 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     void test_invalid_grant_type() throws Exception {
         String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
-        BaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
+        UaaBaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"), 50000);
 
         String requestorId = "requestingClient"+new RandomValueStringGenerator().generate();
-        BaseClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI,
+        UaaBaseClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"));
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
@@ -195,7 +195,7 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
             true
         );
 
-        BaseClientDetails client = new BaseClientDetails(
+        UaaBaseClientDetails client = new UaaBaseClientDetails(
             generator.generate(),
             null,
             "openid,uaa.user,tokens.",

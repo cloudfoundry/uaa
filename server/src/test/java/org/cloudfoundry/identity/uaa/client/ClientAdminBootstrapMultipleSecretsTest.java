@@ -19,21 +19,21 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.stubbing.Answer;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+
 
 public class ClientAdminBootstrapMultipleSecretsTest {
 
 	private ClientAdminBootstrap clientAdminBootstrap;
 	private Map<String, Map<String, Object>> clients;
-	private BaseClientDetails verifyClient;
+	private UaaBaseClientDetails verifyClient;
 	private String clientId = "client1";
 	private String password1;
 	private String password2;
 	private String oldOneSecret = "oldOneSecret";
 	private String oldTwoSecret = "oldTwoSecret";
 	private MultitenantClientServices clientRegistrationService;
-	private BaseClientDetails oneSecretClient;
-	private BaseClientDetails twoSecretClient;
+	private UaaBaseClientDetails oneSecretClient;
+	private UaaBaseClientDetails twoSecretClient;
 
 	@Before
 	public void setUp() {
@@ -73,11 +73,11 @@ public class ClientAdminBootstrapMultipleSecretsTest {
 		clientAdminBootstrap = new ClientAdminBootstrap(passwordEncoder, clientRegistrationService, clientMetadataProvisioning, defaultOverride, clients, autoApproveClients, clientsToDelete, null,
 				allowPublicClients);
 
-		oneSecretClient = new BaseClientDetails();
+		oneSecretClient = new UaaBaseClientDetails();
 		oneSecretClient.setClientId(clientId);
 		oneSecretClient.setClientSecret("oldOneSecret");
 
-		twoSecretClient = new BaseClientDetails();
+		twoSecretClient = new UaaBaseClientDetails();
 		twoSecretClient.setClientId(clientId);
 		twoSecretClient.setClientSecret(oldOneSecret + " " + oldTwoSecret);
 	}

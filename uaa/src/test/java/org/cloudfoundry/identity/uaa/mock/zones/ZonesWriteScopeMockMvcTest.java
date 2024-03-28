@@ -15,7 +15,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ZonesWriteScopeMockMvcTest {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String subdomain;
-    private BaseClientDetails adminClient;
+    private UaaBaseClientDetails adminClient;
     private String zoneAdminToken;
     private IdentityZone zone;
 
@@ -54,7 +54,7 @@ class ZonesWriteScopeMockMvcTest {
 
         subdomain = generator.generate().toLowerCase();
 
-        adminClient = new BaseClientDetails("admin", null, "uaa.admin,scim.write,zones.write", "client_credentials,password", "uaa.admin,scim.write,zones.write");
+        adminClient = new UaaBaseClientDetails("admin", null, "uaa.admin,scim.write,zones.write", "client_credentials,password", "uaa.admin,scim.write,zones.write");
         adminClient.setClientSecret("admin-secret");
 
         zone = createZoneWithClient(subdomain);

@@ -23,7 +23,7 @@ import org.springframework.security.oauth2.client.token.grant.client.ClientCrede
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.security.oauth2.provider.token.DefaultUserAuthenticationConverter;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -370,7 +370,7 @@ public class IntrospectEndpointIntegrationTests {
     public void testValidPasswordGrant_RequiresClientCredentialsToken() {
         final String adminClientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
 
-        BaseClientDetails clientDetails = new BaseClientDetails();
+        UaaBaseClientDetails clientDetails = new UaaBaseClientDetails();
         clientDetails.setClientId("clientIdWithUaaResourceScope");
         clientDetails.setClientSecret("secret");
         clientDetails.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));

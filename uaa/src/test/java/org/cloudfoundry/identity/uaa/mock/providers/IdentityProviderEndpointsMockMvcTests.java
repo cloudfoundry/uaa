@@ -42,7 +42,7 @@ import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -222,7 +222,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void test_delete_response_not_containing_relying_party_secret() throws Exception {
-        BaseClientDetails client = getBaseClientDetails();
+        UaaBaseClientDetails client = getUaaBaseClientDetails();
         ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "idps.read,idps.write", IdentityZone.getUaaZoneId());
         String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
 
@@ -257,7 +257,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void test_delete_response_not_containing_bind_password() throws Exception {
-        BaseClientDetails client = getBaseClientDetails();
+        UaaBaseClientDetails client = getUaaBaseClientDetails();
         MockMvcUtils.IdentityZoneCreationResult zone =
                 MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                         "my-sub-domain", mockMvc, webApplicationContext,
@@ -522,7 +522,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void testListIdpsInZone() throws Exception {
-        BaseClientDetails client = getBaseClientDetails();
+        UaaBaseClientDetails client = getUaaBaseClientDetails();
 
         ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "idps.read,idps.write", IdentityZone.getUaaZoneId());
         String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
@@ -566,7 +566,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void testRetrieveIdpInZone() throws Exception {
-        BaseClientDetails client = getBaseClientDetails();
+        UaaBaseClientDetails client = getUaaBaseClientDetails();
 
         ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "idps.read,idps.write", IdentityZone.getUaaZoneId());
         String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
@@ -586,7 +586,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     @Test
     void testRetrieveIdpInZoneWithInsufficientScopes() throws Exception {
-        BaseClientDetails client = getBaseClientDetails();
+        UaaBaseClientDetails client = getUaaBaseClientDetails();
 
         ScimUser user = MockMvcUtils.createAdminForZone(mockMvc, adminToken, "idps.write", IdentityZone.getUaaZoneId());
         String accessToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
@@ -708,9 +708,9 @@ class IdentityProviderEndpointsMockMvcTests {
         return identityProvider;
     }
 
-    private BaseClientDetails getBaseClientDetails() throws Exception {
+    private UaaBaseClientDetails getUaaBaseClientDetails() throws Exception {
         String clientId = RandomStringUtils.randomAlphabetic(6);
-        BaseClientDetails client = new BaseClientDetails(clientId, null, "idps.read,idps.write", "password", null);
+        UaaBaseClientDetails client = new UaaBaseClientDetails(clientId, null, "idps.read,idps.write", "password", null);
         client.setClientSecret("test-client-secret");
         MockMvcUtils.createClient(mockMvc, adminToken, client);
         return client;
@@ -736,7 +736,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     private void testRetrieveIdps(boolean retrieveActive) throws Exception {
         String clientId = RandomStringUtils.randomAlphabetic(6);
-        BaseClientDetails client = new BaseClientDetails(clientId, null, "idps.write,idps.read", "password", null);
+        UaaBaseClientDetails client = new UaaBaseClientDetails(clientId, null, "idps.write,idps.read", "password", null);
         client.setClientSecret("test-client-secret");
         MockMvcUtils.createClient(mockMvc, adminToken, client);
 
@@ -832,7 +832,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
     private String setUpAccessToken() throws Exception {
         String clientId = RandomStringUtils.randomAlphabetic(6);
-        BaseClientDetails client = new BaseClientDetails(clientId, null, "idps.read,idps.write", "password", null);
+        UaaBaseClientDetails client = new UaaBaseClientDetails(clientId, null, "idps.read,idps.write", "password", null);
         client.setClientSecret("test-client-secret");
         MockMvcUtils.createClient(mockMvc, adminToken, client);
 

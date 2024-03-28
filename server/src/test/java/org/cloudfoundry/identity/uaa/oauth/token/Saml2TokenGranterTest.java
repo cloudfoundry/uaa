@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
@@ -48,7 +49,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidGrantExcepti
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.context.SAMLMessageContext;
@@ -96,9 +96,9 @@ public class Saml2TokenGranterTest {
   private TokenRequest tokenRequest;
   private UaaAuthentication userAuthentication;
   private Map<String,String> requestParameters;
-  private BaseClientDetails requestingClient;
-  private BaseClientDetails receivingClient;
-  private BaseClientDetails passwordClient;
+  private UaaBaseClientDetails requestingClient;
+  private UaaBaseClientDetails receivingClient;
+  private UaaBaseClientDetails passwordClient;
   private SAMLAuthenticationToken samltoken;
   private SAMLMessageContext samlcontext;
   private UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
@@ -127,9 +127,9 @@ public class Saml2TokenGranterTest {
     samltoken = new SAMLAuthenticationToken(samlcontext);
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
-    requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_SAML2_BEARER, null);
-    receivingClient =  new BaseClientDetails("receivingId",null,"test.scope",GRANT_TYPE_SAML2_BEARER, null);
-    passwordClient =  new BaseClientDetails("pwdId",null,"test.scope","password", null);
+    requestingClient = new UaaBaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_SAML2_BEARER, null);
+    receivingClient =  new UaaBaseClientDetails("receivingId",null,"test.scope",GRANT_TYPE_SAML2_BEARER, null);
+    passwordClient =  new UaaBaseClientDetails("pwdId",null,"test.scope","password", null);
     when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
     when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()), anyString())).thenReturn(receivingClient);
     when(mockSecurityAccessor.isUser()).thenReturn(true);
@@ -204,7 +204,7 @@ public class Saml2TokenGranterTest {
   @Test
   public void test_oauth2_authentication_with_empty_allowed() {
     OAuth2Request myReq = new OAuth2Request(requestParameters, receivingClient.getClientId(), receivingClient.getAuthorities(), true, receivingClient.getScope(), receivingClient.getResourceIds(), null, null, null);
-    BaseClientDetails myClient = new BaseClientDetails(requestingClient);
+    UaaBaseClientDetails myClient = new UaaBaseClientDetails(requestingClient);
     List<String> allowedProviders = new LinkedList<String>();
     Map<String, Object> additionalInformation = new LinkedHashMap<>();
     Collection me = AuthorityUtils.commaSeparatedStringToAuthorityList("openid,foo.bar,uaa.user,one.read");

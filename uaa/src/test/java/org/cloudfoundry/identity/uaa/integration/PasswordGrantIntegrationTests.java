@@ -16,7 +16,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;
@@ -63,7 +63,7 @@ public class PasswordGrantIntegrationTests {
 
     @Test
     public void password_grant_returns_correct_error() throws Exception {
-        BaseClientDetails client = addUserGroupsRequiredClient();
+        UaaBaseClientDetails client = addUserGroupsRequiredClient();
         ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), client.getClientId(), "secret", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
         assertEquals(APPLICATION_JSON_VALUE, responseEntity.getHeaders().get("Content-Type").get(0));
@@ -90,13 +90,13 @@ public class PasswordGrantIntegrationTests {
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
     }
 
-    protected BaseClientDetails addUserGroupsRequiredClient() {
+    protected UaaBaseClientDetails addUserGroupsRequiredClient() {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(
             serverRunning.getBaseUrl(),
             "admin",
             "adminsecret"
         );
-        BaseClientDetails client = new BaseClientDetails(
+        UaaBaseClientDetails client = new UaaBaseClientDetails(
             generator.generate(),
             null,
             "openid",
@@ -118,7 +118,7 @@ public class PasswordGrantIntegrationTests {
         ResponseEntity<String> response = new RestTemplate().postForEntity(serverRunning.getUrl("/oauth/clients"), request, String.class);
         assertEquals(201, response.getStatusCodeValue());
 
-        return JsonUtils.readValue(response.getBody(), BaseClientDetails.class);
+        return JsonUtils.readValue(response.getBody(), UaaBaseClientDetails.class);
     }
 
     protected static ResponseEntity<String> makePasswordGrantRequest(String userName, String password, String clientId, String clientSecret, String url) {

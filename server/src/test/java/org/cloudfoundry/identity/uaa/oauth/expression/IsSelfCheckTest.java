@@ -35,7 +35,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 
 import java.util.Collections;
 import java.util.LinkedList;
@@ -99,7 +99,7 @@ public class IsSelfCheckTest {
 
     @Test
     public void testSelfCheck_TokenAuth() {
-        BaseClientDetails client = new BaseClientDetails();
+        UaaBaseClientDetails client = new UaaBaseClientDetails();
         List<SimpleGrantedAuthority> authorities = new LinkedList<>();
         authorities.add(new SimpleGrantedAuthority("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         client.setAuthorities(authorities);
@@ -117,7 +117,7 @@ public class IsSelfCheckTest {
 
     @Test
     public void testSelfCheck_Token_ClientAuth_Fails() {
-        BaseClientDetails client = new BaseClientDetails();
+        UaaBaseClientDetails client = new UaaBaseClientDetails();
         List<SimpleGrantedAuthority> authorities = new LinkedList<>();
         authorities.add(new SimpleGrantedAuthority("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         client.setAuthorities(authorities);

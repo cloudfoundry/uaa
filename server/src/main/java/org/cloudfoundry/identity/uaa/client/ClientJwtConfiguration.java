@@ -199,13 +199,13 @@ public class ClientJwtConfiguration implements Cloneable{
 
   /**
    * Creator from ClientDetails. Should abstract the persistence.
-   * Use currently the client_jwt_config in UaaClientDetails
+   * Use currently the client_jwt_config in UaaBaseClientDetails
    *
    * @param clientDetails
    * @return
    */
   @JsonIgnore
-  public static ClientJwtConfiguration readValue(UaaClientDetails clientDetails) {
+  public static ClientJwtConfiguration readValue(UaaBaseClientDetails clientDetails) {
     if (clientDetails == null ||
         clientDetails.getClientJwtConfig() == null ||
         !(clientDetails.getClientJwtConfig() instanceof String)) {
@@ -227,31 +227,31 @@ public class ClientJwtConfiguration implements Cloneable{
 
   /**
    * Creator from ClientDetails. Should abstract the persistence.
-   * Use currently the client_jwt_config in UaaClientDetails
+   * Use currently the client_jwt_config in UaaBaseClientDetails
    *
    * @param clientDetails
    * @return
    */
   @JsonIgnore
   public void writeValue(ClientDetails clientDetails) {
-    if (clientDetails instanceof UaaClientDetails) {
-      UaaClientDetails uaaClientDetails = (UaaClientDetails) clientDetails;
-      uaaClientDetails.setClientJwtConfig(JsonUtils.writeValueAsString(this));
+    if (clientDetails instanceof UaaBaseClientDetails) {
+      UaaBaseClientDetails uaaUaaBaseClientDetails = (UaaBaseClientDetails) clientDetails;
+      uaaUaaBaseClientDetails.setClientJwtConfig(JsonUtils.writeValueAsString(this));
     }
   }
 
   /**
    * Cleanup configuration in ClientDetails. Should abstract the persistence.
-   * Use currently the client_jwt_config in UaaClientDetails
+   * Use currently the client_jwt_config in UaaBaseClientDetails
    *
    * @param clientDetails
    * @return
    */
   @JsonIgnore
   public static void resetConfiguration(ClientDetails clientDetails) {
-    if (clientDetails instanceof UaaClientDetails) {
-      UaaClientDetails uaaClientDetails = (UaaClientDetails) clientDetails;
-      uaaClientDetails.setClientJwtConfig(null);
+    if (clientDetails instanceof UaaBaseClientDetails) {
+      UaaBaseClientDetails uaaUaaBaseClientDetails = (UaaBaseClientDetails) clientDetails;
+      uaaUaaBaseClientDetails.setClientJwtConfig(null);
     }
   }
 

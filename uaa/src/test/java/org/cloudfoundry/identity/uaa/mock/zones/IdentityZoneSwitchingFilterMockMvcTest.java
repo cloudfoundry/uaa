@@ -15,7 +15,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
 
@@ -93,7 +93,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
     @Test
     void noSwitching() throws Exception {
         final String clientId = UUID.randomUUID().toString();
-        BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
+        UaaBaseClientDetails client = new UaaBaseClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
 
         mockMvc.perform(post("/oauth/clients")
@@ -200,7 +200,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
 
     private static ClientDetails createClientInOtherZone(MockMvc mockMvc, RandomValueStringGenerator generator, String accessToken, ResultMatcher statusMatcher, String headerKey, String headerValue) throws Exception {
         String clientId = generator.generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
+        UaaBaseClientDetails client = new UaaBaseClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
         mockMvc.perform(post("/oauth/clients")
                 .header(headerKey, headerValue)

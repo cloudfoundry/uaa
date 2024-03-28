@@ -22,6 +22,8 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
@@ -56,10 +58,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
@@ -218,7 +217,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return createdClientDetails;
     }
 
-    private ClientDetails createClientDetailsInternal(BaseClientDetails client) {
+    private ClientDetails createClientDetailsInternal(UaaBaseClientDetails client) {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
 
         return removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
@@ -235,7 +234,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) {
+    public ClientDetails createRestrictedClientDetails(@RequestBody UaaBaseClientDetails client) {
         restrictedScopesValidator.validate(client, Mode.CREATE);
         return createClientDetailsInternal(client);
     }
@@ -244,7 +243,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
-    public ClientDetails[] createClientDetailsTx(@RequestBody BaseClientDetails[] clients) {
+    public ClientDetails[] createClientDetailsTx(@RequestBody UaaBaseClientDetails[] clients) {
         if (clients==null || clients.length==0) {
             throw new NoSuchClientException("Message body does not contain any clients.");
         }
@@ -267,7 +266,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] updateClientDetailsTx(@RequestBody BaseClientDetails[] clients) {
+    public ClientDetails[] updateClientDetailsTx(@RequestBody UaaBaseClientDetails[] clients) {
         if (clients==null || clients.length==0) {
             throw new InvalidClientDetailsException("No clients specified for update.");
         }
@@ -299,7 +298,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "/oauth/clients/restricted/{client}", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public ClientDetails updateRestrictedClientDetails(@RequestBody BaseClientDetails client,
+    public ClientDetails updateRestrictedClientDetails(@RequestBody UaaBaseClientDetails client,
                                                        @PathVariable("client") String clientId) throws Exception {
         restrictedScopesValidator.validate(client, Mode.MODIFY);
         return updateClientDetails(client, clientId);
@@ -308,7 +307,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public ClientDetails updateClientDetails(@RequestBody BaseClientDetails client,
+    public ClientDetails updateClientDetails(@RequestBody UaaBaseClientDetails client,
                     @PathVariable("client") String clientId) {
         Assert.state(clientId.equals(client.getClientId()),
                         format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
@@ -342,7 +341,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) {
+    public ClientDetails[] removeClientDetailsTx(@RequestBody UaaBaseClientDetails[] details) {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
             result[i] = clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId());
@@ -548,15 +547,15 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseBody
     public ActionResult changeClientJwt(@PathVariable String client_id, @RequestBody ClientJwtChangeRequest change) {
 
-        UaaClientDetails uaaClientDetails;
+        UaaBaseClientDetails uaaUaaBaseClientDetails;
         try {
-            uaaClientDetails = (UaaClientDetails) clientDetailsService.retrieve(client_id, IdentityZoneHolder.get().getId());
+            uaaUaaBaseClientDetails = (UaaBaseClientDetails) clientDetailsService.retrieve(client_id, IdentityZoneHolder.get().getId());
         } catch (InvalidClientException e) {
             throw new NoSuchClientException("No such client: " + client_id);
         }
 
         try {
-            checkPasswordChangeIsAllowed(uaaClientDetails, "");
+            checkPasswordChangeIsAllowed(uaaUaaBaseClientDetails, "");
         } catch (IllegalStateException e) {
             throw new InvalidClientDetailsException(e.getMessage());
         }
@@ -573,7 +572,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 break;
 
             case DELETE :
-                if (ClientJwtConfiguration.readValue(uaaClientDetails) != null && change.getChangeValue() != null) {
+                if (ClientJwtConfiguration.readValue(uaaUaaBaseClientDetails) != null && change.getChangeValue() != null) {
                     clientRegistrationService.deleteClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId());
                     result = new ActionResult("ok", "Client jwt configuration is deleted");
                 } else {
@@ -682,15 +681,15 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
     private ClientDetails syncWithExisting(ClientDetails existing, ClientDetails input) {
-        BaseClientDetails details = new BaseClientDetails(input);
-        if (input instanceof BaseClientDetails) {
-            BaseClientDetails baseInput = (BaseClientDetails)input;
+        UaaBaseClientDetails details = new UaaBaseClientDetails(input);
+        if (input instanceof UaaBaseClientDetails) {
+            UaaBaseClientDetails baseInput = (UaaBaseClientDetails)input;
             if (baseInput.getAutoApproveScopes()!=null) {
                 details.setAutoApproveScopes(baseInput.getAutoApproveScopes());
             } else {
                 details.setAutoApproveScopes(new HashSet<String>());
-                if (existing instanceof BaseClientDetails) {
-                    BaseClientDetails existingDetails = (BaseClientDetails)existing;
+                if (existing instanceof UaaBaseClientDetails) {
+                    UaaBaseClientDetails existingDetails = (UaaBaseClientDetails)existing;
                     if (existingDetails.getAutoApproveScopes()!=null) {
                         for (String scope : existingDetails.getAutoApproveScopes()) {
                             details.getAutoApproveScopes().add(scope);

@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaBaseClientDetails;
 
 import java.io.File;
 
@@ -60,7 +60,7 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
 
     @Test
     void check_token_while_limited() throws Exception {
-        BaseClientDetails client = setUpClients(generator.generate().toLowerCase(),
+        UaaBaseClientDetails client = setUpClients(generator.generate().toLowerCase(),
                                                 "uaa.resource,clients.read",
                                                 "",
                                                 "client_credentials",
