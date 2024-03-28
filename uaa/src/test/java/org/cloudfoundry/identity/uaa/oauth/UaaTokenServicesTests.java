@@ -156,7 +156,9 @@ class UaaTokenServicesTests {
             @AfterEach
             void removeAppender() {
                 LoggerContext context = (LoggerContext) LogManager.getContext(false);
-                context.getRootLogger().removeAppender(appender);
+                if (appender != null) {
+                    context.getRootLogger().removeAppender(appender);
+                }
             }
 
             @BeforeEach
