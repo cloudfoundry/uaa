@@ -150,7 +150,7 @@ public class UaaBaseClientDetails implements ClientDetails {
             return false;
         }
         for (String auto : autoApproveScopes) {
-            if (auto.equals("true") || scope.matches(auto)) {
+            if (auto.equals("true") || auto.equals(scope)) {
                 return true;
             }
         }
