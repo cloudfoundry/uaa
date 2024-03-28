@@ -921,16 +921,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreDanglingReference_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingReference(IdentityZone.getUaa(), customZone);
+                void shouldReject_EvenIfAliasReferenceIsBroken_UaaToCustomZone() throws Throwable {
+                    shouldReject_EvenIfAliasReferenceIsBroken(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreDanglingReference_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingReference(customZone, IdentityZone.getUaa());
+                void shouldReject_EvenIfAliasReferenceIsBroken_CustomToUaaZone() throws Throwable {
+                    shouldReject_EvenIfAliasReferenceIsBroken(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_ShouldIgnoreDanglingReference(
+                private void shouldReject_EvenIfAliasReferenceIsBroken(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -942,14 +942,9 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     // create dangling reference by removing alias IdP directly in DB
                     deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
 
-                    // update original IdP
-                    existingIdp.setAliasId(null);
-                    existingIdp.setAliasZid(null);
+                    // try to update IdP -> should still fail, even if the alias reference is broken
                     existingIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
+                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
