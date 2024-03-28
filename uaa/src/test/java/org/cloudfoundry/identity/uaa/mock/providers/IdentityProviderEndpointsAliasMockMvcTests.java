@@ -798,16 +798,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
 
                 @Test
-                void shouldAccept_SetOnlyAliasPropertiesToNull_UaaToCustomZone() throws Throwable {
-                    shouldAccept_SetOnlyAliasPropertiesToNull(IdentityZone.getUaa(), customZone);
+                void shouldReject_SetOnlyAliasPropertiesToNull_UaaToCustomZone() throws Throwable {
+                    shouldReject_SetOnlyAliasPropertiesToNull(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_SetOnlyAliasPropertiesToNull_CustomToUaaZone() throws Throwable {
-                    shouldAccept_SetOnlyAliasPropertiesToNull(customZone, IdentityZone.getUaa());
+                void shouldReject_SetOnlyAliasPropertiesToNull_CustomToUaaZone() throws Throwable {
+                    shouldReject_SetOnlyAliasPropertiesToNull(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_SetOnlyAliasPropertiesToNull(
+                private void shouldReject_SetOnlyAliasPropertiesToNull(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -824,12 +824,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     // change non-alias property without setting alias properties to null
                     originalIdp.setAliasId(null);
                     originalIdp.setAliasZid(null);
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, originalIdp);
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-
-                    // the alias IdP should have its reference removed
-                    assertReferenceWasRemovedFromAlias(initialAliasId, initialAliasZid);
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
