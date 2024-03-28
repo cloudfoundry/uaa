@@ -188,7 +188,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         // reject deletion if the IdP has an alias, but alias feature is disabled
         final boolean idpHasAlias = hasText(existing.getAliasZid()) || hasText(existing.getAliasId());
         if (idpHasAlias && !aliasEntitiesEnabled) {
-            return new ResponseEntity<>(BAD_REQUEST);
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
 
         // delete the IdP

@@ -1179,7 +1179,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
                 // delete IdP in zone 1 -> should be rejected since alias feature is disabled
                 final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
-                assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
+                assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY.value());
             }
         }
 
