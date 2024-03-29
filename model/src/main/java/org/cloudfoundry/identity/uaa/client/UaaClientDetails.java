@@ -66,7 +66,7 @@ public class UaaClientDetails implements ClientDetails {
     private Integer refreshTokenValiditySeconds;
 
     @com.fasterxml.jackson.annotation.JsonIgnore
-    private transient Map<String, Object> additionalInformation = new LinkedHashMap<String, Object>();
+    private transient Map<String, Object> additionalInformation = new LinkedHashMap<>();
 
     @JsonProperty("client_jwt_config")
     private String clientJwtConfig;
@@ -111,7 +111,7 @@ public class UaaClientDetails implements ClientDetails {
             this.authorizedGrantTypes = StringUtils
                 .commaDelimitedListToSet(grantTypes);
         } else {
-            this.authorizedGrantTypes = new HashSet<String>(Arrays.asList(
+            this.authorizedGrantTypes = new HashSet<>(Arrays.asList(
                 "authorization_code", "refresh_token"));
         }
 
@@ -141,7 +141,7 @@ public class UaaClientDetails implements ClientDetails {
     }
 
     public void setAutoApproveScopes(Collection<String> autoApproveScopes) {
-        this.autoApproveScopes = new HashSet<String>(autoApproveScopes);
+        this.autoApproveScopes = new HashSet<>(autoApproveScopes);
     }
 
     @Override
@@ -197,7 +197,7 @@ public class UaaClientDetails implements ClientDetails {
     }
 
     public void setResourceIds(Collection<String> resourceIds) {
-        this.resourceIds = resourceIds == null ? Collections.emptySet() : new LinkedHashSet<String>(resourceIds);
+        this.resourceIds = resourceIds == null ? Collections.emptySet() : new LinkedHashSet<>(resourceIds);
     }
 
     @JsonIgnore
@@ -206,8 +206,7 @@ public class UaaClientDetails implements ClientDetails {
     }
 
     public void setAuthorizedGrantTypes(Collection<String> authorizedGrantTypes) {
-        this.authorizedGrantTypes = new LinkedHashSet<String>(
-            authorizedGrantTypes);
+        this.authorizedGrantTypes = new LinkedHashSet<>(authorizedGrantTypes);
     }
 
     @JsonIgnore
@@ -217,17 +216,16 @@ public class UaaClientDetails implements ClientDetails {
 
     public void setRegisteredRedirectUri(Set<String> registeredRedirectUris) {
         this.registeredRedirectUris = registeredRedirectUris == null ? null
-            : new LinkedHashSet<String>(registeredRedirectUris);
+            : new LinkedHashSet<>(registeredRedirectUris);
     }
 
     @JsonProperty("authorities")
     private List<String> getAuthoritiesAsStrings() {
-        return new ArrayList<String>(
-            AuthorityUtils.authorityListToSet(authorities));
+        return new ArrayList<>(AuthorityUtils.authorityListToSet(authorities));
     }
 
     @JsonProperty("authorities")
-    @JsonDeserialize(using = org.springframework.security.oauth2.provider.client.Jackson2ArrayOrStringDeserializer.class)
+    @JsonDeserialize(using = Jackson2ArrayOrStringDeserializer.class)
     private void setAuthoritiesAsStrings(Set<String> values) {
         setAuthorities(AuthorityUtils.createAuthorityList(values
             .toArray(new String[values.size()])));
@@ -241,7 +239,7 @@ public class UaaClientDetails implements ClientDetails {
     @JsonIgnore
     public void setAuthorities(
         Collection<? extends GrantedAuthority> authorities) {
-        this.authorities = new ArrayList<GrantedAuthority>(authorities);
+        this.authorities = new ArrayList<>(authorities);
     }
 
     @JsonIgnore
@@ -264,7 +262,7 @@ public class UaaClientDetails implements ClientDetails {
     }
 
     public void setAdditionalInformation(Map<String, ?> additionalInformation) {
-        this.additionalInformation = new LinkedHashMap<String, Object>(
+        this.additionalInformation = new LinkedHashMap<>(
             additionalInformation);
     }
 
