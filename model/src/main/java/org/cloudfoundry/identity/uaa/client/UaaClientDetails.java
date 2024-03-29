@@ -66,7 +66,7 @@ public class UaaClientDetails implements ClientDetails {
     private Integer refreshTokenValiditySeconds;
 
     @com.fasterxml.jackson.annotation.JsonIgnore
-    private Map<String, Object> additionalInformation = new LinkedHashMap<String, Object>();
+    private transient Map<String, Object> additionalInformation = new LinkedHashMap<String, Object>();
 
     @JsonProperty("client_jwt_config")
     private String clientJwtConfig;
