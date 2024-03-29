@@ -298,71 +298,34 @@ public class UaaClientDetails implements ClientDetails {
             return false;
         }
         UaaClientDetails other = (UaaClientDetails) obj;
-        if (accessTokenValiditySeconds == null) {
-            if (other.accessTokenValiditySeconds != null) {
-                return false;
-            }
-        } else if (!accessTokenValiditySeconds.equals(other.accessTokenValiditySeconds)) {
+        if (!Objects.equals(accessTokenValiditySeconds, other.accessTokenValiditySeconds)) {
             return false;
         }
-        if (refreshTokenValiditySeconds == null) {
-            if (other.refreshTokenValiditySeconds != null) {
-                return false;
-            }
-        } else if (!refreshTokenValiditySeconds.equals(other.refreshTokenValiditySeconds)) {
+        if (!Objects.equals(refreshTokenValiditySeconds, other.refreshTokenValiditySeconds)) {
             return false;
         }
-        if (authorities == null) {
-            if (other.authorities != null) {
-                return false;
-            }
-        } else if (!authorities.equals(other.authorities)) {
+        if (!Objects.equals(authorities, other.authorities)) {
             return false;
         }
-        if (authorizedGrantTypes == null) {
-            if (other.authorizedGrantTypes != null) {
-                return false;
-            }
-        } else if (!authorizedGrantTypes.equals(other.authorizedGrantTypes)) {
+        if (!Objects.equals(authorizedGrantTypes, other.authorizedGrantTypes)) {
             return false;
         }
-        if (clientId == null) {
-            if (other.clientId != null) {
-                return false;
-            }
-        } else if (!clientId.equals(other.clientId)) {
+        if (!Objects.equals(clientId, other.clientId)) {
             return false;
         }
-        if (clientSecret == null) {
-            if (other.clientSecret != null) {
-                return false;
-            }
-        } else if (!clientSecret.equals(other.clientSecret)) {
-            return false;
-            }
-        if (registeredRedirectUris == null) {
-            if (other.registeredRedirectUris != null) {
-                return false;
-            }
-        } else if (!registeredRedirectUris.equals(other.registeredRedirectUris)) {
+        if (!Objects.equals(clientSecret, other.clientSecret)) {
             return false;
         }
-        if (resourceIds == null) {
-            if (other.resourceIds != null)
-                return false;
-        } else if (!resourceIds.equals(other.resourceIds)) {
+        if (!Objects.equals(registeredRedirectUris, other.registeredRedirectUris)) {
             return false;
         }
-        if (scope == null) {
-            if (other.scope != null)
-                return false;
-        } else if (!scope.equals(other.scope)) {
+        if (!Objects.equals(resourceIds, other.resourceIds)) {
             return false;
         }
-        if (additionalInformation == null) {
-            if (other.additionalInformation != null)
-                return false;
-        } else if (!additionalInformation.equals(other.additionalInformation)) {
+        if (!Objects.equals(scope, other.scope)) {
+            return false;
+        }
+        if (!Objects.equals(additionalInformation, other.additionalInformation)) {
             return false;
         }
         return Objects.equals(clientJwtConfig, other.clientJwtConfig);

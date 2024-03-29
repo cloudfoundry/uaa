@@ -13,14 +13,18 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 class UaaClientDetailsTest {
@@ -206,5 +210,126 @@ class UaaClientDetailsTest {
       other.setAccessTokenValiditySeconds(100);
       Assert.assertEquals(details, other);
     }
+
+    @Test
+    void testIsScoped() {
+      UaaClientDetails details = new UaaClientDetails();
+      assertFalse(details.isScoped());
+    }
+
+    @Test
+    void testIsSecretRequired() {
+      UaaClientDetails details = new UaaClientDetails();
+      assertFalse(details.isSecretRequired());
+    }
+
+    @Test
+    void testAutoApprove() {
+      UaaClientDetails details = new UaaClientDetails();
+      assertNull(details.getAutoApproveScopes());
+    }
+
+    @Test
+    void testHashCode() {
+      UaaClientDetails uaaClientDetails = new UaaClientDetails("admin", "uaa", "uaa.none",
+          "client_credentials", "none", null);
+      uaaClientDetails.setRegisteredRedirectUri(Set.of("http://localhost:8080/uaa"));
+      uaaClientDetails.setRefreshTokenValiditySeconds(1);
+      uaaClientDetails.setAccessTokenValiditySeconds(1);
+      assertTrue(uaaClientDetails.hashCode() > 0);
+    }
+
+    @Test
+    void testEquals() {
+      UaaClientDetails uaaClientDetails = new UaaClientDetails("admin", null, null,
+          null, null, null);
+      UaaClientDetails uaaClientDetails1 = new UaaClientDetails(uaaClientDetails);
+      assertTrue(uaaClientDetails.equals(uaaClientDetails1));
+      assertFalse(uaaClientDetails.equals(new Object()));
+      assertFalse(uaaClientDetails.equals(null));
+    }
+  }
+
+  @Nested
+  class Equals {
+    private UaaClientDetails testClient;
+    private UaaClientDetails testClientCompare;
+
+    @BeforeEach
+    void setUp() {
+      testClient = new UaaClientDetails("test", null, null, null, null);
+      testClientCompare = new UaaClientDetails(testClient);
+    }
+
+    @Test
+    void testEqualScope() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setScope(Set.of("new"));
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualAdditionalInformation() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setAdditionalInformation(Map.of("n", "v"));
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualResourceIds() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setResourceIds(Set.of("resource"));
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualRegisteredRedirectUris() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setRegisteredRedirectUri(Set.of("http://localhost:8080/uaa"));
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualSecret() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setClientSecret("secret");
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualClientId() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setClientId("user");
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualAuthorizedGrantTypes() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setAuthorizedGrantTypes(Set.of("client_credentials"));
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualAuthorities() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setAuthorities(AuthorityUtils.createAuthorityList("none"));
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualRefreshTokenValiditySeconds() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setRefreshTokenValiditySeconds(1);
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
+    @Test
+    void testEqualAccessTokenValiditySeconds() {
+      assertTrue(testClient.equals(testClientCompare));
+      testClientCompare.setAccessTokenValiditySeconds(1);
+      assertFalse(testClient.equals(testClientCompare));
+    }
+
   }
 }
