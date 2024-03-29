@@ -6,8 +6,4 @@ public class ClientRegistrationException extends RuntimeException {
 		super(msg);
 	}
 
-	public ClientRegistrationException(String msg, Throwable cause) {
-		super(msg, cause);
-	}
-
 }
