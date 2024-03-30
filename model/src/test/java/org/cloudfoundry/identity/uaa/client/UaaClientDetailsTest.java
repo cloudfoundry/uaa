@@ -260,7 +260,7 @@ class UaaClientDetailsTest {
       UaaClientDetails uaaClientDetails1 = new UaaClientDetails(uaaClientDetails);
       assertEquals(uaaClientDetails, uaaClientDetails1);
       assertNotEquals(uaaClientDetails, new Object());
-      assertNotEquals(uaaClientDetails, null);
+      assertNotEquals(null, uaaClientDetails);
     }
     @Test
     void testEqualScope() {
