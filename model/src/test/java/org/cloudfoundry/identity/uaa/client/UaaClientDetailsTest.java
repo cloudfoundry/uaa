@@ -240,16 +240,6 @@ class UaaClientDetailsTest {
       uaaClientDetails.setAccessTokenValiditySeconds(1);
       assertTrue(uaaClientDetails.hashCode() > 0);
     }
-
-    @Test
-    void testEquals() {
-      UaaClientDetails uaaClientDetails = new UaaClientDetails("admin", null, null,
-          null, null, null);
-      UaaClientDetails uaaClientDetails1 = new UaaClientDetails(uaaClientDetails);
-      assertTrue(uaaClientDetails.equals(uaaClientDetails1));
-      assertFalse(uaaClientDetails.equals(new Object()));
-      assertFalse(uaaClientDetails.equals(null));
-    }
   }
 
   @Nested
@@ -263,6 +253,15 @@ class UaaClientDetailsTest {
       testClientCompare = new UaaClientDetails(testClient);
     }
 
+    @Test
+    void testEquals() {
+      UaaClientDetails uaaClientDetails = new UaaClientDetails("admin", null, null,
+          null, null, null);
+      UaaClientDetails uaaClientDetails1 = new UaaClientDetails(uaaClientDetails);
+      assertEquals(uaaClientDetails, uaaClientDetails1);
+      assertNotEquals(uaaClientDetails, new Object());
+      assertNotEquals(uaaClientDetails, null);
+    }
     @Test
     void testEqualScope() {
       assertEquals(testClient, testClientCompare);
