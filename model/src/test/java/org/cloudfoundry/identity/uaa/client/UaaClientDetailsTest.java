@@ -23,9 +23,11 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 class UaaClientDetailsTest {
 
@@ -84,12 +86,12 @@ class UaaClientDetailsTest {
           UaaClientDetails copy = new UaaClientDetails(testClient);
           UaaClientDetails copy2 = new UaaClientDetails(testClient);
           copy.setClientJwtConfig("test");
-          Assertions.assertNotEquals(copy, copy2);
-          Assertions.assertNotEquals(copy, new UaaClientDetails());
+          assertNotEquals(copy, copy2);
+          assertNotEquals(copy, new UaaClientDetails());
           copy.setClientJwtConfig(null);
           Assertions.assertEquals(copy, copy2);
           Assertions.assertEquals(copy, copy);
-          Assertions.assertNotEquals(copy, new UaaClientDetails());
+          assertNotEquals(copy, new UaaClientDetails());
         }
 
         @Test
@@ -99,7 +101,7 @@ class UaaClientDetailsTest {
               "test.none", "", "test.admin", null);
           Assertions.assertEquals(copy.hashCode(), copy2.hashCode());
           copy.setClientJwtConfig("test");
-          Assertions.assertNotEquals(copy.hashCode(), copy2.hashCode());
+          assertNotEquals(copy.hashCode(), copy2.hashCode());
         }
     }
 
@@ -263,72 +265,72 @@ class UaaClientDetailsTest {
 
     @Test
     void testEqualScope() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setScope(Set.of("new"));
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualAdditionalInformation() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setAdditionalInformation(Map.of("n", "v"));
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualResourceIds() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setResourceIds(Set.of("resource"));
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualRegisteredRedirectUris() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setRegisteredRedirectUri(Set.of("http://localhost:8080/uaa"));
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualSecret() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setClientSecret("secret");
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualClientId() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setClientId("user");
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualAuthorizedGrantTypes() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setAuthorizedGrantTypes(Set.of("client_credentials"));
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualAuthorities() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setAuthorities(AuthorityUtils.createAuthorityList("none"));
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualRefreshTokenValiditySeconds() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setRefreshTokenValiditySeconds(1);
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
     @Test
     void testEqualAccessTokenValiditySeconds() {
-      assertTrue(testClient.equals(testClientCompare));
+      assertEquals(testClient, testClientCompare);
       testClientCompare.setAccessTokenValiditySeconds(1);
-      assertFalse(testClient.equals(testClientCompare));
+      assertNotEquals(testClient, testClientCompare);
     }
 
   }

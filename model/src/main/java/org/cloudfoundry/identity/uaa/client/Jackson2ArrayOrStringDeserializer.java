@@ -32,7 +32,7 @@ public class Jackson2ArrayOrStringDeserializer extends StdDeserializer<Set<Strin
 		if (token.isScalarValue()) {
 			String list = jp.getText();
 			list = list.replaceAll("\\s+", ",");
-			return new LinkedHashSet<String>(Arrays.asList(StringUtils.commaDelimitedListToStringArray(list)));
+			return new LinkedHashSet<>(Arrays.asList(StringUtils.commaDelimitedListToStringArray(list)));
 		}
 		return jp.readValueAs(new TypeReference<Set<String>>() {
 		});
