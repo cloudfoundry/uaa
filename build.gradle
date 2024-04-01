@@ -86,7 +86,9 @@ subprojects {
 
     test {
         maxParallelForks = 1
-        failFast = true
+        // when failFast = true AND retry is on, there is a serious issue:
+        // gradle might stop the test run due to the failFast but still concludes with BUILD SUCCESSFUL (if the retry is successful)
+        failFast = false
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
 
