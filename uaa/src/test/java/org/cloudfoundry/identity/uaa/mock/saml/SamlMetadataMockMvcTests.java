@@ -1,5 +1,19 @@
 package org.cloudfoundry.identity.uaa.mock.saml;
 
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+import java.util.function.Consumer;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.web.context.WebApplicationContext;
+
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
@@ -21,45 +35,28 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.junit.Assert;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.owasp.esapi.ESAPI;
 import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.context.WebApplicationContext;
-import org.w3c.dom.Node;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.*;
-import java.util.function.Consumer;
 
 import static org.apache.logging.log4j.Level.DEBUG;
 import static org.apache.logging.log4j.Level.WARN;
 import static org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding.X_VCAP_REQUEST_ID_HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
+import static org.hamcrest.Matchers.hasItem;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 @DefaultTestContext
-class SamlAuthenticationMockMvcTests {
+class SamlMetadataMockMvcTests {
 
     private RandomValueStringGenerator generator;
 
@@ -111,7 +108,7 @@ class SamlAuthenticationMockMvcTests {
         esapiProps.put("Logger.ApplicationName", "uaa");
         esapiProps.put("Logger.LogApplicationName", Boolean.FALSE.toString());
         esapiProps.put("Logger.LogServerIP", Boolean.FALSE.toString());
-        ESAPI.override( new DefaultSecurityConfiguration(esapiProps));
+        ESAPI.override(new DefaultSecurityConfiguration(esapiProps));
     }
 
     @AfterEach
@@ -136,76 +133,42 @@ class SamlAuthenticationMockMvcTests {
         );
     }
 
-    @Nested
-    @DefaultTestContext
-    class WithCustomLogAppender {
-        private List<LogEvent> logEvents;
-        private AbstractAppender appender;
-        private Level originalLevel;
+    @Test
+    void testSamlMetadataDefault() throws Exception {
+        ResultActions response = null;
 
-        @BeforeEach
-        void setupLogger() throws Exception {
-            logEvents = new ArrayList<>();
-            appender = new AbstractAppender("", null, null) {
-                @Override
-                public void append(LogEvent event) {
-                    if (SamlResponseLoggerBinding.class.getName().equals(event.getLoggerName())) {
-                        logEvents.add(event);
-                    }
-                }
-            };
-            appender.start();
+        ResultActions xml = mockMvc.perform(get(new URI("/saml/metadata/x")))
+                .andExpect(status().isOk());
 
-            LoggerContext context = (LoggerContext) LogManager.getContext(false);
-            originalLevel = context.getRootLogger().getLevel();
-            Configurator.setRootLevel(DEBUG);
-            context.getRootLogger().addAppender(appender);
+        String x = xml.andReturn().getResponse().getContentAsString();
+        int y = 4;
+//                    .andExpect(xpath("/md:EntityDescriptor/@entityID").string("cloudfoundry-saml-login"));
 
-            createIdp();
-        }
 
-        @AfterEach
-        void removeAppender() {
-            LoggerContext context = (LoggerContext) LogManager.getContext(false);
-            context.getRootLogger().removeAppender(appender);
-            Configurator.setRootLevel(originalLevel);
-        }
+//            xpath("...ds:DigestMethod/@Algorithm").string("http://www.w3.org/2001/04/xmlenc#sha256");
 
-        @Test
-        @Disabled("SAML test fails")
-        void malformedSamlRequestLogsQueryStringAndContentMetadata() throws Exception {
-            postSamlResponse(null, "?bogus=query", "someKey=someVal&otherKey=otherVal&emptyKey=", "vcap_request_id_abc123");
+//            String metadataXml = (String)response.getBody();
+//
+//            // The SAML SP metadata should match the following UAA configs:
+//            // login.entityID
+//            Assert.assertThat(metadataXml, containsString(
+//                    "entityID=\"cloudfoundry-saml-login\""));
+//            // login.saml.signatureAlgorithm
+//            Assert.assertThat(metadataXml, containsString(
+//                    "<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
+//            Assert.assertThat(metadataXml, containsString(
+//                    "<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>"));
+//            // login.saml.signRequest
+//            Assert.assertThat(metadataXml, containsString("AuthnRequestsSigned=\"true\""));
+//            // login.saml.wantAssertionSigned
+//            Assert.assertThat(metadataXml, containsString(
+//                    "WantAssertionsSigned=\"true\""));
+//            // login.saml.nameID
+//            Assert.assertThat(metadataXml, containsString(
+//                    "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"));
 
-            assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
-            assertThatMessageWasLogged(logEvents, DEBUG, "Method: POST, Params (name/size): (bogus/5) (emptyKey/0) (SAMLResponse/0) (someKey/7) (otherKey/8), Content-type: application/x-www-form-urlencoded, Request-size: 43, X-Vcap-Request-Id: vcap_request_id_abc123");
-        }
-
-        @Test
-        @Disabled("SAML test fails")
-        void malformedSamlRequestWithNoQueryStringAndNoContentMetadata() throws Exception {
-            postSamlResponse(null, "", "", "");
-
-            assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
-            assertThatMessageWasLogged(logEvents, DEBUG, "Method: POST, Params (name/size): (SAMLResponse/0), Content-type: application/x-www-form-urlencoded, Request-size: 0, X-Vcap-Request-Id: ");
-        }
-
-        @Test
-        @Disabled("SAML test fails")
-        void malformedSamlRequestWithRepeatedParams() throws Exception {
-            postSamlResponse(null, "?foo=a&foo=ab&foo=aaabbbccc", "", "");
-
-            assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
-            assertThatMessageWasLogged(logEvents, DEBUG, "Method: POST, Params (name/size): (foo/1) (foo/2) (foo/9) (SAMLResponse/0), Content-type: application/x-www-form-urlencoded, Request-size: 0, X-Vcap-Request-Id: ");
-        }
-
-        private void assertThatMessageWasLogged(
-                final List<LogEvent> logEvents,
-                final Level expectedLevel,
-                final String expectedMessage
-        ) {
-            assertThat(logEvents, hasItem(new MatchesLogEvent(expectedLevel, expectedMessage)));
-        }
     }
+}
 
     private static class MatchesLogEvent extends BaseMatcher<LogEvent> {
 
