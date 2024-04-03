@@ -43,24 +43,16 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
     protected boolean additionalValidationChecksForNewAlias(final ScimUser requestBody) {
         /* check if an IdP with the user's origin exists in both the current and the alias zone and that they are
          * aliases of each other */
-        final IdentityProvider<?> idpInAliasZone = retrieveIdpByOrigin(
-                requestBody.getOrigin(),
-                requestBody.getAliasZid()
-        );
-        final IdentityProvider<?> idpInCurrentZone = retrieveIdpByOrigin(
-                requestBody.getOrigin(),
-                identityZoneManager.getCurrentIdentityZoneId()
-        );
+        final String origin = requestBody.getOrigin();
+        final IdentityProvider<?> idpInAliasZone = retrieveIdpByOrigin(origin, requestBody.getAliasZid());
+        final IdentityProvider<?> idpInCurrentZone = retrieveIdpByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId());
         return EntityAliasHandler.isValidAliasPair(idpInCurrentZone, idpInAliasZone);
     }
 
     private IdentityProvider<?> retrieveIdpByOrigin(final String originKey, final String zoneId) {
         final IdentityProvider<?> idpInAliasZone;
         try {
-            idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(
-                    originKey,
-                    zoneId
-            );
+            idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(originKey, zoneId);
         } catch (final EmptyResultDataAccessException e) {
             throw new ScimException(
                     String.format("No IdP with the origin '%s' exists in the zone '%s'.", originKey, zoneId),
