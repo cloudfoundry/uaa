@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.security;
 
 
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -25,7 +26,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 import javax.servlet.http.HttpServletRequest;
 

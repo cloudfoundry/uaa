@@ -4,7 +4,7 @@
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="oauthAuthenticationEntryPoint"
-          class="org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint">
+          class="org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint">
         <property name="realmName" value="UAA/oauth"/>
     </bean>
 

@@ -82,7 +82,7 @@
 
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg
-                value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
+                value="org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
     <bean id="utf8ConversionFilter" class="org.cloudfoundry.identity.uaa.authentication.UTF8ConversionFilter"/>
     <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter">

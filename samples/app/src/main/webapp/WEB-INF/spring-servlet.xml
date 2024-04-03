@@ -46,7 +46,7 @@
 
     <sec:authentication-manager alias="authenticationManager" />
 
-    <bean id="oauth2AuthenticationManager" class="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationManager">
+    <bean id="oauth2AuthenticationManager" class="org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager">
         <property name="tokenServices" ref="remoteTokenServices" />
     </bean>
 

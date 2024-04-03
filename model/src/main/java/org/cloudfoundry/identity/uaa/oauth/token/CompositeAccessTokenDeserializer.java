@@ -19,9 +19,9 @@ import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
-import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2RefreshToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 
 import java.io.IOException;
 import java.util.Date;
@@ -44,10 +44,10 @@ public final class CompositeAccessTokenDeserializer extends StdDeserializer<Comp
         String refreshToken = null;
         Long expiresIn = null;
         Set<String> scope = null;
-        Map<String, Object> additionalInformation = new LinkedHashMap<String, Object>();
+        Map<String, Object> additionalInformation = new LinkedHashMap<>();
 
         while (jp.nextToken() != JsonToken.END_OBJECT) {
-            String name = jp.getCurrentName();
+            String name = jp.currentName();
             jp.nextToken();
             if (OAuth2AccessToken.ACCESS_TOKEN.equals(name)) {
                 tokenValue = jp.getText();
