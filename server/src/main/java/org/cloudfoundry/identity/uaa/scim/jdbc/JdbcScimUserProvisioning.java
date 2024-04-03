@@ -12,19 +12,32 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.UserConfig;
-import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
-import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import static java.sql.Types.VARCHAR;
+import static java.util.stream.Collectors.joining;
+import static org.springframework.util.StringUtils.hasText;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
+
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -39,31 +52,24 @@ import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Pattern;
-
-import static java.sql.Types.VARCHAR;
-import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     implements ScimUserProvisioning, ResourceMonitor<ScimUser>, SystemDeletable {
@@ -134,16 +140,18 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private final IdentityZoneManager identityZoneManager;
 
     public JdbcScimUserProvisioning(
-            JdbcTemplate jdbcTemplate,
-            JdbcPagingListFactory pagingListFactory,
+            final JdbcTemplate jdbcTemplate,
+            final JdbcPagingListFactory pagingListFactory,
             final PasswordEncoder passwordEncoder,
-            IdentityZoneManager identityZoneManager) {
+            final IdentityZoneManager identityZoneManager,
+            final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning
+    ) {
         super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
         setQueryConverter(new SimpleSearchQueryConverter());
         this.passwordEncoder = passwordEncoder;
-        this.jdbcIdentityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
         this.identityZoneManager = identityZoneManager;
     }
 
@@ -178,6 +186,69 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     public List<ScimUser> retrieveByUsernameAndZone(String username, String zoneId) {
         return jdbcTemplate.query(USER_BY_USERNAME_AND_ZONE_QUERY , mapper, username, zoneId);
+    }
+
+    @Override
+    public List<ScimUser> retrieveByScimFilterOnlyActive(
+            final String filter,
+            final String sortBy,
+            final boolean ascending,
+            final String zoneId
+    ) {
+        final SimpleSearchQueryConverter queryConverter = new SimpleSearchQueryConverter();
+        validateOrderBy(queryConverter.map(sortBy));
+
+        /* since the two tables used in the query ('users' and 'identity_provider') have columns with identical names,
+         * we must ensure that the columns of 'users' are used in the WHERE clause generated for the SCIM filter */
+        final AttributeNameMapper attributeNameMapper = new AttributeNameMapper() {
+            @Override
+            public String mapToInternal(final String attr) {
+                // in the later query, 'users' will have the alias 'u'
+                return "u." + attr;
+            }
+
+            @Override
+            public String[] mapToInternal(final String[] attr) {
+                return Stream.of(attr).map(this::mapToInternal).toArray(String[]::new);
+            }
+
+            @Override
+            public String mapFromInternal(final String attr) {
+                return attr.substring(2);
+            }
+
+            @Override
+            public String[] mapFromInternal(final String[] attr) {
+                return Stream.of(attr).map(this::mapFromInternal).toArray(String[]::new);
+            }
+        };
+        queryConverter.setAttributeNameMapper(attributeNameMapper);
+
+        // build WHERE clause
+        final ProcessedFilter where = queryConverter.convert(filter, sortBy, ascending, zoneId);
+        final String whereClauseScimFilter = where.getSql();
+        String whereClause = "idp.active is true and (";
+        if (where.hasOrderBy()) {
+            whereClause += whereClauseScimFilter.replace(ProcessedFilter.ORDER_BY, ")" + ProcessedFilter.ORDER_BY);
+        } else {
+            whereClause += whereClauseScimFilter + ")";
+        }
+
+        final String userFieldsWithPrefix = Arrays.stream(USER_FIELDS.split(","))
+                .map(field -> "u." + field)
+                .collect(joining(", "));
+        final String sql = String.format(
+                "select %s from users u join identity_provider idp on u.origin = idp.origin_key and u.identity_zone_id = idp.identity_zone_id where %s",
+                userFieldsWithPrefix,
+                whereClause
+        );
+
+        if (getPageSize() > 0 && getPageSize() < Integer.MAX_VALUE) {
+            return pagingListFactory.createJdbcPagingList(sql, where.getParams(), rowMapper, getPageSize());
+        }
+
+        final NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        return namedParameterJdbcTemplate.query(sql, where.getParams(), rowMapper);
     }
 
     @Override

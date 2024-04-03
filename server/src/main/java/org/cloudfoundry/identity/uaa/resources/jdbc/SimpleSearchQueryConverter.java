@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.lang.Nullable;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -125,9 +126,12 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         }
     }
 
+    /**
+     * @return the WHERE and (optional) ORDER BY clauses WITHOUT the "WHERE" keyword in the beginning
+     */
     private String getWhereClause(
-            final String filter,
-            final String sortBy,
+            @Nullable final String filter,
+            @Nullable final String sortBy,
             final boolean ascending,
             final Map<String, Object> values,
             final AttributeNameMapper mapper,

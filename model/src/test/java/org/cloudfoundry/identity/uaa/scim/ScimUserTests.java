@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -452,10 +451,11 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         user.setPhoneNumbers(Collections.singletonList(p1));
 
-        assertThatIllegalArgumentException().isThrownBy(() -> {
-            p1.setType(null);
-            user.addPhoneNumber(p1.getValue());
-        });
+        // should reject adding duplicate phone number if the existing has a type set to null
+        p1.setType(null);
+        assertThatIllegalArgumentException()
+                .isThrownBy(() -> user.addPhoneNumber(p1.getValue()))
+                .withMessageStartingWith("Already contains phoneNumber");
     }
 
     @Test
@@ -497,7 +497,7 @@ public class ScimUserTests {
         final String aliasId = UUID.randomUUID().toString();
         patch.setAliasId(aliasId);
         user.patch(patch);
-        Assertions.assertThat(user.getAliasId()).isEqualTo(aliasId);
+        assertEquals(aliasId, user.getAliasId());
     }
 
     @Test
@@ -505,7 +505,7 @@ public class ScimUserTests {
         final String aliasZid = UUID.randomUUID().toString();
         patch.setAliasZid(aliasZid);
         user.patch(patch);
-        Assertions.assertThat(user.getAliasZid()).isEqualTo(aliasZid);
+        assertEquals(aliasZid, user.getAliasZid());
     }
 
     @Test
@@ -516,8 +516,8 @@ public class ScimUserTests {
         final ScimUser scimUser = new ScimUser("id", "uname", "gname", "fname");
         scimUser.setAliasId(aliasId);
         scimUser.setAliasZid(aliasZid);
-        Assertions.assertThat(scimUser.getAliasId()).isEqualTo(aliasId);
-        Assertions.assertThat(scimUser.getAliasZid()).isEqualTo(aliasZid);
+        assertEquals(aliasId, scimUser.getAliasId());
+        assertEquals(aliasZid, scimUser.getAliasZid());
     }
 
     @Test

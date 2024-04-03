@@ -27,6 +27,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -199,6 +200,33 @@ public class SamlLoginIT {
             new Page(webDriver).clearCookies();
         }
         SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+    }
+
+    @Test
+    public void testSamlSPMetadata() {
+        RestTemplate request = new RestTemplate();
+        ResponseEntity response = request.getForEntity(
+                baseUrl + "/saml/metadata", String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        String metadataXml = (String)response.getBody();
+
+        // The SAML SP metadata should match the following UAA configs:
+        // login.entityID
+        assertThat(metadataXml, containsString(
+                "entityID=\"cloudfoundry-saml-login\""));
+        // login.saml.signatureAlgorithm
+        assertThat(metadataXml, containsString(
+                "<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
+        assertThat(metadataXml, containsString(
+                "<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>"));
+        // login.saml.signRequest
+        assertThat(metadataXml, containsString("AuthnRequestsSigned=\"true\""));
+        // login.saml.wantAssertionSigned
+        assertThat(metadataXml, containsString(
+                "WantAssertionsSigned=\"true\""));
+        // login.saml.nameID
+        assertThat(metadataXml, containsString(
+                "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"));
     }
 
     @Test

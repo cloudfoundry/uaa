@@ -16,12 +16,12 @@ public class EncryptionKeyService {
     private final List<EncryptionKey> encryptionKeys;
 
     public EncryptionKeyService(
-            final @Value("${encryption.active_key_label}") String activeKeyLabel,
-            final @Value("#{@config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
+            final @Value("#{@config['encryption']==null ? null : @config['encryption']['active_key_label']}") String activeKeyLabel,
+            final @Value("#{@config['encryption']==null ? null : @config['encryption']['encryption_keys']}") List<EncryptionKey> encryptionKeys) {
         if (UaaStringUtils.isNullOrEmpty(activeKeyLabel)) {
-            throw new NoActiveEncryptionKeyProvided(
-              "UAA cannot be started without encryption key value uaa.encryption.active_key_label"
-            );
+            activeKey = null;
+            this.encryptionKeys = List.of();
+            return;
         }
 
         List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream()

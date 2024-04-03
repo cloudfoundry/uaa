@@ -741,6 +741,67 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
     public void patch(ScimUser patch) {
         //Delete Attributes specified in Meta.attributes
         String[] attributes = ofNullable(patch.getMeta().getAttributes()).orElse(new String[0]);
+        removeAttributesForPatch(patch, attributes);
+
+        if (hasText(patch.getOrigin()) && !patch.getOrigin().equals(getOrigin())) {
+            throw new IllegalArgumentException("Cannot change origin in patch of user.");
+        }
+
+        //Merge simple Attributes, that are stored
+        ofNullable(patch.getUserName()).ifPresent(this::setUserName);
+
+        setActive(patch.isActive());
+        setVerified(patch.isVerified());
+
+        //Merge complex attributes
+        ScimUser.Name patchName = patch.getName();
+        if (patchName != null) {
+            patchName(patchName);
+        }
+
+        ofNullable(patch.getDisplayName()).ifPresent(
+                this::setDisplayName
+        );
+        ofNullable(patch.getNickName()).ifPresent(this::setNickName);
+        ofNullable(patch.getTimezone()).ifPresent(this::setTimezone);
+        ofNullable(patch.getTitle()).ifPresent(this::setTitle);
+        ofNullable(patch.getProfileUrl()).ifPresent(this::setProfileUrl);
+        ofNullable(patch.getLocale()).ifPresent(this::setLocale);
+        ofNullable(patch.getPreferredLanguage()).ifPresent(this::setPreferredLanguage);
+
+        //Only one email stored, use Primary or first.
+        if (patch.getEmails() != null && patch.getEmails().size()>0) {
+            ScimUser.Email primary = null;
+            for (ScimUser.Email email : patch.getEmails()) {
+                if (email.isPrimary()) {
+                   primary = email;
+                   break;
+                }
+            }
+            List<Email> currentEmails = ofNullable(getEmails()).orElse(new ArrayList());
+            if (primary != null) {
+                for (Email e : currentEmails) {
+                    e.setPrimary(false);
+                }
+            }
+            currentEmails.addAll(patch.getEmails());
+            setEmails(currentEmails);
+        }
+
+        //Only one PhoneNumber stored, use first, as primary does not exist
+        if (patch.getPhoneNumbers() != null && patch.getPhoneNumbers().size()>0) {
+            List<PhoneNumber> current = ofNullable(getPhoneNumbers()).orElse(new ArrayList<>());
+            for (int index=0; index<patch.getPhoneNumbers().size(); index++) {
+                current.add(index, patch.getPhoneNumbers().get(index));
+            }
+            setPhoneNumbers(current);
+        }
+
+        ofNullable(patch.getAliasId()).ifPresent(this::setAliasId);
+        ofNullable(patch.getAliasZid()).ifPresent(this::setAliasZid);
+    }
+
+    private void removeAttributesForPatch(final ScimUser patch, final String[] attributes) {
         for (String attribute : attributes) {
             switch (attribute.toUpperCase()) {
                 case "USERNAME":
@@ -801,70 +862,16 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
                     throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
             }
         }
-
-        if (hasText(patch.getOrigin()) && !patch.getOrigin().equals(getOrigin())) {
-            throw new IllegalArgumentException("Cannot change origin in patch of user.");
-        }
-
-        //Merge simple Attributes, that are stored
-        ofNullable(patch.getUserName()).ifPresent(this::setUserName);
-
-        setActive(patch.isActive());
-        setVerified(patch.isVerified());
-
-        //Merge complex attributes
-        ScimUser.Name patchName = patch.getName();
-        if (patchName != null) {
-            ScimUser.Name currentName = ofNullable(getName()).orElse(new Name());
-            ofNullable(patchName.getFamilyName()).ifPresent(currentName::setFamilyName);
-            ofNullable(patchName.getGivenName()).ifPresent(currentName::setGivenName);
-            ofNullable(patchName.getMiddleName()).ifPresent(currentName::setMiddleName);
-            ofNullable(patchName.getFormatted()).ifPresent(currentName::setFormatted);
-            ofNullable(patchName.getHonorificPrefix()).ifPresent(currentName::setHonorificPrefix);
-            ofNullable(patchName.getHonorificSuffix()).ifPresent(currentName::setHonorificSuffix);
-            setName(currentName);
-        }
-
-        ofNullable(patch.getDisplayName()).ifPresent(
-                this::setDisplayName
-        );
-        ofNullable(patch.getNickName()).ifPresent(this::setNickName);
-        ofNullable(patch.getTimezone()).ifPresent(this::setTimezone);
-        ofNullable(patch.getTitle()).ifPresent(this::setTitle);
-        ofNullable(patch.getProfileUrl()).ifPresent(this::setProfileUrl);
-        ofNullable(patch.getLocale()).ifPresent(this::setLocale);
-        ofNullable(patch.getPreferredLanguage()).ifPresent(this::setPreferredLanguage);
-
-        //Only one email stored, use Primary or first.
-        if (patch.getEmails() != null && patch.getEmails().size()>0) {
-            ScimUser.Email primary = null;
-            for (ScimUser.Email email : patch.getEmails()) {
-                if (email.isPrimary()) {
-                   primary = email;
-                   break;
-                }
-            }
-            List<Email> currentEmails = ofNullable(getEmails()).orElse(new ArrayList());
-            if (primary != null) {
-                for (Email e : currentEmails) {
-                    e.setPrimary(false);
-                }
-            }
-            currentEmails.addAll(patch.getEmails());
-            setEmails(currentEmails);
-        }
-
-        //Only one PhoneNumber stored, use first, as primary does not exist
-        if (patch.getPhoneNumbers() != null && patch.getPhoneNumbers().size()>0) {
-            List<PhoneNumber> current = ofNullable(getPhoneNumbers()).orElse(new ArrayList<>());
-            for (int index=0; index<patch.getPhoneNumbers().size(); index++) {
-                current.add(index, patch.getPhoneNumbers().get(index));
-            }
-            setPhoneNumbers(current);
-        }
-
-        ofNullable(patch.getAliasId()).ifPresent(this::setAliasId);
-        ofNullable(patch.getAliasZid()).ifPresent(this::setAliasZid);
     }
 
+    private void patchName(@NonNull final Name patchName) {
+        Name currentName = ofNullable(getName()).orElse(new Name());
+        ofNullable(patchName.getFamilyName()).ifPresent(currentName::setFamilyName);
+        ofNullable(patchName.getGivenName()).ifPresent(currentName::setGivenName);
+        ofNullable(patchName.getMiddleName()).ifPresent(currentName::setMiddleName);
+        ofNullable(patchName.getFormatted()).ifPresent(currentName::setFormatted);
+        ofNullable(patchName.getHonorificPrefix()).ifPresent(currentName::setHonorificPrefix);
+        ofNullable(patchName.getHonorificSuffix()).ifPresent(currentName::setHonorificSuffix);
+        setName(currentName);
+    }
 }

@@ -14,6 +14,7 @@ import java.util.Optional;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertNull;
 
 public class EncryptionKeyServiceTest {
     private EncryptionKeyService encryptionKeyService;
@@ -58,11 +59,16 @@ public class EncryptionKeyServiceTest {
     }
 
     @Test
-    public void shouldThrowErrorIfNoActiveKeyLabelIsProvided() {
-        expectedException.expect(NoActiveEncryptionKeyProvided.class);
-        expectedException.expectMessage("UAA cannot be started without encryption key value uaa.encryption.active_key_label");
-
+    public void shouldThrowErrorIfEmptyActiveKeyLabelIsProvided() {
         encryptionKeyService = new EncryptionKeyService("", new ArrayList<>());
+        assertNull(encryptionKeyService.getActiveKey());
+    }
+
+    @Test
+    public void shouldNotThrowErrorIfNoActiveKeyLabelIsProvided() {
+        encryptionKeyService =
+            new EncryptionKeyService(null, null);
+        assertNull(encryptionKeyService.getActiveKey());
     }
 
     @Test

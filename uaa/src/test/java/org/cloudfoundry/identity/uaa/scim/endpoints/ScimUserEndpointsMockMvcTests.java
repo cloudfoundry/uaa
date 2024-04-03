@@ -398,107 +398,119 @@ class ScimUserEndpointsMockMvcTests {
                                         .put("error", "invalid_scim_resource"))));
     }
 
-    @Test
-    void createUser_ShouldIgnoreAliasProperties() throws Exception {
-        final ScimUser user = new ScimUser(null, "a_user", "Joel", "D'sa");
-        user.setPassword("password");
-        user.setPrimaryEmail("john.doe@example.com");
-        user.setAliasId(UUID.randomUUID().toString());
-        user.setAliasZid(UUID.randomUUID().toString());
+    /**
+     * For now, the properties "aliasId" and "aliasZid" should be ignored at the API level. In particular, if provided,
+     * their value should NOT be persisted in the DB. In a future version of UAA, the proper handling of these values
+     * is added. Then, these tests will be removed again.
+     */
+    @Nested
+    class ShouldIgnoreAliasProperties {
+        @Test
+        void createUser_ShouldIgnoreAliasProperties() throws Exception {
+            final ScimUser user = new ScimUser(null, "a_user", "Joel", "D'sa");
+            user.setPassword("password");
+            user.setPrimaryEmail("john.doe@example.com");
+            user.setAliasId(UUID.randomUUID().toString());
+            user.setAliasZid(UUID.randomUUID().toString());
 
-        final MvcResult result = createUserAndReturnResult(user, scimReadWriteToken, null, null)
-                .andReturn();
-        final MockHttpServletResponse response = result.getResponse();
-        Assertions.assertThat(response).isNotNull();
+            final MvcResult result = createUserAndReturnResult(user, scimReadWriteToken, null, null)
+                    .andReturn();
+            final MockHttpServletResponse response = result.getResponse();
+            Assertions.assertThat(response).isNotNull();
 
-        // the response should not contain JSON fields for the alias properties
-        final String responseBodyAsString = response.getContentAsString();
-        Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
+            // the response should not contain JSON fields for the alias properties
+            final String responseBodyAsString = response.getContentAsString();
+            Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
 
-        // both alias properties should be empty
-        final ScimUser createdUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
-        Assertions.assertThat(createdUser.getAliasId()).isBlank();
-        Assertions.assertThat(createdUser.getAliasZid()).isBlank();
+            // both alias properties should be empty
+            final ScimUser createdUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
+            Assertions.assertThat(createdUser.getAliasId()).isBlank();
+            Assertions.assertThat(createdUser.getAliasZid()).isBlank();
 
-        // the alias properties should also be empty in the DB
-        final String userId = createdUser.getId();
-        Assertions.assertThat(userId).isNotBlank();
+            // the alias properties should also be empty in the DB
+            final String userId = createdUser.getId();
+            Assertions.assertThat(userId).isNotBlank();
 
-        assertUserHasEmptyAliasPropsInDb(userId, IdentityZone.getUaaZoneId());
-    }
+            assertUserHasEmptyAliasPropsInDb(userId, IdentityZone.getUaaZoneId());
+        }
 
-    @Test
-    void updateUser_ShouldIgnoreAliasProperties() throws Exception {
-        // create user with empty alias properties
-        final ScimUser user = new ScimUser(null, "john.doe@example.com", "Joel", "D'sa");
-        user.setPassword("password");
-        user.setPrimaryEmail("john.doe@example.com");
-        user.setAliasId(null);
-        user.setAliasZid(null);
-        final ScimUser createdUser = createUser(user, scimReadWriteToken, null);
+        @Test
+        void updateUser_ShouldIgnoreAliasProperties() throws Exception {
+            final String email = "john.doe.%s@example.com".formatted(RandomStringUtils.randomAlphabetic(5));
 
-        // update the user: set alias properties
-        createdUser.setAliasId(UUID.randomUUID().toString());
-        createdUser.setAliasZid(UUID.randomUUID().toString());
-        final MvcResult updateResult = updateUserAndReturnResult(scimReadWriteToken, createdUser);
-        final MockHttpServletResponse updateResponse = updateResult.getResponse();
-        Assertions.assertThat(updateResponse).isNotNull();
+            // create user with empty alias properties
+            final ScimUser user = new ScimUser(null, email, "Joel", "D'sa");
+            user.setPassword("password");
+            user.setPrimaryEmail(email);
+            user.setAliasId(null);
+            user.setAliasZid(null);
+            final ScimUser createdUser = createUser(user, scimReadWriteToken, null);
 
-        // the response should not contain JSON fields for the alias properties
-        final String responseBodyAsString = updateResponse.getContentAsString();
-        Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
+            // update the user: set alias properties
+            createdUser.setAliasId(UUID.randomUUID().toString());
+            createdUser.setAliasZid(UUID.randomUUID().toString());
+            final MvcResult updateResult = updateUserAndReturnResult(scimReadWriteToken, createdUser);
+            final MockHttpServletResponse updateResponse = updateResult.getResponse();
+            Assertions.assertThat(updateResponse).isNotNull();
 
-        // both alias properties should be empty
-        final ScimUser updatedUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
-        Assertions.assertThat(updatedUser.getAliasId()).isBlank();
-        Assertions.assertThat(updatedUser.getAliasZid()).isBlank();
+            // the response should not contain JSON fields for the alias properties
+            final String responseBodyAsString = updateResponse.getContentAsString();
+            Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
 
-        // the alias properties should also be empty in the DB
-        final String userId = updatedUser.getId();
-        Assertions.assertThat(userId).isNotBlank();
+            // both alias properties should be empty
+            final ScimUser updatedUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
+            Assertions.assertThat(updatedUser.getAliasId()).isBlank();
+            Assertions.assertThat(updatedUser.getAliasZid()).isBlank();
 
-        assertUserHasEmptyAliasPropsInDb(userId, IdentityZone.getUaaZoneId());
-    }
+            // the alias properties should also be empty in the DB
+            final String userId = updatedUser.getId();
+            Assertions.assertThat(userId).isNotBlank();
 
-    @Test
-    void patchUser_ShouldIgnoreAliasProperties() throws Exception {
-        // create user with empty alias properties
-        final ScimUser user = new ScimUser(null, "john.doe@example.com", "Joel", "D'sa");
-        user.setPassword("password");
-        user.setPrimaryEmail("john.doe@example.com");
-        user.setAliasId(null);
-        user.setAliasZid(null);
-        final ScimUser createdUser = createUser(user, scimReadWriteToken, null);
+            assertUserHasEmptyAliasPropsInDb(userId, IdentityZone.getUaaZoneId());
+        }
 
-        // update the user: set alias properties
-        createdUser.setAliasId(UUID.randomUUID().toString());
-        createdUser.setAliasZid(UUID.randomUUID().toString());
-        final MvcResult updateResult = patchUser(createdUser, scimReadWriteToken, createdUser.getVersion()).andReturn();
-        final MockHttpServletResponse updateResponse = updateResult.getResponse();
-        Assertions.assertThat(updateResponse).isNotNull();
+        @Test
+        void patchUser_ShouldIgnoreAliasProperties() throws Exception {
+            final String email = "john.doe.%s@example.com".formatted(RandomStringUtils.randomAlphabetic(5));
 
-        // the response should not contain JSON fields for the alias properties
-        final String responseBodyAsString = updateResponse.getContentAsString();
-        Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
+            // create user with empty alias properties
+            final ScimUser user = new ScimUser(null, email, "Joel", "D'sa");
+            user.setPassword("password");
+            user.setPrimaryEmail(email);
+            user.setAliasId(null);
+            user.setAliasZid(null);
+            final ScimUser createdUser = createUser(user, scimReadWriteToken, null);
 
-        // both alias properties should be empty
-        final ScimUser updatedUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
-        Assertions.assertThat(updatedUser.getAliasId()).isBlank();
-        Assertions.assertThat(updatedUser.getAliasZid()).isBlank();
+            // update the user: set alias properties
+            createdUser.setAliasId(UUID.randomUUID().toString());
+            createdUser.setAliasZid(UUID.randomUUID().toString());
+            final MvcResult updateResult = patchUser(createdUser, scimReadWriteToken, createdUser.getVersion()).andReturn();
+            final MockHttpServletResponse updateResponse = updateResult.getResponse();
+            Assertions.assertThat(updateResponse).isNotNull();
 
-        // the alias properties should also be empty in the DB
-        final String userId = updatedUser.getId();
-        Assertions.assertThat(userId).isNotBlank();
+            // the response should not contain JSON fields for the alias properties
+            final String responseBodyAsString = updateResponse.getContentAsString();
+            Assertions.assertThat(responseBodyAsString).isNotBlank().doesNotContain("alias");
 
-        assertUserHasEmptyAliasPropsInDb(userId, IdentityZone.getUaaZoneId());
-    }
+            // both alias properties should be empty
+            final ScimUser updatedUser = JsonUtils.readValue(responseBodyAsString, ScimUser.class);
+            Assertions.assertThat(updatedUser.getAliasId()).isBlank();
+            Assertions.assertThat(updatedUser.getAliasZid()).isBlank();
 
-    private void assertUserHasEmptyAliasPropsInDb(final String userId, final String zoneId) {
-        final JdbcScimUserProvisioning scimUserProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        final ScimUser userFromDb = scimUserProvisioning.retrieve(userId, zoneId);
-        Assertions.assertThat(userFromDb).isNotNull();
-        Assertions.assertThat(userFromDb.getAliasId()).isBlank();
-        Assertions.assertThat(userFromDb.getAliasZid()).isBlank();
+            // the alias properties should also be empty in the DB
+            final String userId = updatedUser.getId();
+            Assertions.assertThat(userId).isNotBlank();
+
+            assertUserHasEmptyAliasPropsInDb(userId, IdentityZone.getUaaZoneId());
+        }
+
+        private void assertUserHasEmptyAliasPropsInDb(final String userId, final String zoneId) {
+            final JdbcScimUserProvisioning scimUserProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
+            final ScimUser userFromDb = scimUserProvisioning.retrieve(userId, zoneId);
+            Assertions.assertThat(userFromDb).isNotNull();
+            Assertions.assertThat(userFromDb.getAliasId()).isBlank();
+            Assertions.assertThat(userFromDb.getAliasZid()).isBlank();
+        }
     }
 
     @Test
