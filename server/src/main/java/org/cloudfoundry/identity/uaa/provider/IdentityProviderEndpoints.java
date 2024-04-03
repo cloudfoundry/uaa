@@ -185,11 +185,19 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
 
+        // reject deletion if the IdP has an alias, but alias feature is disabled
+        final boolean idpHasAlias = hasText(existing.getAliasZid()) || hasText(existing.getAliasId());
+        if (idpHasAlias && !aliasEntitiesEnabled) {
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
+
+        // delete the IdP
         existing.setSerializeConfigRaw(rawConfig);
         publisher.publishEvent(new EntityDeletedEvent<>(existing, authentication, identityZoneId));
         redactSensitiveData(existing);
 
-        if (hasText(existing.getAliasZid()) && hasText(existing.getAliasId())) {
+        // delete the alias IdP if present
+        if (idpHasAlias) {
             final Optional<IdentityProvider<?>> aliasIdpOpt = idpAliasHandler.retrieveAliasEntity(existing);
             if (aliasIdpOpt.isEmpty()) {
                 // ignore dangling reference to alias
@@ -202,16 +210,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
 
             final IdentityProvider<?> aliasIdp = aliasIdpOpt.get();
-            if (!aliasEntitiesEnabled) {
-                // if alias entities are not enabled, just break the reference
-                aliasIdp.setAliasId(null);
-                aliasIdp.setAliasZid(null);
-                identityProviderProvisioning.update(aliasIdp, aliasIdp.getIdentityZoneId());
-
-                return new ResponseEntity<>(existing, OK);
-            }
-
-            // also delete the alias IdP
             aliasIdp.setSerializeConfigRaw(rawConfig);
             publisher.publishEvent(new EntityDeletedEvent<>(aliasIdp, authentication, identityZoneId));
         }
