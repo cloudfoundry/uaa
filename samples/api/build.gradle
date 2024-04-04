@@ -4,8 +4,10 @@ description = "Sample resource server for Cloudfoundry Identity Services"
 dependencies {
     Project identityParent = parent.parent
     Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
+    Project identityModel = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-model") }
 
     implementation(identityServer)
+    implementation(identityModel)
     implementation(libraries.springSecurityOauth) {
         exclude(module: "commons-codec")
         exclude(module: "jackson-mapper-asl")
@@ -19,8 +21,11 @@ dependencies {
     }
     implementation(libraries.springSecurityConfig)
 
+    testImplementation(libraries.apacheHttpClient)
     testImplementation(identityServer.configurations.testImplementation.dependencies)
     testImplementation(identityServer.sourceSets.test.output)
+    testImplementation(identityModel.configurations.testImplementation.dependencies)
+    testImplementation(identityModel.sourceSets.test.output)
 }
 
 test {

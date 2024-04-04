@@ -1,9 +1,10 @@
 package org.springframework.security.oauth2.config.xml;
 
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2ClientContext;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.beans.factory.FactoryBean;
-import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+
 public class OAuth2ClientContextFactoryBean implements FactoryBean<OAuth2ClientContext> {
 
 	private OAuth2ProtectedResourceDetails resource;

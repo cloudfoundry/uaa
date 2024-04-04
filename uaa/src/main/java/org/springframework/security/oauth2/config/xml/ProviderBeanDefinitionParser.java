@@ -1,11 +1,11 @@
 package org.springframework.security.oauth2.config.xml;
 
+import org.cloudfoundry.identity.uaa.oauth.provider.token.DefaultTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.InMemoryTokenStore;
 import org.springframework.beans.factory.support.AbstractBeanDefinition;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.xml.AbstractBeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
-import org.springframework.security.oauth2.provider.token.DefaultTokenServices;
-import org.springframework.security.oauth2.provider.token.store.InMemoryTokenStore;
 import org.springframework.util.StringUtils;
 import org.w3c.dom.Element;
 

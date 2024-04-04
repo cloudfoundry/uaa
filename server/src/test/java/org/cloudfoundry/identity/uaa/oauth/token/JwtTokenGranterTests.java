@@ -103,6 +103,7 @@ public class JwtTokenGranterTests {
     public void non_authentication_validates_correctly() {
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("User authentication not found");
+        SecurityContextHolder.clearContext();
         granter.validateRequest(tokenRequest);
     }
 
@@ -110,6 +111,7 @@ public class JwtTokenGranterTests {
     public void client_authentication_only() {
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("User authentication not found");
+        when(authentication.isClientOnly()).thenReturn(true);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         granter.validateRequest(tokenRequest);
     }
@@ -155,6 +157,7 @@ public class JwtTokenGranterTests {
     public void get_oauth2_authentication_validates_request() {
         exception.expect(InvalidGrantException.class);
         exception.expectMessage("User authentication not found");
+        SecurityContextHolder.clearContext();
         granter.getOAuth2Authentication(client, tokenRequest);
         verify(granter, times(1)).validateRequest(same(tokenRequest));
     }

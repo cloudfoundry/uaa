@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Collection;

@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import org.cloudfoundry.identity.uaa.oauth.client.http.AccessTokenRequiredException;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.security.oauth2.client.http.AccessTokenRequiredException;
-import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.util.StringUtils;
 
 public class DefaultOAuth2RequestAuthenticator implements OAuth2RequestAuthenticator {

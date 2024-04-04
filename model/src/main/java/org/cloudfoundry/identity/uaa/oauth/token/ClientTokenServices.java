@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 
 public interface ClientTokenServices {
 

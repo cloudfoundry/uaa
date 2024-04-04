@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
+import org.cloudfoundry.identity.uaa.oauth.client.test.RestTemplateHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.client.HttpClient;
@@ -33,7 +34,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.client.support.HttpAccessor;
-import org.springframework.security.oauth2.client.test.RestTemplateHolder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.ResponseErrorHandler;

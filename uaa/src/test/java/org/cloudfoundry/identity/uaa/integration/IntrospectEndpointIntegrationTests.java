@@ -5,6 +5,9 @@ import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
@@ -19,10 +22,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.DefaultUserAuthenticationConverter;
 import org.springframework.test.context.ContextConfiguration;
@@ -143,8 +143,7 @@ public class IntrospectEndpointIntegrationTests {
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
 
-        @SuppressWarnings("unchecked")
-        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(introspectResponse.getBody());
+        @SuppressWarnings("unchecked") OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(introspectResponse.getBody());
 
         HttpHeaders headers = new HttpHeaders();
         formData = new LinkedMultiValueMap<>();

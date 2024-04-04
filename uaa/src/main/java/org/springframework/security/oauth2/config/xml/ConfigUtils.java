@@ -19,7 +19,6 @@ import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.List;
 
-
 public class ConfigUtils {
   private static final Method createMatcherMethod3x = ReflectionUtils.findMethod(
           MatcherType.class, "createMatcher", String.class, String.class);

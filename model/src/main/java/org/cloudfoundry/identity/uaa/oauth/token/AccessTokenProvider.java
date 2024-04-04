@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
 import org.springframework.security.access.AccessDeniedException;
-import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.resource.UserApprovalRequiredException;
-import org.springframework.security.oauth2.client.resource.UserRedirectRequiredException;
 
 public interface AccessTokenProvider {
 

@@ -8,6 +8,8 @@ import org.apache.http.impl.client.HttpClients;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2ClientContext;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2RestTemplate;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
@@ -20,8 +22,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
-import org.springframework.security.oauth2.client.resource.UserRedirectRequiredException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 import javax.net.ssl.SSLContext;

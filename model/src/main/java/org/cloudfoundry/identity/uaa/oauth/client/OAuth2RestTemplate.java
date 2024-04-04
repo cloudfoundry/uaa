@@ -1,17 +1,17 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import org.cloudfoundry.identity.uaa.oauth.client.http.AccessTokenRequiredException;
+import org.cloudfoundry.identity.uaa.oauth.client.http.OAuth2ErrorHandler;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedException;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
+import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenProviderChain;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenRequest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.security.oauth2.client.http.AccessTokenRequiredException;
-import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
-import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
-import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
-import org.springframework.security.oauth2.client.resource.UserRedirectRequiredException;
-import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
@@ -35,12 +35,6 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
 	private final OAuth2ProtectedResourceDetails resource;
 
 	private AccessTokenProvider accessTokenProvider = new AccessTokenProviderChain(Collections.emptyList());
-	// TODO open
-			/*
-			Arrays.<AccessTokenProvider> asList(
-			new AuthorizationCodeAccessTokenProvider(), new ImplicitAccessTokenProvider(),
-			new ResourceOwnerPasswordAccessTokenProvider(), new ClientCredentialsAccessTokenProvider()));
-			 */
 
 	private OAuth2ClientContext context;
 
