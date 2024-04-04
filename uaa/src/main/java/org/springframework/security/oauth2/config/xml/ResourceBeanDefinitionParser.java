@@ -1,5 +1,6 @@
 package org.springframework.security.oauth2.config.xml;
 
+import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.BaseOAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ImplicitResourceDetails;
@@ -11,7 +12,6 @@ import org.springframework.beans.factory.config.TypedStringValue;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.xml.AbstractSingleBeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
-import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.util.StringUtils;
 import org.w3c.dom.Element;
 
