@@ -206,7 +206,10 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
 
     protected abstract T createEntity(final T entity, final String zoneId) throws EntityAliasFailedException;
 
-    protected static <T extends EntityWithAlias> boolean isValidAliasPair(final T entity1, final T entity2) {
+    protected static <T extends EntityWithAlias> boolean isValidAliasPair(
+            @NonNull final T entity1,
+            @NonNull final T entity2
+    ) {
         // check if both entities have an alias
         final boolean entity1HasAlias = hasText(entity1.getAliasId()) && hasText(entity1.getAliasZid());
         final boolean entity2HasAlias = hasText(entity2.getAliasId()) && hasText(entity2.getAliasZid());
