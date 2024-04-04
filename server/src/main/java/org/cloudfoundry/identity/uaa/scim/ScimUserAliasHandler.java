@@ -9,7 +9,6 @@ import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -44,22 +43,25 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         /* check if an IdP with the user's origin exists in both the current and the alias zone and that they are
          * aliases of each other */
         final String origin = requestBody.getOrigin();
-        final IdentityProvider<?> idpInAliasZone = retrieveIdpByOrigin(origin, requestBody.getAliasZid());
-        final IdentityProvider<?> idpInCurrentZone = retrieveIdpByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId());
-        return EntityAliasHandler.isValidAliasPair(idpInCurrentZone, idpInAliasZone);
+        final Optional<IdentityProvider<?>> idpInAliasZone = retrieveIdpByOrigin(origin, requestBody.getAliasZid());
+        if (idpInAliasZone.isEmpty()) {
+            return false;
+        }
+        final Optional<IdentityProvider<?>> idpInCurrentZone = retrieveIdpByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId());
+        if (idpInCurrentZone.isEmpty()) {
+            return false;
+        }
+        return EntityAliasHandler.isValidAliasPair(idpInCurrentZone.get(), idpInAliasZone.get());
     }
 
-    private IdentityProvider<?> retrieveIdpByOrigin(final String originKey, final String zoneId) {
+    private Optional<IdentityProvider<?>> retrieveIdpByOrigin(final String originKey, final String zoneId) {
         final IdentityProvider<?> idpInAliasZone;
         try {
             idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(originKey, zoneId);
         } catch (final EmptyResultDataAccessException e) {
-            throw new ScimException(
-                    String.format("No IdP with the origin '%s' exists in the zone '%s'.", originKey, zoneId),
-                    HttpStatus.BAD_REQUEST
-            );
+            return Optional.empty();
         }
-        return idpInAliasZone;
+        return Optional.ofNullable(idpInAliasZone);
     }
 
     @Override
