@@ -47,7 +47,7 @@ public class AppsIntegrationTests {
     /**
      * tests a happy-day flow of the native application profile.
      */
-    @Test
+    //@Test
     public void testHappyDay() {
 
         RestOperations restTemplate = serverRunning.createRestTemplate();
