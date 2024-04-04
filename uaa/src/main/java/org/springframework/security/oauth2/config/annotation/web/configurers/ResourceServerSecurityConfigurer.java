@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2Authent
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.TokenExtractor;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
+import org.cloudfoundry.identity.uaa.oauth.provider.expression.OAuth2WebSecurityExpressionHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.DefaultTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.InMemoryTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.ResourceServerTokenServices;
@@ -18,7 +19,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.ExceptionHandlingConfigurer;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.error.OAuth2AccessDeniedHandler;
-import org.springframework.security.oauth2.provider.expression.OAuth2WebSecurityExpressionHandler;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterInvocation;

@@ -13,10 +13,10 @@
 package org.cloudfoundry.identity.uaa.security;
 
 
+import org.cloudfoundry.identity.uaa.oauth.provider.expression.OAuth2WebSecurityExpressionHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.expression.OAuth2WebSecurityExpressionHandler;
 import org.springframework.security.web.FilterInvocation;
 
 public class ContextSensitiveOAuth2WebSecurityExpressionHandler extends OAuth2WebSecurityExpressionHandler {
