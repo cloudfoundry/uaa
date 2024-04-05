@@ -302,7 +302,7 @@
     <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider" />
 
     <bean id="defaultSamlConfig" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean">
-        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA1}"/>
+        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA256}"/>
     </bean>
 
     <beans profile="fileMetadata">
