@@ -26,6 +26,17 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * Moved class BaseClient implementation of from spring-security-oauth2 into UAA
+ *
+ * {@link org.springframework.security.oauth2.provider.client.BaseClientDetails}.
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Extended this class with fields
+ *  - client_jwt_config (supporting private_key_jwt)
+ */
 @JsonInclude(JsonInclude.Include.NON_DEFAULT)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UaaClientDetails implements ClientDetails {

@@ -10,6 +10,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+/**
+ * Test for InMemoryClientDetailsService
+ */
 class InMemoryClientDetailsServiceTest {
 
   private final InMemoryClientDetailsService inMemoryClientDetailsService = new InMemoryClientDetailsService();

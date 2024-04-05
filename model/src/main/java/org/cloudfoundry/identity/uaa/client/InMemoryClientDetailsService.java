@@ -10,6 +10,14 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 
+/**
+ * Moved class InMemoryClientDetailsService implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Serves mainly for tests
+ */
 public class InMemoryClientDetailsService implements ClientDetailsService {
 
   private Map<String, UaaClientDetails> clientDetailsStore = new HashMap<>();

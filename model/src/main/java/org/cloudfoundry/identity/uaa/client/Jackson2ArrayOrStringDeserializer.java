@@ -14,6 +14,13 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
+/**
+ * Moved class Jackson2ArrayOrStringDeserializer implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ */
 @SuppressWarnings("serial")
 public class Jackson2ArrayOrStringDeserializer extends StdDeserializer<Set<String>> {
 
