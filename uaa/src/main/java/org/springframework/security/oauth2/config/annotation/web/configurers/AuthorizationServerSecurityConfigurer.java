@@ -153,7 +153,7 @@ public final class AuthorizationServerSecurityConfigurer extends
 				builder.authenticationProvider(provider);
 			}
 		}
-		http.securityContext().securityContextRepository(new NullSecurityContextRepository()).and().csrf().disable()
+		http.securityContext().securityContextRepository(new NullSecurityContextRepository()).and()
 				.httpBasic().authenticationEntryPoint(this.authenticationEntryPoint).realmName(realm);
 		if (sslOnly) {
 			http.requiresChannel().anyRequest().requiresSecure();
