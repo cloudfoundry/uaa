@@ -80,12 +80,7 @@ public class OAuth2ErrorHandler implements ResponseErrorHandler {
 				public synchronized InputStream getBody() throws IOException {
 					if (lazyBody == null) {
 						InputStream bodyStream = response.getBody();
-						if (bodyStream != null) {
-							lazyBody = FileCopyUtils.copyToByteArray(bodyStream);
-						}
-						else {
-							lazyBody = new byte[0];
-						}
+						lazyBody = FileCopyUtils.copyToByteArray(bodyStream);
 					}
 					return new ByteArrayInputStream(lazyBody);
 				}
@@ -108,8 +103,7 @@ public class OAuth2ErrorHandler implements ResponseErrorHandler {
 			};
 
 			try {
-				HttpMessageConverterExtractor<OAuth2Exception> extractor = new HttpMessageConverterExtractor<OAuth2Exception>(
-						OAuth2Exception.class, messageConverters);
+				HttpMessageConverterExtractor<OAuth2Exception> extractor = new HttpMessageConverterExtractor<>(OAuth2Exception.class, messageConverters);
 				try {
 					OAuth2Exception oauth2Exception = extractor.extractData(bufferedResponse);
 					if (oauth2Exception != null) {

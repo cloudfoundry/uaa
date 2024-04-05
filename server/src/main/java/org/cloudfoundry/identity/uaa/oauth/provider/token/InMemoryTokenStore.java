@@ -48,6 +48,8 @@ public class InMemoryTokenStore implements TokenStore {
 
 	private AtomicInteger flushCounter = new AtomicInteger(0);
 
+	private final Object lockObj = new Object();
+
 	/**
 	 * The number of tokens to store before flushing expired tokens. Defaults to 1000.
 	 * 
@@ -169,7 +171,7 @@ public class InMemoryTokenStore implements TokenStore {
 	private void addToCollection(ConcurrentHashMap<String, Collection<OAuth2AccessToken>> store, String key,
 			OAuth2AccessToken token) {
 		if (!store.containsKey(key)) {
-			synchronized (store) {
+			synchronized (lockObj) {
 				if (!store.containsKey(key)) {
 					store.put(key, new HashSet<OAuth2AccessToken>());
 				}

@@ -56,6 +56,11 @@ public abstract class OAuth2Utils {
 	public static final String GRANT_TYPE = "grant_type";
 
 	/**
+	 * Constant to use in authorization code flow
+	 */
+	public static final String CODE = "code";
+
+	/**
 	 * Parses a string parameter value into a set of strings.
 	 * 
 	 * @param values The values of the set.

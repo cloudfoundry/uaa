@@ -15,6 +15,7 @@ import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 public class FrameworkEndpointHandlerMapping extends RequestMappingHandlerMapping {
@@ -120,7 +121,7 @@ public class FrameworkEndpointHandlerMapping extends RequestMappingHandlerMappin
 			return null;
 		}
 
-		Set<String> defaultPatterns = defaultMapping.getPatternsCondition().getPatterns();
+		Set<String> defaultPatterns = Optional.ofNullable(defaultMapping.getPatternsCondition()).map(PatternsRequestCondition::getPatterns).orElse(Set.of());
 		String[] patterns = new String[defaultPatterns.size()];
 
 		int i = 0;
@@ -150,10 +151,9 @@ public class FrameworkEndpointHandlerMapping extends RequestMappingHandlerMappin
 			paramsInfo = new ParamsRequestCondition(params);
 		}
 
-		RequestMappingInfo mapping = new RequestMappingInfo(patternsInfo, defaultMapping.getMethodsCondition(),
+		return new RequestMappingInfo(patternsInfo, defaultMapping.getMethodsCondition(),
 				paramsInfo, defaultMapping.getHeadersCondition(), defaultMapping.getConsumesCondition(),
 				defaultMapping.getProducesCondition(), defaultMapping.getCustomCondition());
-		return mapping;
 
 	}
 
