@@ -113,8 +113,8 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
 
     private final RedirectResolver redirectResolver;
-    private final UserApprovalHandler userApprovalHandler;
-    private final OAuth2RequestValidator oauth2RequestValidator;
+    private UserApprovalHandler userApprovalHandler;
+    private OAuth2RequestValidator oauth2RequestValidator;
     private final AuthorizationCodeServices authorizationCodeServices;
     private final HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
     private final OpenIdSessionStateCalculator openIdSessionStateCalculator;
@@ -840,5 +840,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private ClientDetails loadClientByClientId(String clientId) {
         return ((MultitenantClientServices) super.getClientDetailsService())
                 .loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+    }
+
+    public void setOAuth2RequestValidator(OAuth2RequestValidator oauth2RequestValidator) {
+        this.oauth2RequestValidator = oauth2RequestValidator;
+    }
+
+    public void setUserApprovalHandler(UserApprovalHandler userApprovalHandler) {
+        this.userApprovalHandler = userApprovalHandler;
     }
 }

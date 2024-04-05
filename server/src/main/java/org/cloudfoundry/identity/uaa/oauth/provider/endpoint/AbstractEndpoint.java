@@ -10,6 +10,7 @@ import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
 import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
+import org.springframework.util.Assert;
 
 public class AbstractEndpoint implements InitializingBean {
 
@@ -26,6 +27,8 @@ public class AbstractEndpoint implements InitializingBean {
 	private OAuth2RequestFactory defaultOAuth2RequestFactory;
 
 	public void afterPropertiesSet() throws Exception {
+		Assert.state(tokenGranter != null, "TokenGranter must be provided");
+		Assert.state(clientDetailsService != null, "ClientDetailsService must be provided");
 		defaultOAuth2RequestFactory = new DefaultOAuth2RequestFactory(getClientDetailsService());
 		if (oAuth2RequestFactory == null) {
 			oAuth2RequestFactory = defaultOAuth2RequestFactory;

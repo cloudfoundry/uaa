@@ -1,19 +1,19 @@
 package org.springframework.security.oauth2.config.xml;
 
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.provider.CompositeTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.approval.DefaultUserApprovalHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.client.ClientCredentialsTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.code.AuthorizationCodeTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.code.InMemoryAuthorizationCodeServices;
-import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.AuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.FrameworkEndpointHandlerMapping;
-import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.TokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.provider.implicit.ImplicitTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.password.ResourceOwnerPasswordTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.refresh.RefreshTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestValidator;
+import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.springframework.beans.BeanMetadataElement;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
 import org.springframework.beans.factory.config.TypedStringValue;
@@ -59,7 +59,7 @@ public class AuthorizationServerBeanDefinitionParser
 
 		// Create a bean definition speculatively for the auth endpoint
 		BeanDefinitionBuilder authorizationEndpointBean = BeanDefinitionBuilder
-				.rootBeanDefinition(AuthorizationEndpoint.class);
+				.genericBeanDefinition(UaaAuthorizationEndpoint.class);
 
 		if (!StringUtils.hasText(clientDetailsRef)) {
 			parserContext.getReaderContext()
@@ -259,18 +259,18 @@ public class AuthorizationServerBeanDefinitionParser
 			}
 
 			parserContext.getRegistry().registerBeanDefinition(
-					"oauth2AuthorizationEndpoint",
+					"uaaAuthorizationEndpoint",
 					authorizationEndpointBean.getBeanDefinition());
 		}
 
 		// configure the token endpoint
 		BeanDefinitionBuilder tokenEndpointBean = BeanDefinitionBuilder
-				.rootBeanDefinition(TokenEndpoint.class);
+				.genericBeanDefinition(UaaTokenEndpoint.class);
 		tokenEndpointBean.addPropertyReference("clientDetailsService", clientDetailsRef);
 		tokenEndpointBean.addPropertyReference("tokenGranter", tokenGranterRef);
 		authorizationEndpointBean.addPropertyReference("oAuth2RequestValidator",
 				oAuth2RequestValidatorRef);
-		parserContext.getRegistry().registerBeanDefinition("oauth2TokenEndpoint",
+		parserContext.getRegistry().registerBeanDefinition("uaaTokenEndpoint",
 				tokenEndpointBean.getBeanDefinition());
 		if (StringUtils.hasText(oAuth2RequestFactoryRef)) {
 			tokenEndpointBean.addPropertyReference("oAuth2RequestFactory",
