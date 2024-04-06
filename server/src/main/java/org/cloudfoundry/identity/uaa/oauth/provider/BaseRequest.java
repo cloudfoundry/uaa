@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider;
 
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 
 import java.io.Serializable;
 import java.util.Collection;

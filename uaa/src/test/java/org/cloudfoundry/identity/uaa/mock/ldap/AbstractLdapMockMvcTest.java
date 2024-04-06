@@ -49,7 +49,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
