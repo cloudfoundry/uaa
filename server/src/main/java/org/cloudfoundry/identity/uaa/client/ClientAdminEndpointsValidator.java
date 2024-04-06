@@ -24,7 +24,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -104,11 +103,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     public ClientDetails validate(ClientDetails prototype, boolean create, boolean checkAdmin) throws InvalidClientDetailsException {
 
-        BaseClientDetails client = new UaaClientDetails(prototype);
-        if (prototype instanceof BaseClientDetails) {
-            Set<String> scopes = ((BaseClientDetails)prototype).getAutoApproveScopes();
+        UaaClientDetails client = new UaaClientDetails(prototype);
+        if (prototype instanceof UaaClientDetails) {
+            Set<String> scopes = ((UaaClientDetails)prototype).getAutoApproveScopes();
             if (scopes!=null) {
-                client.setAutoApproveScopes(((BaseClientDetails) prototype).getAutoApproveScopes());
+                client.setAutoApproveScopes(((UaaClientDetails) prototype).getAutoApproveScopes());
             }
         }
 

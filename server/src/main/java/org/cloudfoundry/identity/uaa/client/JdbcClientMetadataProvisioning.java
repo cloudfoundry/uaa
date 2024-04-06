@@ -10,7 +10,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.Base64Utils;
@@ -95,7 +94,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     protected void updateClientNameIfNotEmpty(ClientMetadata resource, String zoneId) {
         //we don't remove it, only set values
         if (hasText(resource.getClientName())) {
-            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(resource.getClientId(), zoneId);
+            UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(resource.getClientId(), zoneId);
             client.addAdditionalInformation(CLIENT_NAME, resource.getClientName());
             clientDetailsService.updateClientDetails(client, zoneId);
         }

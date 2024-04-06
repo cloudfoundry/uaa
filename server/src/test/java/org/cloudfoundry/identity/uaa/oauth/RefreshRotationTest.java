@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Lists;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
@@ -19,7 +20,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 import java.util.Date;
@@ -83,7 +83,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh Token with rotation")
   void testRefreshRotation() {
-    BaseClientDetails clientDetails = new BaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
@@ -113,7 +113,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh Token with allowpublic and rotation")
   void testRefreshPublicClientWithRotation() {
-    BaseClientDetails clientDetails = new BaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
@@ -145,7 +145,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh Token from public to empty authentication")
   void testRefreshPublicClientWithRotationAndEmpyAuthentication() {
-    BaseClientDetails clientDetails = new BaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
@@ -178,7 +178,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh Token with allowpublic but without rotation")
   void testRefreshPublicClientWithoutRotation() {
-    BaseClientDetails clientDetails = new BaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);
@@ -204,7 +204,7 @@ class RefreshRotationTest {
   @Test
   @DisplayName("Refresh with allowpublic and rotation but existing token was not public")
   void testRefreshPublicClientButExistingTokenWasEmptyAuthentication() {
-    BaseClientDetails clientDetails = new BaseClientDetails(tokenSupport.defaultClient);
+    UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
     AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, tokenSupport.requestedAuthScopes);

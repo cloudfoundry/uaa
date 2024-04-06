@@ -22,6 +22,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.servlet.http.HttpSession;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
@@ -37,6 +38,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.SavedRequest;
@@ -285,7 +287,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "password,refresh_token", "uaa.resource", null);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope", "password,refresh_token", "uaa.resource", null);
         clientDetails.setClientSecret(SECRET);
         clientDetailsService.addClientDetails(clientDetails);
         MvcResult result = doPasswordGrant(username, SECRET, clientId, SECRET, status().isOk());
@@ -313,7 +315,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost");
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost");
         clientDetails.setClientSecret(SECRET);
         clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Collections.singletonList("uaa.admin"));
         clientDetailsService.addClientDetails(clientDetails);
@@ -344,7 +346,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost");
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource", "http://localhost");
         clientDetails.setAutoApproveScopes(Collections.singletonList("true"));
         clientDetails.setClientSecret(SECRET);
         clientDetailsService.addClientDetails(clientDetails);
@@ -395,7 +397,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "password", "uaa.resource", null);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope", "password", "uaa.resource", null);
         clientDetails.setClientSecret(SECRET);
         clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Collections.singletonList("uaa.admin"));
         clientDetailsService.addClientDetails(clientDetails);
@@ -416,7 +418,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope,required.scope.1,required.scope.2", "password", "uaa.resource", null);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope,required.scope.1,required.scope.2", "password", "uaa.resource", null);
         clientDetails.setClientSecret(SECRET);
         clientDetails.addAdditionalInformation(REQUIRED_USER_GROUPS, Arrays.asList("required.scope.1", "required.scope.2"));
         clientDetailsService.addClientDetails(clientDetails);
@@ -746,7 +748,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void testRefreshTokenNotPresentWhenClientDoesNotHaveGrantType() throws Exception {
-        BaseClientDetails clientWithoutRefreshTokenGrant = setUpClients("testclient" + generator.generate(), "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, true);
+        UaaClientDetails clientWithoutRefreshTokenGrant = setUpClients("testclient" + generator.generate(), "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, true);
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user,other.scope,openid";
         ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
@@ -779,7 +781,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void refreshAccessToken_withClient_withAutoApproveField() throws Exception {
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
         clientDetails.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Collections.singletonList("other.scope"));
@@ -829,7 +831,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void authorizeEndpointWithPromptNone_WhenNotAuthenticated() throws Exception {
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
         clientDetails.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Collections.singletonList("other.scope"));
@@ -858,7 +860,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void testAuthorizeEndpointWithPromptNone_ForcePasswordChangeRequired() throws Exception {
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
         clientDetails.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Collections.singletonList("other.scope"));
@@ -908,7 +910,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void testAuthorizeEndpointWithPromptNone_Authenticated() throws Exception {
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
         clientDetails.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Collections.singletonList("other.scope"));
@@ -3844,7 +3846,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void authorizationCanRedirectToSubpathOfConfiguredRedirect() throws Exception {
         String clientId = "testclient" + generator.generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
         clientDetails.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Collections.singletonList("other.scope"));
@@ -3905,7 +3907,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         String redirectUri = "https://example.com/dashboard/?appGuid=app-guid&ace_config=test";
         String clientId = "authclient-" + generator.generate();
         String scopes = "openid";
-        BaseClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        UaaClientDetails client = setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
         client.setRegisteredRedirectUri(redirectUris);
         webApplicationContext.getBean(MultitenantClientServices.class).updateClientDetails(client);
 

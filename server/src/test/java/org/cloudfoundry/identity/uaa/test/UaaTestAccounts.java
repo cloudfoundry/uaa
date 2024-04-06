@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ImplicitResourceDetails;
@@ -29,7 +30,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 
 import java.net.URLEncoder;
@@ -236,7 +236,7 @@ public class UaaTestAccounts implements TestAccounts {
         return resource;
     }
 
-    public ClientDetails getClientDetails(String prefix, BaseClientDetails defaults) {
+    public ClientDetails getClientDetails(String prefix, UaaClientDetails defaults) {
         String clientId = environment.getProperty(prefix + ".id", defaults.getClientId());
         String clientSecret = environment.getProperty(prefix + ".secret", defaults.getClientSecret());
         String resourceIds = environment.getProperty(prefix + ".resource-ids",
@@ -249,7 +249,7 @@ public class UaaTestAccounts implements TestAccounts {
                         StringUtils.collectionToCommaDelimitedString(defaults.getAuthorities()));
         String redirectUris = environment.getProperty(prefix + ".redirect-uri",
                         StringUtils.collectionToCommaDelimitedString(defaults.getRegisteredRedirectUri()));
-        BaseClientDetails result = new BaseClientDetails(clientId, resourceIds, scopes, grantTypes, authorities,
+        UaaClientDetails result = new UaaClientDetails(clientId, resourceIds, scopes, grantTypes, authorities,
                         redirectUris);
         result.setClientSecret(clientSecret);
         return result;

@@ -7,7 +7,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 
 import java.util.Collections;
@@ -36,7 +36,7 @@ class RedirectResolverTest {
     void setUp() {
         legacyResolver = new RedirectResolverFactoryBean(true).getObject();
         springResolver = new RedirectResolverFactoryBean(false).getObject();
-        mockClientDetails = mock(BaseClientDetails.class);
+        mockClientDetails = mock(UaaClientDetails.class);
         when(mockClientDetails.getAuthorizedGrantTypes()).thenReturn(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
     }
 

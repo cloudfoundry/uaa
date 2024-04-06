@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -9,6 +10,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -24,8 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
@@ -158,32 +158,32 @@ public abstract class AbstractTokenMockMvcTests {
         return identityProviderProvisioning.create(defaultIdp, defaultIdp.getIdentityZoneId());
     }
 
-    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, null);
     }
 
-    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, null);
     }
 
-    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, -1);
     }
 
-    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, null);
     }
 
-    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone) {
         return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, accessTokenValidity, zone, Collections.emptyMap());
     }
 
-    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String, Object> additionalInfo) {
+    protected UaaClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity, IdentityZone zone, Map<String, Object> additionalInfo) {
         IdentityZone original = IdentityZoneHolder.get();
         if (zone != null) {
             IdentityZoneHolder.set(zone);
         }
-        BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
+        UaaClientDetails c = new UaaClientDetails(id, "", scopes, grantTypes, authorities);
         if (!GRANT_TYPE_IMPLICIT.equals(grantTypes)) {
             c.setClientSecret(SECRET);
         }
@@ -203,7 +203,7 @@ public abstract class AbstractTokenMockMvcTests {
         }
         try {
             clientDetailsService.addClientDetails(c);
-            return (BaseClientDetails) clientDetailsService.loadClientByClientId(c.getClientId());
+            return (UaaClientDetails) clientDetailsService.loadClientByClientId(c.getClientId());
         } finally {
             IdentityZoneHolder.set(original);
         }

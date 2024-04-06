@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordService.ResetPasswordR
 import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -28,8 +29,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -185,7 +185,7 @@ class UaaResetPasswordServiceTests {
     void testResetPassword() {
         ExpiringCode code = setupResetPassword("example", "redirect.example.com/login");
 
-        BaseClientDetails client = new BaseClientDetails();
+        UaaClientDetails client = new UaaClientDetails();
         client.setRegisteredRedirectUri(Collections.singleton("redirect.example.com/*"));
         when(clientDetailsService.loadClientByClientId("example", currentZoneId)).thenReturn(client);
 
@@ -261,7 +261,7 @@ class UaaResetPasswordServiceTests {
     @Test
     void resetPassword_WhereWildcardsDoNotMatch() {
         ExpiringCode code = setupResetPassword("example", "redirect.example.com");
-        BaseClientDetails client = new BaseClientDetails();
+        UaaClientDetails client = new UaaClientDetails();
         client.setRegisteredRedirectUri(Collections.singleton("doesnotmatch.example.com/*"));
         when(clientDetailsService.loadClientByClientId("example", currentZoneId)).thenReturn(client);
 
@@ -272,7 +272,7 @@ class UaaResetPasswordServiceTests {
     @Test
     void resetPassword_WithNoRedirectUri() {
         ExpiringCode code = setupResetPassword("example", "");
-        BaseClientDetails client = new BaseClientDetails();
+        UaaClientDetails client = new UaaClientDetails();
         client.setRegisteredRedirectUri(Collections.singleton("redirect.example.com/*"));
         when(clientDetailsService.loadClientByClientId("example")).thenReturn(client);
 

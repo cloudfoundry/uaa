@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -25,7 +26,6 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -128,7 +128,7 @@ public class ZoneSeeder {
     }
 
     public ZoneSeeder withClientWithImplicitPasswordRefreshTokenGrants(String clientId, String commaSeparatedScopeNames) {
-        BaseClientDetails newClient = new BaseClientDetails(clientId,
+        UaaClientDetails newClient = new UaaClientDetails(clientId,
                 "none",
                 commaSeparatedScopeNames,
                 "implicit,password,refresh_token",
@@ -143,7 +143,7 @@ public class ZoneSeeder {
     public ZoneSeeder withClientWithImplicitAndAuthorizationCodeGrants(
             String clientId,
             String commaSeparatedRedirectUris) {
-        BaseClientDetails newClient = new BaseClientDetails(
+        UaaClientDetails newClient = new UaaClientDetails(
                 clientId,
                 "none",
                 "openid",
@@ -158,7 +158,7 @@ public class ZoneSeeder {
     }
 
     public ZoneSeeder withAdminClientWithClientCredentialsGrant() {
-        BaseClientDetails newClient = new BaseClientDetails(ADMIN_CLIENT_CREDENTIALS_CLIENT_ID,
+        UaaClientDetails newClient = new UaaClientDetails(ADMIN_CLIENT_CREDENTIALS_CLIENT_ID,
                 "none",
                 "uaa.none",
                 "client_credentials",

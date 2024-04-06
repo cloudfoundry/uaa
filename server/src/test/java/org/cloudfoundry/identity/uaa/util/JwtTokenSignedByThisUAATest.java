@@ -20,6 +20,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
+import org.cloudfoundry.identity.uaa.client.InMemoryClientDetailsService;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
@@ -52,8 +54,6 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -114,7 +114,7 @@ public class JwtTokenSignedByThisUAATest {
     private InMemoryMultitenantClientServices inMemoryMultitenantClientServices;
     private UaaUserDatabase userDb;
     private UaaUser uaaUser;
-    private BaseClientDetails uaaClient;
+    private UaaClientDetails uaaClient;
     private Collection<String> uaaUserGroups;
 
     private List<String> logEvents;
@@ -206,7 +206,7 @@ public class JwtTokenSignedByThisUAATest {
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
         inMemoryMultitenantClientServices = new InMemoryMultitenantClientServices(mockIdentityZoneManager);
-        uaaClient = new BaseClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
+        uaaClient = new UaaClientDetails("app", "acme", "acme.dev", GRANT_TYPE_AUTHORIZATION_CODE, "");
         uaaClient.addAdditionalInformation(REQUIRED_USER_GROUPS, Collections.emptyList());
         inMemoryMultitenantClientServices.setClientDetailsStore(IdentityZone.getUaaZoneId(),
                 Collections.singletonMap(CLIENT_ID, uaaClient));
@@ -635,7 +635,7 @@ public class JwtTokenSignedByThisUAATest {
         clientDetailsService.setClientDetailsStore(
                 Collections.singletonMap(
                         "app",
-                        new BaseClientDetails("app", "acme", "a.different.scope", GRANT_TYPE_AUTHORIZATION_CODE, "")
+                        new UaaClientDetails("app", "acme", "a.different.scope", GRANT_TYPE_AUTHORIZATION_CODE, "")
                 )
         );
 

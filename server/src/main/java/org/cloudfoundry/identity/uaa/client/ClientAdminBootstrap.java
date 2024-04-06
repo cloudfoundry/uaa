@@ -20,6 +20,8 @@ import java.util.Set;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -36,10 +38,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
 
 public class ClientAdminBootstrap implements
@@ -112,7 +111,7 @@ public class ClientAdminBootstrap implements
         autoApproveClients.removeAll(clientsToDelete);
         for (String clientId : autoApproveClients) {
             try {
-                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
+                UaaClientDetails base = (UaaClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
                 logger.debug("Adding autoapprove flag to client: " + clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
@@ -126,7 +125,7 @@ public class ClientAdminBootstrap implements
         allowPublicClients.removeAll(clientsToDelete);
         for (String clientId : allowPublicClients) {
             try {
-                BaseClientDetails base = (BaseClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
+                UaaClientDetails base = (UaaClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.ALLOW_PUBLIC, true);
                 logger.debug("Adding allowpublic flag to client: {}", clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
@@ -252,7 +251,7 @@ public class ClientAdminBootstrap implements
         }
     }
 
-    private boolean isMissingRedirectUris(BaseClientDetails client) {
+    private boolean isMissingRedirectUris(UaaClientDetails client) {
         return client.getRegisteredRedirectUri() == null || client.getRegisteredRedirectUri().isEmpty();
     }
 

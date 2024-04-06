@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.integration;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
@@ -23,8 +24,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.token.DefaultUserAuthenticationConverter;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
@@ -369,7 +368,7 @@ public class IntrospectEndpointIntegrationTests {
     public void testValidPasswordGrant_RequiresClientCredentialsToken() {
         final String adminClientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
 
-        BaseClientDetails clientDetails = new BaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("clientIdWithUaaResourceScope");
         clientDetails.setClientSecret("secret");
         clientDetails.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));

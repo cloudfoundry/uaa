@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler;
@@ -11,7 +12,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 
@@ -27,7 +27,7 @@ class UaaUserApprovalHandlerTests {
     private UaaUserApprovalHandler handler;
     private AuthorizationRequest authorizationRequest;
     private Authentication userAuthentication;
-    private BaseClientDetails client;
+    private UaaClientDetails client;
 
     @BeforeEach
     void setUp() {
@@ -47,7 +47,7 @@ class UaaUserApprovalHandlerTests {
         userAuthentication = new UsernamePasswordAuthenticationToken("joe", "",
                 AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
 
-        client = new BaseClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+        client = new UaaClientDetails("client", "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
         when(mockMultitenantClientServices.loadClientByClientId("client", currentIdentityZoneId)).thenReturn(client);
     }
 

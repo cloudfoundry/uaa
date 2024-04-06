@@ -22,6 +22,11 @@ dependencies {
 
     implementation(libraries.slf4jApi)
 
+    testImplementation(libraries.springBootStarterTest)
+    testImplementation(libraries.hamcrest)
+    testImplementation(libraries.junit5JupiterApi)
+    testImplementation(libraries.junit5JupiterParams)
+
     testImplementation(libraries.junit)
 
     testImplementation(libraries.jsonAssert)

@@ -38,7 +38,7 @@ import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
@@ -511,7 +511,7 @@ public class ScimGroupEndpointsIntegrationTests {
     private void createTestClient(String name, String secret, String scope) {
         OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         HttpHeaders headers = getAuthenticatedHeaders(token);
-        BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password",
+        UaaClientDetails client = new UaaClientDetails(name, "", scope, "authorization_code,password",
                 "scim.read,scim.write", "http://redirect.uri");
         client.setClientSecret(secret);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),

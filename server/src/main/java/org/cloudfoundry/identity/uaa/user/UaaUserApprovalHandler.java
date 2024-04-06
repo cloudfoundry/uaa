@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.user;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
@@ -15,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -67,7 +67,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
     }
 
     private boolean isAutoApprove(ClientDetails client, Collection<String> scopes) {
-        BaseClientDetails baseClient = (BaseClientDetails) client;
+        UaaClientDetails baseClient = (UaaClientDetails) client;
 
         if (baseClient.getAutoApproveScopes() == null) {
             return false;

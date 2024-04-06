@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationException;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
@@ -13,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -41,7 +42,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
   private MultitenantClientServices clientDetailsService;
   private OAuth2RequestFactory requestFactory;
   private OAuth2Request oAuth2Request;
-  private BaseClientDetails requestingClient;
+  private UaaClientDetails requestingClient;
   private Map<String,String> requestParameters;
   private OAuth2Authentication authentication;
   private TokenRequest tokenRequest;
@@ -68,7 +69,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
     SecurityContextHolder.getContext().setAuthentication(authentication);
 
 
-    requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_AUTHORIZATION_CODE, null);
+    requestingClient = new UaaClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_AUTHORIZATION_CODE, null);
     when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
     when(authorizationCodeServices.consumeAuthorizationCode("1234")).thenReturn(authentication);
     when(authentication.getOAuth2Request()).thenReturn(oAuth2Request);
@@ -87,7 +88,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
   @Test
   void getOAuth2Authentication() throws PkceValidationException {
     when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(false);
-    assertThrows(InvalidGrantException.class, () -> granter.getOAuth2Authentication(requestingClient, tokenRequest));
+    assertThrows(InvalidGrantException.class, () -> granter.getOAuth2Authentication((ClientDetails) requestingClient, tokenRequest));
   }
 
   @Test
@@ -97,7 +98,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
     when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(true);
     when(oAuth2Request.getExtensions()).thenReturn(authMap);
     when(oAuth2Request.createOAuth2Request(any())).thenReturn(oAuth2Request);
-    assertNotNull(granter.getOAuth2Authentication(requestingClient, tokenRequest));
+    assertNotNull(granter.getOAuth2Authentication((ClientDetails) requestingClient, tokenRequest));
     verify(oAuth2Request, times(2)).getExtensions();
   }
 
@@ -108,7 +109,7 @@ class PkceEnhancedAuthorizationCodeTokenGranterTest {
     when(pkceValidationService.checkAndValidate(any(), any(), any())).thenReturn(true);
     when(oAuth2Request.getExtensions()).thenReturn(authMap);
     when(oAuth2Request.createOAuth2Request(any())).thenReturn(oAuth2Request);
-    assertNotNull(granter.getOAuth2Authentication(requestingClient, tokenRequest));
+    assertNotNull(granter.getOAuth2Authentication((ClientDetails) requestingClient, tokenRequest));
     verify(oAuth2Request, atMost(1)).getExtensions();
   }
 }

@@ -32,7 +32,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -196,7 +196,7 @@ public class IdentityZoneEndpointsIntegrationTests {
                 id);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
 
-        BaseClientDetails clientDetails = new BaseClientDetails("test123", null,"openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails("test123", null,"openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
         clientDetails.setClientSecret("testSecret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singleton(OriginKeys.UAA));
 
