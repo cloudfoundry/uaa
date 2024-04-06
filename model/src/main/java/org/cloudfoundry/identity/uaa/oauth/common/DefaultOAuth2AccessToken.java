@@ -9,6 +9,14 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 client
+ */
 public class DefaultOAuth2AccessToken implements Serializable, OAuth2AccessToken {
 
 	private static final long serialVersionUID = 914967629530462926L;

@@ -18,6 +18,14 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server
+ */
 public class FrameworkEndpointHandlerMapping extends RequestMappingHandlerMapping {
 
 	private static final String REDIRECT = UrlBasedViewResolver.REDIRECT_URL_PREFIX;

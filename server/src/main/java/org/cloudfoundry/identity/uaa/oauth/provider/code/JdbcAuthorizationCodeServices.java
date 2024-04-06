@@ -13,6 +13,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server
+ */
 public class JdbcAuthorizationCodeServices extends RandomValueAuthorizationCodeServices {
 
 	private static final String DEFAULT_SELECT_STATEMENT = "select code, authentication from oauth_code where code = ?";

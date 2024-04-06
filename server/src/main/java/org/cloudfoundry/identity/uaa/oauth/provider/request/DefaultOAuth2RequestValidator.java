@@ -8,6 +8,14 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.util.Set;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server
+ */
 public class DefaultOAuth2RequestValidator implements OAuth2RequestValidator {
 
 	public void validateScope(AuthorizationRequest authorizationRequest, ClientDetails client) throws InvalidScopeException {

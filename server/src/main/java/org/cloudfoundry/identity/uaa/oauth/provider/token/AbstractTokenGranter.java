@@ -14,6 +14,13 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
 
 import java.util.Collection;
 
+/**
+ * Moved class AbstractTokenGranter implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ */
 public abstract class AbstractTokenGranter implements TokenGranter {
 	
 	protected final Log logger = LogFactory.getLog(getClass());

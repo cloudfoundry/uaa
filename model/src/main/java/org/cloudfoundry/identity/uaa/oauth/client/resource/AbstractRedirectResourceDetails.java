@@ -2,6 +2,13 @@ package org.cloudfoundry.identity.uaa.oauth.client.resource;
 
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenRequest;
 
+/**
+ * Moved class AbstractRedirectResourceDetails implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ */
 public abstract class AbstractRedirectResourceDetails extends BaseOAuth2ProtectedResourceDetails {
 
 	private String preEstablishedRedirectUri;

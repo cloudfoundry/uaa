@@ -12,6 +12,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server
+ */
 public class OAuth2AuthenticationEntryPoint extends AbstractOAuth2SecurityExceptionHandler implements
 		AuthenticationEntryPoint {
 

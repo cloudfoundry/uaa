@@ -3,6 +3,14 @@ package org.cloudfoundry.identity.uaa.oauth.client;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenRequest;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 client
+ */
 public interface OAuth2ClientContext {
 
 	/**

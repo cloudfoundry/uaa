@@ -7,7 +7,14 @@ import java.util.Date;
 import java.util.Map;
 import java.util.Set;
 
-
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 client
+ */
 @JsonSerialize(using = OAuth2AccessTokenJackson2Serializer.class)
 @JsonDeserialize(using = OAuth2AccessTokenJackson2Deserializer.class)
 public interface OAuth2AccessToken {

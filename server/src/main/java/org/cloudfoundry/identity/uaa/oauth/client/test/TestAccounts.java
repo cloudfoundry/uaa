@@ -4,6 +4,14 @@ import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsReso
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ImplicitResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ResourceOwnerPasswordResourceDetails;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: Test
+ */
 public interface TestAccounts {
 
 	String getUserName();

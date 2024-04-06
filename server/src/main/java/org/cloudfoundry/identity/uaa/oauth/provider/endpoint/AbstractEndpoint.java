@@ -12,6 +12,14 @@ import org.springframework.security.oauth2.provider.error.DefaultWebResponseExce
 import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
 import org.springframework.util.Assert;
 
+/**
+ * Moved class AbstractEndpoint implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Abstract class for UAA OAuth2 Endpoints
+ */
 public class AbstractEndpoint implements InitializingBean {
 
 	protected final Log logger = LogFactory.getLog(getClass());

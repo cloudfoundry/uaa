@@ -12,6 +12,14 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Set;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server , validates scopes
+ */
 public class ScopeVoter implements AccessDecisionVoter<Object> {
 
 	private String scopePrefix = "SCOPE_";

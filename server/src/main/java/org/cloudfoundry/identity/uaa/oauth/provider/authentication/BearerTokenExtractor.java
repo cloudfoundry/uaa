@@ -9,6 +9,14 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import javax.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server
+ */
 public class BearerTokenExtractor implements TokenExtractor {
 
 	private final static Log logger = LogFactory.getLog(BearerTokenExtractor.class);

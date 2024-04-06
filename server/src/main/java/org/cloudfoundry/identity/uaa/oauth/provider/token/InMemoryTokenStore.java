@@ -15,7 +15,14 @@ import java.util.concurrent.Delayed;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server , mainly testing
+ */
 public class InMemoryTokenStore implements TokenStore {
 
 	private static final int DEFAULT_FLUSH_INTERVAL = 1000;

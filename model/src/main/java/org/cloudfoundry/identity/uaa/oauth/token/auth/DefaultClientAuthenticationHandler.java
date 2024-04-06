@@ -9,6 +9,14 @@ import org.springframework.util.StringUtils;
 
 import java.io.UnsupportedEncodingException;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server
+ */
 public class DefaultClientAuthenticationHandler implements ClientAuthenticationHandler {
 
 	public void authenticateTokenRequest(OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form,

@@ -16,7 +16,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-
+/**
+ * Moved class AbstractOAuth2SecurityExceptionHandler implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ */
 public abstract class AbstractOAuth2SecurityExceptionHandler {
 
 	/** Logger available to subclasses */

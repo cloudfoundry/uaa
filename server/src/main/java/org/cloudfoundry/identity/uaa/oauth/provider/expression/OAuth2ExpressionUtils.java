@@ -9,6 +9,14 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import java.util.Collection;
 import java.util.Set;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server
+ */
 public abstract class OAuth2ExpressionUtils {
 
 	public static boolean clientHasAnyRole(Authentication authentication, String... roles) {

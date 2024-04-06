@@ -18,6 +18,14 @@ import org.springframework.util.MultiValueMap;
 import java.util.Iterator;
 import java.util.List;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 client
+ */
 public class ResourceOwnerPasswordAccessTokenProvider extends OAuth2AccessTokenSupport implements AccessTokenProvider {
 
 	public boolean supportsResource(OAuth2ProtectedResourceDetails resource) {

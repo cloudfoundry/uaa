@@ -37,6 +37,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 client
+ */
 public abstract class OAuth2AccessTokenSupport {
 
 	protected final Log logger = LogFactory.getLog(getClass());

@@ -34,6 +34,14 @@ import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.Calendar;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 client
+ */
 public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperations {
 
 	private final OAuth2ProtectedResourceDetails resource;

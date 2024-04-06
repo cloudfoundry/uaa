@@ -9,6 +9,14 @@ import org.springframework.beans.factory.xml.ParserContext;
 import org.springframework.util.StringUtils;
 import org.w3c.dom.Element;
 
+/**
+ * Moved class ProviderBeanDefinitionParser implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server setup in xml
+ */
 public abstract class ProviderBeanDefinitionParser extends AbstractBeanDefinitionParser {
 
 	@Override

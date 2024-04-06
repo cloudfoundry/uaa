@@ -3,6 +3,14 @@ package org.cloudfoundry.identity.uaa.oauth.provider.code;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 
+/**
+ * Moved class AuthorizationCodeServices implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server
+ */
 public interface AuthorizationCodeServices {
 
 	/**

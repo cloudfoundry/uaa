@@ -34,6 +34,14 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+/**
+ * Moved class implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: OAuth2 server token endpoint
+ */
 public class TokenEndpoint extends AbstractEndpoint {
 
 	private OAuth2RequestValidator oAuth2RequestValidator = new DefaultOAuth2RequestValidator();

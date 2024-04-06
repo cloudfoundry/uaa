@@ -43,6 +43,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Moved class OAuth2ContextSetup implementation of from spring-security-oauth2 into UAA
+ *
+ * The class was taken over from the legacy project with minor refactorings
+ * based on sonar.
+ *
+ * Scope: Test
+ */
 public class OAuth2ContextSetup extends TestWatchman {
 
 	private static Log logger = LogFactory.getLog(OAuth2ContextSetup.class);
