@@ -45,7 +45,6 @@ import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientE
 import org.springframework.security.oauth2.common.exceptions.UnsupportedResponseTypeException;
 import org.springframework.security.oauth2.common.exceptions.UserDeniedAuthorizationException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.util.UrlUtils;
