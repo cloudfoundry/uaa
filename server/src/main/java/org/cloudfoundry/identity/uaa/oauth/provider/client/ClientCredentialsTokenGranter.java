@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AbstractTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA

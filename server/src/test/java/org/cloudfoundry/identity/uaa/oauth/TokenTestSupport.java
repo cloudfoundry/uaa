@@ -60,7 +60,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
 import java.util.Arrays;
 import java.util.Collections;

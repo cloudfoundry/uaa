@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider;
 
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.provider.ClientDetails;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA

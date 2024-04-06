@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider;
 
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.io.Serializable;
 import java.util.Collection;

@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
 public class UaaClientDetailsUserDetailsService implements UserDetailsService {
 

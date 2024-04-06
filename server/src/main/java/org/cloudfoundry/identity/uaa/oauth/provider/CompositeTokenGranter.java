@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.oauth.provider.refresh.RefreshTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 
 import java.util.ArrayList;
 import java.util.List;

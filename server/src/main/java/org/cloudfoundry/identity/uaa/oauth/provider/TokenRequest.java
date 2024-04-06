@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider;
 
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.util.Collection;
 import java.util.HashMap;
