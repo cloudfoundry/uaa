@@ -16,6 +16,8 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -58,7 +60,7 @@ public class DefaultRedirectResolver implements RedirectResolver {
 	 * @param redirectGrantTypes the redirect grant types to set
 	 */
 	public void setRedirectGrantTypes(Collection<String> redirectGrantTypes) {
-		this.redirectGrantTypes = new HashSet<String>(redirectGrantTypes);
+		this.redirectGrantTypes = new HashSet<>(redirectGrantTypes);
 	}
 
 	public String resolveRedirect(String requestedRedirect, ClientDetails client) throws OAuth2Exception {
@@ -111,9 +113,9 @@ public class DefaultRedirectResolver implements RedirectResolver {
 		boolean schemeMatch = isEqual(registeredRedirectUri.getScheme(), requestedRedirectUri.getScheme());
 		boolean userInfoMatch = isEqual(registeredRedirectUri.getUserInfo(), requestedRedirectUri.getUserInfo());
 		boolean hostMatch = hostMatches(registeredRedirectUri.getHost(), requestedRedirectUri.getHost());
-		boolean portMatch = matchPorts ? registeredRedirectUri.getPort() == requestedRedirectUri.getPort() : true;
+		boolean portMatch = matchPorts = registeredRedirectUri.getPort() == requestedRedirectUri.getPort();
 		boolean pathMatch = isEqual(registeredRedirectUri.getPath(),
-				StringUtils.cleanPath(requestedRedirectUri.getPath()));
+				StringUtils.cleanPath(Optional.ofNullable(requestedRedirectUri.getPath()).orElse("")));
 		boolean queryParamMatch = matchQueryParams(registeredRedirectUri.getQueryParams(),
 				requestedRedirectUri.getQueryParams());
 
@@ -158,11 +160,7 @@ public class DefaultRedirectResolver implements RedirectResolver {
 	 * @return true if strings are equal, false otherwise
 	 */
 	private boolean isEqual(String str1, String str2) {
-		if (StringUtils.isEmpty(str1)) {
-			return StringUtils.isEmpty(str2);
-		} else {
-			return str1.equals(str2);
-		}
+		return Objects.equals(str1, str2);
 	}
 
 	/**

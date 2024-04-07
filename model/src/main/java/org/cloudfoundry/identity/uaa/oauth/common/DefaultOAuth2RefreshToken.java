@@ -14,6 +14,7 @@ import java.util.Objects;
  *
  * Scope: OAuth2 client
  */
+@SuppressWarnings("serial")
 public class DefaultOAuth2RefreshToken implements Serializable, OAuth2RefreshToken {
 
 	private static final long serialVersionUID = 8349970621900575838L;

@@ -14,6 +14,7 @@ import org.springframework.web.servlet.view.UrlBasedViewResolver;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -32,11 +33,11 @@ public class FrameworkEndpointHandlerMapping extends RequestMappingHandlerMappin
 
 	private static final String FORWARD = UrlBasedViewResolver.FORWARD_URL_PREFIX;
 
-	private Map<String, String> mappings = new HashMap<String, String>();
+	private Map<String, String> mappings = new HashMap<>();
 
 	private String approvalParameter = OAuth2Utils.USER_OAUTH_APPROVAL;
 
-	private Set<String> paths = new HashSet<String>();
+	private Set<String> paths = new HashSet<>();
 
 	private String prefix;
 
@@ -61,17 +62,18 @@ public class FrameworkEndpointHandlerMapping extends RequestMappingHandlerMappin
 	 * @param patternMap the mappings to set
 	 */
 	public void setMappings(Map<String, String> patternMap) {
-		this.mappings = new HashMap<String, String>(patternMap);
-		for (String key : mappings.keySet()) {
-			String result = mappings.get(key);
-			if (result.startsWith(FORWARD)) {
-				result = result.substring(FORWARD.length());
-			}
-			if (result.startsWith(REDIRECT)) {
-				result = result.substring(REDIRECT.length());
-			}
-			mappings.put(key, result);
-		}
+		this.mappings = new HashMap<>(patternMap);
+    for (Iterator<String> iterator = mappings.keySet().iterator(); iterator.hasNext(); ) {
+      String key = iterator.next();
+      String result = mappings.get(key);
+      if (result.startsWith(FORWARD)) {
+        result = result.substring(FORWARD.length());
+      }
+      if (result.startsWith(REDIRECT)) {
+        result = result.substring(REDIRECT.length());
+      }
+      mappings.put(key, result);
+    }
 	}
 
 	/**

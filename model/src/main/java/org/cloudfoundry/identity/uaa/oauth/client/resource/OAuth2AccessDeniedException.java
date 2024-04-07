@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
  *
  * Scope: OAuth2
  */
+@SuppressWarnings("serial")
 public class OAuth2AccessDeniedException extends OAuth2Exception {
 
 	private OAuth2ProtectedResourceDetails resource;

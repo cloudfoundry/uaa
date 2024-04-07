@@ -20,7 +20,6 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -28,6 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -146,21 +146,24 @@ public class TokenEndpointAuthenticationFilter implements Filter {
 	}
 
 	private Map<String, String> getSingleValueMap(HttpServletRequest request) {
-		Map<String, String> map = new HashMap<String, String>();
+		Map<String, String> map = new HashMap<>();
 		Map<String, String[]> parameters = request.getParameterMap();
-		for (String key : parameters.keySet()) {
-			String[] values = parameters.get(key);
-			map.put(key, values != null && values.length > 0 ? values[0] : null);
-		}
+    for (Iterator<String> iterator = parameters.keySet().iterator(); iterator.hasNext(); ) {
+      String key = iterator.next();
+      String[] values = parameters.get(key);
+      map.put(key, values != null && values.length > 0 ? values[0] : null);
+    }
 		return map;
 	}
 
 	protected void onSuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
 			Authentication authResult) throws IOException {
+		// empty
 	}
 
 	protected void onUnsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
 			AuthenticationException failed) throws IOException {
+		// empty
 	}
 
 	/**
@@ -184,12 +187,6 @@ public class TokenEndpointAuthenticationFilter implements Filter {
 
 	private Set<String> getScope(HttpServletRequest request) {
 		return OAuth2Utils.parseParameterList(request.getParameter(OAuth2Utils.SCOPE));
-	}
-	
-	public void init(FilterConfig filterConfig) throws ServletException {
-	}
-
-	public void destroy() {
 	}
 
 }

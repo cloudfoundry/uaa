@@ -17,6 +17,7 @@ import java.util.TreeSet;
  *
  * Scope: OAuth2 client
  */
+@SuppressWarnings("serial")
 public class DefaultOAuth2AccessToken implements Serializable, OAuth2AccessToken {
 
 	private static final long serialVersionUID = 914967629530462926L;
@@ -29,7 +30,7 @@ public class DefaultOAuth2AccessToken implements Serializable, OAuth2AccessToken
 
 	private transient OAuth2RefreshToken refreshToken;
 
-	private Set<String> scope;
+	private Set<String> scopeSet;
 
 	private transient Map<String, Object> additionalInformation = Collections.emptyMap();
 
@@ -76,8 +77,7 @@ public class DefaultOAuth2AccessToken implements Serializable, OAuth2AccessToken
 	}
 
 	public int getExpiresIn() {
-		return expiration != null ? Long.valueOf((expiration.getTime() - System.currentTimeMillis()) / 1000L)
-				.intValue() : 0;
+		return expiration != null ? (int)((expiration.getTime() - System.currentTimeMillis()) / 1000L) : 0;
 	}
 
 	protected void setExpiresIn(int delta) {
@@ -154,7 +154,7 @@ public class DefaultOAuth2AccessToken implements Serializable, OAuth2AccessToken
 	 * @return The scope of the token.
 	 */
 	public Set<String> getScope() {
-		return scope;
+		return scopeSet;
 	}
 
 	/**
@@ -163,7 +163,7 @@ public class DefaultOAuth2AccessToken implements Serializable, OAuth2AccessToken
 	 * @param scope The scope of the token.
 	 */
 	public void setScope(Set<String> scope) {
-		this.scope = scope;
+		this.scopeSet = scope;
 	}
 
 	@Override
