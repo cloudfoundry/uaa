@@ -13,7 +13,7 @@ import java.util.Random;
  */
 public class RandomValueStringGenerator {
 
-	private static final char[] DEFAULT_CODEC_OAUTH2 = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
+	private static final char[] DEFAULT_CODEC = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
 			.toCharArray();
 
 	private final char[] defaultCodec;
@@ -38,7 +38,7 @@ public class RandomValueStringGenerator {
 	 * @param length the length of the strings generated
 	 */
 	public RandomValueStringGenerator(int length) {
-		defaultCodec = DEFAULT_CODEC_OAUTH2;
+		defaultCodec = DEFAULT_CODEC;
 		this.length = length;
 	}
 
