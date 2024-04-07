@@ -8,17 +8,14 @@ dependencies {
 
     implementation(identityServer)
     implementation(identityModel)
-    implementation(libraries.springSecurityOauth) {
-        exclude(module: "commons-codec")
-        exclude(module: "jackson-mapper-asl")
-        exclude(module: "spring-security-web")
-    }
 
     providedCompile(libraries.tomcatEmbed)
     implementation(libraries.springSecurityTaglibs) {
         exclude(module: "spring-jdbc")
         exclude(module: "spring-tx")
     }
+    implementation(libraries.springWeb)
+    implementation(libraries.springWebMvc)
     implementation(libraries.springSecurityConfig)
 
     testImplementation(libraries.apacheHttpClient)

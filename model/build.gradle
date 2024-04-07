@@ -15,10 +15,6 @@ dependencies {
     implementation(libraries.springSecurityConfig)
 
     implementation(libraries.nimbusJwt)
-    implementation(libraries.springSecurityOauth) {
-        exclude(module: "jackson-mapper-asl")
-        exclude(module: "spring-security-web")
-    }
 
     implementation(libraries.slf4jApi)
 
