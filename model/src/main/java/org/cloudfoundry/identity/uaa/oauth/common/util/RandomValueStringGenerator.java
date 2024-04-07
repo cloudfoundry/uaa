@@ -13,9 +13,10 @@ import java.util.Random;
  */
 public class RandomValueStringGenerator {
 
-	private static final char[] DEFAULT_CODEC = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
+	private static final char[] DEFAULT_CODEC_OAUTH2 = "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"
 			.toCharArray();
 
+	private final char[] defaultCodec;
 	private Random random = new SecureRandom();
 
 	private int length;
@@ -27,12 +28,22 @@ public class RandomValueStringGenerator {
 		this(6);
 	}
 
+	protected RandomValueStringGenerator(char[] codec) {
+		this(codec, 6);
+	}
+
 	/**
 	 * Create a generator of random strings of the length provided
 	 * 
 	 * @param length the length of the strings generated
 	 */
 	public RandomValueStringGenerator(int length) {
+		defaultCodec = DEFAULT_CODEC_OAUTH2;
+		this.length = length;
+	}
+
+	protected RandomValueStringGenerator(char[] codec, int length) {
+		defaultCodec = codec;
 		this.length = length;
 	}
 
@@ -53,7 +64,7 @@ public class RandomValueStringGenerator {
 	protected String getAuthorizationCodeString(byte[] verifierBytes) {
 		char[] chars = new char[verifierBytes.length];
 		for (int i = 0; i < verifierBytes.length; i++) {
-			chars[i] = DEFAULT_CODEC[((verifierBytes[i] & 0xFF) % DEFAULT_CODEC.length)];
+			chars[i] = defaultCodec[((verifierBytes[i] & 0xFF) % defaultCodec.length)];
 		}
 		return new String(chars);
 	}
