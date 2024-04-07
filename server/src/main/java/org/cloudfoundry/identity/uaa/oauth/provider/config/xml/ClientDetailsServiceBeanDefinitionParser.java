@@ -1,12 +1,12 @@
-package org.springframework.security.oauth2.config.xml;
+package org.cloudfoundry.identity.uaa.oauth.provider.config.xml;
 
+import org.cloudfoundry.identity.uaa.client.InMemoryClientDetailsService;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.beans.BeanMetadataElement;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
 import org.springframework.beans.factory.support.ManagedMap;
 import org.springframework.beans.factory.xml.AbstractSingleBeanDefinitionParser;
 import org.springframework.beans.factory.xml.ParserContext;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.util.StringUtils;
 import org.springframework.util.xml.DomUtils;
 import org.w3c.dom.Element;
@@ -33,7 +33,7 @@ public class ClientDetailsServiceBeanDefinitionParser extends AbstractSingleBean
 		List<Element> clientElements = DomUtils.getChildElementsByTagName(element, "client");
 		ManagedMap<String, BeanMetadataElement> clients = new ManagedMap<String, BeanMetadataElement>();
 		for (Element clientElement : clientElements) {
-			BeanDefinitionBuilder client = BeanDefinitionBuilder.rootBeanDefinition(BaseClientDetails.class);
+			BeanDefinitionBuilder client = BeanDefinitionBuilder.rootBeanDefinition(UaaClientDetails.class);
 			String clientId = clientElement.getAttribute("client-id");
 			if (StringUtils.hasText(clientId)) {
 				client.addConstructorArgValue(clientId);

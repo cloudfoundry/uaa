@@ -37,7 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 
 
 public class ZoneAwareWhitelistLogoutHandlerTests {

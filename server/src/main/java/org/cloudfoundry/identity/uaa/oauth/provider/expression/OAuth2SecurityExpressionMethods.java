@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.provider.expression;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 
 import java.util.Arrays;
 import java.util.LinkedHashSet;

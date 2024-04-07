@@ -34,8 +34,8 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UnauthorizedClientException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import com.google.common.collect.Lists;

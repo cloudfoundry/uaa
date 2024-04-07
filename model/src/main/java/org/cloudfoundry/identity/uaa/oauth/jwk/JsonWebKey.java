@@ -38,7 +38,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static org.apache.commons.codec.binary.BaseNCodec.PEM_CHUNK_SIZE;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.MAC;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.oct;
@@ -51,7 +50,7 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.oct;
 @JsonSerialize(using = JsonWebKeySerializer.class)
 public class JsonWebKey {
 
-    private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(PEM_CHUNK_SIZE, "\n".getBytes(Charset.defaultCharset()));
+    private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(64, "\n".getBytes(Charset.defaultCharset()));
     private static final Base64.Decoder base64decoder = Base64.getUrlDecoder();
 
     // value is not defined in RFC 7517

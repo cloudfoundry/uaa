@@ -10,7 +10,7 @@ import java.util.Date;
  *
  * Scope: OAuth2 client
  */
-public class DefaultExpiringOAuth2RefreshToken extends DefaultOAuth2RefreshToken implements OAuth2RefreshToken {
+public class DefaultExpiringOAuth2RefreshToken extends DefaultOAuth2RefreshToken implements ExpiringOAuth2RefreshToken {
 
 	private static final long serialVersionUID = 3449554332764129719L;
 

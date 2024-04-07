@@ -20,7 +20,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.Collections;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.GRANT_TYPE;
 
 public class JwtTokenGranterTests {
 

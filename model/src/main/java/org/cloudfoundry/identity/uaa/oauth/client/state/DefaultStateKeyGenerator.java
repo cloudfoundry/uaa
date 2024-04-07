@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.client.state;
 
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA

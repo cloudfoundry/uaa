@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
 
 import java.util.Collection;
 import java.util.HashMap;

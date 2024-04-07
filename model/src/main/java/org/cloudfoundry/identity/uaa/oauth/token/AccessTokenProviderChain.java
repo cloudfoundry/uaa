@@ -11,7 +11,7 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 
 import java.util.Calendar;
 import java.util.Collections;

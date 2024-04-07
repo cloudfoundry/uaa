@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.test.network;
 
 import com.sun.net.httpserver.*;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import javax.net.ssl.*;
 import java.io.*;

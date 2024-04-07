@@ -13,7 +13,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
-import org.springframework.security.oauth2.provider.implicit.ImplicitGrantService;
 import org.springframework.util.Assert;
 
 /**
@@ -54,6 +53,7 @@ public class ImplicitTokenGranter extends AbstractTokenGranter {
 	
 	@SuppressWarnings("deprecation")
 	public void setImplicitGrantService(ImplicitGrantService service) {
+		// not in use
 	}
 
 }

@@ -11,7 +11,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 
 import java.util.*;
 

@@ -5,7 +5,7 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.SqlLobValue;
-import org.springframework.security.oauth2.common.util.SerializationUtils;
+import org.cloudfoundry.identity.uaa.oauth.common.util.SerializationUtils;
 import org.springframework.util.Assert;
 
 import javax.sql.DataSource;

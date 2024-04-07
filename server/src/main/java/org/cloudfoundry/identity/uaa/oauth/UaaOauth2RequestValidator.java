@@ -20,7 +20,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.Collection;
@@ -30,7 +30,7 @@ import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 
 public class UaaOauth2RequestValidator implements OAuth2RequestValidator {
 

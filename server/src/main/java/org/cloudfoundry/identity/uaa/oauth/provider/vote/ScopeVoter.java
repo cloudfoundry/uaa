@@ -6,7 +6,7 @@ import org.springframework.security.access.AccessDecisionVoter;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.ConfigAttribute;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 
 import java.util.Collection;
 import java.util.Collections;

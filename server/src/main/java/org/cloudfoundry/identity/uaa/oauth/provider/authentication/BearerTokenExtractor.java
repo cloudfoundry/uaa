@@ -43,7 +43,7 @@ public class BearerTokenExtractor implements TokenExtractor {
 				logger.debug("Token not found in request parameters.  Not an OAuth2 request.");
 			}
 			else {
-				request.setAttribute(org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails.ACCESS_TOKEN_TYPE, OAuth2AccessToken.BEARER_TYPE);
+				request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_TYPE, OAuth2AccessToken.BEARER_TYPE);
 			}
 		}
 

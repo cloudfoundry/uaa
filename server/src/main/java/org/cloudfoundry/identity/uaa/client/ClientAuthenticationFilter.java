@@ -13,11 +13,11 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.oauth.client.http.AccessTokenRequiredException;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.oauth2.client.http.AccessTokenRequiredException;
-import org.springframework.security.oauth2.client.resource.UserRedirectRequiredException;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.util.Assert;

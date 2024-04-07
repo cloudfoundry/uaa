@@ -4,12 +4,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.WebResponseExceptionTranslator;
 import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestFactory;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
-import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.DefaultWebResponseExceptionTranslator;
 import org.springframework.util.Assert;
 
 /**

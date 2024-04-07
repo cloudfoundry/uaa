@@ -22,7 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidRequestException;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;

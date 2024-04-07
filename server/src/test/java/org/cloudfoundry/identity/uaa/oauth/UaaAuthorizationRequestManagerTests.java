@@ -25,8 +25,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UnauthorizedClientException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
@@ -41,7 +41,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class UaaAuthorizationRequestManagerTests {

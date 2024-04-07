@@ -1,4 +1,4 @@
-package org.springframework.security.oauth2.config.xml;
+package org.cloudfoundry.identity.uaa.oauth.provider.config.xml;
 
 import org.cloudfoundry.identity.uaa.oauth.provider.token.DefaultTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.InMemoryTokenStore;

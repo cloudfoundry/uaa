@@ -12,7 +12,7 @@ import org.junit.runners.Parameterized;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchException;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.security.web.authentication.session.SessionAuthenticationException;

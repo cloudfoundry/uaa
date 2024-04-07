@@ -5,12 +5,12 @@ import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
+import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor;
-import org.springframework.security.oauth2.provider.SecurityContextAccessor;
 
 import java.util.Collections;
 import java.util.LinkedHashSet;

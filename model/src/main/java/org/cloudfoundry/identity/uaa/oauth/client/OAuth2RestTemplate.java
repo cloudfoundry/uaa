@@ -16,7 +16,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenProviderChain;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenRequest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.springframework.util.Assert;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.client.RequestCallback;

@@ -10,7 +10,7 @@ import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccess
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;

@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.endpoint;
 
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA

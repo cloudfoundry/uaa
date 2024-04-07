@@ -16,7 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 
 import java.util.Collections;
 

@@ -15,8 +15,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
-import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.ExpiringOAuth2RefreshToken;
 
 import java.util.*;
 

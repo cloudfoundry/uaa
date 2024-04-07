@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.code;
 
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA

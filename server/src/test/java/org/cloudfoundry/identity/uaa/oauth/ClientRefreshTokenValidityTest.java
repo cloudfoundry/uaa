@@ -17,7 +17,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.nullValue;

@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.provider.request;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.Set;

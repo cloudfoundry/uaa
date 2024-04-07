@@ -23,8 +23,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 
 /**
  *

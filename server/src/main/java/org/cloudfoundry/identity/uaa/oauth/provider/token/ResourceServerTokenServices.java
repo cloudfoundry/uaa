@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.provider.token;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
