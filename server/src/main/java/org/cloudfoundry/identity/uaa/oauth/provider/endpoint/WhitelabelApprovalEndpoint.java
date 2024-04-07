@@ -1,8 +1,10 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.endpoint;
 
+import org.bouncycastle.cert.ocsp.Req;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.View;
@@ -25,7 +27,7 @@ import java.util.Map;
 @SessionAttributes("authorizationRequest")
 public class WhitelabelApprovalEndpoint {
 
-	@RequestMapping("/oauth/confirm_access")
+	@RequestMapping(value = "/oauth/confirm_access", method = { RequestMethod.GET, RequestMethod.POST })
 	public ModelAndView getAccessConfirmation(Map<String, Object> model, HttpServletRequest request) throws Exception {
 		final String approvalContent = createTemplate(model, request);
 		if (request.getAttribute("_csrf") != null) {

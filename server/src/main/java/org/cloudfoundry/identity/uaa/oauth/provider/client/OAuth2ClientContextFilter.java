@@ -14,15 +14,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
@@ -70,11 +69,11 @@ public class OAuth2ClientContextFilter implements Filter, InitializingBean {
 			if (redirect != null) {
 				redirectUser(redirect, request, response);
 			} else {
-				if (ex instanceof ServletException) {
-					throw (ServletException) ex;
+				if (ex instanceof ServletException servletException) {
+					throw servletException;
 				}
-				if (ex instanceof RuntimeException) {
-					throw (RuntimeException) ex;
+				if (ex instanceof RuntimeException runtimeException) {
+					throw runtimeException;
 				}
 				throw new NestedServletException("Unhandled exception", ex);
 			}
@@ -118,8 +117,7 @@ public class OAuth2ClientContextFilter implements Filter, InitializingBean {
 	 *            The request.
 	 * @return The current uri.
 	 */
-	protected String calculateCurrentUri(HttpServletRequest request)
-			throws UnsupportedEncodingException {
+	protected String calculateCurrentUri(HttpServletRequest request) {
 		ServletUriComponentsBuilder builder = ServletUriComponentsBuilder
 				.fromRequest(request);
 		// Now work around SPR-10172...
@@ -136,18 +134,12 @@ public class OAuth2ClientContextFilter implements Filter, InitializingBean {
 			// make sense for redirection purposes anyway.
 			return null;
 		}
-		String query = uri.getQuery();
+		String query = Optional.ofNullable(uri.getQuery()).orElse("");
 		if (legalSpaces) {
 			query = query.replace("%20", "+");
 		}
-		return ServletUriComponentsBuilder.fromUri(uri.toUri())
+		return UriComponentsBuilder.fromUri(uri.toUri())
 				.replaceQuery(query).build().toString();
-	}
-
-	public void init(FilterConfig filterConfig) throws ServletException {
-	}
-
-	public void destroy() {
 	}
 
 	public void setThrowableAnalyzer(ThrowableAnalyzer throwableAnalyzer) {
