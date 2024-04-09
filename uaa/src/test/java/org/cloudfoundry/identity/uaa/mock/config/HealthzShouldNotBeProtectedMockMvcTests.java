@@ -150,5 +150,34 @@ class HealthzShouldNotBeProtectedMockMvcTests {
             mockMvc.perform(getRequest)
                     .andExpect(status().isOk());
         }
+
+        @Disabled("trailing slash likely routes to processing with RegistrationID and likely is empty")
+        @Test
+        void samlMetadataWithTrailingSlashReturnsOk() throws Exception {
+            MockHttpServletRequestBuilder getRequest = get("/saml/metadata/")
+                    .accept(MediaType.ALL);
+
+            mockMvc.perform(getRequest)
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void samlMetadataDirectReturnsOk() throws Exception {
+            MockHttpServletRequestBuilder getRequest = get("/saml/metadata/example")
+                    .accept(MediaType.ALL);
+
+            mockMvc.perform(getRequest)
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        void samlMetadataDirectWithTrailingSlashReturnsOk() throws Exception {
+            MockHttpServletRequestBuilder getRequest = get("/saml/metadata/example/")
+                    .accept(MediaType.ALL);
+
+            mockMvc.perform(getRequest)
+                    .andExpect(status().isOk());
+        }
+
     }
 }
