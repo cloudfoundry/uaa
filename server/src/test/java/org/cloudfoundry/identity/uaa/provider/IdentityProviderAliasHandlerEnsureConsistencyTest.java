@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.mockito.ArgumentMatchers.any;
@@ -24,7 +25,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -202,25 +202,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
             }
 
             @Test
-            void shouldIgnoreDanglingReferenceInExistingEntity_AliasIdEmpty() {
-                final IdentityProvider<?> existingIdp = new IdentityProvider<>();
-                existingIdp.setType(OIDC10);
-                existingIdp.setId(UUID.randomUUID().toString());
-                existingIdp.setIdentityZoneId(UAA);
-                existingIdp.setAliasId(null); // dangling reference: aliasId empty
-                existingIdp.setAliasZid(customZoneId);
-
-                final IdentityProvider<?> originalIdp = shallowCloneIdp(existingIdp);
-                originalIdp.setAliasId(null);
-                originalIdp.setAliasZid(null);
-
-                // should ignore dangling reference
-                assertThat(idpAliasHandler.ensureConsistencyOfAliasEntity(existingIdp, existingIdp))
-                        .isEqualTo(existingIdp);
-            }
-
-            @Test
-            void shouldIgnoreDanglingReference_AliasNotFound() {
+            void shouldThrow_IfExistingEntityHasAlias() {
                 final String idpId = UUID.randomUUID().toString();
                 final String aliasIdpId = UUID.randomUUID().toString();
 
@@ -234,47 +216,11 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest {
                 final IdentityProvider<?> originalIdp = shallowCloneIdp(existingIdp);
                 originalIdp.setAliasId(null);
                 originalIdp.setAliasZid(null);
+                originalIdp.setName("some-new-name");
 
-                // dangling reference: alias IdP does not exist
-                when(identityProviderProvisioning.retrieve(aliasIdpId, customZoneId))
-                        .thenThrow(new EmptyResultDataAccessException(1));
-
-                // should ignore dangling reference
-                assertThat(idpAliasHandler.ensureConsistencyOfAliasEntity(existingIdp, existingIdp))
-                        .isEqualTo(existingIdp);
-            }
-
-            @Test
-            void shouldBreakReferenceInAliasIdp() {
-                final String idpId = UUID.randomUUID().toString();
-                final String aliasIdpId = UUID.randomUUID().toString();
-
-                final IdentityProvider<?> existingIdp = new IdentityProvider<>();
-                existingIdp.setType(OIDC10);
-                existingIdp.setId(idpId);
-                existingIdp.setIdentityZoneId(UAA);
-                existingIdp.setAliasId(aliasIdpId);
-                existingIdp.setAliasZid(customZoneId);
-
-                final IdentityProvider<?> originalIdp = shallowCloneIdp(existingIdp);
-                originalIdp.setAliasId(null);
-                originalIdp.setAliasZid(null);
-
-                final IdentityProvider<?> aliasIdp = shallowCloneIdp(existingIdp);
-                aliasIdp.setAliasId(idpId);
-                aliasIdp.setAliasZid(UAA);
-                aliasIdp.setIdentityZoneId(customZoneId);
-                aliasIdp.setId(aliasIdpId);
-                when(identityProviderProvisioning.retrieve(aliasIdpId, customZoneId)).thenReturn(aliasIdp);
-
-                idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp);
-
-                final IdentityProvider<?> aliasIdpWithEmptyAliasProps = shallowCloneIdp(aliasIdp);
-                aliasIdpWithEmptyAliasProps.setAliasZid(null);
-                aliasIdpWithEmptyAliasProps.setAliasId(null);
-
-                // should break reference in alias IdP
-                verify(identityProviderProvisioning).update(aliasIdpWithEmptyAliasProps, customZoneId);
+                assertThatIllegalStateException().isThrownBy(() ->
+                        idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp)
+                ).withMessage("Performing update on entity with alias while alias feature is disabled.");
             }
         }
     }

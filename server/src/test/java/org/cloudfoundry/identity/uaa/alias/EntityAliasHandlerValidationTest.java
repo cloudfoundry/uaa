@@ -87,7 +87,7 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
         }
 
         @Test
-        final void shouldReturnFalse_NotBothAliasPropsEmptyInReqBody() {
+        final void shouldReturnFalse_UpdatesOfEntitiesWithExistingAliasForbidden() {
             final String initialAliasId = UUID.randomUUID().toString();
             final String initialAliasZid = CUSTOM_ZONE_ID;
 
@@ -124,16 +124,10 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
             // (8) alias ID removed, alias ZID changed
             requestBody = buildEntityWithAliasProps(null, "some-other-zid");
             assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)).isFalse();
-        }
 
-        @Test
-        final void shouldReturnTrue_BothAliasPropsEmptyInReqBody() {
-            final T existingEntity = buildEntityWithAliasProps(
-                    UUID.randomUUID().toString(),
-                    CUSTOM_ZONE_ID
-            );
-            final T requestBody = buildEntityWithAliasProps(null, null);
-            assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)).isTrue();
+            // (9) alias ID removed, alias ZID removed
+            requestBody = buildEntityWithAliasProps(null, null);
+            assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)).isFalse();
         }
     }
 
