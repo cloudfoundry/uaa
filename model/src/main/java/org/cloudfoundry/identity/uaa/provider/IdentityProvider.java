@@ -23,6 +23,8 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;
 
@@ -44,7 +46,7 @@ import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsString;
 
 @JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)
-public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
+public class IdentityProvider<T extends AbstractIdentityProviderDefinition> implements EntityWithAlias {
 
     public static final String FIELD_ID = "id";
     public static final String FIELD_ORIGIN_KEY = "originKey";
@@ -112,8 +114,14 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         return this;
     }
 
+    @Override
     public String getId() {
         return id;
+    }
+
+    @Override
+    public String getZoneId() {
+        return identityZoneId;
     }
 
     public IdentityProvider setId(String id) {
@@ -201,22 +209,24 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         return this;
     }
 
+    @Override
     public String getAliasId() {
         return aliasId;
     }
 
-    public IdentityProvider<T> setAliasId(String aliasId) {
+    @Override
+    public void setAliasId(String aliasId) {
         this.aliasId = aliasId;
-        return this;
     }
 
+    @Override
     public String getAliasZid() {
         return aliasZid;
     }
 
-    public IdentityProvider<T> setAliasZid(String aliasZid) {
+    @Override
+    public void setAliasZid(String aliasZid) {
         this.aliasZid = aliasZid;
-        return this;
     }
 
     @Override

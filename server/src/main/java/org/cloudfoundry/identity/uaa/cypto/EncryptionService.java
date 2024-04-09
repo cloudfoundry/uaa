@@ -15,6 +15,7 @@ import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.ByteArrayInputStream;
 import java.security.SecureRandom;
+import java.util.Optional;
 
 public class EncryptionService {
     private Logger logger = LoggerFactory.getLogger(EncryptionService.class);
@@ -30,7 +31,11 @@ public class EncryptionService {
     private SecureRandom random = new SecureRandom();
 
 
-    public EncryptionService(String passphrase) {
+    public EncryptionService(EncryptionKeyService passphrase) {
+        this.passphrase = Optional.ofNullable(passphrase.getActiveKey()).map(EncryptionKeyService.EncryptionKey::getPassphrase).orElse(null);
+    }
+
+    protected EncryptionService(String passphrase) {
         this.passphrase = passphrase;
     }
 

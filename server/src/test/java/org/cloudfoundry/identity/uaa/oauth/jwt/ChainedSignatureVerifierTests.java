@@ -88,31 +88,31 @@ public class ChainedSignatureVerifierTests {
     @Test
     public void test_single_key_valid() {
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Collections.singletonList(validKey)));
-        signedValidContent.verifySignature(verifier);
+        JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier);
     }
 
     @Test(expected = InvalidSignatureException.class)
     public void test_single_key_invalid() {
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Collections.singletonList(invalidKey)));
-        signedValidContent.verifySignature(verifier);
+        JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier);
     }
 
     @Test
     public void test_multi_key_first_valid() {
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(validKey, invalidKey)));
-        signedValidContent.verifySignature(verifier);
+        JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier);
     }
 
     @Test
     public void test_multi_key_last_valid() {
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(invalidKey, validKey)));
-        signedValidContent.verifySignature(verifier);
+        JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier);
     }
 
     @Test(expected = InvalidSignatureException.class)
     public void test_multi_key_invalid() {
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(invalidKey, invalidKey)));
-        signedValidContent.verifySignature(verifier);
+        JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier);
     }
 
     @Test
@@ -210,7 +210,7 @@ public class ChainedSignatureVerifierTests {
         JsonWebKey jsonWebKey = new JsonWebKey(p);
 
         verifier = new ChainedSignatureVerifier(new JsonWebKeySet<>(Arrays.asList(validKey, jsonWebKey)));
-        signedValidContent.verifySignature(verifier);
+        JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier);
         List<SignatureVerifier> delegates = new ArrayList((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
         assertNotNull(delegates);
         assertEquals(2, delegates.size());
@@ -221,7 +221,7 @@ public class ChainedSignatureVerifierTests {
         SignatureVerifier macSigner = mock(SignatureVerifier.class);
         delegates.add(macSigner);
         ReflectionTestUtils.setField(verifier, "delegates", delegates);
-        signedValidContent.verifySignature(verifier);
+        JwtHelper.decode(signedValidContent.getEncoded()).verifySignature(verifier);
         Mockito.verifyNoInteractions(macSigner);
     }
 
