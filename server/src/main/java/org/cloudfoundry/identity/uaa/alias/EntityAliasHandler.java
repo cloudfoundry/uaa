@@ -116,6 +116,10 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
      *                                    'aliasZid' does not exist
      * @throws EntityAliasFailedException if 'aliasId' and 'aliasZid' are set in the original entity, but the
      *                                    referenced alias entity could not be found
+     * @throws IllegalStateException      if {@code existingEntity} has an alias and 'aliasEntitiesEnabled' is set to
+     *                                    {@code false}
+     * @throws IllegalStateException      if a new alias is about to be created, i.e., {@code originalEntity} has a
+     *                                    non-empty 'aliasZid', and 'aliasEntitiesEnabled' is set to {@code false}
      */
     public final T ensureConsistencyOfAliasEntity(
             @NonNull final T originalEntity,

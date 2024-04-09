@@ -1173,11 +1173,10 @@ _Request and Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                          |
-|------------|--------------------------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                                       |
-| 422        | Unprocessable Entity - Invalid config                                                |
-| 422        | Unprocessable Entity - updating IdP with alias while `aliasEntitiesEnabled` is false |
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                                                         |
+| 422        | Unprocessable Entity - Invalid config or updating IdP with alias while `aliasEntitiesEnabled` is false |
 
 ## Delete
 
@@ -1203,11 +1202,10 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                          |
-|------------|--------------------------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                                       |
-| 422        | Unprocessable Entity                                                                 |
-| 422        | Unprocessable Entity - deleting IdP with alias while `aliasEntitiesEnabled` is false |
+| Error Code | Description                                                                                |
+|------------|--------------------------------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                                             |
+| 422        | Unprocessable Entity (e.g., deleting IdP with alias while `aliasEntitiesEnabled` is false) |
 
 ## Force password change for Users
 <%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/curl-request.md') %>
