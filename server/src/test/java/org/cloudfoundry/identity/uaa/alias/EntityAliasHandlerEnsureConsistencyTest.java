@@ -38,7 +38,7 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
     private abstract class NoExistingAliasBase extends Base {
         @Test
-        final void shouldIgnore_AliasZidEmptyInOriginalIdp() {
+        final void shouldIgnore_AliasZidEmptyInOriginalEntity() {
             final T originalEntity = buildEntityWithAliasProperties(null, null);
             final T existingEntity = shallowCloneEntity(originalEntity);
             changeNonAliasProperties(existingEntity);
@@ -68,20 +68,20 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         }
 
         @Test
-        final void shouldCreateNewAliasIdp_WhenAliasZoneExistsAndAliasPropertiesAreSet() {
+        final void shouldCreateNewAliasEntity_WhenAliasZoneExistsAndAliasPropertiesAreSet() {
             final T existingEntity = buildEntityWithAliasProperties(null, null);
             final T originalEntity = shallowCloneEntity(existingEntity);
             originalEntity.setAliasZid(customZoneId);
 
-            final String aliasEntityId = UUID.randomUUID().toString();
-            mockCreateEntity(aliasEntityId, customZoneId);
+            final String aliasId = UUID.randomUUID().toString();
+            mockCreateEntity(aliasId, customZoneId);
             mockUpdateEntity(UAA);
 
             final T result = aliasHandler.ensureConsistencyOfAliasEntity(
                     originalEntity,
                     existingEntity
             );
-            assertThat(result.getAliasId()).isEqualTo(aliasEntityId);
+            assertThat(result.getAliasId()).isEqualTo(aliasId);
             assertThat(result.getAliasZid()).isEqualTo(customZoneId);
         }
     }
@@ -112,13 +112,13 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
         @Test
         final void shouldThrow_WhenReferencedAliasEntityAndAliasZoneDoNotExist() {
-            final String aliasIdpId = UUID.randomUUID().toString();
+            final String aliasId = UUID.randomUUID().toString();
 
-            final T existingEntity = buildEntityWithAliasProperties(aliasIdpId, customZoneId);
+            final T existingEntity = buildEntityWithAliasProperties(aliasId, customZoneId);
             final T originalEntity = shallowCloneEntity(existingEntity);
             changeNonAliasProperties(originalEntity);
 
-            arrangeEntityDoesNotExist(aliasIdpId, customZoneId);
+            arrangeEntityDoesNotExist(aliasId, customZoneId);
             arrangeZoneDoesNotExist(customZoneId);
 
             assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
