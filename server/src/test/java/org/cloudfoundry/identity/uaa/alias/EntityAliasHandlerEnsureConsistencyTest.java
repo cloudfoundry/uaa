@@ -16,12 +16,31 @@ import org.springframework.lang.Nullable;
 
 public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWithAlias> {
     protected abstract EntityAliasHandler<T> buildAliasHandler(final boolean aliasEntitiesEnabled);
+
     protected abstract T shallowCloneEntity(final T entity);
+
     protected abstract T buildEntityWithAliasProperties(@Nullable final String aliasId, @Nullable final String aliasZid);
+
+    /**
+     * Change one or more properties (but neither 'aliasId' nor 'aliasZid') of the given entity.
+     */
     protected abstract void changeNonAliasProperties(final T entity);
+
     protected abstract void arrangeZoneDoesNotExist(final String zoneId);
+
+    /**
+     * Mock updating entities by always returning the entity passed as an argument to the update method.
+     */
     protected abstract void mockUpdateEntity(final String zoneId);
+
+    /**
+     * Mock creating entities by taking the entity passed as an argument to the create method and setting the given new
+     * ID.
+     */
     protected abstract void mockCreateEntity(final String newId, final String zoneId);
+
+    protected abstract void arrangeEntityExists(final String id, final String zoneId, final T entity);
+
     protected abstract void arrangeEntityDoesNotExist(final String id, final String zoneId);
 
     protected final String customZoneId = UUID.randomUUID().toString();
