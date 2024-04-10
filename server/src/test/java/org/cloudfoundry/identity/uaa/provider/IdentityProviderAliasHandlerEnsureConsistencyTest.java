@@ -47,14 +47,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
             @Test
             void shouldPropagateChangesToExistingAlias() {
                 final String aliasIdpId = UUID.randomUUID().toString();
-                final String originalIdpId = UUID.randomUUID().toString();
-
-                final IdentityProvider<?> existingIdp = new IdentityProvider<>();
-                existingIdp.setType(OIDC10);
-                existingIdp.setId(originalIdpId);
-                existingIdp.setIdentityZoneId(UAA);
-                existingIdp.setAliasId(aliasIdpId);
-                existingIdp.setAliasZid(customZoneId);
+                final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(aliasIdpId, customZoneId);
 
                 final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
                 final String newName = "some-new-name";
@@ -63,6 +56,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 final IdentityProvider<?> aliasIdp = shallowCloneEntity(existingIdp);
                 aliasIdp.setId(aliasIdpId);
                 aliasIdp.setIdentityZoneId(customZoneId);
+                final String originalIdpId = existingIdp.getId();
                 aliasIdp.setAliasId(originalIdpId);
                 aliasIdp.setAliasZid(UAA);
                 when(identityProviderProvisioning.retrieve(aliasIdpId, customZoneId)).thenReturn(aliasIdp);
@@ -87,15 +81,8 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
             @Test
             void shouldFixDanglingReferenceByCreatingNewAliasIdp() {
                 final String initialAliasIdpId = UUID.randomUUID().toString();
-                final String originalIdpId = UUID.randomUUID().toString();
-
-                final IdentityProvider existingIdp = new IdentityProvider<>();
-                existingIdp.setType(OIDC10);
-                existingIdp.setConfig(new OIDCIdentityProviderDefinition());
-                existingIdp.setId(originalIdpId);
-                existingIdp.setIdentityZoneId(UAA);
-                existingIdp.setAliasId(initialAliasIdpId);
-                existingIdp.setAliasZid(customZoneId);
+                final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(initialAliasIdpId, customZoneId);
+                final String originalIdpId = existingIdp.getId();
 
                 final IdentityProvider<?> requestBody = shallowCloneEntity(existingIdp);
                 final String newName = "some-new-name";
