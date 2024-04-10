@@ -9,6 +9,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
@@ -205,5 +206,10 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     @Override
     protected void arrangeEntityDoesNotExist(final String id, final String zoneId) {
         when(identityProviderProvisioning.retrieve(id, zoneId)).thenReturn(null);
+    }
+
+    @Override
+    protected boolean entitiesAreEqual(final IdentityProvider<?> entity1, final IdentityProvider<?> entity2) {
+        return Objects.equals(entity1, entity2);
     }
 }

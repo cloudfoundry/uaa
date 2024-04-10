@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
@@ -43,6 +44,12 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
     protected abstract void arrangeEntityDoesNotExist(final String id, final String zoneId);
 
+    /**
+     * Check whether the given two entities are equal. This method is required since the {@link ScimUser} class does not
+     * implement an {@code equals} method that is precise enough.
+     */
+    protected abstract boolean entitiesAreEqual(final T entity1, final T entity2);
+
     protected final String customZoneId = UUID.randomUUID().toString();
 
     private abstract class Base {
@@ -65,7 +72,7 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             changeNonAliasProperties(existingEntity);
 
             final T result = aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity);
-            assertThat(result).isEqualTo(originalEntity);
+            assertThat(entitiesAreEqual(result, originalEntity)).isTrue();
         }
     }
 
