@@ -5,11 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentMatcher;
 import org.springframework.lang.Nullable;
 
 public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWithAlias> {
@@ -157,6 +159,26 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             assertThatIllegalStateException().isThrownBy(() ->
                     aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
             ).withMessage("Performing update on entity with alias while alias feature is disabled.");
+        }
+    }
+
+    protected static class EntityWithAliasMatcher<T extends EntityWithAlias> implements ArgumentMatcher<T> {
+        private final String zoneId;
+        private final String id;
+        private final String aliasId;
+        private final String aliasZid;
+
+        public EntityWithAliasMatcher(final String zoneId, final String id, final String aliasId, final String aliasZid) {
+            this.zoneId = zoneId;
+            this.id = id;
+            this.aliasId = aliasId;
+            this.aliasZid = aliasZid;
+        }
+
+        @Override
+        public boolean matches(final T argument) {
+            return Objects.equals(id, argument.getId()) && Objects.equals(zoneId, argument.getZoneId())
+                    && Objects.equals(aliasId, argument.getAliasId()) && Objects.equals(aliasZid, argument.getAliasZid());
         }
     }
 }
