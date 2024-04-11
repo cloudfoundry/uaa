@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.alias;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -66,6 +67,19 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         @Override
         protected final boolean isAliasFeatureEnabled() {
             return true;
+        }
+
+        @Test
+        final void shouldThrow_WhenAliasZidSetButZoneDoesNotExist() {
+            final T existingEntity = buildEntityWithAliasProperties(null, null);
+            final T originalEntity = shallowCloneEntity(existingEntity);
+            originalEntity.setAliasZid(customZoneId);
+
+            arrangeZoneDoesNotExist(customZoneId);
+
+            assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
+                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
+            );
         }
     }
 

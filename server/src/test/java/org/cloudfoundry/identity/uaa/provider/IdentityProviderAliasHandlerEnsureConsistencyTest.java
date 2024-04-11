@@ -176,20 +176,6 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
         @Nested
         class AliasFeatureEnabled extends NoExistingAlias_AliasFeatureEnabled {
             @Test
-            void shouldThrow_WhenAliasZoneDoesNotExist() {
-                final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
-
-                final IdentityProvider<?> requestBody = shallowCloneEntity(existingIdp);
-                requestBody.setAliasZid(customZoneId);
-
-                arrangeZoneDoesNotExist(customZoneId);
-
-                assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
-                        aliasHandler.ensureConsistencyOfAliasEntity(requestBody, existingIdp)
-                );
-            }
-
-            @Test
             void shouldCreateNewAliasIdp_WhenAliasZoneExistsAndAliasPropertiesAreSet() {
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
 
