@@ -134,30 +134,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     class NoExistingAlias {
         @Nested
         class AliasFeatureEnabled extends NoExistingAlias_AliasFeatureEnabled {
-            @Test
-            void shouldCreateNewAliasIdp_WhenAliasZoneExistsAndAliasPropertiesAreSet() {
-                final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
-
-                final IdentityProvider<?> requestBody = shallowCloneEntity(existingIdp);
-                requestBody.setAliasZid(customZoneId);
-
-                final String aliasIdpId = UUID.randomUUID().toString();
-                when(identityProviderProvisioning.create(any(), eq(customZoneId))).then(invocationOnMock -> {
-                    final IdentityProvider<?> idp = invocationOnMock.getArgument(0);
-                    idp.setId(aliasIdpId);
-                    return idp;
-                });
-
-                when(identityProviderProvisioning.update(any(), eq(UAA)))
-                        .then(invocationOnMock -> invocationOnMock.getArgument(0));
-
-                final IdentityProvider<?> result = aliasHandler.ensureConsistencyOfAliasEntity(
-                        requestBody,
-                        existingIdp
-                );
-                assertThat(result.getAliasId()).isEqualTo(aliasIdpId);
-                assertThat(result.getAliasZid()).isEqualTo(customZoneId);
-            }
+            // all tests defined in superclass
         }
 
         @Nested
@@ -204,6 +181,21 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     protected void arrangeZoneDoesNotExist(final String zoneId) {
         when(identityZoneProvisioning.retrieve(zoneId))
                 .thenThrow(new ZoneDoesNotExistsException("zone does not exist"));
+    }
+
+    @Override
+    protected void mockUpdateEntity(final String zoneId) {
+        when(identityProviderProvisioning.update(any(), eq(zoneId)))
+                .then(invocationOnMock -> invocationOnMock.getArgument(0));
+    }
+
+    @Override
+    protected void mockCreateEntity(final String newId, final String zoneId) {
+        when(identityProviderProvisioning.create(any(), eq(customZoneId))).then(invocationOnMock -> {
+            final IdentityProvider<?> idp = invocationOnMock.getArgument(0);
+            idp.setId(newId);
+            return idp;
+        });
     }
 
     @Override

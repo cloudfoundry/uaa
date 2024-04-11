@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.alias;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -27,6 +28,17 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
     protected abstract void changeNonAliasProperties(final T entity);
 
     protected abstract void arrangeZoneDoesNotExist(final String zoneId);
+
+    /**
+     * Mock updating entities by always returning the entity passed as an argument to the update method.
+     */
+    protected abstract void mockUpdateEntity(final String zoneId);
+
+    /**
+     * Mock creating entities by taking the entity passed as an argument to the create method and setting the given new
+     * ID.
+     */
+    protected abstract void mockCreateEntity(final String newId, final String zoneId);
 
     protected abstract void arrangeEntityExists(final String id, final String zoneId, final T entity);
 
@@ -81,6 +93,24 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
             assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
                     aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
             );
+        }
+
+        @Test
+        final void shouldCreateNewAliasEntity_WhenAliasZoneExistsAndAliasPropertiesAreSet() {
+            final T existingEntity = buildEntityWithAliasProperties(null, null);
+            final T originalEntity = shallowCloneEntity(existingEntity);
+            originalEntity.setAliasZid(customZoneId);
+
+            final String aliasId = UUID.randomUUID().toString();
+            mockCreateEntity(aliasId, customZoneId);
+            mockUpdateEntity(UAA);
+
+            final T result = aliasHandler.ensureConsistencyOfAliasEntity(
+                    originalEntity,
+                    existingEntity
+            );
+            assertThat(result.getAliasId()).isEqualTo(aliasId);
+            assertThat(result.getAliasZid()).isEqualTo(customZoneId);
         }
     }
 
