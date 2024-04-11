@@ -95,6 +95,22 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         protected final boolean isAliasFeatureEnabled() {
             return true;
         }
+
+        @Test
+        final void shouldThrow_WhenReferencedAliasEntityAndAliasZoneDoNotExist() {
+            final String aliasId = UUID.randomUUID().toString();
+
+            final T existingEntity = buildEntityWithAliasProperties(aliasId, customZoneId);
+            final T originalEntity = shallowCloneEntity(existingEntity);
+            changeNonAliasProperties(originalEntity);
+
+            arrangeEntityDoesNotExist(aliasId, customZoneId);
+            arrangeZoneDoesNotExist(customZoneId);
+
+            assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
+                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
+            );
+        }
     }
 
     protected abstract class ExistingAlias_AliasFeatureDisabled extends Base {

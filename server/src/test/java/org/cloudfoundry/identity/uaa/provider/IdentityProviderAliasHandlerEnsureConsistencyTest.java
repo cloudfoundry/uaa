@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.mockito.ArgumentMatchers.any;
@@ -14,7 +12,6 @@ import static org.mockito.Mockito.when;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerEnsureConsistencyTest;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -78,27 +75,6 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 assertThat(capturedAliasIdp.getId()).isEqualTo(aliasIdpId);
                 assertThat(capturedAliasIdp.getIdentityZoneId()).isEqualTo(customZoneId);
                 assertThat(capturedAliasIdp.getName()).isEqualTo(newName);
-            }
-
-            @Test
-            void shouldThrow_WhenReferencedAliasIdpAndAliasZoneDoesNotExist() {
-                final String aliasIdpId = UUID.randomUUID().toString();
-
-                final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(aliasIdpId, customZoneId);
-
-                final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
-                final String newName = "some-new-name";
-                originalIdp.setName(newName);
-
-                // dangling reference -> referenced alias IdP not present
-                arrangeEntityDoesNotExist(aliasIdpId, customZoneId);
-
-                // alias zone does not exist
-                arrangeZoneDoesNotExist(customZoneId);
-
-                assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
-                        aliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp)
-                );
             }
 
             @Test
