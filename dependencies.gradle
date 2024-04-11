@@ -131,7 +131,6 @@ libraries.xmlSecurity = "org.apache.santuario:xmlsec:4.0.2"
 libraries.orgJson = "org.json:json:20240303"
 libraries.owaspEsapi = "org.owasp.esapi:esapi:2.5.3.1"
 libraries.jodaTime = "joda-time:joda-time:2.12.7"
-libraries.commonsHttpClient = "commons-httpclient:commons-httpclient:3.1"
 libraries.apacheHttpClient = "org.apache.httpcomponents:httpclient:4.5.14"
 
 // gradle plugins
