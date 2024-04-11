@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -22,7 +23,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.sql.Timestamp;
 import java.util.Collections;
@@ -76,7 +76,7 @@ class AutologinAuthenticationManagerTest {
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         when(codeStore.retrieveCode("the_secret_code", IdentityZoneHolder.get().getId())).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), ExpiringCodeType.AUTOLOGIN.name()));
 
-        when(clientDetailsService.loadClientByClientId(eq(clientId), anyString())).thenReturn(new BaseClientDetails("test-client-details","","","",""));
+        when(clientDetailsService.loadClientByClientId(eq(clientId), anyString())).thenReturn(new UaaClientDetails("test-client-details","","","",""));
         String zoneId = IdentityZoneHolder.get().getId();
         when(userDatabase.retrieveUserById(eq("test-user-id")))
             .thenReturn(

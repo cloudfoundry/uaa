@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.approval;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
@@ -22,8 +24,6 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -90,7 +90,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         // Find the auto approved scopes for these clients
         Map<String, Set<String>> clientAutoApprovedScopes = new HashMap<String, Set<String>>();
         for (String clientId : clientIds) {
-            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
             Set<String> autoApproved = client.getAutoApproveScopes();
             Set<String> autoApprovedScopes = new HashSet<String>();

@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -25,7 +26,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -256,7 +256,7 @@ class InvitationsEndpointMockMvcTests {
                     .andReturn();
 
             InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
-            BaseClientDetails defaultClientDetails = new BaseClientDetails();
+            UaaClientDetails defaultClientDetails = new UaaClientDetails();
             defaultClientDetails.setClientId("admin");
             assertResponseAndCodeCorrect(expiringCodeStore, new String[]{email}, redirectUrl, zoneSeeder.getIdentityZone(), invitationsResponse, defaultClientDetails);
 
@@ -267,7 +267,7 @@ class InvitationsEndpointMockMvcTests {
             String zonedClientId = "zonedClientId";
             String zonedClientSecret = "zonedClientSecret";
 
-            BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(
+            UaaClientDetails zonedClientDetails = (UaaClientDetails) MockMvcUtils.createClient(
                     mockMvc,
                     MockMvcUtils.getZoneAdminToken(
                             mockMvc,
@@ -313,7 +313,7 @@ class InvitationsEndpointMockMvcTests {
             String scimInviteClientId = generator.generate();
             String scimInviteClientSecret = generator.generate();
 
-            BaseClientDetails client = MockMvcUtils.getClientDetailsModification(
+            UaaClientDetails client = MockMvcUtils.getClientDetailsModification(
                     scimInviteClientId,
                     scimInviteClientSecret,
                     Collections.singleton("oauth"),

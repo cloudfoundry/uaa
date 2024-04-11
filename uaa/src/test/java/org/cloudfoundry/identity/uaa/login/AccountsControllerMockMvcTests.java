@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -34,7 +35,6 @@ import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -175,7 +175,7 @@ class AccountsControllerMockMvcTests {
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
 
-        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getUaaBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
@@ -190,7 +190,7 @@ class AccountsControllerMockMvcTests {
         IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
 
-        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getUaaBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(post("/create_account.do")
                 .with(cookieCsrf())
@@ -403,7 +403,7 @@ class AccountsControllerMockMvcTests {
         identityZone.setName(subdomain);
         identityZone.setId(new RandomValueStringGenerator().generate());
 
-        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, getBaseClientDetails(), IdentityZoneHolder.getCurrentZoneId());
+        MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, getUaaBaseClientDetails(), IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(post("/create_account.do")
                 .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
@@ -439,8 +439,8 @@ class AccountsControllerMockMvcTests {
         assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
-    private BaseClientDetails getBaseClientDetails() {
-        BaseClientDetails clientDetails = new BaseClientDetails();
+    private UaaClientDetails getUaaBaseClientDetails() {
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("myzoneclient");
         clientDetails.setClientSecret("myzoneclientsecret");
         clientDetails.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
@@ -557,8 +557,8 @@ class AccountsControllerMockMvcTests {
                 .andExpect(content().string(containsString("Please agree before continuing.")));
     }
 
-    private BaseClientDetails createTestClient() throws Exception {
-        BaseClientDetails clientDetails = new BaseClientDetails();
+    private UaaClientDetails createTestClient() throws Exception {
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("test-client-" + RandomStringUtils.randomAlphanumeric(200));
         clientDetails.setClientSecret("test-client-secret");
         clientDetails.setAuthorizedGrantTypes(Collections.singletonList("client_credentials"));
@@ -576,7 +576,7 @@ class AccountsControllerMockMvcTests {
         JdbcExpiringCodeStore store = webApplicationContext.getBean(JdbcExpiringCodeStore.class);
         store.setGenerator(generator);
 
-        BaseClientDetails clientDetails = createTestClient();
+        UaaClientDetails clientDetails = createTestClient();
 
 
         mockMvc.perform(post("/create_account.do")

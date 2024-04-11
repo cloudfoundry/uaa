@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
 import org.apache.commons.lang3.ArrayUtils;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -14,7 +15,6 @@ import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.*;
@@ -123,7 +123,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
 
     @Test
     void listClients() throws Exception {
-        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(get("/oauth/clients")
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -168,7 +168,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
 
     @Test
     void retrieveClient() throws Exception {
-        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(get("/oauth/clients/{client_id}", createdClientDetails.getClientId())
                 .header("Authorization", "Bearer " + clientAdminToken)
@@ -196,8 +196,8 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
 
     @Test
     void updateClient() throws Exception {
-        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
-        BaseClientDetails updatedClientDetails = new BaseClientDetails();
+        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
+        UaaClientDetails updatedClientDetails = new UaaClientDetails();
         updatedClientDetails.setClientId(createdClientDetails.getClientId());
         updatedClientDetails.setScope(Arrays.asList("clients.new", "clients.autoapprove"));
         updatedClientDetails.setAutoApproveScopes(Collections.singletonList("clients.autoapprove"));
@@ -236,7 +236,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
 
     @Test
     void changeClientSecret() throws Exception {
-        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(put("/oauth/clients/{client_id}/secret", createdClientDetails.getClientId())
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -264,7 +264,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
 
     @Test
     void changeClientJwt() throws Exception {
-        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(put("/oauth/clients/{client_id}/clientjwt", createdClientDetails.getClientId())
                 .header("Authorization", "Bearer " + clientAdminToken)
@@ -292,7 +292,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
 
     @Test
     void deleteClient() throws Exception {
-        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+        ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(delete("/oauth/clients/{client_id}", createdClientDetails.getClientId())
             .header("Authorization", "Bearer " + clientAdminToken)
@@ -320,8 +320,8 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         // CREATE
 
         List<String> scopes = Arrays.asList("clients.read", "clients.write");
-        BaseClientDetails createdClientDetails1 = createBasicClientWithAdditionalInformation(scopes);
-        BaseClientDetails createdClientDetails2 = createBasicClientWithAdditionalInformation(scopes);
+        UaaClientDetails createdClientDetails1 = createBasicClientWithAdditionalInformation(scopes);
+        UaaClientDetails createdClientDetails2 = createBasicClientWithAdditionalInformation(scopes);
 
         ResultActions createResultActions = mockMvc.perform(post("/oauth/clients/tx")
             .contentType(APPLICATION_JSON)
@@ -435,7 +435,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
             entry("client_id", createdClientDetails2.getClientId())
         );
 
-        BaseClientDetails createdClientDetails3 = createBasicClientWithAdditionalInformation(scopes);
+        UaaClientDetails createdClientDetails3 = createBasicClientWithAdditionalInformation(scopes);
         ClientDetailsModification modify3 = new ClientDetailsModification(createdClientDetails3);
         modify3.setAction(ClientDetailsModification.ADD);
 
@@ -480,8 +480,8 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
             );
     }
 
-    private BaseClientDetails createBasicClientWithAdditionalInformation(List<String> scopes) {
-        BaseClientDetails clientDetails = createBaseClient(null, SECRET, null, scopes, scopes);
+    private UaaClientDetails createBasicClientWithAdditionalInformation(List<String> scopes) {
+        UaaClientDetails clientDetails = createBaseClient(null, SECRET, null, scopes, scopes);
         clientDetails.setAdditionalInformation(additionalInfo());
         return clientDetails;
     }

@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.test.UnlessProfileActive;
 import org.junit.After;
@@ -27,7 +28,6 @@ import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
@@ -96,7 +96,7 @@ public class ResetPasswordIT {
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
         testClient.createScimClient(adminAccessToken, scimClientId);
-        BaseClientDetails authCodeClient = new BaseClientDetails(authCodeClientId, "oauth", "uaa.user", "authorization_code,refresh_token", null, "http://example.redirect.com");
+        UaaClientDetails authCodeClient = new UaaClientDetails(authCodeClientId, "oauth", "uaa.user", "authorization_code,refresh_token", null, "http://example.redirect.com");
         authCodeClient.setClientSecret("scimsecret");
         authCodeClient.setAutoApproveScopes(Collections.singletonList("uaa.user"));
         IntegrationTestUtils.createClient(adminAccessToken, baseUrl, authCodeClient);

@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.joda.time.DateTime;
 import org.junit.jupiter.api.*;
@@ -35,7 +36,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.TokenRequest;
@@ -156,7 +156,9 @@ class UaaTokenServicesTests {
             @AfterEach
             void removeAppender() {
                 LoggerContext context = (LoggerContext) LogManager.getContext(false);
-                context.getRootLogger().removeAppender(appender);
+                if (appender != null) {
+                    context.getRootLogger().removeAppender(appender);
+                }
             }
 
             @BeforeEach

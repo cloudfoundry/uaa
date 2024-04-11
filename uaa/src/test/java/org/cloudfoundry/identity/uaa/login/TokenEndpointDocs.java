@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.login;
 import java.net.URI;
 import java.util.Collections;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -15,7 +16,6 @@ import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
@@ -806,7 +806,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 "",
                 null
         );
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
 
 
         String userInfoToken = getUserOAuthAccessToken(
@@ -852,8 +852,8 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 "",
                 null
         );
-        BaseClientDetails client = createClient(adminToken, "openid", "password", "");
-        BaseClientDetails client2 = createClient(adminToken, "openid", "password", "");
+        UaaClientDetails client = createClient(adminToken, "openid", "password", "");
+        UaaClientDetails client2 = createClient(adminToken, "openid", "password", "");
 
 
         String userInfoTokenToRevoke = getUserOAuthAccessToken(
@@ -922,7 +922,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 null,
                 true
         );
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
         String readClientsToken =
                 getClientCredentialsOAuthAccessToken(
                         mockMvc,
@@ -962,7 +962,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 true
         );
 
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
 
         String userInfoToken = getUserOAuthAccessToken(
                 mockMvc,
@@ -1010,7 +1010,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 true
         );
 
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
         String clientToken = getClientCredentialsOAuthAccessToken(
                 mockMvc,
                 client.getClientId(),
@@ -1050,7 +1050,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 true
         );
 
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
         String clientToken = getClientCredentialsOAuthAccessToken(
                 mockMvc,
                 client.getClientId(),
@@ -1090,15 +1090,15 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters, listTokenResponseFields));
     }
 
-    private BaseClientDetails createClient(String token, String scopes, String grantTypes, String authorities) throws Exception {
-        BaseClientDetails client = new BaseClientDetails(
+    private UaaClientDetails createClient(String token, String scopes, String grantTypes, String authorities) throws Exception {
+        UaaClientDetails client = new UaaClientDetails(
                 new RandomValueStringGenerator().generate(),
                 "",
                 scopes,
                 grantTypes,
                 authorities, "http://redirect.url");
         client.setClientSecret(SECRET);
-        BaseClientDetails clientDetails = MockMvcUtils.createClient(mockMvc, token, client);
+        UaaClientDetails clientDetails = MockMvcUtils.createClient(mockMvc, token, client);
         clientDetails.setClientSecret(SECRET);
         return clientDetails;
     }

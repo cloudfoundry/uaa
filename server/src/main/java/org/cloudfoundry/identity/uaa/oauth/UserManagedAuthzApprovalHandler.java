@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -13,7 +14,6 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.*;
 
@@ -59,7 +59,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         // Factor in auto approved scopes
         Set<String> autoApprovedScopes = new HashSet<>();
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.retrieve(authorizationRequest.getClientId(), identityZoneManager.getCurrentIdentityZoneId());
+        UaaClientDetails client = (UaaClientDetails) clientDetailsService.retrieve(authorizationRequest.getClientId(), identityZoneManager.getCurrentIdentityZoneId());
         if (client != null && requestedScopes != null) {
             autoApprovedScopes.addAll(client.getAutoApproveScopes());
             autoApprovedScopes = UaaTokenUtils.retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);

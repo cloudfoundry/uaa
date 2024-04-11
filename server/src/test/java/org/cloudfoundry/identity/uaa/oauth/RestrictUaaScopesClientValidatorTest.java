@@ -17,10 +17,10 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.RestrictUaaScopesClientValidator;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
 import org.junit.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,7 +43,7 @@ public class RestrictUaaScopesClientValidatorTest {
     public void testValidate() {
         List<ClientDetailsValidator.Mode> restrictModes = Arrays.asList(CREATE, MODIFY);
         List<ClientDetailsValidator.Mode> nonRestrictModes = Collections.singletonList(DELETE);
-        BaseClientDetails client = new BaseClientDetails("clientId","","","client_credentials,password","");
+        UaaClientDetails client = new UaaClientDetails("clientId","","","client_credentials,password","");
 
         for (String s : badScopes) {
             client.setScope(Collections.singletonList(s));
@@ -67,7 +67,7 @@ public class RestrictUaaScopesClientValidatorTest {
 
     }
 
-    protected void validateClient(List<ClientDetailsValidator.Mode> restrictModes, List<ClientDetailsValidator.Mode> nonRestrictModes, BaseClientDetails client, String s) {
+    protected void validateClient(List<ClientDetailsValidator.Mode> restrictModes, List<ClientDetailsValidator.Mode> nonRestrictModes, UaaClientDetails client, String s) {
         for (ClientDetailsValidator.Mode m : restrictModes) {
             try {
                 validator.validate(client, m);

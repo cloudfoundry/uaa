@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 
@@ -34,12 +34,12 @@ import static org.mockito.Mockito.when;
 class AccessControllerTests {
 
     private AccessController controller;
-    private BaseClientDetails client;
+    private UaaClientDetails client;
     private ScimGroupProvisioning mockScimGroupProvisioning;
 
     @BeforeEach
     void setUp() {
-        client = new BaseClientDetails();
+        client = new UaaClientDetails();
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
 

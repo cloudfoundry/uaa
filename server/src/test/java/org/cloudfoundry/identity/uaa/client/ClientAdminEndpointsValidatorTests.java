@@ -27,7 +27,6 @@ import org.junit.Test;
 import org.junit.rules.ExpectedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -50,8 +49,8 @@ import static org.mockito.Mockito.when;
 
 public class ClientAdminEndpointsValidatorTests {
 
-    BaseClientDetails client;
-    BaseClientDetails caller;
+    UaaClientDetails client;
+    UaaClientDetails caller;
     ClientAdminEndpointsValidator validator;
     ClientSecretValidator secretValidator;
 
@@ -73,9 +72,9 @@ public class ClientAdminEndpointsValidatorTests {
 
     @Before
     public void createClient() {
-        client = new BaseClientDetails("newclient","","","client_credentials","");
+        client = new UaaClientDetails("newclient","","","client_credentials","");
         client.setClientSecret("secret");
-        caller = new BaseClientDetails("caller","","","client_credentials","clients.write");
+        caller = new UaaClientDetails("caller","","","client_credentials","clients.write");
         SecurityContextAccessor mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
         validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor);
         secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6));

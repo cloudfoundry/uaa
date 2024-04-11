@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.*;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.event.AbstractClientAdminEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
@@ -52,7 +53,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Utf8;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -182,7 +183,7 @@ class AuditCheckMockMvcTests {
         String scopes = "scope1,scope2,scope3";
         String grantTypes = "client_credentials,password";
         String authorities = "uaa.resource,uaa.admin";
-        BaseClientDetails client = new BaseClientDetails(clientId, resource, scopes, grantTypes, authorities);
+        UaaClientDetails client = new UaaClientDetails(clientId, resource, scopes, grantTypes, authorities);
         client.setClientSecret(clientSecret);
 
         mockMvc.perform(
@@ -726,7 +727,7 @@ class AuditCheckMockMvcTests {
 
     @Test
     void testUserApprovalAdded() throws Exception {
-        clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "password", "oauth.login"));
+        clientRegistrationService.updateClientDetails(new UaaClientDetails("login", "oauth", "oauth.approvals", "password", "oauth.login"));
 
         String marissaToken = testClient.getUserOAuthAccessToken("login", "loginsecret", testUser.getUserName(), testPassword, "oauth.approvals");
         Approval[] approvals = {new Approval()
@@ -909,7 +910,7 @@ class AuditCheckMockMvcTests {
 
     @Test
     void generateUserCreatedEvent_DuringLoginServerAuthorize() throws Exception {
-        clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "authorization_code,password,client_credentials", "oauth.login", "http://localhost:8080/uaa"));
+        clientRegistrationService.updateClientDetails(new UaaClientDetails("login", "oauth", "oauth.approvals", "authorization_code,password,client_credentials", "oauth.login", "http://localhost:8080/uaa"));
         String username = "jacob" + new RandomValueStringGenerator().generate();
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(
                 "login",

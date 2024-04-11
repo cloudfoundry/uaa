@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdToken;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreationException;
@@ -68,7 +69,6 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.LinkedMultiValueMap;
@@ -246,7 +246,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean isRevocable = isRevocable(claims, isOpaque);
 
         UaaUser user = new UaaUser(userDatabase.retrieveUserPrototypeById(claims.getUserId()));
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
+        UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(claims.getCid());
 
         long refreshTokenExpireMillis = claims.getExp().longValue() * MILLIS_PER_SECOND;
         if (new Date(refreshTokenExpireMillis).before(timeService.getCurrentDate())) {
@@ -466,7 +466,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 additionalRootClaims);
         String token = JwtHelper.encode(jwtAccessToken, getActiveKeyInfo()).getEncoded();
         compositeToken.setValue(token);
-        BaseClientDetails clientDetails = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
+        UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
         if (idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopes, grantType)) {
             IdToken idTokenContent;
@@ -590,7 +590,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> authNContextClassRef = null;
 
         OAuth2Request oAuth2Request = authentication.getOAuth2Request();
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(oAuth2Request.getClientId(), IdentityZoneHolder.get().getId());
+        UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(oAuth2Request.getClientId(), IdentityZoneHolder.get().getId());
         Collection<GrantedAuthority> clientScopes = null;
 
         // Clients should really by different kinds of users
@@ -902,7 +902,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         String clientId = (String)claims.get(CID);
         String userId = (String)claims.get(USER_ID);
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         // Only check user access tokens
         if (null != userId) {
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);

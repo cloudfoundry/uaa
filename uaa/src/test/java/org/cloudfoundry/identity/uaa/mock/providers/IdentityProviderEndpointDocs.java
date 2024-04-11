@@ -67,6 +67,7 @@ import java.util.Map;
 
 import org.apache.commons.collections4.map.HashedMap;
 import org.apache.commons.lang3.ArrayUtils;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -105,7 +106,7 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 class IdentityProviderEndpointDocs extends EndpointDocs {
@@ -855,7 +856,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         Map<String, Object> attributeMappings = new HashedMap(identityProvider.getConfig().getAttributeMappings());
         attributeMappings.put(EMAIL_VERIFIED_ATTRIBUTE_NAME, "emailVerified");
         identityProvider.getConfig().setAttributeMappings(attributeMappings);
-        BaseClientDetails admin = new BaseClientDetails(
+        UaaClientDetails admin = new UaaClientDetails(
                 "admin",
                 null,
                 "",
