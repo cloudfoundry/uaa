@@ -155,6 +155,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         // update the existing alias entity
         if (existingAliasEntity != null) {
             setId(aliasEntity, existingAliasEntity.getId());
+            setPropertiesFromExistingAliasEntity(aliasEntity, existingAliasEntity);
             updateEntity(aliasEntity, originalEntity.getAliasZid());
             return originalEntity;
         }
@@ -177,6 +178,12 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         originalEntity.setAliasId(persistedAliasEntity.getId());
         return updateEntity(originalEntity, originalEntity.getZoneId());
     }
+
+    /**
+     * Set properties from the existing alias entity in the new alias entity before it is updated. Can be used if
+     * certain properties should differ between the original and the alias entity.
+     */
+    protected abstract void setPropertiesFromExistingAliasEntity(final T newAliasEntity, final T existingAliasEntity);
 
     private T buildAliasEntity(final T originalEntity) {
         final T aliasEntity = cloneEntity(originalEntity);

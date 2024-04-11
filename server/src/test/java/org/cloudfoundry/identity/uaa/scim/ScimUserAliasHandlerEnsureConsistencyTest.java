@@ -9,7 +9,9 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.sql.Timestamp;
 import java.util.Collections;
+import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -100,7 +102,10 @@ class ScimUserAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsure
                 && Objects.equals(entity1.getAliasZid(), entity2.getAliasZid())
                 && Objects.equals(entity1.getZoneId(), entity2.getZoneId())
                 && Objects.equals(entity1.getPassword(), entity2.getPassword())
-                && Objects.equals(entity1.getSalt(), entity2.getSalt());
+                && Objects.equals(entity1.getSalt(), entity2.getSalt())
+                && Objects.equals(entity1.getPreviousLogonTime(), entity2.getPreviousLogonTime())
+                && Objects.equals(entity1.getLastLogonTime(), entity2.getLastLogonTime())
+                && Objects.equals(entity1.getPasswordLastModified(), entity2.getPasswordLastModified());
     }
 
     @Override
@@ -148,6 +153,12 @@ class ScimUserAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsure
                 final String aliasId = UUID.randomUUID().toString();
                 final ScimUser existingUser = buildEntityWithAliasProperties(aliasId, customZoneId);
 
+                // set timestamps of original user
+                final Timestamp timestampOriginalUser = new Timestamp(new Date().getTime());
+                existingUser.setPasswordLastModified(timestampOriginalUser);
+                existingUser.setPreviousLogonTime(timestampOriginalUser.getTime());
+                existingUser.setLastLogonTime(timestampOriginalUser.getTime());
+
                 final ScimUser originalUser = shallowCloneEntity(existingUser);
                 final String newGivenName = "some-new-name";
                 originalUser.setName(new ScimUser.Name(newGivenName, originalUser.getFamilyName()));
@@ -158,6 +169,13 @@ class ScimUserAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsure
                 aliasUser.setZoneId(existingUser.getAliasZid());
                 aliasUser.setAliasId(existingUser.getId());
                 aliasUser.setAliasZid(existingUser.getZoneId());
+
+                // set timestamps of alias user to a different value
+                final Timestamp timestampAliasUser = new Timestamp(new Date().getTime() + 5000);
+                aliasUser.setPasswordLastModified(timestampAliasUser);
+                aliasUser.setPreviousLogonTime(timestampAliasUser.getTime());
+                aliasUser.setLastLogonTime(timestampAliasUser.getTime());
+
                 arrangeEntityExists(aliasUser.getId(), aliasUser.getZoneId(), aliasUser);
 
                 final ScimUser result = aliasHandler.ensureConsistencyOfAliasEntity(
@@ -175,6 +193,11 @@ class ScimUserAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsure
                 assertThat(capturedUser.getId()).isEqualTo(aliasId);
                 assertThat(capturedUser.getZoneId()).isEqualTo(customZoneId);
                 assertThat(capturedUser.getGivenName()).isEqualTo(newGivenName);
+
+                // check if the alias timestamps were left unchanged even though the original user has different ones
+                assertThat(capturedUser.getPasswordLastModified()).isNotNull().isEqualTo(timestampAliasUser);
+                assertThat(capturedUser.getPreviousLogonTime()).isNotNull().isEqualTo(timestampAliasUser.getTime());
+                assertThat(capturedUser.getLastLogonTime()).isNotNull().isEqualTo(timestampAliasUser.getTime());
             }
 
             @Test

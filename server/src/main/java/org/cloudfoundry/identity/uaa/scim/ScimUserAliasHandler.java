@@ -53,6 +53,17 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         return EntityAliasHandler.isValidAliasPair(idpInCurrentZone.get(), idpInAliasZone.get());
     }
 
+    @Override
+    protected void setPropertiesFromExistingAliasEntity(
+            final ScimUser newAliasEntity,
+            final ScimUser existingAliasEntity
+    ) {
+        // these three timestamps should not be overwritten by the timestamps of the original user
+        newAliasEntity.setPasswordLastModified(existingAliasEntity.getPasswordLastModified());
+        newAliasEntity.setLastLogonTime(existingAliasEntity.getLastLogonTime());
+        newAliasEntity.setPreviousLogonTime(existingAliasEntity.getPreviousLogonTime());
+    }
+
     private Optional<IdentityProvider<?>> retrieveIdpByOrigin(final String originKey, final String zoneId) {
         final IdentityProvider<?> idpInAliasZone;
         try {
@@ -98,7 +109,9 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         aliasUser.setAliasId(null);
         aliasUser.setAliasZid(null);
 
-        // these timestamps will be overwritten during creation
+        /* these timestamps will be overwritten:
+         *  - creation: with current timestamp during persistence (JdbcScimUserProvisioning)
+         *  - update: with values from existing alias entity */
         aliasUser.setPasswordLastModified(null);
         aliasUser.setLastLogonTime(null);
         aliasUser.setPreviousLogonTime(null);

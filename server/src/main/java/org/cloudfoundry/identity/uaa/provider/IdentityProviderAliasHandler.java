@@ -46,6 +46,14 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
     }
 
     @Override
+    protected void setPropertiesFromExistingAliasEntity(
+            final IdentityProvider<?> newAliasEntity,
+            final IdentityProvider<?> existingAliasEntity
+    ) {
+        // not required for identity providers
+    }
+
+    @Override
     protected void setId(final IdentityProvider<?> entity, final String id) {
         entity.setId(id);
     }
