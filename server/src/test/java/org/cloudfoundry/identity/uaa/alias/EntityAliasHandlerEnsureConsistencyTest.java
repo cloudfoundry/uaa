@@ -5,6 +5,7 @@ import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.mockito.ArgumentMatcher;
+import org.springframework.lang.Nullable;
 
 public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWithAlias> {
     protected final String customZoneId = UUID.randomUUID().toString();
@@ -20,6 +21,8 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
     protected abstract class ExistingAlias_AliasFeatureDisabled {
     }
+
+    protected abstract T buildEntityWithAliasProperties(@Nullable final String aliasId, @Nullable final String aliasZid);
 
     protected static class EntityWithAliasMatcher<T extends EntityWithAlias> implements ArgumentMatcher<T> {
         private final String zoneId;
