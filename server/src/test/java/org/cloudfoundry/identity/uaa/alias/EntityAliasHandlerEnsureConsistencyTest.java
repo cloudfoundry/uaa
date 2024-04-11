@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.alias;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -87,6 +88,17 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         @Override
         protected final boolean isAliasFeatureEnabled() {
             return false;
+        }
+
+        @Test
+        final void shouldThrow_WhenAliasZidSet() {
+            final T existingEntity = buildEntityWithAliasProperties(null, null);
+            final T originalEntity = shallowCloneEntity(existingEntity);
+            originalEntity.setAliasZid(customZoneId);
+
+            assertThatIllegalStateException().isThrownBy(() ->
+                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
+            ).withMessage("Trying to create a new alias while alias feature is disabled.");
         }
     }
 
