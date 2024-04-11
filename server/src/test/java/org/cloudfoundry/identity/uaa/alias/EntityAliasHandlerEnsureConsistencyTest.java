@@ -104,6 +104,18 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         }
 
         @Test
+        final void shouldThrow_EvenIfNoAliasPropertyIsChanged() {
+            final T existingEntity = buildEntityWithAliasProperties(UUID.randomUUID().toString(), customZoneId);
+
+            final T originalEntity = shallowCloneEntity(existingEntity);
+            changeNonAliasProperties(originalEntity);
+
+            assertThatIllegalStateException().isThrownBy(() ->
+                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
+            ).withMessage("Performing update on entity with alias while alias feature is disabled.");
+        }
+
+        @Test
         final void shouldThrow_AliasPropertiesSetToNull() {
             final T existingEntity = buildEntityWithAliasProperties(UUID.randomUUID().toString(), customZoneId);
 
