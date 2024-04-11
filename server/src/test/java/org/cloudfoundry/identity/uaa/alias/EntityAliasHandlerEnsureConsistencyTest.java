@@ -4,6 +4,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentMatcher;
 import org.springframework.lang.Nullable;
@@ -15,7 +16,18 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
     protected abstract T buildEntityWithAliasProperties(@Nullable final String aliasId, @Nullable final String aliasZid);
 
+    /**
+     * Change one or more properties (but neither 'aliasId' nor 'aliasZid') of the given entity.
+     */
+    protected abstract void changeNonAliasProperties(final T entity);
+
     protected abstract void arrangeZoneDoesNotExist(final String zoneId);
+
+    /**
+     * Check whether the given two entities are equal. This method is required since the {@link ScimUser} class does not
+     * implement an {@code equals} method that is precise enough.
+     */
+    protected abstract boolean entitiesAreEqual(final T entity1, final T entity2);
 
     protected final String customZoneId = UUID.randomUUID().toString();
 

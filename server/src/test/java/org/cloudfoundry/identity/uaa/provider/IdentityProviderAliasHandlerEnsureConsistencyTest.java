@@ -11,6 +11,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
@@ -281,8 +282,18 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     }
 
     @Override
+    protected void changeNonAliasProperties(final IdentityProvider<?> entity) {
+        entity.setName("some-new-name");
+    }
+
+    @Override
     protected void arrangeZoneDoesNotExist(final String zoneId) {
         when(identityZoneProvisioning.retrieve(zoneId))
                 .thenThrow(new ZoneDoesNotExistsException("zone does not exist"));
+    }
+
+    @Override
+    protected boolean entitiesAreEqual(final IdentityProvider<?> entity1, final IdentityProvider<?> entity2) {
+        return Objects.equals(entity1, entity2);
     }
 }
