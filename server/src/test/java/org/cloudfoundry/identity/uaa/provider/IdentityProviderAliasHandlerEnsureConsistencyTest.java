@@ -101,8 +101,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 when(identityProviderProvisioning.retrieve(aliasIdpId, customZoneId)).thenReturn(null);
 
                 // alias zone does not exist
-                when(identityZoneProvisioning.retrieve(customZoneId))
-                        .thenThrow(new ZoneDoesNotExistsException("zone does not exist"));
+                arrangeZoneDoesNotExist(customZoneId);
 
                 assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
                         idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp)
@@ -211,8 +210,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 final IdentityProvider<?> requestBody = shallowCloneEntity(existingIdp);
                 requestBody.setAliasZid(customZoneId);
 
-                when(identityZoneProvisioning.retrieve(customZoneId))
-                        .thenThrow(new ZoneDoesNotExistsException("zone does not exist"));
+                arrangeZoneDoesNotExist(customZoneId);
 
                 assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
                         idpAliasHandler.ensureConsistencyOfAliasEntity(requestBody, existingIdp)
@@ -285,5 +283,11 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
         existingIdp.setAliasId(aliasId);
         existingIdp.setAliasZid(aliasZid);
         return existingIdp;
+    }
+
+    @Override
+    protected void arrangeZoneDoesNotExist(final String zoneId) {
+        when(identityZoneProvisioning.retrieve(zoneId))
+                .thenThrow(new ZoneDoesNotExistsException("zone does not exist"));
     }
 }

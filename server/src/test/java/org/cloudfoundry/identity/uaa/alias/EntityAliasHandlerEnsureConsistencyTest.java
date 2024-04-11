@@ -12,6 +12,8 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
     protected abstract T buildEntityWithAliasProperties(@Nullable final String aliasId, @Nullable final String aliasZid);
 
+    protected abstract void arrangeZoneDoesNotExist(final String zoneId);
+
     protected final String customZoneId = UUID.randomUUID().toString();
 
     protected abstract class NoExistingAlias_AliasFeatureEnabled {
