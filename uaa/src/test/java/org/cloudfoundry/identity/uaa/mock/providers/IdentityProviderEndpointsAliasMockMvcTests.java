@@ -139,8 +139,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 final Optional<IdentityProvider<?>> createdIdp = allIdps.stream()
                         .filter(it -> it.getOriginKey().equals(existingIdp.getOriginKey()))
                         .findFirst();
-                assertThat(createdIdp).isPresent();
-                assertThat(createdIdp.get()).isEqualTo(existingIdp);
+                assertThat(createdIdp).isPresent().contains(existingIdp);
                 assertThat(createdIdp.get().getAliasZid()).isEqualTo(zone2.getId());
             }
         }
@@ -798,16 +797,16 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 }
 
                 @Test
-                void shouldAccept_SetOnlyAliasPropertiesToNull_UaaToCustomZone() throws Throwable {
-                    shouldAccept_SetOnlyAliasPropertiesToNull(IdentityZone.getUaa(), customZone);
+                void shouldReject_SetOnlyAliasPropertiesToNull_UaaToCustomZone() throws Throwable {
+                    shouldReject_SetOnlyAliasPropertiesToNull(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_SetOnlyAliasPropertiesToNull_CustomToUaaZone() throws Throwable {
-                    shouldAccept_SetOnlyAliasPropertiesToNull(customZone, IdentityZone.getUaa());
+                void shouldReject_SetOnlyAliasPropertiesToNull_CustomToUaaZone() throws Throwable {
+                    shouldReject_SetOnlyAliasPropertiesToNull(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_SetOnlyAliasPropertiesToNull(
+                private void shouldReject_SetOnlyAliasPropertiesToNull(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -824,25 +823,20 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     // change non-alias property without setting alias properties to null
                     originalIdp.setAliasId(null);
                     originalIdp.setAliasZid(null);
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, originalIdp);
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-
-                    // the alias IdP should have its reference removed
-                    assertReferenceWasRemovedFromAlias(initialAliasId, initialAliasZid);
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
-                void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties_UaaToCustomZone() throws Throwable {
-                    shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(IdentityZone.getUaa(), customZone);
+                void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties_UaaToCustomZone() throws Throwable {
+                    shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties_CustomToUaaZone() throws Throwable {
-                    shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(customZone, IdentityZone.getUaa());
+                void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties_CustomToUaaZone() throws Throwable {
+                    shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(
+                private void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -858,34 +852,24 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     final String initialName = originalIdp.getName();
                     assertThat(initialName).isNotBlank();
 
-                    // change non-alias property without setting alias properties to null
+                    // should reject update
                     originalIdp.setAliasId(null);
                     originalIdp.setAliasZid(null);
                     originalIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, originalIdp);
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-
-                    // apart from the alias reference being removed, the alias IdP should be left unchanged
-                    final Optional<IdentityProvider<?>> aliasIdpAfterUpdate = readIdpFromZoneIfExists(zone2.getId(), initialAliasId);
-                    assertThat(aliasIdpAfterUpdate).isPresent();
-                    assertThat(aliasIdpAfterUpdate.get().getAliasId()).isBlank();
-                    assertThat(aliasIdpAfterUpdate.get().getAliasZid()).isBlank();
-                    assertThat(aliasIdpAfterUpdate.get().getName()).isEqualTo(initialName);
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(IdentityZone.getUaa(), customZone);
+                void shouldReject_AliasIdOfExistingIdpMissing_UaaToCustomZone() throws Throwable {
+                    shouldReject_AliasIdOfExistingIdpMissing(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(customZone, IdentityZone.getUaa());
+                void shouldReject_AliasIdOfExistingIdpMissing_CustomToUaaZone() throws Throwable {
+                    shouldReject_AliasIdOfExistingIdpMissing(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(
+                private void shouldReject_AliasIdOfExistingIdpMissing(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -907,30 +891,20 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     existingIdp.setAliasId(null);
                     existingIdp.setAliasZid(null);
                     existingIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-
-                    // alias IdP should still exist and not be modified
-                    final Optional<IdentityProvider<?>> aliasIdp = readIdpViaDb(initialAliasId, zone2.getId());
-                    assertThat(aliasIdp).isPresent();
-                    assertThat(aliasIdp.get().getAliasId()).isNotBlank().isEqualTo(existingIdp.getId());
-                    assertThat(aliasIdp.get().getAliasZid()).isNotBlank().isEqualTo(existingIdp.getIdentityZoneId());
-                    assertThat(aliasIdp.get().getName()).isNotBlank().isEqualTo(initialName);
+                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreDanglingReference_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingReference(IdentityZone.getUaa(), customZone);
+                void shouldReject_EvenIfAliasReferenceIsBroken_UaaToCustomZone() throws Throwable {
+                    shouldReject_EvenIfAliasReferenceIsBroken(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreDanglingReference_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingReference(customZone, IdentityZone.getUaa());
+                void shouldReject_EvenIfAliasReferenceIsBroken_CustomToUaaZone() throws Throwable {
+                    shouldReject_EvenIfAliasReferenceIsBroken(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_ShouldIgnoreDanglingReference(
+                private void shouldReject_EvenIfAliasReferenceIsBroken(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -942,14 +916,9 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                     // create dangling reference by removing alias IdP directly in DB
                     deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
 
-                    // update original IdP
-                    existingIdp.setAliasId(null);
-                    existingIdp.setAliasZid(null);
+                    // try to update IdP -> should still fail, even if the alias reference is broken
                     existingIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
+                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
@@ -1091,6 +1060,13 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             void setUp() {
                 arrangeAliasFeatureEnabled(aliasFeatureEnabled);
             }
+        }
+
+        @Nested
+        class AliasFeatureEnabled extends DeleteBase {
+            public AliasFeatureEnabled() {
+                super(true);
+            }
 
             @Test
             void shouldIgnoreDanglingReferenceToAliasIdp_UaaToCustomZone() throws Throwable {
@@ -1102,7 +1078,10 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 shouldIgnoreDanglingReferenceToAliasIdp(customZone, IdentityZone.getUaa());
             }
 
-            private void shouldIgnoreDanglingReferenceToAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Throwable {
+            private void shouldIgnoreDanglingReferenceToAliasIdp(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
                 final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
                         aliasFeatureEnabled,
                         () -> createIdpWithAlias(zone1, zone2)
@@ -1155,21 +1134,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
                 assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
 
-                // alias IdP should still exist, but without reference to original IdP
-                assertAliasIdpAfterDeletion(aliasId, aliasZid);
-            }
-
-            protected abstract void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception;
-        }
-
-        @Nested
-        class AliasFeatureEnabled extends DeleteBase {
-            public AliasFeatureEnabled() {
-                super(true);
-            }
-
-            @Override
-            protected void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception {
                 // if the alias feature is enabled, the alias should also be removed
                 assertIdpDoesNotExist(aliasId, aliasZid);
             }
@@ -1181,13 +1145,43 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 super(false);
             }
 
-            @Override
-            protected void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception {
-                // if the alias feature is disabled, only the reference should be removed from the alias IdP
-                assertReferenceWasRemovedFromAlias(aliasId, aliasZid);
+            @Test
+            void shouldRejectDeletion_WhenAliasIdpExists_UaaToCustomZone() throws Throwable {
+                shouldRejectDeletion_WhenAliasIdpExists(IdentityZone.getUaa(), customZone);
+            }
+
+            @Test
+            void shouldRejectDeletion_WhenAliasIdpExists_CustomToUaaZone() throws Throwable {
+                shouldRejectDeletion_WhenAliasIdpExists(customZone, IdentityZone.getUaa());
+            }
+
+            private void shouldRejectDeletion_WhenAliasIdpExists(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                // create IdP in zone 1 with alias in zone 2
+                final IdentityProvider<?> idpInZone1 = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+                final String id = idpInZone1.getId();
+                assertThat(id).isNotBlank();
+                final String aliasId = idpInZone1.getAliasId();
+                assertThat(aliasId).isNotBlank();
+                final String aliasZid = idpInZone1.getAliasZid();
+                assertThat(aliasZid).isNotBlank().isEqualTo(zone2.getId());
+
+                // check if alias IdP is available in zone 2
+                final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId);
+                assertThat(aliasIdp).isPresent();
+                assertThat(aliasIdp.get().getAliasId()).isNotBlank().isEqualTo(id);
+                assertThat(aliasIdp.get().getAliasZid()).isNotBlank().isEqualTo(idpInZone1.getIdentityZoneId());
+
+                // delete IdP in zone 1 -> should be rejected since alias feature is disabled
+                final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
+                assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY.value());
             }
         }
-
 
         private MvcResult deleteIdpAndReturnResult(final IdentityZone zone, final String id) throws Exception {
             final String accessTokenForZone1 = getAccessTokenForZone(zone.getId());
@@ -1201,13 +1195,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
             final Optional<IdentityProvider<?>> idp = readIdpFromZoneIfExists(zoneId, id);
             assertThat(idp).isNotPresent();
         }
-    }
-
-    private void assertReferenceWasRemovedFromAlias(final String aliasId, final String aliasZid) throws Exception {
-        final Optional<IdentityProvider<?>> aliasIdpAfterDeletion = readIdpFromZoneIfExists(aliasZid, aliasId);
-        assertThat(aliasIdpAfterDeletion).isPresent();
-        assertThat(aliasIdpAfterDeletion.get().getAliasId()).isBlank();
-        assertThat(aliasIdpAfterDeletion.get().getAliasZid()).isBlank();
     }
 
     private static void assertIdpReferencesOtherIdp(final IdentityProvider<?> idp, final IdentityProvider<?> referencedIdp) {

@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
 import org.springframework.lang.Nullable;
@@ -37,8 +36,8 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         final boolean entityAlreadyHasAlias = existingEntity != null && hasText(existingEntity.getAliasZid());
         if (entityAlreadyHasAlias) {
             if (!aliasEntitiesEnabled) {
-                // if the feature is disabled, we only allow setting both alias properties to null
-                return !hasText(requestBody.getAliasId()) && !hasText(requestBody.getAliasZid());
+                // reject ANY update of an entity with an existing alias if the feature is disabled
+                return false;
             }
 
             if (!hasText(existingEntity.getAliasId())) {
@@ -116,56 +115,29 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
      *                                    'aliasZid' does not exist
      * @throws EntityAliasFailedException if 'aliasId' and 'aliasZid' are set in the original entity, but the
      *                                    referenced alias entity could not be found
+     * @throws IllegalStateException      if {@code existingEntity} has an alias and 'aliasEntitiesEnabled' is set to
+     *                                    {@code false}
+     * @throws IllegalStateException      if a new alias is about to be created, i.e., {@code originalEntity} has a
+     *                                    non-empty 'aliasZid', and 'aliasEntitiesEnabled' is set to {@code false}
      */
     public final T ensureConsistencyOfAliasEntity(
             @NonNull final T originalEntity,
             @Nullable final T existingEntity
     ) throws EntityAliasFailedException {
-        /* If the entity had an alias before the update and the alias feature is now turned off, we break the reference
-         * between the entity and its alias by setting aliasId and aliasZid to null for both of them. Then, all other
-         * changes are only applied to the original entity. */
         final boolean entityHadAlias = existingEntity != null && hasText(existingEntity.getAliasZid());
-        final boolean referenceBreakRequired = entityHadAlias && !aliasEntitiesEnabled;
-        if (referenceBreakRequired) {
-            if (!hasText(existingEntity.getAliasId())) {
-                LOGGER.warn(
-                        "The state of the entity {} before the update had an aliasZid set, but no aliasId.",
-                        existingEntity.getAliasDescription()
-                );
-                return originalEntity;
-            }
-
-            final Optional<T> aliasEntityOpt = retrieveAliasEntity(existingEntity);
-            if (aliasEntityOpt.isEmpty()) {
-                LOGGER.warn(
-                        "The alias referenced in entity {} does not exist, therefore cannot break reference.",
-                        existingEntity.getAliasDescription()
-                );
-                return originalEntity;
-            }
-
-            final T aliasEntity = aliasEntityOpt.get();
-            aliasEntity.setAliasId(null);
-            aliasEntity.setAliasZid(null);
-
-            try {
-                updateEntity(aliasEntity, aliasEntity.getZoneId());
-            } catch (final DataAccessException e) {
-                throw new EntityAliasFailedException(
-                        String.format(
-                                "Could not break reference to alias in entity %s.",
-                                existingEntity.getAliasDescription()
-                        ), HttpStatus.UNPROCESSABLE_ENTITY.value(), e
-                );
-            }
-
-            // no change required in the original entity since its aliasId and aliasZid were already set to null
-            return originalEntity;
+        if (entityHadAlias && !aliasEntitiesEnabled) {
+            // this should already be caught in the validation method
+            throw new IllegalStateException("Performing update on entity with alias while alias feature is disabled.");
         }
 
         if (!hasText(originalEntity.getAliasZid())) {
             // no alias handling is necessary
             return originalEntity;
+        }
+
+        if (!aliasEntitiesEnabled) {
+            // this should already be caught in the validation method
+            throw new IllegalStateException("Trying to create a new alias while alias feature is disabled.");
         }
 
         final T aliasEntity = buildAliasEntity(originalEntity);
@@ -225,6 +197,9 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
     protected abstract T cloneEntity(final T originalEntity);
 
     public final Optional<T> retrieveAliasEntity(final T originalEntity) {
+        if (!hasText(originalEntity.getAliasId()) || !hasText(originalEntity.getAliasZid())) {
+            return Optional.empty();
+        }
         return retrieveEntity(originalEntity.getAliasId(), originalEntity.getAliasZid());
     }
 
