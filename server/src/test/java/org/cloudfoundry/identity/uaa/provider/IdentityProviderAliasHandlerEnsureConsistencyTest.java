@@ -11,7 +11,6 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
@@ -23,7 +22,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.ArgumentMatcher;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -150,12 +148,12 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 createdAliasIdp.setAliasId(originalIdpId);
                 createdAliasIdp.setAliasZid(UAA);
                 when(identityProviderProvisioning.create(
-                        argThat(new IdpWithAliasMatcher(customZoneId, null, originalIdpId, UAA)),
+                        argThat(new EntityWithAliasMatcher<>(customZoneId, null, originalIdpId, UAA)),
                         eq(customZoneId)
                 )).thenReturn(createdAliasIdp);
 
                 // mock update of original IdP
-                when(identityProviderProvisioning.update(argThat(new IdpWithAliasMatcher(UAA, originalIdpId, newAliasIdpId, customZoneId)), eq(UAA)))
+                when(identityProviderProvisioning.update(argThat(new EntityWithAliasMatcher<>(UAA, originalIdpId, newAliasIdpId, customZoneId)), eq(UAA)))
                         .then(invocationOnMock -> invocationOnMock.getArgument(0));
 
                 final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
@@ -170,26 +168,6 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 verify(identityProviderProvisioning).update(originalIdpCaptor.capture(), eq(UAA));
                 final IdentityProvider<?> updatedOriginalIdp = originalIdpCaptor.getValue();
                 assertThat(updatedOriginalIdp.getAliasId()).isEqualTo(newAliasIdpId);
-            }
-
-            private static class IdpWithAliasMatcher implements ArgumentMatcher<IdentityProvider<?>> {
-                private final String identityZoneId;
-                private final String id;
-                private final String aliasId;
-                private final String aliasZid;
-
-                public IdpWithAliasMatcher(final String identityZoneId, final String id, final String aliasId, final String aliasZid) {
-                    this.identityZoneId = identityZoneId;
-                    this.id = id;
-                    this.aliasId = aliasId;
-                    this.aliasZid = aliasZid;
-                }
-
-                @Override
-                public boolean matches(final IdentityProvider<?> argument) {
-                    return Objects.equals(id, argument.getId()) && Objects.equals(identityZoneId, argument.getIdentityZoneId())
-                            && Objects.equals(aliasId, argument.getAliasId()) && Objects.equals(aliasZid, argument.getAliasZid());
-                }
             }
         }
 
