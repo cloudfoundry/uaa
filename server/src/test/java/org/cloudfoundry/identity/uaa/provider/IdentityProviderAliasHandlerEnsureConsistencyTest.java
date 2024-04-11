@@ -45,12 +45,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     @Nested
     class ExistingAlias {
         @Nested
-        class AliasFeatureEnabled extends Base {
-            @Override
-            protected boolean isAliasFeatureEnabled() {
-                return true;
-            }
-
+        class AliasFeatureEnabled extends ExistingAlias_AliasFeatureEnabled {
             @Test
             void shouldPropagateChangesToExistingAlias() {
                 final String aliasIdpId = UUID.randomUUID().toString();
@@ -157,12 +152,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
         }
 
         @Nested
-        class AliasFeatureDisabled extends Base {
-            @Override
-            protected boolean isAliasFeatureEnabled() {
-                return false;
-            }
-
+        class AliasFeatureDisabled extends ExistingAlias_AliasFeatureDisabled {
             @Test
             void shouldThrow_IfExistingEntityHasAlias() {
                 final String aliasIdpId = UUID.randomUUID().toString();
@@ -184,12 +174,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     @Nested
     class NoExistingAlias {
         @Nested
-        class AliasFeatureEnabled extends NoExistingAliasBase {
-            @Override
-            protected boolean isAliasFeatureEnabled() {
-                return true;
-            }
-
+        class AliasFeatureEnabled extends NoExistingAlias_AliasFeatureEnabled {
             @Test
             void shouldThrow_WhenAliasZoneDoesNotExist() {
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
@@ -231,11 +216,8 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
         }
 
         @Nested
-        class AliasFeatureDisabled extends NoExistingAliasBase {
-            @Override
-            protected boolean isAliasFeatureEnabled() {
-                return false;
-            }
+        class AliasFeatureDisabled extends NoExistingAlias_AliasFeatureDisabled {
+            // all tests defined in superclass
         }
     }
 

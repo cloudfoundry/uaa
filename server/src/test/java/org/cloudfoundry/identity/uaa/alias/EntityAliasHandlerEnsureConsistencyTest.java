@@ -34,7 +34,7 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
     protected final String customZoneId = UUID.randomUUID().toString();
 
-    protected abstract class Base {
+    private abstract class Base {
         protected EntityAliasHandler<T> aliasHandler;
 
         @BeforeEach
@@ -46,7 +46,7 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         protected abstract boolean isAliasFeatureEnabled();
     }
 
-    protected abstract class NoExistingAliasBase extends Base {
+    private abstract class NoExistingAliasBase extends Base {
         @Test
         final void shouldIgnore_AliasZidEmptyInOriginalEntity() {
             final T originalEntity = buildEntityWithAliasProperties(null, null);
@@ -58,16 +58,32 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         }
     }
 
-    protected abstract class NoExistingAlias_AliasFeatureEnabled {
+    protected abstract class NoExistingAlias_AliasFeatureEnabled extends NoExistingAliasBase {
+        @Override
+        protected final boolean isAliasFeatureEnabled() {
+            return true;
+        }
     }
 
-    protected abstract class NoExistingAlias_AliasFeatureDisabled {
+    protected abstract class NoExistingAlias_AliasFeatureDisabled extends NoExistingAliasBase {
+        @Override
+        protected final boolean isAliasFeatureEnabled() {
+            return false;
+        }
     }
 
-    protected abstract class ExistingAlias_AliasFeatureEnabled {
+    protected abstract class ExistingAlias_AliasFeatureEnabled extends Base {
+        @Override
+        protected final boolean isAliasFeatureEnabled() {
+            return true;
+        }
     }
 
-    protected abstract class ExistingAlias_AliasFeatureDisabled {
+    protected abstract class ExistingAlias_AliasFeatureDisabled extends Base {
+        @Override
+        protected final boolean isAliasFeatureEnabled() {
+            return false;
+        }
     }
 
     protected static class EntityWithAliasMatcher<T extends EntityWithAlias> implements ArgumentMatcher<T> {
