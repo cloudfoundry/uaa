@@ -1,11 +1,14 @@
 package org.cloudfoundry.identity.uaa.alias;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.springframework.lang.Nullable;
 
@@ -41,6 +44,18 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         }
 
         protected abstract boolean isAliasFeatureEnabled();
+    }
+
+    protected abstract class NoExistingAliasBase extends Base {
+        @Test
+        final void shouldIgnore_AliasZidEmptyInOriginalEntity() {
+            final T originalEntity = buildEntityWithAliasProperties(null, null);
+            final T existingEntity = shallowCloneEntity(originalEntity);
+            changeNonAliasProperties(existingEntity);
+
+            final T result = aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity);
+            assertThat(entitiesAreEqual(result, originalEntity)).isTrue();
+        }
     }
 
     protected abstract class NoExistingAlias_AliasFeatureEnabled {

@@ -183,19 +183,6 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
 
     @Nested
     class NoExistingAlias {
-        abstract class NoExistingAliasBase extends Base {
-            @Test
-            void shouldIgnore_AliasZidEmptyInOriginalIdp() {
-                final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
-
-                final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
-                originalIdp.setName("some-new-name");
-
-                final IdentityProvider<?> result = aliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp);
-                assertThat(result).isEqualTo(originalIdp);
-            }
-        }
-
         @Nested
         class AliasFeatureEnabled extends NoExistingAliasBase {
             @Override
