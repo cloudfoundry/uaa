@@ -62,7 +62,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 aliasIdp.setIdentityZoneId(customZoneId);
                 aliasIdp.setAliasId(originalIdpId);
                 aliasIdp.setAliasZid(UAA);
-                when(identityProviderProvisioning.retrieve(aliasIdpId, customZoneId)).thenReturn(aliasIdp);
+                arrangeEntityExists(aliasIdpId, customZoneId, aliasIdp);
 
                 final IdentityProvider<?> result = aliasHandler.ensureConsistencyOfAliasEntity(
                         originalIdp,
@@ -92,7 +92,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 originalIdp.setName(newName);
 
                 // dangling reference -> referenced alias IdP not present
-                when(identityProviderProvisioning.retrieve(aliasIdpId, customZoneId)).thenReturn(null);
+                arrangeEntityDoesNotExist(aliasIdpId, customZoneId);
 
                 // alias zone does not exist
                 arrangeZoneDoesNotExist(customZoneId);
@@ -117,7 +117,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 requestBody.setName(newName);
 
                 // dangling reference -> referenced alias IdP not present
-                when(identityProviderProvisioning.retrieve(initialAliasIdpId, customZoneId)).thenReturn(null);
+                arrangeEntityDoesNotExist(initialAliasIdpId, customZoneId);
 
                 // mock alias IdP creation
                 final IdentityProvider<?> createdAliasIdp = shallowCloneEntity(requestBody);
@@ -259,6 +259,16 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     protected void arrangeZoneDoesNotExist(final String zoneId) {
         when(identityZoneProvisioning.retrieve(zoneId))
                 .thenThrow(new ZoneDoesNotExistsException("zone does not exist"));
+    }
+
+    @Override
+    protected void arrangeEntityExists(final String id, final String zoneId, final IdentityProvider<?> entity) {
+        when(identityProviderProvisioning.retrieve(id, zoneId)).thenReturn(entity);
+    }
+
+    @Override
+    protected void arrangeEntityDoesNotExist(final String id, final String zoneId) {
+        when(identityProviderProvisioning.retrieve(id, zoneId)).thenReturn(null);
     }
 
     @Override

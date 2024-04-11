@@ -26,6 +26,10 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
     protected abstract void arrangeZoneDoesNotExist(final String zoneId);
 
+    protected abstract void arrangeEntityExists(final String id, final String zoneId, final T entity);
+
+    protected abstract void arrangeEntityDoesNotExist(final String id, final String zoneId);
+
     /**
      * Check whether the given two entities are equal. This method is required since the {@link ScimUser} class does not
      * implement an {@code equals} method that is precise enough.
