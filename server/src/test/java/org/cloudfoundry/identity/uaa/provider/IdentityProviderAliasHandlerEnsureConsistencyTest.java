@@ -14,17 +14,16 @@ import static org.mockito.Mockito.when;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerEnsureConsistencyTest;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsureConsistencyTest<IdentityProvider<?>> {
@@ -32,24 +31,23 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     private IdentityZoneProvisioning identityZoneProvisioning;
     @Mock
     private IdentityProviderProvisioning identityProviderProvisioning;
-    private IdentityProviderAliasHandler idpAliasHandler;
 
-    @BeforeEach
-    void setUp() {
-        idpAliasHandler = new IdentityProviderAliasHandler(
+    @Override
+    protected EntityAliasHandler<IdentityProvider<?>> buildAliasHandler(final boolean aliasEntitiesEnabled) {
+        return new IdentityProviderAliasHandler(
                 identityZoneProvisioning,
                 identityProviderProvisioning,
-                false
+                aliasEntitiesEnabled
         );
     }
 
     @Nested
     class ExistingAlias {
         @Nested
-        class AliasFeatureEnabled {
-            @BeforeEach
-            void setUp() {
-                arrangeAliasFeatureEnabled(true);
+        class AliasFeatureEnabled extends Base {
+            @Override
+            protected boolean isAliasFeatureEnabled() {
+                return true;
             }
 
             @Test
@@ -70,7 +68,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 aliasIdp.setAliasZid(UAA);
                 when(identityProviderProvisioning.retrieve(aliasIdpId, customZoneId)).thenReturn(aliasIdp);
 
-                final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                final IdentityProvider<?> result = aliasHandler.ensureConsistencyOfAliasEntity(
                         originalIdp,
                         existingIdp
                 );
@@ -104,7 +102,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 arrangeZoneDoesNotExist(customZoneId);
 
                 assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
-                        idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp)
+                        aliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp)
                 );
             }
 
@@ -141,7 +139,8 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 when(identityProviderProvisioning.update(argThat(new EntityWithAliasMatcher<>(UAA, originalIdpId, newAliasIdpId, customZoneId)), eq(UAA)))
                         .then(invocationOnMock -> invocationOnMock.getArgument(0));
 
-                final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                // check if the original IdP now references the new alias
+                final IdentityProvider<?> result = aliasHandler.ensureConsistencyOfAliasEntity(
                         requestBody,
                         existingIdp
                 );
@@ -157,10 +156,10 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
         }
 
         @Nested
-        class AliasFeatureDisabled {
-            @BeforeEach
-            void setUp() {
-                arrangeAliasFeatureEnabled(false);
+        class AliasFeatureDisabled extends Base {
+            @Override
+            protected boolean isAliasFeatureEnabled() {
+                return false;
             }
 
             @Test
@@ -175,7 +174,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 originalIdp.setName("some-new-name");
 
                 assertThatIllegalStateException().isThrownBy(() ->
-                        idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp)
+                        aliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp)
                 ).withMessage("Performing update on entity with alias while alias feature is disabled.");
             }
         }
@@ -183,7 +182,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
 
     @Nested
     class NoExistingAlias {
-        abstract class NoExistingAliasBase {
+        abstract class NoExistingAliasBase extends Base {
             @Test
             void shouldIgnore_AliasZidEmptyInOriginalIdp() {
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
@@ -191,16 +190,16 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
                 originalIdp.setName("some-new-name");
 
-                final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp);
+                final IdentityProvider<?> result = aliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp);
                 assertThat(result).isEqualTo(originalIdp);
             }
         }
 
         @Nested
         class AliasFeatureEnabled extends NoExistingAliasBase {
-            @BeforeEach
-            void setUp() {
-                arrangeAliasFeatureEnabled(true);
+            @Override
+            protected boolean isAliasFeatureEnabled() {
+                return true;
             }
 
             @Test
@@ -213,7 +212,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 arrangeZoneDoesNotExist(customZoneId);
 
                 assertThatExceptionOfType(EntityAliasFailedException.class).isThrownBy(() ->
-                        idpAliasHandler.ensureConsistencyOfAliasEntity(requestBody, existingIdp)
+                        aliasHandler.ensureConsistencyOfAliasEntity(requestBody, existingIdp)
                 );
             }
 
@@ -234,7 +233,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 when(identityProviderProvisioning.update(any(), eq(UAA)))
                         .then(invocationOnMock -> invocationOnMock.getArgument(0));
 
-                final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(
+                final IdentityProvider<?> result = aliasHandler.ensureConsistencyOfAliasEntity(
                         requestBody,
                         existingIdp
                 );
@@ -245,15 +244,11 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
 
         @Nested
         class AliasFeatureDisabled extends NoExistingAliasBase {
-            @BeforeEach
-            void setUp() {
-                arrangeAliasFeatureEnabled(false);
+            @Override
+            protected boolean isAliasFeatureEnabled() {
+                return false;
             }
         }
-    }
-
-    private void arrangeAliasFeatureEnabled(final boolean enabled) {
-        ReflectionTestUtils.setField(idpAliasHandler, "aliasEntitiesEnabled", enabled);
     }
 
     @Override

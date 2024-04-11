@@ -4,10 +4,13 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.ArgumentMatcher;
 import org.springframework.lang.Nullable;
 
 public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWithAlias> {
+    protected abstract EntityAliasHandler<T> buildAliasHandler(final boolean aliasEntitiesEnabled);
+
     protected abstract T shallowCloneEntity(final T entity);
 
     protected abstract T buildEntityWithAliasProperties(@Nullable final String aliasId, @Nullable final String aliasZid);
@@ -15,6 +18,18 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
     protected abstract void arrangeZoneDoesNotExist(final String zoneId);
 
     protected final String customZoneId = UUID.randomUUID().toString();
+
+    protected abstract class Base {
+        protected EntityAliasHandler<T> aliasHandler;
+
+        @BeforeEach
+        final void setUp() {
+            final boolean aliasEntitiesEnabled = isAliasFeatureEnabled();
+            this.aliasHandler = buildAliasHandler(aliasEntitiesEnabled);
+        }
+
+        protected abstract boolean isAliasFeatureEnabled();
+    }
 
     protected abstract class NoExistingAlias_AliasFeatureEnabled {
     }
