@@ -153,21 +153,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
 
         @Nested
         class AliasFeatureDisabled extends ExistingAlias_AliasFeatureDisabled {
-            @Test
-            void shouldThrow_IfExistingEntityHasAlias() {
-                final String aliasIdpId = UUID.randomUUID().toString();
-
-                final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(aliasIdpId, customZoneId);
-
-                final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
-                originalIdp.setAliasId(null);
-                originalIdp.setAliasZid(null);
-                originalIdp.setName("some-new-name");
-
-                assertThatIllegalStateException().isThrownBy(() ->
-                        aliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp)
-                ).withMessage("Performing update on entity with alias while alias feature is disabled.");
-            }
+            // all tests defined in superclass
         }
     }
 

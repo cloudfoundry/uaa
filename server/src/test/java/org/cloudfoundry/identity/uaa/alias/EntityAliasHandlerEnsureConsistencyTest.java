@@ -102,6 +102,20 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         protected final boolean isAliasFeatureEnabled() {
             return false;
         }
+
+        @Test
+        final void shouldThrow_AliasPropertiesSetToNull() {
+            final T existingEntity = buildEntityWithAliasProperties(UUID.randomUUID().toString(), customZoneId);
+
+            final T originalEntity = shallowCloneEntity(existingEntity);
+            changeNonAliasProperties(originalEntity);
+            originalEntity.setAliasId(null);
+            originalEntity.setAliasZid(null);
+
+            assertThatIllegalStateException().isThrownBy(() ->
+                    aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
+            ).withMessage("Performing update on entity with alias while alias feature is disabled.");
+        }
     }
 
     protected static class EntityWithAliasMatcher<T extends EntityWithAlias> implements ArgumentMatcher<T> {
