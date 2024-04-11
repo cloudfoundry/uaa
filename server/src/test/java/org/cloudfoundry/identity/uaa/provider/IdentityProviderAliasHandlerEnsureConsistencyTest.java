@@ -36,8 +36,6 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
     private IdentityProviderProvisioning identityProviderProvisioning;
     private IdentityProviderAliasHandler idpAliasHandler;
 
-    private final String customZoneId = UUID.randomUUID().toString();
-
     @BeforeEach
     void setUp() {
         idpAliasHandler = new IdentityProviderAliasHandler(
