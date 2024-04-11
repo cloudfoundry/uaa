@@ -59,11 +59,11 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(aliasIdpId, customZoneId);
                 final String originalIdpId = existingIdp.getId();
 
-                final IdentityProvider<?> originalIdp = shallowCloneIdp(existingIdp);
+                final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
                 final String newName = "some-new-name";
                 originalIdp.setName(newName);
 
-                final IdentityProvider<?> aliasIdp = shallowCloneIdp(existingIdp);
+                final IdentityProvider<?> aliasIdp = shallowCloneEntity(existingIdp);
                 aliasIdp.setId(aliasIdpId);
                 aliasIdp.setIdentityZoneId(customZoneId);
                 aliasIdp.setAliasId(originalIdpId);
@@ -93,7 +93,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
 
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(aliasIdpId, customZoneId);
 
-                final IdentityProvider<?> originalIdp = shallowCloneIdp(existingIdp);
+                final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
                 final String newName = "some-new-name";
                 originalIdp.setName(newName);
 
@@ -119,7 +119,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 );
                 final String originalIdpId = existingIdp.getId();
 
-                final IdentityProvider<?> requestBody = shallowCloneIdp(existingIdp);
+                final IdentityProvider<?> requestBody = shallowCloneEntity(existingIdp);
                 final String newName = "some-new-name";
                 requestBody.setName(newName);
 
@@ -127,7 +127,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
                 when(identityProviderProvisioning.retrieve(initialAliasIdpId, customZoneId)).thenReturn(null);
 
                 // mock alias IdP creation
-                final IdentityProvider<?> createdAliasIdp = shallowCloneIdp(requestBody);
+                final IdentityProvider<?> createdAliasIdp = shallowCloneEntity(requestBody);
                 final String newAliasIdpId = UUID.randomUUID().toString();
                 createdAliasIdp.setId(newAliasIdpId);
                 createdAliasIdp.setIdentityZoneId(customZoneId);
@@ -170,7 +170,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
 
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(aliasIdpId, customZoneId);
 
-                final IdentityProvider<?> originalIdp = shallowCloneIdp(existingIdp);
+                final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
                 originalIdp.setAliasId(null);
                 originalIdp.setAliasZid(null);
                 originalIdp.setName("some-new-name");
@@ -189,7 +189,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
             void shouldIgnore_AliasZidEmptyInOriginalIdp() {
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
 
-                final IdentityProvider<?> originalIdp = shallowCloneIdp(existingIdp);
+                final IdentityProvider<?> originalIdp = shallowCloneEntity(existingIdp);
                 originalIdp.setName("some-new-name");
 
                 final IdentityProvider<?> result = idpAliasHandler.ensureConsistencyOfAliasEntity(originalIdp, existingIdp);
@@ -208,7 +208,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
             void shouldThrow_WhenAliasZoneDoesNotExist() {
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
 
-                final IdentityProvider<?> requestBody = shallowCloneIdp(existingIdp);
+                final IdentityProvider<?> requestBody = shallowCloneEntity(existingIdp);
                 requestBody.setAliasZid(customZoneId);
 
                 when(identityZoneProvisioning.retrieve(customZoneId))
@@ -223,7 +223,7 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
             void shouldCreateNewAliasIdp_WhenAliasZoneExistsAndAliasPropertiesAreSet() {
                 final IdentityProvider<?> existingIdp = buildEntityWithAliasProperties(null, null);
 
-                final IdentityProvider<?> requestBody = shallowCloneIdp(existingIdp);
+                final IdentityProvider<?> requestBody = shallowCloneEntity(existingIdp);
                 requestBody.setAliasZid(customZoneId);
 
                 final String aliasIdpId = UUID.randomUUID().toString();
@@ -258,10 +258,9 @@ public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAli
         ReflectionTestUtils.setField(idpAliasHandler, "aliasEntitiesEnabled", enabled);
     }
 
-    private static <T extends AbstractIdentityProviderDefinition> IdentityProvider<T> shallowCloneIdp(
-            final IdentityProvider<T> idp
-    ) {
-        final IdentityProvider<T> cloneIdp = new IdentityProvider<>();
+    @Override
+    protected IdentityProvider<?> shallowCloneEntity(final IdentityProvider<?> idp) {
+        final IdentityProvider<AbstractIdentityProviderDefinition> cloneIdp = new IdentityProvider<>();
         cloneIdp.setId(idp.getId());
         cloneIdp.setName(idp.getName());
         cloneIdp.setOriginKey(idp.getOriginKey());

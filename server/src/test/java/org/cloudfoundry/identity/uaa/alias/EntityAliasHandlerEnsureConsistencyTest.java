@@ -8,6 +8,10 @@ import org.mockito.ArgumentMatcher;
 import org.springframework.lang.Nullable;
 
 public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWithAlias> {
+    protected abstract T shallowCloneEntity(final T entity);
+
+    protected abstract T buildEntityWithAliasProperties(@Nullable final String aliasId, @Nullable final String aliasZid);
+
     protected final String customZoneId = UUID.randomUUID().toString();
 
     protected abstract class NoExistingAlias_AliasFeatureEnabled {
@@ -21,8 +25,6 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
 
     protected abstract class ExistingAlias_AliasFeatureDisabled {
     }
-
-    protected abstract T buildEntityWithAliasProperties(@Nullable final String aliasId, @Nullable final String aliasZid);
 
     protected static class EntityWithAliasMatcher<T extends EntityWithAlias> implements ArgumentMatcher<T> {
         private final String zoneId;
