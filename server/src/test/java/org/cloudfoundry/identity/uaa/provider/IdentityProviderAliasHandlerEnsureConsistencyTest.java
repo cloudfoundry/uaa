@@ -15,6 +15,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerEnsureConsistencyTest;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,7 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
-public class IdentityProviderAliasHandlerEnsureConsistencyTest {
+public class IdentityProviderAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsureConsistencyTest<IdentityProvider<?>> {
     @Mock
     private IdentityZoneProvisioning identityZoneProvisioning;
     @Mock
