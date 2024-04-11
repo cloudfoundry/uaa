@@ -56,6 +56,7 @@ import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
@@ -64,6 +65,12 @@ class SamlMetadataMockMvcTests {
     @Autowired
     private MockMvc mockMvc;
 
+
+    @Test
+    void redirectFromMetadataRoot() throws Exception {
+        ResultActions xml = mockMvc.perform(get(new URI("/saml/metadata")))
+                .andExpect(forwardedUrl("/saml/metadata/example"));
+    }
 
     @Test
     void testSamlMetadataDefault() throws Exception {
