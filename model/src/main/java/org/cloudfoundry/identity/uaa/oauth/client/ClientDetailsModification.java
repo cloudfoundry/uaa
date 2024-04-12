@@ -5,12 +5,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ClientDetailsModification extends BaseClientDetails {
+public class ClientDetailsModification extends UaaClientDetails {
 
     public static final String ADD = "add";
     public static final String UPDATE = "update";
@@ -27,8 +27,8 @@ public class ClientDetailsModification extends BaseClientDetails {
 
     public ClientDetailsModification(ClientDetails prototype) {
         super(prototype);
-        if (prototype instanceof BaseClientDetails) {
-            BaseClientDetails baseClientDetails = (BaseClientDetails)prototype;
+        if (prototype instanceof UaaClientDetails) {
+            UaaClientDetails baseClientDetails = (UaaClientDetails)prototype;
             this.setAdditionalInformation(baseClientDetails.getAdditionalInformation());
             if (baseClientDetails.getAutoApproveScopes()!=null) {
                 this.setAutoApproveScopes(baseClientDetails.getAutoApproveScopes());

@@ -1,44 +1,64 @@
 package org.cloudfoundry.identity.uaa.mock.providers;
 
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.alias.AliasMockMvcTestBase;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.function.ThrowingSupplier;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.web.context.WebApplicationContext;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
@@ -46,13 +66,36 @@ import com.fasterxml.jackson.core.type.TypeReference;
  * Tests regarding the handling of "aliasId" and "aliasZid" properties of identity providers.
  */
 @DefaultTestContext
-class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
+class IdentityProviderEndpointsAliasMockMvcTests {
+    private static final AlphanumericRandomValueStringGenerator RANDOM_STRING_GENERATOR = new AlphanumericRandomValueStringGenerator(8);
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private TestClient testClient;
+
+    @Autowired
+    private WebApplicationContext webApplicationContext;
+
+    private final Map<String, String> accessTokenCache = new HashMap<>();
+    private IdentityZone customZone;
+    private String adminToken;
+    private String identityToken;
     private IdentityProviderAliasHandler idpEntityAliasHandler;
     private IdentityProviderEndpoints identityProviderEndpoints;
 
     @BeforeEach
     void setUp() throws Exception {
-        setUpTokensAndCustomZone();
+        adminToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "");
+        identityToken = testClient.getClientCredentialsOAuthAccessToken(
+                "identity",
+                "identitysecret",
+                "zones.write");
+        customZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
 
         idpEntityAliasHandler = requireNonNull(webApplicationContext.getBean(IdentityProviderAliasHandler.class));
         identityProviderEndpoints = requireNonNull(webApplicationContext.getBean(IdentityProviderEndpoints.class));
@@ -96,8 +139,7 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 final Optional<IdentityProvider<?>> createdIdp = allIdps.stream()
                         .filter(it -> it.getOriginKey().equals(existingIdp.getOriginKey()))
                         .findFirst();
-                assertThat(createdIdp).isPresent();
-                assertThat(createdIdp.get()).isEqualTo(existingIdp);
+                assertThat(createdIdp).isPresent().contains(existingIdp);
                 assertThat(createdIdp.get().getAliasZid()).isEqualTo(zone2.getId());
             }
         }
@@ -401,6 +443,39 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 }
 
                 @Test
+                void shouldReject_ReferencedZoneDoesNotExist() throws Exception {
+                    final IdentityZone zone = IdentityZone.getUaa();
+                    final IdentityProvider<?> existingIdp = createIdp(
+                            zone,
+                            buildUaaIdpWithAliasProperties(zone.getId(), null, null)
+                    );
+
+                    existingIdp.setAliasZid(UUID.randomUUID().toString()); // non-existing zone
+
+                    shouldRejectUpdate(zone, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
+
+                @Test
+                void shouldReject_AliasNotSupportedForIdpType_UaaToCustomZone() throws Exception {
+                    shouldReject_AliasNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldReject_AliasNotSupportedForIdpType_CustomZone() throws Exception {
+                    shouldReject_AliasNotSupportedForIdpType(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_AliasNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+                    final IdentityProvider<?> uaaIdp = buildUaaIdpWithAliasProperties(zone1.getId(), null, null);
+                    final IdentityProvider<?> createdProvider = createIdp(zone1, uaaIdp);
+                    assertThat(createdProvider.getAliasZid()).isBlank();
+
+                    // try to create an alias for the IdP -> should fail because of the IdP's type
+                    createdProvider.setAliasZid(zone2.getId());
+                    shouldRejectUpdate(zone1, createdProvider, HttpStatus.UNPROCESSABLE_ENTITY);
+                }
+
+                @Test
                 void shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone_UaaToCustomZone() throws Exception {
                     shouldReject_IdpWithOriginKeyAlreadyPresentInOtherZone(IdentityZone.getUaa(), customZone);
                 }
@@ -431,42 +506,6 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 }
 
                 @Test
-                void shouldReject_AliasNotSupportedForIdpType_UaaToCustomZone() throws Exception {
-                    shouldReject_AliasNotSupportedForIdpType(IdentityZone.getUaa(), customZone);
-                }
-
-                @Test
-                void shouldReject_AliasNotSupportedForIdpType_CustomZone() throws Exception {
-                    shouldReject_AliasNotSupportedForIdpType(customZone, IdentityZone.getUaa());
-                }
-
-                private void shouldReject_AliasNotSupportedForIdpType(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-                    final IdentityProvider<?> existingIdp = createIdp(
-                            zone1,
-                            // alias for IdP of type 'UAA' not supported
-                            buildUaaIdpWithAliasProperties(zone1.getId(), null, null)
-                    );
-                    assertThat(existingIdp.getAliasZid()).isBlank();
-
-                    // try to create an alias for the IdP -> should fail because of the IdP's type
-                    existingIdp.setAliasZid(zone2.getId());
-                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
-                }
-
-                @Test
-                void shouldReject_ReferencedZoneDoesNotExist() throws Exception {
-                    final IdentityZone zone = IdentityZone.getUaa();
-                    final IdentityProvider<?> existingIdp = createIdp(
-                            zone,
-                            buildUaaIdpWithAliasProperties(zone.getId(), null, null)
-                    );
-
-                    existingIdp.setAliasZid(UUID.randomUUID().toString()); // non-existing zone
-
-                    shouldRejectUpdate(zone, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
-                }
-
-                @Test
                 void shouldReject_AliasZidSetToSameZone_UaaZone() throws Exception {
                     shouldReject_AliasZidSetToSameZone(IdentityZone.getUaa());
                 }
@@ -477,24 +516,12 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 }
 
                 private void shouldReject_AliasZidSetToSameZone(final IdentityZone zone) throws Exception {
-                    final IdentityProvider<?> existingIdp = createIdp(
+                    final IdentityProvider<?> idp = createIdp(
                             zone,
                             buildOidcIdpWithAliasProperties(zone.getId(), null, null)
                     );
-                    existingIdp.setAliasZid(zone.getId());
-                    shouldRejectUpdate(zone, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
-                }
-
-                @Test
-                void shouldReject_IdpInCustomZone_AliasToOtherCustomZone() throws Exception {
-                    final IdentityProvider<?> existingIdp = createIdp(
-                            customZone,
-                            buildOidcIdpWithAliasProperties(customZone.getId(), null, null)
-                    );
-
-                    // try to create an alias in another custom zone -> should fail
-                    existingIdp.setAliasZid("not-uaa");
-                    shouldRejectUpdate(customZone, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+                    idp.setAliasZid(zone.getId());
+                    shouldRejectUpdate(zone, idp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
             }
 
@@ -539,79 +566,16 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 }
 
                 @Test
-                void shouldAccept_ShouldFixDanglingReferenceByCreatingNewAlias_UaaToCustomZone() throws Exception {
-                    shouldAccept_ShouldFixDanglingReferenceByCreatingNewAlias(IdentityZone.getUaa(), customZone);
+                void shouldReject_AliasIdNotSetInPayload_UaaToCustomZone() throws Exception {
+                    shouldReject_AliasIdNotSetInPayload(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_ShouldFixDanglingReferenceByCreatingNewAlias_CustomToUaaZone() throws Exception {
-                    shouldAccept_ShouldFixDanglingReferenceByCreatingNewAlias(customZone, IdentityZone.getUaa());
+                void shouldReject_AliasIdNotSetInPayload_CustomToUaaZone() throws Exception {
+                    shouldReject_AliasIdNotSetInPayload(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_ShouldFixDanglingReferenceByCreatingNewAlias(
-                        final IdentityZone zone1,
-                        final IdentityZone zone2
-                ) throws Exception {
-                    final IdentityProvider<?> existingIdp = createIdpWithAlias(zone1, zone2);
-
-                    // create a dangling reference by deleting the alias directly in the DB
-                    assertThat(existingIdp.getAliasId()).isNotBlank();
-                    deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
-
-                    existingIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
-
-                    // should create a new alias IdP and reference it in the original IdP
-                    assertThat(updatedIdp.getAliasId()).isNotBlank().isNotEqualTo(existingIdp.getAliasId());
-                    assertThat(updatedIdp.getAliasZid()).isNotBlank().isEqualTo(existingIdp.getAliasZid());
-                }
-
-                @Test
-                void shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone_UaaToCustomZone() throws Throwable {
-                    shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone(IdentityZone.getUaa(), customZone);
-                }
-
-                @Test
-                void shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone_CustomToUaaZone() throws Throwable {
-                    shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone(customZone, IdentityZone.getUaa());
-                }
-
-                private void shouldReject_ReferencedAliasNotExistingAndOriginAlreadyExistsInOtherZone(
-                        final IdentityZone zone1,
-                        final IdentityZone zone2
-                ) throws Throwable {
-                    final IdentityProvider<?> existingIdp = executeWithTemporarilyEnabledAliasFeature(
-                            aliasFeatureEnabled,
-                            () -> createIdpWithAlias(zone1, zone2)
-                    );
-
-                    // delete alias IdP and create a new one in zone 2 without alias but with the same origin
-                    deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
-                    final IdentityProvider<?> newIdpWithSameOrigin = buildOidcIdpWithAliasProperties(
-                            zone2.getId(),
-                            null,
-                            null
-                    );
-                    newIdpWithSameOrigin.setOriginKey(existingIdp.getOriginKey());
-                    createIdp(zone2, newIdpWithSameOrigin);
-
-                    existingIdp.setAliasId(null);
-                    existingIdp.setAliasZid(null);
-                    existingIdp.setName("some-new-name");
-                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
-                }
-
-                @Test
-                void shouldReject_AliasIdNotSet_UaaToCustomZone() throws Exception {
-                    shouldReject_AliasIdNotSet(IdentityZone.getUaa(), customZone);
-                }
-
-                @Test
-                void shouldReject_AliasIdNotSet_CustomToUaaZone() throws Exception {
-                    shouldReject_AliasIdNotSet(customZone, IdentityZone.getUaa());
-                }
-
-                private void shouldReject_AliasIdNotSet(
+                private void shouldReject_AliasIdNotSetInPayload(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Exception {
@@ -622,25 +586,61 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
-                @ParameterizedTest
-                @MethodSource("shouldReject_ChangingAliasProperties")
-                void shouldReject_ChangingAliasProperties_UaaToCustomZone(
-                        final String newAliasId,
-                        final String newAliasZid
-                ) throws Throwable {
-                    shouldReject_ChangingAliasProperties(newAliasId, newAliasZid, IdentityZone.getUaa(), customZone);
+                @Test
+                void shouldAccept_ShouldFixDanglingRefByCreatingNewAlias_UaaToCustomZone() throws Exception {
+                    shouldAccept_ShouldFixDanglingRefByCreatingNewAlias(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldAccept_ShouldFixDanglingRefByCreatingNewAlias_CustomToUaaZone() throws Exception {
+                    shouldAccept_ShouldFixDanglingRefByCreatingNewAlias(customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldAccept_ShouldFixDanglingRefByCreatingNewAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+                    final IdentityProvider<?> idp = createIdpWithAlias(zone1, zone2);
+
+                    // delete the alias IdP directly in the DB -> after that, there is a dangling reference
+                    deleteIdpViaDb(idp.getOriginKey(), zone2.getId());
+
+                    // update some other property on the original IdP
+                    idp.setName("some-new-name");
+                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, idp);
+                    assertThat(updatedIdp.getAliasId()).isNotBlank().isNotEqualTo(idp.getAliasId());
+                    assertThat(updatedIdp.getAliasZid()).isNotBlank().isEqualTo(idp.getAliasZid());
+
+                    // check if the new alias IdP is present and has the correct properties
+                    final String id = updatedIdp.getAliasId();
+                    final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
+                    assertThat(aliasIdp).isPresent();
+                    assertIdpReferencesOtherIdp(updatedIdp, aliasIdp.get());
+                    assertOtherPropertiesAreEqual(updatedIdp, aliasIdp.get());
+
+                    // check if both have the same non-empty relying party secret
+                    assertIdpAndAliasHaveSameRelyingPartySecretInDb(updatedIdp);
+
+                    // check if the returned IdP has a redacted relying party secret
+                    assertRelyingPartySecretIsRedacted(updatedIdp);
                 }
 
                 @ParameterizedTest
-                @MethodSource("shouldReject_ChangingAliasProperties")
-                void shouldReject_ChangingAliasProperties_CustomToUaaZone(
+                @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
+                void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_UaaToCustomZone(
                         final String newAliasId,
                         final String newAliasZid
                 ) throws Throwable {
-                    shouldReject_ChangingAliasProperties(newAliasId, newAliasZid, customZone, IdentityZone.getUaa());
+                    shouldReject_ChangingAliasPropertiesOfIdpWithAlias(newAliasId, newAliasZid, IdentityZone.getUaa(), customZone);
                 }
 
-                private void shouldReject_ChangingAliasProperties(
+                @ParameterizedTest
+                @MethodSource("shouldReject_ChangingAliasPropertiesOfIdpWithAlias")
+                void shouldReject_ChangingAliasPropertiesOfIdpWithAlias_CustomToUaaZone(
+                        final String newAliasId,
+                        final String newAliasZid
+                ) throws Throwable {
+                    shouldReject_ChangingAliasPropertiesOfIdpWithAlias(newAliasId, newAliasZid, customZone, IdentityZone.getUaa());
+                }
+
+                private void shouldReject_ChangingAliasPropertiesOfIdpWithAlias(
                         final String newAliasId,
                         final String newAliasZid,
                         final IdentityZone zone1,
@@ -655,7 +655,7 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
-                private static Stream<Arguments> shouldReject_ChangingAliasProperties() {
+                private static Stream<Arguments> shouldReject_ChangingAliasPropertiesOfIdpWithAlias() {
                     return Stream.of(null, "", "other").flatMap(aliasIdValue ->
                             Stream.of(null, "", "other").map(aliasZidValue ->
                                     Arguments.of(aliasIdValue, aliasZidValue)
@@ -663,7 +663,7 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 }
 
                 @Test
-                void shouldReject_ReferencedAliasNotExistingAndZoneNotExisting_UaaToCustomZone() throws Throwable {
+                void shouldReject_CannotFixDanglingRefAsAliasZoneIsNotExisting_UaaToCustomZone() throws Throwable {
                     final IdentityZone zone1 = IdentityZone.getUaa();
                     final IdentityZone zone2 = customZone;
 
@@ -687,39 +687,50 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             }
 
             @Test
-            void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp_UaaToCustomZone() throws Exception {
-                shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(IdentityZone.getUaa(), customZone);
+            void shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone_UaaToCustomZone() throws Throwable {
+                shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(IdentityZone.getUaa(), customZone);
             }
 
             @Test
-            void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp_CustomToUaaZone() throws Exception {
-                shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(customZone, IdentityZone.getUaa());
+            void shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone_CustomToUaaZone() throws Throwable {
+                shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(customZone, IdentityZone.getUaa());
             }
 
-            private void shouldAccept_ReferencedIdpNotExisting_ShouldCreateNewAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
-                final IdentityProvider<?> idp = createIdpWithAlias(zone1, zone2);
+            private void shouldReject_DanglingRefCannotBeFixedAsOriginAlreadyExistsInAliasZone(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                final IdentityProvider<?> existingIdp = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
 
-                // delete the alias IdP directly in the DB -> after that, there is a dangling reference
-                deleteIdpViaDb(idp.getOriginKey(), zone2.getId());
+                // delete alias IdP and create a new one in zone 2 without alias but with the same origin
+                deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
+                final IdentityProvider<?> newIdpWithSameOrigin = buildOidcIdpWithAliasProperties(
+                        zone2.getId(),
+                        null,
+                        null
+                );
+                newIdpWithSameOrigin.setOriginKey(existingIdp.getOriginKey());
+                createIdp(zone2, newIdpWithSameOrigin);
 
-                // update some other property on the original IdP
-                idp.setName("some-new-name");
-                final IdentityProvider<?> updatedIdp = updateIdp(zone1, idp);
-                assertThat(updatedIdp.getAliasId()).isNotBlank().isNotEqualTo(idp.getAliasId());
-                assertThat(updatedIdp.getAliasZid()).isNotBlank().isEqualTo(idp.getAliasZid());
+                existingIdp.setAliasId(null);
+                existingIdp.setAliasZid(null);
+                existingIdp.setName("some-new-name");
+                shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
+            }
 
-                // check if the new alias IdP is present and has the correct properties
-                final String id = updatedIdp.getAliasId();
-                final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), id);
-                assertThat(aliasIdp).isPresent();
-                assertIdpReferencesOtherIdp(updatedIdp, aliasIdp.get());
-                assertOtherPropertiesAreEqual(updatedIdp, aliasIdp.get());
+            @Test
+            void shouldReject_IdpInCustomZone_AliasToOtherCustomZone() throws Exception {
+                final IdentityProvider<?> idpInCustomZone = createIdp(
+                        customZone,
+                        buildOidcIdpWithAliasProperties(customZone.getId(), null, null)
+                );
 
-                // check if both have the same non-empty relying party secret
-                assertIdpAndAliasHaveSameRelyingPartySecretInDb(updatedIdp);
-
-                // check if the returned IdP has a redacted relying party secret
-                assertRelyingPartySecretIsRedacted(updatedIdp);
+                // try to create an alias in another custom zone -> should fail
+                idpInCustomZone.setAliasZid("not-uaa");
+                shouldRejectUpdate(customZone, idpInCustomZone, HttpStatus.UNPROCESSABLE_ENTITY);
             }
         }
 
@@ -786,16 +797,16 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 }
 
                 @Test
-                void shouldAccept_SetOnlyAliasPropertiesToNull_UaaToCustomZone() throws Throwable {
-                    shouldAccept_SetOnlyAliasPropertiesToNull(IdentityZone.getUaa(), customZone);
+                void shouldReject_SetOnlyAliasPropertiesToNull_UaaToCustomZone() throws Throwable {
+                    shouldReject_SetOnlyAliasPropertiesToNull(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_SetOnlyAliasPropertiesToNull_CustomToUaaZone() throws Throwable {
-                    shouldAccept_SetOnlyAliasPropertiesToNull(customZone, IdentityZone.getUaa());
+                void shouldReject_SetOnlyAliasPropertiesToNull_CustomToUaaZone() throws Throwable {
+                    shouldReject_SetOnlyAliasPropertiesToNull(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_SetOnlyAliasPropertiesToNull(
+                private void shouldReject_SetOnlyAliasPropertiesToNull(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -812,25 +823,20 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     // change non-alias property without setting alias properties to null
                     originalIdp.setAliasId(null);
                     originalIdp.setAliasZid(null);
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, originalIdp);
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-
-                    // the alias IdP should have its reference removed
-                    assertReferenceWasRemovedFromAlias(initialAliasId, initialAliasZid);
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
-                void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties_UaaToCustomZone() throws Throwable {
-                    shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(IdentityZone.getUaa(), customZone);
+                void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties_UaaToCustomZone() throws Throwable {
+                    shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties_CustomToUaaZone() throws Throwable {
-                    shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(customZone, IdentityZone.getUaa());
+                void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties_CustomToUaaZone() throws Throwable {
+                    shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_SetAliasPropertiesToNullAndChangeOtherProperties(
+                private void shouldReject_SetAliasPropertiesToNullAndChangeOtherProperties(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -846,34 +852,24 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     final String initialName = originalIdp.getName();
                     assertThat(initialName).isNotBlank();
 
-                    // change non-alias property without setting alias properties to null
+                    // should reject update
                     originalIdp.setAliasId(null);
                     originalIdp.setAliasZid(null);
                     originalIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, originalIdp);
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-
-                    // apart from the alias reference being removed, the alias IdP should be left unchanged
-                    final Optional<IdentityProvider<?>> aliasIdpAfterUpdate = readIdpFromZoneIfExists(zone2.getId(), initialAliasId);
-                    assertThat(aliasIdpAfterUpdate).isPresent();
-                    assertThat(aliasIdpAfterUpdate.get().getAliasId()).isBlank();
-                    assertThat(aliasIdpAfterUpdate.get().getAliasZid()).isBlank();
-                    assertThat(aliasIdpAfterUpdate.get().getName()).isEqualTo(initialName);
+                    shouldRejectUpdate(zone1, originalIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(IdentityZone.getUaa(), customZone);
+                void shouldReject_AliasIdOfExistingIdpMissing_UaaToCustomZone() throws Throwable {
+                    shouldReject_AliasIdOfExistingIdpMissing(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(customZone, IdentityZone.getUaa());
+                void shouldReject_AliasIdOfExistingIdpMissing_CustomToUaaZone() throws Throwable {
+                    shouldReject_AliasIdOfExistingIdpMissing(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_ShouldIgnoreAliasIdOfExistingIdpMissing(
+                private void shouldReject_AliasIdOfExistingIdpMissing(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -895,30 +891,20 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     existingIdp.setAliasId(null);
                     existingIdp.setAliasZid(null);
                     existingIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
-
-                    // alias IdP should still exist
-                    final Optional<IdentityProvider<?>> aliasIdp = readIdpViaDb(initialAliasId, zone2.getId());
-                    assertThat(aliasIdp).isPresent();
-                    assertThat(aliasIdp.get().getAliasId()).isNotBlank().isEqualTo(existingIdp.getId());
-                    assertThat(aliasIdp.get().getAliasZid()).isNotBlank().isEqualTo(existingIdp.getIdentityZoneId());
-                    assertThat(aliasIdp.get().getName()).isNotBlank().isEqualTo(initialName);
+                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreDanglingReference_UaaToCustomZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingReference(IdentityZone.getUaa(), customZone);
+                void shouldReject_EvenIfAliasReferenceIsBroken_UaaToCustomZone() throws Throwable {
+                    shouldReject_EvenIfAliasReferenceIsBroken(IdentityZone.getUaa(), customZone);
                 }
 
                 @Test
-                void shouldAccept_ShouldIgnoreDanglingReference_CustomToUaaZone() throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingReference(customZone, IdentityZone.getUaa());
+                void shouldReject_EvenIfAliasReferenceIsBroken_CustomToUaaZone() throws Throwable {
+                    shouldReject_EvenIfAliasReferenceIsBroken(customZone, IdentityZone.getUaa());
                 }
 
-                private void shouldAccept_ShouldIgnoreDanglingReference(
+                private void shouldReject_EvenIfAliasReferenceIsBroken(
                         final IdentityZone zone1,
                         final IdentityZone zone2
                 ) throws Throwable {
@@ -930,14 +916,9 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     // create dangling reference by removing alias IdP directly in DB
                     deleteIdpViaDb(existingIdp.getOriginKey(), zone2.getId());
 
-                    // update original IdP
-                    existingIdp.setAliasId(null);
-                    existingIdp.setAliasZid(null);
+                    // try to update IdP -> should still fail, even if the alias reference is broken
                     existingIdp.setName("some-new-name");
-                    final IdentityProvider<?> updatedIdp = updateIdp(zone1, existingIdp);
-                    assertThat(updatedIdp.getName()).isEqualTo("some-new-name");
-                    assertThat(updatedIdp.getAliasId()).isBlank();
-                    assertThat(updatedIdp.getAliasZid()).isBlank();
+                    shouldRejectUpdate(zone1, existingIdp, HttpStatus.UNPROCESSABLE_ENTITY);
                 }
 
                 @Test
@@ -1039,7 +1020,7 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                         idpBeforeUpdate.getAliasId()
                 );
                 aliasIdpBeforeUpdate = aliasIdpBeforeUpdateOpt
-                        .orElse(null); // for some test cases, the alias might not exist even though one is referenced
+                        .orElse(null); // for test cases involving dangling references, the alias might not exist even though one is referenced
             } else {
                 aliasIdpBeforeUpdate = null;
             }
@@ -1079,6 +1060,13 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             void setUp() {
                 arrangeAliasFeatureEnabled(aliasFeatureEnabled);
             }
+        }
+
+        @Nested
+        class AliasFeatureEnabled extends DeleteBase {
+            public AliasFeatureEnabled() {
+                super(true);
+            }
 
             @Test
             void shouldIgnoreDanglingReferenceToAliasIdp_UaaToCustomZone() throws Throwable {
@@ -1090,7 +1078,10 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 shouldIgnoreDanglingReferenceToAliasIdp(customZone, IdentityZone.getUaa());
             }
 
-            private void shouldIgnoreDanglingReferenceToAliasIdp(final IdentityZone zone1, final IdentityZone zone2) throws Throwable {
+            private void shouldIgnoreDanglingReferenceToAliasIdp(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
                 final IdentityProvider<?> originalIdp = executeWithTemporarilyEnabledAliasFeature(
                         aliasFeatureEnabled,
                         () -> createIdpWithAlias(zone1, zone2)
@@ -1143,21 +1134,6 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
                 assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.OK.value());
 
-                // alias IdP should still exist, but without reference to original IdP
-                assertAliasIdpAfterDeletion(aliasId, aliasZid);
-            }
-
-            protected abstract void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception;
-        }
-
-        @Nested
-        class AliasFeatureEnabled extends DeleteBase {
-            public AliasFeatureEnabled() {
-                super(true);
-            }
-
-            @Override
-            protected void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception {
                 // if the alias feature is enabled, the alias should also be removed
                 assertIdpDoesNotExist(aliasId, aliasZid);
             }
@@ -1169,10 +1145,41 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 super(false);
             }
 
-            @Override
-            protected void assertAliasIdpAfterDeletion(final String aliasId, final String aliasZid) throws Exception {
-                // if the alias feature is disabled, only the reference should be removed from the alias IdP
-                assertReferenceWasRemovedFromAlias(aliasId, aliasZid);
+            @Test
+            void shouldRejectDeletion_WhenAliasIdpExists_UaaToCustomZone() throws Throwable {
+                shouldRejectDeletion_WhenAliasIdpExists(IdentityZone.getUaa(), customZone);
+            }
+
+            @Test
+            void shouldRejectDeletion_WhenAliasIdpExists_CustomToUaaZone() throws Throwable {
+                shouldRejectDeletion_WhenAliasIdpExists(customZone, IdentityZone.getUaa());
+            }
+
+            private void shouldRejectDeletion_WhenAliasIdpExists(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                // create IdP in zone 1 with alias in zone 2
+                final IdentityProvider<?> idpInZone1 = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+                final String id = idpInZone1.getId();
+                assertThat(id).isNotBlank();
+                final String aliasId = idpInZone1.getAliasId();
+                assertThat(aliasId).isNotBlank();
+                final String aliasZid = idpInZone1.getAliasZid();
+                assertThat(aliasZid).isNotBlank().isEqualTo(zone2.getId());
+
+                // check if alias IdP is available in zone 2
+                final Optional<IdentityProvider<?>> aliasIdp = readIdpFromZoneIfExists(zone2.getId(), aliasId);
+                assertThat(aliasIdp).isPresent();
+                assertThat(aliasIdp.get().getAliasId()).isNotBlank().isEqualTo(id);
+                assertThat(aliasIdp.get().getAliasZid()).isNotBlank().isEqualTo(idpInZone1.getIdentityZoneId());
+
+                // delete IdP in zone 1 -> should be rejected since alias feature is disabled
+                final MvcResult deleteResult = deleteIdpAndReturnResult(zone1, id);
+                assertThat(deleteResult.getResponse().getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY.value());
             }
         }
 
@@ -1188,13 +1195,6 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             final Optional<IdentityProvider<?>> idp = readIdpFromZoneIfExists(zoneId, id);
             assertThat(idp).isNotPresent();
         }
-    }
-
-    private void assertReferenceWasRemovedFromAlias(final String aliasId, final String aliasZid) throws Exception {
-        final Optional<IdentityProvider<?>> aliasIdpAfterDeletion = readIdpFromZoneIfExists(aliasZid, aliasId);
-        assertThat(aliasIdpAfterDeletion).isPresent();
-        assertThat(aliasIdpAfterDeletion.get().getAliasId()).isBlank();
-        assertThat(aliasIdpAfterDeletion.get().getAliasZid()).isBlank();
     }
 
     private static void assertIdpReferencesOtherIdp(final IdentityProvider<?> idp, final IdentityProvider<?> referencedIdp) {
@@ -1217,6 +1217,78 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         assertThat(aliasIdp.isActive()).isEqualTo(idp.isActive());
 
         // it is expected that the two entities have differing values for 'lastmodified', 'created' and 'version'
+    }
+
+    private IdentityProvider<?> createIdpWithAlias(final IdentityZone zone1, final IdentityZone zone2) throws Exception {
+        final IdentityProvider<?> provider = buildOidcIdpWithAliasProperties(zone1.getId(), null, zone2.getId());
+        final IdentityProvider<?> createdOriginalIdp = createIdp(zone1, provider);
+        assertThat(createdOriginalIdp.getAliasId()).isNotBlank();
+        assertThat(createdOriginalIdp.getAliasZid()).isNotBlank();
+        return createdOriginalIdp;
+    }
+
+    private IdentityProvider<?> createIdp(final IdentityZone zone, final IdentityProvider<?> idp) throws Exception {
+        final MvcResult createResult = createIdpAndReturnResult(zone, idp);
+        assertThat(createResult.getResponse().getStatus()).isEqualTo(HttpStatus.CREATED.value());
+        return JsonUtils.readValue(createResult.getResponse().getContentAsString(), IdentityProvider.class);
+    }
+
+    private MvcResult createIdpAndReturnResult(final IdentityZone zone, final IdentityProvider<?> idp) throws Exception {
+        final MockHttpServletRequestBuilder createRequestBuilder = post("/identity-providers")
+                .param("rawConfig", "true")
+                .header("Authorization", "Bearer " + getAccessTokenForZone(zone.getId()))
+                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getSubdomain())
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(idp));
+        return mockMvc.perform(createRequestBuilder).andReturn();
+    }
+
+    private <T> T executeWithTemporarilyEnabledAliasFeature(
+            final boolean aliasFeatureEnabledBeforeAction,
+            final ThrowingSupplier<T> action
+    ) throws Throwable {
+        arrangeAliasFeatureEnabled(true);
+        try {
+            return action.get();
+        } finally {
+            arrangeAliasFeatureEnabled(aliasFeatureEnabledBeforeAction);
+        }
+    }
+
+    private String getAccessTokenForZone(final String zoneId) throws Exception {
+        final String cacheLookupResult = accessTokenCache.get(zoneId);
+        if (cacheLookupResult != null) {
+            return cacheLookupResult;
+        }
+
+        final List<String> scopesForZone = getScopesForZone(zoneId, "admin");
+
+        final ScimUser adminUser = MockMvcUtils.createAdminForZone(
+                mockMvc,
+                adminToken,
+                String.join(",", scopesForZone),
+                IdentityZone.getUaaZoneId()
+        );
+        final String accessToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(
+                mockMvc,
+                "identity",
+                "identitysecret",
+                adminUser.getId(),
+                adminUser.getUserName(),
+                adminUser.getPassword(),
+                String.join(" ", scopesForZone),
+                IdentityZone.getUaaZoneId(),
+                TokenConstants.TokenFormat.JWT // use JWT for later checking if all scopes are present
+        );
+
+        // check if the token contains the expected scopes
+        final Claims claims = UaaTokenUtils.getClaimsFromTokenString(accessToken);
+        assertThat(claims.getScope()).hasSameElementsAs(scopesForZone);
+
+        // cache the access token
+        accessTokenCache.put(zoneId, accessToken);
+
+        return accessToken;
     }
 
     private Optional<IdentityProvider<?>> readIdpFromZoneIfExists(final String zoneId, final String id) throws Exception {
@@ -1310,9 +1382,85 @@ class IdentityProviderEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         assertThat(config.get().getRelyingPartySecret()).isBlank();
     }
 
-    @Override
-    protected void arrangeAliasFeatureEnabled(final boolean enabled) {
+    private static List<String> getScopesForZone(final String zoneId, final String... scopes) {
+        return Stream.of(scopes).map(scope -> String.format("zones.%s.%s", zoneId, scope)).collect(toList());
+    }
+
+    private static IdentityProvider<?> buildOidcIdpWithAliasProperties(
+            final String idzId,
+            final String aliasId,
+            final String aliasZid
+    ) {
+        final String originKey = RANDOM_STRING_GENERATOR.generate();
+        return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey, OIDC10);
+    }
+
+    private static IdentityProvider<?> buildUaaIdpWithAliasProperties(
+            final String idzId,
+            final String aliasId,
+            final String aliasZid
+    ) {
+        final String originKey = RANDOM_STRING_GENERATOR.generate();
+        return buildIdpWithAliasProperties(idzId, aliasId, aliasZid, originKey, UAA);
+    }
+
+    private void arrangeAliasFeatureEnabled(final boolean enabled) {
         ReflectionTestUtils.setField(idpEntityAliasHandler, "aliasEntitiesEnabled", enabled);
         ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
+    }
+
+    private static IdentityProvider<?> buildIdpWithAliasProperties(
+            final String idzId,
+            final String aliasId,
+            final String aliasZid,
+            final String originKey,
+            final String type
+    ) {
+        final AbstractIdentityProviderDefinition definition = buildIdpDefinition(type);
+
+        final IdentityProvider<AbstractIdentityProviderDefinition> provider = new IdentityProvider<>();
+        provider.setIdentityZoneId(idzId);
+        provider.setAliasId(aliasId);
+        provider.setAliasZid(aliasZid);
+        provider.setName(originKey);
+        provider.setOriginKey(originKey);
+        provider.setType(type);
+        provider.setConfig(definition);
+        provider.setActive(true);
+        return provider;
+    }
+
+    private static AbstractIdentityProviderDefinition buildIdpDefinition(final String type) {
+        switch (type) {
+            case OIDC10:
+                final OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+                try {
+                    return definition
+                            .setAuthUrl(new URL("https://www.example.com/oauth/authorize"))
+                            .setLinkText("link text")
+                            .setRelyingPartyId("relying-party-id")
+                            .setRelyingPartySecret("relying-party-secret")
+                            .setShowLinkText(true)
+                            .setSkipSslValidation(true)
+                            .setTokenKey("key")
+                            .setTokenKeyUrl(new URL("https://www.example.com/token_keys"))
+                            .setTokenUrl(new URL("https://wwww.example.com/oauth/token"));
+                } catch (final MalformedURLException e) {
+                    throw new RuntimeException(e);
+                }
+            case UAA:
+                final PasswordPolicy passwordPolicy = new PasswordPolicy();
+                passwordPolicy.setExpirePasswordInMonths(1);
+                passwordPolicy.setMaxLength(100);
+                passwordPolicy.setMinLength(10);
+                passwordPolicy.setRequireDigit(1);
+                passwordPolicy.setRequireUpperCaseCharacter(1);
+                passwordPolicy.setRequireLowerCaseCharacter(1);
+                passwordPolicy.setRequireSpecialCharacter(1);
+                passwordPolicy.setPasswordNewerThan(new Date(System.currentTimeMillis()));
+                return new UaaIdentityProviderDefinition(passwordPolicy, null);
+            default:
+                throw new IllegalArgumentException("IdP type not supported.");
+        }
     }
 }

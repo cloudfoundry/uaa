@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.login;
 import java.net.URI;
 import java.util.Collections;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -15,7 +16,6 @@ import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
@@ -104,7 +104,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).optional(null).type(STRING).description("A unique string representing the registration information provided by the client, the recipient of the token. Optional if it is passed as part of the Basic Authorization header or as part of the client_assertion.");
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").optional(null).type(STRING).description("The [secret passphrase configured](#change-secret) for the OAuth client. Optional if it is passed as part of the Basic Authorization header or if client_assertion is sent as part of private_key_jwt authentication.");
-    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("Can be set to `" + OPAQUE.getStringValue() + "` to retrieve an opaque and revocable token or to `" + JWT.getStringValue() + "` to retrieve a JWT token. If not set the zone setting config.tokenPolicy.jwtRevocable is used.");
+    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(REQUEST_TOKEN_FORMAT).optional("jwt").type(STRING).description("Can be set to `" + OPAQUE.getStringValue() + "` to retrieve an opaque token or to `" + JWT.getStringValue() + "` to retrieve a JWT token. Please refer to the Revoke Tokens endpoint doc for information about the revocability of opaque vs. jwt tokens.");
     private final ParameterDescriptor scopeParameter = parameterWithName(SCOPE).optional(null).type(STRING).description("The list of scopes requested for the token. Use when you wish to reduce the number of scopes the token will have.");
     private final ParameterDescriptor loginHintParameter = parameterWithName("login_hint").optional(null).type(STRING).description("<small><mark>UAA 75.5.0</mark></small> Indicates the identity provider to be used. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `password`.");
     private final ParameterDescriptor codeVerifier = parameterWithName(PkceValidationService.CODE_VERIFIER).description("<small><mark>UAA 75.5.0</mark></small> [PKCE](https://tools.ietf.org/html/rfc7636) Code Verifier. A `code_verifier` parameter must be provided if a `code_challenge` parameter was present in the previous call to `/oauth/authorize`. The `code_verifier` must match the used `code_challenge` (according to the selected `code_challenge_method`)").attributes(key("constraints").value("Optional"), key("type").value(STRING));
@@ -382,7 +382,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         );
 
         Snippet responseFields = responseFields(
-                accessTokenFieldDescriptor,
+                fieldWithPath("access_token").description("This field is always `null`."),
                 tokenTypeFieldDescriptor,
                 expiresInFieldDescriptor,
                 scopeFieldDescriptorWhenUserToken,
@@ -806,7 +806,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 "",
                 null
         );
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
 
 
         String userInfoToken = getUserOAuthAccessToken(
@@ -852,8 +852,8 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 "",
                 null
         );
-        BaseClientDetails client = createClient(adminToken, "openid", "password", "");
-        BaseClientDetails client2 = createClient(adminToken, "openid", "password", "");
+        UaaClientDetails client = createClient(adminToken, "openid", "password", "");
+        UaaClientDetails client2 = createClient(adminToken, "openid", "password", "");
 
 
         String userInfoTokenToRevoke = getUserOAuthAccessToken(
@@ -922,7 +922,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 null,
                 true
         );
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
         String readClientsToken =
                 getClientCredentialsOAuthAccessToken(
                         mockMvc,
@@ -962,7 +962,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 true
         );
 
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "clients.read");
 
         String userInfoToken = getUserOAuthAccessToken(
                 mockMvc,
@@ -1010,7 +1010,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 true
         );
 
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
         String clientToken = getClientCredentialsOAuthAccessToken(
                 mockMvc,
                 client.getClientId(),
@@ -1050,7 +1050,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 true
         );
 
-        BaseClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
+        UaaClientDetails client = createClient(adminToken, "openid", "client_credentials,password", "tokens.list");
         String clientToken = getClientCredentialsOAuthAccessToken(
                 mockMvc,
                 client.getClientId(),
@@ -1090,15 +1090,15 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters, listTokenResponseFields));
     }
 
-    private BaseClientDetails createClient(String token, String scopes, String grantTypes, String authorities) throws Exception {
-        BaseClientDetails client = new BaseClientDetails(
+    private UaaClientDetails createClient(String token, String scopes, String grantTypes, String authorities) throws Exception {
+        UaaClientDetails client = new UaaClientDetails(
                 new RandomValueStringGenerator().generate(),
                 "",
                 scopes,
                 grantTypes,
                 authorities, "http://redirect.url");
         client.setClientSecret(SECRET);
-        BaseClientDetails clientDetails = MockMvcUtils.createClient(mockMvc, token, client);
+        UaaClientDetails clientDetails = MockMvcUtils.createClient(mockMvc, token, client);
         clientDetails.setClientSecret(SECRET);
         return clientDetails;
     }

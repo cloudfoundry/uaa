@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -30,7 +31,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidClientExcept
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
 import java.util.*;
@@ -63,8 +63,8 @@ public class UserTokenGranterTest {
     private TokenRequest tokenRequest;
     private UaaAuthentication userAuthentication;
     private Map<String,String> requestParameters;
-    private BaseClientDetails requestingClient;
-    private BaseClientDetails receivingClient;
+    private UaaClientDetails requestingClient;
+    private UaaClientDetails receivingClient;
     private RevocableTokenProvisioning tokenStore;
 
     @Before
@@ -84,8 +84,8 @@ public class UserTokenGranterTest {
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_USER_TOKEN, null);
-        receivingClient =  new BaseClientDetails("receivingId",null,"test.scope",GRANT_TYPE_REFRESH_TOKEN, null);
+        requestingClient = new UaaClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_USER_TOKEN, null);
+        receivingClient =  new UaaClientDetails("receivingId",null,"test.scope",GRANT_TYPE_REFRESH_TOKEN, null);
         when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
         when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()), anyString())).thenReturn(receivingClient);
         requestParameters = new HashMap<>();

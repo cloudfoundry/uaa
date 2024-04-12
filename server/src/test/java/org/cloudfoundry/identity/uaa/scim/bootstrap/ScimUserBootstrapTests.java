@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
 import org.junit.jupiter.api.AfterEach;
@@ -90,7 +91,7 @@ class ScimUserBootstrapTests {
     @BeforeEach
     void init() throws SQLException {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
-        jdbcScimUserProvisioning = spy(new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl()));
+        jdbcScimUserProvisioning = spy(new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate)));
         DbUtils dbUtils = new DbUtils();
         jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(

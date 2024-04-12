@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -23,7 +24,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -73,7 +73,7 @@ public class DomainFilterTest {
         "  </md:ContactPerson>\n" +
         "</md:EntityDescriptor>";
 
-    BaseClientDetails client;
+    UaaClientDetails client;
     List<IdentityProvider> activeProviders = EMPTY_LIST;
     IdentityProvider uaaProvider;
     IdentityProvider ldapProvider;
@@ -91,7 +91,7 @@ public class DomainFilterTest {
 
     @Before
     public void setUp() {
-        client = new BaseClientDetails("clientid","", "", "","","");
+        client = new UaaClientDetails("clientid","", "", "","","");
         uaaDef = new UaaIdentityProviderDefinition(null, null);
         ldapDef = new LdapIdentityProviderDefinition();
         samlDef1 = new SamlIdentityProviderDefinition()

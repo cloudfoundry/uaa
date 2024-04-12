@@ -19,7 +19,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
-    private JdbcPagingListFactory pagingListFactory;
+    protected final JdbcPagingListFactory pagingListFactory;
 
     protected RowMapper<T> rowMapper;
 

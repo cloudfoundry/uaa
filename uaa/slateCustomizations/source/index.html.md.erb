@@ -378,6 +378,39 @@ _Response Fields_
   Added in UAA 3.3.0
 </aside>
 
+Both access and refresh tokens can be passed to the ``/revoke`` endpoint.
+
+When the ``/revoke`` endpoint is successfully invoked with an access token, and then when the same token is
+passed to the UAA Introspect Token endpoint (``/introspect``), the UAA Introspect Token endpoint
+will respond with ``"active": false``.
+
+If the access token is in the JWT format (as opposed to the opaque format), the server config ``uaa.jwt.revocable`` or
+the Identity Zone config ``config.tokenPolicy.jwtRevocable`` must be set to ``true`` for
+the revocation to work. However, OAuth resource servers are not required to call the UAA Introspect
+Token endpoint to validate the token. Once issued, from a security point of view, a valid access token
+in the JWT format should be considered valid until its expiry. Hence, we do not recommend
+relying on this endpoint to revoke access tokens in the JWT format. If the ability
+to remove/limit access after the tokens are issued is important to you, we recommend the following instead:
+
+* Ask the OAuth client to use opaque tokens only, so that the OAuth resource server is required to use
+the UAA Introspect Token endpoint to validate that the tokens have not been revoked.
+* If the access tokens are in the JWT format, configure the access tokens to be short-lived
+(e.g. a few minutes), and when needed, revoke the more long-lived refresh tokens so that they
+may no longer be used to obtain refreshed access tokens.
+
+When the ``/revoke`` endpoint is successfully invoked with a refresh token,
+the refresh token can no longer be used to perform the Refresh Token grant.
+
+Refresh tokens in any format can be revoked using the "Revoke all tokens for a user" endpoint (``/oauth/token/revoke/user/{userId}``),
+the "Revoke all tokens for a client" endpoint (``/oauth/token/revoke/client/{clientId}``), or
+the "Revoke all tokens for a user and client combination" endpoint (``/oauth/token/revoke/user/{userId}/client/{clientId}``).
+
+Refresh tokens in the opaque format can be individually revoked using
+the "Revoke a single token" endpoint (``/oauth/token/revoke/{tokenId}``).
+However, refresh tokens in the JWT format can only be individually revoked using
+the "Revoke a single token" endpoint when the server config ``uaa.jwt.revocable`` or
+the Identity Zone config ``config.tokenPolicy.jwtRevocable`` is set to ``true``.
+
 ### Revoke all tokens for a user
 
 <%= render('TokenEndpointDocs/revokeAllTokens_forAUser/curl-request.md') %>
@@ -1140,10 +1173,10 @@ _Request and Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-| 422        | Unprocessable Entity - Invalid config                                 |
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                                                         |
+| 422        | Unprocessable Entity - Invalid config or updating IdP with alias while `aliasEntitiesEnabled` is false |
 
 ## Delete
 
@@ -1169,10 +1202,10 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-| 422        | Unprocessable Entity                                                  |
+| Error Code | Description                                                                                |
+|------------|--------------------------------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                                             |
+| 422        | Unprocessable Entity (e.g., deleting IdP with alias while `aliasEntitiesEnabled` is false) |
 
 ## Force password change for Users
 <%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/curl-request.md') %>

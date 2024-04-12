@@ -1,12 +1,12 @@
 package org.cloudfoundry.identity.uaa.approval;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -28,7 +28,7 @@ public class ApprovalService {
     public void ensureRequiredApprovals(String userId,
                                         Collection<String> requestedScopes,
                                         String grantType,
-                                        BaseClientDetails clientDetails) {
+                                        UaaClientDetails clientDetails) {
         Set<String> autoApprovedScopes = getAutoApprovedScopes(grantType, requestedScopes, clientDetails.getAutoApproveScopes());
         if(autoApprovedScopes.containsAll(requestedScopes)) { return; }
         Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);

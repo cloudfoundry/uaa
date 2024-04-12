@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalsAdminEndpoints;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
 import org.cloudfoundry.identity.uaa.db.Vendor;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -29,8 +30,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 
 import java.sql.SQLException;
 import java.util.*;
@@ -86,7 +86,7 @@ class ApprovalsAdminEndpointsTests {
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
 
         MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
-        BaseClientDetails details = new BaseClientDetails("c1", "scim,clients", "read,write",
+        UaaClientDetails details = new UaaClientDetails("c1", "scim,clients", "read,write",
                 "authorization_code, password, implicit, client_credentials", "update");
         details.setAutoApproveScopes(Collections.singletonList("true"));
         clientDetailsService.addClientDetails(details);

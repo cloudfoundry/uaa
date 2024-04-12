@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootst
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
@@ -20,6 +21,11 @@ import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
+
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
@@ -42,6 +48,7 @@ import java.util.List;
 import java.util.Scanner;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,6 +56,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 class SystemPropertiesCleanupExtension implements BeforeAllCallback, AfterAllCallback {
 
@@ -165,6 +173,28 @@ class BootstrapTests {
         assertEquals(
                 SamlIdentityProviderDefinition.MetadataLocation.URL,
                 defs.get(defs.size() - 1).getType()
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("samlSignatureParameterProvider")
+    void samlSignatureAlgorithm(String yamlFile, SamlConfigurationBean.SignatureAlgorithm algorithm) {
+        // When we override the SHA1 default for login.saml.signatureAlgorithm in the yaml, make sure it works.
+        context = getServletContext("default", yamlFile);
+
+        SamlConfigurationBean samlConfig = context.getBean("defaultSamlConfig", SamlConfigurationBean.class);
+        assertEquals(
+                algorithm,
+                samlConfig.getSignatureAlgorithm(),
+                "The SAML signature algorithm in the yaml file is set in the bean"
+        );
+    }
+
+    static Stream<Arguments> samlSignatureParameterProvider() {
+        final String yamlPath = "test/config/";
+        return Stream.of(
+                arguments(yamlPath + "saml-algorithm-sha256.yml", SamlConfigurationBean.SignatureAlgorithm.SHA256),
+                arguments(yamlPath + "saml-algorithm-sha512.yml", SamlConfigurationBean.SignatureAlgorithm.SHA512)
         );
     }
 

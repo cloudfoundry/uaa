@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -19,8 +20,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.springframework.web.client.HttpClientErrorException;
 
 import java.sql.Timestamp;
@@ -107,7 +107,7 @@ class EmailInvitationsServiceTests {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
 
-        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, null, null, "http://example.com/*/");
         when(mockClientDetailsService.loadClientByClientId("acmeClientId", zoneId)).thenReturn(clientDetails);
         when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
@@ -129,7 +129,7 @@ class EmailInvitationsServiceTests {
         ScimUser user = new ScimUser("ldap-user-id", "ldapuser", "Charlie", "Brown");
         user.setOrigin(LDAP);
 
-        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, null, null, "http://example.com/*/");
         when(mockScimUserProvisioning.retrieve(eq("ldap-user-id"), eq(zoneId))).thenReturn(user);
         when(mockClientDetailsService.loadClientByClientId("acmeClientId", zoneId)).thenReturn(clientDetails);
 
@@ -170,7 +170,7 @@ class EmailInvitationsServiceTests {
     void acceptInvitationWithValidRedirectUri() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
-        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, null, null, "http://example.com/*/");
         when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
         when(mockClientDetailsService.loadClientByClientId("acmeClientId", zoneId)).thenReturn(clientDetails);
@@ -193,7 +193,7 @@ class EmailInvitationsServiceTests {
     void acceptInvitationWithInvalidRedirectUri() {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         user.setOrigin(UAA);
-        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         when(mockScimUserProvisioning.verifyUser(anyString(), anyInt(), eq(zoneId))).thenReturn(user);
         when(mockScimUserProvisioning.retrieve(eq("user-id-001"), eq(zoneId))).thenReturn(user);
         when(mockClientDetailsService.loadClientByClientId("acmeClientId", zoneId)).thenReturn(clientDetails);

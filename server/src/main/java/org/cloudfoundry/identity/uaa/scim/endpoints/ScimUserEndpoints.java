@@ -102,6 +102,8 @@ import org.springframework.web.util.HtmlUtils;
 
 import com.jayway.jsonpath.JsonPathException;
 
+import lombok.Getter;
+
 /**
  * User provisioning and query endpoints. Implements the core API from the
  * Simple Cloud Identity Management (SCIM)
@@ -131,6 +133,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private final ApprovalStore approvalStore;
     private final ScimGroupMembershipManager membershipManager;
     private final boolean aliasEntitiesEnabled;
+    @Getter
     private final int userMaxCount;
     private final HttpMessageConverter<?>[] messageConverters;
     private final AtomicInteger scimUpdates;

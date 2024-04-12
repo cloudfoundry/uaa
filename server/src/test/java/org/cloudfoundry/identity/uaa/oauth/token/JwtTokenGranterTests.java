@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -35,7 +36,6 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
 import java.util.Collections;
@@ -100,7 +100,7 @@ public class JwtTokenGranterTests {
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        client = new BaseClientDetails("clientID",null,"uaa.user",GRANT_TYPE_JWT_BEARER, null);
+        client = new UaaClientDetails("clientID",null,"uaa.user",GRANT_TYPE_JWT_BEARER, null);
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), anyString())).thenReturn(client);
         requestParameters = new HashMap<>();
         requestParameters.put(OAuth2Utils.CLIENT_ID, client.getClientId());

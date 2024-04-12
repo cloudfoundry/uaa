@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.openid;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -16,7 +17,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -50,7 +50,7 @@ class IdTokenCreatorTest {
     private String familyName;
     private String email;
     private UaaUser user;
-    private BaseClientDetails clientDetails;
+    private UaaClientDetails clientDetails;
     private long previousLogonTime;
     private String phoneNumber;
     private Set<String> roles;
@@ -153,7 +153,7 @@ class IdTokenCreatorTest {
         excludedClaims = new HashSet<>();
 
         MultitenantClientServices mockMultitenantClientServices = mock(MultitenantClientServices.class);
-        clientDetails = new BaseClientDetails();
+        clientDetails = new UaaClientDetails();
         clientDetails.setClientId(clientId);
         clientDetails.setClientSecret(clientsecret);
 
