@@ -155,6 +155,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         // update the existing alias entity
         if (existingAliasEntity != null) {
             setId(aliasEntity, existingAliasEntity.getId());
+            setPropertiesFromExistingAliasEntity(aliasEntity, existingAliasEntity);
             updateEntity(aliasEntity, originalEntity.getAliasZid());
             return originalEntity;
         }
@@ -177,6 +178,12 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         originalEntity.setAliasId(persistedAliasEntity.getId());
         return updateEntity(originalEntity, originalEntity.getZoneId());
     }
+
+    /**
+     * Set properties from the existing alias entity in the new alias entity before it is updated. Can be used if
+     * certain properties should differ between the original and the alias entity.
+     */
+    protected abstract void setPropertiesFromExistingAliasEntity(final T newAliasEntity, final T existingAliasEntity);
 
     private T buildAliasEntity(final T originalEntity) {
         final T aliasEntity = cloneEntity(originalEntity);
@@ -210,7 +217,10 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
 
     protected abstract T createEntity(final T entity, final String zoneId) throws EntityAliasFailedException;
 
-    protected static <T extends EntityWithAlias> boolean isValidAliasPair(final T entity1, final T entity2) {
+    protected static <T extends EntityWithAlias> boolean isValidAliasPair(
+            @NonNull final T entity1,
+            @NonNull final T entity2
+    ) {
         // check if both entities have an alias
         final boolean entity1HasAlias = hasText(entity1.getAliasId()) && hasText(entity1.getAliasZid());
         final boolean entity2HasAlias = hasText(entity2.getAliasId()) && hasText(entity2.getAliasZid());

@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim;
 
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptySet;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.EMPTY_STRING;
 
 import java.util.Optional;
 
@@ -9,7 +8,6 @@ import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -43,31 +41,37 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
     protected boolean additionalValidationChecksForNewAlias(final ScimUser requestBody) {
         /* check if an IdP with the user's origin exists in both the current and the alias zone and that they are
          * aliases of each other */
-        final IdentityProvider<?> idpInAliasZone = retrieveIdpByOrigin(
-                requestBody.getOrigin(),
-                requestBody.getAliasZid()
-        );
-        final IdentityProvider<?> idpInCurrentZone = retrieveIdpByOrigin(
-                requestBody.getOrigin(),
-                identityZoneManager.getCurrentIdentityZoneId()
-        );
-        return EntityAliasHandler.isValidAliasPair(idpInCurrentZone, idpInAliasZone);
+        final String origin = requestBody.getOrigin();
+        final Optional<IdentityProvider<?>> idpInAliasZone = retrieveIdpByOrigin(origin, requestBody.getAliasZid());
+        if (idpInAliasZone.isEmpty()) {
+            return false;
+        }
+        final Optional<IdentityProvider<?>> idpInCurrentZone = retrieveIdpByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId());
+        if (idpInCurrentZone.isEmpty()) {
+            return false;
+        }
+        return EntityAliasHandler.isValidAliasPair(idpInCurrentZone.get(), idpInAliasZone.get());
     }
 
-    private IdentityProvider<?> retrieveIdpByOrigin(final String originKey, final String zoneId) {
+    @Override
+    protected void setPropertiesFromExistingAliasEntity(
+            final ScimUser newAliasEntity,
+            final ScimUser existingAliasEntity
+    ) {
+        // these three timestamps should not be overwritten by the timestamps of the original user
+        newAliasEntity.setPasswordLastModified(existingAliasEntity.getPasswordLastModified());
+        newAliasEntity.setLastLogonTime(existingAliasEntity.getLastLogonTime());
+        newAliasEntity.setPreviousLogonTime(existingAliasEntity.getPreviousLogonTime());
+    }
+
+    private Optional<IdentityProvider<?>> retrieveIdpByOrigin(final String originKey, final String zoneId) {
         final IdentityProvider<?> idpInAliasZone;
         try {
-            idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(
-                    originKey,
-                    zoneId
-            );
+            idpInAliasZone = identityProviderProvisioning.retrieveByOrigin(originKey, zoneId);
         } catch (final EmptyResultDataAccessException e) {
-            throw new ScimException(
-                    String.format("No IdP with the origin '%s' exists in the zone '%s'.", originKey, zoneId),
-                    HttpStatus.BAD_REQUEST
-            );
+            return Optional.empty();
         }
-        return idpInAliasZone;
+        return Optional.ofNullable(idpInAliasZone);
     }
 
     @Override
@@ -84,43 +88,41 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
     protected ScimUser cloneEntity(final ScimUser originalEntity) {
         final ScimUser aliasUser = new ScimUser();
 
-        aliasUser.setUserName(originalEntity.getUserName());
-        aliasUser.setUserType(originalEntity.getUserType());
-
-        aliasUser.setOrigin(originalEntity.getOrigin());
+        aliasUser.setId(null);
         aliasUser.setExternalId(originalEntity.getExternalId());
 
-        aliasUser.setTitle(originalEntity.getTitle());
-        aliasUser.setName(originalEntity.getName());
-        aliasUser.setDisplayName(originalEntity.getDisplayName());
-        aliasUser.setNickName(originalEntity.getNickName());
+        /* we only allow alias users to be created if their origin IdP has an alias to the same zone, therefore, an IdP
+         * with the same origin key will exist in the alias zone  */
+        aliasUser.setOrigin(originalEntity.getOrigin());
+
+        aliasUser.setUserName(originalEntity.getUserName());
+        aliasUser.setName(new ScimUser.Name(originalEntity.getGivenName(), originalEntity.getFamilyName()));
 
         aliasUser.setEmails(originalEntity.getEmails());
         aliasUser.setPhoneNumbers(originalEntity.getPhoneNumbers());
 
-        aliasUser.setLocale(originalEntity.getLocale());
-        aliasUser.setTimezone(originalEntity.getTimezone());
-        aliasUser.setProfileUrl(originalEntity.getProfileUrl()); // TODO should this be equal?
-
-        final String passwordOriginalEntity = scimUserProvisioning.retrievePasswordForUser(
-                originalEntity.getId(),
-                originalEntity.getZoneId()
-        );
-        aliasUser.setPassword(passwordOriginalEntity);
-        aliasUser.setSalt(originalEntity.getSalt());
-        aliasUser.setPasswordLastModified(originalEntity.getPasswordLastModified());
-        aliasUser.setLastLogonTime(originalEntity.getLastLogonTime());
-
         aliasUser.setActive(originalEntity.isActive());
-        aliasUser.setVerified(originalEntity.isVerified()); // TODO should this be true initially?
+        aliasUser.setVerified(originalEntity.isVerified());
 
-        // the alias user won't have any groups or approvals in the alias zone, they need to be assigned separately
-        aliasUser.setApprovals(emptySet());
-        aliasUser.setGroups(emptyList());
+        // idzId and alias properties will be set later
+        aliasUser.setZoneId(null);
+        aliasUser.setAliasId(null);
+        aliasUser.setAliasZid(null);
 
-        aliasUser.setSchemas(originalEntity.getSchemas());
+        /* these timestamps will be overwritten:
+         *  - creation: with current timestamp during persistence (JdbcScimUserProvisioning)
+         *  - update: with values from existing alias entity */
+        aliasUser.setPasswordLastModified(null);
+        aliasUser.setLastLogonTime(null);
+        aliasUser.setPreviousLogonTime(null);
 
-        // aliasId, aliasZid, id and zoneId are set in the parent class
+        /* password: empty string
+         *  - alias users are only allowed for IdPs that also have an alias
+         *  - IdPs can only have an alias if they are of type SAML, OIDC or OAuth 2.0
+         *  - users with such IdPs as their origin always have an empty password
+         */
+        aliasUser.setPassword(EMPTY_STRING);
+        aliasUser.setSalt(null);
 
         return aliasUser;
     }
