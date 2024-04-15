@@ -1490,20 +1490,6 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         assertThat(originalUser.getSchemas()).isEqualTo(aliasUser.getSchemas());
     }
 
-    private void assertReferenceIsBrokenInAlias(
-            final String initialAliasId,
-            final String initialAliasZid
-    ) throws Exception {
-        final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
-                initialAliasId,
-                initialAliasZid
-        );
-        assertThat(aliasUserOpt).isPresent();
-        final ScimUser aliasUser = aliasUserOpt.get();
-        assertThat(aliasUser.getAliasId()).isBlank();
-        assertThat(aliasUser.getAliasZid()).isBlank();
-    }
-
     private static ScimUser buildScimUser(
             final String origin,
             final String zoneId,
