@@ -375,7 +375,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if (userHasAlias && !aliasEntitiesEnabled) {
             throw new UaaException(
                     "Could not delete user with alias since alias entities are disabled.",
-                    HttpStatus.UNPROCESSABLE_ENTITY.value()
+                    HttpStatus.BAD_REQUEST.value()
             );
         }
 

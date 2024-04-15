@@ -1366,7 +1366,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                         () -> createScimUser(zone1, userWithAlias)
                 );
 
-                shouldRejectDeletion(createdUserWithAlias.getId(), zone1, HttpStatus.UNPROCESSABLE_ENTITY);
+                shouldRejectDeletion(createdUserWithAlias.getId(), zone1, HttpStatus.BAD_REQUEST);
 
                 // both users should still be present
                 assertThat(readUserFromZoneIfExists(
