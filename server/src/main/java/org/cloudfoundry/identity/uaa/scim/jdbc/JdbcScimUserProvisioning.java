@@ -89,13 +89,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, username=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=?, alias_id=?, alias_zid=? where id=? and version=? and identity_zone_id=?";
 
     public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=? and identity_zone_id=?";
-    private static final String DEACTIVATE_USER_WITH_VERSION_SQL = DEACTIVATE_USER_SQL + " and version=?";
 
     public static final String VERIFY_USER_SQL = "update users set verified=? where id=? and identity_zone_id=?";
-    private static final String VERIFY_USER_WITH_VERSION_SQL = VERIFY_USER_SQL + " and version=?";
 
     public static final String DELETE_USER_SQL = "delete from users where id=? and identity_zone_id=?";
-    private static final String DELETE_USER_WITH_VERSION_SQL = DELETE_USER_SQL + " and version=?";
 
     public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=? and identity_zone_id=?";
 
@@ -169,16 +166,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
         }
-    }
-
-    @Override
-    public String retrievePasswordForUser(final String id, final String zoneId) {
-        return jdbcTemplate.queryForObject(
-                READ_PASSWORD_SQL,
-                new Object[]{id, zoneId},
-                new int[]{VARCHAR, VARCHAR},
-                String.class
-        );
     }
 
     @Override
@@ -479,7 +466,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             // Ignore
             updated = jdbcTemplate.update(DEACTIVATE_USER_SQL, false, user.getId(), zoneId);
         } else {
-            updated = jdbcTemplate.update(DEACTIVATE_USER_WITH_VERSION_SQL, false, user.getId(), zoneId, version);
+            updated = jdbcTemplate.update(DEACTIVATE_USER_SQL + " and version=?", false, user.getId(), zoneId, version);
         }
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
@@ -503,7 +490,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             updated = jdbcTemplate.update(VERIFY_USER_SQL, true, id, zoneId);
         }
         else {
-            updated = jdbcTemplate.update(VERIFY_USER_WITH_VERSION_SQL, true, id, zoneId, version);
+            updated = jdbcTemplate.update(VERIFY_USER_SQL + " and version=?", true, id, zoneId, version);
         }
         ScimUser user = retrieve(id, zoneId);
         if (updated == 0) {
@@ -535,7 +522,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             updated = jdbcTemplate.update(DELETE_USER_SQL, userId, zoneId);
         }
         else {
-            updated = jdbcTemplate.update(DELETE_USER_WITH_VERSION_SQL, userId, zoneId, version);
+            updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", userId, zoneId, version);
         }
         return updated;
     }

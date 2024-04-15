@@ -41,8 +41,6 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
 
     List<ScimUser> retrieveByUsernameAndOriginAndZone(String username, String origin, String zoneId);
 
-    String retrievePasswordForUser(String id, String zoneId);
-
     void changePassword(String id, String oldPassword, String newPassword, String zoneId) throws ScimResourceNotFoundException;
 
     void updatePasswordChangeRequired(String userId, boolean passwordChangeRequired, String zoneId) throws ScimResourceNotFoundException;
