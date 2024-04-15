@@ -971,17 +971,17 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged_UaaToCustomZone(final HttpMethod method) throws Throwable {
-                    shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(method, uaaZone, customZone);
+                void shouldReject_AliasPropsSetToNullAndOtherPropsChanged_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_AliasPropsSetToNullAndOtherPropsChanged(method, uaaZone, customZone);
                 }
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged_CustomToUaaZone(final HttpMethod method) throws Throwable {
-                    shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(method, customZone, uaaZone);
+                void shouldReject_AliasPropsSetToNullAndOtherPropsChanged_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_AliasPropsSetToNullAndOtherPropsChanged(method, customZone, uaaZone);
                 }
 
-                private void shouldAccept_AliasPropsSetToNullAndOtherPropsChanged(
+                private void shouldReject_AliasPropsSetToNullAndOtherPropsChanged(
                         final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
@@ -991,26 +991,12 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                             () -> createIdpAndUserWithAlias(zone1, zone2)
                     );
 
-                    final String initialAliasId = createdScimUser.getAliasId();
-                    assertThat(initialAliasId).isNotBlank();
-
-                    final String initialAliasZid = createdScimUser.getAliasZid();
-                    assertThat(initialAliasZid).isNotBlank().isEqualTo(zone2.getId());
-
                     createdScimUser.setAliasId(StringUtils.EMPTY);
                     createdScimUser.setAliasZid(StringUtils.EMPTY);
                     final String newGivenName = "some-new-given-name";
                     createdScimUser.setName(new ScimUser.Name(newGivenName, createdScimUser.getFamilyName()));
-                    final ScimUser updatedScimUser = updateUser(method, zone1, createdScimUser);
 
-                    assertThat(updatedScimUser.getAliasId()).isBlank();
-                    assertThat(updatedScimUser.getAliasZid()).isBlank();
-
-                    // reference should also be broken in alias user
-                    assertReferenceIsBrokenInAlias(initialAliasId, initialAliasZid);
-                    final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(initialAliasId, initialAliasZid);
-                    assertThat(aliasUserOpt).isPresent();
-                    assertThat(aliasUserOpt.get().getGivenName()).isNotEqualTo(newGivenName);
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
                 @ParameterizedTest
