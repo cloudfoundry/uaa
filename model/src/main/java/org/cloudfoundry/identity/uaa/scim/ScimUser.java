@@ -474,7 +474,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.displayName = displayName;
     }
 
-    public String getNickName() {
+    String getNickName() {
         return nickName;
     }
 
@@ -482,7 +482,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.nickName = nickName;
     }
 
-    public String getProfileUrl() {
+    String getProfileUrl() {
         return profileUrl;
     }
 
@@ -506,7 +506,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.userType = userType;
     }
 
-    public String getPreferredLanguage() {
+    String getPreferredLanguage() {
         return preferredLanguage;
     }
 
@@ -522,7 +522,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.locale = locale;
     }
 
-    public String getTimezone() {
+    String getTimezone() {
         return timezone;
     }
 
