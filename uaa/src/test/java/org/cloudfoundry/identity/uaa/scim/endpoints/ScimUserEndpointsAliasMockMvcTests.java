@@ -1001,17 +1001,17 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser_UaaToCustomZone(final HttpMethod method) throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(method, uaaZone, customZone);
+                void shouldReject_EvenIfAliasIdMissingInExistingUser_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_EvenIfAliasIdMissingInExistingUser(method, uaaZone, customZone);
                 }
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser_CustomToUaaZone(final HttpMethod method) throws Throwable {
-                    shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(method, customZone, uaaZone);
+                void shouldReject_EvenIfShouldIgnoreAliasIdMissingInExistingUser_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_EvenIfAliasIdMissingInExistingUser(method, customZone, uaaZone);
                 }
 
-                private void shouldAccept_ShouldIgnoreAliasIdMissingInExistingUser(
+                private void shouldReject_EvenIfAliasIdMissingInExistingUser(
                         final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
@@ -1026,9 +1026,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     final ScimUser scimUserWithIncompleteRef = updateUserViaDb(createdScimUser, zone1.getId());
 
                     scimUserWithIncompleteRef.setAliasZid(StringUtils.EMPTY);
-                    final ScimUser updatedScimUser = updateUser(method, zone1, scimUserWithIncompleteRef);
-                    assertThat(updatedScimUser.getAliasId()).isBlank();
-                    assertThat(updatedScimUser.getAliasZid()).isBlank();
+                    shouldRejectUpdate(method, zone1, scimUserWithIncompleteRef, HttpStatus.BAD_REQUEST);
                 }
 
                 @ParameterizedTest
