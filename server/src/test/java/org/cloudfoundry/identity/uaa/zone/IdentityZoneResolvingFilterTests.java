@@ -89,13 +89,13 @@ class IdentityZoneResolvingFilterTests {
     }
 
     @Test
-    public void serveStaticContent_InCase_RetrievingZoneFails_local() throws Exception {
+    void serveStaticContent_InCase_RetrievingZoneFails_local() throws Exception {
         checkStaticContent("/uaa", "/resources/css/application.css");
         checkStaticContent("/uaa", "/vendor/font-awesome/css/font-awesome.min.css");
     }
 
     @Test
-    public void serveStaticContent_InCase_RetrievingZoneFails() throws Exception {
+    void serveStaticContent_InCase_RetrievingZoneFails() throws Exception {
         checkStaticContent(null, "/resources/css/application.css");
         checkStaticContent(null, "/vendor/font-awesome/css/font-awesome.min.css");
     }
