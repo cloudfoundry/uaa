@@ -1007,7 +1007,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldReject_EvenIfShouldIgnoreAliasIdMissingInExistingUser_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                void shouldReject_EvenIfAliasIdMissingInExistingUser_CustomToUaaZone(final HttpMethod method) throws Throwable {
                     shouldReject_EvenIfAliasIdMissingInExistingUser(method, customZone, uaaZone);
                 }
 
@@ -1064,17 +1064,17 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted_UaaToCustomZone(final HttpMethod method) throws Throwable {
-                    shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(method, uaaZone, customZone);
+                void shouldReject_OnlyNonAliasPropertiesChanged_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OnlyNonAliasPropertiesChanged(method, uaaZone, customZone);
                 }
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted_CustomToUaaZone(final HttpMethod method) throws Throwable {
-                    shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(method, customZone, uaaZone);
+                void shouldReject_OnlyNonAliasPropertiesChanged_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_OnlyNonAliasPropertiesChanged(method, customZone, uaaZone);
                 }
 
-                private void shouldReject_OtherPropsChangedWhileAliasPropsNotDeleted(
+                private void shouldReject_OnlyNonAliasPropertiesChanged(
                         final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
