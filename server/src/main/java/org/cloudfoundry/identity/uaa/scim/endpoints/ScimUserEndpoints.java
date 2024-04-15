@@ -371,6 +371,14 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         ScimUser user = getUser(userId, httpServletResponse);
         throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
 
+        final boolean userHasAlias = hasText(user.getAliasZid());
+        if (userHasAlias && !aliasEntitiesEnabled) {
+            throw new UaaException(
+                    "Could not delete user with alias since alias entities are disabled.",
+                    HttpStatus.UNPROCESSABLE_ENTITY.value()
+            );
+        }
+
         membershipManager.removeMembersByMemberId(userId, identityZoneManager.getCurrentIdentityZoneId());
         scimUserProvisioning.delete(userId, version, identityZoneManager.getCurrentIdentityZoneId());
         scimDeletes.incrementAndGet();
@@ -381,37 +389,22 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                             SecurityContextHolder.getContext().getAuthentication(),
                             identityZoneManager.getCurrentIdentityZoneId())
             );
-            logger.debug("User delete event sent[" + userId + "]");
+            logger.debug("User delete event sent[{}]", userId);
         }
 
-        // handle alias user, if present
-        final boolean hasAlias = hasText(user.getAliasId()) && hasText(user.getAliasZid());
-        if (!hasAlias) {
+        if (!userHasAlias) {
             // no further action necessary
             return user;
         }
 
+        // also delete alias user, if present
         final Optional<ScimUser> aliasUserOpt = aliasHandler.retrieveAliasEntity(user);
         if (aliasUserOpt.isEmpty()) {
-            logger.warn(
-                    "Attempted to delete or break reference to alias of user '{}', but it was not present.",
-                    user.getId()
-            );
+            // ignore dangling reference to alias user
+            logger.warn("Attempted to delete alias of user '{}', but it was not present.", user.getId());
             return user;
         }
         final ScimUser aliasUser = aliasUserOpt.get();
-
-        if (!aliasEntitiesEnabled) {
-            // just break the reference in the alias user
-            aliasUser.setAliasId(null);
-            aliasUser.setAliasZid(null);
-            scimUserProvisioning.update(aliasUser.getId(), aliasUser, aliasUser.getZoneId());
-
-            // return original user
-            return user;
-        }
-
-        // also remove alias user
         membershipManager.removeMembersByMemberId(aliasUser.getId(), aliasUser.getZoneId());
         scimUserProvisioning.delete(aliasUser.getId(), aliasUser.getVersion(), aliasUser.getZoneId());
         scimDeletes.incrementAndGet();
@@ -423,7 +416,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                             aliasUser.getZoneId()
                     )
             );
-            logger.debug("User delete event sent[" + userId + "]");
+            logger.debug("User delete event sent[{}]", userId);
         }
 
         return user;
