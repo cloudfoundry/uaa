@@ -86,7 +86,8 @@
 <!--        <property name="keyManager" ref="zoneAwareSamlSpKeyManager"/>-->
 <!--    </bean>-->
 
-<b:bean id="aggregateConfiguration" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfiguration" />
+    <b:bean id="aggregateConfiguration" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfiguration" />
+
 
 <!--    &lt;!&ndash; Filter automatically generates default SP metadata &ndash;&gt;-->
 <!--    <bean id="metadataGeneratorFilter" class="org.springframework.security.saml.metadata.MetadataGeneratorFilter">-->

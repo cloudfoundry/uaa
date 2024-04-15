@@ -73,6 +73,12 @@ class SamlMetadataMockMvcTests {
     }
 
     @Test
+    void testSamlMetadataDefaultNoEndingSlash() throws Exception {
+        mockMvc.perform(get(new URI("/saml/metadata/example")))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void testSamlMetadataDefault() throws Exception {
         ResultActions response = null;
 
