@@ -1276,45 +1276,6 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             void tearDown() {
                 arrangeAliasFeatureEnabled(true);
             }
-
-            @Test
-            final void shouldIgnoreDanglingReference_UaaToCustomZone() throws Throwable {
-                shouldIgnoreDanglingReference(uaaZone, customZone);
-            }
-
-            @Test
-            final void shouldIgnoreDanglingReference_CustomToUaaZone() throws Throwable {
-                shouldIgnoreDanglingReference(customZone, uaaZone);
-            }
-
-            private void shouldIgnoreDanglingReference(
-                    final IdentityZone zone1,
-                    final IdentityZone zone2
-            ) throws Throwable {
-                final IdentityProvider<?> idpWithAlias = executeWithTemporarilyEnabledAliasFeature(
-                        aliasFeatureEnabled,
-                        () -> createIdpWithAlias(zone1, zone2)
-                );
-
-                final ScimUser userWithAlias = buildScimUser(
-                        idpWithAlias.getOriginKey(),
-                        zone1.getId(),
-                        null,
-                        zone2.getId()
-                );
-                final ScimUser createdUserWithAlias = executeWithTemporarilyEnabledAliasFeature(
-                        aliasFeatureEnabled,
-                        () -> createScimUser(zone1, userWithAlias)
-                );
-                assertThat(createdUserWithAlias.getAliasId()).isNotBlank();
-                assertThat(createdUserWithAlias.getAliasZid()).isNotBlank();
-
-                // create dangling reference by removing alias user directly in DB
-                deleteUserViaDb(createdUserWithAlias.getAliasId(), createdUserWithAlias.getAliasZid());
-
-                // deletion should still work
-                shouldSuccessfullyDeleteUser(createdUserWithAlias, zone1);
-            }
         }
 
         @Nested
@@ -1357,6 +1318,45 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 shouldSuccessfullyDeleteUser(createdUserWithAlias, zone1);
                 assertUserDoesNotExist(createdUserWithAlias.getAliasId(), zone2.getId());
             }
+
+            @Test
+            void shouldIgnoreDanglingReference_UaaToCustomZone() throws Throwable {
+                shouldIgnoreDanglingReference(uaaZone, customZone);
+            }
+
+            @Test
+            void shouldIgnoreDanglingReference_CustomToUaaZone() throws Throwable {
+                shouldIgnoreDanglingReference(customZone, uaaZone);
+            }
+
+            private void shouldIgnoreDanglingReference(
+                    final IdentityZone zone1,
+                    final IdentityZone zone2
+            ) throws Throwable {
+                final IdentityProvider<?> idpWithAlias = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createIdpWithAlias(zone1, zone2)
+                );
+
+                final ScimUser userWithAlias = buildScimUser(
+                        idpWithAlias.getOriginKey(),
+                        zone1.getId(),
+                        null,
+                        zone2.getId()
+                );
+                final ScimUser createdUserWithAlias = executeWithTemporarilyEnabledAliasFeature(
+                        aliasFeatureEnabled,
+                        () -> createScimUser(zone1, userWithAlias)
+                );
+                assertThat(createdUserWithAlias.getAliasId()).isNotBlank();
+                assertThat(createdUserWithAlias.getAliasZid()).isNotBlank();
+
+                // create dangling reference by removing alias user directly in DB
+                deleteUserViaDb(createdUserWithAlias.getAliasId(), createdUserWithAlias.getAliasZid());
+
+                // deletion should still work
+                shouldSuccessfullyDeleteUser(createdUserWithAlias, zone1);
+            }
         }
 
         @Nested
@@ -1366,16 +1366,16 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             }
 
             @Test
-            void shouldBreakReferenceToAliasUser_UaaToCustomZone() throws Throwable {
-                shouldBreakReferenceToAliasUser(uaaZone, customZone);
+            void shouldRejectDeletion_WhenAliasUserExists_UaaToCustomZone() throws Throwable {
+                shouldRejectDeletion_WhenAliasUserExists(uaaZone, customZone);
             }
 
             @Test
-            void shouldBreakReferenceToAliasUser_CustomToUaaZone() throws Throwable {
-                shouldBreakReferenceToAliasUser(customZone, uaaZone);
+            void shouldRejectDeletion_WhenAliasUserExists_CustomToUaaZone() throws Throwable {
+                shouldRejectDeletion_WhenAliasUserExists(customZone, uaaZone);
             }
 
-            private void shouldBreakReferenceToAliasUser(
+            private void shouldRejectDeletion_WhenAliasUserExists(
                     final IdentityZone zone1,
                     final IdentityZone zone2
             ) throws Throwable {
@@ -1395,17 +1395,30 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                         () -> createScimUser(zone1, userWithAlias)
                 );
 
-                shouldSuccessfullyDeleteUser(createdUserWithAlias, zone1);
+                shouldRejectDeletion(createdUserWithAlias.getId(), zone1, HttpStatus.UNPROCESSABLE_ENTITY);
 
-                // the alias user should still be present with only its reference to the original user removed
-                final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
+                // both users should still be present
+                assertThat(readUserFromZoneIfExists(
+                        createdUserWithAlias.getId(),
+                        createdUserWithAlias.getZoneId()
+                )).isPresent();
+                assertThat(readUserFromZoneIfExists(
                         createdUserWithAlias.getAliasId(),
-                        zone2.getId()
-                );
-                assertThat(aliasUserOpt).isPresent();
-                final ScimUser aliasUser = aliasUserOpt.get();
-                assertThat(aliasUser.getAliasId()).isBlank();
-                assertThat(aliasUser.getAliasZid()).isBlank();
+                        createdUserWithAlias.getAliasZid()
+                )).isPresent();
+            }
+
+            private void shouldRejectDeletion(
+                    final String userId,
+                    final IdentityZone zone,
+                    final HttpStatus expectedStatusCode
+            ) throws Exception {
+                assertThat(expectedStatusCode.isError()).isTrue();
+                final MvcResult result = deleteScimUserAndReturnResult(userId, zone);
+                assertThat(result).isNotNull();
+                final MockHttpServletResponse response = result.getResponse();
+                assertThat(response).isNotNull();
+                assertThat(response.getStatus()).isEqualTo(expectedStatusCode.value());
             }
         }
 
