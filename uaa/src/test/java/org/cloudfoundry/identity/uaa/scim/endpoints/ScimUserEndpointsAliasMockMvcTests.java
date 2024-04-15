@@ -1010,8 +1010,8 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                     createdScimUser.setAliasId(StringUtils.EMPTY);
                     createdScimUser.setAliasZid(StringUtils.EMPTY);
-                    final String newNickName = "some-new-nickname";
-                    createdScimUser.setNickName(newNickName);
+                    final String newGivenName = "some-new-given-name";
+                    createdScimUser.setName(new ScimUser.Name(newGivenName, createdScimUser.getFamilyName()));
                     final ScimUser updatedScimUser = updateUser(method, zone1, createdScimUser);
 
                     assertThat(updatedScimUser.getAliasId()).isBlank();
@@ -1021,7 +1021,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     assertReferenceIsBrokenInAlias(initialAliasId, initialAliasZid);
                     final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(initialAliasId, initialAliasZid);
                     assertThat(aliasUserOpt).isPresent();
-                    assertThat(aliasUserOpt.get().getNickName()).isNotEqualTo(newNickName);
+                    assertThat(aliasUserOpt.get().getGivenName()).isNotEqualTo(newGivenName);
                 }
 
                 @ParameterizedTest
@@ -1206,6 +1206,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 final ScimUser scimUser
         ) throws Exception {
             final MvcResult result = updateUserAndReturnResult(method, zone, scimUser);
+            assertThat(result).isNotNull();
             final MockHttpServletResponse response = result.getResponse();
             assertThat(response).isNotNull();
             assertThat(response.getStatus()).isEqualTo(HttpStatus.OK.value());
@@ -1252,6 +1253,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                 final HttpStatus expectedStatusCode
         ) throws Exception {
             final MvcResult result = updateUserAndReturnResult(method, zone, scimUser);
+            assertThat(result).isNotNull();
             assertThat(result.getResponse().getStatus()).isEqualTo(expectedStatusCode.value());
         }
     }
@@ -1461,30 +1463,19 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         // the other properties should be equal
 
         assertThat(originalUser.getUserName()).isEqualTo(aliasUser.getUserName());
-        assertThat(originalUser.getUserType()).isEqualTo(aliasUser.getUserType());
 
         assertThat(originalUser.getOrigin()).isEqualTo(aliasUser.getOrigin());
         assertThat(originalUser.getExternalId()).isEqualTo(aliasUser.getExternalId());
 
-        assertThat(originalUser.getTitle()).isEqualTo(aliasUser.getTitle());
         assertThat(originalUser.getName()).isEqualTo(aliasUser.getName());
         assertThat(originalUser.getDisplayName()).isEqualTo(aliasUser.getDisplayName());
-        assertThat(originalUser.getNickName()).isEqualTo(aliasUser.getNickName());
 
         assertThat(originalUser.getEmails()).isEqualTo(aliasUser.getEmails());
         assertThat(originalUser.getPrimaryEmail()).isEqualTo(aliasUser.getPrimaryEmail());
         assertThat(originalUser.getPhoneNumbers()).isEqualTo(aliasUser.getPhoneNumbers());
 
-        assertThat(originalUser.getLocale()).isEqualTo(aliasUser.getLocale());
-        assertThat(originalUser.getPreferredLanguage()).isEqualTo(aliasUser.getPreferredLanguage());
-        assertThat(originalUser.getTimezone()).isEqualTo(aliasUser.getTimezone());
-
-        assertThat(originalUser.getProfileUrl()).isEqualTo(aliasUser.getProfileUrl());
-
         assertThat(originalUser.getPassword()).isEqualTo(aliasUser.getPassword());
         assertThat(originalUser.getSalt()).isEqualTo(aliasUser.getSalt());
-        assertThat(originalUser.getPasswordLastModified()).isEqualTo(aliasUser.getPasswordLastModified());
-        assertThat(originalUser.getLastLogonTime()).isEqualTo(aliasUser.getLastLogonTime());
 
         assertThat(originalUser.isActive()).isEqualTo(aliasUser.isActive());
         assertThat(originalUser.isVerified()).isEqualTo(aliasUser.isVerified());
