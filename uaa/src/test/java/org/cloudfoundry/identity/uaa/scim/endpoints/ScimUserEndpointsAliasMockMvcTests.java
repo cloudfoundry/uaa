@@ -1031,17 +1031,17 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldAccept_ShouldIgnoreDanglingRef_UaaToCustomZone(final HttpMethod method) throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingRef(method, uaaZone, customZone);
+                void shouldReject_DanglingRef_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    shouldReject_DanglingRef(method, uaaZone, customZone);
                 }
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
-                void shouldAccept_ShouldIgnoreDanglingRef_CustomToUaaZone(final HttpMethod method) throws Throwable {
-                    shouldAccept_ShouldIgnoreDanglingRef(method, customZone, uaaZone);
+                void shouldReject_DanglingRef_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    shouldReject_DanglingRef(method, customZone, uaaZone);
                 }
 
-                private void shouldAccept_ShouldIgnoreDanglingRef(
+                private void shouldReject_DanglingRef(
                         final HttpMethod method,
                         final IdentityZone zone1,
                         final IdentityZone zone2
@@ -1058,10 +1058,8 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     // create dangling reference by deleting alias
                     deleteUserViaDb(aliasId, aliasZid);
 
-                    // should ignore dangling reference in update
-                    createdScimUser.setAliasId(StringUtils.EMPTY);
-                    createdScimUser.setAliasZid(StringUtils.EMPTY);
-                    updateUser(method, zone1, createdScimUser);
+                    // should reject update even if there is a dangling reference
+                    shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
                 @ParameterizedTest
