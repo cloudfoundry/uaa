@@ -91,7 +91,7 @@ login:
     -----END CERTIFICATE-----
   url: http://localhost:8080/uaa
   entityBaseURL: http://localhost:8080/uaa
-  entityID: cloudfoundry-saml-login
+  entityID: integration-saml-entity-id
   saml:
     #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
     #entityIDAlias: cloudfoundry-saml-login
