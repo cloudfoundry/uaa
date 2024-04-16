@@ -5,15 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-//import org.junit.jupiter.api.Disabled;
-import org.junit.Assert;
 import org.junit.jupiter.api.Test;
 
-import static java.util.function.Predicate.not;
-//import static org.hamcrest.Matchers.emptyOrNullString;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.text.IsEmptyString.emptyOrNullString;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -22,13 +15,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DefaultTestContext
 class SamlMetadataMockMvcTests {
 
-    public static final String SAML_ENTITY_ID = "cloudfoundry-saml-login";
+    public static final String SAML_ENTITY_ID = "integration-saml-entity-id";
     @Autowired
     private MockMvc mockMvc;
 
 
     @Test
-    void redirectFromMetadataRoot() throws Exception {
+    void legacyMetadataRoot() throws Exception {
         ResultActions xml = mockMvc.perform(get(new URI("/saml/metadata")))
                 .andExpect(forwardedUrl("/saml/metadata/example"));
     }
@@ -46,8 +39,7 @@ class SamlMetadataMockMvcTests {
     }
 
     @Test
-//    @Disabled("Returning a 404, but it curls 200 and payload look good. It should not be a forwardedURL but direct")
-    void testSamlMetadataDefault() throws Exception {
+    void testSamlMetadataXMLValidation() throws Exception {
         ResultActions response = null;
 
         ResultActions xml = mockMvc.perform(get(new URI("/saml/metadata/example")))
@@ -55,8 +47,6 @@ class SamlMetadataMockMvcTests {
 //            // The SAML SP metadata should match the following UAA configs:
 //            // login.entityID
                 xml.andExpect(xpath("/EntityDescriptor/@entityID").string(SAML_ENTITY_ID));
-
-
 
 //            xpath("...ds:DigestMethod/@Algorithm").string("http://www.w3.org/2001/04/xmlenc#sha256");
 
