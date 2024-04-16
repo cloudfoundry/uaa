@@ -207,7 +207,7 @@ public class SamlLoginIT {
     public void testSamlSPMetadata() {
         RestTemplate request = new RestTemplate();
         ResponseEntity response = request.getForEntity(
-                baseUrl + "/saml/metadata", String.class);
+                baseUrl + "/saml/metadata/example", String.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         String metadataXml = (String)response.getBody();
 
