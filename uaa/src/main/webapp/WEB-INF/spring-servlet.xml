@@ -62,7 +62,7 @@
     <sec:http name="secFilterOpen03" pattern="/info" security="none"/>
     <sec:http name="secFilterOpen04" pattern="/password/**" security="none"/>
     <sec:http name="secFilterOpen05Healthz" pattern="/healthz/**" security="none"/>
-    <sec:http name="secFilterOpen06SAMLMetadata" pattern="/saml/metadata/**" security="none"/>
+<!--    <sec:http name="secFilterOpen06SAMLMetadata" pattern="/saml/metadata/**" security="none"/>-->
     <sec:http name="secFilterOpen06" pattern="/saml/web/**" security="none"/>
     <sec:http name="secFilterOpen07" pattern="/vendor/**" security="none"/>
     <!--<sec:http pattern="/login" security="none" />-->

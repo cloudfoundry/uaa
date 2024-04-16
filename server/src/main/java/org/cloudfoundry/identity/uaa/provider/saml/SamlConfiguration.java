@@ -4,6 +4,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityConfiguration;
@@ -18,9 +19,11 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 public class SamlConfiguration {
     public static final String AGGREGATE_SPRING_SECURITY_FILTER_CHAIN_ID = "aggregateSpringSecurityFilterChain";
 
-    @Bean(AGGREGATE_SPRING_SECURITY_FILTER_CHAIN_ID)
+//    @Bean(AGGREGATE_SPRING_SECURITY_FILTER_CHAIN_ID)
+    @Bean(name = AGGREGATE_SPRING_SECURITY_FILTER_CHAIN_ID)
+    @Lazy
     Saml2MetadataFilter aggregateSpringSecurityFilterChain(
-            WebSecurityConfiguration webSecurityConfiguration,
+//            WebSecurityConfiguration webSecurityConfiguration,
             @Autowired RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
 
         Converter<HttpServletRequest, RelyingPartyRegistration> relyingPartyRegistrationResolver =
