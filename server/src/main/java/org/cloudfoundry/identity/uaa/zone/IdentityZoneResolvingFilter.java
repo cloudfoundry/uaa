@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -36,6 +37,7 @@ import java.util.Set;
 public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements InitializingBean {
 
     private final IdentityZoneProvisioning dao;
+    private final Set<String> staticResources = Set.of("/resources/", "/vendor/font-awesome/");
     private Set<String> defaultZoneHostnames = new HashSet<>();
     private Logger logger = LoggerFactory.getLogger(getClass());
 
@@ -63,7 +65,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         }
         if (identityZone == null) {
             // skip filter to static resources in order to serve images and css in case of invalid zones
-            boolean isStaticResource = request.getRequestURI().startsWith("/uaa/resources/");
+            boolean isStaticResource = staticResources.stream().anyMatch(UaaUrlUtils.getRequestPath(request)::startsWith);
             if(isStaticResource) {
                 filterChain.doFilter(request, response);
                 return;
