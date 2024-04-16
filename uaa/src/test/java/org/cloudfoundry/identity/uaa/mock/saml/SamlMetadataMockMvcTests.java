@@ -22,6 +22,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DefaultTestContext
 class SamlMetadataMockMvcTests {
 
+    public static final String SAML_ENTITY_ID = "cloudfoundry-saml-login";
     @Autowired
     private MockMvc mockMvc;
 
@@ -51,10 +52,9 @@ class SamlMetadataMockMvcTests {
 
         ResultActions xml = mockMvc.perform(get(new URI("/saml/metadata/example")))
                 .andExpect(status().isOk());
-//                .andExpect(content().string(not(emptyOrNullString())))
-                String metadataXml = xml.andReturn().getResponse().getContentAsString();
-
-//                .andExpect(xpath("/md:EntityDescriptor/@entityID").string("cloudfoundry-saml-login"));
+//            // The SAML SP metadata should match the following UAA configs:
+//            // login.entityID
+                xml.andExpect(xpath("/EntityDescriptor/@entityID").string(SAML_ENTITY_ID));
 
 
 
@@ -62,10 +62,8 @@ class SamlMetadataMockMvcTests {
 
 //            String metadataXml = (String)response.getBody();
 //
-//            // The SAML SP metadata should match the following UAA configs:
-//            // login.entityID
-            Assert.assertThat(metadataXml, containsString(
-                    "entityID=\"integration-saml-entity-id\""));
+//            Assert.assertThat(metadataXml, containsString(
+//                    "entityID=\"integration-saml-entity-id\""));
 //            // login.saml.signatureAlgorithm
 //            Assert.assertThat(metadataXml, containsString(
 //                    "<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
