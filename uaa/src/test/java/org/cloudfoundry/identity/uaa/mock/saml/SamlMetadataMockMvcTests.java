@@ -65,7 +65,7 @@ class SamlMetadataMockMvcTests {
 //            // The SAML SP metadata should match the following UAA configs:
 //            // login.entityID
             Assert.assertThat(metadataXml, containsString(
-                    "entityID=\"cloudfoundry-saml-login\""));
+                    "entityID=\"integration-saml-entity-id\""));
 //            // login.saml.signatureAlgorithm
 //            Assert.assertThat(metadataXml, containsString(
 //                    "<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
