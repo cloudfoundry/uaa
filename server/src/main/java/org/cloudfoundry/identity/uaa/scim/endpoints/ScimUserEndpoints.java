@@ -249,33 +249,31 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         // create the user and an alias for it if necessary
-        ScimUser persistedUser = transactionTemplate.execute(txStatus -> {
+        ScimUser scimUser = transactionTemplate.execute(txStatus -> {
             final ScimUser originalScimUser = scimUserProvisioning.createUser(
                     user,
                     user.getPassword(),
                     identityZoneManager.getCurrentIdentityZoneId()
             );
-            originalScimUser.setPassword(user.getPassword());
             return aliasHandler.ensureConsistencyOfAliasEntity(
                     originalScimUser,
                     null
             );
         });
 
-        // ensure that password is removed in response
-        persistedUser.setPassword(null);
+        if (scimUser == null) {
+            throw new IllegalStateException("The persisted user is not present after handling the alias.");
+        }
 
-        // sync approvals and groups for original user
         if (user.getApprovals() != null) {
-            for (final Approval approval : user.getApprovals()) {
-                approval.setUserId(persistedUser.getId());
+            for (Approval approval : user.getApprovals()) {
+                approval.setUserId(scimUser.getId());
                 approvalStore.addApproval(approval, identityZoneManager.getCurrentIdentityZoneId());
             }
         }
-        persistedUser = syncApprovals(syncGroups(persistedUser));
-
-        addETagHeader(response, persistedUser);
-        return persistedUser;
+        scimUser = syncApprovals(syncGroups(scimUser));
+        addETagHeader(response, scimUser);
+        return scimUser;
     }
 
     private boolean isUaaUser(@RequestBody ScimUser user) {
