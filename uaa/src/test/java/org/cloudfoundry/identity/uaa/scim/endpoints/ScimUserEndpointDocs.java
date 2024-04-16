@@ -93,6 +93,18 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String passwordDescription = "User's password, required if origin is set to `uaa`. May be be subject to validations if the UAA is configured with a password policy.";
     private final String phoneNumbersListDescription = "The user's phone numbers.";
     private final String phoneNumbersDescription = "The phone number.";
+    private final String aliasIdDescription = "The ID of the alias user.";
+    private final String aliasIdCreateRequestDescription = aliasIdDescription + " Must be set to `null`.";
+    private final String aliasIdUpdateRequestDescription = aliasIdDescription + " If the existing user had this field set, it must be set to the same value in the update request. " +
+            "If not, this field must be set to `null`.";
+    private final String aliasIdPatchRequestDescription = aliasIdDescription + " If set, this field must have the same value as in the existing user.";
+    private final String aliasZidDescription = "The ID of the identity zone in which an alias of this user is maintained.";
+    private final String aliasZidRequestDescription = aliasZidDescription + " If set, an alias user is created in this zone and `aliasId` is set accordingly. " +
+            "Must reference an existing identity zone that is different to the one referenced in `identityZoneId`. " +
+            "Alias users can only be created from or to the \"uaa\" identity zone, i.e., one of `identityZoneId` or `aliasZid` must be set to \"uaa\". " +
+            "Furthermore, alias users can only be created if the IdP referenced in `origin` also has an alias to the **same** zone as the user.";
+    private final String aliasZidUpdateRequestDescription = aliasZidRequestDescription + " If the existing user had this field set, it must be set to the same value in the update request.";
+    private final String aliasZidPatchRequestDescription = aliasZidRequestDescription + " If the existing user had this field set, it must not be set to a different value in the patch request.";
 
     private final String metaDesc = "SCIM object meta data.";
     private final String metaVersionDesc = "Object version.";
@@ -140,6 +152,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
             fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
             fieldWithPath("resources[].externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("resources[].aliasId").optional(null).type(STRING).description(aliasIdDescription),
+            fieldWithPath("resources[].aliasZid").optional(null).type(STRING).description(aliasZidDescription),
             fieldWithPath("resources[].meta").type(OBJECT).description(metaDesc),
             fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
             fieldWithPath("resources[].meta.lastModified").type(STRING).description(metaLastModifiedDesc),
@@ -162,6 +176,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("verified").optional(true).type(BOOLEAN).description(userVerifiedDescription),
             fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
             fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional(null).type(STRING).description(aliasIdCreateRequestDescription),
+            fieldWithPath("aliasZid").optional(null).type(STRING).description(aliasZidRequestDescription),
             fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
             fieldWithPath("meta.*").optional().ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
@@ -189,6 +205,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
             fieldWithPath("externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional().type(STRING).description(aliasIdDescription),
+            fieldWithPath("aliasZid").optional().type(STRING).description(aliasZidDescription),
             fieldWithPath("meta").type(OBJECT).description(metaDesc),
             fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
             fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
@@ -215,6 +233,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
             fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional(null).type(STRING).description(aliasIdUpdateRequestDescription),
+            fieldWithPath("aliasZid").optional(null).type(STRING).description(aliasZidUpdateRequestDescription),
             fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
@@ -249,6 +269,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
             fieldWithPath("previousLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
             fieldWithPath("externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional().type(STRING).description(aliasIdDescription),
+            fieldWithPath("aliasZid").optional().type(STRING).description(aliasZidDescription),
             fieldWithPath("meta").type(OBJECT).description(metaDesc),
             fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
             fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
@@ -275,6 +297,8 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
             fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional(null).type(STRING).description(aliasIdPatchRequestDescription),
+            fieldWithPath("aliasZid").optional(null).type(STRING).description(aliasZidPatchRequestDescription),
             fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read."),
             fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)
     );
