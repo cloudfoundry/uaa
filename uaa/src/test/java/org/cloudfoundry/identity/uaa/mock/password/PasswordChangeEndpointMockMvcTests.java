@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mock.password;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -11,7 +12,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -52,7 +52,7 @@ class PasswordChangeEndpointMockMvcTests {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
 
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, null, "client_credentials", "password.write");
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, null, "client_credentials", "password.write");
         clientDetails.setClientSecret(clientSecret);
 
         MockMvcUtils.createClient(mockMvc, adminToken, clientDetails);

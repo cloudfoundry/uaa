@@ -94,7 +94,6 @@ dependencies {
     testImplementation(libraries.greenmail)
     testImplementation(libraries.jodaTime)
     testImplementation(libraries.commonsIo)
-    testImplementation(libraries.commonsHttpClient)
     testImplementation(libraries.owaspEsapi)
     testImplementation(libraries.apacheHttpClient)
 }

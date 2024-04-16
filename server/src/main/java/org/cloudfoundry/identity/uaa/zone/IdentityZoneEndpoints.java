@@ -2,10 +2,13 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -23,10 +26,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
@@ -350,7 +350,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(method = POST, value = "{identityZoneId}/clients")
     public ResponseEntity<? extends ClientDetails> createClient(
-            @PathVariable String identityZoneId, @RequestBody BaseClientDetails clientDetails) {
+            @PathVariable String identityZoneId, @RequestBody UaaClientDetails clientDetails) {
         if (identityZoneId == null) {
             throw new ZoneDoesNotExistsException(identityZoneId);
         }
@@ -371,7 +371,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     }
 
     private ClientDetails removeSecret(ClientDetails createdClient) {
-        BaseClientDetails response = (BaseClientDetails) createdClient;
+        UaaClientDetails response = (UaaClientDetails) createdClient;
         response.setClientSecret(null);
         return response;
     }

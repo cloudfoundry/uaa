@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.apache.http.HttpHost;
 import org.apache.http.client.utils.URIUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
@@ -32,8 +34,6 @@ import org.springframework.security.oauth2.common.exceptions.UserDeniedAuthoriza
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationException;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;

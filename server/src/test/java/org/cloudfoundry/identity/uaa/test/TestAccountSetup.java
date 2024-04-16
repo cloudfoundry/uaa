@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -37,7 +38,6 @@ import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResour
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
 import org.springframework.security.oauth2.client.token.DefaultAccessTokenRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestOperations;
 
@@ -114,21 +114,21 @@ public class TestAccountSetup extends TestWatchman {
     }
 
     private void createCfClient(RestOperations client) {
-        BaseClientDetails clientDetails = new BaseClientDetails("cf", "cloud_controller,openid,password",
+        UaaClientDetails clientDetails = new UaaClientDetails("cf", "cloud_controller,openid,password",
                         "openid,cloud_controller.read,cloud_controller_service_permissions.read,password.write,scim.userids", "implicit", "uaa.none",
                         "https://uaa.cloudfoundry.com/redirect/cf");
         createClient(client, testAccounts.getClientDetails("oauth.clients.cf", clientDetails));
     }
 
     private void createScimClient(RestOperations client) {
-        BaseClientDetails clientDetails = new BaseClientDetails("scim", "oauth", "uaa.none", "client_credentials",
+        UaaClientDetails clientDetails = new UaaClientDetails("scim", "oauth", "uaa.none", "client_credentials",
                         "scim.read,scim.write,password.write,oauth.approvals","http://some.redirect.url.com");
         clientDetails.setClientSecret("scimsecret");
         createClient(client, testAccounts.getClientDetails("oauth.clients.scim", clientDetails));
     }
 
     private void createAppClient(RestOperations client) {
-        BaseClientDetails clientDetails = new BaseClientDetails("app", "none",
+        UaaClientDetails clientDetails = new UaaClientDetails("app", "none",
                         "cloud_controller.read,cloud_controller_service_permissions.read,openid,password.write", "password,authorization_code,refresh_token",
                         "uaa.resource");
         clientDetails.setClientSecret("appclientsecret");

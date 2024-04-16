@@ -27,7 +27,6 @@ dependencies {
     }
     implementation(libraries.springSecuritySamlServiceProvider)
     implementation(libraries.jodaTime)
-    implementation(libraries.commonsHttpClient)
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 

@@ -23,7 +23,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidGrantExcepti
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.security.oauth2.provider.code.JdbcAuthorizationCodeServices;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -89,7 +89,7 @@ class UaaTokenStoreTests {
         timeService = givenMockedTime();
         store = new UaaTokenStore(dataSource, timeService);
         legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
-        BaseClientDetails client = new BaseClientDetails("clientid", null, "openid", "client_credentials,password", "oauth.login", null);
+        UaaClientDetails client = new UaaClientDetails("clientid", null, "openid", "client_credentials,password", "oauth.login", null);
         Map<String, String> parameters = new HashMap<>();
         parameters.put(OAuth2Utils.CLIENT_ID, client.getClientId());
 

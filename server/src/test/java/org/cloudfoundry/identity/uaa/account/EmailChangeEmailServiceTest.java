@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import org.apache.commons.lang3.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -25,8 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -304,7 +304,7 @@ class EmailChangeEmailServiceTest {
         codeData.put("client_id", clientId);
         codeData.put("redirect_uri", redirectUri);
         codeData.put("email", "new@example.com");
-        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
+        UaaClientDetails clientDetails = new UaaClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
         clientDetails.addAdditionalInformation(CHANGE_EMAIL_REDIRECT_URL, "http://fallback.url/redirect");
 
         when(mockExpiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
