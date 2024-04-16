@@ -61,6 +61,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DefaultTestContext
 public class InvitationsServiceMockMvcTests {
+    public static final String ENTITY_ID = "integration-saml-entity-id";
     @Autowired
     MockMvc mockMvc;
 
@@ -371,7 +372,7 @@ public class InvitationsServiceMockMvcTests {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(
                         redirectedUrl(
-                                String.format("/saml/discovery?returnIDParam=idp&entityID=%s.cloudfoundry-saml-login&idp=%s&isPassive=true",
+                                String.format("/saml/discovery?returnIDParam=idp&entityID=%s." + ENTITY_ID + "&idp=%s&isPassive=true",
                                         zone.getZone().getIdentityZone().getId(),
                                         originKey)
                         )
