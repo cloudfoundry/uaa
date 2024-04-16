@@ -1447,22 +1447,26 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         // the other properties should be equal
 
         assertThat(originalUser.getUserName()).isEqualTo(aliasUser.getUserName());
+        assertThat(originalUser.getName()).isNotNull();
+        assertThat(aliasUser.getName()).isNotNull();
+        assertThat(originalUser.getName().getGivenName()).isNotBlank().isEqualTo(aliasUser.getName().getGivenName());
+        assertThat(originalUser.getName().getFamilyName()).isNotBlank().isEqualTo(aliasUser.getName().getFamilyName());
 
         assertThat(originalUser.getOrigin()).isEqualTo(aliasUser.getOrigin());
         assertThat(originalUser.getExternalId()).isEqualTo(aliasUser.getExternalId());
-
-        assertThat(originalUser.getName()).isEqualTo(aliasUser.getName());
-        assertThat(originalUser.getDisplayName()).isEqualTo(aliasUser.getDisplayName());
 
         assertThat(originalUser.getEmails()).isEqualTo(aliasUser.getEmails());
         assertThat(originalUser.getPrimaryEmail()).isEqualTo(aliasUser.getPrimaryEmail());
         assertThat(originalUser.getPhoneNumbers()).isEqualTo(aliasUser.getPhoneNumbers());
 
-        assertThat(originalUser.getPassword()).isEqualTo(aliasUser.getPassword());
-        assertThat(originalUser.getSalt()).isEqualTo(aliasUser.getSalt());
-
         assertThat(originalUser.isActive()).isEqualTo(aliasUser.isActive());
         assertThat(originalUser.isVerified()).isEqualTo(aliasUser.isVerified());
+
+        // in the API response, the password and salt must be null for both the original and the alias user
+        assertThat(originalUser.getPassword()).isNull();
+        assertThat(originalUser.getSalt()).isNull();
+        assertThat(aliasUser.getPassword()).isNull();
+        assertThat(aliasUser.getSalt()).isNull();
 
         // approvals must be empty for the alias user
         assertThat(aliasUser.getApprovals()).isEmpty();
