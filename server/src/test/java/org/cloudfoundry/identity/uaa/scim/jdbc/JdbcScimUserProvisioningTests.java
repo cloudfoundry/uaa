@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import static java.sql.Types.VARCHAR;
 import static java.util.Collections.singletonList;
 import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
@@ -58,7 +57,6 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -73,6 +71,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
 
 @WithDatabaseContext
 class JdbcScimUserProvisioningTests {
@@ -431,12 +430,19 @@ class JdbcScimUserProvisioningTests {
 
     }
 
+    private void arrangeUserConfigExistsForZone(final String zoneId) {
+        final IdentityZone zone = mock(IdentityZone.class);
+        when(jdbcIdentityZoneProvisioning.retrieve(zoneId)).thenReturn(zone);
+        final IdentityZoneConfiguration zoneConfig = mock(IdentityZoneConfiguration.class);
+        when(zone.getConfig()).thenReturn(zoneConfig);
+        final UserConfig userConfig = mock(UserConfig.class);
+        when(zoneConfig.getUserConfig()).thenReturn(userConfig);
+    }
+
     @WithDatabaseContext
     @Nested
     class WithAliasProperties {
         private static final String CUSTOM_ZONE_ID = UUID.randomUUID().toString();
-        private static final String PASSWORD = "some-password";
-        private static final String ENCODED_PASSWORD = "{noop}" + PASSWORD;
 
         @BeforeEach
         void setUp() {
@@ -456,7 +462,7 @@ class JdbcScimUserProvisioningTests {
             userToCreate.setAliasId(aliasId);
             userToCreate.setAliasZid(zone2);
 
-            final ScimUser createdUser = jdbcScimUserProvisioning.createUser(userToCreate, PASSWORD, zone1);
+            final ScimUser createdUser = jdbcScimUserProvisioning.createUser(userToCreate, "some-password", zone1);
             final String userId = createdUser.getId();
             Assertions.assertThat(userId).isNotBlank();
             Assertions.assertThat(createdUser.getAliasId()).isNotBlank().isEqualTo(aliasId);
@@ -504,174 +510,6 @@ class JdbcScimUserProvisioningTests {
             assertUserDoesNotExist(zone2, aliasId);
         }
 
-        @ParameterizedTest
-        @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        @Disabled
-        void testChangePassword_ShouldUpdatePasswordForBothUsers(final String zone1, final String zone2) {
-            final WithAliasProperties.UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
-
-            // read password before update
-            final String passwordBeforeUpdate = readPasswordFromDb(userIds.originalUserId, zone1);
-            Assertions.assertThat(passwordBeforeUpdate).isNotBlank();
-
-            jdbcScimUserProvisioning.changePassword(
-                    userIds.originalUserId,
-                    PASSWORD,
-                    "some-new-password",
-                    zone1
-            );
-
-            // the password should be updated
-            final String passwordAfterUpdate = readPasswordFromDb(userIds.originalUserId, zone1);
-            Assertions.assertThat(passwordAfterUpdate).isNotBlank().isNotEqualTo(passwordBeforeUpdate);
-
-            // the password should also be updated in the alias user
-            final String passwordAliasUserAfterUpdate = readPasswordFromDb(userIds.aliasUserId, zone2);
-            Assertions.assertThat(passwordAliasUserAfterUpdate).isNotBlank().isEqualTo(passwordAfterUpdate);
-        }
-
-        @ParameterizedTest
-        @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        @Disabled
-        void testUpdatePasswordChangeRequired_ShouldPropagateUpdateToAliasUser(final String zone1, final String zone2) {
-            final WithAliasProperties.UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
-
-            // check if password change required field is equal for both users
-            final boolean pwChangeRequiredBeforeUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
-                    userIds.originalUserId,
-                    zone1
-            );
-            final boolean pwChangeRequiredAliasUserBeforeUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
-                    userIds.aliasUserId,
-                    zone2
-            );
-            Assertions.assertThat(pwChangeRequiredBeforeUpdate).isEqualTo(pwChangeRequiredAliasUserBeforeUpdate);
-
-            // update to opposite value
-            jdbcScimUserProvisioning.updatePasswordChangeRequired(
-                    userIds.originalUserId,
-                    !pwChangeRequiredBeforeUpdate,
-                    zone1
-            );
-
-            // check if password change required field is still equal for both users and the opposite value
-            final boolean pwChangeRequiredAfterUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
-                    userIds.originalUserId,
-                    zone1
-            );
-            final boolean pwChangeRequiredAliasUserAfterUpdate = jdbcScimUserProvisioning.checkPasswordChangeIndividuallyRequired(
-                    userIds.aliasUserId,
-                    zone2
-            );
-            Assertions.assertThat(pwChangeRequiredAfterUpdate)
-                    .isEqualTo(!pwChangeRequiredBeforeUpdate)
-                    .isEqualTo(pwChangeRequiredAliasUserAfterUpdate);
-        }
-
-        @ParameterizedTest
-        @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        @Disabled
-        void testUpdate_ShouldNotUpdateAliasUser(final String zone1, final String zone2) {
-            final UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
-
-            final ScimUser updatePayload = jdbcScimUserProvisioning.retrieve(userIds.originalUserId, zone1);
-            updatePayload.getName().setGivenName("some-new-name");
-            final ScimUser.Email email = new ScimUser.Email();
-            email.setPrimary(true);
-            email.setValue("john.doe.new@example.com");
-            updatePayload.setEmails(Collections.singletonList(email));
-
-            final ScimUser updatedUser = jdbcScimUserProvisioning.update(userIds.originalUserId, updatePayload, zone1);
-            Assertions.assertThat(updatedUser.getName().getGivenName()).isEqualTo("some-new-name");
-            Assertions.assertThat(updatedUser.getPrimaryEmail()).isEqualTo("john.doe.new@example.com");
-
-            // the alias user should NOT be updated
-            final ScimUser aliasUser = jdbcScimUserProvisioning.retrieve(userIds.aliasUserId, zone2);
-            Assertions.assertThat(aliasUser.getName().getGivenName()).isNotEqualTo(updatedUser.getDisplayName());
-            Assertions.assertThat(aliasUser.getPrimaryEmail()).isNotEqualTo(updatedUser.getPrimaryEmail());
-        }
-
-        @ParameterizedTest
-        @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        @Disabled
-        void testDelete_ShouldPropagateToAliasUser_DeactivateOnDeleteFalse(final String zone1, final String zone2) {
-            jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-            final UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
-
-            // delete original user
-            jdbcScimUserProvisioning.delete(userIds.originalUserId, -1, zone1);
-
-            // alias user should no longer be present
-            assertUserDoesNotExist(userIds.aliasUserId, zone2);
-        }
-
-        @ParameterizedTest
-        @MethodSource("fromUaaToCustomZoneAndViceVersa")
-        @Disabled
-        void testDelete_ShouldPropagateToAliasUser_DeactivateOnDeleteTrue(final String zone1, final String zone2) {
-            jdbcScimUserProvisioning.setDeactivateOnDelete(true);
-            final UserIds userIds = arrangeUserAndAliasExist(zone1, zone2);
-
-            // both users should be active
-            assertUserIsActive(userIds.originalUserId, zone1, true);
-            assertUserIsActive(userIds.aliasUserId, zone2, true);
-
-            // delete original user
-            jdbcScimUserProvisioning.delete(userIds.originalUserId, -1, zone1);
-
-            // both users should be inactive
-            assertUserIsActive(userIds.originalUserId, zone1, false);
-            assertUserIsActive(userIds.aliasUserId, zone2, false);
-        }
-
-        private UserIds arrangeUserAndAliasExist(final String zone1, final String zone2) {
-            final String idInZone1 = UUID.randomUUID().toString();
-            final String idInZone2 = UUID.randomUUID().toString();
-            addUser(
-                    jdbcTemplate,
-                    idInZone1,
-                    "johndoe",
-                    ENCODED_PASSWORD,
-                    "john.doe@example.com",
-                    "John",
-                    "Doe",
-                    "12345",
-                    zone1,
-                    idInZone2,
-                    zone2
-            );
-            addUser(
-                    jdbcTemplate,
-                    idInZone2,
-                    "johndoe",
-                    ENCODED_PASSWORD,
-                    "john.doe@example.com",
-                    "John",
-                    "Doe",
-                    "12345",
-                    zone2,
-                    idInZone1,
-                    zone1
-            );
-            return new UserIds(idInZone1, idInZone2);
-        }
-
-        private void assertUserIsActive(final String userId, final String zoneId, final boolean expected) {
-            final ScimUser originalUser = jdbcScimUserProvisioning.retrieve(userId, zoneId);
-            Assertions.assertThat(originalUser.isActive()).isEqualTo(expected);
-        }
-
-        private String readPasswordFromDb(final String userId, final String zoneId) {
-            return jdbcTemplate.queryForObject(
-                    JdbcScimUserProvisioning.READ_PASSWORD_SQL,
-                    new Object[]{userId, zoneId},
-                    new int[]{VARCHAR, VARCHAR},
-                    String.class
-            );
-        }
-
-        private record UserIds(String originalUserId, String aliasUserId) {}
-
         private void assertUserDoesNotExist(final String zoneId, final String userId) {
             Assertions.assertThatExceptionOfType(ScimResourceNotFoundException.class)
                     .isThrownBy(() -> jdbcScimUserProvisioning.retrieve(userId, zoneId));
@@ -680,15 +518,6 @@ class JdbcScimUserProvisioningTests {
         private static Stream<Arguments> fromUaaToCustomZoneAndViceVersa() {
             return Stream.of(Arguments.of(UAA, CUSTOM_ZONE_ID), Arguments.of(CUSTOM_ZONE_ID, UAA));
         }
-    }
-
-    private void arrangeUserConfigExistsForZone(final String zoneId) {
-        final IdentityZone zone = mock(IdentityZone.class);
-        when(jdbcIdentityZoneProvisioning.retrieve(zoneId)).thenReturn(zone);
-        final IdentityZoneConfiguration zoneConfig = mock(IdentityZoneConfiguration.class);
-        when(zone.getConfig()).thenReturn(zoneConfig);
-        final UserConfig userConfig = mock(UserConfig.class);
-        when(zoneConfig.getUserConfig()).thenReturn(userConfig);
     }
 
     @Test
