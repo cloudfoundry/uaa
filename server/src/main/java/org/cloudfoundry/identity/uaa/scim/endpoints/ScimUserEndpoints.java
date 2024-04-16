@@ -136,7 +136,13 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @Getter
     private final int userMaxCount;
     private final HttpMessageConverter<?>[] messageConverters;
+    /**
+     * Update operations performed on alias users are not considered.
+     */
     private final AtomicInteger scimUpdates;
+    /**
+     * Deletion operations performed on alias users are not considered.
+     */
     private final AtomicInteger scimDeletes;
     private final Map<String, AtomicInteger> errorCounts;
     private final ScimUserAliasHandler aliasHandler;
@@ -405,7 +411,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         final ScimUser aliasUser = aliasUserOpt.get();
         membershipManager.removeMembersByMemberId(aliasUser.getId(), aliasUser.getZoneId());
         scimUserProvisioning.delete(aliasUser.getId(), aliasUser.getVersion(), aliasUser.getZoneId());
-        scimDeletes.incrementAndGet();
         if (publisher != null) {
             publisher.publishEvent(
                     new EntityDeletedEvent<>(
