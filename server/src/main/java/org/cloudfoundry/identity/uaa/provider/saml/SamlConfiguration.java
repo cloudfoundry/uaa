@@ -12,28 +12,12 @@ import org.springframework.security.saml2.provider.service.metadata.OpenSamlMeta
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
+import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.Saml2MetadataFilter;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.stereotype.Controller;
 
 @Configuration
 public class SamlConfiguration {
-    public static final String AGGREGATE_SPRING_SECURITY_FILTER_CHAIN_ID = "aggregateSpringSecurityFilterChain";
-
-//    @Bean(AGGREGATE_SPRING_SECURITY_FILTER_CHAIN_ID)
-    @Bean(name = AGGREGATE_SPRING_SECURITY_FILTER_CHAIN_ID)
-    @Lazy
-    Saml2MetadataFilter aggregateSpringSecurityFilterChain(
-//            WebSecurityConfiguration webSecurityConfiguration,
-            @Autowired RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
-
-        Converter<HttpServletRequest, RelyingPartyRegistration> relyingPartyRegistrationResolver =
-                new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
-        Saml2MetadataFilter filter = new Saml2MetadataFilter(
-                relyingPartyRegistrationResolver,
-                new OpenSamlMetadataResolver());
-        filter.setRequestMatcher(new AntPathRequestMatcher("/saml/metadata/**/{registrationId}", "GET"));
-
-        return filter;
-    }
 
 }

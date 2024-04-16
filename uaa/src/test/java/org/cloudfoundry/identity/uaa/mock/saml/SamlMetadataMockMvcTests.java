@@ -13,6 +13,7 @@ import static java.util.function.Predicate.not;
 import static org.hamcrest.text.IsEmptyString.emptyOrNullString;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -24,20 +25,23 @@ class SamlMetadataMockMvcTests {
 
 
     @Test
-    void redirectFromMetadataRoot() throws Exception {
+    void legacyMetadataRoot() throws Exception {
         ResultActions xml = mockMvc.perform(get(new URI("/saml/metadata")))
-                .andExpect(forwardedUrl("/saml/metadata/example"));
+                .andDo(print())
+                .andExpect(status().isOk());
     }
 
     @Test
     void testSamlMetadataDefaultNoEndingSlash() throws Exception {
         mockMvc.perform(get(new URI("/saml/metadata/example")))
+                .andDo(print())
                 .andExpect(status().isOk());
     }
 
     @Test
     void testSamlMetadataDefaultWithEndingSlash() throws Exception {
         mockMvc.perform(get(new URI("/saml/metadata/example/")))
+                .andDo(print())
                 .andExpect(status().isOk());
     }
 
