@@ -156,6 +156,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext
 public class LoginMockMvcTests {
 
+    public static final String ENTITY_ID = "integration-saml-entity-id";
     private WebApplicationContext webApplicationContext;
 
     private AlphanumericRandomValueStringGenerator generator;
@@ -1349,7 +1350,7 @@ public class LoginMockMvcTests {
                 .session(session)
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
+                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + "." + ENTITY_ID + "&idp=" + alias + "&isPassive=true"));
 
         mockMvc.perform(get("/login")
                 .accept(APPLICATION_JSON)
@@ -1409,7 +1410,7 @@ public class LoginMockMvcTests {
         mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
+                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + "." + ENTITY_ID + "&idp=" + alias + "&isPassive=true"));
         IdentityZoneHolder.clear();
     }
 
@@ -2511,7 +2512,7 @@ public class LoginMockMvcTests {
                 .param("email", "marissa@test.org")
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + zone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + originKey + "&isPassive=true"));
+                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + zone.getSubdomain() + "." + ENTITY_ID + "&idp=" + originKey + "&isPassive=true"));
     }
 
     @Test
