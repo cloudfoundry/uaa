@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -73,6 +74,7 @@ import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -147,6 +149,10 @@ class ScimUserEndpointsTests {
     @Autowired
     @Qualifier("transactionManager")
     private PlatformTransactionManager platformTransactionManager;
+
+    @Autowired
+    @Qualifier("identityZoneProvisioning")
+    private IdentityZoneProvisioning identityZoneProvisioning;
 
     private ScimUser joel;
     private ScimUser dale;
@@ -586,6 +592,52 @@ class ScimUserEndpointsTests {
 
         scimUserEndpoints.deleteUser(exGuy.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
         validateGroupMembers(scimGroupEndpoints.getGroup(g.getId(), new MockHttpServletResponse()), exGuy.getId(), false);
+    }
+
+    @Test
+    void deleteUser_ShouldThrowIfUserHasAliasAndAliasDisabled() {
+        // arrange alias feature is disabled
+        ReflectionTestUtils.setField(scimUserAliasHandler, "aliasEntitiesEnabled", false);
+
+        // create alias zone
+        final String aliasZid = UUID.randomUUID().toString();
+        final IdentityZone aliasZone = new IdentityZone();
+        aliasZone.setId(aliasZid);
+        aliasZone.setSubdomain(aliasZid);
+        aliasZone.setName(aliasZid);
+        identityZoneProvisioning.create(aliasZone);
+
+        identityZoneManager.setCurrentIdentityZone(IdentityZone.getUaa());
+        final ScimUser originalUser = createScimUserWithAlias(aliasZid);
+
+        final UaaException exception = assertThrows(UaaException.class, () ->
+                scimUserEndpoints.deleteUser(originalUser.getId(), "1", new MockHttpServletRequest(), new MockHttpServletResponse())
+        );
+        assertEquals("Could not delete user with alias since alias entities are disabled.", exception.getMessage());
+    }
+
+    private ScimUser createScimUserWithAlias(final String aliasZid) {
+        final String userName = "user@example.com";
+        final ScimUser user = new ScimUser(null, userName, null, null);
+        user.addEmail(userName);
+        user.setOrigin(OriginKeys.UAA);
+        user.setPassword("password");
+        final ScimUser createdUser = jdbcScimUserProvisioning.createUser(user, "password", OriginKeys.UAA);
+        final String originalUserId = createdUser.getId();
+        assertNotNull(originalUserId);
+
+        final ScimUser aliasUser = new ScimUser(null, userName, null, null);
+        aliasUser.addEmail(userName);
+        aliasUser.setOrigin(OriginKeys.UAA);
+        aliasUser.setPassword("password");
+        aliasUser.setAliasId(originalUserId);
+        aliasUser.setAliasZid(OriginKeys.UAA);
+        final ScimUser createdAliasUser = jdbcScimUserProvisioning.createUser(aliasUser, "password", aliasZid);
+        assertNotNull(createdAliasUser.getId());
+
+        createdUser.setAliasId(createdAliasUser.getId());
+        createdUser.setAliasZid(aliasZid);
+        return jdbcScimUserProvisioning.update(originalUserId, createdUser, OriginKeys.UAA);
     }
 
     @Test
