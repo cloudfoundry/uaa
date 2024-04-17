@@ -34,6 +34,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -141,7 +142,6 @@ class ScimUserEndpointsTests {
     @Autowired
     private IdentityZoneManager identityZoneManager;
 
-    @Autowired
     private ScimUserAliasHandler scimUserAliasHandler;
 
     @Autowired
@@ -206,6 +206,12 @@ class ScimUserEndpointsTests {
         dale = jdbcScimUserProvisioning.createUser(dale, "password", identityZone.getId());
 
         spiedScimGroupMembershipManager = spy(scimGroupMembershipManager);
+
+        scimUserAliasHandler = mock(ScimUserAliasHandler.class);
+        when(scimUserAliasHandler.aliasPropertiesAreValid(any(), any())).thenReturn(true);
+        when(scimUserAliasHandler.ensureConsistencyOfAliasEntity(any(), any()))
+                .then(invocationOnMock -> invocationOnMock.getArgument(0));
+        when(scimUserAliasHandler.retrieveAliasEntity(any())).thenReturn(Optional.empty());
 
         scimUserEndpoints = new ScimUserEndpoints(
                 new IdentityZoneManagerImpl(),
@@ -383,6 +389,25 @@ class ScimUserEndpointsTests {
 
         verify(mockPasswordValidator).validate("some bad password");
         ReflectionTestUtils.setField(scimUserEndpoints, "scimUserProvisioning", jdbcScimUserProvisioning);
+    }
+
+    @Test
+    void createUser_ShouldThrow_WhenAliasPropertiesAreInvalid() {
+        final String userName = "user@example.com";
+        final ScimUser user = new ScimUser("user1", userName, null, null);
+        user.addEmail(userName);
+        user.setOrigin(OriginKeys.UAA);
+        user.setPassword("password");
+
+        when(scimUserAliasHandler.aliasPropertiesAreValid(any(), eq(null)))
+                .thenReturn(false);
+
+        final ScimException exception = assertThrows(ScimException.class, () ->
+                scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse())
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Alias ID and/or alias ZID are invalid.", exception.getMessage());
     }
 
     @Test
