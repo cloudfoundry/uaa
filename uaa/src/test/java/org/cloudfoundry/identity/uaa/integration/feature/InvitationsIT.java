@@ -43,7 +43,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.DefaultResponseErrorHandler;
@@ -221,7 +221,7 @@ public class InvitationsIT {
     public void acceptInvitation_for_samlUser() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
 
-        BaseClientDetails appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");
+        UaaClientDetails appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");
         appClient.setScope(Lists.newArrayList("cloud_controller.read", "password.write", "scim.userids", "cloud_controller.write", "openid", "organizations.acme"));
         appClient.setAutoApproveScopes(Lists.newArrayList("openid"));
         IntegrationTestUtils.updateClient(baseUrl, scimToken, appClient);
@@ -268,7 +268,7 @@ public class InvitationsIT {
     @Test
     public void invitedOIDCUserVerified() throws Exception {
         String clientId = "invite-client" + new RandomValueStringGenerator().generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, null, "client_credentials", "scim.invite");
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, null, "client_credentials", "scim.invite");
         clientDetails.setClientSecret("invite-client-secret");
         testClient.createClient(scimToken, clientDetails);
         String inviteToken = testClient.getOAuthAccessToken(clientId, "invite-client-secret", "client_credentials", "scim.invite");

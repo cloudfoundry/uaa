@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
@@ -29,7 +30,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 
@@ -44,7 +44,7 @@ import static org.mockito.Mockito.when;
 public class TokenRevocationEndpointTests {
 
     private TokenRevocationEndpoint endpoint;
-    private BaseClientDetails client;
+    private UaaClientDetails client;
     private MultitenantJdbcClientDetailsService clientService;
 
     @Autowired
@@ -61,7 +61,7 @@ public class TokenRevocationEndpointTests {
         String zoneId = IdentityZoneHolder.get().getId();
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
         String clientId = generator.generate().toLowerCase();
-        client = new BaseClientDetails(clientId, "", "some.scopes", "client_credentials", "authorities");
+        client = new UaaClientDetails(clientId, "", "some.scopes", "client_credentials", "authorities");
         client.addAdditionalInformation(TOKEN_SALT, "pre-salt");
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);

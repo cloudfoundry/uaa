@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -23,7 +24,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
@@ -158,11 +158,11 @@ class ProfileControllerMockMvcTests {
 
         when(approvalStore.getApprovalsForUser(anyString(), eq(currentIdentityZoneId))).thenReturn(allApprovals);
 
-        BaseClientDetails appClient = new BaseClientDetails("app", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
+        UaaClientDetails appClient = new UaaClientDetails("app", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         appClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
         when(clientDetailsService.loadClientByClientId("app", currentIdentityZoneId)).thenReturn(appClient);
 
-        BaseClientDetails otherClient = new BaseClientDetails("other-client", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
+        UaaClientDetails otherClient = new UaaClientDetails("other-client", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         otherClient.addAdditionalInformation(ClientConstants.CLIENT_NAME, THE_ULTIMATE_APP);
         when(clientDetailsService.loadClientByClientId("other-client", currentIdentityZoneId)).thenReturn(otherClient);
     }
@@ -179,7 +179,7 @@ class ProfileControllerMockMvcTests {
 
     @Test
     void getProfileNoAppName() throws Exception {
-        BaseClientDetails appClient = new BaseClientDetails("app", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
+        UaaClientDetails appClient = new UaaClientDetails("app", "thing", "thing.read,thing.write", GRANT_TYPE_AUTHORIZATION_CODE, "");
         when(clientDetailsService.loadClientByClientId("app", currentIdentityZoneId)).thenReturn(appClient);
         getProfile(mockMvc, "app", currentIdentityZoneId);
     }

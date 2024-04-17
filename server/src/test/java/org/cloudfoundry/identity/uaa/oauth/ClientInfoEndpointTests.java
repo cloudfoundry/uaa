@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 import java.util.UUID;
@@ -39,7 +39,7 @@ class ClientInfoEndpointTests {
     @BeforeEach
     void setUp() {
         clientId = "clientId-" + UUID.randomUUID().toString();
-        BaseClientDetails baseClientDetails = new BaseClientDetails(clientId, "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+        UaaClientDetails baseClientDetails = new UaaClientDetails(clientId, "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
         baseClientDetails.setClientSecret("bar");
         baseClientDetails.setAdditionalInformation(Collections.singletonMap("key", "value"));
 

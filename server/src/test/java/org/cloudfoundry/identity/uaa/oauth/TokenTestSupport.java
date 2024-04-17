@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -49,7 +50,6 @@ import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.mockito.stubbing.Answer;
-import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -57,9 +57,9 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
 import java.util.Arrays;
@@ -165,8 +165,8 @@ public class TokenTestSupport {
     List<String> expandedScopes;
     List<String> resourceIds;
     String expectedJson;
-    BaseClientDetails defaultClient;
-    BaseClientDetails clientWithoutRefreshToken;
+    UaaClientDetails defaultClient;
+    UaaClientDetails clientWithoutRefreshToken;
     OAuth2RequestFactory requestFactory;
     TokenPolicy tokenPolicy;
     RevocableTokenProvisioning tokenProvisioning;
@@ -213,21 +213,21 @@ public class TokenTestSupport {
         expectedJson = "[\""+READ+"\",\""+WRITE+"\",\""+OPENID+"\"]";
 
 
-        defaultClient = new BaseClientDetails(
+        defaultClient = new UaaClientDetails(
             CLIENT_ID,
             SCIM+","+CLIENTS,
             READ+","+WRITE+","+OPENID+",uaa.offline_token",
             ALL_GRANTS_CSV,
             CLIENT_AUTHORITIES);
 
-        clientWithoutRefreshToken = new BaseClientDetails(
+        clientWithoutRefreshToken = new UaaClientDetails(
             CLIENT_ID_NO_REFRESH_TOKEN_GRANT,
             SCIM+","+CLIENTS,
             READ+","+WRITE+","+OPENID+",uaa.offline_token",
                 GRANT_TYPE_AUTHORIZATION_CODE,
             CLIENT_AUTHORITIES);
 
-        Map<String, BaseClientDetails> clientDetailsMap = new HashMap<>();
+        Map<String, UaaClientDetails> clientDetailsMap = new HashMap<>();
         clientDetailsMap.put(CLIENT_ID, defaultClient);
         clientDetailsMap.put(CLIENT_ID_NO_REFRESH_TOKEN_GRANT, clientWithoutRefreshToken);
 
@@ -273,7 +273,7 @@ public class TokenTestSupport {
 
         AbstractOAuth2AccessTokenMatchers.revocableTokens.set(tokens);
 
-        requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
+        requestFactory = new DefaultOAuth2RequestFactory((ClientDetailsService) clientDetailsService);
         timeService = mock(TimeService.class);
         approvalService = new ApprovalService(timeService, approvalStore);
         when(timeService.getCurrentDate()).thenCallRealMethod();

@@ -2,12 +2,12 @@ package org.cloudfoundry.identity.uaa.oauth.openid;
 
 import com.google.common.collect.Sets;
 import org.cloudfoundry.identity.uaa.approval.ApprovalService;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.HashSet;
 
@@ -30,20 +30,20 @@ public class IdTokenGranterTest {
 
     private String validGrantTypeForIdToken;
 
-    private BaseClientDetails clientWithoutOpenid;
-    private BaseClientDetails clientWithOpenId;
+    private UaaClientDetails clientWithoutOpenid;
+    private UaaClientDetails clientWithOpenId;
     private IdTokenGranter idTokenGranter;
     private ApprovalService approvalService;
     private UaaUser user;
-    private BaseClientDetails clientDetails;
+    private UaaClientDetails clientDetails;
 
     @Before
     public void setup() {
         user = new UaaUser(new UaaUserPrototype().withId("user").withUsername("user").withEmail("user@example.com"));
-        clientDetails = new BaseClientDetails();
+        clientDetails = new UaaClientDetails();
 
-        clientWithoutOpenid = new BaseClientDetails("clientId", null, "foo.read", null, null);
-        clientWithOpenId = new BaseClientDetails("clientId", null, "foo.read,openid", null, null);
+        clientWithoutOpenid = new UaaClientDetails("clientId", null, "foo.read", null, null);
+        clientWithOpenId = new UaaClientDetails("clientId", null, "foo.read,openid", null, null);
 
         requestedScopesWithoutOpenId = Sets.newHashSet("foo.read");
         requestedScopesWithOpenId = Sets.newHashSet("foo.read", "openid");
@@ -64,7 +64,7 @@ public class IdTokenGranterTest {
         assertFalse(idTokenGranter.shouldSendIdToken(user, clientWithoutOpenid, requestedScopesWithOpenId, validGrantTypeForIdToken));
         assertFalse(idTokenGranter.shouldSendIdToken(user, clientDetails, requestedScopesWithOpenId, validGrantTypeForIdToken));
 
-        BaseClientDetails clientWithoutOpenidAndWithNullScope = new BaseClientDetails(clientWithoutOpenid);
+        UaaClientDetails clientWithoutOpenidAndWithNullScope = new UaaClientDetails(clientWithoutOpenid);
         assertFalse(idTokenGranter.shouldSendIdToken(user, clientWithoutOpenidAndWithNullScope, requestedScopesWithOpenId, validGrantTypeForIdToken));
     }
 

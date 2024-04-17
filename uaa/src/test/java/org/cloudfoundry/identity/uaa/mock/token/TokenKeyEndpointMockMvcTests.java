@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
@@ -17,7 +18,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.context.WebApplicationContext;
@@ -78,7 +78,7 @@ class TokenKeyEndpointMockMvcTests {
       "FYEQjpphGyQmtsqsOndL9zBvfQCp5oT4hukBc3yIR6GVXDi0UURVjKtlYMMD4O+f\n" +
       "qwIDAQAB\n" +
       "-----END PUBLIC KEY-----";
-    private BaseClientDetails defaultClient;
+    private UaaClientDetails defaultClient;
     private IdentityZone testZone;
     @Autowired
     private MockMvc mockMvc;
@@ -158,7 +158,7 @@ class TokenKeyEndpointMockMvcTests {
 
     @Test
     void checkTokenKey_WhenKeysAreAsymmetric_asAuthenticatedUser() throws Exception {
-        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
+        UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(),
           "",
           "foo,bar",
           "client_credentials,password",
@@ -181,7 +181,7 @@ class TokenKeyEndpointMockMvcTests {
     @Test
     void checkTokenKey_WhenKeysAreAsymmetric_asAuthenticatedUser_withoutCorrectScope() throws Exception {
         setSigningKeyAndDefaultClient("key");
-        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
+        UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(),
           "",
           "foo,bar",
           "client_credentials,password",
@@ -280,12 +280,12 @@ class TokenKeyEndpointMockMvcTests {
         testZone.getConfig().setTokenPolicy(tokenPolicy);
         testZone = provisioning.create(testZone);
 
-        defaultClient = new BaseClientDetails("app", "", "", "password", "uaa.resource");
+        defaultClient = new UaaClientDetails("app", "", "", "password", "uaa.resource");
         defaultClient.setClientSecret("appclientsecret");
         webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(defaultClient, subdomain);
     }
 
-    private String getBasicAuth(BaseClientDetails client) {
+    private String getBasicAuth(UaaClientDetails client) {
         return "Basic "
           + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes()));
     }

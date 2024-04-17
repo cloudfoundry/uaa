@@ -26,6 +26,7 @@ import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 
 import com.nimbusds.jwt.JWTClaimsSet;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Verifier;
@@ -36,7 +37,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
 
 import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;

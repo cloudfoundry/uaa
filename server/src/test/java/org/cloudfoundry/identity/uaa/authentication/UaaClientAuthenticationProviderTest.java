@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.account.UaaUserDetails;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
@@ -24,7 +25,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
@@ -67,12 +67,12 @@ class UaaClientAuthenticationProviderTest {
         authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, passwordEncoder, jwtClientAuthentication);
     }
 
-    public BaseClientDetails createClient() {
+    public UaaClientDetails createClient() {
         return createClient(null, null);
     }
 
-    public BaseClientDetails createClient(String addtionalKey, Object value) {
-        BaseClientDetails details = new BaseClientDetails(generator.generate(), "", "", "client_credentials", "uaa.resource");
+    public UaaClientDetails createClient(String addtionalKey, Object value) {
+        UaaClientDetails details = new UaaClientDetails(generator.generate(), "", "", "client_credentials", "uaa.resource");
         details.setClientSecret(SECRET);
         if (addtionalKey != null) {
             details.addAdditionalInformation(addtionalKey, value);
@@ -136,7 +136,7 @@ class UaaClientAuthenticationProviderTest {
     @Test
     void provider_authenticate_client_with_empty_password_public_string() {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
-        BaseClientDetails clientDetails = new BaseClientDetails(generator.generate(), "", "", "password", "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails(generator.generate(), "", "", "password", "uaa.resource");
         clientDetails.setClientSecret("");
         jdbcClientDetailsService.addClientDetails(clientDetails);
         client = clientDetails;
@@ -225,7 +225,7 @@ class UaaClientAuthenticationProviderTest {
 
     @Test
     void provider_authenticate_client_without_secret_user_without_secret() {
-        client = new BaseClientDetails(generator.generate(), "", "", "client_credentials", "uaa.resource");
+        client = new UaaClientDetails(generator.generate(), "", "", "client_credentials", "uaa.resource");
         jdbcClientDetailsService.addClientDetails(client);
         UsernamePasswordAuthenticationToken a = mock(UsernamePasswordAuthenticationToken.class);
         UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);

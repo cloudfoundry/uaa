@@ -55,7 +55,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
@@ -136,7 +136,7 @@ public class OIDCLoginIT {
     private String zoneUrl;
     private IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider;
     private String clientCredentialsToken;
-    private BaseClientDetails zoneClient;
+    private UaaClientDetails zoneClient;
     private ScimGroup createdGroup;
     private RestTemplate identityClient;
 
@@ -207,7 +207,7 @@ public class OIDCLoginIT {
         IntegrationTestUtils.mapExternalGroup(adminToken, subdomain, baseUrl, createdGroupExternalMapping);
 
 
-        zoneClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
+        zoneClient = new UaaClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         zoneClient.setClientSecret("secret");
         zoneClient.setAutoApproveScopes(Collections.singleton("true"));
         zoneClient = IntegrationTestUtils.createClientAsZoneAdmin(clientCredentialsToken, baseUrl, zone.getId(), zoneClient);
@@ -424,7 +424,7 @@ public class OIDCLoginIT {
         serverRunning.setHostName("localhost");
 
         String clientId = "client" + new RandomValueStringGenerator(5).generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "openid", baseUrl);
+        UaaClientDetails client = new UaaClientDetails(clientId, null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "openid", baseUrl);
         client.setClientSecret("clientsecret");
         client.setAutoApproveScopes(Collections.singletonList("true"));
         IntegrationTestUtils.createClient(adminToken, baseUrl, client);
@@ -544,7 +544,7 @@ public class OIDCLoginIT {
 
     @Test
     public void testResponseTypeRequired() {
-        BaseClientDetails uaaClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", baseUrl);
+        UaaClientDetails uaaClient = new UaaClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", baseUrl);
         uaaClient.setClientSecret("secret");
         uaaClient.setAutoApproveScopes(Collections.singleton("true"));
         uaaClient = IntegrationTestUtils.createClient(clientCredentialsToken, baseUrl, uaaClient);

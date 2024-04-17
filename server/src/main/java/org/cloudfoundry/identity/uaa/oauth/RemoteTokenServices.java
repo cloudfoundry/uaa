@@ -39,7 +39,7 @@ import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 import org.springframework.util.Assert;
@@ -153,7 +153,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
                 Collection<String> values = (Collection<String>) map.get("client_authorities");
                 clientAuthorities.addAll(getAuthorities(values));
             }
-            BaseClientDetails clientDetails = new BaseClientDetails();
+            UaaClientDetails clientDetails = new UaaClientDetails();
             clientDetails.setClientId(remoteClientId);
             clientDetails.setResourceIds(resourceIds);
             clientDetails.setAuthorities(clientAuthorities);
