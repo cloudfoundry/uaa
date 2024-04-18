@@ -1,6 +1,7 @@
 module github.com/cloudfoundry/uaa
 
-go 1.21.6
+go 1.22.0
+
 toolchain go1.22.2
 
 require (
