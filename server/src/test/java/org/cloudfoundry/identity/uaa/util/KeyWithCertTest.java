@@ -108,7 +108,7 @@ public class KeyWithCertTest {
         "PwMhO0+dASJ83e2Bu63pKO808BrVjD51sSEMb0qwFc5IV6RzK/mkJgO0fphhoqOm\n" +
         "ZLzGcSYwCmj0Vc0GO5NgnFVZg4N9CyYCpDMeQynumlrNhRgnZRzlqXtQgL2bQDiu\n" +
         "coxNL/KY05iVlE1bmq/fzNEmEi2zf3dQV8CNSYs=\n" +
-        "-----END CERTIFICATE----\n";
+        "-----END CERTIFICATE-----\n";
 
     // openssl req -out cert.pem -nodes -keyout private.key -newkey rsa:2048 -new -x509
     public static final String opensslCert = "-----BEGIN CERTIFICATE-----\n" +
