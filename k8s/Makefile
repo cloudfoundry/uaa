@@ -22,6 +22,7 @@ format:
 
 template_test:
 	go version
+        go mod tidy
 	go test -count=1 ./test/...
 
 test: format template_test
