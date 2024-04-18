@@ -89,13 +89,26 @@ class IdentityZoneResolvingFilterTests {
     }
 
     @Test
-    public void serveStaticContent_InCase_RetrievingZoneFails() throws Exception {
+    void serveStaticContent_InCase_RetrievingZoneFails_local() throws Exception {
+        checkStaticContent("/uaa", "/resources/css/application.css");
+        checkStaticContent("/uaa", "/vendor/font-awesome/css/font-awesome.min.css");
+    }
+
+    @Test
+    void serveStaticContent_InCase_RetrievingZoneFails() throws Exception {
+        checkStaticContent(null, "/resources/css/application.css");
+        checkStaticContent(null, "/vendor/font-awesome/css/font-awesome.min.css");
+    }
+
+    private void checkStaticContent(String context, String path) throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         String incomingSubdomain = "not_a_zone";
         String uaaHostname = "uaa.mycf.com";
         String incomingHostname = incomingSubdomain+"."+uaaHostname;
         request.setServerName(incomingHostname);
-        request.setRequestURI("/uaa/resources/css/application.css");
+        request.setRequestURI(context + path);
+        request.setContextPath(context);
+        request.setServletPath(path);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
         MockFilterChain filterChain = new MockFilterChain() {
