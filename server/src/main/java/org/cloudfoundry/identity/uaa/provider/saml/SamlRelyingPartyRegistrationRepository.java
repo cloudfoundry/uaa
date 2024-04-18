@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.apache.commons.io.IOUtils;
+import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -32,12 +33,40 @@ public class SamlRelyingPartyRegistrationRepository {
 
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() {
+
+        String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
+        String samlEntityID = "integration-saml-entity-id";
+        String samlNameIDFormat = "example-NAME_ID_FORMAT";
+
         RelyingPartyRegistration relyingPartyRegistration = RelyingPartyRegistrations
                 .fromMetadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
                 .entityId(samlEntityID)
-                .nameIdFormat(samlSpNameID)
+                .nameIdFormat(samlNameIDFormat)
                 .registrationId("example")
+                .assertingPartyDetails(details -> details
+                        .entityId(samlEntityID)
+                        .wantAuthnRequestsSigned(true)
+                        .signingAlgorithms(algos -> algos.add(""))
+                )
                 .build();
+
+
+//        RelyingPartyRegistration relyingPartyRegistration = RelyingPartyRegistrations
+//                .fromMetadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
+//                .entityId(samlEntityID)
+//                .nameIdFormat(samlSpNameID)
+//                .registrationId("example")
+//                .assertingPartyDetails(details -> details
+//                        .wantAuthnRequestsSigned(true)
+//                        .entityId("TEST_REG_REP")
+//                )
+//                .assertingPartyDetails(party -> party
+//                        .entityId("XXXXXXXXX---" + samlEntityID)
+////                        .singleSignOnServiceLocation("https://idp.example.com/SSO.saml2")
+//                        .wantAuthnRequestsSigned(true)
+////                        .verificationX509Credentials(c -> c.add(credential))
+//                )
+//                .build();
         return new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistration);
     }
 
