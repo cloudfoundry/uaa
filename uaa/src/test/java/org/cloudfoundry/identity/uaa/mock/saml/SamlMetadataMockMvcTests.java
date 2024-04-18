@@ -2,16 +2,16 @@ package org.cloudfoundry.identity.uaa.mock.saml;
 
 import java.net.URI;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.junit.jupiter.api.Test;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @DefaultTestContext
 class SamlMetadataMockMvcTests {
@@ -58,12 +58,18 @@ class SamlMetadataMockMvcTests {
 
         ResultActions xml = mockMvc.perform(get(new URI("/saml/metadata/example")))
                 .andDo(print())
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp-metadata.xml\";")));
+//                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp-metadata.xml\";"))); // Need to cover all the content-disposition entries
+//                .andExpect(header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp-metadata.xml\";")));// Need to cover all the content-disposition entries
+
 //            // The SAML SP metadata should match the following UAA configs:
 //            // login.entityID
                 xml.andExpect(xpath("/EntityDescriptor/@entityID").string(SAML_ENTITY_ID))
                     .andExpect(xpath("/EntityDescriptor/SPSSODescriptor/@AuthnRequestsSigned").booleanValue(true))
-                    .andExpect(xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(true));
+                    .andExpect(xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(true))
+                    .andExpect(xpath("/EntityDescriptor/Signature/@xmlns:ds").string("http://www.w3.org/2000/09/xmldsig#")) // signatureConstaints
+                    .andExpect(xpath("/EntityDescriptor/SignedInfo/SignatureMethod/@Algorithm").string("http://www.w3.org/2000/09/xmldsig#rsa-sha1")); // Always SHA1? no
 
 //            xpath("...ds:DigestMethod/@Algorithm").string("http://www.w3.org/2001/04/xmlenc#sha256");
 
