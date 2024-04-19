@@ -20,11 +20,11 @@ public class DefaultOAuth2ClientContext implements OAuth2ClientContext, Serializ
 
 	private static final long serialVersionUID = 914967629530462926L;
 
-	private OAuth2AccessToken accessToken;
+	private transient OAuth2AccessToken accessToken;
 
-	private AccessTokenRequest accessTokenRequest;
+	private transient AccessTokenRequest accessTokenRequest;
 
-	private Map<String, Object> state = new ConcurrentHashMap<String, Object>();
+	private transient Map<String, Object> state = new ConcurrentHashMap<>();
 
 	public DefaultOAuth2ClientContext() {
 		this(new DefaultAccessTokenRequest());

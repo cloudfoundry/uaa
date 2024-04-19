@@ -136,10 +136,7 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
 		try {
 			return super.doExecute(url, method, requestCallback, responseExtractor);
 		}
-		catch (AccessTokenRequiredException e) {
-			rethrow = e;
-		}
-		catch (OAuth2AccessDeniedException e) {
+		catch (AccessTokenRequiredException | OAuth2AccessDeniedException e) {
 			rethrow = e;
 		}
 		catch (InvalidTokenException e) {
@@ -183,8 +180,7 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
 			}
 			catch (UserRedirectRequiredException e) {
 				context.setAccessToken(null); // No point hanging onto it now
-				accessToken = null;
-				String stateKey = e.getStateKey();
+        String stateKey = e.getStateKey();
 				if (stateKey != null) {
 					Object stateToPreserve = e.getStateToPreserve();
 					if (stateToPreserve == null) {
@@ -266,7 +262,7 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
 			URI update = new URI(uri.getScheme(), uri.getUserInfo(), uri.getHost(), uri.getPort(), uri.getPath(), null,
 					null);
 			// now add the encoded query string and the then fragment
-			StringBuffer sb = new StringBuffer(update.toString());
+			StringBuilder sb = new StringBuilder(update.toString());
 			sb.append("?");
 			sb.append(query);
 			if (uri.getFragment() != null) {
