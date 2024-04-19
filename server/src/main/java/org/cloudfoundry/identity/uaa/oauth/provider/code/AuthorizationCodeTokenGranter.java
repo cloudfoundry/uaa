@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Moved class AuthorizationCodeTokenGranter implementation of from spring-security-oauth2 into UAA
@@ -63,10 +64,7 @@ public class AuthorizationCodeTokenGranter extends AbstractTokenGranter {
 			throw new InvalidRequestException("An authorization code must be supplied.");
 		}
 
-		OAuth2Authentication storedAuth = authorizationCodeServices.consumeAuthorizationCode(authorizationCode);
-		if (storedAuth == null) {
-			throw new InvalidGrantException("Invalid authorization code: " + authorizationCode);
-		}
+		OAuth2Authentication storedAuth;
 
 		if (pkceService != null) {
 			/*
@@ -76,6 +74,7 @@ public class AuthorizationCodeTokenGranter extends AbstractTokenGranter {
 			if (codeVerifier != null && !PkceValidationService.isCodeVerifierParameterValid(codeVerifier)) {
 				throw new InvalidRequestException("Code verifier length must between 43 and 128 and use only [A-Z],[a-z],[0-9],_,.,-,~ characters.");
 			}
+			storedAuth = getStoredCodeAuthentication(authorizationCodeServices, authorizationCode);
 			/*
 			 * PKCE code verifier parameter verification
 			 */
@@ -89,6 +88,8 @@ public class AuthorizationCodeTokenGranter extends AbstractTokenGranter {
 				throw new InvalidGrantException("PKCE error: "+ exception.getMessage());
 			}
 			// No pkceService defined or Pkce validation successfully passed
+		} else {
+			storedAuth = getStoredCodeAuthentication(authorizationCodeServices, authorizationCode);
 		}
 
 		OAuth2Request pendingOAuth2Request = storedAuth.getOAuth2Request();
@@ -113,7 +114,7 @@ public class AuthorizationCodeTokenGranter extends AbstractTokenGranter {
 		// provided
 		// in the token request, but that happens elsewhere.
 
-		Map<String, String> combinedParameters = new HashMap<String, String>(
+		Map<String, String> combinedParameters = new HashMap<>(
 				pendingOAuth2Request.getRequestParameters());
 		// Combine the parameters adding the new ones last so they override if there are
 		// any clashes
@@ -130,5 +131,10 @@ public class AuthorizationCodeTokenGranter extends AbstractTokenGranter {
 		}
 
 		return new OAuth2Authentication(finalStoredOAuth2Request, userAuth);
+	}
+
+	private static OAuth2Authentication getStoredCodeAuthentication(AuthorizationCodeServices authorizationCodeServices, String authorizationCode) {
+		return Optional.ofNullable(authorizationCodeServices.consumeAuthorizationCode(authorizationCode)).orElseThrow(
+				() -> new InvalidGrantException("Invalid authorization code: " + authorizationCode));
 	}
 }

@@ -13,14 +13,15 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 @SuppressWarnings("serial")
 public class OAuth2AccessDeniedException extends OAuth2Exception {
 
-	private OAuth2ProtectedResourceDetails resource;
+	private final transient OAuth2ProtectedResourceDetails resource;
 
 	public OAuth2AccessDeniedException() {
-		super("OAuth2 access denied.");
+		this("OAuth2 access denied.");
 	}
 
 	public OAuth2AccessDeniedException(String msg) {
 		super(msg);
+		resource = null;
 	}
 
 	public OAuth2AccessDeniedException(OAuth2ProtectedResourceDetails resource) {
@@ -40,10 +41,6 @@ public class OAuth2AccessDeniedException extends OAuth2Exception {
 
 	public OAuth2ProtectedResourceDetails getResource() {
 		return resource;
-	}
-
-	public void setResource(OAuth2ProtectedResourceDetails resource) {
-		this.resource = resource;
 	}
 
 	@Override
