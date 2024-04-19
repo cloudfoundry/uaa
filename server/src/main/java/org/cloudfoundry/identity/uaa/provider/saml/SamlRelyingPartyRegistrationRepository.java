@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.apache.commons.io.IOUtils;
 //import org.hsqldb.lib.StringInputStream;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.hsqldb.lib.StringInputStream;
 import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
@@ -15,14 +17,22 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
 import org.springframework.stereotype.Component;
 
+import java.math.BigInteger;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 //import java.io.StringInputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.security.KeyFactory;
+import java.security.PrivateKey;
 import java.security.cert.CertificateException;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.security.interfaces.RSAPrivateKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.RSAPrivateKeySpec;
 
 @Component
 public class SamlRelyingPartyRegistrationRepository {
@@ -44,7 +54,7 @@ public class SamlRelyingPartyRegistrationRepository {
     private String samlSpNameID;
 
     @Bean
-    RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() throws CertificateException {
+    RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() throws CertificateException, NoSuchAlgorithmException, InvalidKeySpecException {
 
         String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
         String samlEntityID = "integration-saml-entity-id";
@@ -70,6 +80,39 @@ public class SamlRelyingPartyRegistrationRepository {
         CertificateFactory cf = CertificateFactory. getInstance("X.509");
         X509Certificate cert = (X509Certificate) cf. generateCertificate(stream);
 
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+
+        String privateKeyString = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIICXAIBAAKBgQCpnqPQiDCfJY1hVaQUZG6Rs1Wd3FmP1EStN71hXeXOLog5nvpa\n" +
+                "H45P3v79EGpaO06vH5qSu/xr6kQRBOA4h9OqXGS72BGQBH8jMNCoHqgJrIADQTHX\n" +
+                "H85RYF38bH6Ycp18jch0KVmYwKeiaLNfMDngnAv6wMDONJz761GBtrG1/wIDAQAB\n" +
+                "AoGAPjYeNSzOUICwcyO7E3Omji/tVgHso3EiYznPbvfGgrHUavXhMs7iHm9WrLCp\n" +
+                "oUChYl/ADNOACICayHc2WeWPfxJ26BF0ahTzOX1fJsg++JDweCYCNN2WrrYcyA9o\n" +
+                "XDU18IFh2dY2CvPL8G7ex5WEq9nYTASQzRfC899nTvUSTyECQQDZddRhqF9g6Zc9\n" +
+                "vuSjwQf+dMztsvhLVPAPaSdgE4LMa4nE2iNC/sLq1uUEwrrrOKGaFB9IXeIU7hPW\n" +
+                "2QmgJewxAkEAx65IjpesMEq+zE5qRPYkfxjdaa0gNBCfATEBGI4bTx37cKskf49W\n" +
+                "2qFlombE9m9t/beYXVC++2W40i53ov+pLwJALRp0X4EFr1sjxGnIkHJkDxH4w0CA\n" +
+                "oVdPp1KfGR1S3sVbQNohwC6JDR5fR/p/vHP1iLituFvInaC3urMvfOkAsQJBAJg9\n" +
+                "0gYdr+O16Vi95JoljNf2bkG3BJmNnp167ln5ZurgcieJ5K7464CPk3zJnBxEAvlx\n" +
+                "dFKZULM98DcXxJFbGXMCQC2ZkPFgzMlRwYu4gake2ruOQR9N3HzLoau1jqDrgh6U\n" +
+                "Ow3ylw8RWPq4zmLkDPn83DFMBquYsg3yzBPi7PANBO4=\n" +
+                "-----END RSA PRIVATE KEY-----\n";
+
+
+//        SamlConfig samlConfig = config.getSamlConfig();
+//        samlConfig.setPrivateKey(privateKey);
+//        KeyFactory factoryInstance = KeyFactory.getInstance("RSA384");
+//        SamlKeyManagerFactory.
+
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+
+        RSAPrivateKeySpec privateKeySpec = new RSAPrivateKeySpec(
+                new BigInteger("57791d5430d593164082036ad8b29fb157791d5430d593164082036ad8b29fb157791d5430d593164082036ad8b29fb157791d5430d593164082036ad8b29fb1", 16),
+                new BigInteger("57791d5430d593164082036ad8b29fb157791d5430d593164082036ad8b29fb157791d5430d593164082036ad8b29fb157791d5430d593164082036ad8b29fb1", 16)
+        );
+
+        RSAPrivateKey privateKey = (RSAPrivateKey) keyFactory.generatePrivate(privateKeySpec);
+
         X509Certificate finalCert = cert;
         RelyingPartyRegistration relyingPartyRegistration = RelyingPartyRegistrations
                 .fromMetadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
@@ -79,10 +122,10 @@ public class SamlRelyingPartyRegistrationRepository {
                 .assertingPartyDetails(details -> details
                         .entityId(samlEntityID)
                         .wantAuthnRequestsSigned(true)
-                        .signingAlgorithms((sign) -> sign.add(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1))  // 512 by default?
+//                        .signingAlgorithms((sign) -> sign.add(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1))  // 512 by default?
                         )
                 .signingX509Credentials( (cred) -> cred
-                        .add(new Saml2X509Credential(finalCert)
+                        .add(Saml2X509Credential.signing( privateKey, finalCert)
                         )
                 )
                 .build();
