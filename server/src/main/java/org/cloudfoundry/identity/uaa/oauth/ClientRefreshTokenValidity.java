@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
 
 public class ClientRefreshTokenValidity implements ClientTokenValidity {
     private static final Logger logger = LoggerFactory.getLogger(ClientRefreshTokenValidity.class);

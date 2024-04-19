@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.provider;
 
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
+
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
  *

@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.authentication;
 
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedException;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.ResourceServerTokenServices;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;

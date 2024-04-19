@@ -6,9 +6,12 @@ import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
+
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
@@ -20,13 +23,12 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantExcepti
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Set;
 
@@ -42,7 +44,7 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
 
 	private static final BytesKeyGenerator DEFAULT_TOKEN_GENERATOR = KeyGenerators.secureRandom(20);
 
-	private static final Charset US_ASCII = Charset.forName("US-ASCII");
+	private static final Charset US_ASCII = StandardCharsets.US_ASCII;
 
 	private int refreshTokenValiditySeconds = 60 * 60 * 24 * 30; // default 30 days.
 

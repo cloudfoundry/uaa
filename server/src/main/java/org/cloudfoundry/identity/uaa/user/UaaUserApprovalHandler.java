@@ -9,13 +9,13 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.approval.UserApprovalHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
 
 import java.util.Collection;
 import java.util.HashMap;

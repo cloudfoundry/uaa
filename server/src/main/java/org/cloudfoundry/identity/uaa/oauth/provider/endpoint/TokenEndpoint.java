@@ -2,11 +2,11 @@ package org.cloudfoundry.identity.uaa.oauth.provider.endpoint;
 
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestValidator;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;

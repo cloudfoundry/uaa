@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;

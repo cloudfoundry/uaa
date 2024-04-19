@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
