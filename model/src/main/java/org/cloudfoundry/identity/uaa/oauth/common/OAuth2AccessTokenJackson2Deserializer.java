@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 
 import java.io.IOException;
 import java.util.Date;
@@ -22,7 +23,11 @@ import java.util.TreeSet;
  *
  * Scope: OAuth2 client
  */
-public final class OAuth2AccessTokenJackson2Deserializer extends StdDeserializer<OAuth2AccessToken> {
+public class OAuth2AccessTokenJackson2Deserializer extends StdDeserializer<OAuth2AccessToken> {
+
+	public OAuth2AccessTokenJackson2Deserializer(Class<?> vc) {
+		super(vc);
+	}
 
 	public OAuth2AccessTokenJackson2Deserializer() {
 		super(OAuth2AccessToken.class);
@@ -31,40 +36,40 @@ public final class OAuth2AccessTokenJackson2Deserializer extends StdDeserializer
 	@Override
 	public OAuth2AccessToken deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
 
+		String idTokenValue = null;
 		String tokenValue = null;
 		String tokenType = null;
 		String refreshToken = null;
 		Long expiresIn = null;
 		Set<String> scope = null;
-		Map<String, Object> additionalInformation = new LinkedHashMap<String, Object>();
+		Map<String, Object> additionalInformation = new LinkedHashMap<>();
 
 		while (jp.nextToken() != JsonToken.END_OBJECT) {
-			String name = jp.getCurrentName();
+			String name = jp.currentName();
 			jp.nextToken();
 			if (OAuth2AccessToken.ACCESS_TOKEN.equals(name)) {
 				tokenValue = jp.getText();
-			}
-			else if (OAuth2AccessToken.TOKEN_TYPE.equals(name)) {
+			} else if (CompositeToken.ID_TOKEN.equals(name)) {
+				idTokenValue = jp.getText();
+			} else if (OAuth2AccessToken.TOKEN_TYPE.equals(name)) {
 				tokenType = jp.getText();
-			}
-			else if (OAuth2AccessToken.REFRESH_TOKEN.equals(name)) {
+			} else if (OAuth2AccessToken.REFRESH_TOKEN.equals(name)) {
 				refreshToken = jp.getText();
-			}
-			else if (OAuth2AccessToken.EXPIRES_IN.equals(name)) {
+			} else if (OAuth2AccessToken.EXPIRES_IN.equals(name)) {
 				try {
 					expiresIn = jp.getLongValue();
 				} catch (JsonParseException e) {
 					expiresIn = Long.valueOf(jp.getText());
 				}
-			}
-			else if (OAuth2AccessToken.SCOPE.equals(name)) {
+			} else if (OAuth2AccessToken.SCOPE.equals(name)) {
 				scope = parseScope(jp);
 			} else {
 				additionalInformation.put(name, jp.readValueAs(Object.class));
 			}
 		}
 
-		DefaultOAuth2AccessToken accessToken = new DefaultOAuth2AccessToken(tokenValue);
+		CompositeToken accessToken = new CompositeToken(tokenValue);
+		accessToken.setIdTokenValue(idTokenValue);
 		accessToken.setTokenType(tokenType);
 		if (expiresIn != null && expiresIn != 0) {
 			accessToken.setExpiration(new Date(System.currentTimeMillis() + (expiresIn * 1000)));
@@ -78,7 +83,7 @@ public final class OAuth2AccessTokenJackson2Deserializer extends StdDeserializer
 		return accessToken;
 	}
 
-	private Set<String> parseScope(JsonParser jp) throws JsonParseException, IOException {
+	private Set<String> parseScope(JsonParser jp) throws IOException {
 		Set<String> scope;
 		if (jp.getCurrentToken() == JsonToken.START_ARRAY) {
 			scope = new TreeSet<>();
