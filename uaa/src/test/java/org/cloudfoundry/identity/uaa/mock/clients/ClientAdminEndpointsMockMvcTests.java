@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -1319,8 +1320,8 @@ public class ClientAdminEndpointsMockMvcTests {
                 .andExpect(status().isBadRequest())
                 .andReturn().getResponse();
 
-        UaaException invalidClientDetailsException = JsonUtils.readValue(response.getContentAsString(), UaaException.class);
-        assertEquals("invalid_client", invalidClientDetailsException.getErrorCode());
+        InvalidClientException invalidClientDetailsException = JsonUtils.readValue(response.getContentAsString(), InvalidClientException.class);
+        assertEquals("invalid_client", invalidClientDetailsException.getOAuth2ErrorCode());
         assertEquals("client secret is either empty or client already has two secrets.", invalidClientDetailsException.getMessage());
         verify(mockApplicationEventPublisher, times(3)).publishEvent(abstractUaaEventCaptor.capture());
         assertEquals(SecretFailureEvent.class, abstractUaaEventCaptor.getValue().getClass());
@@ -1386,8 +1387,8 @@ public class ClientAdminEndpointsMockMvcTests {
                 .andExpect(status().isBadRequest())
                 .andReturn().getResponse();
 
-        UaaException invalidClientDetailsException = JsonUtils.readValue(response.getContentAsString(), UaaException.class);
-        assertEquals("invalid_client", invalidClientDetailsException.getErrorCode());
+        InvalidClientException invalidClientDetailsException = JsonUtils.readValue(response.getContentAsString(), InvalidClientException.class);
+        assertEquals("invalid_client", invalidClientDetailsException.getOAuth2ErrorCode());
         assertEquals("client secret is either empty or client has only one secret.", invalidClientDetailsException.getMessage());
 
         verify(mockApplicationEventPublisher, times(2)).publishEvent(abstractUaaEventCaptor.capture());

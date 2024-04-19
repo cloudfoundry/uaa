@@ -30,7 +30,11 @@ import java.util.Map.Entry;
  */
 public class OAuth2ExceptionJackson2Serializer extends StdSerializer<OAuth2Exception> {
 
-    public OAuth2ExceptionJackson2Serializer() {
+	public OAuth2ExceptionJackson2Serializer(Class vc) {
+		super(vc);
+	}
+
+  public OAuth2ExceptionJackson2Serializer() {
         super(OAuth2Exception.class);
     }
 
