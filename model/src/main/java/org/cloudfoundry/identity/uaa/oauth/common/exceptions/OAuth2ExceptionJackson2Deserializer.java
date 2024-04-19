@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 
 import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.deser.std.StdDeserializer;
@@ -33,14 +32,13 @@ public class OAuth2ExceptionJackson2Deserializer extends StdDeserializer<OAuth2E
 	}
 
 	@Override
-	public OAuth2Exception deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException,
-			JsonProcessingException {
+	public OAuth2Exception deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
 
 		JsonToken t = jp.getCurrentToken();
 		if (t == JsonToken.START_OBJECT) {
 			t = jp.nextToken();
 		}
-		Map<String, Object> errorParams = new HashMap<String, Object>();
+		Map<String, Object> errorParams = new HashMap<>();
 		for (; t == JsonToken.FIELD_NAME; t = jp.nextToken()) {
 			// Must point to field name
 			String fieldName = jp.getCurrentName();
@@ -64,8 +62,8 @@ public class OAuth2ExceptionJackson2Deserializer extends StdDeserializer<OAuth2E
 			errorParams.put(fieldName, value);
 		}
 
-		Object errorCode = errorParams.get("error");
-		String errorMessage = errorParams.get("error_description") != null ? errorParams.get("error_description").toString() : null;
+		Object errorCode = errorParams.get(OAuth2Exception.ERROR);
+		String errorMessage = errorParams.get(OAuth2Exception.DESCRIPTION) != null ? errorParams.get(OAuth2Exception.DESCRIPTION).toString() : null;
 		if (errorMessage == null) {
 			errorMessage = errorCode == null ? "OAuth Error" : errorCode.toString();
 		}
@@ -117,7 +115,7 @@ public class OAuth2ExceptionJackson2Deserializer extends StdDeserializer<OAuth2E
 		Set<Map.Entry<String, Object>> entries = errorParams.entrySet();
 		for (Map.Entry<String, Object> entry : entries) {
 			String key = entry.getKey();
-			if (!"error".equals(key) && !"error_description".equals(key)) {
+			if (!OAuth2Exception.ERROR.equals(key) && !OAuth2Exception.DESCRIPTION.equals(key)) {
 				Object value = entry.getValue();
 				ex.addAdditionalInformation(key, value == null ? null : value.toString());
 			}
