@@ -23,7 +23,7 @@ ext["flyway.version"] = "7.15.0" // flyway 8+ drops support for mysql 5.7
 ext["mariadb.version"] = "2.7.12" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 ext["snakeyaml.version"] = "2.2" // Needed to resolve CVEs in internal spring-boot 2.7.12 inclusion of snakeyaml
 ext["jackson-bom.version"] = "2.16.2" // Bumping to latest version because of compatibility to snakeyaml 2.0
-ext["spring-framework.version"] = "5.3.33" // Bumping to latest version 5 patch
+ext["spring-framework.version"] = "5.3.34" // Bumping to latest version 5 patch
 ext["selenium.version"] = "${versions.seleniumVersion}"
 //  spring-boot 2.7.18 provides spring-security 5.7.11, which has CVE-2024-22257. So, override that with spring-security
 //  5.7 latest patch version. This should be removed once spring-boot version is bumped.
