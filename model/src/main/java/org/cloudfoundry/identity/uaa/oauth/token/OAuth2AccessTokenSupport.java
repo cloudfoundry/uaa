@@ -4,6 +4,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.client.http.converter.FormOAuth2AccessTokenMessageConverter;
 import org.cloudfoundry.identity.uaa.oauth.client.http.converter.FormOAuth2ExceptionHttpMessageConverter;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.BaseOAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedException;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
@@ -35,6 +36,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -250,4 +252,18 @@ public abstract class OAuth2AccessTokenSupport {
 
 	}
 
+	protected static String getScopeString(BaseOAuth2ProtectedResourceDetails resource) {
+		StringBuilder builder = new StringBuilder();
+		List<String> scope = resource.getScope();
+		if (scope != null) {
+			Iterator<String> scopeIt = scope.iterator();
+			while (scopeIt.hasNext()) {
+				builder.append(scopeIt.next());
+				if (scopeIt.hasNext()) {
+					builder.append(' ');
+				}
+			}
+		}
+		return builder.toString();
+	}
 }
