@@ -24,9 +24,7 @@ public class DefaultOAuth2RequestAuthenticator implements OAuth2RequestAuthentic
 			throw new AccessTokenRequiredException(resource);
 		}
 		String tokenType = accessToken.getTokenType();
-		if (!StringUtils.hasText(tokenType)) {
-			tokenType = OAuth2AccessToken.BEARER_TYPE;
-		} else if (tokenType.equalsIgnoreCase(OAuth2AccessToken.BEARER_TYPE)) {
+		if (!StringUtils.hasText(tokenType) || tokenType.equalsIgnoreCase(OAuth2AccessToken.BEARER_TYPE)) {
 			tokenType = OAuth2AccessToken.BEARER_TYPE;
 		}
 		request.getHeaders().set("Authorization", String.format("%s %s", tokenType, accessToken.getValue()));

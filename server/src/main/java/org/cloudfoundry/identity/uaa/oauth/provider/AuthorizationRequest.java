@@ -39,18 +39,18 @@ public class AuthorizationRequest extends BaseRequest implements Serializable {
 	 * Resolved requested response types initialized (by the
 	 * OAuth2RequestFactory) with the response types originally requested.
 	 */
-	private Set<String> responseTypes = new HashSet<String>();
+	private Set<String> responseTypes = new HashSet<>();
 
 	/**
 	 * Resolved resource IDs. This set may change during request processing.
 	 */
-	private Set<String> resourceIds = new HashSet<String>();
+	private Set<String> resourceIds = new HashSet<>();
 
 	/**
 	 * Resolved granted authorities for this request. May change during request
 	 * processing.
 	 */
-	private Collection<? extends GrantedAuthority> authorities = new HashSet<GrantedAuthority>();
+	private Collection<? extends GrantedAuthority> authorities = new HashSet<>();
 
 	/**
 	 * Whether the request has been approved by the end user (or other process).
@@ -73,7 +73,7 @@ public class AuthorizationRequest extends BaseRequest implements Serializable {
 	 * create a serializable OAuth2Request, all members of this extension map
 	 * must be serializable.
 	 */
-	private Map<String, Serializable> extensions = new HashMap<String, Serializable>();
+	private Map<String, Serializable> extensions = new HashMap<>();
 
 	/**
 	 * Default constructor.
@@ -84,17 +84,17 @@ public class AuthorizationRequest extends BaseRequest implements Serializable {
 	/**
 	 * Full constructor.
 	 */
-	public AuthorizationRequest(Map<String, String> authorizationParameters, Map<String, String> approvalParameters, String clientId, Set<String> scope, Set<String> resourceIds, Collection<? extends GrantedAuthority> authorities, boolean approved, String state, String redirectUri,
+	public AuthorizationRequest(Map<String, String> authorizationParameters, String clientId, Set<String> scope, Set<String> resourceIds, Collection<? extends GrantedAuthority> authorities, boolean approved, String state, String redirectUri,
 	        Set<String> responseTypes) {
 		setClientId(clientId);
 		setRequestParameters(authorizationParameters); // in case we need to
 													   // wrap the collection
 		setScope(scope); // in case we need to parse
 		if (resourceIds != null) {
-			this.resourceIds = new HashSet<String>(resourceIds);
+			this.resourceIds = new HashSet<>(resourceIds);
 		}
 		if (authorities != null) {
-			this.authorities = new HashSet<GrantedAuthority>(authorities);
+			this.authorities = new HashSet<>(authorities);
 		}
 		this.approved = approved;
 		this.resourceIds = resourceIds;
@@ -166,7 +166,7 @@ public class AuthorizationRequest extends BaseRequest implements Serializable {
 
 	public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {
 		if (authorities != null) {
-			this.authorities = new HashSet<GrantedAuthority>(authorities);
+			this.authorities = new HashSet<>(authorities);
 		}
 	}
 
@@ -185,6 +185,7 @@ public class AuthorizationRequest extends BaseRequest implements Serializable {
 		this.resourceIds = resourceIds;
 	}
 
+	@Override
 	public void setClientId(String clientId) {
 		super.setClientId(clientId);
 	}
@@ -198,6 +199,7 @@ public class AuthorizationRequest extends BaseRequest implements Serializable {
 	 * 
 	 * @param scope
 	 */
+	@Override
 	public void setScope(Collection<String> scope) {
 		super.setScope(scope);
 	}
@@ -211,6 +213,7 @@ public class AuthorizationRequest extends BaseRequest implements Serializable {
 	 * 
 	 * @param requestParameters
 	 */
+	@Override
 	public void setRequestParameters(Map<String, String> requestParameters) {
 		super.setRequestParameters(requestParameters);
 	}

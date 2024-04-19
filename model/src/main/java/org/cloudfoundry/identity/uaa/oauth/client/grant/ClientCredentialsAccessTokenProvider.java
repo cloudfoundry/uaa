@@ -15,9 +15,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.Iterator;
-import java.util.List;
-
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
  *
@@ -56,21 +53,7 @@ public class ClientCredentialsAccessTokenProvider extends OAuth2AccessTokenSuppo
 		form.set(OAuth2Utils.GRANT_TYPE, "client_credentials");
 
 		if (resource.isScoped()) {
-
-			StringBuilder builder = new StringBuilder();
-			List<String> scope = resource.getScope();
-
-			if (scope != null) {
-				Iterator<String> scopeIt = scope.iterator();
-				while (scopeIt.hasNext()) {
-					builder.append(scopeIt.next());
-					if (scopeIt.hasNext()) {
-						builder.append(' ');
-					}
-				}
-			}
-
-			form.set("scope", builder.toString());
+			form.set(OAuth2Utils.SCOPE, getScopeString(resource));
 		}
 
 		return form;

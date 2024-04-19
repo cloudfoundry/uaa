@@ -21,8 +21,6 @@ import org.springframework.web.client.ResponseExtractor;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
@@ -90,21 +88,7 @@ public class ImplicitAccessTokenProvider extends OAuth2AccessTokenSupport implem
 		form.set("client_id", resource.getClientId());
 		
 		if (resource.isScoped()) {
-
-			StringBuilder builder = new StringBuilder();
-			List<String> scope = resource.getScope();
-
-			if (scope != null) {
-				Iterator<String> scopeIt = scope.iterator();
-				while (scopeIt.hasNext()) {
-					builder.append(scopeIt.next());
-					if (scopeIt.hasNext()) {
-						builder.append(' ');
-					}
-				}
-			}
-
-			form.set("scope", builder.toString());
+			form.set(OAuth2Utils.SCOPE, getScopeString(resource));
 		}
 
 		for (String key : request.keySet()) {

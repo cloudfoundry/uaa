@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -14,8 +18,8 @@ import java.util.TreeMap;
  * Scope: OAuth2 exceptions
  */
 @SuppressWarnings("serial")
-@com.fasterxml.jackson.databind.annotation.JsonSerialize(using = OAuth2ExceptionJackson2Serializer.class)
-@com.fasterxml.jackson.databind.annotation.JsonDeserialize(using = OAuth2ExceptionJackson2Deserializer.class)
+@JsonSerialize(using = OAuth2ExceptionJackson2Serializer.class)
+@JsonDeserialize(using = OAuth2ExceptionJackson2Deserializer.class)
 public class OAuth2Exception extends RuntimeException {
 
 	public static final String ERROR = "error";
@@ -33,7 +37,7 @@ public class OAuth2Exception extends RuntimeException {
 	public static final String UNSUPPORTED_RESPONSE_TYPE ="unsupported_response_type";
 	public static final String ACCESS_DENIED = "access_denied";
 
-	private Map<String, String> additionalInformation = null;
+	private final Map<String, String> additionalInformation = new TreeMap<>();
 
 	public OAuth2Exception(String msg, Throwable t) {
 		super(msg, t);
@@ -49,7 +53,7 @@ public class OAuth2Exception extends RuntimeException {
 	 * @return The OAuth2 error code.
 	 */
 	public String getOAuth2ErrorCode() {
-		return "invalid_request";
+		return INVALID_REQUEST;
 	}
 
 	/**
@@ -67,7 +71,7 @@ public class OAuth2Exception extends RuntimeException {
 	 * @return Additional information, or null if none.
 	 */
 	public Map<String, String> getAdditionalInformation() {
-		return this.additionalInformation;
+		return this.additionalInformation.isEmpty() ? null : new HashMap<>(additionalInformation);
 	}
 
 	/**
@@ -77,12 +81,7 @@ public class OAuth2Exception extends RuntimeException {
 	 * @param value The value.
 	 */
 	public void addAdditionalInformation(String key, String value) {
-		if (this.additionalInformation == null) {
-			this.additionalInformation = new TreeMap<String, String>();
-		}
-
 		this.additionalInformation.put(key, value);
-
 	}
 
 	/**
@@ -138,9 +137,13 @@ public class OAuth2Exception extends RuntimeException {
 	 */
 	public static OAuth2Exception valueOf(Map<String, String> errorParams) {
 		String errorCode = errorParams.get(ERROR);
-		String errorMessage = errorParams.containsKey(DESCRIPTION) ? errorParams.get(DESCRIPTION)
-				: null;
+		String errorMessage = errorParams.containsKey(DESCRIPTION) ? errorParams.get(DESCRIPTION) : null;
 		OAuth2Exception ex = create(errorCode, errorMessage);
+		addAdditionalInformation(ex, errorParams);
+		return ex;
+	}
+
+	protected static void addAdditionalInformation(OAuth2Exception ex, Map<String, String> errorParams) {
 		Set<Map.Entry<String, String>> entries = errorParams.entrySet();
 		for (Map.Entry<String, String> entry : entries) {
 			String key = entry.getKey();
@@ -148,8 +151,6 @@ public class OAuth2Exception extends RuntimeException {
 				ex.addAdditionalInformation(key, entry.getValue());
 			}
 		}
-
-		return ex;
 	}
 	
 	@Override

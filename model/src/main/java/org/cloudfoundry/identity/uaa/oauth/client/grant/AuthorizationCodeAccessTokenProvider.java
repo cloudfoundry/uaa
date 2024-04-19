@@ -30,8 +30,6 @@ import org.springframework.web.client.ResponseExtractor;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.TreeMap;
@@ -304,21 +302,7 @@ public class AuthorizationCodeAccessTokenProvider extends OAuth2AccessTokenSuppo
 		}
 
 		if (resource.isScoped()) {
-
-			StringBuilder builder = new StringBuilder();
-			List<String> scope = resource.getScope();
-
-			if (scope != null) {
-				Iterator<String> scopeIt = scope.iterator();
-				while (scopeIt.hasNext()) {
-					builder.append(scopeIt.next());
-					if (scopeIt.hasNext()) {
-						builder.append(' ');
-					}
-				}
-			}
-
-			requestParameters.put(OAuth2Utils.SCOPE, builder.toString());
+			requestParameters.put(OAuth2Utils.SCOPE, getScopeString(resource));
 		}
 
 		UserRedirectRequiredException redirectException = new UserRedirectRequiredException(
