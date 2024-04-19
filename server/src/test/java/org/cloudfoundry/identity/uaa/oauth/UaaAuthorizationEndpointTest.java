@@ -377,8 +377,7 @@ public class UaaAuthorizationEndpointTest {
         if (responseTypes != null) {
             parameters.put(OAuth2Utils.RESPONSE_TYPE, OAuth2Utils.formatParameterList(responseTypes));
         }
-        return new AuthorizationRequest(parameters, Collections.emptyMap(),
-                parameters.get(OAuth2Utils.CLIENT_ID),
+        return new AuthorizationRequest(parameters, parameters.get(OAuth2Utils.CLIENT_ID),
                 OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.SCOPE)), null, null, false,
                 parameters.get(OAuth2Utils.STATE), parameters.get(OAuth2Utils.REDIRECT_URI),
                 OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.RESPONSE_TYPE)));

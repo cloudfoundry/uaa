@@ -12,7 +12,6 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientExcept
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
@@ -63,7 +62,7 @@ public class DefaultOAuth2RequestFactory implements OAuth2RequestFactory {
 
     Set<String> scopes = extractScopes(authorizationParameters, clientId);
 
-    AuthorizationRequest request = new AuthorizationRequest(authorizationParameters, Collections.<String, String>emptyMap(), clientId, scopes, null,
+    AuthorizationRequest request = new AuthorizationRequest(authorizationParameters, clientId, scopes, null,
         null, false, state, redirectUri, responseTypes);
 
     ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);

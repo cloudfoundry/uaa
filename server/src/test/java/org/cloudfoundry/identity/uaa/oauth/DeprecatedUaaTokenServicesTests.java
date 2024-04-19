@@ -347,7 +347,7 @@ public class DeprecatedUaaTokenServicesTests {
     public void testInvalidRefreshToken() {
         Map<String, String> map = new HashMap<>();
         map.put("grant_type", "refresh_token");
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(map, null, null, null, null, null, false, null, null, null);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(map, null, null, null, null, false, null, null, null);
         String refreshTokenValue = "dasdasdasdasdas";
         try {
             tokenServices.refreshAccessToken(refreshTokenValue, tokenSupport.requestFactory.createTokenRequest(authorizationRequest, "refresh_token"));

@@ -170,9 +170,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         clientDetails.setResourceIds(resourceIds);
         Map<String, String> actualParameters = new HashMap<>(authorizationParameters);
         AuthorizationRequest request = new AuthorizationRequest(
-            actualParameters,
-            null,
-            clientId,
+            actualParameters, clientId,
             scopes.isEmpty()?null:scopes,
             null,
             null,
