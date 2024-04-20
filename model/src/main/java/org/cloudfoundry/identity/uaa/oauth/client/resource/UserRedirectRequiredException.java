@@ -16,9 +16,9 @@ public class UserRedirectRequiredException extends RuntimeException {
 
 	private final Map<String, String> requestParams;
 
-	private String stateKey;
+	private transient String stateKey;
 
-	private Object stateToPreserve;
+	private transient Object stateToPreserve;
 
 	public UserRedirectRequiredException(String redirectUri, Map<String, String> requestParams) {
 		super("A redirect is required to get the users approval");

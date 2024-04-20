@@ -214,13 +214,10 @@ public class AuthorizationCodeAccessTokenProvider extends OAuth2AccessTokenSuppo
 		form.set(OAuth2Utils.CODE, request.getAuthorizationCode());
 
 		Object preservedState = request.getPreservedState();
-		if (request.getStateKey() != null || stateMandatory) {
+		if ((request.getStateKey() != null || stateMandatory) && preservedState == null) {
 			// The token endpoint has no use for the state so we don't send it back, but we are using it
 			// for CSRF detection client side...
-			if (preservedState == null) {
-				throw new InvalidRequestException(
-						"Possible CSRF detected - state parameter was required but no state could be found");
-			}
+			throw new InvalidRequestException("Possible CSRF detected - state parameter was required but no state could be found");
 		}
 
 		// Extracting the redirect URI from a saved request should ignore the current URI, so it's not simply a call to

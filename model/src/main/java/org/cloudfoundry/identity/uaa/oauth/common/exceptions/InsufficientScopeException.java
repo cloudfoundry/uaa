@@ -32,7 +32,7 @@ public class InsufficientScopeException extends OAuth2Exception {
 	@Override
 	public String getOAuth2ErrorCode() {
 		// Not defined in the spec, so not really an OAuth2Exception
-		return "insufficient_scope";
+		return INSUFFICIENT_SCOPE;
 	}
 
 }

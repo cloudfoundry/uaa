@@ -17,7 +17,7 @@ public class InvalidScopeException extends OAuth2Exception {
 
 	public InvalidScopeException(String msg, Set<String> validScope) {
 		this(msg);
-		addAdditionalInformation("scope", OAuth2Utils.formatParameterList(validScope));
+		addAdditionalInformation(OAuth2Utils.SCOPE, OAuth2Utils.formatParameterList(validScope));
 	}
 
 	public InvalidScopeException(String msg) {
@@ -26,7 +26,7 @@ public class InvalidScopeException extends OAuth2Exception {
 
 	@Override
 	public String getOAuth2ErrorCode() {
-		return "invalid_scope";
+		return INVALID_SCOPE;
 	}
 
 }
