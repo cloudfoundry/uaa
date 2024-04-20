@@ -5,7 +5,6 @@ import org.springframework.util.StringUtils;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
@@ -110,18 +109,5 @@ public abstract class OAuth2Utils {
 			}
 		}
 		return map;
-	}
-
-	/**
-	 * Compare 2 sets and check that one contains all members of the other.
-	 * 
-	 * @param target set of strings to check
-	 * @param members the members to compare to
-	 * @return true if all members are in the target
-	 */
-	public static boolean containsAll(Set<String> target, Set<String> members) {
-		target = new HashSet<>(target);
-		target.retainAll(members);
-		return target.size() == members.size();
 	}
 }
