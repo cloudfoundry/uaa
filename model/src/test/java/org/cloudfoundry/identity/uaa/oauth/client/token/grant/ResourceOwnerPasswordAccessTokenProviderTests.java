@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth.client.token.grant;
 
 import org.cloudfoundry.identity.uaa.oauth.client.grant.ResourceOwnerPasswordAccessTokenProvider;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ResourceOwnerPasswordResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.DefaultAccessTokenRequest;
@@ -14,7 +16,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.Collections;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -44,6 +51,23 @@ public class ResourceOwnerPasswordAccessTokenProviderTests {
 	};
 
 	private ResourceOwnerPasswordResourceDetails resource = new ResourceOwnerPasswordResourceDetails();
+
+	@Test
+	public void supportsResource() {
+		assertTrue(provider.supportsResource(new ResourceOwnerPasswordResourceDetails()));
+	}
+
+	@Test
+	public void supportsRefresh() {
+		assertFalse(provider.supportsRefresh(new AuthorizationCodeResourceDetails()));
+	}
+
+	@Test
+	public void refreshAccessToken() {
+		expected.expect(IllegalArgumentException.class);
+		assertNull(provider.refreshAccessToken(new AuthorizationCodeResourceDetails(), new DefaultOAuth2RefreshToken(""), new DefaultAccessTokenRequest(
+				Collections.emptyMap())));
+	}
 
 	@Test
 	public void testGetAccessToken() throws Exception {

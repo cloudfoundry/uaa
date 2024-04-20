@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -28,13 +29,37 @@ public class DefaultOAuth2SerializationServiceTests {
 
 	@Test
 	public void testDefaultDeserialization() throws Exception {
-		Map<String, String> accessToken = MapBuilder.create("access_token", "FOO").add("expires_in", "100")
-				.add("token_type", "mac").build();
+		Map<String, String> accessToken = Map.of("access_token", "FOO", "expires_in", "100", "token_type", "mac", "scope", "test,ok", "refresh_token", "");
 		OAuth2AccessToken result = DefaultOAuth2AccessToken.valueOf(accessToken);
 		// System.err.println(result);
 		assertEquals("FOO", result.getValue());
 		assertEquals("mac", result.getTokenType());
 		assertTrue(result.getExpiration().getTime() > System.currentTimeMillis());
+	}
+
+	@Test
+	public void testDefaultDeserializationException() throws Exception {
+		Map<String, String> accessToken = Map.of("access_token", "FOO", "expires_in", "x");
+		DefaultOAuth2AccessToken result = (DefaultOAuth2AccessToken) DefaultOAuth2AccessToken.valueOf(accessToken);
+		assertNotEquals(0,result.getExpiration().getTime());
+		assertEquals(0, result.getExpiresIn());
+		result.setExpiresIn(300);
+		assertEquals(0, result.getExpiresIn());
+		assertNotEquals(0, result.hashCode());
+	}
+
+	@Test
+	public void testDefaultDeserializationEquals() throws Exception {
+		Map<String, String> accessToken = Map.of("access_token", "FOO", "expires_in", "x");
+		DefaultOAuth2AccessToken result = (DefaultOAuth2AccessToken) DefaultOAuth2AccessToken.valueOf(accessToken);
+		DefaultOAuth2AccessToken result2 = new DefaultOAuth2AccessToken("bar");
+		assertNotEquals(result,result2);
+		result2.setValue("FOO");
+		assertEquals(result,result2);
+		DefaultOAuth2RefreshToken refreshToken = new DefaultOAuth2RefreshToken("bar");
+		assertNotEquals(refreshToken, result2);
+		assertNotEquals(refreshToken.hashCode(), result2.hashCode());
+		assertNotEquals(refreshToken.toString(), result2.toString());
 	}
 
 	@Test

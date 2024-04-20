@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeReso
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidRequestException;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenRequest;
@@ -16,7 +17,11 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.Collections;
+
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 /**
@@ -40,6 +45,27 @@ public class AuthorizationCodeAccessTokenProviderTests {
 	};
 
 	private AuthorizationCodeResourceDetails resource = new AuthorizationCodeResourceDetails();
+
+	@Test
+	public void supportsResource() {
+		assertTrue(provider.supportsResource(new AuthorizationCodeResourceDetails()));
+	}
+
+	@Test
+	public void getUserApproval() {
+		assertNotNull(provider.getUserApprovalSignal(new AuthorizationCodeResourceDetails()));
+	}
+
+	@Test
+	public void supportsRefresh() {
+		assertTrue(provider.supportsRefresh(new AuthorizationCodeResourceDetails()));
+	}
+
+	@Test
+	public void refreshAccessToken() {
+		assertEquals("FOO", provider.refreshAccessToken(new AuthorizationCodeResourceDetails(), new DefaultOAuth2RefreshToken(""), new DefaultAccessTokenRequest(
+				Collections.emptyMap())).getValue());
+	}
 
 	@Test
 	public void testGetAccessToken() throws Exception {
