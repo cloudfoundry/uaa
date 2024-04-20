@@ -245,9 +245,6 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
 	protected URI appendQueryParameter(URI uri, OAuth2AccessToken accessToken) {
 
 		try {
-
-			// TODO: there is some duplication with UriUtils here. Probably unavoidable as long as this
-			// method signature uses URI not String.
 			String query = uri.getRawQuery(); // Don't decode anything here
 			String queryFragment = resource.getTokenName() + "=" + URLEncoder.encode(accessToken.getValue(), "UTF-8");
 			if (query == null) {
