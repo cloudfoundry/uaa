@@ -51,7 +51,7 @@ public final class FormOAuth2ExceptionHttpMessageConverter implements HttpMessag
 
 	public void write(OAuth2Exception t, MediaType contentType, HttpOutputMessage outputMessage) throws IOException,
 			HttpMessageNotWritableException {
-		MultiValueMap<String, String> data = new LinkedMultiValueMap<String, String>();
+		MultiValueMap<String, String> data = new LinkedMultiValueMap<>();
 		data.add(OAuth2Exception.ERROR, t.getOAuth2ErrorCode());
 		data.add(OAuth2Exception.DESCRIPTION, t.getMessage());
 		Map<String, String> additionalInformation = t.getAdditionalInformation();

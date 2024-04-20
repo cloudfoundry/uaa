@@ -21,6 +21,8 @@ import org.springframework.web.client.ResponseExtractor;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
@@ -54,8 +56,7 @@ public class ImplicitAccessTokenProvider extends OAuth2AccessTokenSupport implem
 			OAuth2AccessToken token = retrieveToken(request,
 					resource, getParametersForTokenRequest(resource, request), getHeadersForTokenRequest(request));
 			if (token==null) {
-				// Probably an authenticated request, but approval is required.  TODO: prompt somehow?
-				throw new UserRedirectRequiredException(resource.getUserAuthorizationUri(), request.toSingleValueMap());				
+				throw new UserRedirectRequiredException(resource.getUserAuthorizationUri(), request.toSingleValueMap());
 			}
 			return token;
 		}
@@ -83,7 +84,7 @@ public class ImplicitAccessTokenProvider extends OAuth2AccessTokenSupport implem
 	private MultiValueMap<String, String> getParametersForTokenRequest(ImplicitResourceDetails resource,
 			AccessTokenRequest request) {
 
-		MultiValueMap<String, String> form = new LinkedMultiValueMap<String, String>();
+		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
 		form.set("response_type", "token");
 		form.set("client_id", resource.getClientId());
 		
@@ -91,8 +92,8 @@ public class ImplicitAccessTokenProvider extends OAuth2AccessTokenSupport implem
 			form.set(OAuth2Utils.SCOPE, getScopeString(resource));
 		}
 
-		for (String key : request.keySet()) {
-			form.put(key, request.get(key));
+		for (Map.Entry<String, List<String>> entry : request.entrySet()) {
+			form.put(entry.getKey(), entry.getValue());
 		}
 
 		String redirectUri = resource.getRedirectUri(request);
@@ -107,7 +108,6 @@ public class ImplicitAccessTokenProvider extends OAuth2AccessTokenSupport implem
 
 	private final class ImplicitResponseExtractor implements ResponseExtractor<OAuth2AccessToken> {
 		public OAuth2AccessToken extractData(ClientHttpResponse response) throws IOException {
-			// TODO: this should actually be a 401 if the request asked for JSON
 			URI location = response.getHeaders().getLocation();
 			if (location == null) {
 				return null;
