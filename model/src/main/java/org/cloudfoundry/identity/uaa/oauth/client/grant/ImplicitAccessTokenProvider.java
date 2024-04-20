@@ -68,7 +68,7 @@ public class ImplicitAccessTokenProvider extends OAuth2AccessTokenSupport implem
 	}
 
 	@Override
-	protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
+	public ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
 		return new ImplicitResponseExtractor();
 	}
 

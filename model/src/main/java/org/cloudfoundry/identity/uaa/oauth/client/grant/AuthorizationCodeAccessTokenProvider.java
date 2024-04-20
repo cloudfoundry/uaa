@@ -49,41 +49,7 @@ public class AuthorizationCodeAccessTokenProvider extends OAuth2AccessTokenSuppo
 	private String scopePrefix = OAuth2Utils.SCOPE_PREFIX;
 
 	private RequestEnhancer authorizationRequestEnhancer = new DefaultRequestEnhancer();
-
 	private boolean stateMandatory = true;
-	
-	/**
-	 * Flag to say that the use of state parameter is mandatory.
-	 * 
-	 * @param stateMandatory the flag value (default true)
-	 */
-	public void setStateMandatory(boolean stateMandatory) {
-		this.stateMandatory = stateMandatory;
-	}
-
-	/**
-	 * A custom enhancer for the authorization request
-	 * @param authorizationRequestEnhancer
-	 */
-	public void setAuthorizationRequestEnhancer(RequestEnhancer authorizationRequestEnhancer) {
-		this.authorizationRequestEnhancer = authorizationRequestEnhancer;
-	}
-
-	/**
-	 * Prefix for scope approval parameters.
-	 * 
-	 * @param scopePrefix
-	 */
-	public void setScopePrefix(String scopePrefix) {
-		this.scopePrefix = scopePrefix;
-	}
-
-	/**
-	 * @param stateKeyGenerator the stateKeyGenerator to set
-	 */
-	public void setStateKeyGenerator(StateKeyGenerator stateKeyGenerator) {
-		this.stateKeyGenerator = stateKeyGenerator;
-	}
 
 	public boolean supportsResource(OAuth2ProtectedResourceDetails resource) {
 		return resource instanceof AuthorizationCodeResourceDetails
@@ -315,7 +281,7 @@ public class AuthorizationCodeAccessTokenProvider extends OAuth2AccessTokenSuppo
 
 	}
 
-	protected UserApprovalRequiredException getUserApprovalSignal(AuthorizationCodeResourceDetails resource) {
+	public UserApprovalRequiredException getUserApprovalSignal(AuthorizationCodeResourceDetails resource) {
 		String message = String.format("Do you approve the client '%s' to access your resources with scope=%s",
 				resource.getClientId(), resource.getScope());
 		return new UserApprovalRequiredException(resource.getUserAuthorizationUri(), Collections.singletonMap(
