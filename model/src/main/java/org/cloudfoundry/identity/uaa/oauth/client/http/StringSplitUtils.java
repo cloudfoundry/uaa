@@ -110,7 +110,7 @@ public class StringSplitUtils {
       return EMPTY_STRING_ARRAY;
     }
 
-    List<String> list = new ArrayList<String>();
+    List<String> list = new ArrayList<>();
     int i = 0;
     int start = 0;
     boolean match = false;

@@ -22,6 +22,6 @@ public class BadClientCredentialsException extends ClientAuthenticationException
 
 	@Override
 	public String getOAuth2ErrorCode() {
-		return "invalid_client";
+		return INVALID_CLIENT;
 	}
 }

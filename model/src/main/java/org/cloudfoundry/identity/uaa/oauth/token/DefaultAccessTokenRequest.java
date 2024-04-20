@@ -23,17 +23,17 @@ public class DefaultAccessTokenRequest implements AccessTokenRequest, Serializab
 
 	private static final long serialVersionUID = 914967629530462926L;
 
-	private final MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
+	private final MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
 
-	private Object state;
+	private transient Object state;
 
-	private OAuth2AccessToken existingToken;
+	private transient OAuth2AccessToken existingToken;
 
 	private String currentUri;
 
 	private String cookie;
 
-	private Map<? extends String, ? extends List<String>> headers = new LinkedMultiValueMap<String, String>();
+	private transient Map<? extends String, ? extends List<String>> headers = new LinkedMultiValueMap<>();
 
 	public DefaultAccessTokenRequest() {
 	}

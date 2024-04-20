@@ -11,11 +11,11 @@ package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 @SuppressWarnings("serial")
 public abstract class ClientAuthenticationException extends OAuth2Exception {
 
-	public ClientAuthenticationException(String msg, Throwable t) {
+	protected ClientAuthenticationException(String msg, Throwable t) {
 		super(msg, t);
 	}
 
-	public ClientAuthenticationException(String msg) {
+	protected ClientAuthenticationException(String msg) {
 		super(msg);
 	}
 

@@ -27,6 +27,6 @@ public class UnauthorizedClientException extends ClientAuthenticationException {
 
 	@Override
 	public String getOAuth2ErrorCode() {
-		return "unauthorized_client";
+		return UNAUTHORIZED_CLIENT;
 	}
 }
