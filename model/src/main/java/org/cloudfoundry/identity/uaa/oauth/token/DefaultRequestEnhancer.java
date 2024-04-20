@@ -22,7 +22,7 @@ public class DefaultRequestEnhancer implements RequestEnhancer {
 	private Set<String> parameterIncludes = Collections.emptySet();
 	
 	public void setParameterIncludes(Collection<String> parameterIncludes) {
-		this.parameterIncludes = new LinkedHashSet<String>(parameterIncludes);
+		this.parameterIncludes = new LinkedHashSet<>(parameterIncludes);
 	}
 
 	@Override

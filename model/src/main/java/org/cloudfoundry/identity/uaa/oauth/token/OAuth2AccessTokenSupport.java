@@ -61,7 +61,7 @@ public abstract class OAuth2AccessTokenSupport {
 
 	private ResponseErrorHandler responseErrorHandler = new AccessTokenErrorHandler();
 
-	private List<ClientHttpRequestInterceptor> interceptors = new ArrayList<ClientHttpRequestInterceptor>();
+	private List<ClientHttpRequestInterceptor> interceptors = new ArrayList<>();
 	
 	private RequestEnhancer tokenRequestEnhancer = new DefaultRequestEnhancer();
 	
@@ -113,7 +113,7 @@ public abstract class OAuth2AccessTokenSupport {
 	}
 
 	public void setMessageConverters(List<HttpMessageConverter<?>> messageConverters) {
-		this.messageConverters = new ArrayList<HttpMessageConverter<?>>(messageConverters);
+		this.messageConverters = new ArrayList<>(messageConverters);
 		this.messageConverters.add(new FormOAuth2AccessTokenMessageConverter());
 		this.messageConverters.add(new FormOAuth2ExceptionHttpMessageConverter());
 	}
@@ -196,7 +196,7 @@ public abstract class OAuth2AccessTokenSupport {
 
 	protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
 		getRestTemplate(); // force initialization
-		return new HttpMessageConverterExtractor<OAuth2AccessToken>(OAuth2AccessToken.class, this.messageConverters);
+		return new HttpMessageConverterExtractor<>(OAuth2AccessToken.class, this.messageConverters);
 	}
 
 	protected RequestCallback getRequestCallback(OAuth2ProtectedResourceDetails resource,
