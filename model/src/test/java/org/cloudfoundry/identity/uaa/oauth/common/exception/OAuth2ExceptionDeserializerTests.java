@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.common.exception;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.BadClientCredentialsException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
@@ -16,6 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
@@ -136,6 +138,15 @@ public class OAuth2ExceptionDeserializerTests {
 		OAuth2Exception result = mapper.readValue(accessToken, OAuth2Exception.class);
 		assertEquals("{some=detail}",result.getMessage());
 		assertEquals("{foo=[bar]}",result.getAdditionalInformation().toString());
+	}
+
+	@Test
+	public void readValueBadCredentials() throws Exception {
+		String accessToken = createResponse(OAuth2Exception.INVALID_CLIENT);
+		OAuth2Exception result = mapper.readValue(accessToken,
+				BadClientCredentialsException.class);
+		assertEquals(DETAILS,result.getMessage());
+		assertNull(result.getAdditionalInformation());
 	}
 
 	private String createResponse(String error, String message) {
