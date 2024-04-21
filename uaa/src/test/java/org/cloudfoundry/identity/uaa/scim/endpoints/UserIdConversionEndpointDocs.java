@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.snippet.Snippet;
@@ -31,7 +31,7 @@ import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserIdConversionEndpointDocs extends EndpointDocs {
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String clientId = generator.generate().toLowerCase();
     private String clientSecret = generator.generate().toLowerCase();
     private ScimUser bob;

@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.zone.event;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,7 +22,7 @@ class IdentityProviderModifiedEventTest {
 
     @BeforeEach
     void setup() {
-        final RandomValueStringGenerator randomValueStringGenerator = new RandomValueStringGenerator();
+        final AlphanumericRandomValueStringGenerator randomValueStringGenerator = new AlphanumericRandomValueStringGenerator();
         currentIdentityZoneId = "currentIdentityZoneId-" + randomValueStringGenerator.generate();
 
         String origin = "idp-mock-saml-" + randomValueStringGenerator.generate();

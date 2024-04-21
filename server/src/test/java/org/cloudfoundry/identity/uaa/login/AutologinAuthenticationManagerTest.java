@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -14,6 +13,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -53,7 +53,7 @@ class AutologinAuthenticationManagerTest {
     void setUp() {
         IdentityZoneHolder.clear();
         IdentityZoneHolder.setProvisioning(null);
-        clientId = new RandomValueStringGenerator().generate();
+        clientId = new AlphanumericRandomValueStringGenerator().generate();
         manager = new AutologinAuthenticationManager();
         codeStore = mock(ExpiringCodeStore.class);
         userDatabase = mock(UaaUserDatabase.class);

@@ -23,6 +23,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import javax.servlet.http.HttpSession;
 
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -61,7 +62,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.OAuthToken;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
@@ -172,7 +172,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {"uaa.url=https://localhost:8080/uaa", "jwt.token.refresh.format=jwt"})
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     private String BADSECRET = "badsecret";
-    protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    protected AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
 
     @BeforeEach
     void setup() {
@@ -1388,16 +1388,16 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     @Test
     void prompt_is_none_and_approvals_are_required() throws Exception {
         String redirectUrl = TEST_REDIRECT_URI + "#test=true";
-        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String clientId = "testclient" + new AlphanumericRandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, "implicit,authorization_code", false);
-        String username = "testuser" + new RandomValueStringGenerator().generate();
+        String username = "testuser" + new AlphanumericRandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
         MockHttpSession session = getAuthenticatedSession(developer);
 
-        String state = new RandomValueStringGenerator().generate();
+        String state = new AlphanumericRandomValueStringGenerator().generate();
 
         mockMvc.perform(
                 post("/oauth/authorize")

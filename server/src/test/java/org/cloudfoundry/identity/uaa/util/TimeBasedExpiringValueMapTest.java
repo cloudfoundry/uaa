@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.concurrent.ConcurrentMap;
@@ -31,7 +30,7 @@ public class TimeBasedExpiringValueMapTest {
     public static final int TIMEOUT = 50;
     private MockTimeService timeService = new MockTimeService();
     private TimeBasedExpiringValueMap<String, Object> map;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String key1 = generator.generate(), key2 = generator.generate();
     private Object value1 = new Object(), value2 = new Object();
 
@@ -98,7 +97,7 @@ public class TimeBasedExpiringValueMapTest {
         when(timeService.getCurrentTimeMillis()).thenReturn(1L);
 
         map = new TimeBasedExpiringValueMap<>(timeService, 0);
-        RandomValueStringGenerator randomValueStringGenerator = new RandomValueStringGenerator(1);
+        AlphanumericRandomValueStringGenerator randomValueStringGenerator = new AlphanumericRandomValueStringGenerator(1);
 
         Thread[] threads = new Thread[2];
         for (int i = 0; i < threads.length; i++) {
