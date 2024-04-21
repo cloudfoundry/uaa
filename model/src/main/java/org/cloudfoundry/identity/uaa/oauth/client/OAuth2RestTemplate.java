@@ -270,13 +270,9 @@ public class OAuth2RestTemplate extends RestTemplate implements OAuth2RestOperat
 			return new URI(sb.toString());
 
 		}
-		catch (URISyntaxException e) {
+		catch (UnsupportedEncodingException | URISyntaxException e) {
 			throw new IllegalArgumentException("Could not parse URI", e);
 		}
-		catch (UnsupportedEncodingException e) {
-			throw new IllegalArgumentException("Could not encode URI", e);
-		}
-
 	}
 
 	public void setAccessTokenProvider(AccessTokenProvider accessTokenProvider) {
