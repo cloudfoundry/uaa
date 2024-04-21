@@ -7,6 +7,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.Optional;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
@@ -21,31 +22,18 @@ public class DefaultClientAuthenticationHandler implements ClientAuthenticationH
 	public void authenticateTokenRequest(OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form,
 			HttpHeaders headers) {
 		if (resource.isAuthenticationRequired()) {
-			AuthenticationScheme scheme = AuthenticationScheme.header;
-			if (resource.getClientAuthenticationScheme() != null) {
-				scheme = resource.getClientAuthenticationScheme();
-			}
-			String clientSecret = resource.getClientSecret();
-			clientSecret = clientSecret == null ? "" : clientSecret;
-			switch (scheme) {
-			case header:
+			AuthenticationScheme scheme = Optional.ofNullable(resource.getClientAuthenticationScheme()).orElse(AuthenticationScheme.header);
+			String clientSecret = Optional.ofNullable(resource.getClientSecret()).orElse("");
+			if (AuthenticationScheme.header == scheme) {
 				form.remove("client_secret");
-				headers.add(
-						"Authorization",
-						String.format(
-								"Basic %s",
-								new String(Base64.getEncoder().encode(String.format("%s:%s", resource.getClientId(),
-										clientSecret).getBytes(StandardCharsets.UTF_8)), StandardCharsets.UTF_8)));
-				break;
-			case form, query:
+				headers.add("Authorization", String.format("Basic %s",
+						new String(Base64.getEncoder().encode(String.format("%s:%s", resource.getClientId(), clientSecret).getBytes(StandardCharsets.UTF_8)),
+								StandardCharsets.UTF_8)));
+			} else {
 				form.set("client_id", resource.getClientId());
 				if (StringUtils.hasText(clientSecret)) {
 					form.set("client_secret", clientSecret);
 				}
-				break;
-			default:
-				throw new IllegalStateException(
-						"Default authentication handler doesn't know how to handle scheme: " + scheme);
 			}
 		}
 	}

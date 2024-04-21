@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.login;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
@@ -17,6 +16,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -76,7 +76,7 @@ class AccountsControllerMockMvcTests {
     private final String USER_PASSWORD = "secr3T";
     private String userEmail;
     private MockMvcTestClient mockMvcTestClient;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
 
     @Autowired
     private WebApplicationContext webApplicationContext;
@@ -95,7 +95,7 @@ class AccountsControllerMockMvcTests {
         originalEmailSender = emailService.getMailSender();
         emailService.setMailSender(fakeJavaMailSender);
 
-        userEmail = "user" + new RandomValueStringGenerator().generate() + "@example.com";
+        userEmail = "user" + new AlphanumericRandomValueStringGenerator().generate() + "@example.com";
         assertNotNull(webApplicationContext.getBean("messageService"));
         IdentityZoneHolder.setProvisioning(webApplicationContext.getBean(IdentityZoneProvisioning.class));
 
@@ -344,7 +344,7 @@ class AccountsControllerMockMvcTests {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain(subdomain);
         identityZone.setName(subdomain + "zone");
-        identityZone.setId(new RandomValueStringGenerator().generate());
+        identityZone.setId(new AlphanumericRandomValueStringGenerator().generate());
 
         String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.write");
         mockMvc.perform(post("/identity-zones")
@@ -401,7 +401,7 @@ class AccountsControllerMockMvcTests {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain(subdomain);
         identityZone.setName(subdomain);
-        identityZone.setId(new RandomValueStringGenerator().generate());
+        identityZone.setId(new AlphanumericRandomValueStringGenerator().generate());
 
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, getUaaBaseClientDetails(), IdentityZoneHolder.getCurrentZoneId());
 

@@ -71,7 +71,6 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.Prompt;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -91,6 +90,7 @@ import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderDataTests;
 import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -659,7 +659,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         IdentityProvider identityProvider = new IdentityProvider();
         identityProvider.setType(OIDC10);
         identityProvider.setName("UAA Provider");
-        identityProvider.setOriginKey("my-oidc-provider-" + new RandomValueStringGenerator().generate().toLowerCase());
+        identityProvider.setOriginKey("my-oidc-provider-" + new AlphanumericRandomValueStringGenerator().generate().toLowerCase());
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
         definition.setSkipSslValidation(true);
@@ -867,7 +867,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         admin.setClientSecret("adminsecret");
 
         IdentityZoneCreationResult zone =
-                MockMvcUtils.createOtherIdentityZoneAndReturnResult(new RandomValueStringGenerator(8).generate().toLowerCase(),
+                MockMvcUtils.createOtherIdentityZoneAndReturnResult(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase(),
                         mockMvc,
                         webApplicationContext,
                         admin, IdentityZoneHolder.getCurrentZoneId());
