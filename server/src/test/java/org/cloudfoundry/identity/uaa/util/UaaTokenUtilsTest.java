@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.nimbusds.jose.KeyLengthException;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
@@ -37,7 +36,7 @@ public class UaaTokenUtilsTest {
     public void testRevocationHash() {
         List<String> salts = new LinkedList<>();
         for (int i=0; i<3; i++) {
-            salts.add(new RandomValueStringGenerator().generate());
+            salts.add(new AlphanumericRandomValueStringGenerator().generate());
         }
         String hash1 = UaaTokenUtils.getRevocationHash(salts);
         String hash2 = UaaTokenUtils.getRevocationHash(salts);
@@ -49,7 +48,7 @@ public class UaaTokenUtilsTest {
     @Test
     public void isJwtToken() {
 
-        RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
+        AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(36);
         String regular = generator.generate();
         String jwt = generator.generate() + "." + generator.generate() + "." + generator.generate();
         assertFalse(UaaTokenUtils.isJwtToken(regular));

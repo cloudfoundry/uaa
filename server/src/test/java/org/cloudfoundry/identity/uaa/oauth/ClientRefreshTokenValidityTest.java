@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -49,7 +49,7 @@ class ClientRefreshTokenValidityTest {
 
         @BeforeEach
         void setUp() {
-            currentIdentityZoneId = "currentIdentityZoneId-" + new RandomValueStringGenerator().generate();
+            currentIdentityZoneId = "currentIdentityZoneId-" + new AlphanumericRandomValueStringGenerator().generate();
             when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentIdentityZoneId);
         }
 

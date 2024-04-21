@@ -2,12 +2,12 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -36,7 +36,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
 
     private String identityToken;
     private String adminToken;
-    private RandomValueStringGenerator generator;
+    private AlphanumericRandomValueStringGenerator generator;
 
     @Autowired
     private MockMvc mockMvc;
@@ -56,7 +56,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
                 "adminsecret",
                 "");
 
-        generator = new RandomValueStringGenerator();
+        generator = new AlphanumericRandomValueStringGenerator();
     }
 
     @Test
@@ -182,7 +182,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
         return user;
     }
 
-    private static ScimUser createScimUserUsingZonesScimWrite(MockMvc mockMvc, RandomValueStringGenerator generator, TestClient testClient, String zoneId) throws Exception {
+    private static ScimUser createScimUserUsingZonesScimWrite(MockMvc mockMvc, AlphanumericRandomValueStringGenerator generator, TestClient testClient, String zoneId) throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write");
         String scimWriteZoneToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, zoneId, "zones." + zoneId + ".scim.write");
         return createUserInAnotherZone(mockMvc, generator, scimWriteZoneToken, zoneId);
@@ -192,13 +192,13 @@ class IdentityZoneSwitchingFilterMockMvcTest {
         return MockMvcUtils.createZoneUsingWebRequest(mockMvc, accessToken);
     }
 
-    private static ScimUser createUserInAnotherZone(MockMvc mockMvc, RandomValueStringGenerator generator, String accessToken, String zoneId) throws Exception {
+    private static ScimUser createUserInAnotherZone(MockMvc mockMvc, AlphanumericRandomValueStringGenerator generator, String accessToken, String zoneId) throws Exception {
         String username = generator.generate() + "@example.com";
         ScimUser user = getScimUser(username);
         return MockMvcUtils.createUserInZone(mockMvc, accessToken, user, "", zoneId);
     }
 
-    private static ClientDetails createClientInOtherZone(MockMvc mockMvc, RandomValueStringGenerator generator, String accessToken, ResultMatcher statusMatcher, String headerKey, String headerValue) throws Exception {
+    private static ClientDetails createClientInOtherZone(MockMvc mockMvc, AlphanumericRandomValueStringGenerator generator, String accessToken, ResultMatcher statusMatcher, String headerKey, String headerValue) throws Exception {
         String clientId = generator.generate();
         UaaClientDetails client = new UaaClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");

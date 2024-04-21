@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,7 +31,7 @@ class JdbcClientMetadataProvisioningTest {
             JdbcClientMetadataProvisioningTest.class,
             "base64EncodedImg");
 
-    private RandomValueStringGenerator randomValueStringGenerator;
+    private AlphanumericRandomValueStringGenerator randomValueStringGenerator;
     private String createdBy;
     private String identityZoneId;
     private String clientId;
@@ -46,7 +46,7 @@ class JdbcClientMetadataProvisioningTest {
 
     @BeforeEach
     void createDatasource() {
-        randomValueStringGenerator = new RandomValueStringGenerator(8);
+        randomValueStringGenerator = new AlphanumericRandomValueStringGenerator(8);
         createdBy = "createdBy-" + randomValueStringGenerator.generate();
         identityZoneId = "identityZoneId-" + randomValueStringGenerator.generate();
         clientId = "clientId-" + randomValueStringGenerator.generate();
