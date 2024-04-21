@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2AccessDeniedException;
+import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.junit.Before;
@@ -110,6 +111,47 @@ public class OAuth2AccessTokenSupportTests {
 		response.setBody(objectMapper.writeValueAsString(accessToken));
 		OAuth2AccessToken retrieveToken = support.retrieveToken(request, resource, form, requestHeaders);
 		assertEquals(null, form.get("foo"));
+		assertEquals(accessToken, retrieveToken);
+	}
+
+	@Test
+	public void testRequestEnhancedFromQuery() throws Exception {
+		DefaultRequestEnhancer enhancer = new DefaultRequestEnhancer();
+		enhancer.setParameterIncludes(Arrays.asList("foo"));
+		request.set("foo", "bar");
+		support.setTokenRequestEnhancer(enhancer);
+		response.setBody(objectMapper.writeValueAsString(accessToken));
+		resource.setClientAuthenticationScheme(AuthenticationScheme.form);
+		OAuth2AccessToken retrieveToken = support.retrieveToken(request, resource, form, requestHeaders);
+		assertEquals("[bar]", form.get("foo").toString());
+		assertEquals(accessToken, retrieveToken);
+	}
+
+	@Test
+	public void testRequestEnhancedEmptySecret() throws Exception {
+		DefaultRequestEnhancer enhancer = new DefaultRequestEnhancer();
+		enhancer.setParameterIncludes(Arrays.asList("foo"));
+		request.set("foo", "bar");
+		support.setTokenRequestEnhancer(enhancer);
+		response.setBody(objectMapper.writeValueAsString(accessToken));
+		resource.setClientSecret("");
+		resource.setClientAuthenticationScheme(AuthenticationScheme.form);
+		OAuth2AccessToken retrieveToken = support.retrieveToken(request, resource, form, requestHeaders);
+		assertEquals("[bar]", form.get("foo").toString());
+		assertEquals(accessToken, retrieveToken);
+	}
+
+	@Test
+	public void testRequestEnhancedNonScheme() throws Exception {
+		DefaultRequestEnhancer enhancer = new DefaultRequestEnhancer();
+		enhancer.setParameterIncludes(Arrays.asList("foo"));
+		request.set("foo", "bar");
+		support.setTokenRequestEnhancer(enhancer);
+		response.setBody(objectMapper.writeValueAsString(accessToken));
+		resource.setClientId("clientId");
+		resource.setClientAuthenticationScheme(AuthenticationScheme.none);
+		OAuth2AccessToken retrieveToken = support.retrieveToken(request, resource, form, requestHeaders);
+		assertEquals("[bar]", form.get("foo").toString());
 		assertEquals(accessToken, retrieveToken);
 	}
 

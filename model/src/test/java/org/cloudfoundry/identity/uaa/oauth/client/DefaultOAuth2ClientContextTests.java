@@ -1,8 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
 /**
@@ -22,4 +26,14 @@ public class DefaultOAuth2ClientContextTests {
         assertEquals("some-state-3", clientContext.removePreservedState("state3"));
     }
 
+    @Test
+    public void init() {
+        OAuth2AccessToken token = new DefaultOAuth2AccessToken("token");
+        DefaultOAuth2ClientContext clientContext = new DefaultOAuth2ClientContext(token);
+        clientContext.setPreservedState("state1", "some-state-1");
+        assertNotNull(clientContext.removePreservedState("state1"));
+        assertEquals(token, clientContext.getAccessToken());
+        clientContext.setAccessToken(null);
+        assertNotEquals(token, clientContext.getAccessToken());
+    }
 }
