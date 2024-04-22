@@ -45,6 +45,7 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
 	private static final BytesKeyGenerator DEFAULT_TOKEN_GENERATOR = KeyGenerators.secureRandom(20);
 
 	private static final Charset US_ASCII = StandardCharsets.US_ASCII;
+	private static final String INVALID_ACCESS_TOKEN = "Invalid access token";
 
 	private int refreshTokenValiditySeconds = 60 * 60 * 24 * 30; // default 30 days.
 
@@ -92,21 +93,8 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
 			}
 		}
 
-		// Only create a new refresh token if there wasn't an existing one
-		// associated with an expired access token.
-		// Clients might be holding existing refresh tokens, so we re-use it in
-		// the case that the old access token
-		// expired.
-		if (refreshToken == null) {
+		if ((refreshToken == null) || (refreshToken instanceof ExpiringOAuth2RefreshToken expiring && System.currentTimeMillis() > expiring.getExpiration().getTime()))  {
 			refreshToken = createRefreshToken(authentication);
-		}
-		// But the refresh token itself might need to be re-issued if it has
-		// expired.
-		else if (refreshToken instanceof ExpiringOAuth2RefreshToken) {
-			ExpiringOAuth2RefreshToken expiring = (ExpiringOAuth2RefreshToken) refreshToken;
-			if (System.currentTimeMillis() > expiring.getExpiration().getTime()) {
-				refreshToken = createRefreshToken(authentication);
-			}
 		}
 
 		OAuth2AccessToken accessToken = createAccessToken(authentication, refreshToken);
@@ -193,7 +181,6 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
 	 * @throws InvalidScopeException If the scope requested is invalid or wider than the original scope.
 	 */
 	private OAuth2Authentication createRefreshedAuthentication(OAuth2Authentication authentication, TokenRequest request) {
-		OAuth2Authentication narrowed = authentication;
 		Set<String> scope = request.getScope();
 		OAuth2Request clientAuth = authentication.getOAuth2Request().refresh(request);
 		if (scope != null && !scope.isEmpty()) {
@@ -205,13 +192,11 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
 				clientAuth = clientAuth.narrowScope(scope);
 			}
 		}
-		narrowed = new OAuth2Authentication(clientAuth, authentication.getUserAuthentication());
-		return narrowed;
+		return new OAuth2Authentication(clientAuth, authentication.getUserAuthentication());
 	}
 
 	protected boolean isExpired(OAuth2RefreshToken refreshToken) {
-		if (refreshToken instanceof ExpiringOAuth2RefreshToken) {
-			ExpiringOAuth2RefreshToken expiringToken = (ExpiringOAuth2RefreshToken) refreshToken;
+		if (refreshToken instanceof ExpiringOAuth2RefreshToken expiringToken) {
 			return expiringToken.getExpiration() == null
 					|| System.currentTimeMillis() > expiringToken.getExpiration().getTime();
 		}
@@ -226,7 +211,7 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
 			InvalidTokenException {
 		OAuth2AccessToken accessToken = tokenStore.readAccessToken(accessTokenValue);
 		if (accessToken == null) {
-			throw new InvalidTokenException("Invalid access token");
+			throw new InvalidTokenException(INVALID_ACCESS_TOKEN);
 		}
 		else if (accessToken.isExpired()) {
 			tokenStore.removeAccessToken(accessToken);
@@ -236,7 +221,7 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
 		OAuth2Authentication result = tokenStore.readAuthentication(accessToken);
 		if (result == null) {
 			// in case of race condition
-			throw new InvalidTokenException("Invalid access token");
+			throw new InvalidTokenException(INVALID_ACCESS_TOKEN);
 		}
 		if (clientDetailsService != null) {
 			String clientId = result.getOAuth2Request().getClientId();
@@ -253,7 +238,7 @@ public class DefaultTokenServices implements AuthorizationServerTokenServices, R
 	public String getClientId(String tokenValue) {
 		OAuth2Authentication authentication = tokenStore.readAuthentication(tokenValue);
 		if (authentication == null) {
-			throw new InvalidTokenException("Invalid access token");
+			throw new InvalidTokenException(INVALID_ACCESS_TOKEN);
 		}
 		OAuth2Request clientAuth = authentication.getOAuth2Request();
 		if (clientAuth == null) {
