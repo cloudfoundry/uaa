@@ -289,7 +289,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         addAuthenticationMethod(claims, additionalRootClaims, authenticationData);
 
         String accessTokenId = generateUniqueTokenId();
-        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(jwtToken, claims);
+        String clientAuth = authenticationData.clientAuth;
+        refreshTokenValue = refreshTokenCreator.createRefreshTokenValue(jwtToken, claims, clientAuth);
         CompositeToken compositeToken =
             createCompositeToken(
                     accessTokenId,
@@ -311,7 +312,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         );
 
         String tokenIdToBeDeleted = null;
-        if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens()) {
+        if (isRevocable && refreshTokenCreator.shouldRotateRefreshTokens(clientAuth)) {
             tokenIdToBeDeleted = (String) jwtToken.getClaims().get(JTI);
         }
         return persistRevocableToken(accessTokenId, compositeToken, expiringRefreshToken, claims.getClientId(), user.getId(), isOpaque, isRevocable, tokenIdToBeDeleted);
@@ -326,7 +327,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             // public refresh flow, allowed if access_token before was also without authentication (claim: client_auth_method=none) and refresh token is one time use (rotate it in refresh)
             if (CLIENT_AUTH_NONE.equals(authenticationData.clientAuth) && // current authentication
                 (!CLIENT_AUTH_NONE.equals(claims.getClientAuth()) || // authentication before
-                !refreshTokenCreator.shouldRotateRefreshTokens())) {
+                !refreshTokenCreator.shouldRotateRefreshTokens(authenticationData.clientAuth))) {
                 throw new TokenRevokedException("Refresh without client authentication not allowed.");
             }
             addRootClaimEntry(additionalRootClaims, CLIENT_AUTH_METHOD, authenticationData.clientAuth);
