@@ -236,11 +236,6 @@ public class AuthorizationServerBeanDefinitionParser
 			parserContext.getRegistry().registerBeanDefinition("oauth2ApprovalEndpoint",
 					approvalEndpointBean.getBeanDefinition());
 
-			if (!StringUtils.hasText(clientDetailsRef)) {
-				parserContext.getReaderContext()
-						.error("A client details service is mandatory", element);
-			}
-
 			if (StringUtils.hasText(redirectStrategyRef)) {
 				authorizationEndpointBean.addPropertyReference("redirectStrategy",
 						redirectStrategyRef);

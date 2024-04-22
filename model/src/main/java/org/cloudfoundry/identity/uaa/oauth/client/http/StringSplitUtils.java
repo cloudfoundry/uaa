@@ -68,7 +68,7 @@ public class StringSplitUtils {
       return null;
     }
 
-    Map<String, String> map = new HashMap<String, String>();
+    Map<String, String> map = new HashMap<>();
 
     for (int i = 0; i < array.length; i++) {
       String postRemove;
