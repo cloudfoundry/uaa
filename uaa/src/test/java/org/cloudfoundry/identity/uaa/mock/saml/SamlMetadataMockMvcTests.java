@@ -63,32 +63,6 @@ class SamlMetadataMockMvcTests {
                 .andExpect(xpath("/EntityDescriptor/SPSSODescriptor/@AuthnRequestsSigned").booleanValue(true)) // matches UAA config login.saml.signRequest
                 .andExpect(xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(true))
                 .andExpect(xpath("/EntityDescriptor/SPSSODescriptor/NameIDFormat").string("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")); // matches UAA config login.saml.NameID
-//                    .andExpect(xpath("/EntityDescriptor/Signature/@xmlns:ds").string("http://www.w3.org/2000/09/xmldsig#")) // signatureConstaints
-//                    .andExpect(xpath("/EntityDescriptor/SignedInfo/SignatureMethod/@Algorithm").string("http://www.w3.org/2000/09/xmldsig#rsa-sha1")); // Always SHA1? no
-
-
-        // "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"));
-
-//            xpath("...ds:DigestMethod/@Algorithm").string("http://www.w3.org/2001/04/xmlenc#sha256");
-
-//            String metadataXml = (String)response.getBody();
-//
-//            Assert.assertThat(metadataXml, containsString(
-//                    "entityID=\"integration-saml-entity-id\""));
-//            // login.saml.signatureAlgorithm
-//            Assert.assertThat(metadataXml, containsString(
-//                    "<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>"));
-//            Assert.assertThat(metadataXml, containsString(
-//                    "<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>"));
-//            // login.saml.signRequest
-//            Assert.assertThat(metadataXml, containsString("AuthnRequestsSigned=\"true\""));
-//            // login.saml.wantAssertionSigned
-//            Assert.assertThat(metadataXml, containsString(
-//                    "WantAssertionsSigned=\"true\""));
-//            // login.saml.nameID
-//            Assert.assertThat(metadataXml, containsString(
-//                    "<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>"));
-
     }
 }
 
