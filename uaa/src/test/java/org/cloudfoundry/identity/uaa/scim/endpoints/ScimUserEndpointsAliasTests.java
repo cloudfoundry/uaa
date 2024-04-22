@@ -103,7 +103,7 @@ class ScimUserEndpointsAliasTests {
 
     private String arrangeCustomIdz() {
         final String idzId = RANDOM_STRING_GENERATOR.generate();
-        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(idzId);
+        lenient().when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(idzId);
         return idzId;
     }
 
