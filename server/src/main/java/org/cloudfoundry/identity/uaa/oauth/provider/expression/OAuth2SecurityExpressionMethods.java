@@ -20,7 +20,7 @@ public class OAuth2SecurityExpressionMethods {
 
 	private final Authentication authentication;
 
-	private Set<String> missingScopes = new LinkedHashSet<String>();
+	private Set<String> missingScopes = new LinkedHashSet<>();
 
 	public OAuth2SecurityExpressionMethods(Authentication authentication) {
 		this.authentication = authentication;
