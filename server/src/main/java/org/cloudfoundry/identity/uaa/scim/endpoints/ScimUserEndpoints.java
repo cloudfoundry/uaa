@@ -319,10 +319,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                         user,
                         identityZoneManager.getCurrentIdentityZoneId()
                 );
-                scimUpdates.incrementAndGet();
-                final ScimUser updatedOriginalUserSynced = syncApprovals(syncGroups(updatedOriginalUser));
                 return aliasHandler.ensureConsistencyOfAliasEntity(
-                        updatedOriginalUserSynced,
+                        updatedOriginalUser,
                         existingScimUser
                 );
             });
@@ -332,6 +330,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             throw new ScimException(e.getMessage(), e.getCause(), HttpStatus.resolve(e.getHttpStatus()));
         }
 
+        scimUpdates.incrementAndGet();
         addETagHeader(httpServletResponse, scimUser);
         return scimUser;
     }
