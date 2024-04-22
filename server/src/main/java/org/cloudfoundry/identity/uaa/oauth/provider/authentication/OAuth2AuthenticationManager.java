@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.springframework.util.Assert;
 
 import java.util.Collection;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -63,16 +64,11 @@ public class OAuth2AuthenticationManager implements AuthenticationManager, Initi
 	 * 
 	 * @see AuthenticationManager#authenticate(Authentication)
 	 */
-	public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+	public Authentication authenticate(Authentication inAuth) throws AuthenticationException {
 
-		if (authentication == null) {
-			throw new InvalidTokenException("Invalid token (token not found)");
-		}
+		Authentication authentication = Optional.ofNullable(inAuth).orElseThrow(() -> new InvalidTokenException("Invalid token (token not found)"));
 		String token = (String) authentication.getPrincipal();
-		OAuth2Authentication auth = tokenServices.loadAuthentication(token);
-		if (auth == null) {
-			throw new InvalidTokenException("Invalid token");
-		}
+		OAuth2Authentication auth = Optional.ofNullable(tokenServices.loadAuthentication(token)).orElseThrow(() -> new InvalidTokenException("Invalid token"));
 
 		Collection<String> resourceIds = auth.getOAuth2Request().getResourceIds();
 		if (resourceId != null && resourceIds != null && !resourceIds.isEmpty() && !resourceIds.contains(resourceId)) {
@@ -81,13 +77,10 @@ public class OAuth2AuthenticationManager implements AuthenticationManager, Initi
 
 		checkClientDetails(auth);
 
-		if (authentication.getDetails() instanceof OAuth2AuthenticationDetails) {
-			OAuth2AuthenticationDetails details = (OAuth2AuthenticationDetails) authentication.getDetails();
+		if (authentication.getDetails() instanceof OAuth2AuthenticationDetails details && !details.equals(auth.getDetails())) {
 			// Guard against a cached copy of the same details
-			if (!details.equals(auth.getDetails())) {
-				// Preserve the authentication details from the one loaded by token services
-				details.setDecodedDetails(auth.getDetails());
-			}
+			// Preserve the authentication details from the one loaded by token services
+			details.setDecodedDetails(auth.getDetails());
 		}
 		auth.setDetails(authentication.getDetails());
 		auth.setAuthenticated(true);

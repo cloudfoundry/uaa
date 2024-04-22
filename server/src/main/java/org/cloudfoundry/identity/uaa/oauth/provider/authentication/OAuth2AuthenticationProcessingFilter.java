@@ -21,7 +21,6 @@ import org.springframework.util.Assert;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -39,7 +38,7 @@ import java.io.IOException;
  */
 public class OAuth2AuthenticationProcessingFilter implements Filter, InitializingBean {
 
-	private final static Log logger = LogFactory.getLog(OAuth2AuthenticationProcessingFilter.class);
+	private static final Log logger = LogFactory.getLog(OAuth2AuthenticationProcessingFilter.class);
 
 	private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
 
@@ -131,8 +130,7 @@ public class OAuth2AuthenticationProcessingFilter implements Filter, Initializin
 			}
 			else {
 				request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_VALUE, authentication.getPrincipal());
-				if (authentication instanceof AbstractAuthenticationToken) {
-					AbstractAuthenticationToken needsDetails = (AbstractAuthenticationToken) authentication;
+				if (authentication instanceof AbstractAuthenticationToken needsDetails) {
 					needsDetails.setDetails(authenticationDetailsSource.buildDetails(request));
 				}
 				Authentication authResult = authenticationManager.authenticate(authentication);
@@ -166,24 +164,13 @@ public class OAuth2AuthenticationProcessingFilter implements Filter, Initializin
 
 	private boolean isAuthenticated() {
 		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		if (authentication == null || authentication instanceof AnonymousAuthenticationToken) {
-			return false;
-		}
-		return true;
-	}
-
-	public void init(FilterConfig filterConfig) throws ServletException {
-	}
-
-	public void destroy() {
+		return authentication != null && !(authentication instanceof AnonymousAuthenticationToken);
 	}
 
 	private static final class NullEventPublisher implements AuthenticationEventPublisher {
-		public void publishAuthenticationFailure(AuthenticationException exception, Authentication authentication) {
-		}
+		public void publishAuthenticationFailure(AuthenticationException exception, Authentication authentication) {	/* */	}
 
-		public void publishAuthenticationSuccess(Authentication authentication) {
-		}
+		public void publishAuthenticationSuccess(Authentication authentication) {	/* */ }
 	}
 
 }

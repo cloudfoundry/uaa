@@ -30,7 +30,7 @@ public class OAuth2AuthenticationDetails implements Serializable {
 
 	private final String display;
 	
-	private Object decodedDetails;
+	private transient Object decodedDetails;
 
 
 	/**
@@ -146,9 +146,7 @@ public class OAuth2AuthenticationDetails implements Serializable {
 	public boolean equals(Object obj) {
 		if (this == obj)
 			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
+		if (obj == null || getClass() != obj.getClass())
 			return false;
 		OAuth2AuthenticationDetails other = (OAuth2AuthenticationDetails) obj;
 		if (sessionId == null) {
