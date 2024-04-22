@@ -20,8 +20,8 @@ import java.util.Set;
 public abstract class OAuth2ExpressionUtils {
 
 	public static boolean clientHasAnyRole(Authentication authentication, String... roles) {
-		if (authentication instanceof OAuth2Authentication) {
-			OAuth2Request clientAuthentication = ((OAuth2Authentication) authentication).getOAuth2Request();
+		if (authentication instanceof OAuth2Authentication oAuth2Authentication) {
+			OAuth2Request clientAuthentication = oAuth2Authentication.getOAuth2Request();
 			Collection<? extends GrantedAuthority> clientAuthorities = clientAuthentication.getAuthorities();
 			if (clientAuthorities != null) {
 				Set<String> roleSet = AuthorityUtils.authorityListToSet(clientAuthorities);
@@ -37,18 +37,13 @@ public abstract class OAuth2ExpressionUtils {
 	}
 
 	public static boolean isOAuth(Authentication authentication) {
-		
-		if (authentication instanceof OAuth2Authentication) {
-			return true;
-		}
-	
-		return false;
+		return (authentication instanceof OAuth2Authentication);
 	}
 
 	public static boolean isOAuthClientAuth(Authentication authentication) {
 		
-		if (authentication instanceof OAuth2Authentication) {
-			return authentication.isAuthenticated() && ((OAuth2Authentication)authentication).isClientOnly();
+		if (authentication instanceof OAuth2Authentication oAuth2Authentication) {
+			return authentication.isAuthenticated() && oAuth2Authentication.isClientOnly();
 		}
 	
 		return false;
@@ -56,8 +51,8 @@ public abstract class OAuth2ExpressionUtils {
 
 	public static boolean isOAuthUserAuth(Authentication authentication) {
 		
-		if (authentication instanceof OAuth2Authentication) {
-			return authentication.isAuthenticated() && !((OAuth2Authentication)authentication).isClientOnly();
+		if (authentication instanceof OAuth2Authentication oAuth2Authentication) {
+			return authentication.isAuthenticated() && !oAuth2Authentication.isClientOnly();
 		}
 	
 		return false;
@@ -65,8 +60,8 @@ public abstract class OAuth2ExpressionUtils {
 
 	public static boolean hasAnyScope(Authentication authentication, String[] scopes) {
 
-		if (authentication instanceof OAuth2Authentication) {
-			OAuth2Request clientAuthentication = ((OAuth2Authentication) authentication).getOAuth2Request();
+		if (authentication instanceof OAuth2Authentication oAuth2Authentication) {
+			OAuth2Request clientAuthentication = oAuth2Authentication.getOAuth2Request();
 			Collection<String> assigned = clientAuthentication.getScope();
 			if (assigned != null) {
 				for (String scope : scopes) {
@@ -82,8 +77,8 @@ public abstract class OAuth2ExpressionUtils {
 
 	public static boolean hasAnyScopeMatching(Authentication authentication, String[] scopesRegex) {
 
-		if (authentication instanceof OAuth2Authentication) {
-			OAuth2Request clientAuthentication = ((OAuth2Authentication) authentication).getOAuth2Request();
+		if (authentication instanceof OAuth2Authentication oAuth2Authentication) {
+			OAuth2Request clientAuthentication = oAuth2Authentication.getOAuth2Request();
 			for (String scope : clientAuthentication.getScope()) {
 				for (String regex : scopesRegex) {
 					if (scope.matches(regex)) {
