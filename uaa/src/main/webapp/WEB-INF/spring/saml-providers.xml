@@ -61,10 +61,6 @@
         <b:constructor-arg value="${login.entityID:unit-test-sp}" />
     </b:bean>
 
-    <b:bean id="samlSpNameID" class="java.lang.String">
-        <b:constructor-arg value="${login.saml.NameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}" />
-    </b:bean>
-
 <!--    <bean id="samlSPAlias" class="java.lang.String">-->
 <!--        <constructor-arg value="${login.saml.entityIDAlias:${login.entityID:unit-test-sp}}"/>-->
 <!--    </bean>-->

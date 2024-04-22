@@ -96,7 +96,7 @@ login:
     #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
     #entityIDAlias: cloudfoundry-saml-login
     #Default nameID if IDP nameID is not set
-    nameID: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
+    nameID: 'urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress'
     #Default assertionConsumerIndex if IDP value is not set
     assertionConsumerIndex: 0
     #Local/SP metadata - sign metadata

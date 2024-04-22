@@ -9,6 +9,7 @@ import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
@@ -49,16 +50,16 @@ public class SamlRelyingPartyRegistrationRepository {
     @Qualifier("samlEntityID")
     private String samlEntityID;
 
-    @Autowired
-    @Qualifier("samlSpNameID")
+    @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
     private String samlSpNameID;
+
+    @Value("${login.saml.signRequest: true}")
+    private Boolean samlSignRequest;
 
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() throws CertificateException, NoSuchAlgorithmException, InvalidKeySpecException {
 
         String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
-        String samlEntityID = "integration-saml-entity-id";
-        String samlNameIDFormat = "example-NAME_ID_FORMAT";
 
 //        X509Certificate cert = null;
         String certString = new String("-----BEGIN CERTIFICATE-----\nMIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEOMAwGA1UECBMF\n" +
@@ -117,11 +118,10 @@ public class SamlRelyingPartyRegistrationRepository {
         RelyingPartyRegistration relyingPartyRegistration = RelyingPartyRegistrations
                 .fromMetadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
                 .entityId(samlEntityID)
-                .nameIdFormat(samlNameIDFormat)
+                .nameIdFormat(samlSpNameID)
                 .registrationId("example")
                 .assertingPartyDetails(details -> details
-                        .entityId(samlEntityID)
-                        .wantAuthnRequestsSigned(true)
+                        .wantAuthnRequestsSigned(samlSignRequest)
 //                        .signingAlgorithms((sign) -> sign.add(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1))  // 512 by default?
                         )
                 .signingX509Credentials( (cred) -> cred

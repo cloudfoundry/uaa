@@ -69,7 +69,7 @@ public class SamlMetadataEndpoint {
             EntityDescriptor descriptor = entityDescriptorParameters.getEntityDescriptor();
             SPSSODescriptor spssodescriptor = descriptor.getSPSSODescriptor(SAMLConstants.SAML20P_NS);
             spssodescriptor.setWantAssertionsSigned(true);
-            spssodescriptor.setAuthnRequestsSigned(true);
+            spssodescriptor.setAuthnRequestsSigned(entityDescriptorParameters.getRelyingPartyRegistration().getAssertingPartyDetails().getWantAuthnRequestsSigned()); // need to read from `saml.signRequest` eventually
 //            try {
 //                XMLSignatureFactory xmlSignatureFactory = XMLSignatureFactory.getInstance("DOM", "XMLDSig");
 //                CanonicalizationMethod c14nMethod = xmlSignatureFactory.newCanonicalizationMethod("http://www.w3.org/2001/10/xml-exc-c14n#", null);
