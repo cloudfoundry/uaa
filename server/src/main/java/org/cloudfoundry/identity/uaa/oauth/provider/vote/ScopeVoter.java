@@ -61,13 +61,7 @@ public class ScopeVoter implements AccessDecisionVoter<Object> {
 	}
 
 	public boolean supports(ConfigAttribute attribute) {
-		if (denyAccess.equals(attribute.getAttribute()) || (attribute.getAttribute() != null)
-				&& attribute.getAttribute().startsWith(scopePrefix)) {
-			return true;
-		}
-		else {
-			return false;
-		}
+		return (denyAccess.equals(attribute.getAttribute()) || (attribute.getAttribute() != null)	&& attribute.getAttribute().startsWith(scopePrefix));
 	}
 
 	/**

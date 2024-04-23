@@ -21,6 +21,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
+
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
  *
@@ -31,13 +33,11 @@ import java.util.Map;
  */
 public class ResourceOwnerPasswordTokenGranter extends AbstractTokenGranter {
 
-	private static final String GRANT_TYPE = "password";
-
 	private final AuthenticationManager authenticationManager;
 
 	public ResourceOwnerPasswordTokenGranter(AuthenticationManager authenticationManager,
 			AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
-		this(authenticationManager, tokenServices, clientDetailsService, requestFactory, GRANT_TYPE);
+		this(authenticationManager, tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_PASSWORD);
 	}
 
 	protected ResourceOwnerPasswordTokenGranter(AuthenticationManager authenticationManager, AuthorizationServerTokenServices tokenServices,
@@ -49,7 +49,7 @@ public class ResourceOwnerPasswordTokenGranter extends AbstractTokenGranter {
 	@Override
 	protected OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest tokenRequest) {
 
-		Map<String, String> parameters = new LinkedHashMap<String, String>(tokenRequest.getRequestParameters());
+		Map<String, String> parameters = new LinkedHashMap<>(tokenRequest.getRequestParameters());
 		String username = parameters.get("username");
 		String password = parameters.get("password");
 		// Protect from downstream leaks of password
