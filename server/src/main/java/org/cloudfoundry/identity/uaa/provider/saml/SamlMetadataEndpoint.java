@@ -12,35 +12,32 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
-import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
-@Controller
+@RestController
 public class SamlMetadataEndpoint {
     private static final String DEFAULT_REGISTRATION_ID = "example";
     private static final String DEFAULT_FILE_NAME = "saml-sp-metadata.xml";
-    public static final String APPLICATION_XML_CHARSET_UTF_8 = "application/xml; charset=UTF-8";
-    /*
-     * @todo - this should be a Zone aware resolver
-     */
+    private static final String APPLICATION_XML_CHARSET_UTF_8 = "application/xml; charset=UTF-8";
+    private static final String CONTENT_DISPOSITION_FORMAT = "attachment; filename=\"%s\"; filename*=UTF-8''%s";
+
+    // @todo - this should be a Zone aware resolver
     private final RelyingPartyRegistrationResolver relyingPartyRegistrationResolver;
     private final Saml2MetadataResolver saml2MetadataResolver;
 
     private String fileName;
     private String encodedFileName;
 
-    private class EntityDescriptorCustomizer implements Consumer<OpenSamlMetadataResolver.EntityDescriptorParameters> {
-
+    private static class EntityDescriptorCustomizer implements Consumer<OpenSamlMetadataResolver.EntityDescriptorParameters> {
         @Override
         public void accept(OpenSamlMetadataResolver.EntityDescriptorParameters entityDescriptorParameters) {
             EntityDescriptor descriptor = entityDescriptorParameters.getEntityDescriptor();
@@ -50,10 +47,7 @@ public class SamlMetadataEndpoint {
         }
     }
 
-    public SamlMetadataEndpoint(
-            RelyingPartyRegistrationRepository relyingPartyRegistrationRepository
-
-    ) {
+    public SamlMetadataEndpoint(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
         Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
         this.relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
         OpenSamlMetadataResolver resolver = new OpenSamlMetadataResolver();
@@ -63,7 +57,6 @@ public class SamlMetadataEndpoint {
     }
 
     @GetMapping(value = "/saml/metadata", produces = APPLICATION_XML_CHARSET_UTF_8)
-    @ResponseBody
     public ResponseEntity<String> legacyMetadataEndpoint(HttpServletRequest request) {
         return metadataEndpoint(DEFAULT_REGISTRATION_ID, request);
     }
@@ -72,36 +65,25 @@ public class SamlMetadataEndpoint {
     private RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
 
     @GetMapping(value = "/saml/metadata/{registrationId}", produces = APPLICATION_XML_CHARSET_UTF_8)
-    @ResponseBody
     public ResponseEntity<String> metadataEndpoint(@PathVariable String registrationId,
                                                    HttpServletRequest request
                                                    //, HttpServletResponse response
 
     ) {
-
-        String format = "attachment; filename=\"%s\"; filename*=UTF-8''%s";
-
         RelyingPartyRegistration relyingPartyRegistration = relyingPartyRegistrationRepository.findByRegistrationId(registrationId);
         if (relyingPartyRegistration == null) {
             return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).build();
         }
-        String metadata = this.saml2MetadataResolver.resolve(relyingPartyRegistration);
+        String metadata = saml2MetadataResolver.resolve(relyingPartyRegistration);
 
-        /*
-         * @todo - fileName may need to be dynamic based on registrationID
-        */
-
+         // @todo - fileName may need to be dynamic based on registrationID
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, String.format(format, fileName, encodedFileName))
+                .header(HttpHeaders.CONTENT_DISPOSITION, String.format(CONTENT_DISPOSITION_FORMAT, fileName, encodedFileName))
                 .body(metadata);
     }
 
     public void setFileName(String fileName) {
-        try {
-            this.encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8.name());
-            this.fileName = fileName;
-        } catch (UnsupportedEncodingException e) {
-            throw new RuntimeException(e);
-        }
+        encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
+        this.fileName = fileName;
     }
 }
