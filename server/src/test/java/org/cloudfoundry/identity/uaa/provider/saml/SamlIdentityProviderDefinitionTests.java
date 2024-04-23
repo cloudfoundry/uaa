@@ -11,13 +11,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.util.ReflectionUtils;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.DATA;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.URL;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
 
 public class SamlIdentityProviderDefinitionTests {
 
@@ -47,46 +44,47 @@ public class SamlIdentityProviderDefinitionTests {
         SamlIdentityProviderDefinition definition2 = buildSamlIdentityProviderDefinition();
         definition2.setAddShadowUserOnLogin(false);
 
-        assertNotEquals(definition, definition2);
+        assertThat(definition2).isNotEqualTo(definition);
 
         definition2.setAddShadowUserOnLogin(true);
-        assertEquals(definition, definition2);
+        assertThat(definition2).isEqualTo(definition);
     }
 
     @Test
     public void test_serialize_custom_attributes_field() {
         definition.setStoreCustomAttributes(true);
         SamlIdentityProviderDefinition def = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), SamlIdentityProviderDefinition.class);
-        assertTrue(def.isStoreCustomAttributes());
+        assertThat(def).isNotNull();
+        assertThat(def.isStoreCustomAttributes()).isTrue();
     }
 
     @Test
     public void testGetType() throws Exception {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("<?xml>");
-        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN, def.getType());
+        assertThat(def.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN);
         def.setMetaDataLocation("https://dadas.dadas.dadas/sdada");
-        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.URL, def.getType());
+        assertThat(def.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.URL);
         def.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
-        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.URL, def.getType());
+        assertThat(def.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.URL);
 
         def.setMetaDataLocation("test-file-metadata.xml");
-        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN, def.getType());
+        assertThat(def.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN);
 
         File f = new File(System.getProperty("java.io.tmpdir"),SamlIdentityProviderDefinitionTests.class.getName()+".testcase");
         f.createNewFile();
         f.deleteOnExit();
         def.setMetaDataLocation(f.getAbsolutePath());
-        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN, def.getType());
+        assertThat(def.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN);
         f.delete();
         def.setMetaDataLocation(f.getAbsolutePath());
-        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN, def.getType());
+        assertThat(def.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN);
     }
 
     @Test
     public void test_XML_with_DOCTYPE_Fails() {
         definition.setMetaDataLocation(IDP_METADATA.replace("<?xml version=\"1.0\"?>\n", "<?xml version=\"1.0\"?>\n<!DOCTYPE>"));
-        assertEquals(UNKNOWN, definition.getType());
+        assertThat(definition.getType()).isEqualTo(UNKNOWN);
     }
 
     @Test
@@ -103,7 +101,7 @@ public class SamlIdentityProviderDefinitionTests {
                                              f.setAccessible(true);
                                              Object expectedValue = f.get(definition);
                                              Object actualValue = f.get(def);
-                                             assertEquals(f.getName(), expectedValue, actualValue);
+                                             assertThat(actualValue).as(f.getName()).isEqualTo(expectedValue);
                                          }
                                      });
 
@@ -113,37 +111,37 @@ public class SamlIdentityProviderDefinitionTests {
     @Test
     public void test_Get_FileType_Fails_and_is_No_Longer_Supported() {
         definition.setMetaDataLocation(System.getProperty("user.home"));
-        assertEquals(UNKNOWN, definition.getType());
+        assertThat(definition.getType()).isEqualTo(UNKNOWN);
     }
 
     @Test
     public void test_Get_URL_Type_Must_Be_Valid_URL() {
         definition.setMetaDataLocation("http");
-        assertEquals(UNKNOWN, definition.getType());
+        assertThat(definition.getType()).isEqualTo(UNKNOWN);
     }
 
     @Test
     public void test_Get_URL_When_Valid() {
         definition.setMetaDataLocation("http://uaa.com/saml/metadata");
-        assertEquals(URL, definition.getType());
+        assertThat(definition.getType()).isEqualTo(URL);
     }
 
     @Test
     public void test_Get_Data_Type_Must_Be_Valid_Data() {
         definition.setMetaDataLocation("<?xml");
-        assertEquals(UNKNOWN, definition.getType());
+        assertThat(definition.getType()).isEqualTo(UNKNOWN);
 
         definition.setMetaDataLocation("<md:EntityDescriptor");
-        assertEquals(UNKNOWN, definition.getType());
+        assertThat(definition.getType()).isEqualTo(UNKNOWN);
 
         definition.setMetaDataLocation("EntityDescriptor");
-        assertEquals(UNKNOWN, definition.getType());
+        assertThat(definition.getType()).isEqualTo(UNKNOWN);
     }
 
     @Test
     public void test_Get_Data_Type_When_Valid() {
         definition.setMetaDataLocation(IDP_METADATA);
-        assertEquals(DATA, definition.getType());
+        assertThat(definition.getType()).isEqualTo(DATA);
     }
 
     public static final String ALIAS = "alias";
@@ -189,35 +187,35 @@ public class SamlIdentityProviderDefinitionTests {
     public void testSetEmailDomain() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setEmailDomain(Collections.singletonList("test.com"));
-        assertEquals("test.com", def.getEmailDomain().get(0));
+        assertThat(def.getEmailDomain().get(0)).isEqualTo("test.com");
     }
 
     @Test
     public void testDefaultAuthnContext() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        assertNull(def.getAuthnContext());
+        assertThat(def.getAuthnContext()).isNull();
     }
 
     @Test
     public void testSetAuthnContext() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setAuthnContext(Collections.singletonList("a-custom-context"));
-        assertEquals("a-custom-context", def.getAuthnContext().get(0));
+        assertThat(def.getAuthnContext().get(0)).isEqualTo("a-custom-context");
     }
 
     @Test
     public void testGetSocketFactoryClassName() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("https://dadas.dadas.dadas/sdada");
-        assertNull(def.getSocketFactoryClassName());
+        assertThat(def.getSocketFactoryClassName()).isNull();
         def.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
-        assertNull(def.getSocketFactoryClassName());
+        assertThat(def.getSocketFactoryClassName()).isNull();
         def.setSocketFactoryClassName("");
-        assertNull(def.getSocketFactoryClassName());
+        assertThat(def.getSocketFactoryClassName()).isNull();
         def.setSocketFactoryClassName(null);
-        assertNull(def.getSocketFactoryClassName());
+        assertThat(def.getSocketFactoryClassName()).isNull();
         def.setSocketFactoryClassName("test.class.that.DoesntExist");
-        assertNull(def.getSocketFactoryClassName());
+        assertThat(def.getSocketFactoryClassName()).isNull();
 
     }
 }
