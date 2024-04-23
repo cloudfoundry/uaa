@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
@@ -93,17 +94,17 @@ public class TokenRequest extends BaseRequest {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null || getClass() != obj.getClass())
-			return false;
+		if (this == obj) return true;
+		if (obj == null || getClass() != obj.getClass()) return false;
+		if (!super.equals(obj)) return false;
 		TokenRequest other = (TokenRequest) obj;
-		if (grantType == null) {
-			if (other.grantType != null)
-				return false;
-		} else if (!grantType.equals(other.grantType)) {
-			return false;
-		}
-		return super.equals(this);
+		return Objects.equals(grantType, other.grantType);
+	}
+
+	@Override
+	public int hashCode() {
+		int result = super.hashCode();
+		result = 31 * result + (grantType != null ? grantType.hashCode() : 0);
+		return result;
 	}
 }
