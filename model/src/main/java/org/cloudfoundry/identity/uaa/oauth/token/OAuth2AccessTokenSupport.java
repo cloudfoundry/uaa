@@ -94,11 +94,11 @@ public abstract class OAuth2AccessTokenSupport {
 		if (restTemplate == null) {
 			synchronized (this) {
 				if (restTemplate == null) {
-					RestTemplate restTemplate = new RestTemplate();
-					restTemplate.setErrorHandler(getResponseErrorHandler());
-					restTemplate.setRequestFactory(requestFactory);
-					restTemplate.setInterceptors(interceptors);
-					this.restTemplate = restTemplate;
+					RestTemplate newRestTemplate = new RestTemplate();
+					newRestTemplate.setErrorHandler(getResponseErrorHandler());
+					newRestTemplate.setRequestFactory(requestFactory);
+					newRestTemplate.setInterceptors(interceptors);
+					this.restTemplate = newRestTemplate;
 				}
 			}
 		}
@@ -139,7 +139,7 @@ public abstract class OAuth2AccessTokenSupport {
 				}
 			};
 			return getRestTemplate().execute(getAccessTokenUri(resource, form), getHttpMethod(),
-					getRequestCallback(resource, form, headers), extractor , form.toSingleValueMap());
+					getRequestCallback(form, headers), extractor , form.toSingleValueMap());
 
 		}
 		catch (OAuth2Exception oe) {
@@ -199,8 +199,7 @@ public abstract class OAuth2AccessTokenSupport {
 		return new HttpMessageConverterExtractor<>(OAuth2AccessToken.class, this.messageConverters);
 	}
 
-	protected RequestCallback getRequestCallback(OAuth2ProtectedResourceDetails resource,
-			MultiValueMap<String, String> form, HttpHeaders headers) {
+	protected RequestCallback getRequestCallback(MultiValueMap<String, String> form, HttpHeaders headers) {
 		return new OAuth2AuthTokenCallback(form, headers);
 	}
 

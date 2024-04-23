@@ -22,7 +22,7 @@ import java.util.Map;
  */
 public class DefaultUserAuthenticationConverter implements UserAuthenticationConverter {
 
-	private Collection<? extends GrantedAuthority> defaultAuthorities;
+	private Collection<GrantedAuthority> defaultAuthorities;
 
 	private UserDetailsService userDetailsService;
 
@@ -58,8 +58,8 @@ public class DefaultUserAuthenticationConverter implements UserAuthenticationCon
 				.arrayToCommaDelimitedString(defaultAuthorities));
 	}
 
-	public Map<String, ?> convertUserAuthentication(Authentication authentication) {
-		Map<String, Object> response = new LinkedHashMap<String, Object>();
+	public Map<String, Object> convertUserAuthentication(Authentication authentication) {
+		Map<String, Object> response = new LinkedHashMap<>();
 		response.put(userClaimName, authentication.getName());
 		if (authentication.getAuthorities() != null && !authentication.getAuthorities().isEmpty()) {
 			response.put(AUTHORITIES, AuthorityUtils.authorityListToSet(authentication.getAuthorities()));
@@ -81,13 +81,13 @@ public class DefaultUserAuthenticationConverter implements UserAuthenticationCon
 		return null;
 	}
 
-	protected Collection<? extends GrantedAuthority> getAuthorities(Map<String, ?> map) {
+	protected Collection<GrantedAuthority> getAuthorities(Map<String, ?> map) {
 		if (!map.containsKey(AUTHORITIES)) {
 			return defaultAuthorities;
 		}
 		Object authorities = map.get(AUTHORITIES);
-		if (authorities instanceof String) {
-			return AuthorityUtils.commaSeparatedStringToAuthorityList((String) authorities);
+		if (authorities instanceof String authorityString) {
+			return AuthorityUtils.commaSeparatedStringToAuthorityList(authorityString);
 		}
 		if (authorities instanceof Collection) {
 			return AuthorityUtils.commaSeparatedStringToAuthorityList(StringUtils

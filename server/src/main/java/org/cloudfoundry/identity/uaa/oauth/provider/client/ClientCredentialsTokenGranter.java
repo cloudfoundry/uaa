@@ -8,6 +8,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.token.AbstractTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
+
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
  *
@@ -18,21 +20,14 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
  */
 public class ClientCredentialsTokenGranter extends AbstractTokenGranter {
 
-	private static final String GRANT_TYPE = "client_credentials";
-	private boolean allowRefresh = false;
-
 	public ClientCredentialsTokenGranter(AuthorizationServerTokenServices tokenServices,
 			ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
-		this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE);
+		this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_CLIENT_CREDENTIALS);
 	}
 
 	protected ClientCredentialsTokenGranter(AuthorizationServerTokenServices tokenServices,
 			ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory, String grantType) {
 		super(tokenServices, clientDetailsService, requestFactory, grantType);
-	}
-	
-	public void setAllowRefresh(boolean allowRefresh) {
-		this.allowRefresh = allowRefresh;
 	}
 
 	@Override
@@ -41,9 +36,7 @@ public class ClientCredentialsTokenGranter extends AbstractTokenGranter {
 		if (token != null) {
 			DefaultOAuth2AccessToken norefresh = new DefaultOAuth2AccessToken(token);
 			// The spec says that client credentials should not be allowed to get a refresh token
-			if (!allowRefresh) {
-				norefresh.setRefreshToken(null);
-			}
+			norefresh.setRefreshToken(null);
 			token = norefresh;
 		}
 		return token;

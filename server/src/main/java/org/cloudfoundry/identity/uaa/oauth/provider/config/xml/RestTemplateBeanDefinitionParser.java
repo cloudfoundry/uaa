@@ -14,6 +14,8 @@ import org.w3c.dom.Element;
 
 public class RestTemplateBeanDefinitionParser extends AbstractSingleBeanDefinitionParser {
 
+	private static final String RESOURCE = "resource";
+
 	@Override
 	protected Class<?> getBeanClass(Element element) {
 		return OAuth2RestTemplate.class;
@@ -24,7 +26,7 @@ public class RestTemplateBeanDefinitionParser extends AbstractSingleBeanDefiniti
 
 		String accessTokenProviderRef = element.getAttribute("access-token-provider");
 		
-		builder.addConstructorArgReference(element.getAttribute("resource"));
+		builder.addConstructorArgReference(element.getAttribute(RESOURCE));
 
 		BeanDefinitionBuilder request = BeanDefinitionBuilder.genericBeanDefinition(DefaultAccessTokenRequest.class);
 		request.setScope("request");
@@ -59,7 +61,7 @@ public class RestTemplateBeanDefinitionParser extends AbstractSingleBeanDefiniti
 
 		context.addPropertyValue("scopedContext", contextHolder.getBeanDefinition());
 		context.addPropertyValue("bareContext", bareContext.getBeanDefinition());
-		context.addPropertyReference("resource", element.getAttribute("resource"));
+		context.addPropertyReference(RESOURCE, element.getAttribute(RESOURCE));
 
 		builder.addConstructorArgValue(context.getBeanDefinition());
 		if (StringUtils.hasText(accessTokenProviderRef)) {

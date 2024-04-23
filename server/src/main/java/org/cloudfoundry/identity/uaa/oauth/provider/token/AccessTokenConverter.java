@@ -38,7 +38,7 @@ public interface AccessTokenConverter {
 	 * @return a map representation of the token suitable for a JSON response
 	 * 
 	 */
-	Map<String, ?> convertAccessToken(OAuth2AccessToken token, OAuth2Authentication authentication);
+	Map<String, Object> convertAccessToken(OAuth2AccessToken token, OAuth2Authentication authentication);
 
 	/**
 	 * Recover an access token from the converted value. Half the inverse of

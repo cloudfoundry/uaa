@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.implicit;
 
-
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
@@ -15,6 +14,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
 import org.springframework.util.Assert;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
+
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
  *
@@ -25,10 +26,8 @@ import org.springframework.util.Assert;
  */
 public class ImplicitTokenGranter extends AbstractTokenGranter {
 
-	private static final String GRANT_TYPE = "implicit";
-
 	public ImplicitTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
-		this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE);
+		this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_IMPLICIT);
 	}
 
 	protected ImplicitTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService,

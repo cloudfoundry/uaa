@@ -11,6 +11,8 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantExcepti
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
  *
@@ -21,10 +23,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
  */
 public class RefreshTokenGranter extends AbstractTokenGranter {
 
-	private static final String GRANT_TYPE = "refresh_token";
-
 	public RefreshTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
-		this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE);
+		this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_REFRESH_TOKEN);
 	}
 
 	protected RefreshTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService,

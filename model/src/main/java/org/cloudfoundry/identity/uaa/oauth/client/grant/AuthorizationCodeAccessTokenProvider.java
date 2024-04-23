@@ -92,7 +92,7 @@ public class AuthorizationCodeAccessTokenProvider extends OAuth2AccessTokenSuppo
 		// Instead of using restTemplate.exchange we use an explicit response extractor here so it can be overridden by
 		// subclasses
 		ResponseEntity<Void> response = getRestTemplate().execute(resource.getUserAuthorizationUri(), HttpMethod.POST,
-				getRequestCallback(resource, form, headers), extractor, form.toSingleValueMap());
+				getRequestCallback(form, headers), extractor, form.toSingleValueMap());
 
 		if (Optional.ofNullable(response).orElseThrow(() -> new InvalidRequestException("No response")).getStatusCode() == HttpStatus.OK) {
 			// Need to re-submit with approval...
