@@ -20,6 +20,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+/**
+ * Moved test class of from spring-security-oauth2 into UAA
+ * Scope: Test class
+ */
 public class CompositeTokenGranterTests {
 
   private CompositeTokenGranter compositeTokenGranter;
