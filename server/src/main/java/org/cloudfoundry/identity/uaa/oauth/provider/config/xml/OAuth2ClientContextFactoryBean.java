@@ -45,6 +45,7 @@ public class OAuth2ClientContextFactoryBean implements FactoryBean<OAuth2ClientC
 		return OAuth2ClientContext.class;
 	}
 
+	@Override
 	public boolean isSingleton() {
 		return true;
 	}

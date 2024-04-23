@@ -31,7 +31,7 @@ public class ClientDetailsServiceBeanDefinitionParser extends AbstractSingleBean
 	@Override
 	protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
 		List<Element> clientElements = DomUtils.getChildElementsByTagName(element, "client");
-		ManagedMap<String, BeanMetadataElement> clients = new ManagedMap<String, BeanMetadataElement>();
+		ManagedMap<String, BeanMetadataElement> clients = new ManagedMap<>();
 		for (Element clientElement : clientElements) {
 			BeanDefinitionBuilder client = BeanDefinitionBuilder.rootBeanDefinition(UaaClientDetails.class);
 			String clientId = clientElement.getAttribute("client-id");

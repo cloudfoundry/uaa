@@ -41,6 +41,9 @@ import java.util.List;
 public class AuthorizationServerBeanDefinitionParser
 		extends ProviderBeanDefinitionParser {
 
+	private static final String DISABLED = "disabled";
+	private static final String O_AUTH_2_REQUEST_VALIDATOR = "oAuth2RequestValidator";
+
 	@Override
 	protected AbstractBeanDefinition parseEndpointAndReturnFilter(Element element,
 			ParserContext parserContext, String tokenServicesRef, String serializerRef) {
@@ -81,7 +84,7 @@ public class AuthorizationServerBeanDefinitionParser
 			parserContext.getRegistry().registerBeanDefinition(oAuth2RequestValidatorRef,
 					oAuth2RequestValidator.getBeanDefinition());
 		}
-		authorizationEndpointBean.addPropertyReference("oAuth2RequestValidator",
+		authorizationEndpointBean.addPropertyReference(O_AUTH_2_REQUEST_VALIDATOR,
 				oAuth2RequestValidatorRef);
 
 		if (!StringUtils.hasText(oAuth2RequestFactoryRef)) {
@@ -100,7 +103,7 @@ public class AuthorizationServerBeanDefinitionParser
 					.rootBeanDefinition(CompositeTokenGranter.class);
 			parserContext.getRegistry().registerBeanDefinition(tokenGranterRef,
 					tokenGranterBean.getBeanDefinition());
-			tokenGranters = new ManagedList<BeanMetadataElement>();
+			tokenGranters = new ManagedList<>();
 			tokenGranterBean.addConstructorArgValue(tokenGranters);
 		}
 		authorizationEndpointBean.addPropertyReference("tokenGranter", tokenGranterRef);
@@ -111,7 +114,7 @@ public class AuthorizationServerBeanDefinitionParser
 				"authorization-code");
 
 		if (authorizationCodeElement != null && !"true"
-				.equalsIgnoreCase(authorizationCodeElement.getAttribute("disabled"))) {
+				.equalsIgnoreCase(authorizationCodeElement.getAttribute(DISABLED))) {
 			// authorization code grant configuration.
 			String authorizationCodeServices = authorizationCodeElement
 					.getAttribute("authorization-code-services-ref");
@@ -165,7 +168,7 @@ public class AuthorizationServerBeanDefinitionParser
 					"refresh-token");
 
 			if (refreshTokenElement != null && !"true"
-					.equalsIgnoreCase(refreshTokenElement.getAttribute("disabled"))) {
+					.equalsIgnoreCase(refreshTokenElement.getAttribute(DISABLED))) {
 				BeanDefinitionBuilder refreshTokenGranterBean = BeanDefinitionBuilder
 						.rootBeanDefinition(RefreshTokenGranter.class);
 				refreshTokenGranterBean.addConstructorArgReference(tokenServicesRef);
@@ -177,7 +180,7 @@ public class AuthorizationServerBeanDefinitionParser
 			Element implicitElement = DomUtils.getChildElementByTagName(element,
 					"implicit");
 			if (implicitElement != null && !"true"
-					.equalsIgnoreCase(implicitElement.getAttribute("disabled"))) {
+					.equalsIgnoreCase(implicitElement.getAttribute(DISABLED))) {
 				BeanDefinitionBuilder implicitGranterBean = BeanDefinitionBuilder
 						.rootBeanDefinition(ImplicitTokenGranter.class);
 				implicitGranterBean.addConstructorArgReference(tokenServicesRef);
@@ -189,7 +192,7 @@ public class AuthorizationServerBeanDefinitionParser
 			Element clientCredentialsElement = DomUtils.getChildElementByTagName(element,
 					"client-credentials");
 			if (clientCredentialsElement != null && !"true".equalsIgnoreCase(
-					clientCredentialsElement.getAttribute("disabled"))) {
+					clientCredentialsElement.getAttribute(DISABLED))) {
 				BeanDefinitionBuilder clientCredentialsGranterBean = BeanDefinitionBuilder
 						.rootBeanDefinition(ClientCredentialsTokenGranter.class);
 				clientCredentialsGranterBean.addConstructorArgReference(tokenServicesRef);
@@ -201,7 +204,7 @@ public class AuthorizationServerBeanDefinitionParser
 			Element clientPasswordElement = DomUtils.getChildElementByTagName(element,
 					"password");
 			if (clientPasswordElement != null && !"true"
-					.equalsIgnoreCase(clientPasswordElement.getAttribute("disabled"))) {
+					.equalsIgnoreCase(clientPasswordElement.getAttribute(DISABLED))) {
 				BeanDefinitionBuilder clientPasswordTokenGranter = BeanDefinitionBuilder
 						.rootBeanDefinition(ResourceOwnerPasswordTokenGranter.class);
 				String authenticationManagerRef = clientPasswordElement
@@ -221,7 +224,7 @@ public class AuthorizationServerBeanDefinitionParser
 					.getChildElementsByTagName(element, "custom-grant");
 			for (Element customGrantElement : customGrantElements) {
 				if (!"true"
-						.equalsIgnoreCase(customGrantElement.getAttribute("disabled"))) {
+						.equalsIgnoreCase(customGrantElement.getAttribute(DISABLED))) {
 					String customGranterRef = customGrantElement
 							.getAttribute("token-granter-ref");
 					tokenGranters.add(new RuntimeBeanReference(customGranterRef));
@@ -270,7 +273,7 @@ public class AuthorizationServerBeanDefinitionParser
 				.genericBeanDefinition(UaaTokenEndpoint.class);
 		tokenEndpointBean.addPropertyReference("clientDetailsService", clientDetailsRef);
 		tokenEndpointBean.addPropertyReference("tokenGranter", tokenGranterRef);
-		authorizationEndpointBean.addPropertyReference("oAuth2RequestValidator",
+		authorizationEndpointBean.addPropertyReference(O_AUTH_2_REQUEST_VALIDATOR,
 				oAuth2RequestValidatorRef);
 		parserContext.getRegistry().registerBeanDefinition("uaaTokenEndpoint",
 				tokenEndpointBean.getBeanDefinition());
@@ -279,14 +282,14 @@ public class AuthorizationServerBeanDefinitionParser
 					oAuth2RequestFactoryRef);
 		}
 		if (StringUtils.hasText(oAuth2RequestValidatorRef)) {
-			tokenEndpointBean.addPropertyReference("oAuth2RequestValidator",
+			tokenEndpointBean.addPropertyReference(O_AUTH_2_REQUEST_VALIDATOR,
 					oAuth2RequestValidatorRef);
 		}
 
 		// Register a handler mapping that can detect the auth server endpoints
 		BeanDefinitionBuilder handlerMappingBean = BeanDefinitionBuilder
 				.rootBeanDefinition(FrameworkEndpointHandlerMapping.class);
-		ManagedMap<String, TypedStringValue> mappings = new ManagedMap<String, TypedStringValue>();
+		ManagedMap<String, TypedStringValue> mappings = new ManagedMap<>();
 		if (StringUtils.hasText(tokenEndpointUrl)
 				|| StringUtils.hasText(authorizationEndpointUrl)) {
 			if (StringUtils.hasText(tokenEndpointUrl)) {
@@ -330,9 +333,6 @@ public class AuthorizationServerBeanDefinitionParser
 			}
 			handlerMappingBean.addPropertyValue("approvalParameter", approvalParameter);
 		}
-
-		/*parserContext.getRegistry().registerBeanDefinition("oauth2HandlerMapping",
-				handlerMappingBean.getBeanDefinition());*/
 
 		// We aren't defining a filter...
 		return null;

@@ -37,7 +37,7 @@ abstract class BaseRequest implements Serializable {
 	 * alter the set of scopes that is finally granted and stored when the
 	 * request processing is complete.
 	 */
-	private Set<String> scope = new HashSet<String>();
+	private Set<String> scope = new HashSet<>();
 
 	/**
 	 * Map of parameters passed in to the Authorization Endpoint or Token

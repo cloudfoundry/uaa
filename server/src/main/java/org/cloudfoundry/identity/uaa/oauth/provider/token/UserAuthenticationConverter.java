@@ -24,7 +24,7 @@ public interface UserAuthenticationConverter {
 	 * @param userAuthentication an authentication representing a user
 	 * @return a map of key values representing the unique information about the user
 	 */
-	Map<String, ?> convertUserAuthentication(Authentication userAuthentication);
+	Map<String, Object> convertUserAuthentication(Authentication userAuthentication);
 
 	/**
 	 * Inverse of {@link #convertUserAuthentication(Authentication)}. Extracts an Authentication from a map.

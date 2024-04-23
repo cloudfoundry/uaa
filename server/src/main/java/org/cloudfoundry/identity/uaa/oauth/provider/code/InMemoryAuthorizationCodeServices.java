@@ -14,7 +14,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class InMemoryAuthorizationCodeServices extends RandomValueAuthorizationCodeServices {
 
-	protected final ConcurrentHashMap<String, OAuth2Authentication> authorizationCodeStore = new ConcurrentHashMap<String, OAuth2Authentication>();
+	protected final ConcurrentHashMap<String, OAuth2Authentication> authorizationCodeStore = new ConcurrentHashMap<>();
 
 	@Override
 	protected void store(String code, OAuth2Authentication authentication) {
@@ -23,8 +23,7 @@ public class InMemoryAuthorizationCodeServices extends RandomValueAuthorizationC
 
 	@Override
 	public OAuth2Authentication remove(String code) {
-		OAuth2Authentication auth = this.authorizationCodeStore.remove(code);
-		return auth;
+		return this.authorizationCodeStore.remove(code);
 	}
 
 }

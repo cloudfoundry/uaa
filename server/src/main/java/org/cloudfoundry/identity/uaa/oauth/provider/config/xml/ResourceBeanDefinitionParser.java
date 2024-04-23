@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.resource.ImplicitResourceDetai
 import org.cloudfoundry.identity.uaa.oauth.client.resource.ResourceOwnerPasswordResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.config.TypedStringValue;
 import org.springframework.beans.factory.support.BeanDefinitionBuilder;
@@ -24,16 +25,16 @@ public class ResourceBeanDefinitionParser extends AbstractSingleBeanDefinitionPa
 	@Override
 	protected Class<?> getBeanClass(Element element) {
 		String type = element.getAttribute("type");
-		if ("authorization_code".equals(type)) {
+		if (TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE.equals(type)) {
 			return AuthorizationCodeResourceDetails.class;
 		}
-		if ("implicit".equals(type)) {
+		if (TokenConstants.GRANT_TYPE_IMPLICIT.equals(type)) {
 			return ImplicitResourceDetails.class;
 		}
-		if ("client_credentials".equals(type)) {
+		if (TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS.equals(type)) {
 			return ClientCredentialsResourceDetails.class;
 		}
-		if ("password".equals(type)) {
+		if (TokenConstants.GRANT_TYPE_PASSWORD.equals(type)) {
 			return ResourceOwnerPasswordResourceDetails.class;
 		}
 		return BaseOAuth2ProtectedResourceDetails.class;
@@ -49,7 +50,7 @@ public class ResourceBeanDefinitionParser extends AbstractSingleBeanDefinitionPa
 
 		String type = element.getAttribute("type");
 		if (!StringUtils.hasText(type)) {
-			type = "client_credentials";
+			type = TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 		}
 		builder.addPropertyValue("grantType", type);
 
@@ -152,13 +153,14 @@ public class ResourceBeanDefinitionParser extends AbstractSingleBeanDefinitionPa
 		}
 
 		public List<String> getObject() throws Exception {
-			return new ArrayList<String>(Arrays.asList(StringUtils.commaDelimitedListToStringArray(commaSeparatedList)));
+			return new ArrayList<>(Arrays.asList(StringUtils.commaDelimitedListToStringArray(commaSeparatedList)));
 		}
 
 		public Class<?> getObjectType() {
 			return List.class;
 		}
 
+		@Override
 		public boolean isSingleton() {
 			return true;
 		}
