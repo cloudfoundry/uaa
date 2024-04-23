@@ -18,6 +18,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -243,6 +244,38 @@ class ScimUserEndpointsAliasTests {
                     null
             );
             assertScimUsersAreEqual(result, originalUser);
+        }
+
+        @Test
+        void shouldThrowScimException_IfAliasHandlerThrows() {
+            when(scimUserAliasHandler.aliasPropertiesAreValid(originalUser, existingOriginalUser))
+                    .thenReturn(true);
+
+            // mock update -> increments version
+            when(scimUserProvisioning.update(originalUser.getId(), originalUser, currentZoneId))
+                    .then(invocationOnMock -> {
+                        final ScimUser user = invocationOnMock.getArgument(1);
+                        user.setVersion(user.getVersion() + 1);
+                        return user;
+                    });
+
+            // mock aliasHandler.ensureConsistency -> should throw exception
+            final String errorMessage = "Could not create alias.";
+            when(scimUserAliasHandler.ensureConsistencyOfAliasEntity(originalUser, existingOriginalUser))
+                    .thenThrow(new EntityAliasFailedException(errorMessage, 400, null));
+
+            final ScimException exception = assertThrows(ScimException.class, () ->
+                    scimUserEndpoints.updateUser(
+                            originalUser,
+                            originalUser.getId(),
+                            "*",
+                            new MockHttpServletRequest(),
+                            new MockHttpServletResponse(),
+                            null
+                    )
+            );
+            assertThat(exception.getMessage()).isEqualTo(errorMessage);
+            assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
     }
 
