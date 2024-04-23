@@ -4,6 +4,8 @@ import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.CredentialsContainer;
 
+import java.util.Objects;
+
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA
  *
@@ -96,20 +98,9 @@ public class OAuth2Authentication extends AbstractAuthenticationToken {
 		}
 
 		OAuth2Authentication that = (OAuth2Authentication) o;
-
-		if (!storedRequest.equals(that.storedRequest)) {
-			return false;
-		}
-		if (userAuthentication != null ? !userAuthentication.equals(that.userAuthentication)
-				: that.userAuthentication != null) {
-			return false;
-		}
-		
-		if (getDetails()!=null ? !getDetails().equals(that.getDetails()) : that.getDetails()!=null) {
-			return false;
-		}
-
-		return true;
+		if (!Objects.equals(storedRequest, that.storedRequest)) return false;
+		if (!Objects.equals(userAuthentication, that.userAuthentication)) return false;
+		return Objects.equals(getDetails(), that.getDetails());
 	}
 
 	@Override
