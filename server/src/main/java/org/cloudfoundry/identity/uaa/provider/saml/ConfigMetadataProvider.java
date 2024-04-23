@@ -1,22 +1,17 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-//import org.opensaml.saml2.metadata.provider.AbstractMetadataProvider;
-//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
-//import org.opensaml.xml.XMLObject;
-//import org.opensaml.xml.io.UnmarshallingException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
+@Slf4j
 public class ConfigMetadataProvider /* extends AbstractMetadataProvider */ implements ComparableProvider {
 
-    private final Logger log = LoggerFactory.getLogger(ConfigMetadataProvider.class);
-
     private final String metadata;
+    @Getter
     private final String zoneId;
+    @Getter
     private final String alias;
 
     public ConfigMetadataProvider(String zoneId, String alias, String metadata) {
@@ -45,22 +40,12 @@ public class ConfigMetadataProvider /* extends AbstractMetadataProvider */ imple
 //    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (o == null || !(o instanceof ComparableProvider)) return false;
-        return this.compareTo((ComparableProvider)o) == 0;
+        if (!(o instanceof ComparableProvider)) return false;
+        return this.compareTo((ComparableProvider) o) == 0;
     }
 
     @Override
     public int hashCode() {
         return getHashCode();
-    }
-
-    @Override
-    public String getAlias() {
-        return alias;
-    }
-
-    @Override
-    public String getZoneId() {
-        return zoneId;
     }
 }
