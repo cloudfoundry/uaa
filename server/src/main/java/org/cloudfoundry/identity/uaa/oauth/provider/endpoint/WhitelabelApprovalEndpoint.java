@@ -11,6 +11,7 @@ import org.springframework.web.util.HtmlUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -25,11 +26,14 @@ import java.util.Map;
 @SessionAttributes("authorizationRequest")
 public class WhitelabelApprovalEndpoint {
 
+	private static final String CSRF = "_csrf";
+	private static final String SCOPES = "scopes";
+
 	@GetMapping(value = "/oauth/confirm_access")
-	public ModelAndView getAccessConfirmation(Map<String, Object> model, HttpServletRequest request) throws Exception {
+	public ModelAndView getAccessConfirmation(Map<String, Object> model, HttpServletRequest request) {
 		final String approvalContent = createTemplate(model, request);
-		if (request.getAttribute("_csrf") != null) {
-			model.put("_csrf", request.getAttribute("_csrf"));
+		if (request.getAttribute(CSRF) != null) {
+			model.put(CSRF, request.getAttribute(CSRF));
 		}
 		View approvalView = new View() {
 			@Override
@@ -65,7 +69,7 @@ public class WhitelabelApprovalEndpoint {
 		builder.append("<input name=\"user_oauth_approval\" value=\"true\" type=\"hidden\"/>");
 
 		String csrfTemplate = null;
-		CsrfToken csrfToken = (CsrfToken) (model.containsKey("_csrf") ? model.get("_csrf") : request.getAttribute("_csrf"));
+		CsrfToken csrfToken = (CsrfToken) (model.containsKey(CSRF) ? model.get(CSRF) : request.getAttribute(CSRF));
 		if (csrfToken != null) {
 			csrfTemplate = "<input type=\"hidden\" name=\"" + HtmlUtils.htmlEscape(csrfToken.getParameterName()) +
 					"\" value=\"" + HtmlUtils.htmlEscape(csrfToken.getToken()) + "\" />";
@@ -76,7 +80,7 @@ public class WhitelabelApprovalEndpoint {
 
 		String authorizeInputTemplate = "<label><input name=\"authorize\" value=\"Authorize\" type=\"submit\"/></label></form>";
 
-		if (model.containsKey("scopes") || request.getAttribute("scopes") != null) {
+		if (model.containsKey(SCOPES) || request.getAttribute(SCOPES) != null) {
 			builder.append(createScopes(model, request));
 			builder.append(authorizeInputTemplate);
 		} else {
@@ -98,19 +102,20 @@ public class WhitelabelApprovalEndpoint {
 	private CharSequence createScopes(Map<String, Object> model, HttpServletRequest request) {
 		StringBuilder builder = new StringBuilder("<ul>");
 		@SuppressWarnings("unchecked")
-		Map<String, String> scopes = (Map<String, String>) (model.containsKey("scopes") ?
-				model.get("scopes") : request.getAttribute("scopes"));
-		for (String scope : scopes.keySet()) {
-			String approved = "true".equals(scopes.get(scope)) ? " checked" : "";
-			String denied = !"true".equals(scopes.get(scope)) ? " checked" : "";
-			scope = HtmlUtils.htmlEscape(scope);
+		Map<String, String> scopes = (Map<String, String>) (model.containsKey(SCOPES) ?
+				model.get(SCOPES) : request.getAttribute(SCOPES));
+    for (Iterator<String> iterator = scopes.keySet().iterator(); iterator.hasNext(); ) {
+      String scope = iterator.next();
+      String approved = "true".equals(scopes.get(scope)) ? " checked" : "";
+      String denied = !"true".equals(scopes.get(scope)) ? " checked" : "";
+      scope = HtmlUtils.htmlEscape(scope);
 
-			builder.append("<li><div class=\"form-group\">");
-			builder.append(scope).append(": <input type=\"radio\" name=\"");
-			builder.append(scope).append("\" value=\"true\"").append(approved).append(">Approve</input> ");
-			builder.append("<input type=\"radio\" name=\"").append(scope).append("\" value=\"false\"");
-			builder.append(denied).append(">Deny</input></div></li>");
-		}
+      builder.append("<li><div class=\"form-group\">");
+      builder.append(scope).append(": <input type=\"radio\" name=\"");
+      builder.append(scope).append("\" value=\"true\"").append(approved).append(">Approve</input> ");
+      builder.append("<input type=\"radio\" name=\"").append(scope).append("\" value=\"false\"");
+      builder.append(denied).append(">Deny</input></div></li>");
+    }
 		builder.append("</ul>");
 		return builder.toString();
 	}

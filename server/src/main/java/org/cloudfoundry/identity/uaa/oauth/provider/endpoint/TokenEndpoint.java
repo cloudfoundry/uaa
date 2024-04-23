@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestValidator;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -23,8 +24,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.util.StringUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
@@ -44,11 +45,12 @@ import java.util.Set;
  */
 public class TokenEndpoint extends AbstractEndpoint {
 
+	private static final String HANDLING_ERROR = "Handling error: ";
 	private OAuth2RequestValidator oAuth2RequestValidator = new DefaultOAuth2RequestValidator();
 
-	private Set<HttpMethod> allowedRequestMethods = new HashSet<HttpMethod>(Arrays.asList(HttpMethod.POST));
+	private Set<HttpMethod> allowedRequestMethods = new HashSet<>(Arrays.asList(HttpMethod.POST));
 
-	@RequestMapping(value = "/oauth/token", method=RequestMethod.GET)
+	@GetMapping(value = "/oauth/token")
 	public ResponseEntity<OAuth2AccessToken> getAccessToken(
 			Principal principal, @RequestParam Map<String, String> parameters)
 			throws HttpRequestMethodNotSupportedException {
@@ -59,10 +61,9 @@ public class TokenEndpoint extends AbstractEndpoint {
 		return postAccessToken(principal, parameters);
 	}
 	
-	@RequestMapping(value = "/oauth/token", method=RequestMethod.POST)
+	@PostMapping(value = "/oauth/token")
 	public ResponseEntity<OAuth2AccessToken> postAccessToken(
-			Principal principal, @RequestParam Map<String, String> parameters)
-			throws HttpRequestMethodNotSupportedException {
+			Principal principal, @RequestParam Map<String, String> parameters) {
 
 		if (!(principal instanceof Authentication)) {
 			throw new InsufficientAuthenticationException(
@@ -97,7 +98,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 			logger.debug("Clearing scope of incoming token request");
 			tokenRequest.setScope(Collections.<String>emptySet());
 		} else if (isRefreshTokenRequest(parameters)) {
-			if (StringUtils.isEmpty(parameters.get("refresh_token"))) {
+			if (UaaStringUtils.isNullOrEmpty(parameters.get("refresh_token"))) {
 				throw new InvalidRequestException("refresh_token parameter not provided");
 			}
 			// A refresh token has its own default scopes, so we should ignore any added by the factory here.
@@ -122,9 +123,9 @@ public class TokenEndpoint extends AbstractEndpoint {
 			throw new InsufficientAuthenticationException("The client is not authenticated.");
 		}
 		String clientId = client.getName();
-		if (client instanceof OAuth2Authentication) {
+		if (client instanceof OAuth2Authentication oAuth2Authentication) {
 			// Might be a client and user combined authentication
-			clientId = ((OAuth2Authentication) client).getOAuth2Request().getClientId();
+			clientId = oAuth2Authentication.getOAuth2Request().getClientId();
 		}
 		return clientId;
 	}
@@ -132,7 +133,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
 	public ResponseEntity<OAuth2Exception> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {
 		if (logger.isInfoEnabled()) {
-			logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+			logger.info(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
 		}
 	    return getExceptionTranslator().translate(e);
 	}
@@ -140,7 +141,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 	@ExceptionHandler(Exception.class)
 	public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
 		if (logger.isErrorEnabled()) {
-			logger.error("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage(), e);
+			logger.error(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage(), e);
 		}
 		return getExceptionTranslator().translate(e);
 	}
@@ -148,7 +149,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 	@ExceptionHandler(ClientRegistrationException.class)
 	public ResponseEntity<OAuth2Exception> handleClientRegistrationException(Exception e) throws Exception {
 		if (logger.isWarnEnabled()) {
-			logger.warn("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+			logger.warn(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
 		}
 		return getExceptionTranslator().translate(new BadClientCredentialsException());
 	}
@@ -156,7 +157,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 	@ExceptionHandler(OAuth2Exception.class)
 	public ResponseEntity<OAuth2Exception> handleException(OAuth2Exception e) throws Exception {
 		if (logger.isWarnEnabled()) {
-			logger.warn("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+			logger.warn(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
 		}
 		return getExceptionTranslator().translate(e);
 	}
@@ -166,7 +167,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 		headers.set("Cache-Control", "no-store");
 		headers.set("Pragma", "no-cache");
 		headers.set("Content-Type", "application/json;charset=UTF-8");
-		return new ResponseEntity<OAuth2AccessToken>(accessToken, headers, HttpStatus.OK);
+		return new ResponseEntity<>(accessToken, headers, HttpStatus.OK);
 	}
 
 	private boolean isRefreshTokenRequest(Map<String, String> parameters) {
