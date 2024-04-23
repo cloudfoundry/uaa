@@ -4,6 +4,8 @@ import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.saml2.provider.service.metadata.OpenSamlMetadataResolver;
@@ -37,22 +39,28 @@ public class SamlMetadataEndpoint {
     private String fileName;
     private String encodedFileName;
 
-    private static class EntityDescriptorCustomizer implements Consumer<OpenSamlMetadataResolver.EntityDescriptorParameters> {
+    private Boolean wantAssertionSigned;
+
+    private class EntityDescriptorCustomizer implements Consumer<OpenSamlMetadataResolver.EntityDescriptorParameters> {
+
         @Override
         public void accept(OpenSamlMetadataResolver.EntityDescriptorParameters entityDescriptorParameters) {
             EntityDescriptor descriptor = entityDescriptorParameters.getEntityDescriptor();
             SPSSODescriptor spssodescriptor = descriptor.getSPSSODescriptor(SAMLConstants.SAML20P_NS);
-            spssodescriptor.setWantAssertionsSigned(true);
+            spssodescriptor.setWantAssertionsSigned(wantAssertionSigned);
             spssodescriptor.setAuthnRequestsSigned(entityDescriptorParameters.getRelyingPartyRegistration().getAssertingPartyDetails().getWantAuthnRequestsSigned());
         }
     }
 
-    public SamlMetadataEndpoint(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
+    public SamlMetadataEndpoint(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
+                                @Qualifier("samlWantAssertionSigned") Boolean samlWantAssertionSigned
+                                ) {
         Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
         this.relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
         OpenSamlMetadataResolver resolver = new OpenSamlMetadataResolver();
         this.saml2MetadataResolver = resolver;
         resolver.setEntityDescriptorCustomizer(new EntityDescriptorCustomizer());
+        this.wantAssertionSigned = samlWantAssertionSigned;
         setFileName(DEFAULT_FILE_NAME);
     }
 
