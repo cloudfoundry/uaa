@@ -1,4 +1,5 @@
-package org.cloudfoundry.identity.uaa.provider.saml; /*******************************************************************************
+package org.cloudfoundry.identity.uaa.provider.saml;
+/*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -12,13 +13,12 @@ package org.cloudfoundry.identity.uaa.provider.saml; /**************************
  *******************************************************************************/
 
 import org.junit.Test;
-//import org.opensaml.xml.XMLObject;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class ComparableProviderTest {
 
-    class ComparableProviderImpl implements ComparableProvider{
+    static class ComparableProviderImpl implements ComparableProvider {
         private String alias;
         private String zoneId;
 
@@ -31,11 +31,6 @@ public class ComparableProviderTest {
         public String getZoneId() {
             return zoneId;
         }
-
-//        @Override
-//        public XMLObject doGetMetadata() {
-//            return null;
-//        }
 
         @Override
         public byte[] fetchMetadata() {
@@ -55,63 +50,62 @@ public class ComparableProviderTest {
     }
 
     @Test
-    public void testCompareTo(){
+    public void testCompareTo() {
         ComparableProviderImpl comparableProviderThis = new ComparableProviderImpl();
         ComparableProviderImpl comparableProviderThat = new ComparableProviderImpl();
 
         comparableProviderThis.setAlias(null).setZoneId(null);
         comparableProviderThat.setAlias("alias").setZoneId("zone");
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) < 0);
+        assertThat(comparableProviderThis).isLessThan(comparableProviderThat);
 
         comparableProviderThat.setAlias("alias").setZoneId(null);
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) < 0);
+        assertThat(comparableProviderThis).isLessThan(comparableProviderThat);
 
         comparableProviderThat.setAlias(null).setZoneId("zone");
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) < 0);
+        assertThat(comparableProviderThis).isLessThan(comparableProviderThat);
 
         comparableProviderThat.setAlias(null).setZoneId(null);
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) == 0);
-
+        assertThat(comparableProviderThis).isEqualByComparingTo(comparableProviderThat);
 
         comparableProviderThis.setAlias(null).setZoneId("zone");
         comparableProviderThat.setAlias("alias").setZoneId("zone");
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) < 0);
+        assertThat(comparableProviderThis).isLessThan(comparableProviderThat);
 
         comparableProviderThat.setAlias("alias").setZoneId(null);
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) < 0);
+        assertThat(comparableProviderThis).isLessThan(comparableProviderThat);
 
         comparableProviderThat.setAlias(null).setZoneId("zone");
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) == 0);
+        assertThat(comparableProviderThis).isEqualByComparingTo(comparableProviderThat);
 
         comparableProviderThat.setAlias(null).setZoneId(null);
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) > 0);
+        assertThat(comparableProviderThis).isGreaterThan(comparableProviderThat);
 
 
         comparableProviderThis.setAlias("alias").setZoneId(null);
         comparableProviderThat.setAlias("alias").setZoneId("zone");
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) < 0);
+        assertThat(comparableProviderThis).isLessThan(comparableProviderThat);
 
         comparableProviderThat.setAlias("alias").setZoneId(null);
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) == 0);
+        assertThat(comparableProviderThis).isEqualByComparingTo(comparableProviderThat);
 
         comparableProviderThat.setAlias(null).setZoneId("zone");
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) > 0);
+        assertThat(comparableProviderThis).isGreaterThan(comparableProviderThat);
 
         comparableProviderThat.setAlias(null).setZoneId(null);
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) > 0);
+        assertThat(comparableProviderThis).isGreaterThan(comparableProviderThat);
 
         comparableProviderThis.setAlias("alias").setZoneId("zone");
         comparableProviderThat.setAlias("alias").setZoneId("zone");
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) == 0);
+        assertThat(comparableProviderThis).isEqualByComparingTo(comparableProviderThat);
 
         comparableProviderThat.setAlias("alias").setZoneId(null);
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) > 0);
+        assertThat(comparableProviderThis).isGreaterThan(comparableProviderThat);
 
         comparableProviderThat.setAlias(null).setZoneId("zone");
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) > 0);
+        assertThat(comparableProviderThis).isGreaterThan(comparableProviderThat);
 
         comparableProviderThat.setAlias(null).setZoneId(null);
-        assertTrue(comparableProviderThis.compareTo(comparableProviderThat) > 0);
+        assertThat(comparableProviderThis).isGreaterThan(comparableProviderThat);
     }
 
     @Test
@@ -120,18 +114,18 @@ public class ComparableProviderTest {
         ComparableProviderImpl comparableProvider2 = new ComparableProviderImpl();
         comparableProvider1.setAlias(null).setZoneId(null);
 
-        assertEquals(0, comparableProvider1.getHashCode());
+        assertThat(comparableProvider1.getHashCode()).isZero();
 
         comparableProvider1.setAlias(null).setZoneId("zone");
         comparableProvider2.setAlias(null).setZoneId("zone");
-        assertEquals(comparableProvider1.getHashCode(), comparableProvider2.getHashCode());
+        assertThat(comparableProvider2.getHashCode()).isEqualTo(comparableProvider1.getHashCode());
 
         comparableProvider1.setAlias("alias").setZoneId(null);
         comparableProvider2.setAlias("alias").setZoneId(null);
-        assertEquals(comparableProvider1.getHashCode(), comparableProvider2.getHashCode());
+        assertThat(comparableProvider2.getHashCode()).isEqualTo(comparableProvider1.getHashCode());
 
         comparableProvider1.setAlias("alias").setZoneId(null);
         comparableProvider2.setAlias(null).setZoneId("zone");
-        assertNotEquals(comparableProvider1.getHashCode(), comparableProvider2.getHashCode());
+        assertThat(comparableProvider2.getHashCode()).isNotEqualTo(comparableProvider1.getHashCode());
     }
 }
