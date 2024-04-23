@@ -19,14 +19,13 @@ import java.util.Enumeration;
  */
 public class BearerTokenExtractor implements TokenExtractor {
 
-	private final static Log logger = LogFactory.getLog(BearerTokenExtractor.class);
+	private static final Log logger = LogFactory.getLog(BearerTokenExtractor.class);
 
 	@Override
 	public Authentication extract(HttpServletRequest request) {
 		String tokenValue = extractToken(request);
 		if (tokenValue != null) {
-			PreAuthenticatedAuthenticationToken authentication = new PreAuthenticatedAuthenticationToken(tokenValue, "");
-			return authentication;
+			return new PreAuthenticatedAuthenticationToken(tokenValue, "");
 		}
 		return null;
 	}

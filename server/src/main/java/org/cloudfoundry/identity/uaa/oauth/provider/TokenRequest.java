@@ -48,6 +48,7 @@ public class TokenRequest extends BaseRequest {
 		this.grantType = grantType;
 	}
 
+	@Override
 	public void setClientId(String clientId) {
 		super.setClientId(clientId);
 	}
@@ -60,6 +61,7 @@ public class TokenRequest extends BaseRequest {
 	 * 
 	 * @param scope
 	 */
+	@Override
 	public void setScope(Collection<String> scope) {
 		super.setScope(scope);
 	}
@@ -72,6 +74,7 @@ public class TokenRequest extends BaseRequest {
 	 * 
 	 * @param requestParameters
 	 */
+	@Override
 	public void setRequestParameters(Map<String, String> requestParameters) {
 		super.setRequestParameters(requestParameters);
 	}
@@ -88,4 +91,19 @@ public class TokenRequest extends BaseRequest {
 				client.getResourceIds(), null, null, null);
 	}
 
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null || getClass() != obj.getClass())
+			return false;
+		TokenRequest other = (TokenRequest) obj;
+		if (grantType == null) {
+			if (other.grantType != null)
+				return false;
+		} else if (!grantType.equals(other.grantType)) {
+			return false;
+		}
+		return super.equals(this);
+	}
 }

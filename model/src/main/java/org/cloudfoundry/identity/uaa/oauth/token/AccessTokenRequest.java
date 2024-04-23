@@ -42,8 +42,8 @@ public interface AccessTokenRequest extends MultiValueMap<String, String> {
 
 	String getCookie();
 	
-	void setHeaders(Map<? extends String, ? extends List<String>> headers);
+	void setHeaders(Map<String, List<String>> headers);
 
-	Map<? extends String, ? extends List<String>> getHeaders();
+	Map<String, List<String>> getHeaders();
 
 }

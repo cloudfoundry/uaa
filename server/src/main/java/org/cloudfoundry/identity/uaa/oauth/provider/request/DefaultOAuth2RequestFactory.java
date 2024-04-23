@@ -91,15 +91,12 @@ public class DefaultOAuth2RequestFactory implements OAuth2RequestFactory {
     String grantType = requestParameters.get(OAuth2Utils.GRANT_TYPE);
 
     Set<String> scopes = extractScopes(requestParameters, clientId);
-    TokenRequest tokenRequest = new TokenRequest(requestParameters, clientId, scopes, grantType);
-
-    return tokenRequest;
+    return new TokenRequest(requestParameters, clientId, scopes, grantType);
   }
 
   public TokenRequest createTokenRequest(AuthorizationRequest authorizationRequest, String grantType) {
-    TokenRequest tokenRequest = new TokenRequest(authorizationRequest.getRequestParameters(), authorizationRequest.getClientId(),
+    return new TokenRequest(authorizationRequest.getRequestParameters(), authorizationRequest.getClientId(),
         authorizationRequest.getScope(), grantType);
-    return tokenRequest;
   }
 
   public OAuth2Request createOAuth2Request(ClientDetails client, TokenRequest tokenRequest) {
@@ -118,16 +115,16 @@ public class DefaultOAuth2RequestFactory implements OAuth2RequestFactory {
     }
 
     if (checkUserScopes) {
-      scopes = checkUserScopes(scopes, clientDetails);
+      scopes = checkUserScopes(scopes);
     }
     return scopes;
   }
 
-  private Set<String> checkUserScopes(Set<String> scopes, ClientDetails clientDetails) {
+  private Set<String> checkUserScopes(Set<String> scopes) {
     if (!securityContextAccessor.isUser()) {
       return scopes;
     }
-    Set<String> result = new LinkedHashSet<String>();
+    Set<String> result = new LinkedHashSet<>();
     Set<String> authorities = AuthorityUtils.authorityListToSet(securityContextAccessor.getAuthorities());
     for (String scope : scopes) {
       if (authorities.contains(scope) || authorities.contains(scope.toUpperCase()) || authorities.contains("ROLE_" + scope.toUpperCase())) {

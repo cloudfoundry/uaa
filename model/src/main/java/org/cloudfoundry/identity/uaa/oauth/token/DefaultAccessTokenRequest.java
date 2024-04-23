@@ -33,7 +33,7 @@ public class DefaultAccessTokenRequest implements AccessTokenRequest, Serializab
 
 	private String cookie;
 
-	private transient Map<? extends String, ? extends List<String>> headers = new LinkedMultiValueMap<>();
+	private transient Map<String, List<String>> headers = new LinkedMultiValueMap<>();
 
 	public DefaultAccessTokenRequest() {
 	}
@@ -101,11 +101,11 @@ public class DefaultAccessTokenRequest implements AccessTokenRequest, Serializab
 		return cookie;
 	}
 	
-	public void setHeaders(Map<? extends String, ? extends List<String>> headers) {
+	public void setHeaders(Map<String, List<String>> headers) {
 		this.headers = headers;
 	}
 	
-	public Map<? extends String, ? extends List<String>> getHeaders() {
+	public Map<String, List<String>> getHeaders() {
 		return headers;
 	}
 

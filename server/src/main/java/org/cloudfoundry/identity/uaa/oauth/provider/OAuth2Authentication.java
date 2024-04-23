@@ -106,7 +106,7 @@ public class OAuth2Authentication extends AbstractAuthenticationToken {
 		}
 		
 		if (getDetails()!=null ? !getDetails().equals(that.getDetails()) : that.getDetails()!=null) {
-			// return false;
+			return false;
 		}
 
 		return true;
