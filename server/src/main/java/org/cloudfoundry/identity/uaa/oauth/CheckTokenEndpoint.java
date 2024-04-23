@@ -32,6 +32,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
@@ -116,7 +117,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
         Claims response = UaaTokenUtils.getClaimsFromTokenString(token.getValue());
 
-        List<String> claimScopes = response.getScope().stream().map(String::toLowerCase).collect(Collectors.toList());
+        List<String> claimScopes = Optional.ofNullable(response.getScope()).orElse(emptyList()).stream().map(String::toLowerCase).collect(Collectors.toList());
 
         List<String> missingScopes = new ArrayList<>();
         for (String expectedScope : scopes) {
