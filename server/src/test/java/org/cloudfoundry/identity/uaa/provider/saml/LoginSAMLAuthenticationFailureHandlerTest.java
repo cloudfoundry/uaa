@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.apache.http.HttpStatus;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -13,8 +14,7 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -39,9 +39,9 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
-        assertEquals("https://example.com?error=access_denied&error_description=Denied%21", actual);
+        assertThat(actual).isEqualTo("https://example.com?error=access_denied&error_description=Denied%21");
         int status = response.getStatus();
-        assertEquals(302, status);
+        assertThat(status).isEqualTo(HttpStatus.SC_MOVED_TEMPORARILY);
     }
 
     @Test
@@ -63,9 +63,9 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
-        assertEquals("https://example.com?go=bears&error=access_denied&error_description=Denied%21", actual);
+        assertThat(actual).isEqualTo("https://example.com?go=bears&error=access_denied&error_description=Denied%21");
         int status = response.getStatus();
-        assertEquals(302, status);
+        assertThat(status).isEqualTo(HttpStatus.SC_MOVED_TEMPORARILY);
     }
 
     @Test
@@ -91,9 +91,9 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         };
         handler.onAuthenticationFailure(request, response, exception);
         String actual = response.getRedirectedUrl();
-        assertNull(actual);
+        assertThat(actual).isNull();
         int status = response.getStatus();
-        assertEquals(401, status);
+        assertThat(status).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
@@ -107,9 +107,9 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
-        assertNull(actual);
+        assertThat(actual).isNull();
         int status = response.getStatus();
-        assertEquals(401, status);
+        assertThat(status).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
@@ -130,9 +130,9 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
-        assertNull(actual);
+        assertThat(actual).isNull();
         int status = response.getStatus();
-        assertEquals(401, status);
+        assertThat(status).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
     }
 
     @Test
@@ -152,8 +152,8 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         LoginSAMLException exception = new LoginSAMLException("Denied!");
         handler.onAuthenticationFailure(request, response, exception);
         String actual = response.getRedirectedUrl();
-        assertNull(actual);
+        assertThat(actual).isNull();
         int status = response.getStatus();
-        assertEquals(401, status);
+        assertThat(status).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
     }
 }
