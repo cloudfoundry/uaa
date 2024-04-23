@@ -18,6 +18,7 @@ war { enabled = true }
 
 repositories {
     maven { url("https://repo.spring.io/libs-milestone") }
+    maven { url "https://build.shibboleth.net/nexus/content/repositories/releases/" }
 }
 
 description = "UAA"
@@ -26,6 +27,9 @@ dependencies {
         exclude(module: "jna")
     }
     implementation(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(libraries.opensamlCore)
+    implementation(libraries.opensamlApi)
+    implementation(libraries.opensamlImpl)
     implementation(libraries.springBootStarter)
     implementation(libraries.springBootStarterWeb)
     implementation(libraries.springSecurityOauth) {
