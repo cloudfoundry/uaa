@@ -1,23 +1,105 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.client;
 
 import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.DefaultThrowableAnalyzer;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.web.RedirectStrategy;
 
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 
 /**
  * Moved test class of from spring-security-oauth2 into UAA
  * Scope: Test class
  */
 public class OAuth2ClientContextFilterTests {
+
+	@Test
+	public void testdoFilter() throws Exception {
+		OAuth2ClientContextFilter filter = new OAuth2ClientContextFilter();
+		RedirectStrategy redirectStrategy = mock(RedirectStrategy.class);
+		filter.setRedirectStrategy(redirectStrategy);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		filter.doFilter(request, response, mock(FilterChain.class));
+	}
+
+	@Test(expected = IOException.class)
+	public void testdoFilterIOException() throws Exception {
+		OAuth2ClientContextFilter filter = new OAuth2ClientContextFilter();
+		RedirectStrategy redirectStrategy = mock(RedirectStrategy.class);
+		filter.setRedirectStrategy(redirectStrategy);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		FilterChain filterChain = mock(FilterChain.class);
+		doThrow(new IOException("")).when(filterChain).doFilter(any(), any());
+		filter.setThrowableAnalyzer(new DefaultThrowableAnalyzer());
+		filter.afterPropertiesSet();
+		filter.doFilter(request, response, filterChain);
+	}
+
+	@Test(expected = IllegalArgumentException.class)
+	public void testdoFilterException() throws Exception {
+		OAuth2ClientContextFilter filter = new OAuth2ClientContextFilter();
+		RedirectStrategy redirectStrategy = mock(RedirectStrategy.class);
+		filter.setRedirectStrategy(redirectStrategy);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		FilterChain filterChain = mock(FilterChain.class);
+		doThrow(new IllegalArgumentException("")).when(filterChain).doFilter(any(), any());
+		filter.setThrowableAnalyzer(new DefaultThrowableAnalyzer());
+		filter.afterPropertiesSet();
+		filter.doFilter(request, response, filterChain);
+	}
+
+	@Test(expected = ServletException.class)
+	public void testdoFilterServletException() throws Exception {
+		OAuth2ClientContextFilter filter = new OAuth2ClientContextFilter();
+		RedirectStrategy redirectStrategy = mock(RedirectStrategy.class);
+		filter.setRedirectStrategy(redirectStrategy);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		FilterChain filterChain = mock(FilterChain.class);
+		doThrow(new ServletException("")).when(filterChain).doFilter(any(), any());
+		filter.setThrowableAnalyzer(new DefaultThrowableAnalyzer());
+		filter.afterPropertiesSet();
+		filter.doFilter(request, response, filterChain);
+	}
+
+	@Test
+	public void testdoFilterUserRedirectRequiredException() throws Exception {
+		OAuth2ClientContextFilter filter = new OAuth2ClientContextFilter();
+		RedirectStrategy redirectStrategy = mock(RedirectStrategy.class);
+		filter.setRedirectStrategy(redirectStrategy);
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		FilterChain filterChain = mock(FilterChain.class);
+		String redirect = "https://example.com/authorize";
+		Map<String, String> params = new LinkedHashMap<String, String>();
+		params.put("foo", "bar");
+		params.put("scope", "spam");
+		UserRedirectRequiredException exception = new UserRedirectRequiredException(
+				redirect, params);
+		exception.setStateKey("state");
+		doThrow(exception).when(filterChain).doFilter(any(), any());
+		filter.setThrowableAnalyzer(new DefaultThrowableAnalyzer());
+		filter.afterPropertiesSet();
+		filter.doFilter(request, response, filterChain);
+		Mockito.verify(redirectStrategy)
+				.sendRedirect(request, response, redirect + "?foo=bar&scope=spam&state=state");
+	}
 
 	@Test
 	public void testVanillaRedirectUri() throws Exception {
@@ -56,8 +138,7 @@ public class OAuth2ClientContextFilterTests {
 	public void testRedirectUri(String redirect, Map<String, String> params,
 			String result) throws Exception {
 		OAuth2ClientContextFilter filter = new OAuth2ClientContextFilter();
-		RedirectStrategy redirectStrategy = Mockito
-				.mock(RedirectStrategy.class);
+		RedirectStrategy redirectStrategy = mock(RedirectStrategy.class);
 		filter.setRedirectStrategy(redirectStrategy);
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
