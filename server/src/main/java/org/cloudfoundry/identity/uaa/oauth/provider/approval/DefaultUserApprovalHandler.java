@@ -36,10 +36,7 @@ public class DefaultUserApprovalHandler implements UserApprovalHandler {
 	 * @return Whether the specified request has been approved by the current user.
 	 */
 	public boolean isApproved(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
-		if (authorizationRequest.isApproved()) {
-			return true;
-		}
-		return false;
+		return authorizationRequest.isApproved();
 	}
 
 	public AuthorizationRequest checkForPreApproval(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
@@ -50,7 +47,7 @@ public class DefaultUserApprovalHandler implements UserApprovalHandler {
 	public AuthorizationRequest updateAfterApproval(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
 		Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
 		String flag = approvalParameters.get(approvalParameter);
-		boolean approved = flag != null && flag.toLowerCase().equals("true");
+		boolean approved = flag != null && "true".equalsIgnoreCase(flag);
 		authorizationRequest.setApproved(approved);
 		return authorizationRequest;
 	}
@@ -58,7 +55,7 @@ public class DefaultUserApprovalHandler implements UserApprovalHandler {
 	@Override
 	public Map<String, Object> getUserApprovalRequest(AuthorizationRequest authorizationRequest,
 			Authentication userAuthentication) {
-		Map<String, Object> model = new HashMap<String, Object>();
+		Map<String, Object> model = new HashMap<>();
 		// In case of a redirect we might want the request parameters to be included
 		model.putAll(authorizationRequest.getRequestParameters());
 		return model;
