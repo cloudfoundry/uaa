@@ -14,6 +14,14 @@ public class SamlConfiguration {
     public String samlEntityID() {
         return samlEntityID;
     }
+
+    @Value("${login.saml.wantAssertionSigned:true}")
+    private Boolean wantAssertionSigned;
+
+    @Bean
+    public Boolean samlWantAssertionSigned() {
+        return wantAssertionSigned;
+    }
 }
 
 /* --- previous XML configuration ---
