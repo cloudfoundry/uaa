@@ -31,19 +31,15 @@ public class UaaException extends OAuth2Exception {
 
     static final int DEFAULT_STATUS = 400;
 
-    private static final String ERROR = "error";
-
-    private static final String DESCRIPTION = "error_description";
-
-    private static final String STATUS = "status";
+    private static final String STATUS_STRING = "status";
 
     private final int status;
 
-    private final String error;
+    private final String errorString;
 
     public UaaException(String msg, Throwable t) {
         super(msg, t);
-        this.error = DEFAULT_ERROR;
+        this.errorString = DEFAULT_ERROR;
         this.status = DEFAULT_STATUS;
     }
 
@@ -57,13 +53,13 @@ public class UaaException extends OAuth2Exception {
 
     public UaaException(String error, String description, int status) {
         super(description);
-        this.error = error;
+        this.errorString = error;
         this.status = status;
     }
 
     public UaaException(Throwable cause, String error, String description, int status) {
         super(description, cause);
-        this.error = error;
+        this.errorString = error;
         this.status = status;
     }
     /**
@@ -72,7 +68,7 @@ public class UaaException extends OAuth2Exception {
      * @return The error code.
      */
     public String getErrorCode() {
-        return error;
+        return errorString;
     }
 
     /**
@@ -84,28 +80,11 @@ public class UaaException extends OAuth2Exception {
         return status;
     }
 
+    @Override
     public String getOAuth2ErrorCode() {
         return getErrorCode();
     }
 
-    /**
-     * Get any additional information associated with this error.
-     *
-     * @return Additional information, or null if none.
-     */
-    public Map<String, String> getAdditionalInformation() {
-        return super.getAdditionalInformation();
-    }
-
-    /**
-     * Add some additional information with this OAuth error.
-     *
-     * @param key The key.
-     * @param value The value.
-     */
-    public void addAdditionalInformation(String key, String value) {
-        super.addAdditionalInformation(key, value);
-    }
 
     /**
      * Creates an {@link UaaException} from a {@link Map}.
@@ -117,9 +96,9 @@ public class UaaException extends OAuth2Exception {
         String errorCode = errorParams.get(ERROR);
         String errorMessage = errorParams.getOrDefault(DESCRIPTION, null);
         int status = DEFAULT_STATUS;
-        if (errorParams.containsKey(STATUS)) {
+        if (errorParams.containsKey(STATUS_STRING)) {
             try {
-                status = Integer.valueOf(errorParams.get(STATUS));
+                status = Integer.valueOf(errorParams.get(STATUS_STRING));
             } catch (NumberFormatException e) {
                 // ignore
             }
