@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.error;
 
 import org.springframework.security.web.util.ThrowableAnalyzer;
-import org.springframework.security.web.util.ThrowableCauseExtractor;
-
 import javax.servlet.ServletException;
 
 /**
@@ -15,17 +13,14 @@ import javax.servlet.ServletException;
  * Scope: OAuth2 server exceptions
  */
 public final class DefaultThrowableAnalyzer extends ThrowableAnalyzer {
-  /**
-   * @see org.springframework.security.web.util.ThrowableAnalyzer#initExtractorMap()
-   */
+
+  @Override
   protected void initExtractorMap() {
     super.initExtractorMap();
 
-    registerExtractor(ServletException.class, new ThrowableCauseExtractor() {
-      public Throwable extractCause(Throwable throwable) {
-        ThrowableAnalyzer.verifyThrowableHierarchy(throwable, ServletException.class);
-        return ((ServletException) throwable).getRootCause();
-      }
+    registerExtractor(ServletException.class, throwable -> {
+      verifyThrowableHierarchy(throwable, ServletException.class);
+      return ((ServletException) throwable).getRootCause();
     });
   }
 }

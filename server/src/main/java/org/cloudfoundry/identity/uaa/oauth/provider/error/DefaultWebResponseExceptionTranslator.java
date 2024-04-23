@@ -11,8 +11,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.util.ThrowableAnalyzer;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
-import java.io.IOException;
-
 /**
  * Base exception for OAuth 2 exceptions.
  * Moved class implementation of from spring-security-oauth2 into UAA
@@ -59,7 +57,7 @@ public class DefaultWebResponseExceptionTranslator implements WebResponseExcepti
 
 	}
 
-	private ResponseEntity<OAuth2Exception> handleOAuth2Exception(OAuth2Exception e) throws IOException {
+	private ResponseEntity<OAuth2Exception> handleOAuth2Exception(OAuth2Exception e) {
 
 		int status = e.getHttpErrorCode();
 		HttpHeaders headers = new HttpHeaders();
@@ -69,11 +67,7 @@ public class DefaultWebResponseExceptionTranslator implements WebResponseExcepti
 			headers.set("WWW-Authenticate", String.format("%s %s", OAuth2AccessToken.BEARER_TYPE, e.getSummary()));
 		}
 
-		ResponseEntity<OAuth2Exception> response = new ResponseEntity<OAuth2Exception>(e, headers,
-				HttpStatus.valueOf(status));
-
-		return response;
-
+		return new ResponseEntity<>(e, headers, HttpStatus.valueOf(status));
 	}
 
 	public void setThrowableAnalyzer(ThrowableAnalyzer throwableAnalyzer) {
