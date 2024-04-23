@@ -60,14 +60,14 @@ class SamlMetadataMockMvcTests {
                         header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp-metadata.xml\";")),
                         xpath("/EntityDescriptor/@entityID").string("integration-saml-entity-id"), // matches UAA config login.entityID
                         xpath("/EntityDescriptor/SPSSODescriptor/@AuthnRequestsSigned").booleanValue(true), // matches UAA config login.saml.signRequest
-                        xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(true),
+                        xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(true), // matches UAA config login.saml.wantAssertionSigned
                         xpath("/EntityDescriptor/SPSSODescriptor/NameIDFormat").string("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")  // matches UAA config login.saml.NameID
                 );
     }
 
     @Nested
     @DefaultTestContext
-    @TestPropertySource(properties = "login.saml.signRequest = false")
+    @TestPropertySource(properties = {"login.saml.signRequest = false", "login.saml.wantAssertionSigned = false"})
     class SamlMetadataAlternativeConfigsMockMvcTests {
         @Autowired
         private MockMvc mockMvc;
@@ -80,7 +80,7 @@ class SamlMetadataMockMvcTests {
                             status().isOk(),
                             header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp-metadata.xml\";")),
                             xpath("/EntityDescriptor/SPSSODescriptor/@AuthnRequestsSigned").booleanValue(false), // matches UAA config login.saml.signRequest
-                            xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(true)
+                            xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(false) // matches UAA config login.saml.wantAssertionSigned
                     );
         }
     }
