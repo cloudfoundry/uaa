@@ -54,10 +54,7 @@ public abstract class AbstractOAuth2SecurityExceptionHandler {
 				throw e;
 			}
 		}
-		catch (IOException e) {
-			throw e;
-		}
-		catch (RuntimeException e) {
+		catch (RuntimeException | IOException e) {
 			throw e;
 		}
 		catch (Exception e) {

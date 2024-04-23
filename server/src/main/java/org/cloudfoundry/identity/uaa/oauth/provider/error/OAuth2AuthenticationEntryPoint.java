@@ -23,6 +23,7 @@ import java.io.IOException;
 public class OAuth2AuthenticationEntryPoint extends AbstractOAuth2SecurityExceptionHandler implements
 		AuthenticationEntryPoint {
 
+	private static final String WWW_AUTHENTICATE = "WWW-Authenticate";
 	private String typeName = OAuth2AccessToken.BEARER_TYPE;
 
 	private String realmName = "oauth";
@@ -44,8 +45,8 @@ public class OAuth2AuthenticationEntryPoint extends AbstractOAuth2SecurityExcept
 	protected ResponseEntity<?> enhanceResponse(ResponseEntity<?> response, Exception exception) {
 		HttpHeaders headers = response.getHeaders();
 		String existing = null;
-		if (headers.containsKey("WWW-Authenticate")) {
-			existing = extractTypePrefix(headers.getFirst("WWW-Authenticate"));
+		if (headers.containsKey(WWW_AUTHENTICATE)) {
+			existing = extractTypePrefix(headers.getFirst(WWW_AUTHENTICATE));
 		}
 		StringBuilder builder = new StringBuilder();
 		builder.append(typeName+" ");
@@ -55,7 +56,7 @@ public class OAuth2AuthenticationEntryPoint extends AbstractOAuth2SecurityExcept
 		}
 		HttpHeaders update = new HttpHeaders();
 		update.putAll(response.getHeaders());
-		update.set("WWW-Authenticate", builder.toString());
+		update.set(WWW_AUTHENTICATE, builder.toString());
 		return new ResponseEntity<>(response.getBody(), update, response.getStatusCode());
 	}
 
