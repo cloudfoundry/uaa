@@ -181,6 +181,72 @@ class ScimUserEndpointsAliasTests {
     }
 
     @Nested
+    class Update {
+        private final String currentZoneId = UAA;
+        private ScimUser originalUser;
+        private ScimUser existingOriginalUser;
+
+        @BeforeEach
+        void setUp() {
+            arrangeCurrentIdz(currentZoneId);
+
+            final Pair<ScimUser, ScimUser> userAndAlias = buildUserAndAlias(origin, currentZoneId, idzId);
+            originalUser = userAndAlias.getLeft();
+            existingOriginalUser = cloneScimUser(originalUser);
+            existingOriginalUser.setVersion(1);
+            originalUser.setName(new ScimUser.Name("some-new-given-name", "some-new-family-name"));
+            when(scimUserProvisioning.retrieve(originalUser.getId(), currentZoneId)).thenReturn(existingOriginalUser);
+        }
+
+        @Test
+        void shouldThrow_IfAliasPropertiesAreInvalid() {
+            when(scimUserAliasHandler.aliasPropertiesAreValid(originalUser, existingOriginalUser))
+                    .thenReturn(false);
+
+            final ScimException exception = assertThrows(ScimException.class, () ->
+                    scimUserEndpoints.updateUser(
+                            originalUser,
+                            originalUser.getId(),
+                            "*",
+                            new MockHttpServletRequest(),
+                            new MockHttpServletResponse(),
+                            null
+                    )
+            );
+            assertThat(exception.getMessage()).isEqualTo("The fields 'aliasId' and/or 'aliasZid' are invalid.");
+            assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+        }
+
+        @Test
+        void shouldAlsoUpdateAliasUserIfPresent() {
+            when(scimUserAliasHandler.aliasPropertiesAreValid(originalUser, existingOriginalUser))
+                    .thenReturn(true);
+
+            // mock update -> increments version
+            when(scimUserProvisioning.update(originalUser.getId(), originalUser, currentZoneId))
+                    .then(invocationOnMock -> {
+                        final ScimUser user = invocationOnMock.getArgument(1);
+                        user.setVersion(user.getVersion() + 1);
+                        return user;
+                    });
+
+            // mock aliasHandler.ensureConsistency -> no changes to original user
+            when(scimUserAliasHandler.ensureConsistencyOfAliasEntity(originalUser, existingOriginalUser))
+                    .then(invocationOnMock -> invocationOnMock.getArgument(0));
+
+            final ScimUser result = scimUserEndpoints.updateUser(
+                    originalUser,
+                    originalUser.getId(),
+                    "*",
+                    new MockHttpServletRequest(),
+                    new MockHttpServletResponse(),
+                    null
+            );
+            assertScimUsersAreEqual(result, originalUser);
+        }
+    }
+
+    @Nested
     class Delete {
         @BeforeEach
         void setUp() {
@@ -313,26 +379,6 @@ class ScimUserEndpointsAliasTests {
                 assertThat(exception.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
             }
         }
-
-        private static Pair<ScimUser, ScimUser> buildUserAndAlias(
-                final String origin,
-                final String zoneId,
-                final String aliasZid
-        ) {
-            final ScimUser originalUser = buildScimUser(zoneId, origin);
-            final String userId = UUID.randomUUID().toString();
-            originalUser.setId(userId);
-            originalUser.setAliasZid(aliasZid);
-            final String aliasId = UUID.randomUUID().toString();
-            originalUser.setAliasId(aliasId);
-
-            final ScimUser aliasUser = buildScimUser(aliasZid, origin);
-            aliasUser.setId(aliasId);
-            aliasUser.setAliasId(userId);
-            aliasUser.setAliasZid(zoneId);
-
-            return Pair.of(originalUser, aliasUser);
-        }
     }
 
     /**
@@ -358,5 +404,42 @@ class ScimUserEndpointsAliasTests {
 
         assertThat(actual.isActive()).isEqualTo(expected.isActive());
         assertThat(actual.isVerified()).isEqualTo(expected.isVerified());
+    }
+
+    private static Pair<ScimUser, ScimUser> buildUserAndAlias(
+            final String origin,
+            final String zoneId,
+            final String aliasZid
+    ) {
+        final ScimUser originalUser = buildScimUser(zoneId, origin);
+        final String userId = UUID.randomUUID().toString();
+        originalUser.setId(userId);
+        originalUser.setAliasZid(aliasZid);
+        final String aliasId = UUID.randomUUID().toString();
+        originalUser.setAliasId(aliasId);
+
+        final ScimUser aliasUser = buildScimUser(aliasZid, origin);
+        aliasUser.setId(aliasId);
+        aliasUser.setAliasId(userId);
+        aliasUser.setAliasZid(zoneId);
+
+        return Pair.of(originalUser, aliasUser);
+    }
+
+    private static ScimUser cloneScimUser(final ScimUser scimUser) {
+        final ScimUser clonedScimUser = new ScimUser();
+        clonedScimUser.setId(scimUser.getId());
+        clonedScimUser.setUserName(scimUser.getUserName());
+        clonedScimUser.setPrimaryEmail(scimUser.getPrimaryEmail());
+        clonedScimUser.setName(scimUser.getName());
+        clonedScimUser.setActive(scimUser.isActive());
+        clonedScimUser.setPhoneNumbers(scimUser.getPhoneNumbers());
+        clonedScimUser.setOrigin(scimUser.getOrigin());
+        clonedScimUser.setAliasId(scimUser.getAliasId());
+        clonedScimUser.setAliasZid(scimUser.getAliasZid());
+        clonedScimUser.setZoneId(scimUser.getZoneId());
+        clonedScimUser.setPassword(scimUser.getPassword());
+        clonedScimUser.setSalt(scimUser.getSalt());
+        return clonedScimUser;
     }
 }
