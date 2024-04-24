@@ -79,7 +79,7 @@ class ScimUserEndpointsAliasTests {
     private ApplicationEventPublisher applicationEventPublisher;
 
     private ScimUserEndpoints scimUserEndpoints;
-    private String idzId;
+    private String aliasZid;
     private String origin;
 
     @BeforeEach
@@ -101,7 +101,7 @@ class ScimUserEndpointsAliasTests {
                 500
         );
 
-        idzId = RANDOM_STRING_GENERATOR.generate();
+        aliasZid = RANDOM_STRING_GENERATOR.generate();
         origin = RANDOM_STRING_GENERATOR.generate();
 
         // mock user creation -> adds new random ID
@@ -191,7 +191,7 @@ class ScimUserEndpointsAliasTests {
         void setUp() {
             arrangeCurrentIdz(currentZoneId);
 
-            final Pair<ScimUser, ScimUser> userAndAlias = buildUserAndAlias(origin, currentZoneId, idzId);
+            final Pair<ScimUser, ScimUser> userAndAlias = buildUserAndAlias(origin, currentZoneId, aliasZid);
             originalUser = userAndAlias.getLeft();
             existingOriginalUser = cloneScimUser(originalUser);
             existingOriginalUser.setVersion(1);
@@ -288,9 +288,21 @@ class ScimUserEndpointsAliasTests {
 
         @Nested
         class AliasFeatureEnabled {
+            private ScimUser originalUser;
+            private ScimUser aliasUser;
+
             @BeforeEach
             void setUp() {
                 ReflectionTestUtils.setField(scimUserEndpoints, "aliasEntitiesEnabled", true);
+
+                arrangeCurrentIdz(UAA);
+
+                final Pair<ScimUser, ScimUser> userAndAlias = buildUserAndAlias(origin, UAA, aliasZid);
+                originalUser = userAndAlias.getLeft();
+                originalUser.setVersion(2);
+                when(scimUserProvisioning.retrieve(originalUser.getId(), UAA)).thenReturn(originalUser);
+
+                aliasUser = userAndAlias.getRight();
             }
 
             @AfterEach
@@ -300,16 +312,6 @@ class ScimUserEndpointsAliasTests {
 
             @Test
             void shouldAlsoDeleteAliasUserIfPresent() {
-                arrangeCurrentIdz(UAA);
-
-                final String aliasZid = UUID.randomUUID().toString();
-                final Pair<ScimUser, ScimUser> userAndAlias = buildUserAndAlias(origin, UAA, aliasZid);
-
-                final ScimUser originalUser = userAndAlias.getLeft();
-                originalUser.setVersion(2);
-                when(scimUserProvisioning.retrieve(originalUser.getId(), UAA)).thenReturn(originalUser);
-
-                final ScimUser aliasUser = userAndAlias.getRight();
                 when(scimUserAliasHandler.retrieveAliasEntity(originalUser)).thenReturn(Optional.of(aliasUser));
 
                 final ScimUser response = scimUserEndpoints.deleteUser(
@@ -324,6 +326,29 @@ class ScimUserEndpointsAliasTests {
                 assertOriginalAndAliasUserAreRemovedFromGroups(originalUser.getId(), UAA, aliasUser.getId(), aliasZid);
                 assertOriginalAndAliasUsersAreDeleted(originalUser.getId(), UAA, aliasUser.getId(), aliasZid, aliasUser.getVersion());
                 assertEventIsPublishedForOriginalAndAliasUser(UAA, originalUser, aliasZid, aliasUser);
+            }
+
+            @Test
+            void shouldIgnore_ReferencedAliasUserNotPresent() {
+                // arrange referenced alias user is not present
+                when(scimUserAliasHandler.retrieveAliasEntity(originalUser)).thenReturn(Optional.empty());
+
+                final ScimUser response = scimUserEndpoints.deleteUser(
+                        originalUser.getId(),
+                        null,
+                        new MockHttpServletRequest(),
+                        new MockHttpServletResponse()
+                );
+
+                assertScimUsersAreEqual(response, originalUser);
+
+                verify(scimGroupMembershipManager).removeMembersByMemberId(originalUser.getId(), UAA);
+                verify(scimUserProvisioning).delete(originalUser.getId(), -1, UAA);
+                final ArgumentCaptor<EntityDeletedEvent<ScimUser>> eventArgument = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+                verify(applicationEventPublisher).publishEvent(eventArgument.capture());
+                final EntityDeletedEvent<ScimUser> capturedEvent = eventArgument.getValue();
+                assertThat(capturedEvent.getIdentityZoneId()).isEqualTo(UAA);
+                assertScimUsersAreEqual(capturedEvent.getDeleted(), originalUser);
             }
 
             private void assertOriginalAndAliasUserAreRemovedFromGroups(
@@ -397,7 +422,7 @@ class ScimUserEndpointsAliasTests {
             void shouldThrowException_IfUserHasExistingAlias() {
                 arrangeCurrentIdz(UAA);
 
-                final Pair<ScimUser, ScimUser> userAndAlias = buildUserAndAlias(origin, UAA, idzId);
+                final Pair<ScimUser, ScimUser> userAndAlias = buildUserAndAlias(origin, UAA, aliasZid);
                 final ScimUser originalUser = userAndAlias.getLeft();
                 originalUser.setVersion(2);
                 when(scimUserProvisioning.retrieve(originalUser.getId(), UAA)).thenReturn(originalUser);
