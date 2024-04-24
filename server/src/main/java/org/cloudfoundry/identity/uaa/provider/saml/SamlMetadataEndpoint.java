@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 @RestController
 public class SamlMetadataEndpoint {
     private static final String DEFAULT_REGISTRATION_ID = "example";
-    private static final String DEFAULT_FILE_NAME = "saml-sp-metadata.xml";
+    private static final String DEFAULT_FILE_NAME = "saml-sp.xml";
     private static final String APPLICATION_XML_CHARSET_UTF_8 = "application/xml; charset=UTF-8";
     private static final String CONTENT_DISPOSITION_FORMAT = "attachment; filename=\"%s\"; filename*=UTF-8''%s";
 
