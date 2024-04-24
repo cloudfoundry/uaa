@@ -35,6 +35,7 @@ import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -132,6 +133,18 @@ class UaaAuthorizationRequestManagerTests {
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
         assertEquals(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"), new TreeSet<>(request.getScope()));
         assertEquals(StringUtils.commaDelimitedListToSet("aud1,aud2"), new TreeSet<>(request.getResourceIds()));
+    }
+
+    @Test
+    void testTokenRequestEquals() {
+        client.setClientId("foo");
+        assertNotEquals(0, factory.createTokenRequest(parameters, client).hashCode());
+        assertEquals(factory.createTokenRequest(parameters, client), factory.createTokenRequest(parameters, client));
+        factory.setScopeSeparator(".");
+        factory.setScopesToResources(Map.of("aud1.test", "aud2.test"));
+        assertNotEquals(factory.createTokenRequest(parameters, client), factory.createOAuth2Request (client, factory.createTokenRequest(Map.of("client_id", client.getClientId()), client)));
+        assertNotEquals(factory.createOAuth2Request(factory.createAuthorizationRequest(Map.of("client_id", client.getClientId()))), factory.createTokenRequest(parameters, client));
+        assertNotEquals(factory.createTokenRequest(factory.createAuthorizationRequest(Map.of("client_id", client.getClientId())), ""), factory.createTokenRequest(parameters, client));
     }
 
     @Test
