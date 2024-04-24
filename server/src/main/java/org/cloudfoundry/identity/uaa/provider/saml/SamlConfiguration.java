@@ -1,28 +1,49 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.Bean;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
+import java.util.Map;
+
 @Configuration
+@ConfigurationProperties(prefix="login.saml")
 public class SamlConfiguration {
+    private String activeKeyId;
 
-    @Value("${login.entityID:unit-test-sp}")
-    private String samlEntityID;
+    private Map<String, SamlKey> keys;
 
-    @Bean
-    public String samlEntityID() {
-        return samlEntityID;
+    private Boolean wantAssertionSigned = true;
+
+    public String getActiveKeyId() {
+        return activeKeyId;
     }
 
-    @Value("${login.saml.wantAssertionSigned:true}")
-    private Boolean wantAssertionSigned;
+    public void setActiveKeyId(String activeKeyId) {
+        this.activeKeyId = activeKeyId;
+    }
 
-    @Bean
-    public Boolean samlWantAssertionSigned() {
+    public Map<String, SamlKey> getKeys() {
+        return keys;
+    }
+
+    public void setKeys(Map<String, SamlKey> keys) {
+        this.keys = keys;
+    }
+
+    public SamlKey getActiveSamlKey() {
+        return keys.get(activeKeyId);
+    }
+
+    public Boolean getWantAssertionSigned() {
         return wantAssertionSigned;
     }
+
+    public void setWantAssertionSigned(Boolean wantAssertionSigned) {
+        this.wantAssertionSigned = wantAssertionSigned;
+    }
 }
+
 
 /* --- previous XML configuration ---
 

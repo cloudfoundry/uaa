@@ -37,12 +37,12 @@ public class SamlRelyingPartyRegistrationRepository {
     private Boolean samlSignRequest;
 
     @Autowired
-    private SamlKeysConfig samlKeysConfig;
+    private SamlConfiguration samlConfiguration;
 
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() throws CertificateException {
 
-        SamlKey activeSamlKey = samlKeysConfig.getActiveSamlKey();
+        SamlKey activeSamlKey = samlConfiguration.getActiveSamlKey();
         KeyWithCert keyWithCert = new KeyWithCert(activeSamlKey.getKey(), activeSamlKey.getPassphrase(), activeSamlKey.getCertificate());
 
         RelyingPartyRegistration relyingPartyRegistration = RelyingPartyRegistrations
