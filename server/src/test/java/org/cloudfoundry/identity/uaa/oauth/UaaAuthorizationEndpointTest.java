@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -359,6 +360,13 @@ public class UaaAuthorizationEndpointTest {
     	parameters.put(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE);
     	parameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, "unsupportedMethod");
     	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+    }
+
+    @Test
+    public void testNewSetters() {
+        uaaAuthorizationEndpoint.setUserApprovalHandler(new DefaultUserApprovalHandler());
+        uaaAuthorizationEndpoint.setOAuth2RequestValidator(new UaaOauth2RequestValidator());
+        assertNotNull(uaaAuthorizationEndpoint);
     }
 
     private AuthorizationRequest getAuthorizationRequest(String clientId, String redirectUri, String state,
