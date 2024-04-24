@@ -57,7 +57,7 @@ class SamlMetadataMockMvcTests {
                 .andDo(print())
                 .andExpectAll(
                         status().isOk(),
-                        header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp-metadata.xml\";")),
+                        header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp.xml\";")),
                         xpath("/EntityDescriptor/@entityID").string("integration-saml-entity-id"), // matches UAA config login.entityID
                         xpath("/EntityDescriptor/SPSSODescriptor/@AuthnRequestsSigned").booleanValue(true), // matches UAA config login.saml.signRequest
                         xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(true), // matches UAA config login.saml.wantAssertionSigned
@@ -80,7 +80,7 @@ class SamlMetadataMockMvcTests {
                     .andDo(print())
                     .andExpectAll(
                             status().isOk(),
-                            header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp-metadata.xml\";")),
+                            header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-sp.xml\";")),
                             xpath("/EntityDescriptor/SPSSODescriptor/@AuthnRequestsSigned").booleanValue(false), // matches UAA config login.saml.signRequest
                             xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(false) // matches UAA config login.saml.wantAssertionSigned
                     );
