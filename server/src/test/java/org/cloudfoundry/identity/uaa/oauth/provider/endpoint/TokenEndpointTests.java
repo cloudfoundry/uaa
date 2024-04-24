@@ -35,6 +35,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -81,7 +82,7 @@ public class TokenEndpointTests {
 		endpoint.setTokenGranter(tokenGranter);
 		endpoint.setOAuth2RequestFactory(authorizationRequestFactory);
 		endpoint.setClientDetailsService(clientDetailsService);
-
+		clientDetails.setScope(Set.of("admin", "read", "write"));
 	}
 
 	@Test
