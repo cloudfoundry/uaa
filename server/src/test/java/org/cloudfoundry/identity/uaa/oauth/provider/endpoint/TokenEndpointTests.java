@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.endpoint;
 
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
@@ -14,7 +15,6 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.DefaultWebResponseExceptionTranslator;
-import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestValidator;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -277,7 +277,7 @@ public class TokenEndpointTests {
 
 	@Test
 	public void testExceptions() throws Exception {
-		endpoint.setOAuth2RequestValidator(new DefaultOAuth2RequestValidator());
+		endpoint.setOAuth2RequestValidator(new UaaOauth2RequestValidator());
 		assertEquals("server_error", endpoint.handleException(new Exception("exception")).getBody().getOAuth2ErrorCode());
 	}
 
