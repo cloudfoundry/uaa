@@ -89,7 +89,7 @@ public class DefaultOAuth2RequestFactoryTests {
   @Test
   public void testCreateOAuth2RequestNoClientInRequest() {
     when(clientDetails.getClientId()).thenReturn("id");
-    defaultOAuth2RequestFactory.createTokenRequest(Map.of(), clientDetails);
+    assertNotNull(defaultOAuth2RequestFactory.createTokenRequest(Map.of(), clientDetails));
   }
 
   @Test
