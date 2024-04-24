@@ -6,11 +6,11 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.TokenEndpoint;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -38,7 +38,7 @@ public class UaaTokenEndpoint extends TokenEndpoint {
 
     public UaaTokenEndpoint(
             final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
-            final @Qualifier("jdbcClientDetailsService") ClientDetailsService clientDetailsService,
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
             final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oAuth2RequestValidator,
             final @Qualifier("oauth2TokenGranter") TokenGranter tokenGranter,
             final @Qualifier("allowQueryStringForTokens") Boolean allowQueryStringForTokens
