@@ -56,6 +56,9 @@ public class SamlRelyingPartyRegistrationRepository {
                 .signingX509Credentials( cred -> cred
                         .add(Saml2X509Credential.signing( keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
                 )
+                .decryptionX509Credentials( cred -> cred
+                        .add(Saml2X509Credential.decryption( keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
+                )
                 .build();
 
         return new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistration);
