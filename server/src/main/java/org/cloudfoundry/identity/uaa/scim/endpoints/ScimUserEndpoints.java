@@ -255,17 +255,22 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
 
         // create the user and an alias for it if necessary
-        ScimUser scimUser = transactionTemplate.execute(txStatus -> {
-            final ScimUser originalScimUser = scimUserProvisioning.createUser(
-                    user,
-                    user.getPassword(),
-                    identityZoneManager.getCurrentIdentityZoneId()
-            );
-            return aliasHandler.ensureConsistencyOfAliasEntity(
-                    originalScimUser,
-                    null
-            );
-        });
+        ScimUser scimUser;
+        try {
+            scimUser = transactionTemplate.execute(txStatus -> {
+                final ScimUser originalScimUser = scimUserProvisioning.createUser(
+                        user,
+                        user.getPassword(),
+                        identityZoneManager.getCurrentIdentityZoneId()
+                );
+                return aliasHandler.ensureConsistencyOfAliasEntity(
+                        originalScimUser,
+                        null
+                );
+            });
+        } catch (final EntityAliasFailedException e) {
+            throw new ScimException(e.getMessage(), e, HttpStatus.resolve(e.getHttpStatus()));
+        }
 
         if (scimUser == null) {
             throw new IllegalStateException("The persisted user is not present after handling the alias.");

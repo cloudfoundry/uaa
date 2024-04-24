@@ -172,12 +172,32 @@ class ScimUserEndpointsAliasTests {
         @Test
         void shouldReturnOriginalUser() {
             final ScimUser user = buildScimUser(UAA, origin);
-            user.setAliasZid(UUID.randomUUID().toString());
+            user.setAliasZid(aliasZid);
 
             when(scimUserAliasHandler.aliasPropertiesAreValid(user, null)).thenReturn(true);
 
             final ScimUser response = scimUserEndpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
             assertThat(response.getAliasId()).isNotBlank();
+        }
+
+        @Test
+        void shouldThrowScimException_WhenAliasCreationFailed() {
+            final ScimUser user = buildScimUser(UAA, origin);
+            user.setAliasZid(aliasZid);
+
+            when(scimUserAliasHandler.aliasPropertiesAreValid(user, null)).thenReturn(true);
+
+            final String errorMessage = "Creation of alias user failed.";
+            when(scimUserAliasHandler.ensureConsistencyOfAliasEntity(user, null))
+                    .thenThrow(new EntityAliasFailedException(errorMessage, 400, null));
+
+            final MockHttpServletRequest req = new MockHttpServletRequest();
+            final MockHttpServletResponse res = new MockHttpServletResponse();
+            final ScimException exception = assertThrows(ScimException.class, () ->
+                    scimUserEndpoints.createUser(user, req, res)
+            );
+            assertThat(exception.getMessage()).isEqualTo(errorMessage);
+            assertThat(exception.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
         }
     }
 
