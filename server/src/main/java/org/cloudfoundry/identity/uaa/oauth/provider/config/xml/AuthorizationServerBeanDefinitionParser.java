@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.provider.config.xml;
 
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.provider.CompositeTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.approval.DefaultUserApprovalHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.client.ClientCredentialsTokenGranter;
@@ -13,7 +14,6 @@ import org.cloudfoundry.identity.uaa.oauth.provider.implicit.ImplicitTokenGrante
 import org.cloudfoundry.identity.uaa.oauth.provider.password.ResourceOwnerPasswordTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.refresh.RefreshTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestFactory;
-import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.springframework.beans.BeanMetadataElement;
 import org.springframework.beans.factory.config.RuntimeBeanReference;
@@ -80,7 +80,7 @@ public class AuthorizationServerBeanDefinitionParser
 		if (!StringUtils.hasText(oAuth2RequestValidatorRef)) {
 			oAuth2RequestValidatorRef = "defaultOAuth2RequestValidator";
 			BeanDefinitionBuilder oAuth2RequestValidator = BeanDefinitionBuilder
-					.rootBeanDefinition(DefaultOAuth2RequestValidator.class);
+					.rootBeanDefinition(UaaOauth2RequestValidator.class);
 			parserContext.getRegistry().registerBeanDefinition(oAuth2RequestValidatorRef,
 					oAuth2RequestValidator.getBeanDefinition());
 		}
