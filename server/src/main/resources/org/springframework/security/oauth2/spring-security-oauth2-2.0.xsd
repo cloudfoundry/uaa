@@ -86,7 +86,7 @@
 									authorization code
 									services. Default value is an
 									instance of
-									"org.springframework.security.oauth2.provider.authorization_code.InMemoryAuthorizationCodeServices".
+									"org.cloudfoundry.identity.uaa.oauth.provider.code.InMemoryAuthorizationCodeServices".
 								</xs:documentation>
 							</xs:annotation>
 						</xs:attribute>
@@ -250,7 +250,7 @@
 						The reference to the bean that defines the
 						OAuth2RequestValidator implementation. Default
 						value is an instance of 
-						"org.springframework.security.oauth2.provider.DefaultOAuth2RequestValidator".
+						"org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator".
 					</xs:documentation>
 				</xs:annotation>
 			</xs:attribute>
@@ -261,7 +261,7 @@
 						The reference to the bean that defines the token
 						services. Default
 						value is an instance of
-						"org.springframework.security.oauth2.provider.token.DefaultTokenServices".
+						"org.cloudfoundry.identity.uaa.oauth.provider.token.DefaultTokenServices".
 					</xs:documentation>
 				</xs:annotation>
 			</xs:attribute>
@@ -275,7 +275,7 @@
 						Default
 						value is an
 						instance of
-						"org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory".
+						"org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator".
 					</xs:documentation>
 				</xs:annotation>
 			</xs:attribute>
@@ -348,7 +348,7 @@
 						authorization.
 						Default
 						value is an instance of
-						"org.springframework.security.oauth2.provider.authorization_code.DefaultRedirectResolver".
+						"org.cloudfoundry.identity.uaa.oauth.provider.endpoint.DefaultRedirectResolver".
 					</xs:documentation>
 				</xs:annotation>
 			</xs:attribute>
@@ -392,7 +392,7 @@
 								The reference to the bean that defines the token
 								services. Default
 								value is an instance of
-								"org.springframework.security.oauth2.provider.token.DefaultTokenServices".
+								"org.cloudfoundry.identity.uaa.oauth.provider.token.DefaultTokenServices".
 							</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
@@ -404,7 +404,7 @@
 								for the incoming tokens. If provided then the resource id and token services
 								are ignored. Default
 								value is an instance of
-								"org.springframework.security.oauth2.provider.token.OAuth2AuthenticationManager".
+								"org.cloudfoundry.identity.uaa.oauth.provider.token.OAuth2AuthenticationManager".
 							</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
@@ -415,7 +415,7 @@
 								The reference to the bean that defines the token
 								extractor. Default
 								value is an instance of
-								"org.springframework.security.oauth2.provider.authentication.BearerTokenExtractor".
+								"org.cloudfoundry.identity.uaa.oauth.provider.authentication.BearerTokenExtractor".
 							</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
@@ -425,7 +425,7 @@
 							<xs:documentation>
 								The reference to the bean that defines the entry point for failed authentications. Defaults to
 								a vanilla
-								org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint.
+								org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint.
 							</xs:documentation>
 						</xs:annotation>
 					</xs:attribute>
