@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.endpoint;
 
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
-import org.cloudfoundry.identity.uaa.oauth.provider.request.DefaultOAuth2RequestValidator;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.http.HttpHeaders;
@@ -46,7 +46,7 @@ import java.util.Set;
 public class TokenEndpoint extends AbstractEndpoint {
 
 	private static final String HANDLING_ERROR = "Handling error: ";
-	private OAuth2RequestValidator oAuth2RequestValidator = new DefaultOAuth2RequestValidator();
+	private OAuth2RequestValidator oAuth2RequestValidator = new UaaOauth2RequestValidator();
 
 	private Set<HttpMethod> allowedRequestMethods = new HashSet<>(Arrays.asList(HttpMethod.POST));
 
