@@ -334,7 +334,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         } catch (OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
         } catch (final EntityAliasFailedException e) {
-            throw new ScimException(e.getMessage(), e.getCause(), HttpStatus.resolve(e.getHttpStatus()));
+            throw new ScimException(e.getMessage(), e, HttpStatus.resolve(e.getHttpStatus()));
         }
 
         addETagHeader(httpServletResponse, scimUser);
