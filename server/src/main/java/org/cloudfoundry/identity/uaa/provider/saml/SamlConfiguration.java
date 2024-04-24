@@ -1,11 +1,15 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
 
+@Setter
+@Getter
 @Configuration
 @ConfigurationProperties(prefix="login.saml")
 public class SamlConfiguration {
@@ -15,33 +19,10 @@ public class SamlConfiguration {
 
     private Boolean wantAssertionSigned = true;
 
-    public String getActiveKeyId() {
-        return activeKeyId;
-    }
-
-    public void setActiveKeyId(String activeKeyId) {
-        this.activeKeyId = activeKeyId;
-    }
-
-    public Map<String, SamlKey> getKeys() {
-        return keys;
-    }
-
-    public void setKeys(Map<String, SamlKey> keys) {
-        this.keys = keys;
-    }
-
     public SamlKey getActiveSamlKey() {
         return keys.get(activeKeyId);
     }
 
-    public Boolean getWantAssertionSigned() {
-        return wantAssertionSigned;
-    }
-
-    public void setWantAssertionSigned(Boolean wantAssertionSigned) {
-        this.wantAssertionSigned = wantAssertionSigned;
-    }
 }
 
 
