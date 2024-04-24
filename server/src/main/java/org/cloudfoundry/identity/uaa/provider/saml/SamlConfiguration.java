@@ -1,15 +1,13 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 import java.util.Map;
 
-@Setter
-@Getter
+@Data
 @Configuration
 @ConfigurationProperties(prefix="login.saml")
 public class SamlConfiguration {
