@@ -4,8 +4,6 @@ import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.saml2.provider.service.metadata.OpenSamlMetadataResolver;
@@ -53,14 +51,14 @@ public class SamlMetadataEndpoint {
     }
 
     public SamlMetadataEndpoint(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-                                @Qualifier("samlWantAssertionSigned") Boolean samlWantAssertionSigned
+                                SamlConfiguration samlConfiguration
                                 ) {
         Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
         this.relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
         OpenSamlMetadataResolver resolver = new OpenSamlMetadataResolver();
         this.saml2MetadataResolver = resolver;
         resolver.setEntityDescriptorCustomizer(new EntityDescriptorCustomizer());
-        this.wantAssertionSigned = samlWantAssertionSigned;
+        this.wantAssertionSigned = samlConfiguration.getWantAssertionSigned();
         setFileName(DEFAULT_FILE_NAME);
     }
 
