@@ -347,7 +347,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
                 return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
             }
 
-            if (publisher != null && zone != null) {
+            if (publisher != null) {
                 publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return new ResponseEntity<>(removeKeys(zone), OK);
