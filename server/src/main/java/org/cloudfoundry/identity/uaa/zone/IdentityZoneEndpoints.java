@@ -336,6 +336,17 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             IdentityZone zone = zoneDao.retrieveIgnoreActiveFlag(id);
             // ignore the id in the body, the id in the path is the only one that matters
             IdentityZoneHolder.set(zone);
+
+            /* reject deletion if an IdP with alias exists in the zone - checking for users with alias is not required
+             * here, since they can only exist if their origin IdP has an alias as well */
+            final List<IdentityProvider> idps = idpDao.retrieveAll(false, zone.getId());
+            final boolean idpWithAliasExists = idps.stream()
+                    .map(IdentityProvider::getAliasZid)
+                    .anyMatch(UaaStringUtils::isNotEmpty);
+            if (idpWithAliasExists) {
+                return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+            }
+
             if (publisher != null && zone != null) {
                 publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
