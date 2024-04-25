@@ -139,8 +139,9 @@ public class DeprecatedUaaTokenServicesTests {
 
     @Test
     public void testEquals() {
-        assertEquals(persistToken, new CompositeToken(persistToken));
-        assertEquals(persistToken.hashCode(), new CompositeToken(persistToken).hashCode());
+        CompositeToken copyToken = new CompositeToken(persistToken);
+        assertEquals(copyToken, persistToken);
+        assertEquals(copyToken.hashCode(), persistToken.hashCode());
     }
 
     @Test
