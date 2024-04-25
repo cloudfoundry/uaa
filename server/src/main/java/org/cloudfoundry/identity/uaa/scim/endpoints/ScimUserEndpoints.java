@@ -250,6 +250,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             passwordValidator.validate(user.getPassword());
         }
 
+        user.setZoneId(identityZoneManager.getCurrentIdentityZoneId());
+
         if (!aliasHandler.aliasPropertiesAreValid(user, null)) {
             throw new ScimException("Alias ID and/or alias ZID are invalid.", HttpStatus.BAD_REQUEST);
         }
