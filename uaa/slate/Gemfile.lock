@@ -83,7 +83,7 @@ GEM
       rouge (~> 3.2)
     mini_portile2 (2.8.5)
     mini_racer (0.4.0)
-      libv8-node (~> 15.14.0.0)
+      libv8-node (>= 15.14.0.1) 
     minitest (5.21.2)
     nokogiri (1.16.4)
       mini_portile2 (~> 2.8.2)
