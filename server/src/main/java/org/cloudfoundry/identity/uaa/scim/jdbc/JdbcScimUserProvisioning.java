@@ -139,6 +139,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
     private final IdentityZoneManager identityZoneManager;
 
+    private boolean useCaseInsensitiveQueries = false;
+
     public JdbcScimUserProvisioning(
             final JdbcTemplate jdbcTemplate,
             final JdbcPagingListFactory pagingListFactory,
@@ -157,6 +159,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
+    }
+
+    public void setUseCaseInsensitiveQueries(final boolean useCaseInsensitiveQueries) {
+        this.useCaseInsensitiveQueries = useCaseInsensitiveQueries;
     }
 
     @Override
@@ -185,7 +191,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             final boolean ascending,
             final String zoneId
     ) {
+        /* We cannot reuse the query converter from the superclass here since the later query operates on both the
+         * "users" and the "identity_provider" table and they both have a column named "id". Since the SCIM filter might
+         * contain clauses on the "id" field, we must ensure that the "id" of the "users" table is used, which is done
+         * by attaching an AttributeNameMapper. */
         final SimpleSearchQueryConverter queryConverter = new SimpleSearchQueryConverter();
+
+        // ensure that the generated query handles the case-insensitivity of the underlying DB correctly
+        queryConverter.setDbCaseInsensitive(useCaseInsensitiveQueries);
+
         validateOrderBy(queryConverter.map(sortBy));
 
         /* since the two tables used in the query ('users' and 'identity_provider') have columns with identical names,
