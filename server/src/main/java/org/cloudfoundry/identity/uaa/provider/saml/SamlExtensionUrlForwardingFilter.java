@@ -24,8 +24,7 @@ public class SamlExtensionUrlForwardingFilter extends OncePerRequestFilter {
     private static final Map<String, String> urlMapping = Map.of("/saml/SSO", "/login/saml2/sso/one",
             "/saml/login", "/saml2/authenticate/one",
             "/saml/logout", "/logout/saml2/slo",
-            "/saml/SingleLogout", "/logout/saml2/slo",
-            "/saml/metadata", "/saml/metadata/example"
+            "/saml/SingleLogout", "/logout/saml2/slo"
     );
     // @formatter:on
 
@@ -46,12 +45,8 @@ public class SamlExtensionUrlForwardingFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
             return;
         }
-        String forwardUrl = urlMapping.get(request.getServletPath());
-        if (forwardUrl == null) {
-            forwardUrl = urlMapping.get(request.getRequestURI());
-        }
+        String forwardUrl = urlMapping.get(request.getPathInfo());
         RequestDispatcher dispatcher = request.getRequestDispatcher(forwardUrl);
         dispatcher.forward(request, response);
     }
-
 }
