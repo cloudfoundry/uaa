@@ -111,8 +111,6 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
             SecurityFilterChain fc = (SecurityFilterChain) bean;
 
-            Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
-            fc.getFilters().add(0, uaaFilter);
             if (additionalFilters != null) {
                 for (Entry<FilterPosition, Filter> entry : additionalFilters.entrySet()) {
                     int position = entry.getKey().getPosition(fc);
@@ -123,6 +121,9 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                     }
                 }
             }
+
+            Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
+            fc.getFilters().add(0, uaaFilter);
         }
 
         return bean;
