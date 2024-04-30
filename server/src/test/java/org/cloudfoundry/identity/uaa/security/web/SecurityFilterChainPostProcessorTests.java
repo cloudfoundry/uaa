@@ -40,14 +40,14 @@ public class SecurityFilterChainPostProcessorTests {
     }
 
     private void testPositionFilter(int pos) {
-        int expectedPos = pos>count ? count : pos;
+        int expectedPos = pos > count ? count: pos + 1;
         additionalFilters.put(SecurityFilterChainPostProcessor.FilterPosition.position(pos), new PositionFilter());
         processor.setAdditionalFilters(additionalFilters);
         processor.postProcessAfterInitialization(fc, "");
         assertEquals(count+1, fc.getFilters().size());
         assertEquals(String.format("filter[%d] should be:%s", pos, PositionFilter.class.getSimpleName()),
-                fc.getFilters().get(expectedPos).getClass(),
-                PositionFilter.class);
+                PositionFilter.class,
+                fc.getFilters().get(expectedPos).getClass());
     }
 
     @Test
