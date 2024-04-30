@@ -234,8 +234,8 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
                 <entry value-ref="sessionResetFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
-                <entry value-ref="SamlExtensionUrlForwardingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).before(@oauth2TokenParseFilter)}"/>
+<!--                <entry value-ref="SamlExtensionUrlForwardingFilter"-->
+<!--                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).before(@oauth2TokenParseFilter)}"/>-->
             </map>
         </property>
     </bean>
@@ -527,6 +527,6 @@
                            @config['uaa']['limitedFunctionality']['whitelist']['methods']}"/>
     </bean>
 
-    <bean id="SamlExtensionUrlForwardingFilter" class="org.cloudfoundry.identity.uaa.provider.saml.SamlExtensionUrlForwardingFilter"></bean>
+<!--    <bean id="SamlExtensionUrlForwardingFilter" class="org.cloudfoundry.identity.uaa.provider.saml.SamlExtensionUrlForwardingFilter"></bean>-->
 
 </beans>
