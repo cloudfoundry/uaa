@@ -186,6 +186,7 @@
         <property name="redirectToHttps">
             <list>
                 <value>uiSecurity</value>
+                <value>secFilterOpen06SAMLMetadata</value>
             </list>
         </property>
         <property name="ignore">
@@ -234,7 +235,7 @@
                 <entry value-ref="sessionResetFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
                 <entry value-ref="SamlExtensionUrlForwardingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(9)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).before(@oauth2TokenParseFilter)}"/>
             </map>
         </property>
     </bean>
