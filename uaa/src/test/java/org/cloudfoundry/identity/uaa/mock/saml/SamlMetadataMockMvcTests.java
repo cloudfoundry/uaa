@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.mock.saml;
 
 import java.net.URI;
 
-import org.junit.jupiter.api.Disabled;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.test.context.TestPropertySource;
@@ -35,21 +34,18 @@ class SamlMetadataMockMvcTests {
     }
 
     @Test
-//    @Disabled("SAML test fails (is /saml/metadata/example working a product requirement?)")
     void testSamlMetadataDefaultNoEndingSlash() throws Exception {
         mockMvc.perform(get(new URI("/saml/metadata/example")))
                 .andExpect(status().isOk());
     }
 
     @Test
-//    @Disabled("SAML test fails (is /saml/metadata/example/ working a product requirement?)")
     void testSamlMetadataDefaultWithEndingSlash() throws Exception {
         mockMvc.perform(get(new URI("/saml/metadata/example/")))
                 .andExpect(status().isOk());
     }
 
     @Test
-//    @Disabled("SAML test fails (though the endpoint works in real life, so it's a test issue)")
     void testSamlMetadataXMLValidation() throws Exception {
 
         mockMvc.perform(get(new URI("/saml/metadata")))
@@ -74,7 +70,6 @@ class SamlMetadataMockMvcTests {
         private MockMvc mockMvc;
 
         @Test
-//        @Disabled("SAML test fails (though the endpoint works in real life, so it's a test issue)")
         void testSamlMetadataAuthnRequestsSignedIsFalse() throws Exception {
             mockMvc.perform(get(new URI("/saml/metadata")))
                     .andDo(print())
