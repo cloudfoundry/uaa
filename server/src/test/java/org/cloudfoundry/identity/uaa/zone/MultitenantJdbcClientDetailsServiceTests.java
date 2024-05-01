@@ -6,10 +6,10 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.hamcrest.Matchers;
@@ -71,7 +71,7 @@ class MultitenantJdbcClientDetailsServiceTests {
 
     private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, client_jwt_config, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id, lastmodified, required_user_groups) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?)";
 
-    private RandomValueStringGenerator randomValueStringGenerator;
+    private AlphanumericRandomValueStringGenerator randomValueStringGenerator;
 
     private String dbRequestedUserGroups = "uaa.user,uaa.something";
     private UaaClientDetails baseClientDetails;
@@ -87,7 +87,7 @@ class MultitenantJdbcClientDetailsServiceTests {
 
     @BeforeEach
     void setup() {
-        randomValueStringGenerator = new RandomValueStringGenerator();
+        randomValueStringGenerator = new AlphanumericRandomValueStringGenerator();
         jdbcTemplate.update("DELETE FROM oauth_client_details");
         SecurityContextHolder.getContext().setAuthentication(mock(Authentication.class));
         spyJdbcTemplate = spy(jdbcTemplate);
@@ -97,7 +97,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         service = spy(new MultitenantJdbcClientDetailsService(spyJdbcTemplate, mockIdentityZoneManager, passwordEncoder));
 
         baseClientDetails = new UaaClientDetails();
-        String clientId = "client-with-id-" + new RandomValueStringGenerator(36).generate();
+        String clientId = "client-with-id-" + new AlphanumericRandomValueStringGenerator(36).generate();
         baseClientDetails.setClientId(clientId);
     }
 
@@ -331,7 +331,7 @@ class MultitenantJdbcClientDetailsServiceTests {
     @Test
     void loadGroupsGeneratesEmptyCollection() {
         for (String s : Arrays.asList(null, "")) {
-            String clientId = "clientId-" + new RandomValueStringGenerator().generate();
+            String clientId = "clientId-" + new AlphanumericRandomValueStringGenerator().generate();
             jdbcTemplate.update(INSERT_SQL,
                     clientId,
                     "mySecret",

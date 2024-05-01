@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
@@ -188,7 +188,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
         String id = "twiglet-create";
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
-        identityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
+        identityZone.setSubdomain(StringUtils.hasText(id) ? id : new AlphanumericRandomValueStringGenerator().generate());
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         Map<String, String> keys = new HashMap<>();
@@ -505,7 +505,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
         createIdentityZoneHelper(id);
 
         IdentityZone updatedIdentityZone = new IdentityZone();
-        updatedIdentityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
+        updatedIdentityZone.setSubdomain(StringUtils.hasText(id) ? id : new AlphanumericRandomValueStringGenerator().generate());
         updatedIdentityZone.setName("The Updated Twiglet Zone");
         updatedIdentityZone.setDescription("Like the Twilight Zone but not tastier.");
         TokenPolicy.KeyInformation keyInformation = new TokenPolicy.KeyInformation();
@@ -696,7 +696,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
         identityZone.getConfig().setTokenPolicy(tokenPolicy);
 
         identityZone.setId(id);
-        identityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
+        identityZone.setSubdomain(StringUtils.hasText(id) ? id : new AlphanumericRandomValueStringGenerator().generate());
         identityZone.setName("The Twiglet Zone");
 
         IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());

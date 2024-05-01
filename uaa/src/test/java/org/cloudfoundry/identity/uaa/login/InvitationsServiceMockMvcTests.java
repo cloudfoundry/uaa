@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -27,6 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -79,7 +79,7 @@ public class InvitationsServiceMockMvcTests {
     public static final String REDIRECT_URI = "http://invitation.redirect.test";
     private JavaMailSender originalSender;
     private FakeJavaMailSender fakeJavaMailSender = new FakeJavaMailSender();
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String clientId;
     private String userInviteToken;
 
@@ -114,13 +114,13 @@ public class InvitationsServiceMockMvcTests {
 
     @Test
     void inviteUserCorrectOriginSet() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
     }
 
     @Test
     void testAuthorizeWithInvitationLogin() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
         assertEquals(OriginKeys.UAA, jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", new Object[]{email}, String.class));
 
@@ -137,13 +137,13 @@ public class InvitationsServiceMockMvcTests {
         assertNotNull(inviteSession);
         assertNotNull(inviteSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
         String redirectUri = "https://example.com/dashboard/?appGuid=app-guid";
-        String clientId = "authclient-" + new RandomValueStringGenerator().generate();
+        String clientId = "authclient-" + new AlphanumericRandomValueStringGenerator().generate();
         UaaClientDetails client = new UaaClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", redirectUri);
         client.setClientSecret("secret");
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
         MockMvcUtils.createClient(mockMvc, adminToken, client);
 
-        String state = new RandomValueStringGenerator().generate();
+        String state = new AlphanumericRandomValueStringGenerator().generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .session(inviteSession)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
@@ -163,7 +163,7 @@ public class InvitationsServiceMockMvcTests {
 
     @Test
     void acceptInvitationShouldNotLogYouIn() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
         assertEquals(OriginKeys.UAA, jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", new Object[]{email}, String.class));
 
@@ -189,7 +189,7 @@ public class InvitationsServiceMockMvcTests {
 
     @Test
     void acceptInvitationForVerifiedUserSendsRedirect() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
 
         jdbcTemplate.update("UPDATE users SET verified=true WHERE email=?", email);
@@ -208,7 +208,7 @@ public class InvitationsServiceMockMvcTests {
 
     @Test
     void acceptInvitationForUaaUserShouldNotExpireInvitelink() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
         assertEquals(OriginKeys.UAA, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
 
@@ -226,8 +226,8 @@ public class InvitationsServiceMockMvcTests {
 
     @Test
     void invalid_code() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
-        String invalid = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String invalid = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
         URL invalidLink = inviteUser(webApplicationContext, mockMvc, invalid, userInviteToken, null, clientId, OriginKeys.UAA);
 
@@ -275,7 +275,7 @@ public class InvitationsServiceMockMvcTests {
 
     @Test
     void acceptInvitationSetsYourPassword() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
 
         assertFalse("User should not be verified", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
@@ -324,7 +324,7 @@ public class InvitationsServiceMockMvcTests {
         String domain = generator.generate().toLowerCase() + ".com";
         definition.setEmailDomain(Collections.singletonList(domain));
         IdentityProvider provider = createIdentityProvider(mockMvc, zone.getZone(), OriginKeys.LDAP, definition);
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
         String code = extractInvitationCode(inviteLink.toString());
 
@@ -354,7 +354,7 @@ public class InvitationsServiceMockMvcTests {
         definition.setIdpEntityAlias(originKey);
         IdentityProvider provider = createIdentityProvider(mockMvc, zone.getZone(), originKey, definition);
 
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
         String code = extractInvitationCode(inviteLink.toString());
 

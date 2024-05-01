@@ -2,12 +2,12 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.ArrayUtils;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
@@ -54,7 +54,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class ScimGroupEndpointDocs extends EndpointDocs {
 
-    private final RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private final FieldDescriptor displayNameRequestField = fieldWithPath("displayName").required().description("An identifier, unique within the identity zone");
     private final FieldDescriptor descriptionRequestField = fieldWithPath("description").optional(null).type(STRING).description("Human readable description of the group, displayed e.g. when approving scopes");
     private final FieldDescriptor membersRequestField = fieldWithPath("members").optional(null).type(ARRAY).description("Members to be included in the group");

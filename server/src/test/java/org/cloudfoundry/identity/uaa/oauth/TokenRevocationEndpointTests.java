@@ -6,13 +6,13 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -59,7 +59,7 @@ public class TokenRevocationEndpointTests {
     @BeforeEach
     void setupForTokenRevocation() {
         String zoneId = IdentityZoneHolder.get().getId();
-        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
         String clientId = generator.generate().toLowerCase();
         client = new UaaClientDetails(clientId, "", "some.scopes", "client_credentials", "authorities");
         client.addAdditionalInformation(TOKEN_SALT, "pre-salt");

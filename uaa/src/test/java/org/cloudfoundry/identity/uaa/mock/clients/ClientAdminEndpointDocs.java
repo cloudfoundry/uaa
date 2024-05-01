@@ -3,9 +3,9 @@ package org.cloudfoundry.identity.uaa.mock.clients;
 import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
@@ -503,7 +503,7 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(OriginKeys.UAA, OriginKeys.LDAP, "my-saml-provider"));
         additionalInformation.put(ClientConstants.CLIENT_NAME, "My Client Name");
         additionalInformation.put(ClientConstants.AUTO_APPROVE, true);
-        additionalInformation.put(ClientConstants.TOKEN_SALT, new RandomValueStringGenerator().generate());
+        additionalInformation.put(ClientConstants.TOKEN_SALT, new AlphanumericRandomValueStringGenerator().generate());
         return additionalInformation;
     }
 }

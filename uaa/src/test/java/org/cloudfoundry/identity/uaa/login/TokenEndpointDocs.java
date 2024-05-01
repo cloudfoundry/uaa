@@ -4,6 +4,7 @@ import java.net.URI;
 import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -28,7 +29,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
@@ -188,7 +188,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(REDIRECT_URI, redirect)
                 .param(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE)
                 .param(PkceValidationService.CODE_CHALLENGE_METHOD, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256)
-                .param(STATE, new RandomValueStringGenerator().generate());
+                .param(STATE, new AlphanumericRandomValueStringGenerator().generate());
 
         MockHttpServletResponse authCodeResponse = mockMvc.perform(getAuthCode)
                 .andExpect(status().isFound())
@@ -721,7 +721,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private void createUser() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
-        user = new ScimUser(null, new RandomValueStringGenerator().generate() + "@test.org", "name", "familyName");
+        user = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate() + "@test.org", "name", "familyName");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(mockMvc, adminToken, user);
@@ -748,7 +748,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(REDIRECT_URI, redirect)
                 .param(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE)
                 .param(PkceValidationService.CODE_CHALLENGE_METHOD, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256)
-                .param(STATE, new RandomValueStringGenerator().generate());
+                .param(STATE, new AlphanumericRandomValueStringGenerator().generate());
 
         MockHttpServletResponse authCodeResponse = mockMvc.perform(getAuthCode)
                 .andExpect(status().isFound())
@@ -1092,7 +1092,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private UaaClientDetails createClient(String token, String scopes, String grantTypes, String authorities) throws Exception {
         UaaClientDetails client = new UaaClientDetails(
-                new RandomValueStringGenerator().generate(),
+                new AlphanumericRandomValueStringGenerator().generate(),
                 "",
                 scopes,
                 grantTypes,

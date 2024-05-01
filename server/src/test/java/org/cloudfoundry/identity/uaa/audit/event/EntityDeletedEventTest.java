@@ -15,10 +15,10 @@
 
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,7 +35,7 @@ class EntityDeletedEventTest {
 
     @BeforeEach
     void setUp() {
-        randomId = new RandomValueStringGenerator().generate();
+        randomId = new AlphanumericRandomValueStringGenerator().generate();
     }
 
     @Test
