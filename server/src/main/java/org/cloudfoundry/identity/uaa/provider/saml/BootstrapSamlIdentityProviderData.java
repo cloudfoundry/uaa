@@ -19,6 +19,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
@@ -40,8 +42,9 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
 import static org.springframework.util.StringUtils.hasText;
 
+@Data
+@Slf4j
 public class BootstrapSamlIdentityProviderData implements InitializingBean {
-    private static Logger logger = LoggerFactory.getLogger(BootstrapSamlIdentityProviderData.class);
     private String legacyIdpIdentityAlias;
     private volatile String legacyIdpMetaData;
     private String legacyNameId;
@@ -75,7 +78,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setShowSamlLink(isLegacyShowSamlLink());
             def.setLinkText("Use your corporate credentials");
             def.setZoneId(IdentityZone.getUaaZoneId()); //legacy only has UAA zone
-            logger.debug("Legacy SAML provider configured with alias: "+alias);
+            log.debug("Legacy SAML provider configured with alias: "+alias);
             IdentityProviderWrapper wrapper = new IdentityProviderWrapper(parseSamlProvider(def));
             wrapper.setOverride(true);
             samlProviders.add(wrapper);
@@ -182,10 +185,6 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
         return provider;
     }
 
-    public String getLegacyIdpIdentityAlias() {
-        return legacyIdpIdentityAlias;
-    }
-
     public void setLegacyIdpIdentityAlias(String legacyIdpIdentityAlias) {
         if ("null".equals(legacyIdpIdentityAlias)) {
             this.legacyIdpIdentityAlias = null;
@@ -194,48 +193,12 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
         }
     }
 
-    public String getLegacyIdpMetaData() {
-        return legacyIdpMetaData;
-    }
-
     public void setLegacyIdpMetaData(String legacyIdpMetaData) {
         if ("null".equals(legacyIdpMetaData)) {
             this.legacyIdpMetaData = null;
         } else {
             this.legacyIdpMetaData = legacyIdpMetaData;
         }
-    }
-
-    public String getLegacyNameId() {
-        return legacyNameId;
-    }
-
-    public void setLegacyNameId(String legacyNameId) {
-        this.legacyNameId = legacyNameId;
-    }
-
-    public int getLegacyAssertionConsumerIndex() {
-        return legacyAssertionConsumerIndex;
-    }
-
-    public void setLegacyAssertionConsumerIndex(int legacyAssertionConsumerIndex) {
-        this.legacyAssertionConsumerIndex = legacyAssertionConsumerIndex;
-    }
-
-    public boolean isLegacyMetadataTrustCheck() {
-        return legacyMetadataTrustCheck;
-    }
-
-    public void setLegacyMetadataTrustCheck(boolean legacyMetadataTrustCheck) {
-        this.legacyMetadataTrustCheck = legacyMetadataTrustCheck;
-    }
-
-    public boolean isLegacyShowSamlLink() {
-        return legacyShowSamlLink;
-    }
-
-    public void setLegacyShowSamlLink(boolean legacyShowSamlLink) {
-        this.legacyShowSamlLink = legacyShowSamlLink;
     }
 
     @Override
