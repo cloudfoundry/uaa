@@ -1,30 +1,62 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import lombok.Data;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.Map;
-
-@Data
+@EnableConfigurationProperties({SamlIdentityProvidersConfigProps.class, SamlKeyConfigProps.class})
 @Configuration
-@ConfigurationProperties(prefix="login.saml")
 public class SamlConfiguration {
-    private String activeKeyId;
 
-    private Map<String, SamlKey> keys;
+    @Value("${login.entityID:unit-test-sp}")
+    private String samlEntityID;
 
-    private Boolean wantAssertionSigned = true;
-
-    public SamlKey getActiveSamlKey() {
-        return keys.get(activeKeyId);
+    @Bean
+    public String samlEntityID() {
+        return samlEntityID;
     }
 
+    @Autowired
+    public SamlIdentityProvidersConfigProps SamlIdentityProvidersConfigProps;
+
+    @Autowired
+    public SamlKeyConfigProps samlKeyConfig;
+
+    @Value("${login.idpMetadataURL:null}")
+    private String metaDataUrl;
+
+    @Value("${login.idpEntityAlias:null}")
+    private String legacyIdpIdentityAlias;
+
+    @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
+    private String legacyNameId;
+
+    @Value("${login.saml.assertionConsumerIndex:0}")
+    private int legacyAssertionConsumerIndex;
+
+    @Value("${login.saml.metadataTrustCheck:true}")
+    private boolean legacyMetadataTrustCheck;
+
+    @Value("${login.showSamlLoginLink:true}")
+    private boolean legacyShowSamlLink;
+
+    @Bean
+    public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders() {
+        BootstrapSamlIdentityProviderData idpData = new BootstrapSamlIdentityProviderData();
+        idpData.setIdentityProviders(SamlIdentityProvidersConfigProps.getProviders());
+        idpData.setLegacyIdpMetaData(metaDataUrl);
+        idpData.setLegacyIdpIdentityAlias(legacyIdpIdentityAlias);
+        idpData.setLegacyNameId(legacyNameId);
+        idpData.setLegacyAssertionConsumerIndex(legacyAssertionConsumerIndex);
+        idpData.setLegacyMetadataTrustCheck(legacyMetadataTrustCheck);
+        idpData.setLegacyShowSamlLink(legacyShowSamlLink);
+        return idpData;
+    }
 }
 
-
-/* --- previous XML configuration ---
+/* --- previous saml- XML configuration ---
 
     <!-- Register authentication manager with SAML provider -->
     <security:authentication-manager id="samlAuthenticationManager">
@@ -299,22 +331,6 @@ public class SamlConfiguration {
     <!-- XML parser pool needed for OpenSAML parsing -->
     <bean id="parserPool" class="org.opensaml.xml.parse.BasicParserPool" scope="singleton"/>
 
-    <bean id="metaDataUrl" class="java.lang.String">
-        <constructor-arg value="${login.idpMetadataURL:null}"/>
-    </bean>
-
-    <bean id="bootstrapMetaDataProviders"
-          class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData">
-        <property name="identityProviders"
-                  value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}"/>
-        <property name="legacyIdpMetaData" ref="metaDataUrl"/>
-        <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>
-        <property name="legacyNameId"
-                  value="${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}"/>
-        <property name="legacyAssertionConsumerIndex" value="${login.saml.assertionConsumerIndex:0}"/>
-        <property name="legacyMetadataTrustCheck" value="${login.saml.metadataTrustCheck:true}"/>
-        <property name="legacyShowSamlLink" value="${login.showSamlLoginLink:true}"/>
-    </bean>
 
     <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider" />
 
