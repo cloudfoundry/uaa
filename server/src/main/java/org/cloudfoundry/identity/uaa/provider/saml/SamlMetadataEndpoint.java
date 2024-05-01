@@ -51,14 +51,13 @@ public class SamlMetadataEndpoint {
     }
 
     public SamlMetadataEndpoint(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-                                SamlConfiguration samlConfiguration
-                                ) {
+                                SamlKeyConfigProps samlKeyConfigProps) {
         Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
         this.relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
         OpenSamlMetadataResolver resolver = new OpenSamlMetadataResolver();
         this.saml2MetadataResolver = resolver;
         resolver.setEntityDescriptorCustomizer(new EntityDescriptorCustomizer());
-        this.wantAssertionSigned = samlConfiguration.getWantAssertionSigned();
+        this.wantAssertionSigned = samlKeyConfigProps.getWantAssertionSigned();
         setFileName(DEFAULT_FILE_NAME);
     }
 

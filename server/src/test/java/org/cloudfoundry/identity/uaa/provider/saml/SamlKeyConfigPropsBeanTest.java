@@ -28,7 +28,7 @@ import java.security.Security;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-public class SamlConfigurationBeanTest {
+public class SamlKeyConfigPropsBeanTest {
 
     @BeforeClass
     public static void initVM() throws Exception {
