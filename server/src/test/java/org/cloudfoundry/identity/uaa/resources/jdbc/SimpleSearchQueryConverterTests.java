@@ -98,6 +98,11 @@ class SimpleSearchQueryConverterTests {
     }
 
     @Test
+    void testAttributePrefix() {
+        assertEquals("", converter.getCustomPrefix());
+    }
+
+    @Test
     void testJoinFilterAttributes() {
         String query = "origin eq \"origin-value\" and id eq \"group-value\"";
         List<String> validAttributes = Arrays.asList("origin", "id".toLowerCase());
