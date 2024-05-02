@@ -23,6 +23,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -73,12 +74,12 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
 
     public JdbcScimGroupProvisioning(
-            final JdbcTemplate jdbcTemplate,
+            final NamedParameterJdbcTemplate namedJdbcTemplate,
             final JdbcPagingListFactory pagingListFactory,
             final DbUtils dbUtils) throws SQLException {
-        super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
+        super(namedJdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
 
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
 
         final String quotedGroupsTableName = dbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
         updateGroupSql = String.format(

@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.resources.Queryable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.StringUtils;
@@ -17,7 +16,7 @@ import static com.google.common.primitives.Ints.tryParse;
 
 public abstract class AbstractQueryable<T> implements Queryable<T> {
 
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    protected final NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     protected final JdbcPagingListFactory pagingListFactory;
 
@@ -29,10 +28,10 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     private int pageSize = 200;
 
-    protected AbstractQueryable(final JdbcTemplate jdbcTemplate,
+    protected AbstractQueryable(final NamedParameterJdbcTemplate namedParameterJdbcTemplate,
                                 final JdbcPagingListFactory pagingListFactory,
                                 final RowMapper<T> rowMapper) {
-        this.namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.pagingListFactory = pagingListFactory;
         this.rowMapper = rowMapper;
 

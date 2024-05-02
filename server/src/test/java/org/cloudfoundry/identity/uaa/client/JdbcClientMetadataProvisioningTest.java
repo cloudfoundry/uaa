@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.net.URL;
@@ -42,6 +43,9 @@ class JdbcClientMetadataProvisioningTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
@@ -51,7 +55,7 @@ class JdbcClientMetadataProvisioningTest {
         identityZoneId = "identityZoneId-" + randomValueStringGenerator.generate();
         clientId = "clientId-" + randomValueStringGenerator.generate();
 
-        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate, null, passwordEncoder);
+        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(namedJdbcTemplate, null, passwordEncoder);
         jdbcClientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientService, jdbcTemplate);
     }
 

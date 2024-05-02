@@ -29,6 +29,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 
@@ -55,6 +56,9 @@ class ApprovalsAdminEndpointsTests {
 
     @Autowired
     JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    NamedParameterJdbcTemplate namedJdbcTemplate;
 
     @Autowired
     PasswordEncoder passwordEncoder;
@@ -85,7 +89,7 @@ class ApprovalsAdminEndpointsTests {
         when(mockSecurityContextAccessor.getUserId()).thenReturn(marissa.getId());
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
 
-        MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
+        MultitenantJdbcClientDetailsService clientDetailsService = new MultitenantJdbcClientDetailsService(namedJdbcTemplate, mockIdentityZoneManager, passwordEncoder);
         UaaClientDetails details = new UaaClientDetails("c1", "scim,clients", "read,write",
                 "authorization_code, password, implicit, client_credentials", "update");
         details.setAutoApproveScopes(Collections.singletonList("true"));

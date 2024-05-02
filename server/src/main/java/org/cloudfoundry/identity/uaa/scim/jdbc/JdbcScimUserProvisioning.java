@@ -142,15 +142,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private boolean useCaseInsensitiveQueries = false;
 
     public JdbcScimUserProvisioning(
-            final JdbcTemplate jdbcTemplate,
+            final NamedParameterJdbcTemplate namedJdbcTemplate,
             final JdbcPagingListFactory pagingListFactory,
             final PasswordEncoder passwordEncoder,
             final IdentityZoneManager identityZoneManager,
             final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning
     ) {
-        super(jdbcTemplate, pagingListFactory, mapper);
-        Assert.notNull(jdbcTemplate);
-        this.jdbcTemplate = jdbcTemplate;
+        super(namedJdbcTemplate, pagingListFactory, mapper);
+        Assert.notNull(namedJdbcTemplate, "JdbcTemplate required");
+        this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
         setQueryConverter(new SimpleSearchQueryConverter());
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
@@ -251,7 +251,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             return pagingListFactory.createJdbcPagingList(sql, where.getParams(), rowMapper, getPageSize());
         }
 
-        final NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         return namedParameterJdbcTemplate.query(sql, where.getParams(), rowMapper);
     }
 

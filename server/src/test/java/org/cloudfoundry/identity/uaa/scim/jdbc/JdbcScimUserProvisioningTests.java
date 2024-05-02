@@ -67,6 +67,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -94,6 +95,9 @@ class JdbcScimUserProvisioningTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    NamedParameterJdbcTemplate namedJdbcTemplate;
     private String joeEmail;
     private final String JOE_NAME = "joe";
 
@@ -103,7 +107,7 @@ class JdbcScimUserProvisioningTests {
         joeId = "joeId-" + UUID.randomUUID().toString().substring("joeId-".length());
         joeEmail = "joe@joe.com";
         String mabelId = "mabelId-" + UUID.randomUUID().toString().substring("mabelId-".length());
-        pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter);
 
         currentIdentityZoneId = "currentIdentityZoneId-" + randomString();
         IdentityZone idz = new IdentityZone();
@@ -111,7 +115,7 @@ class JdbcScimUserProvisioningTests {
         idzManager = new IdentityZoneManagerImpl();
         idzManager.setCurrentIdentityZone(idz);
 
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning);
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
@@ -671,7 +675,7 @@ class JdbcScimUserProvisioningTests {
     void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
-        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate)) {
+        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate)) {
             @Override
             public ScimUser retrieve(String id, String zoneId) {
                 ScimUser createdUserId = new ScimUser();
