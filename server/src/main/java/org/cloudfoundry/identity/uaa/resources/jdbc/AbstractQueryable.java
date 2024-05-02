@@ -14,10 +14,11 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import static com.google.common.primitives.Ints.tryParse;
+import static org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter.ORDER_BY;
 
 public abstract class AbstractQueryable<T> implements Queryable<T> {
 
-    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
+    protected NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     protected final JdbcPagingListFactory pagingListFactory;
 
@@ -41,6 +42,10 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     public void setQueryConverter(SearchQueryConverter queryConverter) {
         this.queryConverter = queryConverter;
+    }
+
+    public void setNamedParameterJdbcTemplate(NamedParameterJdbcTemplate namedParameterJdbcTemplate) {
+        this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
     }
 
     /**
@@ -87,7 +92,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     private String getQuerySQL(SearchQueryConverter.ProcessedFilter where) {
         if (where.hasOrderBy()) {
-            return getBaseSqlQuery() + " where (" + where.getSql().replace(where.ORDER_BY, ")" + where.ORDER_BY);
+            return getBaseSqlQuery() + " where (" + where.getSql().replace(ORDER_BY, ")" + ORDER_BY);
         } else {
             return getBaseSqlQuery() + " where (" + where.getSql() + ")";
         }
