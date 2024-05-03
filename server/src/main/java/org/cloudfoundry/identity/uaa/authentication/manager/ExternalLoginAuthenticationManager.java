@@ -245,8 +245,8 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             }
         }
 
-        if (email == null) {
-            email = generateEmailIfNull(name);
+        if (StringUtils.isEmpty(email)) {
+            email = generateEmailIfNullOrEmpty(name);
         }
 
         String givenName = null;
@@ -278,7 +278,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         return new UaaUser(userPrototype);
     }
 
-    protected String generateEmailIfNull(String name) {
+    protected String generateEmailIfNullOrEmpty(String name) {
         String email;
         if (name != null) {
             if (name.contains("@")) {

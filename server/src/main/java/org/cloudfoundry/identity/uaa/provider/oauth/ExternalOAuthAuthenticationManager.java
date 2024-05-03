@@ -380,8 +380,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             Object verifiedObj = claims.get(emailVerifiedClaim == null ? "email_verified" : emailVerifiedClaim);
             boolean verified =  verifiedObj instanceof Boolean ? (Boolean)verifiedObj: false;
 
-            if (email == null) {
-                email = generateEmailIfNull(username);
+            if (!StringUtils.hasText(email)) {
+                email = generateEmailIfNullOrEmpty(username);
             }
 
             logger.debug(String.format("Returning user data for username:%s, email:%s", username, email));
