@@ -98,8 +98,10 @@ class SimpleSearchQueryConverterTests {
     }
 
     @Test
-    void testAttributePrefix() {
-        assertEquals("", converter.getCustomPrefix());
+    void testJoinName() {
+        assertEquals("", converter.getJoinName());
+        converter.setAttributeNameMapper(new JoinAttributeNameMapper("myTable"));
+        assertEquals("myTable", converter.getJoinName());
     }
 
     @Test
@@ -114,7 +116,7 @@ class SimpleSearchQueryConverterTests {
         assertEquals("[group-value]", filterValues.get("id").toString());
         assertEquals("prefix.origin", converter.map("origin"));
         assertEquals("prefix.id", converter.map("id"));
-        assertEquals("prefix", converter.getCustomPrefix());
+        assertEquals("prefix", converter.getJoinName());
         assertEquals("origin", joinAttributeNameMapper.mapFromInternal("prefix.origin"));
     }
 }

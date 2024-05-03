@@ -193,7 +193,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         validateOrderBy(sortBy);
         /* since the two tables used in the query ('users' and 'identity_provider') have columns with identical names,
          * we must ensure that the columns of 'users' are used in the WHERE clause generated for the SCIM filter */
-        String joinPrefix = ((SimpleSearchQueryConverter) joinConverter).getCustomPrefix();
+        String joinName = joinConverter.getJoinName();
 
         // build WHERE clause
         final ProcessedFilter where = joinConverter.convert(filter, sortBy, ascending, zoneId);
@@ -206,14 +206,14 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         }
 
         final String userFieldsWithPrefix = Arrays.stream(USER_FIELDS.split(","))
-                .map(field -> joinPrefix + "." + field)
+                .map(field -> joinName + "." + field)
                 .collect(joining(", "));
+        String joinStatement = String.format(
+            "%s join identity_provider idp on %s.origin = idp.origin_key and %s.identity_zone_id = idp.identity_zone_id", joinName, joinName, joinName);
         final String sql = String.format(
-                "select %s from users %s join identity_provider idp on %s.origin = idp.origin_key and %s.identity_zone_id = idp.identity_zone_id where %s",
+                "select %s from users %s where %s",
                 userFieldsWithPrefix,
-                joinPrefix,
-                joinPrefix,
-                joinPrefix,
+                joinStatement,
                 whereClause
         );
 

@@ -350,7 +350,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         return hasText(attribute) ? mapper.mapToInternal(attribute) : attribute;
     }
 
-    public String getCustomPrefix() {
-        return (mapper instanceof JoinAttributeNameMapper joinAttributeNameMapper) ? joinAttributeNameMapper.getCustomPrefix() : UaaStringUtils.EMPTY_STRING;
+    public String getJoinName() {
+        return (mapper instanceof JoinAttributeNameMapper joinAttributeNameMapper) ? joinAttributeNameMapper.getName() : UaaStringUtils.EMPTY_STRING;
     }
 }

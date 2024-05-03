@@ -1,14 +1,19 @@
 package org.cloudfoundry.identity.uaa.resources;
 
+/**
+ * Support table joins using a prefixed attribute mapping, e.g.
+ * select * from table1 joinName join table2 joinName2 on joinName.origin = joinName2.origin_key ...
+ * Used in SearchQueryConverter
+ */
 public class JoinAttributeNameMapper implements AttributeNameMapper {
 
-  private final String customPrefix;
+  private final String name;
   private final String joinPrefix;
   private final int prefixLength;
 
-  public JoinAttributeNameMapper(String prefix) {
-    customPrefix = prefix;
-    joinPrefix = prefix + ".";
+  public JoinAttributeNameMapper(String name) {
+    this.name = name;
+    joinPrefix = name + ".";
     prefixLength = joinPrefix.length();
   }
 
@@ -22,7 +27,7 @@ public class JoinAttributeNameMapper implements AttributeNameMapper {
     return attr.substring(prefixLength);
   }
 
-  public String getCustomPrefix() {
-    return customPrefix;
+  public String getName() {
+    return name;
   }
 }
