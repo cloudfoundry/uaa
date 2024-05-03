@@ -442,11 +442,14 @@ class UaaStringUtilsTest {
     }
 
     @Test
-    void getCleanString() {
+    void validateInput() {
         assertEquals("foo", UaaStringUtils.getValidatedString("foo"));
-        assertThrows(IllegalArgumentException.class, () -> UaaStringUtils.getValidatedString(null));
-        assertThrows(IllegalArgumentException.class, () -> UaaStringUtils.getValidatedString("foo" + '\n' + "bar"));
-        assertThrows(IllegalArgumentException.class, () -> UaaStringUtils.getValidatedString("foo" + '\0' + "bar"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "\0", "", "\t", "\n", "\r" })
+    void alertOnInvlidInput(String input) {
+        assertThrows(IllegalArgumentException.class, () -> UaaStringUtils.getValidatedString(input));
     }
 
     private static void replaceZoneVariables(IdentityZone zone) {

@@ -317,7 +317,7 @@ public final class UaaStringUtils {
     }
 
     public static String getValidatedString(String input) {
-        if (!isNullOrEmpty(input) && !CTRL_PATTERN.matcher(input).find() && !ALL_CTRL_PATTERN.matcher(input).find()) {
+        if (!isNullOrEmpty(input) && !ALL_CTRL_PATTERN.matcher(input).find()) {
             return input;
         }
         throw new IllegalArgumentException("Invalid input");
