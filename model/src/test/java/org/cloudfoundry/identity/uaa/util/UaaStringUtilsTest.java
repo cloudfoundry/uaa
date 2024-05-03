@@ -441,6 +441,14 @@ class UaaStringUtilsTest {
         assertEquals(List.of("1"), UaaStringUtils.getValuesOrDefaultValue(null, "1"));
     }
 
+    @Test
+    void getCleanString() {
+        assertEquals("foo", UaaStringUtils.getValidatedString("foo"));
+        assertThrows(IllegalArgumentException.class, () -> UaaStringUtils.getValidatedString(null));
+        assertThrows(IllegalArgumentException.class, () -> UaaStringUtils.getValidatedString("foo" + '\n' + "bar"));
+        assertThrows(IllegalArgumentException.class, () -> UaaStringUtils.getValidatedString("foo" + '\0' + "bar"));
+    }
+
     private static void replaceZoneVariables(IdentityZone zone) {
         String s = "https://{zone.subdomain}.domain.com/z/{zone.id}?id={zone.id}&domain={zone.subdomain}";
         String expect = String.format("https://%s.domain.com/z/%s?id=%s&domain=%s", zone.getSubdomain(), zone.getId(), zone.getId(), zone.getSubdomain());

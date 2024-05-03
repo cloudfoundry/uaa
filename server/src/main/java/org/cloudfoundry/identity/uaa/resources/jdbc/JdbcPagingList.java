@@ -21,6 +21,7 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -105,7 +106,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
     }
 
     private String getCountSql(String sql) {
-        String result = sql.toLowerCase();
+        String result = UaaStringUtils.getValidatedString(sql).toLowerCase();
         if (result.startsWith("select") && result.contains(" from ")) {
             result = String.format("select count(*) %s", result.substring(result.indexOf(" from ")));
         }
