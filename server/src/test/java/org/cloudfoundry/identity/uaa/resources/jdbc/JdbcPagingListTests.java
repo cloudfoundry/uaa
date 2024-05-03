@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -103,6 +104,23 @@ class JdbcPagingListTests {
                 new ColumnMapRowMapper(), 3);
         Map<String, Object> map = list.get(3);
         assertNotNull(map.get("name"));
+    }
+
+    @Test
+    void selectColumnsFull() {
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT Foo.id, FOO.NAME from foo", new ColumnMapRowMapper(), 3);
+        Map<String, Object> map = list.get(3);
+        assertNotNull(map.get("name"));
+        assertEquals("zab", map.get("name"));
+    }
+
+    @Test
+    void testWrongStatement() {
+        assertThrows(BadSqlGrammarException.class,
+            () -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "Insert ('6', 'sab') from foo", new ColumnMapRowMapper(), 3));
+
+        assertThrows(BadSqlGrammarException.class,
+            () -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * ", new ColumnMapRowMapper(), 3));
     }
 
     @Test

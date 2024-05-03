@@ -19,6 +19,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -73,7 +74,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
         this.sql = sql;
         this.args = args;
         this.mapper = mapper;
-        this.size = parameterJdbcTemplate.queryForObject(getCountSql(sql), args, Integer.class);
+        this.size = Optional.ofNullable(parameterJdbcTemplate.queryForObject(getCountSql(sql), args, Integer.class)).orElse(0);
         this.pageSize = pageSize;
         this.limitSqlAdapter = limitSqlAdapter;
     }
@@ -92,7 +93,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
     @Override
     public Iterator<E> iterator() {
-        return new SafeIterator<E>(super.iterator());
+        return new SafeIterator<>(super.iterator());
     }
 
     @Override
@@ -100,12 +101,15 @@ public class JdbcPagingList<E> extends AbstractList<E> {
         if (fromIndex < 0 || toIndex > size || fromIndex > toIndex) {
             throw new IndexOutOfBoundsException("The indexes provided are outside the bounds of this list.");
         }
-        return new SafeIteratorList<E>(super.subList(fromIndex, toIndex));
+        return new SafeIteratorList<>(super.subList(fromIndex, toIndex));
     }
 
     private String getCountSql(String sql) {
-        String result = sql.replaceAll("(?i)select (.*?) from (.*)", "select count(*) from $2");
-        int orderByPos = result.toLowerCase().lastIndexOf("order by");
+        String result = sql.toLowerCase();
+        if (result.startsWith("select") && result.contains(" from ")) {
+            result = String.format("select count(*) %s", result.substring(result.indexOf(" from ")));
+        }
+        int orderByPos = result.lastIndexOf("order by");
         if (orderByPos >= 0) {
             result = result.substring(0, orderByPos);
         }
@@ -143,7 +147,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
         @Override
         public Iterator<T> iterator() {
-            return new SafeIterator<T>(super.iterator());
+            return new SafeIterator<>(super.iterator());
         }
 
         @Override
