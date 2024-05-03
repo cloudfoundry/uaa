@@ -27,7 +27,7 @@
     <bean id="scimJoinQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
         <property name="attributeNameMapper">
             <bean class="org.cloudfoundry.identity.uaa.resources.JoinAttributeNameMapper">
-                <constructor-arg name="prefix" value="u"/>
+                <constructor-arg name="name" value="u"/>
             </bean>
         </property>
         <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
