@@ -138,6 +138,13 @@ public class DeprecatedUaaTokenServicesTests {
     }
 
     @Test
+    public void testEquals() {
+        CompositeToken copyToken = new CompositeToken(persistToken);
+        assertEquals(copyToken, persistToken);
+        assertEquals(copyToken.hashCode(), persistToken.hashCode());
+    }
+
+    @Test
     public void test_opaque_tokens_are_persisted() {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(false);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setRefreshTokenFormat(JWT.getStringValue());
