@@ -27,6 +27,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
@@ -51,6 +52,9 @@ public class TokenRevocationEndpointTests {
     JdbcTemplate jdbcTemplate;
 
     @Autowired
+    NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     LimitSqlAdapter limitSqlAdapter;
 
     @Autowired
@@ -67,12 +71,12 @@ public class TokenRevocationEndpointTests {
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
-        clientService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder));
+        clientService = spy(new MultitenantJdbcClientDetailsService(namedJdbcTemplate, mockIdentityZoneManager, passwordEncoder));
         clientService.addClientDetails(client, zoneId);
 
         ScimUserProvisioning userProvisioning = new JdbcScimUserProvisioning(
-                jdbcTemplate,
-                new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
+                namedJdbcTemplate,
+                new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter),
                 passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate));
         JdbcRevocableTokenProvisioning provisioning = spy(new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter, new TimeServiceImpl()));
         endpoint = spy(new TokenRevocationEndpoint(clientService, userProvisioning, provisioning));

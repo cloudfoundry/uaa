@@ -116,13 +116,13 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     private JdbcListFactory listFactory;
 
     public MultitenantJdbcClientDetailsService(
-            final JdbcTemplate jdbcTemplate,
+            final NamedParameterJdbcTemplate jdbcTemplate,
             final IdentityZoneManager identityZoneManager,
             final @Qualifier("cachingPasswordEncoder") PasswordEncoder passwordEncoder) {
         super(identityZoneManager);
         Assert.notNull(jdbcTemplate, "JDbcTemplate required");
-        this.jdbcTemplate = jdbcTemplate;
-        this.listFactory = new DefaultJdbcListFactory(new NamedParameterJdbcTemplate(jdbcTemplate));
+        this.jdbcTemplate = jdbcTemplate.getJdbcTemplate();
+        this.listFactory = new DefaultJdbcListFactory(jdbcTemplate);
         this.passwordEncoder = passwordEncoder;
     }
 

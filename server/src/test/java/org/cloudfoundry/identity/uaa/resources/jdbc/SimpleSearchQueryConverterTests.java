@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
+import org.cloudfoundry.identity.uaa.resources.JoinAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -9,6 +10,7 @@ import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -93,5 +95,28 @@ class SimpleSearchQueryConverterTests {
         assertThrowsWithMessageThat(IllegalArgumentException.class,
                 () -> converter.getFilterValues(query, validAttributes),
                 is("[" + operator + "] operator is not supported."));
+    }
+
+    @Test
+    void testJoinName() {
+        assertEquals("", converter.getJoinName());
+        converter.setAttributeNameMapper(new JoinAttributeNameMapper("myTable"));
+        assertEquals("myTable", converter.getJoinName());
+    }
+
+    @Test
+    void testJoinFilterAttributes() {
+        String query = "origin eq \"origin-value\" and id eq \"group-value\"";
+        List<String> validAttributes = Arrays.asList("origin", "id".toLowerCase());
+        JoinAttributeNameMapper joinAttributeNameMapper = new JoinAttributeNameMapper("prefix");
+        converter.setAttributeNameMapper(joinAttributeNameMapper);
+        Map filterValues = converter.getFilterValues(query, validAttributes);
+        assertNotNull(filterValues);
+        assertEquals("[origin-value]", filterValues.get("origin").toString());
+        assertEquals("[group-value]", filterValues.get("id").toString());
+        assertEquals("prefix.origin", converter.map("origin"));
+        assertEquals("prefix.id", converter.map("id"));
+        assertEquals("prefix", converter.getJoinName());
+        assertEquals("origin", joinAttributeNameMapper.mapFromInternal("prefix.origin"));
     }
 }

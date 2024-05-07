@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -37,15 +38,16 @@ class ScimExternalGroupBootstrapTests {
     @BeforeEach
     void setUp(
             @Autowired JdbcTemplate jdbcTemplate,
-            @Autowired LimitSqlAdapter limitSqlAdapter
+            @Autowired LimitSqlAdapter limitSqlAdapter,
+            @Autowired NamedParameterJdbcTemplate namedJdbcTemplate
     ) throws SQLException {
         IdentityZone zone = new IdentityZone();
         zone.setId(RandomStringUtils.randomAlphabetic(10));
         IdentityZoneHolder.set(zone);
 
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter);
         DbUtils dbUtils = new DbUtils();
-        JdbcScimGroupProvisioning gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
+        JdbcScimGroupProvisioning gDB = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
         eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());

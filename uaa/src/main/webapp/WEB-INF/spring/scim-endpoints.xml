@@ -24,14 +24,23 @@
         <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>
 
+    <bean id="scimJoinQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
+        <property name="attributeNameMapper">
+            <bean class="org.cloudfoundry.identity.uaa.resources.JoinAttributeNameMapper">
+                <constructor-arg name="name" value="u"/>
+            </bean>
+        </property>
+        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
+    </bean>
+
     <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory"/>
         <property name="queryConverter" ref="scimUserQueryConverter"/>
+        <property name="joinConverter" ref="scimJoinQueryConverter"/>
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}"/>
         <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}"/>
         <property name="timeService" ref="timeService"/>
-        <property name="useCaseInsensitiveQueries" ref="useCaseInsensitiveQueries"/>
         <constructor-arg name="passwordEncoder" ref="nonCachingPasswordEncoder"/>
     </bean>
 
