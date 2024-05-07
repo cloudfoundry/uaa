@@ -2,20 +2,19 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
-import org.springframework.stereotype.Component;
 
 import java.security.cert.CertificateException;
 
-@Component
+@Configuration
 public class SamlRelyingPartyRegistrationRepository {
 
     // SAML SP metadata generation relies on a relyingPartyRegistration, which requires a valid SAML IDP
@@ -26,8 +25,12 @@ public class SamlRelyingPartyRegistrationRepository {
     // SP metadata generation. See relevant issue: https://github.com/spring-projects/spring-security/issues/11369
     public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
-    @Autowired
-    @Qualifier("samlEntityID")
+    public SamlRelyingPartyRegistrationRepository(@Qualifier("samlEntityID") String samlEntityID,
+                                                  SamlKeyConfigProps samlKeyConfigProps) {
+        this.samlEntityID = samlEntityID;
+        this.samlKeyConfigProps = samlKeyConfigProps;
+    }
+
     private String samlEntityID;
 
     @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
@@ -36,7 +39,6 @@ public class SamlRelyingPartyRegistrationRepository {
     @Value("${login.saml.signRequest:true}")
     private Boolean samlSignRequest;
 
-    @Autowired
     private SamlKeyConfigProps samlKeyConfigProps;
 
     @Bean
@@ -52,12 +54,12 @@ public class SamlRelyingPartyRegistrationRepository {
                 .registrationId("example")
                 .assertingPartyDetails(details -> details
                         .wantAuthnRequestsSigned(samlSignRequest)
-                        )
-                .signingX509Credentials( cred -> cred
-                        .add(Saml2X509Credential.signing( keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
                 )
-                .decryptionX509Credentials( cred -> cred
-                        .add(Saml2X509Credential.decryption( keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
+                .signingX509Credentials(cred -> cred
+                        .add(Saml2X509Credential.signing(keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
+                )
+                .decryptionX509Credentials(cred -> cred
+                        .add(Saml2X509Credential.decryption(keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
                 )
                 .build();
 
