@@ -66,4 +66,5 @@ public interface SearchQueryConverter {
 
     String map(String attribute);
 
+    String getJoinName();
 }

@@ -5,8 +5,10 @@ import com.unboundid.scim.sdk.InvalidResourceException;
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.resources.JoinAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.lang.Nullable;
@@ -346,5 +348,9 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     @Override
     public String map(String attribute) {
         return hasText(attribute) ? mapper.mapToInternal(attribute) : attribute;
+    }
+
+    public String getJoinName() {
+        return (mapper instanceof JoinAttributeNameMapper joinAttributeNameMapper) ? joinAttributeNameMapper.getName() : UaaStringUtils.EMPTY_STRING;
     }
 }

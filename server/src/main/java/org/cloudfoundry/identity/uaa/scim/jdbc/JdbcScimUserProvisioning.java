@@ -251,6 +251,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             return pagingListFactory.createJdbcPagingList(sql, where.getParams(), rowMapper, getPageSize());
         }
 
+        final NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         return namedParameterJdbcTemplate.query(sql, where.getParams(), rowMapper);
     }
 
