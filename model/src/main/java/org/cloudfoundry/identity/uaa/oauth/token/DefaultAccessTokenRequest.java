@@ -21,7 +21,7 @@ import java.util.Set;
  */
 public class DefaultAccessTokenRequest implements AccessTokenRequest, Serializable {
 
-	private static final long serialVersionUID = 914967629530462926L;
+	private static final long serialVersionUID = -3327891152794747331L;
 
 	private final MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
 

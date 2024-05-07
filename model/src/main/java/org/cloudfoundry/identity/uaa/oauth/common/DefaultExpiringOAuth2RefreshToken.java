@@ -12,7 +12,7 @@ import java.util.Date;
  */
 public class DefaultExpiringOAuth2RefreshToken extends DefaultOAuth2RefreshToken implements ExpiringOAuth2RefreshToken {
 
-	private static final long serialVersionUID = 3449554332764129719L;
+	private static final long serialVersionUID = -2756709195772629648L;
 
 	private final Date expiration;
 

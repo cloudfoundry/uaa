@@ -20,7 +20,7 @@ import java.util.TreeSet;
 @SuppressWarnings("serial")
 public class DefaultOAuth2AccessToken implements Serializable, OAuth2AccessToken {
 
-	private static final long serialVersionUID = 914967629530462926L;
+	private static final long serialVersionUID = -1301199046022198244L;
 
 	private String value;
 

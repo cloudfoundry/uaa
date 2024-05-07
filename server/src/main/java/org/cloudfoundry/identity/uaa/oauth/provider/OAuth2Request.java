@@ -20,7 +20,7 @@ import java.util.Set;
  */
 public class OAuth2Request extends BaseRequest implements Serializable {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = -3842304780559108275L;
 
 	/**
 	 * Resolved resource IDs. This set may change during request processing.

@@ -16,7 +16,7 @@ import java.util.Objects;
  */
 public class OAuth2Authentication extends AbstractAuthenticationToken {
 
-	private static final long serialVersionUID = -4809832298438307309L;
+	private static final long serialVersionUID = 8200467823628026414L;
 
 	private final OAuth2Request storedRequest;
 

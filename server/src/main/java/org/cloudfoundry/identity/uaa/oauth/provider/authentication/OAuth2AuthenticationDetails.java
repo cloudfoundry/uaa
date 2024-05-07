@@ -14,7 +14,7 @@ import java.io.Serializable;
  */
 public class OAuth2AuthenticationDetails implements Serializable {
 	
-	private static final long serialVersionUID = -4809832298438307309L;
+	private static final long serialVersionUID = -2981260975134202737L;
 
 	public static final String ACCESS_TOKEN_VALUE = OAuth2AuthenticationDetails.class.getSimpleName() + ".ACCESS_TOKEN_VALUE";
 

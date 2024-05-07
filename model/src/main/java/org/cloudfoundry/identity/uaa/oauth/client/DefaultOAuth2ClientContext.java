@@ -18,7 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class DefaultOAuth2ClientContext implements OAuth2ClientContext, Serializable {
 
-	private static final long serialVersionUID = 914967629530462926L;
+	private static final long serialVersionUID = 7301862963115789109L;
 
 	private transient OAuth2AccessToken accessToken;
 
