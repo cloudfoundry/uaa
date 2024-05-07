@@ -14,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.sql.SQLException;
@@ -34,7 +35,7 @@ class JdbcQueryableClientDetailsServiceTests {
     private MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Autowired
     private LimitSqlAdapter limitSqlAdapter;
@@ -45,14 +46,14 @@ class JdbcQueryableClientDetailsServiceTests {
     @BeforeEach
     void setUp() {
         multitenantJdbcClientDetailsService = new MultitenantJdbcClientDetailsService(
-                jdbcTemplate,
+                namedParameterJdbcTemplate,
                 null,
                 passwordEncoder);
         jdbcQueryableClientDetailsService = new JdbcQueryableClientDetailsService(
                 multitenantJdbcClientDetailsService,
-                jdbcTemplate,
+                namedParameterJdbcTemplate,
                 new JdbcPagingListFactory(
-                        jdbcTemplate,
+                    namedParameterJdbcTemplate,
                         limitSqlAdapter));
     }
 
@@ -100,25 +101,25 @@ class JdbcQueryableClientDetailsServiceTests {
 
     @Test
     void queryEquals() {
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimEquality(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "zoneOneId");
     }
 
     @Test
     void queryExists() {
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimPresent(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "zoneOneId");
     }
 
     @Test
     void queryEqualsInAnotherZone() {
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "otherZoneId");
+        verifyScimEquality(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimEquality(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "otherZoneId");
         assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
     }
 
     @Test
     void queryExistsInAnotherZone() {
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "otherZoneId");
+        verifyScimPresent(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimPresent(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "otherZoneId");
         assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
     }
 

@@ -65,6 +65,7 @@ import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
@@ -140,15 +141,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private SearchQueryConverter joinConverter;
 
     public JdbcScimUserProvisioning(
-            final JdbcTemplate jdbcTemplate,
+            final NamedParameterJdbcTemplate namedJdbcTemplate,
             final JdbcPagingListFactory pagingListFactory,
             final PasswordEncoder passwordEncoder,
             final IdentityZoneManager identityZoneManager,
             final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning
     ) {
-        super(jdbcTemplate, pagingListFactory, mapper);
-        Assert.notNull(jdbcTemplate, "JDBC must not be null");
-        this.jdbcTemplate = jdbcTemplate;
+        super(namedJdbcTemplate, pagingListFactory, mapper);
+        Assert.notNull(namedJdbcTemplate, "JdbcTemplate required");
+        this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
         setQueryConverter(new SimpleSearchQueryConverter());
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
@@ -158,7 +159,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
     }
-
 
     public void setJoinConverter(SearchQueryConverter joinConverter) {
         this.joinConverter = joinConverter;
