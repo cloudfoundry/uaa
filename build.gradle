@@ -10,6 +10,7 @@ buildscript {
         mavenCentral()
         gradlePluginPortal()
         maven {
+
             url("https://plugins.gradle.org/m2/")
         }
     }
@@ -64,6 +65,15 @@ subprojects {
         exclude(group: "org.apache.directory.server", module: "apacheds-protocol-ldap")
         exclude(group: "org.skyscreamer", module: "jsonassert")
         exclude(group: "com.vaadin.external.google", module: "android-json")
+
+        resolutionStrategy {
+            resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                if (details.requested.group == 'org.opensaml' && details.requested.name.startsWith("opensaml-")) {
+                    details.useVersion "${versions.opensaml}"
+                    details.because 'Spring Security 5.8.x allows OpenSAML 3 or 4. OpenSAML 3 has reached its end-of-life. Spring Security 6 drops support for 3, using 4.'
+                }
+            }
+        }
     }
 
     dependencies {
