@@ -27,9 +27,6 @@ dependencies {
         exclude(module: "jna")
     }
     implementation(project(":cloudfoundry-identity-statsd-lib"))
-    implementation(libraries.opensamlCore)
-    implementation(libraries.opensamlApi)
-    implementation(libraries.opensamlImpl)
     implementation(libraries.springBootStarter)
     implementation(libraries.springBootStarterWeb)
     implementation(libraries.springSecurityOauth) {

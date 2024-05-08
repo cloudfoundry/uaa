@@ -19,7 +19,7 @@ versions.seleniumVersion = "4.18.1"
 versions.braveVersion = "6.0.3"
 versions.jacksonVersion = "2.17.1"
 versions.jsonPathVersion = "2.9.0"
-versions.opensaml = "4.0.1"
+versions.opensaml = "4.0.1" // Spring Security 5.8.x allows OpenSAML 3 or 4. OpenSAML 3 has reached its end-of-life. Spring Security 6 drops support for 3, using 4.
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
 ext["mariadb.version"] = "2.7.12" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
@@ -133,9 +133,6 @@ libraries.orgJson = "org.json:json:20240303"
 libraries.owaspEsapi = "org.owasp.esapi:esapi:2.5.3.1"
 libraries.jodaTime = "joda-time:joda-time:2.12.7"
 libraries.apacheHttpClient = "org.apache.httpcomponents:httpclient:4.5.14"
-libraries.opensamlCore = "org.opensaml:opensaml-core:${versions.opensaml}"
-libraries.opensamlApi = "org.opensaml:opensaml-saml-api:${versions.opensaml}"
-libraries.opensamlImpl = "org.opensaml:opensaml-saml-impl:${versions.opensaml}"
 
 // gradle plugins
 libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.9"
