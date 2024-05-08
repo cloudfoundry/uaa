@@ -8,6 +8,7 @@ dependencies {
 
     implementation(libraries.javaxValidationApi)
 
+    implementation(libraries.commonsCodec)
     implementation(libraries.commonsIo)
 
     implementation(libraries.springWeb)
