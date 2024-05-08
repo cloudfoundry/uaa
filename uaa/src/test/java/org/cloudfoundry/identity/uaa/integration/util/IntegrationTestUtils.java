@@ -52,7 +52,6 @@ import org.springframework.security.oauth2.common.AuthenticationScheme;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -503,6 +502,9 @@ public class IntegrationTestUtils {
                                         String zoneId,
                                         String url,
                                         ScimGroup group) {
+        assertNotNull(group.getDisplayName());
+        assertFalse(group.getDisplayName().isBlank());
+
         RestTemplate template = new RestTemplate();
         template.setErrorHandler(fiveHundredErrorHandler);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
@@ -518,6 +520,7 @@ public class IntegrationTestUtils {
                 new HttpEntity<>(JsonUtils.writeValueAsBytes(group), headers),
                 ScimGroup.class
         );
+        assertTrue(createGroup.getStatusCode().is2xxSuccessful());
         return createGroup.getBody();
     }
 
@@ -621,6 +624,7 @@ public class IntegrationTestUtils {
             existing.setActive(active);
             HttpEntity<IdentityZone> updateZoneRequest = new HttpEntity<>(existing);
             ResponseEntity<String> getUpdatedZone = client.exchange(url + "/identity-zones/{id}", HttpMethod.PUT, updateZoneRequest, String.class, id);
+            assertTrue(getUpdatedZone.getStatusCode().is2xxSuccessful());
             return JsonUtils.readValue(getUpdatedZone.getBody(), IdentityZone.class);
         }
 
@@ -632,6 +636,7 @@ public class IntegrationTestUtils {
         identityZone.setConfig(config);
         identityZone.setActive(active);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
+        assertTrue(zone.getStatusCode().is2xxSuccessful());
         return zone.getBody();
     }
 
@@ -1136,8 +1141,8 @@ public class IntegrationTestUtils {
             headers.add("Cookie", cookie.getName() + "=" + cookie.getValue());
         }
         return headers;
-    } 	
-  
+    }
+
     public static String getAuthorizationResponse(ServerRunning serverRunning,
 			  String clientId,
 			  String username,
@@ -1228,7 +1233,7 @@ public class IntegrationTestUtils {
     	}
     	return location;
     }
-    
+
     public static ResponseEntity<Map> getTokens(ServerRunning serverRunning,
             									UaaTestAccounts testAccounts,
             									String clientId,
