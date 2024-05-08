@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 public class InvalidSignatureException extends RuntimeException {
 
-  private static final long serialVersionUID = 5014512881453030515L;
+  private static final long serialVersionUID = 5458857726945157613L;
 
   private InvalidSignatureException() {
   }
