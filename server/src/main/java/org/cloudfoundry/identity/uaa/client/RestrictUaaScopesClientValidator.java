@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 public class RestrictUaaScopesClientValidator implements ClientDetailsValidator {
     private final UaaScopes uaaScopes;

@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails.Source;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestOperations;
 

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.advice;
 
+import org.cloudfoundry.identity.uaa.oauth.provider.error.WebResponseExceptionTranslator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint;
@@ -7,9 +8,8 @@ import org.cloudfoundry.identity.uaa.oauth.IntrospectEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenEndpoint;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
-import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.DefaultWebResponseExceptionTranslator;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;

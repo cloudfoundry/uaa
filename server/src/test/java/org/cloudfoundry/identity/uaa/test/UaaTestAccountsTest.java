@@ -1,9 +1,10 @@
 package org.cloudfoundry.identity.uaa.test;
 
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.oauth2.client.test.TestAccounts;
 
 import static org.cloudfoundry.identity.uaa.test.UaaTestAccounts.UAA_TEST_PASSWORD;
 import static org.cloudfoundry.identity.uaa.test.UaaTestAccounts.UAA_TEST_USERNAME;

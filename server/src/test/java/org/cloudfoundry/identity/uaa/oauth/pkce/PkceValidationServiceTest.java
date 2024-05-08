@@ -20,8 +20,8 @@ import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier;
 import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 /**
  * 

@@ -33,12 +33,6 @@ dependencies {
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 
-    implementation(libraries.springSecurityOauth) {
-        exclude(module: "commons-codec")
-        exclude(module: "jackson-mapper-asl")
-        exclude(module: "spring-security-web")
-    }
-
     implementation(libraries.bouncyCastleProv)
     implementation(libraries.bouncyCastlePkix)
 
@@ -75,6 +69,7 @@ dependencies {
 
     implementation(libraries.snakeyaml)
 
+    implementation(libraries.springWebMvc)
     implementation(libraries.springSecurityLdap)
     implementation(libraries.springLdapCore)
     implementation(libraries.springLdapCoreTiger)

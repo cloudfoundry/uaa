@@ -26,13 +26,11 @@ dependencies {
         exclude(module: "jna")
     }
     implementation(project(":cloudfoundry-identity-statsd-lib"))
+    implementation(project(":cloudfoundry-identity-model"))
+    implementation(libraries.springSecurityConfig)
+    implementation(libraries.springSecurityWeb)
     implementation(libraries.springBootStarter)
     implementation(libraries.springBootStarterWeb)
-    implementation(libraries.springSecurityOauth) {
-        exclude(module: "commons-codec")
-        exclude(module: "jackson-mapper-asl")
-        exclude(module: "spring-security-web")
-    }
     implementation(libraries.thymeLeaf) {
         exclude(module: "ognl")
     }

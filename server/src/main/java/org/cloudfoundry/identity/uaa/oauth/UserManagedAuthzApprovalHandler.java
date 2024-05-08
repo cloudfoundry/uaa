@@ -4,22 +4,25 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.approval.UserApprovalHandler;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus.DENIED;
 
+@Component("userManagedApprovalHandler")
 public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(UserManagedAuthzApprovalHandler.class);
@@ -31,10 +34,10 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
     private final IdentityZoneManager identityZoneManager;
     private final int approvalExpiryInMillis;
 
-    UserManagedAuthzApprovalHandler(
-            final ApprovalStore approvalStore,
-            final QueryableResourceManager<ClientDetails> clientDetailsService,
-            final IdentityZoneManager identityZoneManager) {
+    public UserManagedAuthzApprovalHandler(
+        final @Qualifier("approvalStore") ApprovalStore approvalStore,
+        final @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
+        final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager) {
         this.approvalStore = approvalStore;
         this.clientDetailsService = clientDetailsService;
         this.identityZoneManager = identityZoneManager;
