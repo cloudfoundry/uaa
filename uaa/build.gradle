@@ -30,9 +30,6 @@ dependencies {
     implementation(project(":cloudfoundry-identity-model"))
     implementation(libraries.springSecurityConfig)
     implementation(libraries.springSecurityWeb)
-    implementation(libraries.opensamlCore)
-    implementation(libraries.opensamlApi)
-    implementation(libraries.opensamlImpl)
     implementation(libraries.springBootStarter)
     implementation(libraries.springBootStarterWeb)
     implementation(libraries.thymeLeaf) {
