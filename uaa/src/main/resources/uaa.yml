@@ -1,3 +1,7 @@
+logging:
+  level:
+    org.springframework.security: TRACE
+
 # Configuration in this file is overridden by an external file
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
@@ -413,6 +417,14 @@ login:
       connectionManagerTimeout: 10000
       # URL metadata fetch - read timeout
       soTimeout: 10000
+    providers:
+      okta-saml:
+        idpMetadata: https://dev-73893672.okta.com/app/exk9ojp48mcTeKG9t5d7/sso/saml/metadata
+        metadataTrustCheck: true
+        showSamlLoginLink: true
+        linkText: 'Okta SAML'
+        addShadowUserOnLogin: true
+
 #BEGIN SAML PROVIDERS
 #    providers:
 #      okta-signed-or-encrypted:
