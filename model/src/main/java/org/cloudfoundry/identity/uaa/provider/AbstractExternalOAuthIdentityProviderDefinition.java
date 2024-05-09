@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.lang.reflect.ParameterizedType;
@@ -51,6 +52,9 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private OAuthGroupMappingMode groupMappingMode;
     private boolean pkce = true;
     private boolean performRpInitiatedLogout = true;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
+    private String auth_method;
 
     public T setAuthUrl(URL authUrl) {
         this.authUrl = authUrl;
@@ -149,6 +153,14 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         this.performRpInitiatedLogout = performRpInitiatedLogout;
     }
 
+    public String getAuth_method() {
+        return this.auth_method;
+    }
+
+    public void setAuth_method(final String auth_method) {
+        this.auth_method = auth_method;
+    }
+
     @JsonIgnore
     public Class getParameterizedClass() {
         ParameterizedType parameterizedType =
@@ -183,6 +195,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (!Objects.equals(groupMappingMode, that.groupMappingMode)) return false;
         if (pkce != that.pkce) return false;
         if (performRpInitiatedLogout != that.performRpInitiatedLogout) return false;
+        if (!Objects.equals(auth_method, that.auth_method)) return false;
         return Objects.equals(responseType, that.responseType);
 
     }
@@ -208,6 +221,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (responseType != null ? responseType.hashCode() : 0);
         result = 31 * result + (pkce ? 1 : 0);
         result = 31 * result + (performRpInitiatedLogout ? 1 : 0);
+        result = 31 * result + (auth_method != null ? auth_method.hashCode() : 0);
         return result;
     }
 }
