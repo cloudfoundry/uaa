@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,8 +13,6 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
 
 import java.security.cert.CertificateException;
-import java.util.ArrayList;
-import java.util.List;
 
 @Configuration
 public class SamlRelyingPartyRegistrationRepository {
@@ -29,12 +26,9 @@ public class SamlRelyingPartyRegistrationRepository {
     public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
     public SamlRelyingPartyRegistrationRepository(@Qualifier("samlEntityID") String samlEntityID,
-                                                  SamlKeyConfigProps samlKeyConfigProps,
-                                                  BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData
-                                                  ) {
+                                                  SamlKeyConfigProps samlKeyConfigProps) {
         this.samlEntityID = samlEntityID;
         this.samlKeyConfigProps = samlKeyConfigProps;
-        this.bootstrapSamlIdentityProviderData = bootstrapSamlIdentityProviderData;
     }
 
     private String samlEntityID;
@@ -47,37 +41,17 @@ public class SamlRelyingPartyRegistrationRepository {
 
     private SamlKeyConfigProps samlKeyConfigProps;
 
-    private BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
-
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() throws CertificateException {
 
         SamlKey activeSamlKey = samlKeyConfigProps.getActiveSamlKey();
         KeyWithCert keyWithCert = new KeyWithCert(activeSamlKey.getKey(), activeSamlKey.getPassphrase(), activeSamlKey.getCertificate());
 
-        List<RelyingPartyRegistration> relyingPartyRegistrations = new ArrayList<>();
-
-        List<SamlIdentityProviderDefinition> samlIdpDefinitions = bootstrapSamlIdentityProviderData.getIdentityProviderDefinitions();
-
-        if (samlIdpDefinitions.isEmpty()) {
-            relyingPartyRegistrations.add(buildRelyingPartyRegistration(keyWithCert, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, "example"));
-        } else {
-            for (SamlIdentityProviderDefinition samlIdentityProviderDefinition : samlIdpDefinitions) {
-                String metadataLocation = samlIdentityProviderDefinition.getMetaDataLocation();
-                String idpEntityAlias = samlIdentityProviderDefinition.getIdpEntityAlias();
-                relyingPartyRegistrations.add(buildRelyingPartyRegistration(keyWithCert, metadataLocation, idpEntityAlias));
-            }
-        }
-
-        return new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
-    }
-
-    private RelyingPartyRegistration buildRelyingPartyRegistration(KeyWithCert keyWithCert, String metadataLocation, String rpRegstrationId) {
-        return RelyingPartyRegistrations
-                .fromMetadataLocation(metadataLocation)
+        RelyingPartyRegistration relyingPartyRegistration = RelyingPartyRegistrations
+                .fromMetadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
                 .entityId(samlEntityID)
                 .nameIdFormat(samlSpNameID)
-                .registrationId(rpRegstrationId)
+                .registrationId("example")
                 .assertingPartyDetails(details -> details
                         .wantAuthnRequestsSigned(samlSignRequest)
                 )
@@ -88,5 +62,7 @@ public class SamlRelyingPartyRegistrationRepository {
                         .add(Saml2X509Credential.decryption(keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
                 )
                 .build();
+
+        return new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistration);
     }
 }
