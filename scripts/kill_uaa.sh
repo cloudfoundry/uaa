@@ -28,7 +28,13 @@ function main() {
   done
 
   $jps_command | grep Bootstrap
-
+  if [ $? -eq 0 ]; then
+    echo "Bootstrap is still running"
+    exit 1
+  else
+    echo "Bootstrap has finished"
+    exit 0
+  fi
 }
 
 main "$@"
