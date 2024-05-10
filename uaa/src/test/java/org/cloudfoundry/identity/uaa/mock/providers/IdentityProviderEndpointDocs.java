@@ -106,7 +106,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 class IdentityProviderEndpointDocs extends EndpointDocs {
@@ -591,6 +590,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userInfoUrl").optional(null).type(STRING).description("A URL for fetching user info attributes when queried with the obtained token authorization."),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
+                fieldWithPath("config.auth_method").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Client authentication method. Possible strings are: client_secret_basic, client_secret_post, private_key_jwt, none."),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
                 fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
@@ -626,7 +626,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                                         IDENTITY_ZONE_ID,
                                         CREATED,
                                         LAST_MODIFIED,
-                                        fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used.")
+                                        fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used."),
                                 },
                                 ALIAS_FIELDS_GET
                         )
@@ -688,6 +688,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
+                fieldWithPath("config.auth_method").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Client authentication method. Possible strings are: client_secret_basic, client_secret_post, private_key_jwt, none."),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
                 fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
@@ -960,6 +961,47 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     }
 
     @Test
+    void getFilteredIdentityProviders() throws Exception {
+        Snippet responseFields = responseFields(
+            fieldWithPath("[].type").description("Type of the identity provider."),
+            fieldWithPath("[].originKey").description("Unique identifier for the identity provider."),
+            fieldWithPath("[].name").description(NAME_DESC),
+            fieldWithPath("[].config").description(CONFIG_DESCRIPTION),
+            fieldWithPath("[]." + FIELD_ALIAS_ID).description(ALIAS_ID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING),
+            fieldWithPath("[]." + FIELD_ALIAS_ZID).description(ALIAS_ZID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING),
+
+            fieldWithPath("[].version").description(VERSION_DESC),
+            fieldWithPath("[].active").description(ACTIVE_DESC),
+
+            fieldWithPath("[].id").description(ID_DESC),
+            fieldWithPath("[].identityZoneId").description(IDENTITY_ZONE_ID_DESC),
+            fieldWithPath("[].created").description(CREATED_DESC),
+            fieldWithPath("[].last_modified").description(LAST_MODIFIED_DESC)
+        );
+
+        mockMvc.perform(get("/identity-providers")
+                .param("rawConfig", "false")
+                .param("active_only", "false")
+                .param("origin", "my-oauth2-provider")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}",
+                preprocessResponse(prettyPrint()),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` or `idps.read` (only in the same zone that you are a user of)"),
+                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` scope against the default UAA zone.").optional(),
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                requestParameters(
+                    parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."),
+                    parameterWithName("active_only").optional("false").type(BOOLEAN).description("Flag indicating whether only active IdPs should be returned or all."),
+                    parameterWithName("origin").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Return only IdPs with specific origin.")
+                ),
+                responseFields));
+    }
+
+    @Test
     void getIdentityProvider() throws Exception {
         IdentityProvider identityProvider = JsonUtils.readValue(mockMvc.perform(post("/identity-providers")
                 .header("Authorization", "Bearer " + adminToken)
@@ -1089,6 +1131,25 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                         responseFields));
 
 
+    }
+
+    @Test
+    void createOAuthIdentityProviderThenDeleteSecret() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("my-oauth2-provider", IdentityZoneHolder.get().getId());
+
+        mockMvc.perform(delete("/identity-providers/{id}/secret", identityProvider.getId())
+                .header("Authorization", "Bearer " + adminToken))
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}",
+                preprocessResponse(prettyPrint()),
+                pathParameters(parameterWithName("id").description(ID_DESC)
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                responseFields(getCommonProviderFieldsAnyType())));
     }
 
     @Test

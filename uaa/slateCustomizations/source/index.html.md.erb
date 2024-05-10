@@ -1115,6 +1115,31 @@ _Error Codes_
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
 
+## Retrieve with Filtering
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/http-response.md') %>
+
+_Request Headers_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/request-parameters.md') %>
+
+_Response Fields_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/response-fields.md') %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+
+
 ## Retrieve
 
 <%= render('IdentityProviderEndpointDocs/getIdentityProvider/curl-request.md') %>
@@ -1236,6 +1261,44 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity - Invalid config                                 |
 
+
+## Delete Secret
+
+<aside class="success">
+  Added in UAA 77.10.0
+</aside>
+<br/>
+Delete a secret from the OAuth2 / OIDC IdP configuration.
+<br/>
+
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/http-response.md') %>
+
+_Path Parameters_
+
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/path-parameters.md') %>
+
+_Request Headers_
+
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/request-headers.md') %>
+
+<aside class="notice">
+  This example is for OAuth2 and OIDC identity providers <br/>
+  For a standard IdP the result of auth_method will be none, because the removal of the secret
+  lead to public flow.<br/>
+</aside>
+
+_Request and Response Fields_
+
+<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/request-fields.md') %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 422        | Unprocessable Entity - Invalid config                                 |
 
 # Users
 
