@@ -11,6 +11,6 @@
             </ds:KeyInfo>
         </md:KeyDescriptor>
         <md:SingleSignOnService
-                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://www.cloudfoundry.org"/>
+                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://www.cloudfoundry.org"/>
     </md:IDPSSODescriptor>
 </md:EntityDescriptor>
