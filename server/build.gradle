@@ -21,6 +21,7 @@ dependencies {
     implementation(libraries.springWeb)
     implementation(libraries.springSecurityCore)
     implementation(libraries.springSecurityWeb)
+    implementation(libraries.springSecurityConfig)
     implementation(libraries.springBootStarterMail)
     implementation(libraries.owaspEsapi) {
         transitive = false
