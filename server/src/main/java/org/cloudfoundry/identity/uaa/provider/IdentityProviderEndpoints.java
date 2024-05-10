@@ -316,9 +316,9 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     @DeleteMapping(value = "{id}/secret")
-    public ResponseEntity<IdentityProvider<?>> deleteSecret(@PathVariable String id) {
+    public ResponseEntity<IdentityProvider> deleteSecret(@PathVariable String id) {
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
-        IdentityProvider<?> existing = identityProviderProvisioning.retrieve(id, zoneId);
+        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
         if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
             && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> idpConfiguration) {
             idpConfiguration.setRelyingPartySecret(null);
@@ -326,7 +326,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             setAuthMethod(existing);
             redactSensitiveData(existing);
             logger.info("Secret deleted for Identity Provider: {}", existing.getId());
-            return  new ResponseEntity<>(existing, OK);
+            return new ResponseEntity<>(existing, OK);
         } else {
             logger.debug("Invalid operation. This operation is only supported on external OAuth/OIDC IDP");
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
