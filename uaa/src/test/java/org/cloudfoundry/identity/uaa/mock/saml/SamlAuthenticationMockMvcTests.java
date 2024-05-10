@@ -18,29 +18,23 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.junit.Assert;
 import org.junit.jupiter.api.*;
 import org.owasp.esapi.ESAPI;
 import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.WebApplicationContext;
-import org.w3c.dom.Node;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.*;
 import java.util.function.Consumer;
 
@@ -49,14 +43,13 @@ import static org.apache.logging.log4j.Level.WARN;
 import static org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding.X_VCAP_REQUEST_ID_HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertEquals;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 @DefaultTestContext
 class SamlAuthenticationMockMvcTests {
@@ -117,6 +110,36 @@ class SamlAuthenticationMockMvcTests {
     @AfterEach
     void putBackOriginalLogger() {
         loggingAuditService.setLogger(originalAuditServiceLogger);
+    }
+
+    @Test
+    void sendAuthnRequestToIdpRedirectBindingMode() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(
+                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                                .contextPath("/uaa")
+                                .header(HOST, "localhost:8080")
+
+                )
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
+        assertThat(UaaUrlUtils.getParameterMap(samlRequestUrl).get("SAMLRequest"), notNullValue());
+    }
+
+    @Test
+    void sendAuthnRequestToIdpPostBindingMode() throws Exception {
+        mockMvc.perform(
+                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
+                                .contextPath("/uaa")
+                                .header(HOST, "localhost:8080")
+
+                )
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("name=\"SAMLRequest\"")))
+                .andReturn();
     }
 
     private ResultActions postSamlResponse(
