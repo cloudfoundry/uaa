@@ -53,8 +53,8 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private boolean pkce = true;
     private boolean performRpInitiatedLogout = true;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonProperty(access = JsonProperty.Access.READ_ONLY)
-    private String auth_method;
+    @JsonProperty(value = "auth_method", access = JsonProperty.Access.READ_ONLY)
+    private String authMethod;
 
     public T setAuthUrl(URL authUrl) {
         this.authUrl = authUrl;
@@ -153,12 +153,12 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         this.performRpInitiatedLogout = performRpInitiatedLogout;
     }
 
-    public String getAuth_method() {
-        return this.auth_method;
+    public String getAuthMethod() {
+        return this.authMethod;
     }
 
-    public void setAuth_method(final String auth_method) {
-        this.auth_method = auth_method;
+    public void setAuthMethod(final String authMethod) {
+        this.authMethod = authMethod;
     }
 
     @JsonIgnore
@@ -195,7 +195,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (!Objects.equals(groupMappingMode, that.groupMappingMode)) return false;
         if (pkce != that.pkce) return false;
         if (performRpInitiatedLogout != that.performRpInitiatedLogout) return false;
-        if (!Objects.equals(auth_method, that.auth_method)) return false;
+        if (!Objects.equals(authMethod, that.authMethod)) return false;
         return Objects.equals(responseType, that.responseType);
 
     }
@@ -221,7 +221,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (responseType != null ? responseType.hashCode() : 0);
         result = 31 * result + (pkce ? 1 : 0);
         result = 31 * result + (performRpInitiatedLogout ? 1 : 0);
-        result = 31 * result + (auth_method != null ? auth_method.hashCode() : 0);
+        result = 31 * result + (authMethod != null ? authMethod.hashCode() : 0);
         return result;
     }
 }
