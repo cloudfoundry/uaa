@@ -326,7 +326,7 @@ class IdentityProviderEndpointsTest {
     @Test
     void delete_secret_and_retrieve_by_origin_providers_redacts_data() {
         when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(getExternalOAuthProvider());
-        ResponseEntity<IdentityProvider<?>> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
         IdentityProvider<?> oidc = oidcBody.getBody();
         assertNotNull(oidc);
         assertNotNull(oidc.getConfig());
@@ -338,7 +338,7 @@ class IdentityProviderEndpointsTest {
     @Test
     void delete_secret_on_ldap_fails() {
         when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(getLdapDefinition());
-        ResponseEntity<IdentityProvider<?>> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
         IdentityProvider<?> oidc = oidcBody.getBody();
         assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
         assertNull(oidc);
