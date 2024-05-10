@@ -110,6 +110,11 @@ login:
     #wantAssertionSigned: true
     #Algorithm for SAML signatures. Defaults to SHA1.  Accepts SHA1, SHA256, SHA512
     #signatureAlgorithm: SHA256
+    providers:
+      testsaml-redirect-binding:
+        idpMetadata: classpath:test-saml-idp-metadata-redirect-binding.xml
+      testsaml-post-binding:
+        idpMetadata: classpath:test-saml-idp-metadata-post-binding.xml
     socket:
       # URL metadata fetch - pool timeout
       connectionManagerTimeout: 10000
