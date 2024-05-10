@@ -1271,27 +1271,29 @@ _Error Codes_
 Delete a secret from the OAuth2 / OIDC IdP configuration.
 <br/>
 
-<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/curl-request.md') %>
-<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/http-request.md') %>
-<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/http-response.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/http-response.md') %>
 
 _Path Parameters_
 
-<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/path-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/path-parameters.md') %>
 
 _Request Headers_
 
-<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/request-headers.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/request-headers.md') %>
 
 <aside class="notice">
   This example is for OAuth2 and OIDC identity providers <br/>
   For a standard IdP the result of auth_method will be none, because the removal of the secret
   lead to public flow.<br/>
+  If jwtClientAuthentication section is configured, then after this call, the result of auth_method is private_key_jwt.<br/>
+  If you want set again a secret or change the current secret, please use the update call and set relyingPartySecret.<br/>
 </aside>
 
 _Request and Response Fields_
 
-<%= render('IdentityProviderEndpointDocs/deleteIdentityProviderSecret/request-fields.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/response-fields.md') %>
 
 _Error Codes_
 
