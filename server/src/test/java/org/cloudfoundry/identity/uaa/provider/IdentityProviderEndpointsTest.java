@@ -345,6 +345,55 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
+    void change_bindPassword_and_retrieve_by_origin_providers_redacts_data() {
+        IdentityProvider idp = getLdapDefinition();
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
+        IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
+        identityProviderSecretChange.setSecret("newSecret");
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChange);
+        IdentityProvider<?> oidc = oidcBody.getBody();
+        assertNotNull(oidc);
+        assertNotNull(oidc.getConfig());
+        assertTrue(oidc.getConfig() instanceof LdapIdentityProviderDefinition);
+        assertNull(((LdapIdentityProviderDefinition) oidc.getConfig()).getBindPassword());
+    }
+
+    @Test
+    void change_secret_and_retrieve_by_origin_providers_redacts_data() {
+        IdentityProvider idp = getExternalOAuthProvider();
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
+        IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
+        identityProviderSecretChange.setSecret("newSecret");
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChange);
+        IdentityProvider<?> oidc = oidcBody.getBody();
+        assertNotNull(oidc);
+        assertNotNull(oidc.getConfig());
+        assertTrue(oidc.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
+        assertNull(((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getRelyingPartySecret());
+        assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC, ((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getAuthMethod());
+    }
+
+    @Test
+    void change_secret_on_uaafails() {
+        IdentityProvider identityProvider = new IdentityProvider<>();
+        identityProvider.setConfig(new SamlIdentityProviderDefinition());
+        identityProvider.setName("my saml provider");
+        identityProvider.setIdentityZoneId(OriginKeys.UAA);
+        identityProvider.setType(OriginKeys.SAML);
+        IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(identityProvider);
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChange);
+        IdentityProvider<?> oidc = oidcBody.getBody();
+        assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
+        assertNull(oidc);
+        identityProviderSecretChange.setSecret("newSecret");
+        oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChange);
+        oidc = oidcBody.getBody();
+        assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
+        assertNull(oidc);
+    }
+
+    @Test
     void update_ldap_provider_patches_password() throws Exception {
         IdentityProvider<LdapIdentityProviderDefinition> provider = retrieve_ldap_provider_by_id("id");
         provider.getConfig().setBindPassword(null);

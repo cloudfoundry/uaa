@@ -77,6 +77,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreation
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderSecretChange;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -1134,13 +1135,44 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     }
 
     @Test
+    void createOAuthIdentityProviderThenChangeSecret() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("my-oauth2-provider", IdentityZoneHolder.get().getId());
+
+        IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
+        identityProviderSecretChange.setSecret("newSecret" + new AlphanumericRandomValueStringGenerator(10).generate());
+
+        FieldDescriptor[] idempotentFields = new FieldDescriptor[]{
+            fieldWithPath("secret").required().description("Set new secret and/or bind password, depending on provided IdP type.")
+        };
+
+        Snippet requestFields = requestFields(idempotentFields);
+
+        mockMvc.perform(patch("/identity-providers/{id}/secret", identityProvider.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(serializeExcludingProperties(identityProviderSecretChange)))
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}",
+                preprocessResponse(prettyPrint()),
+                pathParameters(parameterWithName("id").description(ID_DESC)
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                requestFields,
+                responseFields(getCommonProviderFieldsAnyType())));
+    }
+
+    @Test
     void createOAuthIdentityProviderThenDeleteSecret() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("my-oauth2-provider", IdentityZoneHolder.get().getId());
 
         mockMvc.perform(delete("/identity-providers/{id}/secret", identityProvider.getId())
                 .header("Authorization", "Bearer " + adminToken))
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}",
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
                 pathParameters(parameterWithName("id").description(ID_DESC)
                 ),

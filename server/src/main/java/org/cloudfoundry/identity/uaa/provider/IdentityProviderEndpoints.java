@@ -71,6 +71,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -328,9 +329,33 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             logger.info("Secret deleted for Identity Provider: {}", existing.getId());
             return new ResponseEntity<>(existing, OK);
         } else {
-            logger.debug("Invalid operation. This operation is only supported on external OAuth/OIDC IDP");
+            logger.debug("Invalid operation. This operation is only supported on external IDP of type OAuth/OIDC");
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
+    }
+
+    @PatchMapping(value = "{id}/secret")
+    public ResponseEntity<IdentityProvider> changeSecret(@PathVariable String id, @RequestBody IdentityProviderSecretChange secretChange) {
+        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
+        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
+        if(UaaStringUtils.isNullOrEmpty(secretChange.getSecret())) {
+            logger.debug("Invalid payload. The property secret needs to be set");
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
+        if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
+            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> idpConfiguration) {
+            idpConfiguration.setRelyingPartySecret(secretChange.getSecret());
+        } else if(LDAP.equals(existing.getType()) && existing.getConfig() instanceof LdapIdentityProviderDefinition ldapIdentityProviderDefinition) {
+            ldapIdentityProviderDefinition.setBindPassword(secretChange.getSecret());
+        } else {
+            logger.debug("Invalid operation. This operation is only supported on external IDP of type LDAP/OAuth/OIDC");
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
+        identityProviderProvisioning.update(existing, zoneId);
+        setAuthMethod(existing);
+        redactSensitiveData(existing);
+        logger.info("Secret changed for Identity Provider: {}", existing.getId());
+        return new ResponseEntity<>(existing, OK);
     }
 
     @RequestMapping(method = GET)
