@@ -106,7 +106,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 class IdentityProviderEndpointDocs extends EndpointDocs {
@@ -1089,6 +1088,25 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                         responseFields));
 
 
+    }
+
+    @Test
+    void createOAuthIdentityProviderThenDeleteSecret() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("my-oauth2-provider", IdentityZoneHolder.get().getId());
+
+        mockMvc.perform(delete("/identity-providers/{id}/secret", identityProvider.getId())
+                .header("Authorization", "Bearer " + adminToken))
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}",
+                preprocessResponse(prettyPrint()),
+                pathParameters(parameterWithName("id").description(ID_DESC)
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
+                    IDENTITY_ZONE_ID_HEADER,
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                responseFields(getCommonProviderFieldsAnyType())));
     }
 
     @Test

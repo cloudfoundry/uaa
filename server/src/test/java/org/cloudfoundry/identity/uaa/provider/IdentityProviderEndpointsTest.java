@@ -24,6 +24,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -303,6 +304,26 @@ class IdentityProviderEndpointsTest {
         assertNotNull(oauth.getConfig());
         assertTrue(oauth.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
         assertNull(oauth.getConfig().getRelyingPartySecret());
+    }
+
+    @Test
+    void delete_secret_and_retrieve_by_origin_providers_redacts_data() {
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(getExternalOAuthProvider());
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
+        IdentityProvider<?> oidc = oidcBody.getBody();
+        assertNotNull(oidc);
+        assertNotNull(oidc.getConfig());
+        assertTrue(oidc.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
+        assertNull(((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getRelyingPartySecret());
+    }
+
+    @Test
+    void delete_secret_on_ldap_fails() {
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(getLdapDefinition());
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
+        IdentityProvider<?> oidc = oidcBody.getBody();
+        assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
+        assertNull(oidc);
     }
 
     @Test

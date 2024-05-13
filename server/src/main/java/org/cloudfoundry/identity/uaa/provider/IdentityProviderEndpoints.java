@@ -67,6 +67,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -306,6 +307,23 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
         logger.info("PasswordChangeRequired property set for Identity Provider: {}", existing.getId());
         return  new ResponseEntity<>(body, OK);
+    }
+
+    @DeleteMapping(value = "{id}/secret")
+    public ResponseEntity<IdentityProvider> deleteSecret(@PathVariable String id) {
+        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
+        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
+        if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
+            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> idpConfiguration) {
+            idpConfiguration.setRelyingPartySecret(null);
+            identityProviderProvisioning.update(existing, zoneId);
+            redactSensitiveData(existing);
+            logger.info("Secret deleted for Identity Provider: {}", existing.getId());
+            return new ResponseEntity<>(existing, OK);
+        } else {
+            logger.debug("Invalid operation. This operation is only supported on external IDP of type OAuth/OIDC");
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
     }
 
     @RequestMapping(method = GET)
