@@ -291,6 +291,11 @@ public class ScimGroupEndpointsIntegrationTests {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
 
+        // ensure zone does not exist
+        if (IntegrationTestUtils.zoneExists(serverRunning.getBaseUrl(), testZoneId, adminToken)) {
+            IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
+        }
+
         // add a new group to the allowed groups
         final String ALLOWED = "allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
         List<String> newDefaultGroups = new ArrayList<String>(defaultGroups);
@@ -303,7 +308,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
         // creating the newly allowed group should fail, as it already exists
         RestTemplate template = new RestTemplate();
-        ScimGroup g1 = new ScimGroup(null,ALLOWED, testZoneId);
+        ScimGroup g1 = new ScimGroup(null, ALLOWED, testZoneId);
         HttpEntity entity = new HttpEntity<>(JsonUtils.writeValueAsBytes(g1), IntegrationTestUtils.getAuthenticatedHeaders(inZoneAdminToken));
         try {
             final HttpClientErrorException.Conflict exception = assertThrows(

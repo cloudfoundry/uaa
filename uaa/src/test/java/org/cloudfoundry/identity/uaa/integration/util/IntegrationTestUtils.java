@@ -66,6 +66,8 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.DefaultResponseErrorHandler;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -97,7 +99,6 @@ import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createReque
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -208,6 +209,29 @@ public class IntegrationTestUtils {
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
         RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.DELETE, new URI(baseUrl + "/identity-zones/" + id));
         rest.exchange(request, Void.class);
+    }
+
+    public static boolean zoneExists(final String baseUrl, final String id, final String adminToken) throws URISyntaxException {
+        final RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 60_000));
+
+        final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add(AUTHORIZATION, "Bearer " + adminToken);
+        headers.add(ACCEPT, APPLICATION_JSON_VALUE);
+
+        final RequestEntity<Map<Object, Object>> request = new RequestEntity<>(
+                headers,
+                HttpMethod.GET,
+                new URI(baseUrl + "/identity-zones/" + id)
+        );
+        try {
+            restTemplate.exchange(request, Map.class);
+        } catch (final RestClientException e) {
+            if (e instanceof HttpClientErrorException.NotFound) {
+                return false;
+            }
+            throw new RuntimeException(e);
+        }
+        return true;
     }
 
     public static class RegexMatcher extends TypeSafeMatcher<String> {
