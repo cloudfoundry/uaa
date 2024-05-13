@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsReso
 import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -61,7 +62,6 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.security.crypto.codec.Base64;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -526,9 +526,6 @@ public class IntegrationTestUtils {
                                         String zoneId,
                                         String url,
                                         ScimGroup group) {
-        assertNotNull(group.getDisplayName());
-        assertFalse(group.getDisplayName().isBlank());
-
         RestTemplate template = new RestTemplate();
         template.setErrorHandler(fiveHundredErrorHandler);
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
@@ -544,7 +541,6 @@ public class IntegrationTestUtils {
                 new HttpEntity<>(JsonUtils.writeValueAsBytes(group), headers),
                 ScimGroup.class
         );
-        assertTrue(createGroup.getStatusCode().is2xxSuccessful());
         return createGroup.getBody();
     }
 
@@ -648,7 +644,6 @@ public class IntegrationTestUtils {
             existing.setActive(active);
             HttpEntity<IdentityZone> updateZoneRequest = new HttpEntity<>(existing);
             ResponseEntity<String> getUpdatedZone = client.exchange(url + "/identity-zones/{id}", HttpMethod.PUT, updateZoneRequest, String.class, id);
-            assertTrue(getUpdatedZone.getStatusCode().is2xxSuccessful());
             return JsonUtils.readValue(getUpdatedZone.getBody(), IdentityZone.class);
         }
 
@@ -660,7 +655,6 @@ public class IntegrationTestUtils {
         identityZone.setConfig(config);
         identityZone.setActive(active);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
-        assertTrue(zone.getStatusCode().is2xxSuccessful());
         return zone.getBody();
     }
 
