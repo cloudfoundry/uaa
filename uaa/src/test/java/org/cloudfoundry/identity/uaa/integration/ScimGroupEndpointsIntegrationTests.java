@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.cookie.BasicClientCookie;
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.http.OAuth2ErrorHandler;
@@ -289,20 +290,28 @@ public class ScimGroupEndpointsIntegrationTests {
         assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+
+        // add a new group to the allowed groups
         final String ALLOWED = "allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
         List<String> newDefaultGroups = new ArrayList<String>(defaultGroups);
         newDefaultGroups.add(ALLOWED);
         config.getUserConfig().setAllowedGroups(List.of());
         config.getUserConfig().setDefaultGroups(newDefaultGroups);
         String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
+        // this creates the zone as well as all default groups
         String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
+
+        // creating the newly allowed group should fail, as it already exists
         RestTemplate template = new RestTemplate();
         ScimGroup g1 = new ScimGroup(null,ALLOWED, testZoneId);
         HttpEntity entity = new HttpEntity<>(JsonUtils.writeValueAsBytes(g1), IntegrationTestUtils.getAuthenticatedHeaders(inZoneAdminToken));
         try {
-            template.exchange(zoneUrl + "/Groups", HttpMethod.POST, entity, HashMap.class);
-        } catch (Exception e) {
-            fail("must not fail");
+            final HttpClientErrorException.Conflict exception = assertThrows(
+                    HttpClientErrorException.Conflict.class,
+                    () -> template.exchange(zoneUrl + "/Groups", HttpMethod.POST, entity, HashMap.class)
+            );
+            Assertions.assertThat(exception.getMessage())
+                    .contains("A group with displayName: %s already exists.".formatted(ALLOWED));
         } finally {
             IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
         }
