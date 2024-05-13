@@ -176,8 +176,8 @@ class RefreshRotationTest {
   }
 
   @Test
-  @DisplayName("Refresh Token with allowpublic but without rotation")
-  void testRefreshPublicClientWithoutRotation() {
+  @DisplayName("Refresh Token with allowpublic and implicit rotation")
+  void testRefreshPublicClientImplicitRotation() {
     UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
@@ -196,9 +196,10 @@ class RefreshRotationTest {
     assertThat(refreshTokenValue, is(notNullValue()));
 
     setupOAuth2Authentication(oAuth2Request);
-    RuntimeException exception = assertThrows(TokenRevokedException.class, () ->
-        tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN)));
-    assertEquals("Refresh without client authentication not allowed.", exception.getMessage());
+    OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
+    assertThat(refreshedToken, is(notNullValue()));
+    assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
   }
 
   @Test
@@ -212,13 +213,11 @@ class RefreshRotationTest {
     Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
     azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
     authorizationRequest.setRequestParameters(azParameters);
-    authorizationRequest.setExtensions(Map.of(CLIENT_AUTH_METHOD, CLIENT_AUTH_EMPTY));
     OAuth2Request oAuth2Request = authorizationRequest.createOAuth2Request();
     OAuth2Authentication authentication = new OAuth2Authentication(oAuth2Request, tokenSupport.defaultUserAuthentication);
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(accessToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 
