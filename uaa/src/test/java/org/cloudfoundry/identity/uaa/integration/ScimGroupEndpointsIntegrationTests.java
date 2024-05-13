@@ -262,17 +262,24 @@ public class ScimGroupEndpointsIntegrationTests {
         String testZoneId = "testzone1";
         assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
-        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+
+        final String ccReadGroupName = "cloud_controller_service_permissions.read";
+
+        /* allowed groups are empty, but 'cloud_controller_service_permissions.read' is part of the default groups
+         * -> this group should therefore nevertheless be created during zone creation */
+        final IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.getUserConfig().setAllowedGroups(List.of());
         config.getUserConfig().setDefaultGroups(defaultGroups);
-        String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
-        String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
-        ScimGroup ccRead = new ScimGroup(null, "cloud_controller_service_permissions.read", testZoneId);
-        ScimGroup g1 = IntegrationTestUtils.createGroup(inZoneAdminToken, null, zoneUrl, ccRead);
+
+        final String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
+        // this creates/updates the zone with the new config -> also creates/updates the default groups
+        final String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
+
         // Check we can GET the group
-        ScimGroup g2 = IntegrationTestUtils.createOrUpdateGroup(inZoneAdminToken, null, zoneUrl, g1);
-        assertEquals("cloud_controller_service_permissions.read", g2.getDisplayName());
-        assertEquals("cloud_controller_service_permissions.read", IntegrationTestUtils.getGroup(inZoneAdminToken, null, zoneUrl, g1.getDisplayName()).getDisplayName());
+        final ScimGroup ccGroupFromGetCall = IntegrationTestUtils.getGroup(inZoneAdminToken, null, zoneUrl, ccReadGroupName);
+        assertNotNull(ccGroupFromGetCall);
+        assertEquals(ccReadGroupName, ccGroupFromGetCall.getDisplayName());
+
         IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
     }
 
