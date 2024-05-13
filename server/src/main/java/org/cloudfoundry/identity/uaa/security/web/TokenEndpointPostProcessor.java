@@ -15,10 +15,10 @@
 package org.cloudfoundry.identity.uaa.security.web;
 
 
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.TokenEndpoint;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.oauth2.provider.endpoint.TokenEndpoint;
 
 import java.util.HashSet;
 import java.util.Set;

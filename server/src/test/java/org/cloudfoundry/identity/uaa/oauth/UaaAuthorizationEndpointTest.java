@@ -3,10 +3,17 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceVerifier;
 import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier;
 import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.approval.DefaultUserApprovalHandler;
+import org.cloudfoundry.identity.uaa.oauth.provider.code.AuthorizationCodeServices;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Before;
@@ -15,14 +22,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.approval.DefaultUserApprovalHandler;
-import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidRequestException;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
@@ -42,6 +42,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -361,6 +362,13 @@ public class UaaAuthorizationEndpointTest {
     	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
     }
 
+    @Test
+    public void testNewSetters() {
+        uaaAuthorizationEndpoint.setUserApprovalHandler(new DefaultUserApprovalHandler());
+        uaaAuthorizationEndpoint.setOAuth2RequestValidator(new UaaOauth2RequestValidator());
+        assertNotNull(uaaAuthorizationEndpoint);
+    }
+
     private AuthorizationRequest getAuthorizationRequest(String clientId, String redirectUri, String state,
                                                          String scope, Set<String> responseTypes) {
         HashMap<String, String> parameters = new HashMap<>();
@@ -377,8 +385,7 @@ public class UaaAuthorizationEndpointTest {
         if (responseTypes != null) {
             parameters.put(OAuth2Utils.RESPONSE_TYPE, OAuth2Utils.formatParameterList(responseTypes));
         }
-        return new AuthorizationRequest(parameters, Collections.emptyMap(),
-                parameters.get(OAuth2Utils.CLIENT_ID),
+        return new AuthorizationRequest(parameters, parameters.get(OAuth2Utils.CLIENT_ID),
                 OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.SCOPE)), null, null, false,
                 parameters.get(OAuth2Utils.STATE), parameters.get(OAuth2Utils.REDIRECT_URI),
                 OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.RESPONSE_TYPE)));

@@ -27,7 +27,7 @@ import org.junit.jupiter.api.*;
 import org.junit.rules.ExpectedException;
 import org.opensaml.DefaultBootstrap;
 import org.opensaml.xml.parse.BasicParserPool;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
 import java.util.Arrays;

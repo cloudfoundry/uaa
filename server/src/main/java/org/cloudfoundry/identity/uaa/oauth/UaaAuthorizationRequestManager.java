@@ -1,21 +1,15 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
@@ -24,24 +18,19 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UnauthorizedClientException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -50,6 +39,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -57,8 +47,8 @@ import static java.util.Collections.emptySet;
 import static java.util.Collections.unmodifiableMap;
 import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
 /**
  * An {@link OAuth2RequestFactory} that applies various UAA-specific
@@ -78,29 +68,21 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private final SecurityContextAccessor securityContextAccessor;
 
-    public OAuth2RequestFactory getRequestFactory() {
-        return requestFactory;
-    }
-
-    public void setRequestFactory(OAuth2RequestFactory requestFactory) {
-        this.requestFactory = requestFactory;
-    }
-
-    private OAuth2RequestFactory requestFactory;
-
     private UaaUserDatabase uaaUserDatabase;
 
     private IdentityProviderProvisioning providerProvisioning;
+    private final IdentityZoneManager identityZoneManager;
 
     public UaaAuthorizationRequestManager(final MultitenantClientServices clientDetailsService,
                                           final SecurityContextAccessor securityContextAccessor,
                                           final UaaUserDatabase userDatabase,
-                                          final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning) {
+                                          final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
+                                          final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager) {
         this.clientDetailsService = clientDetailsService;
         this.securityContextAccessor = securityContextAccessor;
         this.uaaUserDatabase = userDatabase;
-        this.requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         this.providerProvisioning = providerProvisioning;
+        this.identityZoneManager = identityZoneManager;
     }
 
     /**
@@ -110,7 +92,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
      * @param scopeToResource the map to use
      */
     public void setScopesToResources(Map<String, String> scopeToResource) {
-        this.scopeToResource = new HashMap<String, String>(scopeToResource);
+        this.scopeToResource = new HashMap<>(scopeToResource);
     }
 
     /**
@@ -141,11 +123,10 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
      * </ul>
      *
      */
-    @Override
     public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters) {
 
         String clientId = authorizationParameters.get("client_id");
-        UaaClientDetails clientDetails = (UaaClientDetails)clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+        UaaClientDetails clientDetails = (UaaClientDetails)clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
@@ -170,9 +151,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         clientDetails.setResourceIds(resourceIds);
         Map<String, String> actualParameters = new HashMap<>(authorizationParameters);
         AuthorizationRequest request = new AuthorizationRequest(
-            actualParameters,
-            null,
-            clientId,
+            actualParameters, clientId,
             scopes.isEmpty()?null:scopes,
             null,
             null,
@@ -224,7 +203,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         }
 
         try {
-            IdentityProvider provider = providerProvisioning.retrieveByOrigin(user.getOrigin(), user.getZoneId());
+            IdentityProvider<AbstractIdentityProviderDefinition> provider = providerProvisioning.retrieveByOrigin(user.getOrigin(), user.getZoneId());
             if (provider==null || !allowedProviders.contains(provider.getOriginKey())) {
                 throw new DisallowedIdpException("Client is not authorized for specified user's identity provider.");
             }
@@ -295,7 +274,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     }
 
     private Set<String> getResourceIds(ClientDetails clientDetails, Set<String> scopes) {
-        Set<String> resourceIds = new LinkedHashSet<String>();
+        Set<String> resourceIds = new LinkedHashSet<>();
         //at a minimum - the resourceIds should contain the client this is intended for
         //http://openid.net/specs/openid-connect-core-1_0.html#IDToken
         if (clientDetails.getClientId()!=null) {
@@ -313,29 +292,23 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         return resourceIds.isEmpty() ? clientDetails.getResourceIds() : resourceIds;
     }
 
-    @Override
     public OAuth2Request createOAuth2Request(AuthorizationRequest request) {
-        return requestFactory.createOAuth2Request(request);
+        return request.createOAuth2Request();
     }
 
-    @Override
     public OAuth2Request createOAuth2Request(ClientDetails client, TokenRequest tokenRequest) {
-        return requestFactory.createOAuth2Request(client, tokenRequest);
+        return tokenRequest.createOAuth2Request(client);
     }
 
-    @Override
     public TokenRequest createTokenRequest(Map<String, String> requestParameters, ClientDetails authenticatedClient) {
         ClientDetails targetClient = authenticatedClient;
         //clone so we can modify it
         requestParameters = new HashMap<>(requestParameters);
         String clientId = requestParameters.get(OAuth2Utils.CLIENT_ID);
         String grantType = requestParameters.get(GRANT_TYPE);
-        if (clientId == null) {
-            // if the clientId wasn't passed in in the map, we add pull it from the authenticated client object
-            clientId = authenticatedClient.getClientId();
-        } else {
+        if (clientId != null) {
             if (TokenConstants.GRANT_TYPE_USER_TOKEN.equals(grantType)) {
-                targetClient = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+                targetClient = clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
                 requestParameters.put(TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID, authenticatedClient.getClientId());
             } else if (!clientId.equals(authenticatedClient.getClientId())) {
                 // otherwise, make sure that they match
@@ -386,14 +359,14 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         return scopes;
     }
 
-    @Override
     public TokenRequest createTokenRequest(AuthorizationRequest authorizationRequest, String grantType) {
-        return requestFactory.createTokenRequest(authorizationRequest, grantType);
+        return new TokenRequest(authorizationRequest.getRequestParameters(), authorizationRequest.getClientId(),
+            authorizationRequest.getScope(), grantType);
     }
 
     public class UaaTokenRequest extends TokenRequest {
         private Set<String> resourceIds;
-        Set<String> responseTypes;
+        private Set<String> responseTypes;
         public UaaTokenRequest(Map<String, String> requestParameters, String clientId, Collection<String> scope, String grantType, Set<String> resourceIds) {
             super(requestParameters, clientId, scope, grantType);
             this.resourceIds = resourceIds;
@@ -416,6 +389,27 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
                 request.getRedirectUri(),
                 responseTypes,
                 request.getExtensions());
+        }
+
+        @Override
+        public int hashCode() {
+            final int prime = 31;
+            int result = super.hashCode();
+            result = prime * result + ((resourceIds == null) ? 0 : resourceIds.hashCode());
+            result = prime * result + ((responseTypes == null) ? 0 : responseTypes.hashCode());
+            return result;
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj)
+                return true;
+            if (obj == null || getClass() != obj.getClass())
+                return false;
+            UaaTokenRequest other = (UaaTokenRequest) obj;
+            if (!Objects.equals(resourceIds, other.resourceIds))
+                return false;
+            return Objects.equals(responseTypes, other.responseTypes);
         }
     }
 }

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+${script_dir}/tail_uaa_log -1000 | sed -n 's/.*DefaultSecurityFilterChain/DefaultSecurityFilterChain/pg;' | sed 's/,/\n                           /g'
