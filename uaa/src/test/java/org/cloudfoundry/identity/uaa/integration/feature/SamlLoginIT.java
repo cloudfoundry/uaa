@@ -118,6 +118,10 @@ public class SamlLoginIT {
         assertTrue(doesSupportZoneDNS(), "Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1");
     }
 
+    public static String getValidRandomIDPMetaData() {
+        return MockMvcUtils.IDP_META_DATA.formatted(new RandomValueStringGenerator().generate());
+    }
+
     @BeforeEach
     void setup() {
         String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
@@ -151,10 +155,6 @@ public class SamlLoginIT {
             } catch (Exception ignored) {
             }
         }
-    }
-
-    public static String getValidRandomIDPMetaData() {
-        return MockMvcUtils.IDP_META_DATA.formatted(new RandomValueStringGenerator().generate());
     }
 
     @BeforeEach
@@ -299,19 +299,20 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
     void simpleSamlPhpLogin() throws Exception {
         createIdentityProvider(SAML_ORIGIN);
 
-        Long beforeTest = System.currentTimeMillis();
+        // Long beforeTest = System.currentTimeMillis();
         LoginPage.go(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
-        Long afterTest = System.currentTimeMillis();
+                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN);
 
-        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
-        ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
-        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+        // TODO: The below will be added after the SAML Response path is implemented.
+        //                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
+        //        Long afterTest = System.currentTimeMillis();
+        //
+        //        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
+        //        ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
+        //        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
     }
 
     @Test
@@ -366,7 +367,6 @@ public class SamlLoginIT {
                 List.of(GET.toString(), POST.toString()));
         //create the zone
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
-
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
@@ -427,7 +427,7 @@ public class SamlLoginIT {
                 .clickSamlLink_goesToSamlLoginPage("simplesamlphp")
                 .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
                 .logout_goesToLoginPage()
-                .clickSamlLink_goesToHomePage();
+                .clickSamlLink_goesToHomePage("simplesamlphp");
     }
 
     @Test
@@ -964,7 +964,7 @@ public class SamlLoginIT {
         webDriver.get(zoneUrl + "/logout.do");
 
         //validate access token
-        String accessToken = (String) authCodeTokenResponse.get(ACCESS_TOKEN);
+        String accessToken = authCodeTokenResponse.get(ACCESS_TOKEN);
         Jwt accessTokenJwt = JwtHelper.decode(accessToken);
         Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
         });
@@ -1001,7 +1001,7 @@ public class SamlLoginIT {
         assertThat(managerData).containsExactlyInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER);
 
         // user info should contain the user's roles
-        List<String> userInfoRoles = (List<String>) userInfo.getRoles();
+        List<String> userInfoRoles = userInfo.getRoles();
         assertThat(userInfoRoles).containsExactlyInAnyOrder(expectedRoles);
     }
 
