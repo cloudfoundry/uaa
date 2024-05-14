@@ -15,7 +15,6 @@ jar { enabled = false }
 war { archiveClassifier = '' }
 war { enabled = true }
 
-
 repositories {
     maven { url("https://repo.spring.io/libs-milestone") }
     maven { url "https://build.shibboleth.net/nexus/content/repositories/releases/" }
@@ -72,6 +71,7 @@ dependencies {
         exclude(module: "mail")
         exclude(module: "activation")
     }
+    testImplementation(libraries.orgJson)
     testImplementation(libraries.jsonAssert)
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.unboundIdScimSdk) {
