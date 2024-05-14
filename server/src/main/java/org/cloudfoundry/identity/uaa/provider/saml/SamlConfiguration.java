@@ -6,7 +6,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-@EnableConfigurationProperties({SamlIdentityProvidersConfigProps.class, SamlKeyConfigProps.class})
+@EnableConfigurationProperties({SamlConfigProps.class})
 @Configuration
 public class SamlConfiguration {
 
@@ -17,12 +17,6 @@ public class SamlConfiguration {
     public String samlEntityID() {
         return samlEntityID;
     }
-
-    @Autowired
-    public SamlIdentityProvidersConfigProps SamlIdentityProvidersConfigProps;
-
-    @Autowired
-    public SamlKeyConfigProps samlKeyConfig;
 
     @Value("${login.idpMetadataURL:null}")
     private String metaDataUrl;
@@ -42,10 +36,11 @@ public class SamlConfiguration {
     @Value("${login.showSamlLoginLink:true}")
     private boolean legacyShowSamlLink;
 
+    @Autowired
     @Bean
-    public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders() {
+    public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders(SamlConfigProps samlConfigProps) {
         BootstrapSamlIdentityProviderData idpData = new BootstrapSamlIdentityProviderData();
-        idpData.setIdentityProviders(SamlIdentityProvidersConfigProps.getProviders());
+        idpData.setIdentityProviders(samlConfigProps.getProviders());
         idpData.setLegacyIdpMetaData(metaDataUrl);
         idpData.setLegacyIdpIdentityAlias(legacyIdpIdentityAlias);
         idpData.setLegacyNameId(legacyNameId);
