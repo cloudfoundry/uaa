@@ -257,6 +257,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
+        return persistIdentityProviderChange(body, rawConfig, zoneId, existing);
+    }
+
+    private ResponseEntity<IdentityProvider> persistIdentityProviderChange(IdentityProvider body, boolean rawConfig, String zoneId,
+            IdentityProvider existing) {
         final IdentityProvider<?> updatedIdp;
         try {
             updatedIdp = transactionTemplate.execute(txStatus -> {
@@ -321,13 +326,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
         if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
-            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> idpConfiguration) {
-            idpConfiguration.setRelyingPartySecret(null);
-            identityProviderProvisioning.update(existing, zoneId);
-            setAuthMethod(existing);
-            redactSensitiveData(existing);
-            logger.info("Secret deleted for Identity Provider: {}", existing.getId());
-            return new ResponseEntity<>(existing, OK);
+            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?>) {
+            IdentityProvider updated = existing;
+            ((AbstractExternalOAuthIdentityProviderDefinition) updated.getConfig()).setRelyingPartySecret(null);
+            logger.info("Delete secret for Identity Provider: {}", existing.getId());
+            return persistIdentityProviderChange(updated, false, zoneId, existing);
         } else {
             logger.debug("Invalid operation. This operation is only supported on external IDP of type OAuth/OIDC");
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
@@ -343,8 +346,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
         if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
-            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> idpConfiguration) {
-            idpConfiguration.setRelyingPartySecret(secretChange.getSecret());
+            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?>) {
+            IdentityProvider updated = existing;
+            ((AbstractExternalOAuthIdentityProviderDefinition) updated.getConfig()).setRelyingPartySecret(secretChange.getSecret());
+            logger.info("Change secret for Identity Provider: {}", existing.getId());
+            return persistIdentityProviderChange(updated, false, zoneId, existing);
         } else if(LDAP.equals(existing.getType()) && existing.getConfig() instanceof LdapIdentityProviderDefinition ldapIdentityProviderDefinition) {
             ldapIdentityProviderDefinition.setBindPassword(secretChange.getSecret());
         } else {

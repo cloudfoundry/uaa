@@ -325,7 +325,9 @@ class IdentityProviderEndpointsTest {
 
     @Test
     void delete_secret_and_retrieve_by_origin_providers_redacts_data() {
-        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(getExternalOAuthProvider());
+        IdentityProvider idp = getExternalOAuthProvider();
+        when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(null, idp)).thenReturn(idp);
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
         ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
         IdentityProvider<?> oidc = oidcBody.getBody();
         assertNotNull(oidc);
@@ -361,6 +363,7 @@ class IdentityProviderEndpointsTest {
     @Test
     void change_secret_and_retrieve_by_origin_providers_redacts_data() {
         IdentityProvider idp = getExternalOAuthProvider();
+        when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(null, idp)).thenReturn(idp);
         when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
         IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
         identityProviderSecretChange.setSecret("newSecret");
