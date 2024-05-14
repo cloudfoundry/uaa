@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -20,20 +21,12 @@ import java.util.List;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID;
 
 @Configuration
-public class SamlRelyingPartyRegistrationRepository {
+public class SamlRelyingPartyRegistrationRepositoryConfig {
 
     public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
-
-    public SamlRelyingPartyRegistrationRepository(@Qualifier("samlEntityID") String samlEntityID,
-                                                  SamlConfigProps samlConfigProps,
-                                                  BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData
-                                                  ) {
-        this.samlEntityID = samlEntityID;
-        this.samlConfigProps = samlConfigProps;
-        this.bootstrapSamlIdentityProviderData = bootstrapSamlIdentityProviderData;
-    }
-
     private final String samlEntityID;
+    private final SamlConfigProps samlConfigProps;
+    private final BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
 
     @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
     private String samlSpNameID;
@@ -41,12 +34,18 @@ public class SamlRelyingPartyRegistrationRepository {
     @Value("${login.saml.signRequest:true}")
     private Boolean samlSignRequest;
 
-    private final SamlConfigProps samlConfigProps;
+    public SamlRelyingPartyRegistrationRepositoryConfig(@Qualifier("samlEntityID") String samlEntityID,
+                                                        SamlConfigProps samlConfigProps,
+                                                        BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData
+    ) {
+        this.samlEntityID = samlEntityID;
+        this.samlConfigProps = samlConfigProps;
+        this.bootstrapSamlIdentityProviderData = bootstrapSamlIdentityProviderData;
+    }
 
-    private BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
-
+    @Autowired
     @Bean
-    RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() throws CertificateException {
+    RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) throws CertificateException {
 
         SamlKey activeSamlKey = samlConfigProps.getActiveSamlKey();
         KeyWithCert keyWithCert = new KeyWithCert(activeSamlKey.getKey(), activeSamlKey.getPassphrase(), activeSamlKey.getCertificate());
@@ -74,7 +73,9 @@ public class SamlRelyingPartyRegistrationRepository {
             );
         }
 
-        return new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
+        InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
+        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlSignRequest, keyWithCert, samlIdentityProviderConfigurator);
+        return new ProxyingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo);
     }
 
     private RelyingPartyRegistration buildRelyingPartyRegistration(KeyWithCert keyWithCert, String metadataLocation, String rpRegstrationId) {

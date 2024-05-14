@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -29,13 +30,15 @@ import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
 import java.util.function.Consumer;
 
 import static org.apache.logging.log4j.Level.DEBUG;
@@ -104,7 +107,7 @@ class SamlAuthenticationMockMvcTests {
         esapiProps.put("Logger.ApplicationName", "uaa");
         esapiProps.put("Logger.LogApplicationName", Boolean.FALSE.toString());
         esapiProps.put("Logger.LogServerIP", Boolean.FALSE.toString());
-        ESAPI.override( new DefaultSecurityConfiguration(esapiProps));
+        ESAPI.override(new DefaultSecurityConfiguration(esapiProps));
     }
 
     @AfterEach
@@ -118,14 +121,18 @@ class SamlAuthenticationMockMvcTests {
                         get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
                                 .contextPath("/uaa")
                                 .header(HOST, "localhost:8080")
-
                 )
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
                 .andReturn();
 
         String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
-        assertThat(UaaUrlUtils.getParameterMap(samlRequestUrl).get("SAMLRequest"), notNullValue());
+        Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
+        assertThat("SAMLRequest is missing", parameterMap.get("SAMLRequest"), notNullValue());
+        assertThat("SigAlg is missing", parameterMap.get("SigAlg"), notNullValue());
+        assertThat("Signature is missing", parameterMap.get("Signature"), notNullValue());
+        assertThat("RelayState is missing", parameterMap.get("RelayState"), notNullValue());
+        assertThat(parameterMap.get("RelayState")[0], equalTo("testsaml-redirect-binding"));
     }
 
     @Test
@@ -134,11 +141,13 @@ class SamlAuthenticationMockMvcTests {
                         get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
                                 .contextPath("/uaa")
                                 .header(HOST, "localhost:8080")
-
                 )
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("name=\"SAMLRequest\"")))
+                .andExpectAll(
+                        status().isOk(),
+                        content().string(containsString("name=\"SAMLRequest\"")),
+                        content().string(containsString("name=\"RelayState\"")),
+                        content().string(containsString("value=\"testsaml-post-binding\"")))
                 .andReturn();
     }
 
@@ -262,9 +271,9 @@ class SamlAuthenticationMockMvcTests {
 
     private String getSamlMetadata(String subdomain, String url) throws Exception {
         return mockMvc.perform(
-                get(url)
-                        .header("Host", subdomain + ".localhost")
-        )
+                        get(url)
+                                .header("Host", subdomain + ".localhost")
+                )
                 .andReturn().getResponse().getContentAsString();
     }
 
