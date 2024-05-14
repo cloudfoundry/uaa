@@ -32,10 +32,7 @@ import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -51,7 +48,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
@@ -77,9 +73,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     @Value("${login.aliasEntitiesEnabled:false}")
     private boolean aliasEntitiesEnabled;
     private final IdentityProviderProvisioning identityProviderProvisioning;
-    private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
-    private final ScimGroupProvisioning scimGroupProvisioning;
-    private final NoOpLdapLoginAuthenticationManager noOpManager = new NoOpLdapLoginAuthenticationManager();
     private final SamlIdentityProviderConfigurator samlConfigurator;
     private final IdentityProviderConfigValidator configValidator;
     private final IdentityZoneManager identityZoneManager;
@@ -95,8 +88,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     public IdentityProviderEndpoints(
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning,
-            final @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
-            final @Qualifier("scimGroupProvisioning") ScimGroupProvisioning scimGroupProvisioning,
             final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator,
             final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
             final IdentityZoneManager identityZoneManager,
@@ -104,8 +95,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             final IdentityProviderAliasHandler idpAliasHandler
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
-        this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
-        this.scimGroupProvisioning = scimGroupProvisioning;
         this.samlConfigurator = samlConfigurator;
         this.configValidator = configValidator;
         this.identityZoneManager = identityZoneManager;
@@ -121,8 +110,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
-            logger.log(Level.DEBUG, () -> String.format("IdentityProvider[origin=%s; zone=%s] - Configuration validation error.",
-                body.getOriginKey(), body.getIdentityZoneId()), e);
+            logger.log(Level.DEBUG, () -> String.format("IdentityProvider[origin=%s; zone=%s] - Configuration validation error.", body.getOriginKey(), body.getIdentityZoneId()), e);
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         if (SAML.equals(body.getType())) {
@@ -196,8 +184,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
-            logger.log(Level.DEBUG, () -> String.format("IdentityProvider[origin=%s; zone=%s] - Configuration validation error for update.",
-                body.getOriginKey(), body.getIdentityZoneId()), e);
+            logger.log(Level.DEBUG, () -> String.format("IdentityProvider[origin=%s; zone=%s] - Configuration validation error for update.", body.getOriginKey(), body.getIdentityZoneId()), e);
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
@@ -319,17 +306,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     @ExceptionHandler(EmptyResultDataAccessException.class)
     public ResponseEntity<String> handleProviderNotFoundException() {
         return new ResponseEntity<>("Provider not found.", HttpStatus.NOT_FOUND);
-    }
-
-    protected static class NoOpLdapLoginAuthenticationManager extends LdapLoginAuthenticationManager {
-        public NoOpLdapLoginAuthenticationManager() {
-            super(null);
-        }
-
-        @Override
-        public Authentication authenticate(Authentication request) throws AuthenticationException {
-            return request;
-        }
     }
 
     protected void patchSensitiveData(String id, IdentityProvider provider) {

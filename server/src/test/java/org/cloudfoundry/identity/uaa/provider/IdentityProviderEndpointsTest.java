@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -17,6 +18,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -42,6 +45,7 @@ import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -85,6 +89,9 @@ class IdentityProviderEndpointsTest {
 
     @Mock
     private IdentityProviderAliasHandler mockIdpAliasHandler;
+
+    @Mock
+    SamlIdentityProviderConfigurator samlConfigurator;
 
     @InjectMocks
     private IdentityProviderEndpoints identityProviderEndpoints;
@@ -354,6 +361,77 @@ class IdentityProviderEndpointsTest {
         assertNotNull(response.getBody().getConfig());
         assertTrue(response.getBody().getConfig() instanceof LdapIdentityProviderDefinition);
         assertNull(((LdapIdentityProviderDefinition) response.getBody().getConfig()).getBindPassword());
+    }
+
+    @Test
+    void update_saml_provider_validator_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        doThrow(new IllegalArgumentException("error")).when(mockIdentityProviderConfigValidationDelegator).validate(any());
+        when(mockIdentityProviderProvisioning.retrieve(any(), eq(zoneId))).thenReturn(provider);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(provider.getId(), provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager, never()).getTransaction(any());
+        verify(mockIdpAliasHandler, never()).ensureConsistencyOfAliasEntity(any(), any());
+    }
+
+    @Test
+    void update_saml_provider_alias_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        when(mockIdentityProviderProvisioning.retrieve(any(), eq(zoneId))).thenReturn(provider);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(provider.getId(), provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager).getTransaction(any());
+        verify(mockIdpAliasHandler, times(1)).ensureConsistencyOfAliasEntity(any(), any());
+    }
+
+    @Test
+    void create_saml_provider_validator_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        doThrow(new IllegalArgumentException("error")).when(mockIdentityProviderConfigValidationDelegator).validate(any());
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockIdpAliasHandler, never()).aliasPropertiesAreValid(provider, null);
+    }
+
+    @Test
+    void create_saml_provider_alias_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager).getTransaction(any());
+        verify(mockIdpAliasHandler, times(1)).ensureConsistencyOfAliasEntity(any(), any());
     }
 
     @Test

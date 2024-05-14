@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.mock;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +22,9 @@ public class EndpointDocs {
 
     @Autowired
     protected WebApplicationContext webApplicationContext;
+
+    @Autowired
+    protected IdentityZoneManager identityZoneManager;
 
     protected MockMvc mockMvc;
     protected TestClient testClient;
