@@ -25,15 +25,15 @@ public class SamlRelyingPartyRegistrationRepository {
     public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
     public SamlRelyingPartyRegistrationRepository(@Qualifier("samlEntityID") String samlEntityID,
-                                                  SamlKeyConfigProps samlKeyConfigProps,
+                                                  SamlConfigProps samlConfigProps,
                                                   BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData
                                                   ) {
         this.samlEntityID = samlEntityID;
-        this.samlKeyConfigProps = samlKeyConfigProps;
+        this.samlConfigProps = samlConfigProps;
         this.bootstrapSamlIdentityProviderData = bootstrapSamlIdentityProviderData;
     }
 
-    private String samlEntityID;
+    private final String samlEntityID;
 
     @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
     private String samlSpNameID;
@@ -41,18 +41,19 @@ public class SamlRelyingPartyRegistrationRepository {
     @Value("${login.saml.signRequest:true}")
     private Boolean samlSignRequest;
 
-    private SamlKeyConfigProps samlKeyConfigProps;
+    private final SamlConfigProps samlConfigProps;
 
     private BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
 
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository() throws CertificateException {
 
-        SamlKey activeSamlKey = samlKeyConfigProps.getActiveSamlKey();
+        SamlKey activeSamlKey = samlConfigProps.getActiveSamlKey();
         KeyWithCert keyWithCert = new KeyWithCert(activeSamlKey.getKey(), activeSamlKey.getPassphrase(), activeSamlKey.getCertificate());
 
         List<RelyingPartyRegistration> relyingPartyRegistrations = new ArrayList<>();
 
+        @SuppressWarnings("java:S125")
         // Spring Security requires at least one relyingPartyRegistration before SAML SP metadata generation;
         // and each relyingPartyRegistration needs to contain the SAML IDP metadata.
         // However, in the context of UAA external SAML IDP login, UAA does not know what the SAML IDP
