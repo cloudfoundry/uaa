@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.saml2.provider.service.metadata.OpenSamlMetadataResolver;
@@ -37,10 +36,22 @@ public class SamlMetadataEndpoint {
     private String fileName;
     private String encodedFileName;
 
-    private Boolean wantAssertionSigned;
+    private final Boolean wantAssertionSigned;
+    private final RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
+
+    public SamlMetadataEndpoint(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
+                                SamlConfigProps samlConfigProps) {
+        Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
+        this.relyingPartyRegistrationRepository = relyingPartyRegistrationRepository;
+        this.relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
+        OpenSamlMetadataResolver resolver = new OpenSamlMetadataResolver();
+        this.saml2MetadataResolver = resolver;
+        resolver.setEntityDescriptorCustomizer(new EntityDescriptorCustomizer());
+        this.wantAssertionSigned = samlConfigProps.getWantAssertionSigned();
+        setFileName(DEFAULT_FILE_NAME);
+    }
 
     private class EntityDescriptorCustomizer implements Consumer<OpenSamlMetadataResolver.EntityDescriptorParameters> {
-
         @Override
         public void accept(OpenSamlMetadataResolver.EntityDescriptorParameters entityDescriptorParameters) {
             EntityDescriptor descriptor = entityDescriptorParameters.getEntityDescriptor();
@@ -50,38 +61,20 @@ public class SamlMetadataEndpoint {
         }
     }
 
-    public SamlMetadataEndpoint(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-                                SamlKeyConfigProps samlKeyConfigProps) {
-        Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
-        this.relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
-        OpenSamlMetadataResolver resolver = new OpenSamlMetadataResolver();
-        this.saml2MetadataResolver = resolver;
-        resolver.setEntityDescriptorCustomizer(new EntityDescriptorCustomizer());
-        this.wantAssertionSigned = samlKeyConfigProps.getWantAssertionSigned();
-        setFileName(DEFAULT_FILE_NAME);
-    }
-
     @GetMapping(value = "/saml/metadata", produces = APPLICATION_XML_CHARSET_UTF_8)
     public ResponseEntity<String> legacyMetadataEndpoint(HttpServletRequest request) {
         return metadataEndpoint(DEFAULT_REGISTRATION_ID, request);
     }
 
-    @Autowired
-    private RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
-
     @GetMapping(value = "/saml/metadata/{registrationId}", produces = APPLICATION_XML_CHARSET_UTF_8)
-    public ResponseEntity<String> metadataEndpoint(@PathVariable String registrationId,
-                                                   HttpServletRequest request
-                                                   //, HttpServletResponse response
-
-    ) {
+    public ResponseEntity<String> metadataEndpoint(@PathVariable String registrationId, HttpServletRequest request) {
         RelyingPartyRegistration relyingPartyRegistration = relyingPartyRegistrationRepository.findByRegistrationId(registrationId);
         if (relyingPartyRegistration == null) {
             return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).build();
         }
         String metadata = saml2MetadataResolver.resolve(relyingPartyRegistration);
 
-         // @todo - fileName may need to be dynamic based on registrationID
+        // @todo - fileName may need to be dynamic based on registrationID
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, String.format(CONTENT_DISPOSITION_FORMAT, fileName, encodedFileName))
                 .body(metadata);

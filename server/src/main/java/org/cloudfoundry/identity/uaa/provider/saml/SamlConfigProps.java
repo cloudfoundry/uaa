@@ -9,7 +9,9 @@ import java.util.Map;
 
 @Data
 @ConfigurationProperties(prefix="login.saml")
-public class SamlKeyConfigProps {
+public class SamlConfigProps {
+    private Map<String, Map<String,Object>> providers;
+
     private String activeKeyId;
 
     private Map<String, SamlKey> keys;
