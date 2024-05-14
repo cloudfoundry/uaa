@@ -20,6 +20,8 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPos
 import static org.cloudfoundry.identity.uaa.provider.IdentityProvider.FIELD_ALIAS_ID;
 import static org.cloudfoundry.identity.uaa.provider.IdentityProvider.FIELD_ALIAS_ZID;
 import static org.cloudfoundry.identity.uaa.provider.IdentityProvider.FIELD_IDENTITY_ZONE_ID;
+import static org.cloudfoundry.identity.uaa.provider.IdentityProviderSecretChangeRequest.ChangeMode.DELETE;
+import static org.cloudfoundry.identity.uaa.provider.IdentityProviderSecretChangeRequest.ChangeMode.UPDATE;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
@@ -77,6 +79,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreation
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderSecretChangeRequest;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -1091,21 +1094,33 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void createOAuthIdentityProviderThenDeleteSecret() throws Exception {
+    void changeIdpSecret() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("my-oauth2-provider", IdentityZoneHolder.get().getId());
 
-        mockMvc.perform(delete("/identity-providers/{id}/secret", identityProvider.getId())
-                .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk())
-                .andDo(document("{ClassName}/{methodName}",
+        IdentityProviderSecretChangeRequest identityProviderSecretChange = new IdentityProviderSecretChangeRequest();
+
+        final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{
+            fieldWithPath("secret").constrained("Optional if changeMode is `"+DELETE+"`. Required otherwise.").type(STRING).description("The new secret and/or bindPassword for the external IdP."),
+            fieldWithPath("changeMode").constrained("Required, `"+DELETE+"` or `"+UPDATE+"`.").type(STRING).description("If the change mode is set to `"+DELETE+"`, the existing secret will be deleted to support other OAuth methods. If set to  `"+UPDATE+"` requires a secret.")
+        };
+
+        mockMvc.perform(put("/identity-providers/{id}/secret", identityProvider.getId())
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(serializeExcludingProperties(identityProviderSecretChange)))
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}",
+                preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
-                pathParameters(parameterWithName("id").description(ID_DESC)
+                pathParameters(parameterWithName("id").required().description(ID_DESC)
                 ),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
                     IDENTITY_ZONE_ID_HEADER,
                     IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
+                requestFields(secretChangeFields),
                 responseFields(getCommonProviderFieldsAnyType())));
     }
 

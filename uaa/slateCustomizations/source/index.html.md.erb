@@ -1236,38 +1236,39 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity - Invalid config                                 |
 
-## Delete Secret
+## Change Secret
 
 <aside class="success">
   Added in UAA 77.10.0
 </aside>
 <br/>
-Delete a secret from the OAuth2 / OIDC IdP configuration only, because these providers support usages without a secret.
+Change or delete a secret. Change is supported for LDAP, OAuth2 and OIDC IdP configuration.
+Delete is supported for the OAuth2 / OIDC IdP configuration only, because these providers support usages without a secret.
 <br/>
 
-<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/curl-request.md') %>
-<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/http-request.md') %>
-<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/http-response.md') %>
+<%= render('IdentityProviderEndpointDocs/changeIdpSecret/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/changeIdpSecret/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/changeIdpSecret/http-response.md') %>
 
 _Path Parameters_
 
-<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/path-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/changeIdpSecret/path-parameters.md') %>
 
 _Request Headers_
 
-<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/request-headers.md') %>
+<%= render('IdentityProviderEndpointDocs/changeIdpSecret/request-headers.md') %>
 
 <aside class="notice">
-  This example is for OAuth2 and OIDC identity providers <br/>
-  For a standard IdP the result of auth_method will be none, because the removal of the secret
-  lead to public flow.<br/>
-  If jwtClientAuthentication section is configured, then after this call, the result of auth_method is private_key_jwt.<br/>
-  If you want set again a secret or change the current secret, please use patch call, e.g. Change Secret<br/>
+  This example is a delete action for OAuth2 and OIDC identity providers <br/>
 </aside>
 
-_Request and Response Fields_
+_Request Fields_
 
-<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProviderThenDeleteSecret/response-fields.md') %>
+<%= render('IdentityProviderEndpointDocs/changeIdpSecret/request-fields.md') %>
+
+_Response Fields_
+
+<%= render('IdentityProviderEndpointDocs/changeIdpSecret/response-fields.md') %>
 
 _Error Codes_
 

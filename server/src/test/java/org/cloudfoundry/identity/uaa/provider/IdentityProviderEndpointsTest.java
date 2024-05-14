@@ -307,21 +307,61 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void delete_secret_and_retrieve_by_origin_providers_redacts_data() {
-        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(getExternalOAuthProvider());
-        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
+    void change_bindPassword_and_retrieve_by_origin_providers_redacts_data() {
+        IdentityProvider idp = getLdapDefinition();
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
+        IdentityProviderSecretChangeRequest identityProviderSecretChangeRequest = new IdentityProviderSecretChangeRequest("newSecret");
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChangeRequest);
+        IdentityProvider<?> oidc = oidcBody.getBody();
+        assertNotNull(oidc);
+        assertNotNull(oidc.getConfig());
+        assertTrue(oidc.getConfig() instanceof LdapIdentityProviderDefinition);
+        assertNull(((LdapIdentityProviderDefinition) oidc.getConfig()).getBindPassword());
+    }
+
+    @Test
+    void change_secret_and_retrieve_by_origin_providers_redacts_data() {
+        IdentityProvider idp = getExternalOAuthProvider();
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
+        IdentityProviderSecretChangeRequest identityProviderSecretChangeRequest = new IdentityProviderSecretChangeRequest();
+        identityProviderSecretChangeRequest.setSecret("newSecret");
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChangeRequest);
         IdentityProvider<?> oidc = oidcBody.getBody();
         assertNotNull(oidc);
         assertNotNull(oidc.getConfig());
         assertTrue(oidc.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
-        assertNull(((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getRelyingPartySecret());
+        assertNotNull(((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getRelyingPartySecret());
     }
 
     @Test
-    void delete_secret_on_ldap_fails() {
-        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(getLdapDefinition());
-        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
+    void change_secret_invalid() {
+        IdentityProvider idp = getExternalOAuthProvider();
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
+        IdentityProviderSecretChangeRequest identityProviderSecretChangeRequest = new IdentityProviderSecretChangeRequest("");
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChangeRequest);
+        // secret must be set
+        assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
+    }
+
+    @Test
+    void change_secret_on_uaafails() {
+        IdentityProvider identityProvider = new IdentityProvider<>();
+        identityProvider.setConfig(new SamlIdentityProviderDefinition());
+        identityProvider.setName("my saml provider");
+        identityProvider.setIdentityZoneId(UAA);
+        identityProvider.setType(OriginKeys.SAML);
+        IdentityProviderSecretChangeRequest identityProviderSecretChangeRequest = new IdentityProviderSecretChangeRequest();
+        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(identityProvider);
+        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChangeRequest);
         IdentityProvider<?> oidc = oidcBody.getBody();
+        // because not allowed for SAML IdP
+        assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
+        assertNull(oidc);
+        // because not possible for SAML IdP
+        identityProviderSecretChangeRequest.setSecret("newSecret");
+        identityProviderSecretChangeRequest.setChangeMode(IdentityProviderSecretChangeRequest.ChangeMode.UPDATE);
+        oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChangeRequest);
+        oidc = oidcBody.getBody();
         assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
         assertNull(oidc);
     }

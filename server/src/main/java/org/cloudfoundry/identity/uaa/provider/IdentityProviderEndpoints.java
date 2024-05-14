@@ -37,6 +37,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
@@ -48,6 +49,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
@@ -67,9 +69,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -309,21 +311,35 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         return  new ResponseEntity<>(body, OK);
     }
 
-    @DeleteMapping(value = "{id}/secret")
-    public ResponseEntity<IdentityProvider> deleteSecret(@PathVariable String id) {
+    @PutMapping(value = "{id}/secret")
+    public ResponseEntity<IdentityProvider> changeSecret(@PathVariable String id, @RequestBody IdentityProviderSecretChangeRequest secretChangeRequest) {
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
-        if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
-            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> idpConfiguration) {
-            idpConfiguration.setRelyingPartySecret(null);
-            identityProviderProvisioning.update(existing, zoneId);
-            redactSensitiveData(existing);
-            logger.info("Secret deleted for Identity Provider: {}", existing.getId());
-            return new ResponseEntity<>(existing, OK);
-        } else {
-            logger.debug("Invalid operation. This operation is only supported on external IDP of type OAuth/OIDC");
+        if(secretChangeRequest.getChangeMode() == IdentityProviderSecretChangeRequest.ChangeMode.UPDATE
+           && UaaStringUtils.isNullOrEmpty(secretChangeRequest.getSecret())) {
+            logger.debug("Invalid payload. The property secret needs to be set");
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
+        if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
+            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> idpConfiguration) {
+            idpConfiguration.setRelyingPartySecret(secretChangeRequest.getSecret());
+            return new ResponseEntity<>(existing, OK);
+        } else if(LDAP.equals(existing.getType())
+            && secretChangeRequest.getChangeMode() == IdentityProviderSecretChangeRequest.ChangeMode.UPDATE
+            && existing.getConfig() instanceof LdapIdentityProviderDefinition ldapIdentityProviderDefinition) {
+            ldapIdentityProviderDefinition.setBindPassword(secretChangeRequest.getSecret());
+        } else {
+            if (secretChangeRequest.getChangeMode() == IdentityProviderSecretChangeRequest.ChangeMode.DELETE) {
+                logger.info("Invalid operation. This operation is only supported on external IDP of type OAuth/OIDC");
+            } else {
+                logger.debug("Invalid operation. This operation has an invalid status");
+            }
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
+        logger.info("Secret {} for Identity Provider: {}", secretChangeRequest.getChangeMode().toString().toLowerCase(Locale.ROOT), existing.getId());
+        identityProviderProvisioning.update(existing, zoneId);
+        redactSensitiveData(existing);
+        return new ResponseEntity<>(existing, OK);
     }
 
     @RequestMapping(method = GET)
