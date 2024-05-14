@@ -9,7 +9,7 @@ import static org.hamcrest.Matchers.containsString;
 
 public class SamlLoginPage extends Page {
     // This is on the saml server, not the UAA server
-    static final private String urlPath = "/module.php/core/loginuserpass";
+    static final private String urlPath = "/module.php/saml/idp/singleSignOnService";
 
     public SamlLoginPage(WebDriver driver) {
         super(driver);
@@ -25,10 +25,12 @@ public class SamlLoginPage extends Page {
         sendLoginCredentials(username, password);
         return new PasscodePage(driver);
     }
+
     public CustomErrorPage login_goesToCustomErrorPage(String username, String password, Matcher urlMatcher) {
         sendLoginCredentials(username, password);
         return new CustomErrorPage(driver, urlMatcher);
     }
+
     public SamlErrorPage login_goesToSamlErrorPage(String username, String password) {
         sendLoginCredentials(username, password);
         return new SamlErrorPage(driver);

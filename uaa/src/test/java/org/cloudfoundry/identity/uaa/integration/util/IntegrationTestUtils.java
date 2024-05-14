@@ -92,6 +92,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
@@ -105,49 +106,56 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.springframework.util.StringUtils.hasText;
 
 public class IntegrationTestUtils {
 
     public static final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
     public static final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR =
-        "//h1[contains(text(), 'Enter your username and password')]";
+            "//h1[contains(text(), 'Enter your username and password')]";
     public static final String SAML_AUTH_SOURCE = "example-userpass";
 
-    public static final String EXAMPLE_DOT_COM_SAML_IDP_METADATA = "<?xml version=\"1.0\"?>\n" +
-            "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://example.com/saml2/idp/metadata.php\" ID=\"_7a1d882b1a0cb702f97968d831d70eecce036d6d0c249ae65cca0e91f5656d58\"><ds:Signature>\n" +
-            "  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
-            "    <ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>\n" +
-            "  <ds:Reference URI=\"#_7a1d882b1a0cb702f97968d831d70eecce036d6d0c249ae65cca0e91f5656d58\"><ds:Transforms><ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/><ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/></ds:Transforms><ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/><ds:DigestValue>HOSWDJYkLvErI1gVynUVmufFVDCKPqExLnnnMjXgoJQ=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>ryMe0PXC+vR/c0nSEhSJsTaF0lHiuZ6PguqCbul7RC9WKLmFS9DD7Dgp3WHQ2zWpRimCTHxw/VO9hyCTxAcW9zxW4OdpD4YorqcmXtLkpasBCVuFLbQ8oylnjrem4kpGflfnuk3bW1mp6AXy52jwALDm8MsTwLK+O74YkeVTPP5bki/PK0N4jHnhYhvhHKUyT8Gug0v2o4KA/1ik83e9vcYEFc/9WGpXFeDMF6pXsJQqC/+eWoLfZJDNrwSsSlg+oD+ZF91YccN9i9lJoaIPcVvPWDfEv7vL79LgnmPBeYxm/fWb4/ANMxvCLIP1R3Ixrz5oFoIX2NP1+uZOpoRWbg==</ds:SignatureValue>\n" +
-            "<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>\n" +
-            "  <md:IDPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n" +
-            "    <md:KeyDescriptor use=\"signing\">\n" +
-            "      <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
-            "        <ds:X509Data>\n" +
-            "          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\n" +
-            "        </ds:X509Data>\n" +
-            "      </ds:KeyInfo>\n" +
-            "    </md:KeyDescriptor>\n" +
-            "    <md:KeyDescriptor use=\"encryption\">\n" +
-            "      <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
-            "        <ds:X509Data>\n" +
-            "          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\n" +
-            "        </ds:X509Data>\n" +
-            "      </ds:KeyInfo>\n" +
-            "    </md:KeyDescriptor>\n" +
-            "    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://example.com/saml2/idp/SingleLogoutService.php\"/>\n" +
-            "    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\n" +
-            "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://example.com/saml2/idp/SSOService.php\"/>\n" +
-            "  </md:IDPSSODescriptor>\n" +
-            "  <md:ContactPerson contactType=\"technical\">\n" +
-            "    <md:GivenName>Filip</md:GivenName>\n" +
-            "    <md:SurName>Hanik</md:SurName>\n" +
-            "    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\n" +
-            "  </md:ContactPerson>\n" +
-            "</md:EntityDescriptor>\n";
+    public static final String EXAMPLE_DOT_COM_SAML_IDP_METADATA = """
+            <?xml version="1.0"?>
+            <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="http://example.com/saml2/idp/metadata.php" ID="_7a1d882b1a0cb702f97968d831d70eecce036d6d0c249ae65cca0e91f5656d58"><ds:Signature>
+              <ds:SignedInfo><ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/>
+                <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"/>
+              <ds:Reference URI="#_7a1d882b1a0cb702f97968d831d70eecce036d6d0c249ae65cca0e91f5656d58"><ds:Transforms><ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/><ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#"/></ds:Transforms><ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256"/><ds:DigestValue>HOSWDJYkLvErI1gVynUVmufFVDCKPqExLnnnMjXgoJQ=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>ryMe0PXC+vR/c0nSEhSJsTaF0lHiuZ6PguqCbul7RC9WKLmFS9DD7Dgp3WHQ2zWpRimCTHxw/VO9hyCTxAcW9zxW4OdpD4YorqcmXtLkpasBCVuFLbQ8oylnjrem4kpGflfnuk3bW1mp6AXy52jwALDm8MsTwLK+O74YkeVTPP5bki/PK0N4jHnhYhvhHKUyT8Gug0v2o4KA/1ik83e9vcYEFc/9WGpXFeDMF6pXsJQqC/+eWoLfZJDNrwSsSlg+oD+ZF91YccN9i9lJoaIPcVvPWDfEv7vL79LgnmPBeYxm/fWb4/ANMxvCLIP1R3Ixrz5oFoIX2NP1+uZOpoRWbg==</ds:SignatureValue>
+            <ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>
+              <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+                <md:KeyDescriptor use="signing">
+                  <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                    <ds:X509Data>
+                      <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>
+                    </ds:X509Data>
+                  </ds:KeyInfo>
+                </md:KeyDescriptor>
+                <md:KeyDescriptor use="encryption">
+                  <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                    <ds:X509Data>
+                      <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>
+                    </ds:X509Data>
+                  </ds:KeyInfo>
+                </md:KeyDescriptor>
+                <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://example.com/saml2/idp/SingleLogoutService.php"/>
+                <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
+                <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://example.com/saml2/idp/SSOService.php"/>
+              </md:IDPSSODescriptor>
+              <md:ContactPerson contactType="technical">
+                <md:GivenName>Filip</md:GivenName>
+                <md:SurName>Hanik</md:SurName>
+                <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>
+              </md:ContactPerson>
+            </md:EntityDescriptor>
+            """;
 
     public static final String OIDC_ACCEPTANCE_URL = "https://oidc10.uaa-acceptance.cf-app.com/";
+    private static final DefaultResponseErrorHandler fiveHundredErrorHandler = new DefaultResponseErrorHandler() {
+        @Override
+        protected boolean hasError(HttpStatus statusCode) {
+            return statusCode.is5xxServerError();
+        }
+    };
 
     public static void updateUserToForcePasswordChange(RestTemplate restTemplate, String baseUrl, String adminToken, String userId) {
         updateUserToForcePasswordChange(restTemplate, baseUrl, adminToken, userId, null);
@@ -192,7 +200,6 @@ public class IntegrationTestUtils {
         return false;
     }
 
-
     public static UserInfoResponse getUserInfo(String url, String token) throws URISyntaxException {
         RestTemplate rest = new RestTemplate(createRequestFactory(true, 60_000));
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
@@ -233,37 +240,6 @@ public class IntegrationTestUtils {
         }
         return true;
     }
-
-    public static class RegexMatcher extends TypeSafeMatcher<String> {
-
-        private final String regex;
-
-        RegexMatcher(final String regex) {
-            this.regex = regex;
-        }
-
-        @Override
-        public void describeTo(final Description description) {
-            description.appendText("matches regex=`" + regex + "`");
-        }
-
-        @Override
-        public boolean matchesSafely(final String string) {
-            return string.matches(regex);
-        }
-
-
-        public static RegexMatcher matchesRegex(final String regex) {
-            return new RegexMatcher(regex);
-        }
-    }
-
-    private static final DefaultResponseErrorHandler fiveHundredErrorHandler = new DefaultResponseErrorHandler() {
-        @Override
-        protected boolean hasError(HttpStatus statusCode) {
-            return statusCode.is5xxServerError();
-        }
-    };
 
     public static boolean doesSupportZoneDNS() {
         try {
@@ -710,8 +686,8 @@ public class IntegrationTestUtils {
     }
 
     public static UaaClientDetails getClient(String token,
-                                              String url,
-                                              String clientId) {
+                                             String url,
+                                             String clientId) {
         RestTemplate template = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
@@ -731,9 +707,9 @@ public class IntegrationTestUtils {
     }
 
     public static UaaClientDetails createClientAsZoneAdmin(String zoneAdminToken,
-                                                            String url,
-                                                            String zoneId,
-                                                            UaaClientDetails client) {
+                                                           String url,
+                                                           String zoneId,
+                                                           UaaClientDetails client) {
 
         RestTemplate template = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
@@ -755,15 +731,15 @@ public class IntegrationTestUtils {
     }
 
     public static UaaClientDetails createClient(String adminToken,
-                                                 String url,
-                                                 UaaClientDetails client) {
+                                                String url,
+                                                UaaClientDetails client) {
         return createOrUpdateClient(adminToken, url, null, client);
     }
 
     public static UaaClientDetails createOrUpdateClient(String adminToken,
-                                                         String url,
-                                                         String switchToZoneId,
-                                                         UaaClientDetails client) {
+                                                        String url,
+                                                        String switchToZoneId,
+                                                        UaaClientDetails client) {
 
         RestTemplate template = new RestTemplate();
         template.setErrorHandler(new DefaultResponseErrorHandler() {
@@ -1070,7 +1046,7 @@ public class IntegrationTestUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.set("Authorization", "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+        headers.set("Authorization", "Basic " + new String(Base64.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = template.exchange(
@@ -1107,7 +1083,7 @@ public class IntegrationTestUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.set("Authorization", "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+        headers.set("Authorization", "Basic " + new String(Base64.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = template.exchange(
@@ -1129,7 +1105,7 @@ public class IntegrationTestUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
-                "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+                "Basic " + new String(Base64.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
@@ -1186,127 +1162,127 @@ public class IntegrationTestUtils {
     }
 
     public static String getAuthorizationResponse(ServerRunning serverRunning,
-			  String clientId,
-			  String username,
-			  String password,
-			  String redirectUri,
-			  String codeChallenge,
-			  String codeChallengeMethod) throws Exception {
-    	BasicCookieStore cookies = new BasicCookieStore();
-    	String mystateid = "mystateid";
-    	ServerRunning.UriBuilder builder = serverRunning.buildUri("/oauth/authorize")
-    			.queryParam("response_type", "code")
-    			.queryParam("state", mystateid)
-    			.queryParam("client_id", clientId);
-    	if (hasText(redirectUri)) {
-    		builder = builder.queryParam("redirect_uri", redirectUri);
-    	}
-    	if (hasText(codeChallenge)) {
-    		builder = builder.queryParam("code_challenge", codeChallenge);
-    	}
-    	if (hasText(codeChallengeMethod)) {
-    		builder = builder.queryParam("code_challenge_method", codeChallengeMethod);
-    	}
-    	URI uri = builder.build();
-    	ResponseEntity<Void> result =
-    			serverRunning.createRestTemplate().exchange(
-    					uri.toString(),
-    					HttpMethod.GET,
-    					new HttpEntity<>(null, getHeaders(cookies)),
-    					Void.class
-    					);
-    	assertEquals(HttpStatus.FOUND, result.getStatusCode());
-    	String location = result.getHeaders().getLocation().toString();
-    	if (result.getHeaders().containsKey("Set-Cookie")) {
-    		for (String header : result.getHeaders().get("Set-Cookie")) {
-    			int nameLength = header.indexOf('=');
-    			cookies.addCookie(new BasicClientCookie(header.substring(0, nameLength), header.substring(nameLength + 1)));
-    		}
-    	}
-    	ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
-    	if (response.getHeaders().containsKey("Set-Cookie")) {
-    		for (String cookie : response.getHeaders().get("Set-Cookie")) {
-    			int nameLength = cookie.indexOf('=');
-    			cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
-    		}
-    	}
-    	MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-    	assertTrue(response.getBody().contains("/login.do"));
-    	assertTrue(response.getBody().contains("username"));
-    	assertTrue(response.getBody().contains("password"));
-    	String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
-    	formData.add("username", username);
-    	formData.add("password", password);
-    	formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
-    	// Should be redirected to the original URL, but now authenticated
-    	result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
-    	assertEquals(HttpStatus.FOUND, result.getStatusCode());
-    	cookies.clear();
-    	if (result.getHeaders().containsKey("Set-Cookie")) {
-    		for (String cookie : result.getHeaders().get("Set-Cookie")) {
-    			int nameLength = cookie.indexOf('=');
-    			cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
-    		}
-    	}
-    	response = serverRunning.createRestTemplate().exchange(
-    			result.getHeaders().getLocation().toString(), HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
-    			String.class);
-    	if (response.getHeaders().containsKey("Set-Cookie")) {
-    		for (String cookie : response.getHeaders().get("Set-Cookie")) {
-    			int nameLength = cookie.indexOf('=');
-    			cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
-    		}
-    	}
-    	if (response.getStatusCode() == HttpStatus.OK) {
-    		// The grant access page should be returned
-    		assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
-    		formData.clear();
-    		formData.add(USER_OAUTH_APPROVAL, "true");
-    		formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
-    		result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
-    		assertEquals(HttpStatus.FOUND, result.getStatusCode());
-    		location = result.getHeaders().getLocation().toString();
-    	} else if(response.getStatusCode() == HttpStatus.BAD_REQUEST){
-    		return response.getBody();
-    	} else {
-    		// Token cached so no need for second approval
-    		assertEquals(HttpStatus.FOUND, response.getStatusCode());
-    		location = response.getHeaders().getLocation().toString();
-    	}
-    	return location;
+                                                  String clientId,
+                                                  String username,
+                                                  String password,
+                                                  String redirectUri,
+                                                  String codeChallenge,
+                                                  String codeChallengeMethod) throws Exception {
+        BasicCookieStore cookies = new BasicCookieStore();
+        String mystateid = "mystateid";
+        ServerRunning.UriBuilder builder = serverRunning.buildUri("/oauth/authorize")
+                .queryParam("response_type", "code")
+                .queryParam("state", mystateid)
+                .queryParam("client_id", clientId);
+        if (hasText(redirectUri)) {
+            builder = builder.queryParam("redirect_uri", redirectUri);
+        }
+        if (hasText(codeChallenge)) {
+            builder = builder.queryParam("code_challenge", codeChallenge);
+        }
+        if (hasText(codeChallengeMethod)) {
+            builder = builder.queryParam("code_challenge_method", codeChallengeMethod);
+        }
+        URI uri = builder.build();
+        ResponseEntity<Void> result =
+                serverRunning.createRestTemplate().exchange(
+                        uri.toString(),
+                        HttpMethod.GET,
+                        new HttpEntity<>(null, getHeaders(cookies)),
+                        Void.class
+                );
+        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        String location = result.getHeaders().getLocation().toString();
+        if (result.getHeaders().containsKey("Set-Cookie")) {
+            for (String header : result.getHeaders().get("Set-Cookie")) {
+                int nameLength = header.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(header.substring(0, nameLength), header.substring(nameLength + 1)));
+            }
+        }
+        ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
+            }
+        }
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        assertTrue(response.getBody().contains("/login.do"));
+        assertTrue(response.getBody().contains("username"));
+        assertTrue(response.getBody().contains("password"));
+        String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
+        formData.add("username", username);
+        formData.add("password", password);
+        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+        // Should be redirected to the original URL, but now authenticated
+        result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
+        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        cookies.clear();
+        if (result.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
+            }
+        }
+        response = serverRunning.createRestTemplate().exchange(
+                result.getHeaders().getLocation().toString(), HttpMethod.GET, new HttpEntity<>(null, getHeaders(cookies)),
+                String.class);
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                int nameLength = cookie.indexOf('=');
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
+            }
+        }
+        if (response.getStatusCode() == HttpStatus.OK) {
+            // The grant access page should be returned
+            assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
+            formData.clear();
+            formData.add(USER_OAUTH_APPROVAL, "true");
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
+            result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
+            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            location = result.getHeaders().getLocation().toString();
+        } else if (response.getStatusCode() == HttpStatus.BAD_REQUEST) {
+            return response.getBody();
+        } else {
+            // Token cached so no need for second approval
+            assertEquals(HttpStatus.FOUND, response.getStatusCode());
+            location = response.getHeaders().getLocation().toString();
+        }
+        return location;
     }
 
     public static ResponseEntity<Map> getTokens(ServerRunning serverRunning,
-            									UaaTestAccounts testAccounts,
-            									String clientId,
-            									String clientSecret,
-            									String redirectUri,
-            									String codeVerifier,
-            									String authorizationCode) throws Exception {
-    	MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-    	formData.clear();
-    	formData.add("client_id", clientId);
-    	formData.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
-    	formData.add("code", authorizationCode);
-    	if (hasText(redirectUri)) {
-    		formData.add("redirect_uri", redirectUri);
-    	}
-    	if (hasText(codeVerifier)) {
-    		formData.add("code_verifier", codeVerifier);
-    	}
-    	HttpHeaders tokenHeaders = new HttpHeaders();
-    	tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
-    	return serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
-	}
+                                                UaaTestAccounts testAccounts,
+                                                String clientId,
+                                                String clientSecret,
+                                                String redirectUri,
+                                                String codeVerifier,
+                                                String authorizationCode) throws Exception {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.clear();
+        formData.add("client_id", clientId);
+        formData.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
+        formData.add("code", authorizationCode);
+        if (hasText(redirectUri)) {
+            formData.add("redirect_uri", redirectUri);
+        }
+        if (hasText(codeVerifier)) {
+            formData.add("code_verifier", codeVerifier);
+        }
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.set("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
+        return serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
+    }
 
     public static void callCheckToken(ServerRunning serverRunning,
-    		UaaTestAccounts testAccounts,
-    		String accessToken,
-    		String clientId,
-    		String clientSecret) {
-    	MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+                                      UaaTestAccounts testAccounts,
+                                      String accessToken,
+                                      String clientId,
+                                      String clientSecret) {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         HttpHeaders headers = new HttpHeaders();
-        headers.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+        headers.set("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
         formData.add("token", accessToken);
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
@@ -1314,35 +1290,33 @@ public class IntegrationTestUtils {
     }
 
     public static String getAuthorizationCodeToken(
-        ServerRunning serverRunning,
-        String clientId,
-        String clientAssertion,
-        String username,
-        String password,
-        String tokenResponseType,
-        String redirectUri,
-        String loginHint,
-        boolean callCheckToken)
-    {
+            ServerRunning serverRunning,
+            String clientId,
+            String clientAssertion,
+            String username,
+            String password,
+            String tokenResponseType,
+            String redirectUri,
+            String loginHint,
+            boolean callCheckToken) {
         return getAuthorizationCodeTokenMap(serverRunning, UaaTestAccounts.standard(serverRunning), clientId, null, clientAssertion,
-            username, password, tokenResponseType, null, redirectUri, loginHint, callCheckToken).get("access_token");
+                username, password, tokenResponseType, null, redirectUri, loginHint, callCheckToken).get("access_token");
     }
 
     public static Map<String, String> getAuthorizationCodeTokenMap(
-        ServerRunning serverRunning,
-        UaaTestAccounts testAccounts,
-        String clientId,
-        String clientSecret,
-        String username,
-        String password,
-        String tokenResponseType,
-        String jSessionId,
-        String redirectUri,
-        String loginHint,
-        boolean callCheckToken)
-    {
+            ServerRunning serverRunning,
+            UaaTestAccounts testAccounts,
+            String clientId,
+            String clientSecret,
+            String username,
+            String password,
+            String tokenResponseType,
+            String jSessionId,
+            String redirectUri,
+            String loginHint,
+            boolean callCheckToken) {
         return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, null, username, password,
-            tokenResponseType, jSessionId, redirectUri, loginHint, callCheckToken);
+                tokenResponseType, jSessionId, redirectUri, loginHint, callCheckToken);
     }
 
     public static Map<String, String> getAuthorizationCodeTokenMap(ServerRunning serverRunning,
@@ -1468,7 +1442,7 @@ public class IntegrationTestUtils {
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         if (clientSecret != null) {
-            tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+            tokenHeaders.set("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
         } else if (clientAssertion != null) {
             formData.add(JwtClientAuthentication.CLIENT_ASSERTION_TYPE, JwtClientAuthentication.GRANT_TYPE);
             formData.add(JwtClientAuthentication.CLIENT_ASSERTION, clientAssertion);
@@ -1484,7 +1458,7 @@ public class IntegrationTestUtils {
         formData = new LinkedMultiValueMap<>();
         HttpHeaders headers = new HttpHeaders();
         if (clientSecret != null) {
-            headers.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
+            headers.set("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
         } else if (clientAssertion != null) {
             formData.add(JwtClientAuthentication.CLIENT_ASSERTION_TYPE, JwtClientAuthentication.GRANT_TYPE);
             formData.add(JwtClientAuthentication.CLIENT_ASSERTION, clientAssertion);
@@ -1545,6 +1519,66 @@ public class IntegrationTestUtils {
         return webDriver.manage().getCookies().stream().map(Cookie::getName).collect(Collectors.toList());
     }
 
+    public static String createAnotherUser(WebDriver webDriver, String password, SimpleSmtpServer simpleSmtpServer, String url, TestClient testClient) {
+        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
+
+        webDriver.get(url + "/create_account");
+        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys(password);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(password);
+        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+
+        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        receivedEmail.remove();
+        webDriver.get(testClient.extractLink(message.getBody()));
+
+        return userEmail;
+    }
+
+    public static HttpHeaders getAuthenticatedHeaders(String token) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("Authorization", "Bearer " + token);
+        return headers;
+    }
+
+    public static String createClientAdminTokenInZone(String baseUrl, String uaaAdminToken, String zoneId, IdentityZoneConfiguration config) {
+        RestTemplate identityClient = getClientCredentialsTemplate(getClientCredentialsResource(baseUrl,
+                new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+        createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
+        UaaClientDetails zoneClient = new UaaClientDetails("admin-client-in-zone", null, "openid",
+                "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,zones.testzone1.admin ", zoneUrl);
+        zoneClient.setClientSecret("admin-secret-in-zone");
+        createOrUpdateClient(uaaAdminToken, baseUrl, zoneId, zoneClient);
+        return getClientCredentialsToken(zoneUrl, "admin-client-in-zone", "admin-secret-in-zone");
+    }
+
+    public static class RegexMatcher extends TypeSafeMatcher<String> {
+
+        private final String regex;
+
+        RegexMatcher(final String regex) {
+            this.regex = regex;
+        }
+
+        public static RegexMatcher matchesRegex(final String regex) {
+            return new RegexMatcher(regex);
+        }
+
+        @Override
+        public void describeTo(final Description description) {
+            description.appendText("matches regex=`" + regex + "`");
+        }
+
+        @Override
+        public boolean matchesSafely(final String string) {
+            return string.matches(regex);
+        }
+    }
+
     public static class HttpRequestFactory extends HttpComponentsClientHttpRequestFactory {
         private final boolean disableRedirect;
         private final boolean disableCookieHandling;
@@ -1568,48 +1602,10 @@ public class IntegrationTestUtils {
         }
     }
 
-    public static String createAnotherUser(WebDriver webDriver, String password, SimpleSmtpServer simpleSmtpServer, String url, TestClient testClient) {
-        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
-
-        webDriver.get(url + "/create_account");
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.name("password_confirmation")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
-
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        receivedEmail.remove();
-        webDriver.get(testClient.extractLink(message.getBody()));
-
-        return userEmail;
-    }
-
-
     public static class StatelessRequestFactory extends HttpRequestFactory {
         public StatelessRequestFactory() {
             super(true, true);
         }
-    }
-
-    public static HttpHeaders getAuthenticatedHeaders(String token) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + token);
-        return headers;
-    }
-
-    public static String createClientAdminTokenInZone(String baseUrl, String uaaAdminToken, String zoneId, IdentityZoneConfiguration config) {
-        RestTemplate identityClient = getClientCredentialsTemplate(getClientCredentialsResource(baseUrl,
-                new String[] { "zones.write", "zones.read", "scim.zones" }, "identity", "identitysecret"));
-        createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
-        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
-        UaaClientDetails zoneClient = new UaaClientDetails("admin-client-in-zone", null, "openid",
-            "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,zones.testzone1.admin ", zoneUrl);
-        zoneClient.setClientSecret("admin-secret-in-zone");
-        createOrUpdateClient(uaaAdminToken, baseUrl, zoneId, zoneClient);
-        return getClientCredentialsToken(zoneUrl, "admin-client-in-zone", "admin-secret-in-zone");
     }
 
 }
