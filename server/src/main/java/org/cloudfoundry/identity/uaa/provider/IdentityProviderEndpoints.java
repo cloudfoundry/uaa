@@ -37,9 +37,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -68,7 +67,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 public class IdentityProviderEndpoints implements ApplicationEventPublisherAware {
 
-    protected static Logger logger = LogManager.getLogger();
+    protected static Logger logger = LoggerFactory.getLogger(IdentityProviderEndpoints.class);
 
     @Value("${login.aliasEntitiesEnabled:false}")
     private boolean aliasEntitiesEnabled;
@@ -110,7 +109,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
-            logger.log(Level.DEBUG, () -> String.format("IdentityProvider[origin=%s; zone=%s] - Configuration validation error.", body.getOriginKey(), body.getIdentityZoneId()), e);
+            logger.debug(String.format("IdentityProvider[origin=%s; zone=%s] - Configuration validation error.", body.getOriginKey(), body.getIdentityZoneId()), e);
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         if (SAML.equals(body.getType())) {
@@ -184,16 +183,15 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
-            logger.log(Level.DEBUG, () -> String.format("IdentityProvider[origin=%s; zone=%s] - Configuration validation error for update.", body.getOriginKey(), body.getIdentityZoneId()), e);
+            logger.debug(String.format("IdentityProvider[origin=%s; zone=%s] - Configuration validation error for update.", body.getOriginKey(), body.getIdentityZoneId()), e);
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
         if (!idpAliasHandler.aliasPropertiesAreValid(body, existing)) {
-            logger.log(Level.WARN, () -> String.format(
-                    "IdentityProvider[origin=%s; zone=%s] - Alias ID and/or ZID changed during update of IdP with alias.",
-                    getCleanedUserControlString(body.getOriginKey()),
-                    getCleanedUserControlString(body.getIdentityZoneId())
-            ));
+            if (logger.isWarnEnabled()) {
+                logger.warn("IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of IdP with alias.",
+                    getCleanedUserControlString(body.getOriginKey()), getCleanedUserControlString(body.getIdentityZoneId()));
+            }
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
@@ -220,19 +218,21 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         } catch (final IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
         } catch (final EntityAliasFailedException e) {
-            logger.log(Level.WARN, () -> String.format("Could not create alias for %s", e.getMessage()));
+            logger.warn(String.format("Could not create alias for %s", e.getMessage()));
             final HttpStatus responseCode = Optional.ofNullable(HttpStatus.resolve(e.getHttpStatus())).orElse(INTERNAL_SERVER_ERROR);
             return new ResponseEntity<>(body, responseCode);
         } catch (final Exception e) {
-            logger.log(Level.WARN, () -> String.format("Unable to %s IdentityProvider[origin=%s; zone=%s]",
+            logger.warn(String.format("Unable to %s IdentityProvider[origin=%s; zone=%s]",
                 status == CREATED ? "create" : "update", body.getOriginKey(), body.getIdentityZoneId()), e);
             return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
         }
         if (updatedIdp == null) {
-            logger.log(Level.WARN, () -> String.format("IdentityProvider[origin=%s; zone=%s] - Transaction %s IdP (and alias IdP, if applicable) was not successful, but no exception was thrown.",
-                getCleanedUserControlString(body.getOriginKey()),
-                getCleanedUserControlString(body.getIdentityZoneId()),
-                status == CREATED ? "creating" : "updating"));
+            if (logger.isWarnEnabled()) {
+                logger.warn(
+                    "IdentityProvider[origin={}; zone={}] - Transaction {} IdP (and alias IdP, if applicable) was not successful, but no exception was thrown.",
+                    getCleanedUserControlString(body.getOriginKey()), getCleanedUserControlString(body.getIdentityZoneId()),
+                    status == CREATED ? "creating" : "updating");
+            }
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         updatedIdp.setSerializeConfigRaw(rawConfig);
@@ -349,14 +349,14 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         switch (provider.getType()) {
             case LDAP: {
                 if (provider.getConfig() instanceof LdapIdentityProviderDefinition definition) {
-                    logger.log(Level.DEBUG, () -> String.format("Removing bind password from LDAP provider id: %s", provider.getId()));
+                    logger.debug("Removing bind password from LDAP provider id: {}", provider.getId());
                     definition.setBindPassword(null);
                 }
                 break;
             }
             case OAUTH20, OIDC10 : {
                 if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> definition) {
-                    logger.log(Level.DEBUG, () -> String.format("Removing relying secret from OAuth/OIDC provider id: %s", provider.getId()));
+                    logger.debug("Removing relying secret from OAuth/OIDC provider id: {}", provider.getId());
                     definition.setRelyingPartySecret(null);
                 }
                 break;
