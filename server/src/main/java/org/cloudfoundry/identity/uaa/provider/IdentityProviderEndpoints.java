@@ -231,16 +231,14 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         try {
             configValidator.validate(body);
         } catch (IllegalArgumentException e) {
-            logger.debug("IdentityProvider[origin="+body.getOriginKey()+"; zone="+body.getIdentityZoneId()+"] - Configuration validation error for update.", e);
+            logger.debug("IdentityProvider[origin=" + body.getOriginKey() + "; zone=" + body.getIdentityZoneId()
+                + "] - Configuration validation error for update.", e);
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
         if (!idpAliasHandler.aliasPropertiesAreValid(body, existing)) {
-            logger.warn(
-                    "IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of IdP with alias.",
-                    getCleanedUserControlString(body.getOriginKey()),
-                    getCleanedUserControlString(body.getIdentityZoneId())
-            );
+            logger.warn("IdentityProvider[origin={}; zone={}] - Alias ID and/or ZID changed during update of IdP with alias.",
+                getCleanedUserControlString(body.getOriginKey()), getCleanedUserControlString(body.getIdentityZoneId()));
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
 
@@ -252,7 +250,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             samlConfigurator.validateSamlIdentityProviderDefinition(definition);
             body.setConfig(definition);
         }
+        return persistIdentityProviderChange(body, rawConfig, zoneId, existing);
+    }
 
+    private ResponseEntity<IdentityProvider> persistIdentityProviderChange(IdentityProvider body, boolean rawConfig, String zoneId,
+            IdentityProvider existing) {
         final IdentityProvider<?> updatedIdp;
         try {
             updatedIdp = transactionTemplate.execute(txStatus -> {
@@ -321,9 +323,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
         if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
-            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> idpConfiguration) {
-            idpConfiguration.setRelyingPartySecret(secretChangeRequest.getSecret());
-            return new ResponseEntity<>(existing, OK);
+            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?>) {
+            IdentityProvider updated = existing;
+            ((AbstractExternalOAuthIdentityProviderDefinition) updated.getConfig()).setRelyingPartySecret(secretChangeRequest.getSecret());
+            return persistIdentityProviderChange(updated, false, zoneId, existing);
         } else if(LDAP.equals(existing.getType())
             && secretChangeRequest.getChangeMode() == IdentityProviderSecretChangeRequest.ChangeMode.UPDATE
             && existing.getConfig() instanceof LdapIdentityProviderDefinition ldapIdentityProviderDefinition) {
