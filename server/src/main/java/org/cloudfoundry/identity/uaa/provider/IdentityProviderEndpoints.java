@@ -19,24 +19,19 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.getCleanedUserControlString;
-import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
-import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.util.StringUtils.hasText;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -55,8 +50,6 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -308,40 +301,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         return new ResponseEntity<>(identityProvider, OK);
     }
 
-    @PostMapping(value = "test")
-    public ResponseEntity<String> testIdentityProvider(@RequestBody IdentityProviderValidationRequest body) {
-        String exception = "ok";
-        HttpStatus status = OK;
-        //create the LDAP IDP
-        DynamicLdapAuthenticationManager manager = new DynamicLdapAuthenticationManager(
-            ObjectUtils.castInstance(body.getProvider().getConfig(),LdapIdentityProviderDefinition.class),
-            scimGroupExternalMembershipManager,
-            scimGroupProvisioning,
-            noOpManager
-        );
-        try {
-            //attempt authentication
-            Authentication result = manager.authenticate(body.getCredentials());
-            if ((result == null) || (result != null && !result.isAuthenticated())) {
-                status = EXPECTATION_FAILED;
-            }
-        } catch (BadCredentialsException x) {
-            status = EXPECTATION_FAILED;
-            exception = "bad credentials";
-        } catch (InternalAuthenticationServiceException x) {
-            status = BAD_REQUEST;
-            exception = getExceptionString(x);
-        } catch (Exception x) {
-            logger.error("Identity provider validation failed.", x);
-            status = INTERNAL_SERVER_ERROR;
-            exception = "check server logs";
-        }finally {
-            //destroy IDP
-            manager.destroy();
-        }
-        //return results
-        return new ResponseEntity<>(JsonUtils.writeValueAsString(exception), status);
-    }
 
     @ExceptionHandler(MetadataProviderException.class)
     public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {
@@ -360,13 +319,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     @ExceptionHandler(EmptyResultDataAccessException.class)
     public ResponseEntity<String> handleProviderNotFoundException() {
         return new ResponseEntity<>("Provider not found.", HttpStatus.NOT_FOUND);
-    }
-
-
-    protected String getExceptionString(Exception x) {
-        StringWriter writer = new StringWriter();
-        x.printStackTrace(new PrintWriter(writer));
-        return writer.getBuffer().toString();
     }
 
     protected static class NoOpLdapLoginAuthenticationManager extends LdapLoginAuthenticationManager {
