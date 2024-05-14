@@ -168,7 +168,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void retrieve_oauth_provider_by_id_redacts_password() throws Exception {
+    void retrieve_oauth_provider_by_id_redacts_password() {
         retrieve_oauth_provider_by_id("", OriginKeys.OAUTH20);
         retrieve_oauth_provider_by_id("", OriginKeys.OIDC10);
     }
@@ -188,7 +188,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void retrieve_ldap_provider_by_id_redacts_password() throws Exception {
+    void retrieve_ldap_provider_by_id_redacts_password() {
         retrieve_ldap_provider_by_id("");
     }
 
@@ -208,7 +208,7 @@ class IdentityProviderEndpointsTest {
     void remove_bind_password() {
         remove_sensitive_data(() -> getLdapDefinition(),
                 LDAP,
-                (spy) -> verify((LdapIdentityProviderDefinition) spy, times(1)).setBindPassword(isNull()));
+                spy -> verify((LdapIdentityProviderDefinition) spy, times(1)).setBindPassword(isNull()));
     }
 
     @Test
@@ -216,7 +216,7 @@ class IdentityProviderEndpointsTest {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
             remove_sensitive_data(() -> getExternalOAuthProvider(),
                     type,
-                    (spy) -> verify((AbstractExternalOAuthIdentityProviderDefinition) spy, times(1)).setRelyingPartySecret(isNull()));
+                    spy -> verify((AbstractExternalOAuthIdentityProviderDefinition) spy, times(1)).setRelyingPartySecret(isNull()));
         }
     }
 
@@ -716,7 +716,6 @@ class IdentityProviderEndpointsTest {
             void testDeleteIdpWithAlias_DanglingReference() {
                 final String idpId = UUID.randomUUID().toString();
                 final String aliasIdpId = UUID.randomUUID().toString();
-                final String customZoneId = UUID.randomUUID().toString();
 
                 final IdentityProvider<?> idp = new IdentityProvider<>();
                 idp.setType(OIDC10);
@@ -753,7 +752,6 @@ class IdentityProviderEndpointsTest {
                 identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
 
                 // arrange IdP with alias exists
-                final String customZoneId = UUID.randomUUID().toString();
                 final Pair<IdentityProvider<?>, IdentityProvider<?>> idpAndAlias = arrangeIdpWithAliasExists(UAA, customZoneId);
                 final IdentityProvider<?> idp = idpAndAlias.getLeft();
 
