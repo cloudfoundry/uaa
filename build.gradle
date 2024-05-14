@@ -10,7 +10,6 @@ buildscript {
         mavenCentral()
         gradlePluginPortal()
         maven {
-
             url("https://plugins.gradle.org/m2/")
         }
     }
@@ -65,6 +64,7 @@ subprojects {
         exclude(group: "org.apache.directory.server", module: "apacheds-protocol-ldap")
         exclude(group: "org.skyscreamer", module: "jsonassert")
         exclude(group: "com.vaadin.external.google", module: "android-json")
+        exclude(group: "com.unboundid.components", module: "json")
 
         resolutionStrategy {
             resolutionStrategy.eachDependency { DependencyResolveDetails details ->
