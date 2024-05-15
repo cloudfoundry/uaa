@@ -317,4 +317,16 @@ class JdbcIdentityProviderProvisioningTests {
         IdentityProvider idp1 = jdbcIdentityProviderProvisioning.create(idp, otherZoneId1);
         assertThrows(EmptyResultDataAccessException.class, () -> jdbcIdentityProviderProvisioning.retrieveByOrigin(idp1.getOriginKey(), otherZoneId2));
     }
+
+    @Test
+    void testIdpWithAliasExistsInZone() {
+        final IdentityProvider<AbstractIdentityProviderDefinition> idpWithAlias = MultitenancyFixture.identityProvider(
+                generator.generate(),
+                otherZoneId1
+        );
+        idpWithAlias.setAliasZid(IdentityZone.getUaaZoneId());
+        idpWithAlias.setAliasId(UUID.randomUUID().toString());
+        jdbcIdentityProviderProvisioning.create(idpWithAlias, otherZoneId1);
+        assertTrue(jdbcIdentityProviderProvisioning.idpWithAliasExistsInZone(otherZoneId1));
+    }
 }
