@@ -36,7 +36,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=?";
 
-    public static final String IDP_WITH_ALIAS_EXISTS_QUERY = "values (exists(select 1 from identity_provider idp where idp.identity_zone_id = ? and idp.alias_zid is not null and idp.alias_zid <> ''))";
+    public static final String NUMBER_OF_IDPS_WITH_ALIAS_QUERY = "select count(*) from identity_provider idp where idp.identity_zone_id = ? and idp.alias_zid is not null and idp.alias_zid <> ''";
 
     public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active,alias_id,alias_zid".replace(",", "=?,") + "=?";
 
@@ -61,16 +61,16 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     }
 
     public boolean idpWithAliasExistsInZone(final String zoneId) {
-        final Boolean idpWithAliasExists = jdbcTemplate.queryForObject(
-                IDP_WITH_ALIAS_EXISTS_QUERY,
+        final Integer numberOfIdpsWithAlias = jdbcTemplate.queryForObject(
+                NUMBER_OF_IDPS_WITH_ALIAS_QUERY,
                 new Object[]{zoneId},
                 new int[]{VARCHAR},
-                Boolean.class
+                Integer.class
         );
-        if (idpWithAliasExists == null) {
+        if (numberOfIdpsWithAlias == null) {
             throw new IncorrectResultSizeDataAccessException(1);
         }
-        return idpWithAliasExists;
+        return numberOfIdpsWithAlias > 0;
     }
 
     @Override
