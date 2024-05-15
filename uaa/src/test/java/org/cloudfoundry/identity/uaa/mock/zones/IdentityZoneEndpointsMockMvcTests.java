@@ -12,10 +12,10 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationService;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -47,7 +48,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -123,7 +123,7 @@ class IdentityZoneEndpointsMockMvcTests {
     private String identityClientZonesReadToken = null;
     private String identityClientZonesWriteToken = null;
     private String adminToken = null;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private TestApplicationEventListener<IdentityZoneModifiedEvent> zoneModifiedEventListener;
     private TestApplicationEventListener<ClientCreateEvent> clientCreateEventListener;
     private TestApplicationEventListener<ClientDeleteEvent> clientDeleteEventListener;
@@ -497,7 +497,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     void testCreateZoneInsufficientScope() throws Exception {
-        String id = new RandomValueStringGenerator().generate();
+        String id = new AlphanumericRandomValueStringGenerator().generate();
         createZone(id, HttpStatus.FORBIDDEN, lowPriviledgeToken, new IdentityZoneConfiguration());
 
         assertEquals(0, zoneModifiedEventListener.getEventCount());
@@ -505,7 +505,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     void testCreateZoneNoToken() throws Exception {
-        String id = new RandomValueStringGenerator().generate();
+        String id = new AlphanumericRandomValueStringGenerator().generate();
         createZone(id, HttpStatus.UNAUTHORIZED, "", new IdentityZoneConfiguration());
 
         assertEquals(0, zoneModifiedEventListener.getEventCount());
@@ -520,7 +520,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     void testUpdateNonExistentReturns403() throws Exception {
-        String id = new RandomValueStringGenerator().generate();
+        String id = new AlphanumericRandomValueStringGenerator().generate();
         IdentityZone identityZone = createSimpleIdentityZone(id);
         //zone doesn't exist and we don't have the token scope
         updateZone(identityZone, HttpStatus.FORBIDDEN, lowPriviledgeToken);
@@ -777,7 +777,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     void testUpdateZoneNoToken() throws Exception {
-        String id = new RandomValueStringGenerator().generate();
+        String id = new AlphanumericRandomValueStringGenerator().generate();
         IdentityZone identityZone = createSimpleIdentityZone(id);
         updateZone(identityZone, HttpStatus.UNAUTHORIZED, "");
 
@@ -786,7 +786,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     void testUpdateZoneInsufficientScope() throws Exception {
-        String id = new RandomValueStringGenerator().generate();
+        String id = new AlphanumericRandomValueStringGenerator().generate();
         IdentityZone identityZone = createSimpleIdentityZone(id);
         updateZone(identityZone, HttpStatus.FORBIDDEN, lowPriviledgeToken);
 
@@ -2069,9 +2069,9 @@ class IdentityZoneEndpointsMockMvcTests {
 
     @Test
     void updateZoneWithDifferentIdInBodyAndPath_fails() throws Exception {
-        IdentityZone identityZone = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
+        IdentityZone identityZone = createZone(new AlphanumericRandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
         String id = identityZone.getId();
-        IdentityZone identityZone2 = createZone(new RandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
+        IdentityZone identityZone2 = createZone(new AlphanumericRandomValueStringGenerator(5).generate(), HttpStatus.CREATED, adminToken, new IdentityZoneConfiguration());
         identityZone.setId(identityZone2.getId());
 
         updateZone(id, identityZone, HttpStatus.UNPROCESSABLE_ENTITY, adminToken);
@@ -2084,7 +2084,7 @@ class IdentityZoneEndpointsMockMvcTests {
         identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
 
         createZone(
-                "should-not-exist" + new RandomValueStringGenerator(5).generate(),
+                "should-not-exist" + new AlphanumericRandomValueStringGenerator(5).generate(),
                 HttpStatus.CREATED,
                 adminToken,
                 identityZoneConfiguration
@@ -2098,7 +2098,7 @@ class IdentityZoneEndpointsMockMvcTests {
         identityZoneConfiguration.setTokenPolicy(null);
 
         createZone(
-                "should-not-exist" + new RandomValueStringGenerator(5).generate(),
+                "should-not-exist" + new AlphanumericRandomValueStringGenerator(5).generate(),
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "You cannot set issuer value unless you have set your own signing key for this identity zone.",
                 adminToken,
@@ -2113,7 +2113,7 @@ class IdentityZoneEndpointsMockMvcTests {
         identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
 
         createZone(
-                "should-not-exist" + new RandomValueStringGenerator(5).generate(),
+                "should-not-exist" + new AlphanumericRandomValueStringGenerator(5).generate(),
                 HttpStatus.UNPROCESSABLE_ENTITY,
                 "You cannot set issuer value unless you have set your own signing key for this identity zone.",
                 adminToken,
@@ -2127,7 +2127,7 @@ class IdentityZoneEndpointsMockMvcTests {
         identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
         identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
 
-        String zoneId = "should-not-exist" + new RandomValueStringGenerator(5).generate();
+        String zoneId = "should-not-exist" + new AlphanumericRandomValueStringGenerator(5).generate();
         IdentityZone identityZone =
                 createZone(
                         zoneId,
@@ -2150,7 +2150,7 @@ class IdentityZoneEndpointsMockMvcTests {
         identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
         identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
 
-        String zoneId = "should-not-exist" + new RandomValueStringGenerator(5).generate();
+        String zoneId = "should-not-exist" + new AlphanumericRandomValueStringGenerator(5).generate();
         IdentityZone identityZone =
                 createZone(
                         zoneId,
@@ -2175,7 +2175,7 @@ class IdentityZoneEndpointsMockMvcTests {
         identityZoneConfiguration.setIssuer("http://my-custom-issuer.com");
         identityZoneConfiguration.setTokenPolicy(new TokenPolicy());
 
-        String zoneId = "should-not-exist" + new RandomValueStringGenerator(5).generate();
+        String zoneId = "should-not-exist" + new AlphanumericRandomValueStringGenerator(5).generate();
         IdentityZone identityZone =
                 createZone(
                         zoneId,
@@ -2366,7 +2366,7 @@ class IdentityZoneEndpointsMockMvcTests {
     private IdentityZone createSimpleIdentityZone(String id) {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
-        identityZone.setSubdomain(hasText(id) ? id : new RandomValueStringGenerator().generate());
+        identityZone.setSubdomain(hasText(id) ? id : new AlphanumericRandomValueStringGenerator().generate());
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;

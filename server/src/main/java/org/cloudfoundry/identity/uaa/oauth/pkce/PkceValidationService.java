@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.pkce;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.Collections;
 import java.util.Map;

@@ -5,7 +5,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.extensions.SpringProfileCleanupExtension;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -66,7 +66,7 @@ class YamlServletProfileInitializerTest {
 
     private static final String NEW_LINE = System.getProperty("line.separator");
     private Path tempDirectory;
-    private RandomValueStringGenerator randomValueStringGenerator;
+    private AlphanumericRandomValueStringGenerator randomValueStringGenerator;
 
     @BeforeEach
     void setup() throws IOException {
@@ -87,7 +87,7 @@ class YamlServletProfileInitializerTest {
         tempDirectory = Files.createTempDirectory("secrets-dir");
         tempDirectory.toFile().deleteOnExit();
         System.setProperty("SECRETS_DIR", tempDirectory.toString());
-        randomValueStringGenerator = new RandomValueStringGenerator(10);
+        randomValueStringGenerator = new AlphanumericRandomValueStringGenerator(10);
     }
 
     @AfterEach

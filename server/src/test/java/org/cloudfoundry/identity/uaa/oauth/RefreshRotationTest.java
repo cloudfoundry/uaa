@@ -2,6 +2,11 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -15,11 +20,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.TokenRequest;
 
 import java.util.Collections;
 import java.util.Date;
@@ -176,8 +176,8 @@ class RefreshRotationTest {
   }
 
   @Test
-  @DisplayName("Refresh Token with allowpublic but without rotation")
-  void testRefreshPublicClientWithoutRotation() {
+  @DisplayName("Refresh Token with allowpublic and implicit rotation")
+  void testRefreshPublicClientImplicitRotation() {
     UaaClientDetails clientDetails = new UaaClientDetails(tokenSupport.defaultClient);
     clientDetails.setAutoApproveScopes(singleton("true"));
     tokenSupport.clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap(CLIENT_ID, clientDetails));
@@ -196,9 +196,10 @@ class RefreshRotationTest {
     assertThat(refreshTokenValue, is(notNullValue()));
 
     setupOAuth2Authentication(oAuth2Request);
-    RuntimeException exception = assertThrows(TokenRevokedException.class, () ->
-        tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN)));
-    assertEquals("Refresh without client authentication not allowed.", exception.getMessage());
+    OAuth2AccessToken refreshedToken = tokenServices.refreshAccessToken(refreshTokenValue, new TokenRequest(new HashMap<>(), CLIENT_ID, Lists.newArrayList("openid"), GRANT_TYPE_REFRESH_TOKEN));
+    assertThat(refreshedToken, is(notNullValue()));
+    assertNotEquals("New access token should be different from the old one.", refreshTokenValue, refreshedToken.getRefreshToken().getValue());
+    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(refreshedToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
   }
 
   @Test
@@ -212,13 +213,11 @@ class RefreshRotationTest {
     Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
     azParameters.put(GRANT_TYPE, GRANT_TYPE_AUTHORIZATION_CODE);
     authorizationRequest.setRequestParameters(azParameters);
-    authorizationRequest.setExtensions(Map.of(CLIENT_AUTH_METHOD, CLIENT_AUTH_EMPTY));
     OAuth2Request oAuth2Request = authorizationRequest.createOAuth2Request();
     OAuth2Authentication authentication = new OAuth2Authentication(oAuth2Request, tokenSupport.defaultUserAuthentication);
     new IdentityZoneManagerImpl().getCurrentIdentityZone().getConfig().getTokenPolicy().setRefreshTokenRotate(true);
     CompositeToken accessToken = (CompositeToken) tokenServices.createAccessToken(authentication);
 
-    assertThat((Map<String, Object>) UaaTokenUtils.getClaims(accessToken.getValue(), Map.class), hasEntry(CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
     String refreshTokenValue = accessToken.getRefreshToken().getValue();
     assertThat(refreshTokenValue, is(notNullValue()));
 

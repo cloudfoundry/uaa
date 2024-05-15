@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.mock.util;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 public class ClientDetailsHelper {
     public static Object fromString(String body, Class<?> clazz) {

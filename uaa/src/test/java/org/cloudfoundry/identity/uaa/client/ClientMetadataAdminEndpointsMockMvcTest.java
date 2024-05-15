@@ -2,9 +2,9 @@ package org.cloudfoundry.identity.uaa.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
@@ -40,7 +40,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest {
     public WebApplicationContext webApplicationContext;
     private String adminClientTokenWithClientsWrite;
     private MultitenantJdbcClientDetailsService clients;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(8);
     private String adminClientTokenWithClientsRead;
     @Autowired
     private MockMvc mockMvc;

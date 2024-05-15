@@ -27,7 +27,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import java.security.SecureRandom;
 import java.sql.SQLException;
@@ -57,6 +58,8 @@ class JdbcScimGroupProvisioningTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
     @Autowired
     private LimitSqlAdapter limitSqlAdapter;
 
@@ -94,8 +97,8 @@ class JdbcScimGroupProvisioningTests {
         validateGroupCountInZone(0, zoneId);
 
         DbUtils dbUtils = new DbUtils();
-        dao = spy(new JdbcScimGroupProvisioning(jdbcTemplate,
-                new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
+        dao = spy(new JdbcScimGroupProvisioning(namedJdbcTemplate,
+                new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter),
                 dbUtils));
 
         users = mock(ScimUserProvisioning.class);

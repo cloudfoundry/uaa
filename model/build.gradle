@@ -8,6 +8,7 @@ dependencies {
 
     implementation(libraries.javaxValidationApi)
 
+    implementation(libraries.commonsCodec)
     implementation(libraries.commonsIo)
 
     implementation(libraries.springWeb)
@@ -15,10 +16,6 @@ dependencies {
     implementation(libraries.springSecurityConfig)
 
     implementation(libraries.nimbusJwt)
-    implementation(libraries.springSecurityOauth) {
-        exclude(module: "jackson-mapper-asl")
-        exclude(module: "spring-security-web")
-    }
 
     implementation(libraries.slf4jApi)
 

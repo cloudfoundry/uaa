@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.resources.jdbc;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
@@ -30,8 +29,8 @@ public class JdbcPagingListFactory {
     private NamedParameterJdbcTemplate jdbcTemplate;
     private LimitSqlAdapter limitSqlAdapter;
 
-    public JdbcPagingListFactory(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter) {
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+    public JdbcPagingListFactory(NamedParameterJdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter) {
+        this.jdbcTemplate = jdbcTemplate;
         this.limitSqlAdapter = limitSqlAdapter;
     }
 

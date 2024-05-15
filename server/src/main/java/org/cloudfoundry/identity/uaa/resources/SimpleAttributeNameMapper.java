@@ -33,31 +33,11 @@ public class SimpleAttributeNameMapper implements AttributeNameMapper {
     }
 
     @Override
-    public String[] mapToInternal(String[] attr) {
-        String[] result = new String[attr.length];
-        int x = 0;
-        for (String a : attr) {
-            result[x++] = mapToInternal(a);
-        }
-        return result;
-    }
-
-    @Override
     public String mapFromInternal(String attr) {
         String mappedAttr = attr;
         for (Map.Entry<String, String> entry : paramsMap.entrySet()) {
             mappedAttr = mappedAttr.replaceAll(entry.getValue(), entry.getKey());
         }
         return mappedAttr;
-    }
-
-    @Override
-    public String[] mapFromInternal(String[] attr) {
-        String[] result = new String[attr.length];
-        int x = 0;
-        for (String a : attr) {
-            result[x++] = mapFromInternal(a);
-        }
-        return result;
     }
 }

@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -58,12 +59,13 @@ class LdapGroupMappingAuthorizationManagerTests {
     @BeforeEach
     void initLdapGroupMappingAuthorizationManagerTests(
             @Autowired JdbcTemplate jdbcTemplate,
-            @Autowired LimitSqlAdapter limitSqlAdapter
+            @Autowired LimitSqlAdapter limitSqlAdapter,
+            @Autowired NamedParameterJdbcTemplate namedJdbcTemplate
     ) throws SQLException {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter);
         DbUtils dbUtils = new DbUtils();
-        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
+        gDB = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
         eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());

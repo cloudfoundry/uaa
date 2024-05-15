@@ -29,14 +29,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -139,16 +138,18 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
     private final IdentityZoneManager identityZoneManager;
 
+    private SearchQueryConverter joinConverter;
+
     public JdbcScimUserProvisioning(
-            final JdbcTemplate jdbcTemplate,
+            final NamedParameterJdbcTemplate namedJdbcTemplate,
             final JdbcPagingListFactory pagingListFactory,
             final PasswordEncoder passwordEncoder,
             final IdentityZoneManager identityZoneManager,
             final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning
     ) {
-        super(jdbcTemplate, pagingListFactory, mapper);
-        Assert.notNull(jdbcTemplate);
-        this.jdbcTemplate = jdbcTemplate;
+        super(namedJdbcTemplate, pagingListFactory, mapper);
+        Assert.notNull(namedJdbcTemplate, "JdbcTemplate required");
+        this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
         setQueryConverter(new SimpleSearchQueryConverter());
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
@@ -157,6 +158,10 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public void setTimeService(TimeService timeService) {
         this.timeService = timeService;
+    }
+
+    public void setJoinConverter(SearchQueryConverter joinConverter) {
+        this.joinConverter = joinConverter;
     }
 
     @Override
@@ -185,37 +190,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             final boolean ascending,
             final String zoneId
     ) {
-        final SimpleSearchQueryConverter queryConverter = new SimpleSearchQueryConverter();
-        validateOrderBy(queryConverter.map(sortBy));
-
+        validateOrderBy(sortBy);
         /* since the two tables used in the query ('users' and 'identity_provider') have columns with identical names,
          * we must ensure that the columns of 'users' are used in the WHERE clause generated for the SCIM filter */
-        final AttributeNameMapper attributeNameMapper = new AttributeNameMapper() {
-            @Override
-            public String mapToInternal(final String attr) {
-                // in the later query, 'users' will have the alias 'u'
-                return "u." + attr;
-            }
-
-            @Override
-            public String[] mapToInternal(final String[] attr) {
-                return Stream.of(attr).map(this::mapToInternal).toArray(String[]::new);
-            }
-
-            @Override
-            public String mapFromInternal(final String attr) {
-                return attr.substring(2);
-            }
-
-            @Override
-            public String[] mapFromInternal(final String[] attr) {
-                return Stream.of(attr).map(this::mapFromInternal).toArray(String[]::new);
-            }
-        };
-        queryConverter.setAttributeNameMapper(attributeNameMapper);
+        String joinName = joinConverter.getJoinName();
 
         // build WHERE clause
-        final ProcessedFilter where = queryConverter.convert(filter, sortBy, ascending, zoneId);
+        final ProcessedFilter where = joinConverter.convert(filter, sortBy, ascending, zoneId);
         final String whereClauseScimFilter = where.getSql();
         String whereClause = "idp.active is true and (";
         if (where.hasOrderBy()) {
@@ -225,11 +206,14 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         }
 
         final String userFieldsWithPrefix = Arrays.stream(USER_FIELDS.split(","))
-                .map(field -> "u." + field)
+                .map(field -> joinName + "." + field)
                 .collect(joining(", "));
+        String joinStatement = String.format(
+            "%s join identity_provider idp on %s.origin = idp.origin_key and %s.identity_zone_id = idp.identity_zone_id", joinName, joinName, joinName);
         final String sql = String.format(
-                "select %s from users u join identity_provider idp on u.origin = idp.origin_key and u.identity_zone_id = idp.identity_zone_id where %s",
+                "select %s from users %s where %s",
                 userFieldsWithPrefix,
+                joinStatement,
                 whereClause
         );
 
@@ -237,7 +221,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             return pagingListFactory.createJdbcPagingList(sql, where.getParams(), rowMapper, getPageSize());
         }
 
-        final NamedParameterJdbcTemplate namedParameterJdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
         return namedParameterJdbcTemplate.query(sql, where.getParams(), rowMapper);
     }
 
@@ -556,7 +539,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         deleteUser(userId, -1, zoneId);
         return 1;
     }
-
 
     private static final class ScimUserRowMapper implements RowMapper<ScimUser> {
         @Override

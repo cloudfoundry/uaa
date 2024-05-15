@@ -3,6 +3,10 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
@@ -13,6 +17,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,12 +26,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UnauthorizedClientException;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
@@ -34,6 +35,7 @@ import java.util.*;
 
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -41,7 +43,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class UaaAuthorizationRequestManagerTests {
@@ -68,7 +70,7 @@ class UaaAuthorizationRequestManagerTests {
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
         when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
         parameters.put("client_id", "foo");
-        factory = new UaaAuthorizationRequestManager(clientDetailsService, mockSecurityContextAccessor, uaaUserDatabase, providerProvisioning);
+        factory = new UaaAuthorizationRequestManager(clientDetailsService, mockSecurityContextAccessor, uaaUserDatabase, providerProvisioning, new IdentityZoneManagerImpl());
         when(clientDetailsService.loadClientByClientId("foo", "uaa")).thenReturn(client);
         user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaaZoneId(), "testid", new Date());
         when(uaaUserDatabase.retrieveUserById(any())).thenReturn(user);
@@ -131,6 +133,18 @@ class UaaAuthorizationRequestManagerTests {
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
         assertEquals(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"), new TreeSet<>(request.getScope()));
         assertEquals(StringUtils.commaDelimitedListToSet("aud1,aud2"), new TreeSet<>(request.getResourceIds()));
+    }
+
+    @Test
+    void testTokenRequestEquals() {
+        client.setClientId("foo");
+        assertNotEquals(0, factory.createTokenRequest(parameters, client).hashCode());
+        assertEquals(factory.createTokenRequest(parameters, client), factory.createTokenRequest(parameters, client));
+        factory.setScopeSeparator(".");
+        factory.setScopesToResources(Map.of("aud1.test", "aud2.test"));
+        assertNotEquals(factory.createTokenRequest(parameters, client), factory.createOAuth2Request (client, factory.createTokenRequest(Map.of("client_id", client.getClientId()), client)));
+        assertNotEquals(factory.createOAuth2Request(factory.createAuthorizationRequest(Map.of("client_id", client.getClientId()))), factory.createTokenRequest(parameters, client));
+        assertNotEquals(factory.createTokenRequest(factory.createAuthorizationRequest(Map.of("client_id", client.getClientId())), ""), factory.createTokenRequest(parameters, client));
     }
 
     @Test

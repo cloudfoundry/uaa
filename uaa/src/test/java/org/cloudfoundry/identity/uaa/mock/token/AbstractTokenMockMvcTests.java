@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.mock.token;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -20,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +67,7 @@ public abstract class AbstractTokenMockMvcTests {
     protected JdbcRevocableTokenProvisioning revocableTokenProvisioning;
 
     protected String adminToken;
-    protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    protected AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
 
     protected IdentityZone zone;
     private IdentityZoneConfiguration uaaZoneConfig;
@@ -115,7 +115,7 @@ public abstract class AbstractTokenMockMvcTests {
             final JdbcScimUserProvisioning jdbcScimUserProvisioning,
             final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager,
             final JdbcScimGroupProvisioning jdbcScimGroupProvisioning,
-            final RandomValueStringGenerator generator) {
+            final AlphanumericRandomValueStringGenerator generator) {
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());

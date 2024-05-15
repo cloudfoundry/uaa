@@ -73,8 +73,12 @@
         <property name="dataSource" ref="dataSource"/>
     </bean>
 
+    <bean id="namedJdbcTemplate" class="org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate">
+        <constructor-arg name="classicJdbcTemplate" ref="jdbcTemplate"/>
+    </bean>
+
     <bean id="jdbcPagingListFactory" class="org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory">
-        <constructor-arg ref="jdbcTemplate"/>
+        <constructor-arg ref="namedJdbcTemplate"/>
         <constructor-arg ref="limitSqlAdapter"/>
     </bean>
 

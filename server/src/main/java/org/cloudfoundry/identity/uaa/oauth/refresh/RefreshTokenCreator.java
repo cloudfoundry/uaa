@@ -11,7 +11,7 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 
 import java.util.*;
 
@@ -165,8 +165,8 @@ public class RefreshTokenCreator {
         this.timeService = timeService;
     }
 
-    public boolean shouldRotateRefreshTokens() {
-        return getActiveTokenPolicy().isRefreshTokenRotate();
+    public boolean shouldRotateRefreshTokens(String clientAuth) {
+        return getActiveTokenPolicy().isRefreshTokenRotate() || CLIENT_AUTH_NONE.equals(clientAuth);
     }
 
     private Map<String, Object> getRefreshedTokenMap(Claims claims) {
@@ -174,9 +174,9 @@ public class RefreshTokenCreator {
         return claims.getClaimMap();
     }
 
-    public String createRefreshTokenValue(JwtTokenSignedByThisUAA jwtToken, Claims claims) {
+    public String createRefreshTokenValue(JwtTokenSignedByThisUAA jwtToken, Claims claims, String clientAuth) {
         String refreshTokenValue;
-        if (shouldRotateRefreshTokens()) {
+        if (shouldRotateRefreshTokens(clientAuth)) {
             refreshTokenValue = JwtHelper.encode(getRefreshedTokenMap(claims), getActiveKeyInfo()).getEncoded();
         } else {
             refreshTokenValue = jwtToken.getJwt().getEncoded();

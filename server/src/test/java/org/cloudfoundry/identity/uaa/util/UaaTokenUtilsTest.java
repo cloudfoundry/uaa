@@ -1,14 +1,13 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import com.nimbusds.jose.KeyLengthException;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
@@ -29,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.GRANT_TYPE;
 
 public class UaaTokenUtilsTest {
 
@@ -37,7 +36,7 @@ public class UaaTokenUtilsTest {
     public void testRevocationHash() {
         List<String> salts = new LinkedList<>();
         for (int i=0; i<3; i++) {
-            salts.add(new RandomValueStringGenerator().generate());
+            salts.add(new AlphanumericRandomValueStringGenerator().generate());
         }
         String hash1 = UaaTokenUtils.getRevocationHash(salts);
         String hash2 = UaaTokenUtils.getRevocationHash(salts);
@@ -49,7 +48,7 @@ public class UaaTokenUtilsTest {
     @Test
     public void isJwtToken() {
 
-        RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
+        AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator(36);
         String regular = generator.generate();
         String jwt = generator.generate() + "." + generator.generate() + "." + generator.generate();
         assertFalse(UaaTokenUtils.isJwtToken(regular));

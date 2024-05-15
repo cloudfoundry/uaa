@@ -4,6 +4,8 @@ import java.net.URI;
 import java.util.Collections;
 
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -15,7 +17,6 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
-import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
@@ -28,7 +29,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.token.AbstractTokenMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
@@ -86,12 +86,12 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.restdocs.templates.TemplateFormats.markdown;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.STATE;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.RESPONSE_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.SCOPE;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.STATE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -188,7 +188,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(REDIRECT_URI, redirect)
                 .param(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE)
                 .param(PkceValidationService.CODE_CHALLENGE_METHOD, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256)
-                .param(STATE, new RandomValueStringGenerator().generate());
+                .param(STATE, new AlphanumericRandomValueStringGenerator().generate());
 
         MockHttpServletResponse authCodeResponse = mockMvc.perform(getAuthCode)
                 .andExpect(status().isFound())
@@ -721,7 +721,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private void createUser() throws Exception {
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
-        user = new ScimUser(null, new RandomValueStringGenerator().generate() + "@test.org", "name", "familyName");
+        user = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate() + "@test.org", "name", "familyName");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(mockMvc, adminToken, user);
@@ -748,7 +748,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                 .param(REDIRECT_URI, redirect)
                 .param(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE)
                 .param(PkceValidationService.CODE_CHALLENGE_METHOD, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256)
-                .param(STATE, new RandomValueStringGenerator().generate());
+                .param(STATE, new AlphanumericRandomValueStringGenerator().generate());
 
         MockHttpServletResponse authCodeResponse = mockMvc.perform(getAuthCode)
                 .andExpect(status().isFound())
@@ -1092,7 +1092,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private UaaClientDetails createClient(String token, String scopes, String grantTypes, String authorities) throws Exception {
         UaaClientDetails client = new UaaClientDetails(
-                new RandomValueStringGenerator().generate(),
+                new AlphanumericRandomValueStringGenerator().generate(),
                 "",
                 scopes,
                 grantTypes,

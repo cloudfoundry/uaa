@@ -7,13 +7,13 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DefaultTestContext
 class ScimUserLookupMockMvcTests {
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String clientId = generator.generate().toLowerCase();
     private String clientSecret = generator.generate().toLowerCase();
 
@@ -62,7 +62,7 @@ class ScimUserLookupMockMvcTests {
 
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
 
-        user = new ScimUser(null, new RandomValueStringGenerator().generate() + "@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        user = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate() + "@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         user = MockMvcUtils.createUser(this.mockMvc, adminToken, user);
@@ -104,7 +104,7 @@ class ScimUserLookupMockMvcTests {
 
     @Test
     void lookupId_DoesntReturnInactiveIdp_ByDefault() throws Exception {
-        ScimUser scimUser = createInactiveIdp(new RandomValueStringGenerator().generate() + "test-origin");
+        ScimUser scimUser = createInactiveIdp(new AlphanumericRandomValueStringGenerator().generate() + "test-origin");
 
         String filter = "(username eq \"" + user.getUserName() + "\" OR username eq \"" + scimUser.getUserName() + "\")";
         MockHttpServletRequestBuilder post = post("/ids/Users")
@@ -123,7 +123,7 @@ class ScimUserLookupMockMvcTests {
 
     @Test
     void lookupId_ReturnInactiveIdp_WithIncludeInactiveParam() throws Exception {
-        ScimUser scimUser = createInactiveIdp(new RandomValueStringGenerator().generate() + "test-origin");
+        ScimUser scimUser = createInactiveIdp(new AlphanumericRandomValueStringGenerator().generate() + "test-origin");
 
         String filter = "(username eq \"" + user.getUserName() + "\" OR username eq \"" + scimUser.getUserName() + "\")";
         MockHttpServletRequestBuilder post = post("/ids/Users")
@@ -327,7 +327,7 @@ class ScimUserLookupMockMvcTests {
         inactiveIdentityProvider.setActive(false);
         MockMvcUtils.createIdpUsingWebRequest(mockMvc, null, tokenToCreateIdp, inactiveIdentityProvider, status().isCreated());
 
-        ScimUser scimUser = new ScimUser(null, new RandomValueStringGenerator().generate() + "@test.org", "test", "test");
+        ScimUser scimUser = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate() + "@test.org", "test", "test");
         scimUser.setPrimaryEmail(scimUser.getUserName());
         scimUser.setPassword("secr3T");
         scimUser.setOrigin(originKey);
