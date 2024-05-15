@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -18,6 +19,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
@@ -63,7 +65,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItems;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.*;
@@ -1696,6 +1697,33 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(deletedEvent.getIdentityZoneId(), is(id));
         String auditedIdentityZone = deletedEvent.getAuditEvent().getData();
         assertThat(auditedIdentityZone, containsString(id));
+    }
+
+    @Test
+    void testDeleteZone_ShouldFail_WhenIdpWithAliasExistsInZone() throws Exception {
+        // create zone
+        final String idzId = generator.generate();
+        createZone(idzId, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
+
+        // create IdP with alias (via DB, since alias feature is disabled by default)
+        final JdbcIdentityProviderProvisioning idpProvisioning = webApplicationContext
+                .getBean(JdbcIdentityProviderProvisioning.class);
+        final IdentityProvider<OIDCIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setName("some-idp");
+        idp.setId(UUID.randomUUID().toString());
+        idp.setIdentityZoneId(idzId);
+        idp.setOriginKey("some-origin-key");
+        idp.setAliasZid(IdentityZone.getUaaZoneId());
+        idp.setAliasId(UUID.randomUUID().toString());
+        idp.setType(OriginKeys.OIDC10);
+        idpProvisioning.create(idp, idzId);
+
+        // deleting zone should fail
+        mockMvc.perform(
+                delete("/identity-zones/" + idzId)
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .accept(APPLICATION_JSON)
+        ).andExpect(status().isUnprocessableEntity());
     }
 
     @Test
