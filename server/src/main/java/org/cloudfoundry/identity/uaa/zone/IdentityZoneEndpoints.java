@@ -7,7 +7,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
@@ -68,7 +68,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private static final String ID_SUBDOMAIN_LOGGING = "[{}] subdomain [{}]";
 
     private final IdentityZoneProvisioning zoneDao;
-    private final IdentityProviderProvisioning idpDao;
+    private final JdbcIdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
     private final ScimGroupProvisioning groupProvisioning;
     private final IdentityZoneValidator validator;
@@ -77,7 +77,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private ApplicationEventPublisher publisher;
 
     public IdentityZoneEndpoints(final IdentityZoneProvisioning zoneDao,
-                                 final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning idpDao,
+                                 final @Qualifier("identityProviderProvisioning") JdbcIdentityProviderProvisioning idpDao,
                                  final IdentityZoneEndpointClientRegistrationService clientRegistrationService,
                                  final ScimGroupProvisioning groupProvisioning,
                                  final IdentityZoneValidator validator,
@@ -339,10 +339,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
             /* reject deletion if an IdP with alias exists in the zone - checking for users with alias is not required
              * here, since they can only exist if their origin IdP has an alias as well */
-            final List<IdentityProvider> idps = idpDao.retrieveAll(false, zone.getId());
-            final boolean idpWithAliasExists = idps.stream()
-                    .map(IdentityProvider::getAliasZid)
-                    .anyMatch(UaaStringUtils::isNotEmpty);
+            final boolean idpWithAliasExists = idpDao.idpWithAliasExistsInZone(zone.getId());
             if (idpWithAliasExists) {
                 return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
             }

@@ -3,8 +3,7 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -22,11 +21,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -58,7 +55,7 @@ class IdentityZoneEndpointsTests {
     private IdentityZoneValidator mockIdentityZoneValidator;
 
     @Mock
-    private IdentityProviderProvisioning mockIdentityProviderProvisioning;
+    private JdbcIdentityProviderProvisioning mockIdentityProviderProvisioning;
 
     @Mock
     private IdentityZoneEndpointClientRegistrationService mockIdentityZoneEndpointClientRegistrationService;
@@ -196,12 +193,7 @@ class IdentityZoneEndpointsTests {
         when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(idzId)).thenReturn(idz);
 
         // arrange IdP with alias exists in zone
-        final IdentityProvider idpWithoutAlias = mock(IdentityProvider.class);
-        when(idpWithoutAlias.getAliasZid()).thenReturn("");
-        final IdentityProvider idpWithAlias = mock(IdentityProvider.class);
-        when(idpWithAlias.getAliasZid()).thenReturn(UAA);
-        when(mockIdentityProviderProvisioning.retrieveAll(false, idzId))
-                .thenReturn(List.of(idpWithoutAlias, idpWithAlias));
+        when(mockIdentityProviderProvisioning.idpWithAliasExistsInZone(idzId)).thenReturn(true);
 
         final ResponseEntity<IdentityZone> response = endpoints.deleteIdentityZone(idzId);
         assertNotNull(response);
@@ -218,10 +210,7 @@ class IdentityZoneEndpointsTests {
         when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(idzId)).thenReturn(idz);
 
         // arrange no IdP with alias exists in zone
-        final IdentityProvider idpWithoutAlias = mock(IdentityProvider.class);
-        when(idpWithoutAlias.getAliasZid()).thenReturn("");
-        when(mockIdentityProviderProvisioning.retrieveAll(false, idzId))
-                .thenReturn(Collections.singletonList(idpWithoutAlias));
+        when(mockIdentityProviderProvisioning.idpWithAliasExistsInZone(idzId)).thenReturn(false);
 
         final ResponseEntity<IdentityZone> response = endpoints.deleteIdentityZone(idzId);
         assertNotNull(response);
