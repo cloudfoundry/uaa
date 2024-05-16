@@ -38,6 +38,7 @@ import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
 import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.VARIES;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
@@ -59,7 +60,7 @@ class LoginInfoEndpointDocs extends EndpointDocs {
                 fieldWithPath("commit_id").type(STRING).description("The GIT sha for the UAA version"),
                 fieldWithPath("timestamp").type(STRING).description("JSON timestamp for the commit of the UAA version"),
                 fieldWithPath("idpDefinitions").optional().type(OBJECT).description("A list of alias/url pairs of SAML IDP providers configured. Each url is the starting point to initiate the authentication process for the SAML identity provider."),
-                fieldWithPath("idpDefinitions.*").optional().type(ARRAY).description("A list of alias/url pairs of SAML IDP providers configured. Each url is the starting point to initiate the authentication process for the SAML identity provider."),
+                fieldWithPath("idpDefinitions.*").optional().type(VARIES).description("The URL to initiate the authentication process for the SAML identity provider."),
                 fieldWithPath("links").type(OBJECT).description("A list of alias/url pairs of configured action URLs for the UAA"),
                 fieldWithPath("links.login").type(STRING).description("The link to the login host alias of the UAA"),
                 fieldWithPath("links.uaa").type(STRING).description("The link to the uaa alias host of the UAA"),
