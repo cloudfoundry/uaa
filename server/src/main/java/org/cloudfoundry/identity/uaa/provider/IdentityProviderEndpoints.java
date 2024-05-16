@@ -428,17 +428,13 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
             case OAUTH20 :
             case OIDC10 : {
-                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
-                    AbstractExternalOAuthIdentityProviderDefinition definition = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
-                    if (definition.getRelyingPartySecret() == null) {
-                        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
-                        if (existing!=null &&
-                            existing.getConfig()!=null &&
-                            existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition &&
-                            secretNeeded(definition)) {
-                            AbstractExternalOAuthIdentityProviderDefinition existingDefinition = (AbstractExternalOAuthIdentityProviderDefinition)existing.getConfig();
-                            definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
-                        }
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition definition && definition.getRelyingPartySecret() == null) {
+                    IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
+                    if (existing!=null &&
+                        existing.getConfig()!=null &&
+                        existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition existingDefinition &&
+                        secretNeeded(definition)) {
+                        definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
                     }
                 }
                 break;
