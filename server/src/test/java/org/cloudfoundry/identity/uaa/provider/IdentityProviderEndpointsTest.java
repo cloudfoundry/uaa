@@ -290,7 +290,7 @@ class IdentityProviderEndpointsTest {
     void retrieve_all_providers_redacts_data() {
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString()))
                 .thenReturn(Arrays.asList(getLdapDefinition(), getExternalOAuthProvider()));
-        ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true, "");
+        ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true);
         assertNotNull(ldapList);
         assertNotNull(ldapList.getBody());
         assertEquals(2, ldapList.getBody().size());
@@ -305,95 +305,6 @@ class IdentityProviderEndpointsTest {
         assertNotNull(oauth.getConfig());
         assertTrue(oauth.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
         assertNull(oauth.getConfig().getRelyingPartySecret());
-    }
-
-    @Test
-    void retrieve_by_origin_providers_redacts_data() {
-        when(mockIdentityProviderProvisioning.retrieveByOrigin(anyString(), anyString()))
-            .thenReturn(getExternalOAuthProvider());
-        ResponseEntity<List<IdentityProvider>> puppyList = identityProviderEndpoints.retrieveIdentityProviders("false", true, "puppy");
-        assertNotNull(puppyList);
-        assertNotNull(puppyList.getBody());
-        assertEquals(1, puppyList.getBody().size());
-        IdentityProvider<OIDCIdentityProviderDefinition> oidc = puppyList.getBody().get(0);
-        assertNotNull(oidc);
-        assertNotNull(oidc.getConfig());
-        assertTrue(oidc.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
-        assertNull(oidc.getConfig().getRelyingPartySecret());
-        assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC, oidc.getConfig().getAuthMethod());
-    }
-
-    @Test
-    void delete_secret_and_retrieve_by_origin_providers_redacts_data() {
-        IdentityProvider idp = getExternalOAuthProvider();
-        when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(null, idp)).thenReturn(idp);
-        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
-        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
-        IdentityProvider<?> oidc = oidcBody.getBody();
-        assertNotNull(oidc);
-        assertNotNull(oidc.getConfig());
-        assertTrue(oidc.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
-        assertNull(((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getRelyingPartySecret());
-        assertEquals(ClientAuthentication.NONE, ((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getAuthMethod());
-    }
-
-    @Test
-    void delete_secret_on_ldap_fails() {
-        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(getLdapDefinition());
-        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.deleteSecret("puppyId");
-        IdentityProvider<?> oidc = oidcBody.getBody();
-        assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
-        assertNull(oidc);
-    }
-
-    @Test
-    void change_bindPassword_and_retrieve_by_origin_providers_redacts_data() {
-        IdentityProvider idp = getLdapDefinition();
-        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
-        IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
-        identityProviderSecretChange.setSecret("newSecret");
-        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChange);
-        IdentityProvider<?> oidc = oidcBody.getBody();
-        assertNotNull(oidc);
-        assertNotNull(oidc.getConfig());
-        assertTrue(oidc.getConfig() instanceof LdapIdentityProviderDefinition);
-        assertNull(((LdapIdentityProviderDefinition) oidc.getConfig()).getBindPassword());
-    }
-
-    @Test
-    void change_secret_and_retrieve_by_origin_providers_redacts_data() {
-        IdentityProvider idp = getExternalOAuthProvider();
-        when(mockIdpAliasHandler.ensureConsistencyOfAliasEntity(null, idp)).thenReturn(idp);
-        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(idp);
-        IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
-        identityProviderSecretChange.setSecret("newSecret");
-        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChange);
-        IdentityProvider<?> oidc = oidcBody.getBody();
-        assertNotNull(oidc);
-        assertNotNull(oidc.getConfig());
-        assertTrue(oidc.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
-        assertNull(((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getRelyingPartySecret());
-        assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC, ((AbstractExternalOAuthIdentityProviderDefinition) oidc.getConfig()).getAuthMethod());
-    }
-
-    @Test
-    void change_secret_on_uaafails() {
-        IdentityProvider identityProvider = new IdentityProvider<>();
-        identityProvider.setConfig(new SamlIdentityProviderDefinition());
-        identityProvider.setName("my saml provider");
-        identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        identityProvider.setType(OriginKeys.SAML);
-        IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
-        when(mockIdentityProviderProvisioning.retrieve("puppyId", "uaa")).thenReturn(identityProvider);
-        ResponseEntity<IdentityProvider> oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChange);
-        IdentityProvider<?> oidc = oidcBody.getBody();
-        assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
-        assertNull(oidc);
-        identityProviderSecretChange.setSecret("newSecret");
-        oidcBody = identityProviderEndpoints.changeSecret("puppyId", identityProviderSecretChange);
-        oidc = oidcBody.getBody();
-        assertEquals(UNPROCESSABLE_ENTITY, oidcBody.getStatusCode());
-        assertNull(oidc);
     }
 
     @Test
@@ -843,6 +754,37 @@ class IdentityProviderEndpointsTest {
             assertNotNull(created.getConfig());
             assertTrue(created.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
             assertNull(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret());
+            assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC,((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getAuthMethod());
+        }
+    }
+
+    @Test
+    void create_oauth_provider_set_auth_method_none() throws Exception {
+        String zoneId = IdentityZone.getUaaZoneId();
+        for (String type : Arrays.asList(OIDC10, OAUTH20)) {
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> externalOAuthDefinition = getExternalOAuthProvider();
+            assertNotNull(externalOAuthDefinition.getConfig().getRelyingPartySecret());
+            externalOAuthDefinition.setType(type);
+            when(mockIdentityProviderProvisioning.create(any(), eq(zoneId))).thenReturn(externalOAuthDefinition);
+            ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(externalOAuthDefinition, true);
+            IdentityProvider created = response.getBody();
+            assertNotNull(created);
+            assertEquals(type, created.getType());
+            assertNotNull(created.getConfig());
+            assertTrue(created.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
+            assertNull(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret());
+            assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC,((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getAuthMethod());
+            externalOAuthDefinition.getConfig().setRelyingPartySecret(null);
+            externalOAuthDefinition.getConfig().setAuthMethod("none");
+            AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(externalOAuthDefinition.getConfig());
+            when(mockIdentityProviderProvisioning.retrieve(eq(externalOAuthDefinition.getId()), eq(zoneId))).thenReturn(getExternalOAuthProvider());
+            response = identityProviderEndpoints.updateIdentityProvider(created.getId(), externalOAuthDefinition, true);
+            IdentityProvider upated = response.getBody();
+            assertNotNull(upated);
+            assertEquals(type, upated.getType());
+            assertNotNull(upated.getConfig());
+            verify(spy, never()).setRelyingPartySecret(eq(getExternalOAuthProvider().getConfig().getRelyingPartySecret()));
+            assertEquals(ClientAuthentication.NONE,((AbstractExternalOAuthIdentityProviderDefinition) upated.getConfig()).getAuthMethod());
         }
     }
 

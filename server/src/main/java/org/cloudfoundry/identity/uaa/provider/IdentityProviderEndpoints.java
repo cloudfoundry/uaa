@@ -49,7 +49,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
@@ -69,9 +68,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -230,7 +227,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
         body.setId(id);
         body.setIdentityZoneId(zoneId);
-        setAuthMethod(existing);
         patchSensitiveData(id, body);
         try {
             configValidator.validate(body);
@@ -257,11 +253,6 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
 
-        return persistIdentityProviderChange(body, rawConfig, zoneId, existing);
-    }
-
-    private ResponseEntity<IdentityProvider> persistIdentityProviderChange(IdentityProvider body, boolean rawConfig, String zoneId,
-            IdentityProvider existing) {
         final IdentityProvider<?> updatedIdp;
         try {
             updatedIdp = transactionTemplate.execute(txStatus -> {
@@ -321,63 +312,11 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         return  new ResponseEntity<>(body, OK);
     }
 
-    @DeleteMapping(value = "{id}/secret")
-    public ResponseEntity<IdentityProvider> deleteSecret(@PathVariable String id) {
-        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
-        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
-        if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
-            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?>) {
-            IdentityProvider updated = existing;
-            ((AbstractExternalOAuthIdentityProviderDefinition) updated.getConfig()).setRelyingPartySecret(null);
-            logger.info("Delete secret for Identity Provider: {}", existing.getId());
-            return persistIdentityProviderChange(updated, false, zoneId, existing);
-        } else {
-            logger.debug("Invalid operation. This operation is only supported on external IDP of type OAuth/OIDC");
-            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
-        }
-    }
-
-    @PatchMapping(value = "{id}/secret")
-    public ResponseEntity<IdentityProvider> changeSecret(@PathVariable String id, @RequestBody IdentityProviderSecretChange secretChange) {
-        String zoneId = identityZoneManager.getCurrentIdentityZoneId();
-        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
-        if(UaaStringUtils.isNullOrEmpty(secretChange.getSecret())) {
-            logger.debug("Invalid payload. The property secret needs to be set");
-            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
-        }
-        if((OIDC10.equals(existing.getType()) || OAUTH20.equals(existing.getType()))
-            && existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?>) {
-            IdentityProvider updated = existing;
-            ((AbstractExternalOAuthIdentityProviderDefinition) updated.getConfig()).setRelyingPartySecret(secretChange.getSecret());
-            logger.info("Change secret for Identity Provider: {}", existing.getId());
-            return persistIdentityProviderChange(updated, false, zoneId, existing);
-        } else if(LDAP.equals(existing.getType()) && existing.getConfig() instanceof LdapIdentityProviderDefinition ldapIdentityProviderDefinition) {
-            ldapIdentityProviderDefinition.setBindPassword(secretChange.getSecret());
-        } else {
-            logger.debug("Invalid operation. This operation is only supported on external IDP of type LDAP/OAuth/OIDC");
-            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
-        }
-        identityProviderProvisioning.update(existing, zoneId);
-        setAuthMethod(existing);
-        redactSensitiveData(existing);
-        logger.info("Secret changed for Identity Provider: {}", existing.getId());
-        return new ResponseEntity<>(existing, OK);
-    }
-
     @RequestMapping(method = GET)
-    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(
-        @RequestParam(value = "active_only", required = false) String activeOnly,
-        @RequestParam(required = false, defaultValue = "false") boolean rawConfig,
-        @RequestParam(required = false, defaultValue = "") String origin)
-    {
+    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(@RequestParam(value = "active_only", required = false) String activeOnly, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         boolean retrieveActiveOnly = Boolean.parseBoolean(activeOnly);
-        List<IdentityProvider> identityProviderList;
-        if (UaaStringUtils.isNotEmpty(origin)) {
-            identityProviderList = List.of(identityProviderProvisioning.retrieveByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId()));
-        } else {
-            identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, identityZoneManager.getCurrentIdentityZoneId());
-        }
-        for(IdentityProvider<?> idp : identityProviderList) {
+        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, identityZoneManager.getCurrentIdentityZoneId());
+        for(IdentityProvider idp : identityProviderList) {
             idp.setSerializeConfigRaw(rawConfig);
             setAuthMethod(idp);
             redactSensitiveData(idp);
@@ -495,7 +434,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                         IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
                         if (existing!=null &&
                             existing.getConfig()!=null &&
-                            existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
+                            existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition &&
+                            secretNeeded(definition)) {
                             AbstractExternalOAuthIdentityProviderDefinition existingDefinition = (AbstractExternalOAuthIdentityProviderDefinition)existing.getConfig();
                             definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
                         }
@@ -535,6 +475,14 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                 break;
 
         }
+    }
+
+    protected boolean secretNeeded(AbstractExternalOAuthIdentityProviderDefinition abstractExternalOAuthIdentityProviderDefinition) {
+        boolean needSecret = true;
+        if (abstractExternalOAuthIdentityProviderDefinition.getAuthMethod() != null) {
+            return ClientAuthentication.secretNeeded(abstractExternalOAuthIdentityProviderDefinition.getAuthMethod());
+        }
+        return needSecret;
     }
 
     protected void setAuthMethod(IdentityProvider<?> provider) {

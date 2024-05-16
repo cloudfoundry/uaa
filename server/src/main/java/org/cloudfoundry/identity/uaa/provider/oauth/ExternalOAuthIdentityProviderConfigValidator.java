@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
@@ -59,6 +60,14 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
 
         if (!hasText(def.getRelyingPartyId())) {
             errors.add("Relying Party Id must be the client-id for the UAA that is registered with the external IDP");
+        }
+
+        if (hasText(def.getAuthMethod()) && !ClientAuthentication.isMethodSupported(def.getAuthMethod())) {
+            errors.add("Relying Party Authentication Method must be set to either " + String.join(" or ", ClientAuthentication.UAA_SUPPORTED_METHODS));
+        } else {
+            if (!ClientAuthentication.isValidMethod(def.getAuthMethod(), def.getRelyingPartySecret())) {
+                errors.add("Relying Party Authentication has invalid requirements for the secret.");
+            }
         }
 
         if (def.isShowLinkText() && !hasText(def.getLinkText())) {
