@@ -30,10 +30,8 @@ public final class ClientAuthentication {
   }
 
   public static boolean isValidMethod(String method, String secret) {
-    if (isMethodSupported(method) && secretNeeded(method) && secret != null || (method == null && secret == null)) {
-      return true;
-    } else {
-      return false;
-    }
+    return (isMethodSupported(method) && secretNeeded(method) && secret != null  ||
+            isMethodSupported(method) && !secretNeeded(method) && secret == null ||
+            (method == null && secret == null));
   }
 }
