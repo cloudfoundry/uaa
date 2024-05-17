@@ -37,15 +37,12 @@ public class LoginPage extends Page {
         return new HomePage(driver);
     }
 
-    private void clickFirstSamlLoginLink() {
-        driver.findElement(By.className("saml-login-link")).click();
-    }
-
+    // Click the first link that contains the given text
     private void clickSamlLoginLinkWithText(String matchText) {
         final AtomicReference<WebElement> matchingElement = new AtomicReference<>();
         driver.findElements(By.className("saml-login-link")).forEach(webElement -> {
             if (webElement.getText().contains(matchText)) {
-                matchingElement.set(webElement);
+                matchingElement.compareAndSet(null, webElement);
             }
         });
         if (matchingElement.get() == null) {
