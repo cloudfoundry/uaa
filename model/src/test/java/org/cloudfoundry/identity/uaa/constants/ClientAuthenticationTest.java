@@ -49,4 +49,17 @@ class ClientAuthenticationTest {
     assertEquals(CLIENT_SECRET_BASIC, ClientAuthentication.getCalculatedMethod(CLIENT_SECRET_BASIC, true, false));
     assertEquals(CLIENT_SECRET_BASIC, ClientAuthentication.getCalculatedMethod(null, true, false));
   }
+
+  @Test
+  void isAuthMethodEqual() {
+    assertTrue(ClientAuthentication.isAuthMethodEqual(NONE, NONE));
+    assertTrue(ClientAuthentication.isAuthMethodEqual(CLIENT_SECRET_BASIC, CLIENT_SECRET_POST));
+    assertTrue(ClientAuthentication.isAuthMethodEqual(CLIENT_SECRET_POST, CLIENT_SECRET_BASIC));
+    assertTrue(ClientAuthentication.isAuthMethodEqual(CLIENT_SECRET_BASIC, CLIENT_SECRET_BASIC));
+    assertTrue(ClientAuthentication.isAuthMethodEqual(CLIENT_SECRET_POST, CLIENT_SECRET_POST));
+    assertTrue(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, PRIVATE_KEY_JWT));
+    assertTrue(ClientAuthentication.isAuthMethodEqual(null, null));
+    assertFalse(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, CLIENT_SECRET_BASIC));
+    assertFalse(ClientAuthentication.isAuthMethodEqual(PRIVATE_KEY_JWT, NONE));
+  }
 }

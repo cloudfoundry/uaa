@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.constants;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 /**
@@ -33,6 +34,10 @@ public final class ClientAuthentication {
     return (isMethodSupported(method) && secretNeeded(method) && hasSecret && !hasKeyConfiguration  ||
             isMethodSupported(method) && !secretNeeded(method) && !hasSecret ||
             (method == null && !hasSecret && !hasKeyConfiguration));
+  }
+
+  public static boolean isAuthMethodEqual(String method1, String method2) {
+    return secretNeeded(method1) && secretNeeded(method2) || Objects.equals(method1, method2);
   }
 
   public static String getCalculatedMethod(String method, boolean hasSecret, boolean hasKeyConfiguration) {
