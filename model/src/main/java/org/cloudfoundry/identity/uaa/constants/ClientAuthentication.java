@@ -29,9 +29,22 @@ public final class ClientAuthentication {
     return Optional.ofNullable(method).map(UAA_SUPPORTED_METHODS::contains).orElse(true);
   }
 
-  public static boolean isValidMethod(String method, String secret) {
-    return (isMethodSupported(method) && secretNeeded(method) && secret != null  ||
-            isMethodSupported(method) && !secretNeeded(method) && secret == null ||
-            (method == null && secret == null));
+  public static boolean isValidMethod(String method, boolean hasSecret, boolean hasKeyConfiguration) {
+    return (isMethodSupported(method) && secretNeeded(method) && hasSecret && !hasKeyConfiguration  ||
+            isMethodSupported(method) && !secretNeeded(method) && !hasSecret ||
+            (method == null && !hasSecret && !hasKeyConfiguration));
+  }
+
+  public static String getCalculatedMethod(String method, boolean hasSecret, boolean hasKeyConfiguration) {
+    if (method != null && isMethodSupported(method)) {
+      return method;
+    } else {
+      if (hasSecret) {
+        return CLIENT_SECRET_BASIC;
+      } else if (hasKeyConfiguration) {
+        return PRIVATE_KEY_JWT;
+      } else
+        return NONE;
+    }
   }
 }

@@ -44,6 +44,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -482,21 +483,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     protected void setAuthMethod(IdentityProvider<?> provider) {
-        if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> abstractExternalOAuthIdentityProviderDefinition) {
-            if (abstractExternalOAuthIdentityProviderDefinition.getRelyingPartySecret() == null) {
-                if (abstractExternalOAuthIdentityProviderDefinition instanceof OIDCIdentityProviderDefinition oidcIdentityProviderDefinition &&
-                oidcIdentityProviderDefinition.getJwtClientAuthentication() != null) {
-                    abstractExternalOAuthIdentityProviderDefinition.setAuthMethod(ClientAuthentication.PRIVATE_KEY_JWT);
-                } else {
-                    abstractExternalOAuthIdentityProviderDefinition.setAuthMethod(ClientAuthentication.NONE);
-                }
-            } else {
-                if (abstractExternalOAuthIdentityProviderDefinition.isClientAuthInBody()) {
-                    abstractExternalOAuthIdentityProviderDefinition.setAuthMethod(ClientAuthentication.CLIENT_SECRET_POST);
-                } else {
-                    abstractExternalOAuthIdentityProviderDefinition.setAuthMethod(ClientAuthentication.CLIENT_SECRET_BASIC);
-                }
-            }
+        if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> definition) {
+            definition.setAuthMethod(ExternalOAuthIdentityProviderConfigValidator.getAuthMethod(definition));
         }
     }
 

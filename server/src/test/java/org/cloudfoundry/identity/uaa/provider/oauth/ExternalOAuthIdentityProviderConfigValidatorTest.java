@@ -71,6 +71,21 @@ public class ExternalOAuthIdentityProviderConfigValidatorTest {
     }
 
     @Test(expected = IllegalArgumentException.class)
+    public void configWithJwtClientConfiguratButAuthMethodSecret_ThrowsException() {
+        definition.setRelyingPartySecret("secret");
+        ((OIDCIdentityProviderDefinition) definition).setJwtClientAuthentication(new Object());
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
+        validator.validate(definition);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void configWithPrivateKeyJwtButNoJwtConfiguration_ThrowsException() {
+        definition.setAuthMethod(ClientAuthentication.PRIVATE_KEY_JWT);
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
+        validator.validate(definition);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
     public void configWithInvalidAuthMethod_ThrowsException() {
         definition.setAuthMethod("no-sure-about-this");
         validator = new ExternalOAuthIdentityProviderConfigValidator();
