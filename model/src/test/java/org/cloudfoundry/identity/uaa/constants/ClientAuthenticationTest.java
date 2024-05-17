@@ -32,12 +32,15 @@ class ClientAuthenticationTest {
     assertTrue(ClientAuthentication.isValidMethod(PRIVATE_KEY_JWT, false, true));
     assertTrue(ClientAuthentication.isValidMethod(CLIENT_SECRET_POST, true, false));
     assertTrue(ClientAuthentication.isValidMethod(CLIENT_SECRET_BASIC, true, false));
-    assertTrue(ClientAuthentication.isValidMethod(null, false, false));
-    assertTrue(ClientAuthentication.isValidMethod(null, true, false));
     assertFalse(ClientAuthentication.isValidMethod(CLIENT_SECRET_BASIC, false, false));
     assertFalse(ClientAuthentication.isValidMethod(CLIENT_SECRET_POST, false, false));
     assertFalse(ClientAuthentication.isValidMethod(NONE, true, false));
     assertFalse(ClientAuthentication.isValidMethod(PRIVATE_KEY_JWT, true, true));
+    // legacy checks, no method passed
+    assertTrue(ClientAuthentication.isValidMethod(null, false, false));
+    assertTrue(ClientAuthentication.isValidMethod(null, true, false));
+    assertTrue(ClientAuthentication.isValidMethod(null, false, true));
+    assertFalse(ClientAuthentication.isValidMethod(null, true, true));
   }
 
   @Test

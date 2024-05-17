@@ -33,7 +33,7 @@ public final class ClientAuthentication {
   public static boolean isValidMethod(String method, boolean hasSecret, boolean hasKeyConfiguration) {
     return (isMethodSupported(method) && secretNeeded(method) && hasSecret && !hasKeyConfiguration  ||
             isMethodSupported(method) && !secretNeeded(method) && !hasSecret ||
-            (method == null && !hasSecret && !hasKeyConfiguration));
+            (method == null && (!hasSecret || !hasKeyConfiguration)));
   }
 
   public static boolean isAuthMethodEqual(String method1, String method2) {
