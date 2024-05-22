@@ -13,40 +13,40 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class ProxyingRelyingPartyRegistrationRepositoryTest {
+class DelegatingRelyingPartyRegistrationRepositoryTest {
 
     @Test
-    public void constructor_WhenRepositoriesAreNull() {
+    void constructor_WhenRepositoriesAreNull() {
         assertThrows(IllegalArgumentException.class, () -> {
-            new ProxyingRelyingPartyRegistrationRepository((List<RelyingPartyRegistrationRepository>) null);
+            new DelegatingRelyingPartyRegistrationRepository((List<RelyingPartyRegistrationRepository>) null);
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            new ProxyingRelyingPartyRegistrationRepository((RelyingPartyRegistrationRepository[]) null);
+            new DelegatingRelyingPartyRegistrationRepository((RelyingPartyRegistrationRepository[]) null);
         });
     }
 
     @Test
-    public void constructor_whenRepositoriesAreEmpty() {
+    void constructor_whenRepositoriesAreEmpty() {
         assertThrows(IllegalArgumentException.class, () -> {
-            new ProxyingRelyingPartyRegistrationRepository(Collections.emptyList());
+            new DelegatingRelyingPartyRegistrationRepository(Collections.emptyList());
         });
 
         assertThrows(IllegalArgumentException.class, () -> {
-            new ProxyingRelyingPartyRegistrationRepository(new RelyingPartyRegistrationRepository[]{});
+            new DelegatingRelyingPartyRegistrationRepository(new RelyingPartyRegistrationRepository[]{});
         });
     }
 
     @Test
-    public void findWhenRegistrationNotFound() {
+    void findWhenRegistrationNotFound() {
         RelyingPartyRegistrationRepository mockRepository = mock(RelyingPartyRegistrationRepository.class);
         when(mockRepository.findByRegistrationId(anyString())).thenReturn(null);
-        ProxyingRelyingPartyRegistrationRepository target = new ProxyingRelyingPartyRegistrationRepository(mockRepository);
+        DelegatingRelyingPartyRegistrationRepository target = new DelegatingRelyingPartyRegistrationRepository(mockRepository);
         assertNull(target.findByRegistrationId("test"));
     }
 
     @Test
-    public void findWhenRegistrationFound() {
+    void findWhenRegistrationFound() {
         RelyingPartyRegistration expectedRegistration = mock(RelyingPartyRegistration.class);
         RelyingPartyRegistrationRepository mockRepository1 = mock(RelyingPartyRegistrationRepository.class);
         when(mockRepository1.findByRegistrationId(eq("test"))).thenReturn(null);
@@ -54,7 +54,7 @@ public class ProxyingRelyingPartyRegistrationRepositoryTest {
         RelyingPartyRegistrationRepository mockRepository2 = mock(RelyingPartyRegistrationRepository.class);
         when(mockRepository2.findByRegistrationId(eq("test"))).thenReturn(expectedRegistration);
 
-        ProxyingRelyingPartyRegistrationRepository target = new ProxyingRelyingPartyRegistrationRepository(mockRepository1, mockRepository2);
+        DelegatingRelyingPartyRegistrationRepository target = new DelegatingRelyingPartyRegistrationRepository(mockRepository1, mockRepository2);
         assertEquals(expectedRegistration, target.findByRegistrationId("test"));
     }
 }

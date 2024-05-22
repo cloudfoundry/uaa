@@ -16,15 +16,21 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Rule;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.junit.rules.ExpectedException;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.springframework.test.context.TestPropertySource;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,7 +39,9 @@ import java.util.Timer;
 
 import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.asList;
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -196,13 +204,9 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void testIdentityProviderDefinitionSocketFactoryTest() {
-        singleAdd.setMetaDataLocation("http://www.test.org/saml/metadata");
+    void socketFactoryDoesNotGetSet() {
         assertThat(singleAdd.getSocketFactoryClassName()).isNull();
-        singleAdd.setMetaDataLocation("https://www.test.org/saml/metadata");
-        assertThat(singleAdd.getSocketFactoryClassName()).isNull();
-//        singleAdd.setSocketFactoryClassName(TLSProtocolSocketFactory.class.getName());
+        singleAdd.setSocketFactoryClassName("SHOULD_NOT_SET");
         assertThat(singleAdd.getSocketFactoryClassName()).isNull();
     }
 
