@@ -8,21 +8,21 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * A {@link RelyingPartyRegistrationRepository} that proxies to a list of other {@link RelyingPartyRegistrationRepository}
+ * A {@link RelyingPartyRegistrationRepository} that delegates to a list of other {@link RelyingPartyRegistrationRepository}
  * instances.
  */
-public class ProxyingRelyingPartyRegistrationRepository implements RelyingPartyRegistrationRepository {
+public class DelegatingRelyingPartyRegistrationRepository implements RelyingPartyRegistrationRepository {
 
-    private final List<RelyingPartyRegistrationRepository> repositories;
+    private final List<RelyingPartyRegistrationRepository> delegates;
 
-    public ProxyingRelyingPartyRegistrationRepository(List<RelyingPartyRegistrationRepository> repositories) {
-        Assert.notEmpty(repositories, "repositories cannot be empty");
-        this.repositories = repositories;
+    public DelegatingRelyingPartyRegistrationRepository(List<RelyingPartyRegistrationRepository> delegates) {
+        Assert.notEmpty(delegates, "delegates cannot be empty");
+        this.delegates = delegates;
     }
 
-    public ProxyingRelyingPartyRegistrationRepository(RelyingPartyRegistrationRepository... repositories) {
-        Assert.notEmpty(repositories, "repositories cannot be empty");
-        this.repositories = Arrays.asList(repositories);
+    public DelegatingRelyingPartyRegistrationRepository(RelyingPartyRegistrationRepository... delegates) {
+        Assert.notEmpty(delegates, "delegates cannot be empty");
+        this.delegates = Arrays.asList(delegates);
     }
 
     /**
@@ -34,7 +34,7 @@ public class ProxyingRelyingPartyRegistrationRepository implements RelyingPartyR
      */
     @Override
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
-        for (RelyingPartyRegistrationRepository repository : this.repositories) {
+        for (RelyingPartyRegistrationRepository repository : this.delegates) {
             RelyingPartyRegistration registration = repository.findByRegistrationId(registrationId);
             if (registration != null) {
                 return registration;
