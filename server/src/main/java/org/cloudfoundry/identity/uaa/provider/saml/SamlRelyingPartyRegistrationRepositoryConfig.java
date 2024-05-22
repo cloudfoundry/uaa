@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
@@ -21,6 +22,7 @@ import java.util.List;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID;
 
 @Configuration
+@Slf4j
 public class SamlRelyingPartyRegistrationRepositoryConfig {
 
     public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
@@ -74,8 +76,8 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         }
 
         InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
-        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlSignRequest, keyWithCert, samlIdentityProviderConfigurator);
-        return new ProxyingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo);
+        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlSignRequest, samlEntityID, keyWithCert, samlIdentityProviderConfigurator);
+        return new DelegatingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo);
     }
 
     private RelyingPartyRegistration buildRelyingPartyRegistration(KeyWithCert keyWithCert, String metadataLocation, String rpRegstrationId) {
@@ -84,6 +86,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
                 .entityId(samlEntityID)
                 .nameIdFormat(samlSpNameID)
                 .registrationId(rpRegstrationId)
+                // TODO: assertionConsumerServiceUrlTemplate can be configured here.
                 .assertingPartyDetails(details -> details
                         .wantAuthnRequestsSigned(samlSignRequest)
                 )

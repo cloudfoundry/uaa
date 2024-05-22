@@ -92,6 +92,8 @@
     <filter-mapping>
         <filter-name>springSecurityFilterChain</filter-name>
         <url-pattern>/*</url-pattern>
+        <dispatcher>FORWARD</dispatcher> <!-- Include FORWARD here -->
+        <dispatcher>REQUEST</dispatcher>
     </filter-mapping>
 
     <!-- After we merge in epic/multitenancy, we can add this to the post process of the security filter -->
