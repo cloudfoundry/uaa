@@ -11,11 +11,14 @@ import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
+    private static final String ENTITY_ID = "entityId";
     private SamlIdentityProviderConfigurator mockConfigurator;
     private KeyWithCert mockKeyWithCert;
     private ConfiguratorRelyingPartyRegistrationRepository target;
@@ -29,7 +32,7 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     @Test
     public void constructor_nullConfigurator() {
         assertThrows(IllegalArgumentException.class, () -> {
-            target = new ConfiguratorRelyingPartyRegistrationRepository(true, mockKeyWithCert, null);
+            target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, null);
         });
     }
 
@@ -37,7 +40,7 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     public void testFindByRegistrationIdWhenNoneFound() throws IOException {
         when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
-        target = new ConfiguratorRelyingPartyRegistrationRepository(true, mockKeyWithCert, mockConfigurator);
+        target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, mockConfigurator);
 
         SamlIdentityProviderDefinition mockDefinition1 = mock(SamlIdentityProviderDefinition.class);
         when(mockDefinition1.getIdpEntityAlias()).thenReturn("registration1");
@@ -52,7 +55,7 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     public void testFindByRegistrationId() throws IOException {
         when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
-        target = new ConfiguratorRelyingPartyRegistrationRepository(true, mockKeyWithCert, mockConfigurator);
+        target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, mockConfigurator);
 
         //definition 1
         SamlIdentityProviderDefinition mockDefinition1 = mock(SamlIdentityProviderDefinition.class);
@@ -69,7 +72,7 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
         when(mockConfigurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(mockDefinition1, mockDefinition2));
         RelyingPartyRegistration output = target.findByRegistrationId("registration1");
         assertEquals("registration1", output.getRegistrationId());
-        assertEquals("registration1", output.getEntityId());
+        assertEquals(ENTITY_ID, output.getEntityId());
         assertEquals("name1", output.getNameIdFormat());
     }
 }

@@ -18,6 +18,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 
 import java.util.Collections;
@@ -28,6 +29,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@Data
 public class SamlConfig {
     public static final String LEGACY_KEY_ID = "legacy-saml-key";
 
@@ -41,14 +43,6 @@ public class SamlConfig {
     private String entityID;
     private boolean disableInResponseToCheck = false;
 
-    public boolean isAssertionSigned() {
-        return assertionSigned;
-    }
-
-    public void setAssertionSigned(boolean assertionSigned) {
-        this.assertionSigned = assertionSigned;
-    }
-
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getEntityID() {
         return entityID;
@@ -57,22 +51,6 @@ public class SamlConfig {
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public void setEntityID(String entityID) {
         this.entityID = entityID;
-    }
-
-    public boolean isRequestSigned() {
-        return requestSigned;
-    }
-
-    public void setRequestSigned(boolean requestSigned) {
-        this.requestSigned = requestSigned;
-    }
-
-    public boolean isWantAssertionSigned() {
-        return wantAssertionSigned;
-    }
-
-    public void setWantAssertionSigned(boolean wantAssertionSigned) {
-        this.wantAssertionSigned = wantAssertionSigned;
     }
 
     @JsonProperty("certificate")
@@ -109,22 +87,6 @@ public class SamlConfig {
             legacyKey.setPassphrase(privateKeyPassword);
             keys.put(LEGACY_KEY_ID, legacyKey);
         }
-    }
-
-    public boolean isWantAuthnRequestSigned() {
-        return wantAuthnRequestSigned;
-    }
-
-    public void setWantAuthnRequestSigned(boolean wantAuthnRequestSigned) {
-        this.wantAuthnRequestSigned = wantAuthnRequestSigned;
-    }
-
-    public int getAssertionTimeToLiveSeconds() {
-        return assertionTimeToLiveSeconds;
-    }
-
-    public void setAssertionTimeToLiveSeconds(int assertionTimeToLiveSeconds) {
-        this.assertionTimeToLiveSeconds = assertionTimeToLiveSeconds;
     }
 
     @JsonProperty("certificate")
@@ -191,13 +153,5 @@ public class SamlConfig {
     @JsonIgnore
     public SamlKey removeKey(String keyId) {
         return keys.remove(keyId);
-    }
-
-    public boolean isDisableInResponseToCheck() {
-        return disableInResponseToCheck;
-    }
-
-    public void setDisableInResponseToCheck(boolean disableInResponseToCheck) {
-        this.disableInResponseToCheck = disableInResponseToCheck;
     }
 }
