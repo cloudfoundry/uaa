@@ -39,6 +39,8 @@ import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -402,6 +404,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                     if (existing!=null &&
                         existing.getConfig()!=null &&
                         existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> existingDefinition) {
+                        existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition existingDefinition &&
+                        secretNeeded(definition)) {
                         definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
                     }
                 }
@@ -436,6 +440,14 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
                 break;
 
         }
+    }
+
+    protected boolean secretNeeded(AbstractExternalOAuthIdentityProviderDefinition abstractExternalOAuthIdentityProviderDefinition) {
+        boolean needSecret = true;
+        if (abstractExternalOAuthIdentityProviderDefinition.getAuthMethod() != null) {
+            return ClientAuthentication.secretNeeded(abstractExternalOAuthIdentityProviderDefinition.getAuthMethod());
+        }
+        return needSecret;
     }
 
 }
