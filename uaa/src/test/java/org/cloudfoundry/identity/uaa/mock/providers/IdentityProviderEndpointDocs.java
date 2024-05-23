@@ -634,7 +634,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                                         IDENTITY_ZONE_ID,
                                         CREATED,
                                         LAST_MODIFIED,
-                                        fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used."),
+                                        fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used.")
                                 },
                                 ALIAS_FIELDS_GET
                         )
