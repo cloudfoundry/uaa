@@ -590,7 +590,6 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userInfoUrl").optional(null).type(STRING).description("A URL for fetching user info attributes when queried with the obtained token authorization."),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
-                fieldWithPath("config.auth_method").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Client authentication method. Possible strings are: client_secret_basic, client_secret_post, private_key_jwt, none."),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
                 fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
@@ -697,7 +696,6 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
-                fieldWithPath("config.auth_method").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Client authentication method. Possible strings are: client_secret_basic, client_secret_post, private_key_jwt, none."),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
                 fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
