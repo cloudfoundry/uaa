@@ -229,7 +229,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
     };
 
-    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").constrained("Deprecated. Required if `config.authMethod` is set to `client_secret_basic`.").type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set and `jwtClientAuthentication` is not set, then the external OAuth client is treated as public client and the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636) using code challenge method `S256`. It is recommended to set `jwtClientAuthentication:true` instead.");
+    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").constrained("Required if `config.authMethod` is set to `client_secret_basic`.").type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set and `jwtClientAuthentication` is not set, then the external OAuth client is treated as public client and the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636) using code challenge method `S256`. It is recommended to set `jwtClientAuthentication:true` instead.");
 
     private static InMemoryLdapServer ldapContainer;
 
