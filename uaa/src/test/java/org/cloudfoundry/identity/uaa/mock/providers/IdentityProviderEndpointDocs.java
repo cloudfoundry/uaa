@@ -106,7 +106,6 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 class IdentityProviderEndpointDocs extends EndpointDocs {
@@ -230,7 +229,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
     };
 
-    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").constrained("Deprecated. It is required if the external IdP does not support private_key_jwt.").type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set and `jwtClientAuthentication` is not set, then the external OAuth client is treated as public client and the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636) using code challenge method `S256`. It is recommended to set `jwtClientAuthentication:true` instead.");
+    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").constrained("Required if `config.authMethod` is set to `client_secret_basic`.").type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set and `jwtClientAuthentication` is not set, then the external OAuth client is treated as public client and the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636) using code challenge method `S256`. It is recommended to set `jwtClientAuthentication:true` instead.");
 
     private static InMemoryLdapServer ldapContainer;
 
@@ -604,6 +603,15 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userPropagationParameter").optional("username").type(STRING).description("Name of the request parameter that is used to pass a known username when redirecting to this identity provider from the account chooser"),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
                 fieldWithPath("config.groupMappingMode").optional(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external claim values to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use claim values names as scopes. You need to define also ``external_groups`` for the mapping in order to use this feature."),
+                fieldWithPath("config.authMethod").optional("client_secret_basic").type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Define an explicit method to authenticate against the identity provider. Supported values are `client_secret_basic`, `client_secret_post`, `private_key_jwt`, and `none`. Remark: If you switch the method from `client_secret_basic` to `private_key_jwt` or to `none`, your existing `config.relyingPartySecret` will be removed from UAA database. If you want to switch back to `client_secret_basic`, provide again a `config.relyingPartySecret` in the configuration."),
+                fieldWithPath("config.jwtClientAuthentication").constrained("Required if `config.authMethod` is set to `private_key_jwt`").type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. "+
+                "<br>For standard OIDC compliance, set this field to `true`. Alternatively, you can further configure the created JWT for client authentication by setting this parameter to an Object containing sub-parameters, e.g. if your IdP follows OAuth2 standard according to RFC 7523. The supported sub-parameters are" +
+                "<ul><li>    `kid`  <small><mark>UAA 76.18.0</mark></small> Optional custom key from your defined keys, defaults to `activeKeyId` from token policy section</li>" +
+                "<li>        `key`  <small><mark>UAA 77.4.0</mark></small> Optional custom private key, used to generate the client JWT signature, defaults to key from token policy, depending on `kid` </li>" +
+                "<li>        `cert` <small><mark>UAA 77.4.0</mark></small> Optional custom X509 certificate, related to key, used to generate the client JWT with x5t header, defaults to a cert from token policy or omits x5t header </li>" +
+                "<li>        `iss`  Optional custom issuer, see RFC 7523, defaults to `relyingPartyId` for OIDC compliance</li>" +
+                "<li>        `aud`  Optional custom audience, see RFC 7523, defaults to `tokenUrl` for OIDC compliance</li></ul><p>"+
+                "The values in the list can be a reference to another section in uaa yaml, e.g. define for key a reference like ${\"jwt.client.key\"}. This will load the private key from yaml context jwt.client.key. The advantage is, that you can use a single key for many IdP configurations and the key itself is not persistent in the UAA DB.</p>"),
         }, attributeMappingFields));
 
         Snippet requestFields = requestFields(
@@ -704,7 +712,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 GROUP_WHITELIST,
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
                 fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
-                fieldWithPath("config.jwtClientAuthentication").optional(null).type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. "+
+                fieldWithPath("config.authMethod").optional("client_secret_basic").type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Define an explicit method to authenticate against the identity provider. Supported values are `client_secret_basic`, `client_secret_post`, `private_key_jwt`, and `none`. Remark: If you switch the method from `client_secret_basic` to `private_key_jwt` or to `none`, your existing `config.relyingPartySecret` will be removed from UAA database. If you want to switch back to `client_secret_basic`, provide again a `config.relyingPartySecret` in the configuration."),
+                fieldWithPath("config.jwtClientAuthentication").constrained("Required if `config.authMethod` is set to `private_key_jwt`").type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. "+
                         "<br>For standard OIDC compliance, set this field to `true`. Alternatively, you can further configure the created JWT for client authentication by setting this parameter to an Object containing sub-parameters, e.g. if your IdP follows OAuth2 standard according to RFC 7523. The supported sub-parameters are" +
                         "<ul><li>    `kid`  <small><mark>UAA 76.18.0</mark></small> Optional custom key from your defined keys, defaults to `activeKeyId` from token policy section</li>" +
                         "<li>        `key`  <small><mark>UAA 77.4.0</mark></small> Optional custom private key, used to generate the client JWT signature, defaults to key from token policy, depending on `kid` </li>" +

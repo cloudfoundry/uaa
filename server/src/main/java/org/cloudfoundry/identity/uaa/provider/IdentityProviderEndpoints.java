@@ -43,6 +43,8 @@ import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthIdentityProviderConfigValidator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -168,6 +170,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         createdIdp.setSerializeConfigRaw(rawConfig);
+        setAuthMethod(createdIdp);
         redactSensitiveData(createdIdp);
 
         return new ResponseEntity<>(createdIdp, CREATED);
@@ -194,6 +197,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         // delete the IdP
         existing.setSerializeConfigRaw(rawConfig);
         publisher.publishEvent(new EntityDeletedEvent<>(existing, authentication, identityZoneId));
+        setAuthMethod(existing);
         redactSensitiveData(existing);
 
         // delete the alias IdP if present
@@ -275,6 +279,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         updatedIdp.setSerializeConfigRaw(rawConfig);
+        setAuthMethod(updatedIdp);
         redactSensitiveData(updatedIdp);
 
         return new ResponseEntity<>(updatedIdp, OK);
@@ -314,6 +319,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, identityZoneManager.getCurrentIdentityZoneId());
         for(IdentityProvider idp : identityProviderList) {
             idp.setSerializeConfigRaw(rawConfig);
+            setAuthMethod(idp);
             redactSensitiveData(idp);
         }
         return new ResponseEntity<>(identityProviderList, OK);
@@ -323,6 +329,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     public ResponseEntity<IdentityProvider> retrieveIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieve(id, identityZoneManager.getCurrentIdentityZoneId());
         identityProvider.setSerializeConfigRaw(rawConfig);
+        setAuthMethod(identityProvider);
         redactSensitiveData(identityProvider);
         return new ResponseEntity<>(identityProvider, OK);
     }
@@ -422,16 +429,13 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             }
             case OAUTH20 :
             case OIDC10 : {
-                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
-                    AbstractExternalOAuthIdentityProviderDefinition definition = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
-                    if (definition.getRelyingPartySecret() == null) {
-                        IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
-                        if (existing!=null &&
-                            existing.getConfig()!=null &&
-                            existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
-                            AbstractExternalOAuthIdentityProviderDefinition existingDefinition = (AbstractExternalOAuthIdentityProviderDefinition)existing.getConfig();
-                            definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
-                        }
+                if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition definition && definition.getRelyingPartySecret() == null) {
+                    IdentityProvider existing = identityProviderProvisioning.retrieve(id, zoneId);
+                    if (existing!=null &&
+                        existing.getConfig()!=null &&
+                        existing.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition existingDefinition &&
+                        secretNeeded(definition)) {
+                        definition.setRelyingPartySecret(existingDefinition.getRelyingPartySecret());
                     }
                 }
                 break;
@@ -467,6 +471,20 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             default:
                 break;
 
+        }
+    }
+
+    protected boolean secretNeeded(AbstractExternalOAuthIdentityProviderDefinition abstractExternalOAuthIdentityProviderDefinition) {
+        boolean needSecret = true;
+        if (abstractExternalOAuthIdentityProviderDefinition.getAuthMethod() != null) {
+            return ClientAuthentication.secretNeeded(abstractExternalOAuthIdentityProviderDefinition.getAuthMethod());
+        }
+        return needSecret;
+    }
+
+    protected void setAuthMethod(IdentityProvider<?> provider) {
+        if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> definition) {
+            definition.setAuthMethod(ExternalOAuthIdentityProviderConfigValidator.getAuthMethod(definition));
         }
     }
 

@@ -58,6 +58,7 @@ class IdentityProviderTest {
         idp1.setIdentityZoneId(UAA);
         final OIDCIdentityProviderDefinition config1 = new OIDCIdentityProviderDefinition();
         config1.setIssuer("issuer");
+        config1.setAuthMethod("none");
         idp1.setConfig(config1);
 
         final IdentityProvider<OIDCIdentityProviderDefinition> idp2 = new IdentityProvider<>();
@@ -70,6 +71,7 @@ class IdentityProviderTest {
         idp2.setIdentityZoneId(UAA);
         final OIDCIdentityProviderDefinition config2 = new OIDCIdentityProviderDefinition();
         config2.setIssuer("issuer");
+        config2.setAuthMethod("none");
         idp2.setConfig(config2);
 
         idp2.setCreated(idp1.getCreated());
