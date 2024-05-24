@@ -77,7 +77,6 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreation
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderSecretChange;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderStatus;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -590,7 +589,6 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userInfoUrl").optional(null).type(STRING).description("A URL for fetching user info attributes when queried with the obtained token authorization."),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
-                fieldWithPath("config.auth_method").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Client authentication method. Possible strings are: client_secret_basic, client_secret_post, private_key_jwt, none."),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
                 fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth provider"),
@@ -635,7 +633,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                                         IDENTITY_ZONE_ID,
                                         CREATED,
                                         LAST_MODIFIED,
-                                        fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used."),
+                                        fieldWithPath("config.externalGroupsWhitelist").optional(null).type(ARRAY).description("Not currently used.")
                                 },
                                 ALIAS_FIELDS_GET
                         )
@@ -697,7 +695,6 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),
-                fieldWithPath("config.auth_method").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Client authentication method. Possible strings are: client_secret_basic, client_secret_post, private_key_jwt, none."),
                 fieldWithPath("config.relyingPartyId").required().type(STRING).description("The client ID which is registered with the external OAuth provider for use by the UAA"),
                 fieldWithPath("config.skipSslValidation").optional(null).type(BOOLEAN).description("A flag controlling whether SSL validation should be skipped when communicating with the external OAuth server"),
                 fieldWithPath("config.scopes").optional(null).type(ARRAY).description("What scopes to request on a call to the external OAuth/OpenID provider. For example, can provide " +
@@ -1141,56 +1138,6 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                         responseFields));
 
 
-    }
-
-    @Test
-    void createOAuthIdentityProviderThenChangeSecret() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("my-oauth2-provider", IdentityZoneHolder.get().getId());
-
-        IdentityProviderSecretChange identityProviderSecretChange = new IdentityProviderSecretChange();
-        identityProviderSecretChange.setSecret("newSecret" + new AlphanumericRandomValueStringGenerator(10).generate());
-
-        FieldDescriptor[] idempotentFields = new FieldDescriptor[]{
-            fieldWithPath("secret").required().description("Set new secret and/or bind password, depending on provided IdP type.")
-        };
-
-        Snippet requestFields = requestFields(idempotentFields);
-
-        mockMvc.perform(patch("/identity-providers/{id}/secret", identityProvider.getId())
-                .header("Authorization", "Bearer " + adminToken)
-                .contentType(APPLICATION_JSON)
-                .content(serializeExcludingProperties(identityProviderSecretChange)))
-                .andExpect(status().isOk())
-                .andDo(document("{ClassName}/{methodName}",
-                preprocessResponse(prettyPrint()),
-                pathParameters(parameterWithName("id").description(ID_DESC)
-                ),
-                requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                    IDENTITY_ZONE_ID_HEADER,
-                    IDENTITY_ZONE_SUBDOMAIN_HEADER
-                ),
-                requestFields,
-                responseFields(getCommonProviderFieldsAnyType())));
-    }
-
-    @Test
-    void createOAuthIdentityProviderThenDeleteSecret() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("my-oauth2-provider", IdentityZoneHolder.get().getId());
-
-        mockMvc.perform(delete("/identity-providers/{id}/secret", identityProvider.getId())
-                .header("Authorization", "Bearer " + adminToken))
-                .andExpect(status().isOk())
-                .andDo(document("{ClassName}/{methodName}",
-                preprocessResponse(prettyPrint()),
-                pathParameters(parameterWithName("id").description(ID_DESC)
-                ),
-                requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                    IDENTITY_ZONE_ID_HEADER,
-                    IDENTITY_ZONE_SUBDOMAIN_HEADER
-                ),
-                responseFields(getCommonProviderFieldsAnyType())));
     }
 
     @Test
