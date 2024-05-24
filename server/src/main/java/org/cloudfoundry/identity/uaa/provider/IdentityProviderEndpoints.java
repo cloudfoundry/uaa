@@ -258,6 +258,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         updatedIdp.setSerializeConfigRaw(rawConfig);
+        setAuthMethod(updatedIdp);
         redactSensitiveData(updatedIdp);
 
         return new ResponseEntity<>(updatedIdp, status);
