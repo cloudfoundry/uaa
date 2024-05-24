@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Getter;
 
 import java.lang.reflect.ParameterizedType;
@@ -53,7 +52,6 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private boolean pkce = true;
     private boolean performRpInitiatedLogout = true;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    @JsonProperty(value = "auth_method", access = JsonProperty.Access.READ_ONLY)
     private String authMethod;
 
     public T setAuthUrl(URL authUrl) {
