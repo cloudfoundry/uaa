@@ -21,6 +21,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.test.annotation.DirtiesContext;
@@ -173,12 +174,11 @@ class HomeControllerViewTests extends TestClassNullifier {
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
     void error500WithSAMLExceptionAsCause() throws Exception {
-//        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new SAMLException("bad"))))
-//            .andExpect(status().isBadRequest())
-//            .andExpect(content().string(containsString(customFooterText)))
-//            .andExpect(content().string(containsString(base64ProductLogo)));
+        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new Saml2Exception("bad"))))
+            .andExpect(status().isBadRequest())
+            .andExpect(content().string(containsString(customFooterText)))
+            .andExpect(content().string(containsString(base64ProductLogo)));
     }
 
     @Test

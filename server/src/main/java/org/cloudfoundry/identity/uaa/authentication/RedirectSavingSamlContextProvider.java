@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.flywaydb.core.internal.util.StringUtils;
 //import org.opensaml.saml2.metadata.provider.MetadataProviderException;
-//import org.springframework.security.saml.context.SAMLContextProvider;
 //import org.springframework.security.saml.context.SAMLMessageContext;
 
 import javax.servlet.http.HttpServletRequest;
