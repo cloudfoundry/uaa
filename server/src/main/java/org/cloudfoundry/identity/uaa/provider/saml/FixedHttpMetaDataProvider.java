@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
-//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;

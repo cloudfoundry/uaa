@@ -1037,4 +1037,123 @@ public class SamlTestUtils {
         InputSource is = new InputSource(new StringReader(metadata));
         return documentBuilderFactory.newDocumentBuilder().parse(is);
     }
+
+    private static final String SAML_RESPONSE_XML = """
+                <samlp:Response xmlns:samlp="urn:oasis:names:tc:SAML:2.0:protocol"
+                                xmlns:saml="urn:oasis:names:tc:SAML:2.0:assertion"
+                                ID="_242cbecb94e341d3895248b1899ddaa315839d4d39"
+                                Version="2.0"
+                                IssueInstant="2024-05-20T17:05:55Z"
+                                Destination="http://localhost:8080/uaa/saml/SSO/alias/cloudfoundry-saml-login"
+                                InResponseTo="ARQd92de0f-2c29-44ef-96ba-ea5c0e5f8a79">
+                    <saml:Issuer>http://uaa-acceptance.cf-app.com/saml-idp</saml:Issuer>
+                    <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                        <ds:SignedInfo>
+                            <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+                            <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
+                            <ds:Reference URI="#_242cbecb94e341d3895248b1899ddaa315839d4d39">
+                                <ds:Transforms>
+                                    <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                                    <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" /></ds:Transforms>
+                                <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
+                                <ds:DigestValue>MyMS6YmKuVkw7mwKjEM0yNDBeg/exvjiGcnqh2tb5Ao=</ds:DigestValue>
+                            </ds:Reference>
+                        </ds:SignedInfo>
+                        <ds:SignatureValue>
+                            avMFpID6wL5teuIjAikAUMGpLIDD8jlg39w9ZHHyoUzXhTV3/PxI4jzzMBcUjp+3PrlaKAy0na1P7x1zl3OOLHBfxlSCntXtafTXuzlqao4UEWmL28t/S6fT18F1DPcVh0aXXpoiYzqgN8VthTIVd3mcrUjgkjtcLYqotFrQAY47ojBCX9u9hOBm0sYzn6R6UdG1in0qCWTzM08FHhXlicwniugNlxRWaFY9WAoosUcmChIr7ecOsHdbeRcZN7cjrAlW7sFxHK6guGR3QZHt3jTWPKn6Wc+rmqom199iXOnY9ItejGArEKQxIeAWBpUgRj65oQdjYhbPBBH8yl6Exg==
+                        </ds:SignatureValue>
+                        <ds:KeyInfo>
+                            <ds:X509Data>
+                                <ds:X509Certificate>
+                                    MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk
+                                </ds:X509Certificate>
+                            </ds:X509Data>
+                        </ds:KeyInfo>
+                    </ds:Signature>
+                    <samlp:Status>
+                        <samlp:StatusCode Value="urn:oasis:names:tc:SAML:2.0:status:Success" /></samlp:Status>
+                    <saml:Assertion xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                                    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+                                    ID="_61499ba4a69885cc761ce32905866c75a8722aedd5"
+                                    Version="2.0"
+                                    IssueInstant="2024-05-20T17:05:55Z">
+                        <saml:Issuer>http://uaa-acceptance.cf-app.com/saml-idp</saml:Issuer>
+                        <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                            <ds:SignedInfo>
+                                <ds:CanonicalizationMethod Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" />
+                                <ds:SignatureMethod Algorithm="http://www.w3.org/2001/04/xmldsig-more#rsa-sha256" />
+                                <ds:Reference URI="#_61499ba4a69885cc761ce32905866c75a8722aedd5">
+                                    <ds:Transforms>
+                                        <ds:Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature" />
+                                        <ds:Transform Algorithm="http://www.w3.org/2001/10/xml-exc-c14n#" /></ds:Transforms>
+                                    <ds:DigestMethod Algorithm="http://www.w3.org/2001/04/xmlenc#sha256" />
+                                    <ds:DigestValue>e7tjmX8XYbLZEepND4FUVjhT7CTU1HFEIg2jvFZnROk=</ds:DigestValue>
+                                </ds:Reference>
+                            </ds:SignedInfo>
+                            <ds:SignatureValue>
+                                snhPsfhCFKCInTy1e1UfDMMW2lXDCdjpUXCQ60lDtsFkwq2FbNP1EdVmKZcN+6OqhW4e69DX9ts78/6C9kgGs3VmT2gadyZz/1PuK202NvaiOodJ/v5mIA8U07Ebq6bZxu7AcDcpPsH3x0cYbF7DGsLsCOFWgCJP9FStrdk3ERkuvNUF9CfY8Z7Phle3HbvCi18bXXtnZ5nURNRi5omHrgp8DUN5idx/cIEM2vaEWwENnFU7zLLVSJVTf4lWT5AkZInO6RYoAlbL/9hblJ8Vbs3cYDxvRomGaH4KRxVVYo9MX8zbzyyVnqVIL3rm9s6+Z30Cs5b+aJF0AfpKx4B+lA==
+                            </ds:SignatureValue>
+                            <ds:KeyInfo>
+                                <ds:X509Data>
+                                    <ds:X509Certificate>
+                                        MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk
+                                    </ds:X509Certificate>
+                                </ds:X509Data>
+                            </ds:KeyInfo>
+                        </ds:Signature>
+                        <saml:Subject>
+                            <saml:NameID SPNameQualifier="cloudfoundry-saml-login"
+                                         Format="urn:oasis:names:tc:SAML:2.0:nameid-format:transient">_797b2928346d2737587b9f55b431d21c68ad5a791e</saml:NameID>
+                            <saml:SubjectConfirmation Method="urn:oasis:names:tc:SAML:2.0:cm:bearer">
+                                <saml:SubjectConfirmationData NotOnOrAfter="2024-05-20T17:10:55Z"
+                                                              Recipient="http://localhost:8080/uaa/saml/SSO/alias/cloudfoundry-saml-login"
+                                                              InResponseTo="ARQd92de0f-2c29-44ef-96ba-ea5c0e5f8a79" /></saml:SubjectConfirmation>
+                        </saml:Subject>
+                        <saml:Conditions NotBefore="2024-05-20T17:05:25Z"
+                                         NotOnOrAfter="2024-05-20T17:10:55Z">
+                            <saml:AudienceRestriction>
+                                <saml:Audience>cloudfoundry-saml-login</saml:Audience>
+                            </saml:AudienceRestriction>
+                        </saml:Conditions>
+                        <saml:AuthnStatement AuthnInstant="2024-05-20T17:05:55Z"
+                                             SessionNotOnOrAfter="2024-05-21T01:05:55Z"
+                                             SessionIndex="_41e03754f5cfa23572848dc11ff82f66ba72673d89">
+                            <saml:AuthnContext>
+                                <saml:AuthnContextClassRef>urn:oasis:names:tc:SAML:2.0:ac:classes:Password</saml:AuthnContextClassRef>
+                            </saml:AuthnContext>
+                        </saml:AuthnStatement>
+                        <saml:AttributeStatement>
+                            <saml:Attribute Name="uid"
+                                            NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                                <saml:AttributeValue xsi:type="xs:string">marissa@test.org</saml:AttributeValue>
+                            </saml:Attribute>
+                            <saml:Attribute Name="eduPersonAffiliation"
+                                            NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                                <saml:AttributeValue xsi:type="xs:string">member</saml:AttributeValue>
+                                <saml:AttributeValue xsi:type="xs:string">marissa</saml:AttributeValue>
+                            </saml:Attribute>
+                             <saml:Attribute Name="firstName"
+                                            NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                                <saml:AttributeValue xsi:type="xs:string">Marissa</saml:AttributeValue>
+                            </saml:Attribute>
+                            <saml:Attribute Name="lastName"
+                                            NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                                <saml:AttributeValue xsi:type="xs:string">Bloggs</saml:AttributeValue>
+                            </saml:Attribute>
+                            <saml:Attribute Name="phone"
+                                            NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                                <saml:AttributeValue xsi:type="xs:string">1234567890</saml:AttributeValue>
+                            </saml:Attribute>
+                            <saml:Attribute Name="emailAddress"
+                                            NameFormat="urn:oasis:names:tc:SAML:2.0:attrname-format:uri">
+                                <saml:AttributeValue xsi:type="xs:string">marissa@test.org</saml:AttributeValue>
+                            </saml:Attribute>
+                        </saml:AttributeStatement>
+                    </saml:Assertion>
+                </samlp:Response>
+                """;
+
+        public static String getSamlResponseXml() {
+            return SAML_RESPONSE_XML;
+        }
 }

@@ -31,6 +31,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -129,13 +130,13 @@ public class HomeController {
         logger.error("Internal error", genericException);
 
         // check for common SAML related exceptions and redirect these to bad_request
-//        if (nonNull(genericException) &&
-//            (genericException.getCause() instanceof SAMLException || genericException.getCause() instanceof MetadataProviderException)) {
-//            Exception samlException = (Exception) genericException.getCause();
-//            model.addAttribute("saml_error", samlException.getMessage());
-//            response.setStatus(400);
-//            return EXTERNAL_AUTH_ERROR;
-//        }
+        if (nonNull(genericException) &&
+            (genericException.getCause() instanceof Saml2Exception)) {
+            Exception samlException = (Exception) genericException.getCause();
+            model.addAttribute("saml_error", samlException.getMessage());
+            response.setStatus(400);
+            return EXTERNAL_AUTH_ERROR;
+        }
 
         populateBuildAndLinkInfo(model);
         return ERROR;
