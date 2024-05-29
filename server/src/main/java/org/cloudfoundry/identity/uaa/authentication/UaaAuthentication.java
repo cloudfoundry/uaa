@@ -12,21 +12,19 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-//import org.springframework.security.saml.context.SAMLMessageContext;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
 import static java.util.Collections.EMPTY_MAP;
 
@@ -60,15 +58,11 @@ public class UaaAuthentication implements Authentication, Serializable {
         return this;
     }
 
-    //This is used when UAA acts as a SAML IdP
-    @JsonIgnore
-//    private transient SAMLMessageContext samlMessageContext;
-
     /**
      * Creates a token with the supplied array of authorities.
      *
      * @param authorities the collection of <tt>GrantedAuthority</tt>s for the
-     *            principal represented by this authentication object.
+     *                    principal represented by this authentication object.
      */
     public UaaAuthentication(UaaPrincipal principal,
                              Collection<? extends GrantedAuthority> authorities,
@@ -116,6 +110,16 @@ public class UaaAuthentication implements Authentication, Serializable {
         this(uaaPrincipal, credentials, uaaAuthorityList, details, authenticated, authenticatedTime, expiresAt);
         this.externalGroups = externalGroups;
         this.userAttributes = new HashMap<>(userAttributes);
+    }
+
+    public UaaAuthentication(UaaAuthentication existing, UaaPrincipal principal) {
+
+        this(principal, existing.getCredentials(), List.copyOf(existing.authorities), existing.getExternalGroups(),
+                existing.getUserAttributes(), existing.details, existing.isAuthenticated(),
+                existing.getAuthenticatedTime(), existing.getExpiresAt());
+        this.authContextClassRef = existing.authContextClassRef;
+        this.authenticationMethods = existing.authenticationMethods;
+        this.lastLoginSuccessTime = existing.lastLoginSuccessTime;
     }
 
     public long getAuthenticatedTime() {
@@ -199,12 +203,12 @@ public class UaaAuthentication implements Authentication, Serializable {
         this.externalGroups = externalGroups;
     }
 
-    public MultiValueMap<String,String> getUserAttributes() {
-        return new LinkedMultiValueMap<>(userAttributes!=null? userAttributes: EMPTY_MAP);
+    public MultiValueMap<String, String> getUserAttributes() {
+        return new LinkedMultiValueMap<>(userAttributes != null ? userAttributes : EMPTY_MAP);
     }
 
-    public Map<String,List<String>> getUserAttributesAsMap() {
-        return userAttributes!=null ? new HashMap<>(userAttributes) : EMPTY_MAP;
+    public Map<String, List<String>> getUserAttributesAsMap() {
+        return userAttributes != null ? new HashMap<>(userAttributes) : EMPTY_MAP;
     }
 
     public void setUserAttributes(MultiValueMap<String, String> userAttributes) {
@@ -229,6 +233,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     }
 
     public void setAuthenticationMethods(Set<String> authenticationMethods) {
+
         this.authenticationMethods = authenticationMethods;
     }
 

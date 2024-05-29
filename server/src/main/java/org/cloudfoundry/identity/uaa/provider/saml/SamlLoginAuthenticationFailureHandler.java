@@ -22,14 +22,14 @@ import java.net.URI;
  * allow automatic creation of the shadow account.
  */
 @Slf4j
-public class LoginSAMLAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
+public class SamlLoginAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
 
     @Override
     public void onAuthenticationFailure(final HttpServletRequest request, final HttpServletResponse response,
                                         final AuthenticationException exception) throws IOException, ServletException {
 
         String redirectTo = null;
-        if (exception instanceof LoginSAMLException) {
+        if (exception instanceof SamlLoginException) {
             HttpSession session = request.getSession();
             if (session != null) {
                 DefaultSavedRequest savedRequest =

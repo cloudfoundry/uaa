@@ -18,11 +18,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class LoginSAMLAuthenticationFailureHandlerTest {
+public class SamlLoginAuthenticationFailureHandlerTest {
 
     @Test
     public void testErrorRedirect() throws IOException, ServletException {
-        LoginSAMLAuthenticationFailureHandler handler = new LoginSAMLAuthenticationFailureHandler();
+        SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
         Map<String, String[]> parameterMap = new HashMap<String, String[]>();
@@ -35,7 +35,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        LoginSAMLException exception = new LoginSAMLException("Denied!");
+        SamlLoginException exception = new SamlLoginException("Denied!");
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
@@ -46,7 +46,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
 
     @Test
     public void testErrorRedirectWithExistingQueryParameters() throws IOException, ServletException {
-        LoginSAMLAuthenticationFailureHandler handler = new LoginSAMLAuthenticationFailureHandler();
+        SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
         Map<String, String[]> parameterMap = new HashMap<String, String[]>();
@@ -59,7 +59,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        LoginSAMLException exception = new LoginSAMLException("Denied!");
+        SamlLoginException exception = new SamlLoginException("Denied!");
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
@@ -70,7 +70,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
 
     @Test
     public void testSomeOtherErrorCondition() throws IOException, ServletException {
-        LoginSAMLAuthenticationFailureHandler handler = new LoginSAMLAuthenticationFailureHandler();
+        SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
         Map<String, String[]> parameterMap = new HashMap<String, String[]>();
@@ -98,12 +98,12 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
 
     @Test
     public void testNoSession() throws IOException, ServletException {
-        LoginSAMLAuthenticationFailureHandler handler = new LoginSAMLAuthenticationFailureHandler();
+        SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        LoginSAMLException exception = new LoginSAMLException("Denied!");
+        SamlLoginException exception = new SamlLoginException("Denied!");
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
@@ -114,7 +114,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
 
     @Test
     public void testNoSavedRequest() throws IOException, ServletException {
-        LoginSAMLAuthenticationFailureHandler handler = new LoginSAMLAuthenticationFailureHandler();
+        SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
         Map<String, String[]> parameterMap = new HashMap<String, String[]>();
@@ -126,7 +126,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        LoginSAMLException exception = new LoginSAMLException("Denied!");
+        SamlLoginException exception = new SamlLoginException("Denied!");
         handler.onAuthenticationFailure(request, response, exception);
 
         String actual = response.getRedirectedUrl();
@@ -137,7 +137,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
 
     @Test
     public void testNoRedirectURI() throws IOException, ServletException {
-        LoginSAMLAuthenticationFailureHandler handler = new LoginSAMLAuthenticationFailureHandler();
+        SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
         Map<String, String[]> parameterMap = new HashMap<String, String[]>();
@@ -149,7 +149,7 @@ public class LoginSAMLAuthenticationFailureHandlerTest {
         request.setSession(session);
         MockHttpServletResponse response = new MockHttpServletResponse();
 
-        LoginSAMLException exception = new LoginSAMLException("Denied!");
+        SamlLoginException exception = new SamlLoginException("Denied!");
         handler.onAuthenticationFailure(request, response, exception);
         String actual = response.getRedirectedUrl();
         assertThat(actual).isNull();

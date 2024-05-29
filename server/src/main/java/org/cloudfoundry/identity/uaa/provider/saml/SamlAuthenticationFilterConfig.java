@@ -1,20 +1,15 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
-import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationRequestRepository;
 import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml4AuthenticationRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.security.web.util.matcher.RequestMatcher;
@@ -45,7 +40,7 @@ public class SamlAuthenticationFilterConfig {
 
     @Autowired
     @Bean
-    Filter saml2WebSsoAuthenticationFilter(LoginSamlAuthenticationProvider authenticationProvider,
+    Filter saml2WebSsoAuthenticationFilter(SamlLoginAuthenticationProvider authenticationProvider,
                                            RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
                                            SecurityContextRepository securityContextRepository) {
 
