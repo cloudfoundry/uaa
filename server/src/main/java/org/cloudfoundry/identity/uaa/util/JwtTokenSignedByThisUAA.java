@@ -89,6 +89,7 @@ public abstract class JwtTokenSignedByThisUAA {
 
     public static JwtTokenSignedByThisUAA buildIdTokenValidator(String tokenJwtValue, ChainedSignatureVerifier verifier, KeyInfoService keyInfoService) {
         IdTokenValidation idTokenValidation = new IdTokenValidation(tokenJwtValue, keyInfoService);
+        // always check signature first
         idTokenValidation.checkSignature(verifier);
         return idTokenValidation;
     }
@@ -133,7 +134,7 @@ public abstract class JwtTokenSignedByThisUAA {
             this.tokenJwt.verifySignature(verifier);
         } catch (RuntimeException ex) {
             logger.debug("Invalid token (could not verify signature)", ex);
-            throw new InvalidTokenException("Could not verify token signature.", new UnauthorizedClientException(token));
+            throw new InvalidTokenException("Could not verify token signature.", new UnauthorizedClientException(token)); // the actual error message that the customer sees
         }
         return this;
     }

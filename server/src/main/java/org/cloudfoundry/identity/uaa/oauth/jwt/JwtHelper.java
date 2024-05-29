@@ -197,6 +197,7 @@ class JwtImpl implements Jwt {
      */
     @Override
     public void verifySignature(Verifier verifier) {
+        // impl: signature check
         if (parsedJwtObject != null && verifier instanceof SignatureVerifier signatureVerifier) {
             validateClientJWToken(parsedJwtObject, signatureVerifier.getJwkSet());
             return;
@@ -257,6 +258,7 @@ class JwtImpl implements Jwt {
         jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(null, null));
         jwtProcessor.getJWSVerifierFactory().getJCAContext().setProvider(BouncyCastleFIPSProviderSingleton.getInstance());
         try {
+            // the bottom layer: checking the signature
             return jwtProcessor.process(jwtAssertion, null);
         } catch (BadJWSException | BadJWTException jwtException) { // signature failed
             throw new InvalidSignatureException("Unauthorized token", jwtException);

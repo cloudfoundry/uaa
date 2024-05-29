@@ -38,6 +38,10 @@ public class OidcMetadataFetcher {
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
     }
 
+    public void clearContentCache() {
+        this.contentCache.clear();
+    }
+
     public void fetchMetadataAndUpdateDefinition(OIDCIdentityProviderDefinition definition) throws OidcMetadataFetchingException {
         if (shouldFetchMetadata(definition)) {
             OidcMetadata oidcMetadata =
@@ -89,6 +93,7 @@ public class OidcMetadataFetcher {
         if (isSkipSslValidation) {
             return contentCache.getUrlContent(uri, trustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
         } else {
+            // use the url content (with cache)
             return contentCache.getUrlContent(uri, nonTrustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
         }
     }

@@ -639,6 +639,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     private JwtTokenSignedByThisUAA validateToken(String idToken, AbstractExternalOAuthIdentityProviderDefinition config) {
+        // external token is validated here
         logger.debug("Validating id_token");
 
         JwtTokenSignedByThisUAA jwtToken;
@@ -647,10 +648,25 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             List<SignatureVerifier> signatureVerifiers = getTokenKeyForUaaOrigin();
             jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
         } else {
+            // get token keys (jwks) from external OAuth provider, use cache (this class has a fetcher, the fetcher has the staleUrlCache, which then has a cache)
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
-            jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
-                .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
-                .checkAudience(config.getRelyingPartyId());
+            // start to validate token
+            try {
+                jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
+                        .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
+                        .checkAudience(config.getRelyingPartyId());
+            } catch (InvalidTokenException e) { // TODO: this needs to be more specific, only in the case that the validation fails bc the cached jwks is stale
+                // pseudo: if the token validation fails due to signature check fail (because the cached token keys kid do not match the one printed on the token)
+                this.oidcMetadataFetcher.clearContentCache(); // TODO: this clear cache needs to be more targeted, don't clear the cached data not relevant for this case
+
+                // cache is now empty, so the next line will do a fresh fetch (and repopulate the cache)
+                tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
+                // try again
+                jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
+                        .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
+                        .checkAudience(config.getRelyingPartyId());
+            }
+
         }
         return jwtToken.checkExpiry();
     }
@@ -670,6 +686,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             return JsonWebKeyHelper.parseConfiguration(tokenKey);
         }
         try {
+            // get token keys (jwks), uses caching
             return oidcMetadataFetcher.fetchWebKeySet(config);
         } catch (OidcMetadataFetchingException e) {
             throw new InvalidTokenException(e.getMessage(), e);
