@@ -93,7 +93,6 @@ import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterAll;
@@ -879,7 +878,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 MockMvcUtils.createOtherIdentityZoneAndReturnResult(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase(),
                         mockMvc,
                         webApplicationContext,
-                        admin, IdentityZoneHolder.getCurrentZoneId());
+                        admin, identityZoneManager.getCurrentIdentityZoneId());
 
 
         Snippet requestFields = requestFields(fields);
@@ -1000,7 +999,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     @Test
     void updateIdentityProvider() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
 
         UaaIdentityProviderDefinition config = new UaaIdentityProviderDefinition();
         config.setLockoutPolicy(new LockoutPolicy(8, 8, 8));
@@ -1067,7 +1066,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     @Test
     void patchIdentityProviderStatus() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
         identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
         identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();

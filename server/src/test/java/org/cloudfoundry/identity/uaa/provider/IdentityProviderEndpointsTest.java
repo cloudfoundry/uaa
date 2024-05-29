@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -17,6 +18,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -44,6 +46,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -87,6 +90,9 @@ class IdentityProviderEndpointsTest {
 
     @Mock
     private IdentityProviderAliasHandler mockIdpAliasHandler;
+
+    @Mock
+    SamlIdentityProviderConfigurator samlConfigurator;
 
     @InjectMocks
     private IdentityProviderEndpoints identityProviderEndpoints;
@@ -163,7 +169,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void retrieve_oauth_provider_by_id_redacts_password() throws Exception {
+    void retrieve_oauth_provider_by_id_redacts_password() {
         retrieve_oauth_provider_by_id("", OriginKeys.OAUTH20);
         retrieve_oauth_provider_by_id("", OriginKeys.OIDC10);
     }
@@ -183,7 +189,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void retrieve_ldap_provider_by_id_redacts_password() throws Exception {
+    void retrieve_ldap_provider_by_id_redacts_password() {
         retrieve_ldap_provider_by_id("");
     }
 
@@ -203,7 +209,7 @@ class IdentityProviderEndpointsTest {
     void remove_bind_password() {
         remove_sensitive_data(() -> getLdapDefinition(),
                 LDAP,
-                (spy) -> verify((LdapIdentityProviderDefinition) spy, times(1)).setBindPassword(isNull()));
+                spy -> verify((LdapIdentityProviderDefinition) spy, times(1)).setBindPassword(isNull()));
     }
 
     @Test
@@ -211,7 +217,7 @@ class IdentityProviderEndpointsTest {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
             remove_sensitive_data(() -> getExternalOAuthProvider(),
                     type,
-                    (spy) -> verify((AbstractExternalOAuthIdentityProviderDefinition) spy, times(1)).setRelyingPartySecret(isNull()));
+                    spy -> verify((AbstractExternalOAuthIdentityProviderDefinition) spy, times(1)).setRelyingPartySecret(isNull()));
         }
     }
 
@@ -356,6 +362,77 @@ class IdentityProviderEndpointsTest {
         assertNotNull(response.getBody().getConfig());
         assertTrue(response.getBody().getConfig() instanceof LdapIdentityProviderDefinition);
         assertNull(((LdapIdentityProviderDefinition) response.getBody().getConfig()).getBindPassword());
+    }
+
+    @Test
+    void update_saml_provider_validator_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        doThrow(new IllegalArgumentException("error")).when(mockIdentityProviderConfigValidationDelegator).validate(any());
+        when(mockIdentityProviderProvisioning.retrieve(any(), eq(zoneId))).thenReturn(provider);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(provider.getId(), provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager, never()).getTransaction(any());
+        verify(mockIdpAliasHandler, never()).ensureConsistencyOfAliasEntity(any(), any());
+    }
+
+    @Test
+    void update_saml_provider_alias_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        when(mockIdentityProviderProvisioning.retrieve(any(), eq(zoneId))).thenReturn(provider);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(provider.getId(), provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager).getTransaction(any());
+        verify(mockIdpAliasHandler, times(1)).ensureConsistencyOfAliasEntity(any(), any());
+    }
+
+    @Test
+    void create_saml_provider_validator_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        doThrow(new IllegalArgumentException("error")).when(mockIdentityProviderConfigValidationDelegator).validate(any());
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockIdpAliasHandler, never()).aliasPropertiesAreValid(provider, null);
+    }
+
+    @Test
+    void create_saml_provider_alias_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager).getTransaction(any());
+        verify(mockIdpAliasHandler, times(1)).ensureConsistencyOfAliasEntity(any(), any());
     }
 
     @Test
@@ -640,7 +717,6 @@ class IdentityProviderEndpointsTest {
             void testDeleteIdpWithAlias_DanglingReference() {
                 final String idpId = UUID.randomUUID().toString();
                 final String aliasIdpId = UUID.randomUUID().toString();
-                final String customZoneId = UUID.randomUUID().toString();
 
                 final IdentityProvider<?> idp = new IdentityProvider<>();
                 idp.setType(OIDC10);
@@ -677,7 +753,6 @@ class IdentityProviderEndpointsTest {
                 identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
 
                 // arrange IdP with alias exists
-                final String customZoneId = UUID.randomUUID().toString();
                 final Pair<IdentityProvider<?>, IdentityProvider<?>> idpAndAlias = arrangeIdpWithAliasExists(UAA, customZoneId);
                 final IdentityProvider<?> idp = idpAndAlias.getLeft();
 
