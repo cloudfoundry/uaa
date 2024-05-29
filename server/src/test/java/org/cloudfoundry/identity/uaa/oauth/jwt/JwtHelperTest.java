@@ -10,7 +10,7 @@ import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 
 import java.util.Arrays;
 import java.util.HashMap;

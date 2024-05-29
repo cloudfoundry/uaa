@@ -1,13 +1,14 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.net.URL;
@@ -31,7 +32,7 @@ class JdbcClientMetadataProvisioningTest {
             JdbcClientMetadataProvisioningTest.class,
             "base64EncodedImg");
 
-    private RandomValueStringGenerator randomValueStringGenerator;
+    private AlphanumericRandomValueStringGenerator randomValueStringGenerator;
     private String createdBy;
     private String identityZoneId;
     private String clientId;
@@ -42,16 +43,19 @@ class JdbcClientMetadataProvisioningTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void createDatasource() {
-        randomValueStringGenerator = new RandomValueStringGenerator(8);
+        randomValueStringGenerator = new AlphanumericRandomValueStringGenerator(8);
         createdBy = "createdBy-" + randomValueStringGenerator.generate();
         identityZoneId = "identityZoneId-" + randomValueStringGenerator.generate();
         clientId = "clientId-" + randomValueStringGenerator.generate();
 
-        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate, null, passwordEncoder);
+        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(namedJdbcTemplate, null, passwordEncoder);
         jdbcClientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientService, jdbcTemplate);
     }
 

@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth.token.matchers;
 
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2RefreshToken;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
-import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 
 import java.util.Map;
 

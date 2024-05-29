@@ -6,12 +6,12 @@ import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.json.JSONObject;
@@ -520,7 +520,7 @@ class DisableUserManagementSecurityFilterMockMvcTest {
             final String origin,
             final MockMvc mockMvc,
             final String token) throws Exception {
-        String id = new RandomValueStringGenerator().generate();
+        String id = new AlphanumericRandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(id, id + "@example.com", "first-name", "family-name");
         user.setOrigin(origin);
         user.setPassword(PASSWD);

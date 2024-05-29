@@ -23,6 +23,10 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -44,10 +48,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -275,13 +276,13 @@ public class ClientAdminEndpointsIntegrationTests {
                 "uaa.none"
         );
         invalidClient.setClientSecret("secret");
-        ResponseEntity<UaaException> invalidClientRequest = serverRunning.getRestTemplate().exchange(
+        ResponseEntity<InvalidClientException> invalidClientRequest = serverRunning.getRestTemplate().exchange(
                 serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-                new HttpEntity<>(invalidClient, headers), UaaException.class);
+                new HttpEntity<>(invalidClient, headers), InvalidClientException.class);
 
         // ensure correct failure
         assertEquals(HttpStatus.BAD_REQUEST, invalidClientRequest.getStatusCode());
-        assertEquals("invalid_client", invalidClientRequest.getBody().getErrorCode());
+        assertEquals("invalid_client", invalidClientRequest.getBody().getOAuth2ErrorCode());
         assertTrue("Error message is unexpected", invalidClientRequest.getBody().getMessage().startsWith("uaa.admin is not an allowed scope for caller"));
     }
 
@@ -292,11 +293,11 @@ public class ClientAdminEndpointsIntegrationTests {
         UaaClientDetails invalidSecretClient = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
             "client_credentials", "uaa.none");
         invalidSecretClient.setClientSecret("tooLongSecret");
-        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+        ResponseEntity<InvalidClientException> result = serverRunning.getRestTemplate().exchange(
             serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-            new HttpEntity<UaaClientDetails>(invalidSecretClient, headers), UaaException.class);
+            new HttpEntity<UaaClientDetails>(invalidSecretClient, headers), InvalidClientException.class);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertEquals("invalid_client", result.getBody().getErrorCode());
+        assertEquals("invalid_client", result.getBody().getOAuth2ErrorCode());
     }
 
 
@@ -307,11 +308,11 @@ public class ClientAdminEndpointsIntegrationTests {
         UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
             "client_credentials", "uaa.none");
         client.setClientSecret(SECRET_TOO_LONG);
-        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+        ResponseEntity<InvalidClientException> result = serverRunning.getRestTemplate().exchange(
             serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-            new HttpEntity<UaaClientDetails>(client, headers), UaaException.class);
+            new HttpEntity<UaaClientDetails>(client, headers), InvalidClientException.class);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertEquals("invalid_client", result.getBody().getErrorCode());
+        assertEquals("invalid_client", result.getBody().getOAuth2ErrorCode());
     }
 
     @Test
@@ -324,12 +325,12 @@ public class ClientAdminEndpointsIntegrationTests {
         client.setSecondaryClientSecret(SECRET_TOO_LONG);
         client.setAuthorizedGrantTypes(List.of("client_credentials"));
 
-        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+        ResponseEntity<InvalidClientException> result = serverRunning.getRestTemplate().exchange(
                 serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-                new HttpEntity<>(client, headers), UaaException.class);
+                new HttpEntity<>(client, headers), InvalidClientException.class);
 
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertEquals("invalid_client", result.getBody().getErrorCode());
+        assertEquals("invalid_client", result.getBody().getOAuth2ErrorCode());
     }
 
     @Test
@@ -460,11 +461,11 @@ public class ClientAdminEndpointsIntegrationTests {
     public void implicitAndAuthCodeGrantClient() {
         UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
             "implicit,authorization_code", "uaa.none");
-        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+        ResponseEntity<InvalidClientException> result = serverRunning.getRestTemplate().exchange(
             serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-            new HttpEntity<UaaClientDetails>(client, headers), UaaException.class);
+            new HttpEntity<UaaClientDetails>(client, headers), InvalidClientException.class);
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertEquals("invalid_client", result.getBody().getErrorCode());
+        assertEquals("invalid_client", result.getBody().getOAuth2ErrorCode());
     }
 
     @Test

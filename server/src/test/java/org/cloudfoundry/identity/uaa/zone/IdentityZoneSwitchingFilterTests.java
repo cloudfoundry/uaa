@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import static org.mockito.Mockito.mock;
 

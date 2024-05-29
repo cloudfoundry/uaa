@@ -51,6 +51,8 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private OAuthGroupMappingMode groupMappingMode;
     private boolean pkce = true;
     private boolean performRpInitiatedLogout = true;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String authMethod;
 
     public T setAuthUrl(URL authUrl) {
         this.authUrl = authUrl;
@@ -149,6 +151,14 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         this.performRpInitiatedLogout = performRpInitiatedLogout;
     }
 
+    public String getAuthMethod() {
+        return this.authMethod;
+    }
+
+    public void setAuthMethod(final String authMethod) {
+        this.authMethod = authMethod;
+    }
+
     @JsonIgnore
     public Class getParameterizedClass() {
         ParameterizedType parameterizedType =
@@ -183,6 +193,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (!Objects.equals(groupMappingMode, that.groupMappingMode)) return false;
         if (pkce != that.pkce) return false;
         if (performRpInitiatedLogout != that.performRpInitiatedLogout) return false;
+        if (!Objects.equals(authMethod, that.authMethod)) return false;
         return Objects.equals(responseType, that.responseType);
 
     }
@@ -208,6 +219,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (responseType != null ? responseType.hashCode() : 0);
         result = 31 * result + (pkce ? 1 : 0);
         result = 31 * result + (performRpInitiatedLogout ? 1 : 0);
+        result = 31 * result + (authMethod != null ? authMethod.hashCode() : 0);
         return result;
     }
 }

@@ -69,6 +69,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -163,6 +164,9 @@ class LoginSamlAuthenticationProviderTests {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     private LimitSqlAdapter limitSqlAdapter;
 
     @Autowired
@@ -179,14 +183,14 @@ class LoginSamlAuthenticationProviderTests {
         DbUtils dbUtils = new DbUtils();
 
         ScimGroupProvisioning groupProvisioning = new JdbcScimGroupProvisioning(
-                jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), dbUtils);
+                namedJdbcTemplate, new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter), dbUtils);
         identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList(UAA_USER));
         identityZoneManager.getCurrentIdentityZone().getConfig().getUserConfig().setAllowedGroups(Arrays.asList(UAA_USER, SAML_USER,
                                                     SAML_ADMIN,SAML_TEST,SAML_NOT_MAPPED, UAA_SAML_USER,UAA_SAML_ADMIN,UAA_SAML_TEST));
         groupProvisioning.createOrGet(new ScimGroup(null, UAA_USER, identityZoneManager.getCurrentIdentityZone().getId()), identityZoneManager.getCurrentIdentityZone().getId());
         providerDefinition = new SamlIdentityProviderDefinition();
 
-        userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter), passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate));
+        userProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter), passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate));
 
 
         uaaSamlUser = groupProvisioning.create(new ScimGroup(null, UAA_SAML_USER, IdentityZone.getUaaZoneId()), identityZoneManager.getCurrentIdentityZone().getId());

@@ -18,12 +18,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.code.AuthorizationCodeServices;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -32,12 +36,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.SqlLobValue;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.common.util.SerializationUtils;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.SerializationUtils;
+import org.springframework.stereotype.Component;
 
 import javax.sql.DataSource;
 import java.io.Serializable;
@@ -55,6 +57,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Semaphore;
 
+@Component("authorizationCodeServices")
 public class UaaTokenStore implements AuthorizationCodeServices {
     public static final Duration DEFAULT_EXPIRATION_TIME = Duration.ofMinutes(5);
     public static final Duration LEGACY_CODE_EXPIRATION_TIME = Duration.ofDays(3);
@@ -87,6 +90,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private Instant lastClean = Instant.EPOCH;
     private Semaphore cleanMutex = new Semaphore(1);
 
+    @Autowired
     public UaaTokenStore(DataSource dataSource, TimeService timeService) {
         this(dataSource, timeService, DEFAULT_EXPIRATION_TIME);
     }

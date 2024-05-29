@@ -15,8 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.zone.event;
 
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,7 +30,7 @@ public class ServiceProviderModifiedEventTest {
 
     @Before
     public void setup() {
-        String name = new RandomValueStringGenerator().generate();
+        String name = new AlphanumericRandomValueStringGenerator().generate();
         String requestBody = "{\n" +
             "  \"name\" : \"" + name + "\",\n" +
             "  \"entityId\" : \""+ name +".cloudfoundry-saml-login\",\n" +

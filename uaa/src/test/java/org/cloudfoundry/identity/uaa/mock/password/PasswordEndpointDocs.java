@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.mock.password;
 
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,7 +34,7 @@ class PasswordEndpointDocs extends EndpointDocs {
         clientId = "login";
         loginToken = MockMvcUtils.getClientOAuthAccessToken(mockMvc, clientId, "loginsecret", "oauth.login");
         String adminToken = MockMvcUtils.getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", null);
-        String userName = "user-" + new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String userName = "user-" + new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         user = new ScimUser(null, userName, "given", "last");
         user.setPassword("password");
         user.setPrimaryEmail(user.getUserName());

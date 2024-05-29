@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
 
 import java.sql.Timestamp;

@@ -17,7 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import java.sql.SQLException;
 import javax.sql.DataSource;
@@ -48,6 +49,9 @@ class JdbcScimGroupExternalMembershipManagerTests {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     private DataSource dataSource;
 
     @Autowired
@@ -65,8 +69,8 @@ class JdbcScimGroupExternalMembershipManagerTests {
         JdbcTemplate template = new JdbcTemplate(dataSource);
         dbUtils = new DbUtils();
 
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        gdao = new JdbcScimGroupProvisioning(template, pagingListFactory, dbUtils);
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter);
+        gdao = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
 
         JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
                 jdbcTemplate, new TimeServiceImpl(), null, null, dbUtils);

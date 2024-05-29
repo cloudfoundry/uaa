@@ -10,10 +10,10 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
@@ -41,7 +41,7 @@ public class JdbcQueryableClientDetailsService
 
     public JdbcQueryableClientDetailsService(
             final @Qualifier("jdbcClientDetailsService") MultitenantJdbcClientDetailsService delegate,
-            final JdbcTemplate jdbcTemplate,
+            final @Qualifier("namedJdbcTemplate") NamedParameterJdbcTemplate jdbcTemplate,
             final JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ClientDetailsRowMapper());
         this.delegate = delegate;
