@@ -22,8 +22,20 @@ import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSucce
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.opensaml.core.config.ConfigurationService;
+import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistry;
+import org.opensaml.core.xml.schema.XSAny;
+import org.opensaml.core.xml.schema.XSBase64Binary;
+import org.opensaml.core.xml.schema.XSBoolean;
+import org.opensaml.core.xml.schema.XSBooleanValue;
+import org.opensaml.core.xml.schema.XSDateTime;
+import org.opensaml.core.xml.schema.XSInteger;
+import org.opensaml.core.xml.schema.XSQName;
+import org.opensaml.core.xml.schema.XSString;
+import org.opensaml.core.xml.schema.XSURI;
 import org.opensaml.saml.saml2.core.Assertion;
+import org.opensaml.saml.saml2.core.Attribute;
+import org.opensaml.saml.saml2.core.AttributeStatement;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Response;
 import org.opensaml.saml.saml2.core.impl.AuthnRequestUnmarshaller;
@@ -57,13 +69,16 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import javax.xml.namespace.QName;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -83,7 +98,9 @@ import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches
  */
 @Component("samlAuthenticationProvider")
 @Slf4j
-public class LoginSamlAuthenticationProvider implements ApplicationEventPublisherAware, AuthenticationProvider, AuthenticationManager {
+public class SamlLoginAuthenticationProvider implements ApplicationEventPublisherAware, AuthenticationProvider, AuthenticationManager {
+
+    public static final String AUTHENTICATION_CONTEXT_CLASS_REFERENCE = "acr";
 
     private final IdentityZoneManager identityZoneManager;
 
@@ -109,7 +126,7 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
         parserPool = registry.getParserPool();
     }
 
-    public LoginSamlAuthenticationProvider(IdentityZoneManager identityZoneManager,
+    public SamlLoginAuthenticationProvider(IdentityZoneManager identityZoneManager,
                                            final UaaUserDatabase userDatabase,
                                            final JdbcIdentityProviderProvisioning identityProviderProvisioning) {
         this.identityZoneManager = identityZoneManager;
@@ -146,7 +163,7 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
      * <code>Authentication</code> class will be tried.
      * @throws AuthenticationException if authentication fails.
      *                                 <p>
-     *                                                                 TODO: Move below into configuration of
+     *                                                                                                                                 TODO: Move below into configuration of
      * @see OpenSaml4AuthenticationProvider
      * https://docs.spring.io/spring-security/reference/5.8/migration/servlet/saml2.html#_use_opensaml_4
      */
@@ -198,12 +215,6 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
                 authenticated, authenticatedTime,
                 expiresAt);
 
-//        authentication.setAuthenticationMethods(Collections.singleton("ext"));
-//        List<String> acrValues = userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE);
-//        if (acrValues !=null) {
-//            authentication.setAuthContextClassRef(new HashSet<>(acrValues));
-//        }
-
         String alias = relyingPartyRegistration.getRegistrationId();
 //        String relayState = context.getRelayState();
         boolean addNew;
@@ -228,9 +239,10 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
                 )
         );
 
-        // Collection<? extends GrantedAuthority> samlAuthorities = retrieveSamlAuthorities(samlConfig, (SAMLCredential) result.getCredentials());
+        //Collection<? extends GrantedAuthority> samlAuthorities = retrieveSamlAuthorities(samlConfig, (SAMLCredential) result.getCredentials());
 //
-//        Collection<? extends GrantedAuthority> authorities = null;
+//        Collection<? extends GrantedAuthority> authorities =
+        // Collection<? extends GrantedAuthority> samlAuthoritinull;
 //        SamlIdentityProviderDefinition.ExternalGroupMappingMode groupMappingMode = idp.getConfig().getGroupMappingMode();
 //        switch (groupMappingMode) {
 //            case EXPLICITLY_MAPPED:
@@ -242,7 +254,12 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
 //        }
 //
 //        Set<String> filteredExternalGroups = filterSamlAuthorities(samlConfig, samlAuthorities);
+        uaaAuthentication.setAuthenticationMethods(Set.of("ext"));
         MultiValueMap<String, String> userAttributes = retrieveUserAttributes(samlConfig, response);
+        List<String> acrValues = userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE);
+        if (acrValues != null) {
+            uaaAuthentication.setAuthContextClassRef(Set.copyOf(acrValues));
+        }
 //
 //        if (samlConfig.getAuthnContext() != null) {
 //            if (Collections.disjoint(userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE), samlConfig.getAuthnContext())) {
@@ -252,7 +269,7 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
 //
         UaaUser user = createIfMissing(principal, addNew, samlAuthorities, userAttributes);
         UaaPrincipal newPrincipal = new UaaPrincipal(user);
-        UaaAuthentication newAuthentication = new UaaAuthentication(newPrincipal, originalToken.getCredentials(), samlAuthorities, externalGroups, customAttributes, null, uaaAuthentication.isAuthenticated(), authenticatedTime, expiresAt);
+        UaaAuthentication newAuthentication = new UaaAuthentication(uaaAuthentication, newPrincipal);
 
         publish(new IdentityProviderAuthenticationSuccessEvent(user, newAuthentication, OriginKeys.SAML, identityZoneManager.getCurrentIdentityZoneId()));
 //        if (samlConfig.isStoreCustomAttributes()) {
@@ -371,21 +388,39 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
     public MultiValueMap<String, String> retrieveUserAttributes(SamlIdentityProviderDefinition definition, Response response) {
         log.debug(String.format("Retrieving SAML user attributes [zone:%s, origin:%s]", definition.getZoneId(), definition.getIdpEntityAlias()));
         MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
-//        if (definition != null && definition.getAttributeMappings() != null) {
-//            for (Map.Entry<String, Object> attributeMapping : definition.getAttributeMappings().entrySet()) {
-//                if (attributeMapping.getValue() instanceof String) {
-//                    if (credential.getAttribute((String) attributeMapping.getValue()) != null) {
-//                        String key = attributeMapping.getKey();
-//                        for (XMLObject xmlObject : credential.getAttribute((String) attributeMapping.getValue()).getAttributeValues()) {
-//                            String value = getStringValue(key, definition, xmlObject);
-//                            if (value != null) {
-//                                userAttributes.add(key, value);
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
+        List<Assertion> assertions = response.getAssertions();
+        if (assertions.isEmpty()) {
+            return userAttributes;
+        }
+        for (Assertion assertion : assertions) {
+            if (assertion.getAttributeStatements() != null) {
+                for (AttributeStatement statement : assertion.getAttributeStatements()) {
+                    for (Attribute attribute : statement.getAttributes()) {
+                        if (attribute.getAttributeValues() != null) {
+                            for (XMLObject xmlObject : attribute.getAttributeValues()) {
+                                String key = attribute.getName();
+                                String value = getStringValue(key, definition, xmlObject);
+                                if (value != null) {
+                                    userAttributes.add(key, value);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (definition != null && definition.getAttributeMappings() != null) {
+            for (Map.Entry<String, Object> attributeMapping : definition.getAttributeMappings().entrySet()) {
+                Object attributeKey = attributeMapping.getValue();
+                if (attributeKey instanceof String) {
+                    if (userAttributes.get(attributeKey) != null) {
+                        String key = attributeMapping.getKey();
+                        userAttributes.addAll(key, userAttributes.get(attributeKey));
+                    }
+                }
+            }
+        }
 //        if (credential.getAuthenticationAssertion() != null && credential.getAuthenticationAssertion().getAuthnStatements() != null) {
 //            for (AuthnStatement statement : credential.getAuthenticationAssertion().getAuthnStatements()) {
 //                if (statement.getAuthnContext() != null && statement.getAuthnContext().getAuthnContextClassRef() != null) {
@@ -396,38 +431,38 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
         return userAttributes;
     }
 
-//    protected String getStringValue(String key, SamlIdentityProviderDefinition definition, XMLObject xmlObject) {
-//        String value = null;
-//        if (xmlObject instanceof XSString) {
-//            value = ((XSString) xmlObject).getValue();
-//        } else if (xmlObject instanceof XSAny) {
-//            value = ((XSAny) xmlObject).getTextContent();
-//        } else if (xmlObject instanceof XSInteger) {
-//            Integer i = ((XSInteger) xmlObject).getValue();
-//            value = i != null ? i.toString() : null;
-//        } else if (xmlObject instanceof XSBoolean) {
-//            XSBooleanValue b = ((XSBoolean) xmlObject).getValue();
-//            value = b != null && b.getValue() != null ? b.getValue().toString() : null;
-//        } else if (xmlObject instanceof XSDateTime) {
-//            DateTime d = ((XSDateTime) xmlObject).getValue();
-//            value = d != null ? d.toString() : null;
-//        } else if (xmlObject instanceof XSQName) {
-//            QName name = ((XSQName) xmlObject).getValue();
-//            value = name != null ? name.toString() : null;
-//        } else if (xmlObject instanceof XSURI) {
-//            value = ((XSURI) xmlObject).getValue();
-//        } else if (xmlObject instanceof XSBase64Binary) {
-//            value = ((XSBase64Binary) xmlObject).getValue();
-//        }
-//
-//        if (value != null) {
-//            log.debug(String.format("Found SAML user attribute %s of value %s [zone:%s, origin:%s]", key, value, definition.getZoneId(), definition.getIdpEntityAlias()));
-//            return value;
-//        } else if (xmlObject != null) {
-//            log.debug(String.format("SAML user attribute %s at is not of type XSString or other recognizable type, %s [zone:%s, origin:%s]", key, xmlObject.getClass().getName(), definition.getZoneId(), definition.getIdpEntityAlias()));
-//        }
-//        return null;
-//    }
+    protected String getStringValue(String key, SamlIdentityProviderDefinition definition, XMLObject xmlObject) {
+        String value = null;
+        if (xmlObject instanceof XSString) {
+            value = ((XSString) xmlObject).getValue();
+        } else if (xmlObject instanceof XSAny) {
+            value = ((XSAny) xmlObject).getTextContent();
+        } else if (xmlObject instanceof XSInteger) {
+            Integer i = ((XSInteger) xmlObject).getValue();
+            value = i != null ? i.toString() : null;
+        } else if (xmlObject instanceof XSBoolean) {
+            XSBooleanValue b = ((XSBoolean) xmlObject).getValue();
+            value = b != null && b.getValue() != null ? b.getValue().toString() : null;
+        } else if (xmlObject instanceof XSDateTime) {
+            Instant d = ((XSDateTime) xmlObject).getValue();
+            value = d != null ? d.toString() : null;
+        } else if (xmlObject instanceof XSQName) {
+            QName name = ((XSQName) xmlObject).getValue();
+            value = name != null ? name.toString() : null;
+        } else if (xmlObject instanceof XSURI) {
+            value = ((XSURI) xmlObject).getURI();
+        } else if (xmlObject instanceof XSBase64Binary) {
+            value = ((XSBase64Binary) xmlObject).getValue();
+        }
+
+        if (value != null) {
+            log.debug(String.format("Found SAML user attribute %s of value %s [zone:%s, origin:%s]", key, value, definition.getZoneId(), definition.getIdpEntityAlias()));
+            return value;
+        } else if (xmlObject != null) {
+            log.debug(String.format("SAML user attribute %s at is not of type XSString or other recognizable type, %s [zone:%s, origin:%s]", key, xmlObject.getClass().getName(), definition.getZoneId(), definition.getIdpEntityAlias()));
+        }
+        return null;
+    }
 
     protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, MultiValueMap<String, String> userAttributes) {
         UaaUser user = null;
@@ -465,7 +500,7 @@ public class LoginSamlAuthenticationProvider implements ApplicationEventPublishe
                 user = new UaaUser(uaaUser.withUsername(samlPrincipal.getName()));
             } else {
                 if (!addNew) {
-                    throw new LoginSAMLException("SAML user does not exist. "
+                    throw new SamlLoginException("SAML user does not exist. "
                             + "You can correct this by creating a shadow user for the SAML user.", e);
                 }
                 publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
