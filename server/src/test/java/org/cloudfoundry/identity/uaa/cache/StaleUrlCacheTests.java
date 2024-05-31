@@ -168,6 +168,38 @@ class StaleUrlCacheTests {
     assertEquals(0, urlCache.size());
   }
 
+  @Test
+  void invalidate_cache_test() throws URISyntaxException {
+    String uri1 = "http://test1.com";
+    String uri2 = "http://test2.com";
+
+    HttpEntity httpEntity = mock(HttpEntity.class);
+    ResponseEntity<byte[]> responseEntity1 = mock(ResponseEntity.class);
+    when(mockRestTemplate.exchange(eq(new URI(uri1)), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity1);
+    when(responseEntity1.getStatusCode()).thenReturn(HttpStatus.OK);
+    when(responseEntity1.getBody()).thenReturn(new byte[1024]);
+
+    ResponseEntity<byte[]> responseEntity2 = mock(ResponseEntity.class);
+    when(mockRestTemplate.exchange(eq(new URI(uri2)), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity2);
+    when(responseEntity2.getStatusCode()).thenReturn(HttpStatus.OK);
+    when(responseEntity2.getBody()).thenReturn(new byte[1024]);
+
+    cache.getUrlContent(uri1, mockRestTemplate, HttpMethod.GET, httpEntity);
+    cache.getUrlContent(uri1, mockRestTemplate, HttpMethod.GET, httpEntity);
+    cache.getUrlContent(uri2, mockRestTemplate, HttpMethod.GET, httpEntity);
+    assertEquals(2, cache.size());
+    cache.invalidate(uri2, mockRestTemplate, HttpMethod.GET, httpEntity);
+    assertEquals(1, cache.size());
+    cache.getUrlContent(uri2, mockRestTemplate, HttpMethod.GET, httpEntity);
+    cache.getUrlContent(uri2, mockRestTemplate, HttpMethod.GET, httpEntity);
+    assertEquals(2, cache.size());
+
+    verify(mockRestTemplate, times(1)).exchange(eq(new URI(uri1)),
+            eq(HttpMethod.GET), any(HttpEntity.class),same(byte[].class));
+    verify(mockRestTemplate, times(2)).exchange(eq(new URI(uri2)),
+            eq(HttpMethod.GET), any(HttpEntity.class),same(byte[].class));
+  }
+
   @Nested
   @DisplayName("When a http server never returns a http response")
   class DeadHttpServer {

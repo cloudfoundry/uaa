@@ -27,6 +27,7 @@ import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import com.nimbusds.jwt.proc.DefaultJWTProcessor;
 import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
+import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureHashException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -258,7 +259,9 @@ class JwtImpl implements Jwt {
         jwtProcessor.getJWSVerifierFactory().getJCAContext().setProvider(BouncyCastleFIPSProviderSingleton.getInstance());
         try {
             return jwtProcessor.process(jwtAssertion, null);
-        } catch (BadJWSException | BadJWTException jwtException) { // signature failed
+        } catch (BadJWSException jwsException) {
+            throw new InvalidSignatureHashException("Invalid signature hash", jwsException);
+        } catch(BadJWTException jwtException) {
             throw new InvalidSignatureException("Unauthorized token", jwtException);
         } catch (KeyLengthException ke ) {
             return UaaMacSigner.verify(jwtAssertion.getParsedString(), jwkSet);

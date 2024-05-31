@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.client.InMemoryClientDetailsService;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenSignatureException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
@@ -530,7 +531,7 @@ public class JwtTokenSignedByThisUAATest {
     public void tokenSignedWithDifferentKey() throws KeyLengthException {
         signer = new UaaMacSigner(new SecretKeySpec("some_other_key".getBytes(), "HS256"));
 
-        expectedException.expect(InvalidTokenException.class);
+        expectedException.expect(InvalidTokenSignatureException.class);
 
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
                 .checkSignature(verifier);

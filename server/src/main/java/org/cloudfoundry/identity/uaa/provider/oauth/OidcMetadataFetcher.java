@@ -47,6 +47,22 @@ public class OidcMetadataFetcher {
         }
     }
 
+    public JsonWebKeySet<JsonWebKey> forceFetchWebKeySet(AbstractExternalOAuthIdentityProviderDefinition config) throws OidcMetadataFetchingException {
+        URL tokenKeyUrl = config.getTokenKeyUrl();
+        if (tokenKeyUrl == null || !org.springframework.util.StringUtils.hasText(tokenKeyUrl.toString())) {
+            return new JsonWebKeySet<>(Collections.emptyList());
+        }
+        String uri = tokenKeyUrl.toString();
+        HttpEntity tokenKeyRequest = getTokenKeyRequest(getClientAuthHeader(config));
+        if (config.isSkipSslValidation()) {
+             contentCache.invalidate(uri, trustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
+        } else {
+             contentCache.invalidate(uri, nonTrustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
+        }
+
+        return fetchWebKeySet(config);
+    }
+
     public JsonWebKeySet<JsonWebKey> fetchWebKeySet(AbstractExternalOAuthIdentityProviderDefinition config)
         throws OidcMetadataFetchingException {
         URL tokenKeyUrl = config.getTokenKeyUrl();
@@ -80,17 +96,22 @@ public class OidcMetadataFetcher {
     }
 
     private byte[] getJsonBody(String uri, boolean isSkipSslValidation, String authorizationValue) {
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        if (authorizationValue != null) {
-            headers.add("Authorization", authorizationValue);
-        }
-        headers.add("Accept", "application/json");
-        HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
+        HttpEntity tokenKeyRequest = getTokenKeyRequest(authorizationValue);
         if (isSkipSslValidation) {
             return contentCache.getUrlContent(uri, trustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
         } else {
             return contentCache.getUrlContent(uri, nonTrustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
         }
+    }
+
+    private HttpEntity  getTokenKeyRequest(String authorizationValue) {
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        if (authorizationValue != null) {
+            headers.add("Authorization", authorizationValue);
+        }
+        headers.add("Accept", "application/json");
+        return new HttpEntity<>(null, headers);
+
     }
 
     private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition config) {

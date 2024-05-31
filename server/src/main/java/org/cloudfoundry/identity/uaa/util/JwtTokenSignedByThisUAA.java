@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import javax.validation.constraints.NotNull;
 
 import com.nimbusds.jwt.JWTClaimsSet;
+import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureHashException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenSignatureException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
@@ -131,6 +133,9 @@ public abstract class JwtTokenSignedByThisUAA {
     public JwtTokenSignedByThisUAA checkSignature(Verifier verifier) {
         try {
             this.tokenJwt.verifySignature(verifier);
+        } catch (InvalidSignatureHashException ex) {
+            logger.debug("Invalid token (signature hash invalid)", ex);
+            throw new InvalidTokenSignatureException("Invalid signature hash.", new UnauthorizedClientException(token));
         } catch (RuntimeException ex) {
             logger.debug("Invalid token (could not verify signature)", ex);
             throw new InvalidTokenException("Could not verify token signature.", new UnauthorizedClientException(token));

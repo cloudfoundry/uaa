@@ -128,6 +128,28 @@ class OidcMetadataFetcherTest {
                     any(), any(), any(), any()
                 );
         }
+
+        @Test
+        void shouldInvalidateCacheWhenForceFetch() throws OidcMetadataFetchingException, MalformedURLException {
+            definition.setTokenKeyUrl(new URL("http://should.be.updated"));
+            definition.setSkipSslValidation(false);
+
+            when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
+                    .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
+
+            metadataDiscoverer.forceFetchWebKeySet(definition);
+            metadataDiscoverer.forceFetchWebKeySet(definition);
+
+            verify(urlContentCache, times(2))
+                    .invalidate(
+                            any(), any(), any(), any()
+                    );
+
+            verify(urlContentCache, times(2))
+                    .getUrlContent(
+                            any(), any(), any(), any()
+                    );
+        }
     }
 
     @Nested

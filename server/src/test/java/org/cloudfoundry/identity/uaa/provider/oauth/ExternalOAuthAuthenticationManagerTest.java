@@ -30,6 +30,8 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.Arrays;
@@ -184,7 +186,7 @@ public class ExternalOAuthAuthenticationManagerTest {
         throws ParseException, JOSEException {
         oidcConfig.setIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
         expectedException.expect(InvalidTokenException.class);
-        expectedException.expectMessage("Could not verify token signature.");
+        expectedException.expectMessage("Invalid signature hash.");
 
         Map<String, Object> header = map(
                 entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),

@@ -58,6 +58,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -124,6 +125,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.client.ExpectedCount.once;
+import static org.springframework.test.web.client.ExpectedCount.twice;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -725,7 +728,7 @@ class ExternalOAuthAuthenticationManagerIT {
         });
         map.remove("value");
         json = JsonUtils.writeValueAsString(map);
-        configureTokenKeyResponse("http://localhost/token_key", json);
+        configureTokenKeyResponse("http://localhost/token_key", json, once());
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -741,7 +744,7 @@ class ExternalOAuthAuthenticationManagerIT {
         mapValid.remove("value");
         mapInvalid.remove("value");
         String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapValid))));
-        configureTokenKeyResponse("http://localhost/token_key", json);
+        configureTokenKeyResponse("http://localhost/token_key", json, once());
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -757,7 +760,7 @@ class ExternalOAuthAuthenticationManagerIT {
         String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapInvalid2))));
         assertTrue(json.contains("\"invalidKey\""));
         assertTrue(json.contains("\"invalidKey2\""));
-        configureTokenKeyResponse("http://localhost/token_key", json);
+        configureTokenKeyResponse("http://localhost/token_key", json, twice());
         addTheUserOnAuth();
         try {
             externalOAuthAuthenticationManager.authenticate(xCodeToken);
@@ -770,7 +773,7 @@ class ExternalOAuthAuthenticationManagerIT {
     @Test
     void null_key_invalid() throws Exception {
         String json = new String("");
-        configureTokenKeyResponse("http://localhost/token_key", json);
+        configureTokenKeyResponse("http://localhost/token_key", json, twice());
         addTheUserOnAuth();
         try {
             externalOAuthAuthenticationManager.authenticate(xCodeToken);
@@ -783,7 +786,7 @@ class ExternalOAuthAuthenticationManagerIT {
     @Test
     void invalid_key() throws Exception {
         String json = new String("{x}");
-        configureTokenKeyResponse("http://localhost/token_key", json);
+        configureTokenKeyResponse("http://localhost/token_key", json, twice());
         addTheUserOnAuth();
         try {
             externalOAuthAuthenticationManager.authenticate(xCodeToken);
@@ -842,9 +845,58 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
-        configureTokenKeyResponse("http://localhost/token_key", invalidRsaSigningKey, "wrongKey");
-
+        String response = getKeyJson(invalidRsaSigningKey, "wrongKey", false);
+        configureTokenKeyResponse("http://localhost/token_key", response, twice());
         assertThrows(InvalidTokenException.class, () -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
+    }
+
+    @Test
+    void updateKeyAtTheProviderWhileUAAHasOldKeyCached() throws Exception {
+        config.setTokenKeyUrl(new URL("http://localhost/token_key"));
+        config.setTokenKey(null);
+        String firstKey = invalidRsaSigningKey;
+        String secondKey = PRIVATE_KEY;
+
+        //first set of mocking to assure retrieval of first key from provider
+        KeyInfo key = KeyInfoBuilder.build("my-key-id", firstKey, UAA_ISSUER_URL);
+        VerificationKeyResponse verificationKeyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
+        String response = JsonUtils.writeValueAsString(verificationKeyResponse);
+        signer = KeyInfoBuilder.build("my-key-id", firstKey, UAA_ISSUER_URL).getSigner();
+        mockToken();
+        mockUaaServer.expect(requestTo("http://localhost/token_key"))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Accept", "application/json"))
+                .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
+
+        UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
+                .withUsername("12345")
+                .withPassword("")
+                .withEmail("marissa_old@bloggs.com")
+                .withGivenName("Marissa_Old")
+                .withFamilyName("Bloggs_Old")
+                .withId("user-id")
+                .withOrigin("the_origin")
+                .withZoneId("uaa")
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES));
+
+        userDatabase.addUser(existingShadowUser);
+
+        //another set of mocking to assure retrieval of second key from provider
+        //System should trigger retrieving of seconding key after invalidating the cache.
+        key = KeyInfoBuilder.build("my-key-id", secondKey, UAA_ISSUER_URL);
+        verificationKeyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
+        response = JsonUtils.writeValueAsString(verificationKeyResponse);
+        signer = KeyInfoBuilder.build("my-key-id", secondKey, UAA_ISSUER_URL).getSigner();
+        mockToken();
+        mockUaaServer.expect(requestTo("http://localhost/token_key"))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Accept", "application/json"))
+                .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
+
+        externalOAuthAuthenticationManager.authenticate(xCodeToken); //with first key
+        externalOAuthAuthenticationManager.authenticate(xCodeToken); //with second key
+        verify(urlContentCache, times(1)).invalidate(eq("http://localhost/token_key"), any(), any(), any());
+        //no exception
     }
 
     @Test
@@ -1245,7 +1297,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     private void configureTokenKeyResponse(String keyUrl, String signingKey, String keyId, boolean list) throws MalformedURLException {
         String response = getKeyJson(signingKey, keyId, list);
-        configureTokenKeyResponse(keyUrl, response);
+        configureTokenKeyResponse(keyUrl, response, once());
     }
 
     private String getKeyJson(String signingKey, String keyId, boolean list) {
@@ -1255,11 +1307,12 @@ class ExternalOAuthAuthenticationManagerIT {
         return JsonUtils.writeValueAsString(verificationKeyResponse);
     }
 
-    private void configureTokenKeyResponse(String keyUrl, String response) throws MalformedURLException {
+
+    private void configureTokenKeyResponse(String keyUrl, String response, ExpectedCount count) throws MalformedURLException {
         config.setTokenKey(null);
         config.setTokenKeyUrl(new URL(keyUrl));
         mockToken();
-        mockUaaServer.expect(requestTo(keyUrl))
+        mockUaaServer.expect(count, requestTo(keyUrl))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
                 .andExpect(header("Accept", "application/json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));

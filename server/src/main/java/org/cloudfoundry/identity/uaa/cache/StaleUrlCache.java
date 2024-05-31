@@ -49,6 +49,11 @@ public class StaleUrlCache implements UrlContentCache {
         .maximumSize(maxEntries).ticker(ticker).build(new UrlCacheLoader(timeService));
   }
 
+  public void invalidate(String uri, final RestTemplate template, final HttpMethod method,
+                         HttpEntity<?> requestEntity) {
+    cache.invalidate(new UriRequest(uri, template, method, requestEntity));
+  }
+
   @Override
   public byte[] getUrlContent(String uri, final RestTemplate template) {
     return getUrlContent(uri, template, HttpMethod.GET, null);

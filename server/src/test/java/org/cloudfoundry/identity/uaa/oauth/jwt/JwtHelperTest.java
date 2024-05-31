@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import com.nimbusds.jose.jwk.JWKParameterNames;
 import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
+import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureHashException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
@@ -13,6 +14,7 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -95,6 +97,23 @@ public class JwtHelperTest {
         assertThrows(InvalidSignatureException.class, () -> legacyVerify.verifySignature(keyInfo.getVerifier()));
         key.put("value", "wrong");
         assertThrows(InvalidSignatureException.class, () -> legacyVerify.verifySignature(new SignatureVerifier(new JsonWebKey(key))));
+    }
+
+    @Test
+    public void testException_when_verifyWithNewDifferentKey() {
+        String kid = "legacy-token-key";
+        String oldKeyValue = Base64.getUrlEncoder().encodeToString(new byte[32]);
+        String newKeyValue = Base64.getUrlEncoder().encodeToString(new byte[32]);
+        KeyInfo keyInfo = new KeyInfo(kid, oldKeyValue, DEFAULT_UAA_URL);
+        Jwt jwtCreatedUsingOldKey = JwtHelper.encode(Map.of("sub", "subject", "aud", "single"), keyInfo);
+        Jwt decoded = JwtHelper.decode(jwtCreatedUsingOldKey.getEncoded());
+
+        HashMap key = new HashMap();
+        key.put(JWKParameterNames.KEY_TYPE, "MAC");
+        key.put(JWKParameterNames.KEY_ID, kid);
+        key.put("value", newKeyValue);
+        SignatureVerifier verifierWithNewKey = new SignatureVerifier(new JsonWebKey(key));
+        assertThrows(InvalidSignatureHashException.class, () ->  decoded.verifySignature(verifierWithNewKey));
     }
 
     @Test

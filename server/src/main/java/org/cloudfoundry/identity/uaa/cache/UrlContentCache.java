@@ -42,6 +42,8 @@ public interface UrlContentCache {
      */
     byte[] getUrlContent(String uri, final RestTemplate template, final HttpMethod method, HttpEntity<?> requestEntity);
 
+    void invalidate(String uri, final RestTemplate template, final HttpMethod method, HttpEntity<?> requestEntity);
+
     /**
      * Clears the cache unconditionally
      */

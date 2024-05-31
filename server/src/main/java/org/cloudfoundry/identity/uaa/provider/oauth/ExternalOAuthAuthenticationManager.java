@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthentic
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenSignatureException;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -648,9 +649,18 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(signatureVerifiers), keyInfoService);
         } else {
             JsonWebKeySet<JsonWebKey> tokenKeyFromOAuth = getTokenKeyFromOAuth(config);
-            jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
-                .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
-                .checkAudience(config.getRelyingPartyId());
+            try {
+                jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
+                        .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
+                        .checkAudience(config.getRelyingPartyId());
+            } catch (InvalidTokenSignatureException e) {
+                logger.debug("Invalid token signature, attempting validation again with new downloaded key");
+                tokenKeyFromOAuth = getTokenKeyFromOAuthForcefully(config);
+                jwtToken = buildIdTokenValidator(idToken, new ChainedSignatureVerifier(tokenKeyFromOAuth), keyInfoService)
+                        .checkIssuer((isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
+                        .checkAudience(config.getRelyingPartyId());
+            }
+
         }
         return jwtToken.checkExpiry();
     }
@@ -661,6 +671,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
           .map(i -> i.getVerifier())
           .collect(Collectors.toList());
 
+    }
+
+    private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuthForcefully(AbstractExternalOAuthIdentityProviderDefinition config) {
+        try {
+            return oidcMetadataFetcher.forceFetchWebKeySet(config);
+        } catch (OidcMetadataFetchingException e) {
+            throw new InvalidTokenException(e.getMessage(), e);
+        }
     }
 
     private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractExternalOAuthIdentityProviderDefinition config) {
