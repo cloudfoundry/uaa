@@ -297,12 +297,12 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(
         @RequestParam(value = "active_only", required = false) String activeOnly,
         @RequestParam(required = false, defaultValue = "false") boolean rawConfig,
-        @RequestParam(required = false, defaultValue = "") String origin)
+        @RequestParam(required = false, defaultValue = "") String originKey)
     {
         boolean retrieveActiveOnly = Boolean.parseBoolean(activeOnly);
         List<IdentityProvider> identityProviderList;
-        if (UaaStringUtils.isNotEmpty(origin)) {
-            identityProviderList = List.of(identityProviderProvisioning.retrieveByOrigin(origin, identityZoneManager.getCurrentIdentityZoneId()));
+        if (UaaStringUtils.isNotEmpty(originKey)) {
+            identityProviderList = List.of(identityProviderProvisioning.retrieveByOrigin(originKey, identityZoneManager.getCurrentIdentityZoneId()));
         } else {
             identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, identityZoneManager.getCurrentIdentityZoneId());
         }

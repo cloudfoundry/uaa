@@ -989,7 +989,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         mockMvc.perform(get("/identity-providers")
                 .param("rawConfig", "false")
                 .param("active_only", "false")
-                .param("origin", "my-oauth2-provider")
+                .param("originKey", "my-oauth2-provider")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -1003,7 +1003,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 requestParameters(
                     parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."),
                     parameterWithName("active_only").optional("false").type(BOOLEAN).description("Flag indicating whether only active IdPs should be returned or all."),
-                    parameterWithName("origin").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Return only IdPs with specific origin.")
+                    parameterWithName("originKey").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Return only IdPs with specific origin.")
                 ),
                 responseFields));
     }
