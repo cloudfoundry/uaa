@@ -29,7 +29,7 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
             final ScimUserProvisioning scimUserProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning,
             final IdentityZoneManager identityZoneManager,
-            @Value("${login.aliasEntitiesEnabled:false}") final boolean aliasEntitiesEnabled
+            @Qualifier("aliasEntitiesEnabled") final boolean aliasEntitiesEnabled
     ) {
         super(identityZoneProvisioning, aliasEntitiesEnabled);
         this.scimUserProvisioning = scimUserProvisioning;

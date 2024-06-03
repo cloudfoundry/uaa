@@ -80,7 +80,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     protected static Logger logger = LoggerFactory.getLogger(IdentityProviderEndpoints.class);
 
-    @Value("${login.aliasEntitiesEnabled:false}")
+    @Qualifier("aliasEntitiesEnabled")
     private boolean aliasEntitiesEnabled;
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
