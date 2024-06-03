@@ -88,7 +88,6 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
     protected ScimUser cloneEntity(final ScimUser originalEntity) {
         final ScimUser aliasUser = new ScimUser();
 
-        aliasUser.setId(null);
         aliasUser.setExternalId(originalEntity.getExternalId());
 
         /* we only allow alias users to be created if their origin IdP has an alias to the same zone, therefore, an IdP
@@ -104,18 +103,6 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         aliasUser.setActive(originalEntity.isActive());
         aliasUser.setVerified(originalEntity.isVerified());
 
-        // idzId and alias properties will be set later
-        aliasUser.setZoneId(null);
-        aliasUser.setAliasId(null);
-        aliasUser.setAliasZid(null);
-
-        /* these timestamps will be overwritten:
-         *  - creation: with current timestamp during persistence (JdbcScimUserProvisioning)
-         *  - update: with values from existing alias entity */
-        aliasUser.setPasswordLastModified(null);
-        aliasUser.setLastLogonTime(null);
-        aliasUser.setPreviousLogonTime(null);
-
         /* password: empty string
          *  - alias users are only allowed for IdPs that also have an alias
          *  - IdPs can only have an alias if they are of type SAML, OIDC or OAuth 2.0
@@ -123,6 +110,14 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
          */
         aliasUser.setPassword(EMPTY_STRING);
         aliasUser.setSalt(null);
+
+        /* The following fields will be overwritten later and are therefore not set here:
+         * - id and identityZoneId
+         * - aliasId and aliasZid
+         * - timestamp fields (password last modified, last logon, previous logon):
+         *      - creation: with current timestamp during persistence (JdbcScimUserProvisioning)
+         *      - update: with values from existing alias entity
+         */
 
         return aliasUser;
     }
