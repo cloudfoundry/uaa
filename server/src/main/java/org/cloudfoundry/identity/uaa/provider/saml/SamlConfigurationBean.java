@@ -17,22 +17,23 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 //import org.opensaml.xml.Configuration;
 //import org.opensaml.xml.security.BasicSecurityConfiguration;
 //import org.opensaml.xml.signature.SignatureConstants;
+
 import org.springframework.beans.factory.InitializingBean;
 
 
 public class SamlConfigurationBean implements InitializingBean {
-  private SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.SHA1;
+    private SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.SHA1;
 
-  public void setSignatureAlgorithm(SignatureAlgorithm s) {
-    signatureAlgorithm = s;
-  }
+    public SignatureAlgorithm getSignatureAlgorithm() {
+        return signatureAlgorithm;
+    }
 
-  public SignatureAlgorithm getSignatureAlgorithm() {
-    return signatureAlgorithm;
-  }
+    public void setSignatureAlgorithm(SignatureAlgorithm s) {
+        signatureAlgorithm = s;
+    }
 
-  @Override
-  public void afterPropertiesSet() {
+    @Override
+    public void afterPropertiesSet() {
 //    BasicSecurityConfiguration config = (BasicSecurityConfiguration) Configuration.getGlobalSecurityConfiguration();
 //    switch (signatureAlgorithm) {
 //      case SHA1:
@@ -48,11 +49,11 @@ public class SamlConfigurationBean implements InitializingBean {
 //        config.setSignatureReferenceDigestMethod(SignatureConstants.ALGO_ID_DIGEST_SHA512);
 //        break;
 //    }
-  }
+    }
 
-  public enum SignatureAlgorithm {
-    SHA1,
-    SHA256,
-    SHA512
-  }
+    public enum SignatureAlgorithm {
+        SHA1,
+        SHA256,
+        SHA512
+    }
 }

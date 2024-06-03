@@ -10,6 +10,8 @@ import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
+import java.util.List;
+import java.util.function.Function;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -22,17 +24,19 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     private SamlIdentityProviderConfigurator mockConfigurator;
     private KeyWithCert mockKeyWithCert;
     private ConfiguratorRelyingPartyRegistrationRepository target;
+    private Function<String, String> assertionConsumerServiceLocationFunction;
 
     @Before
     public void setup() {
         mockConfigurator = mock(SamlIdentityProviderConfigurator.class);
         mockKeyWithCert = mock(KeyWithCert.class);
+        assertionConsumerServiceLocationFunction = "{baseUrl}/saml/SSO/alias/%s"::formatted;
     }
 
     @Test
     public void constructor_nullConfigurator() {
         assertThrows(IllegalArgumentException.class, () -> {
-            target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, null);
+            target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, null, assertionConsumerServiceLocationFunction);
         });
     }
 
@@ -40,14 +44,14 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     public void testFindByRegistrationIdWhenNoneFound() throws IOException {
         when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
-        target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, mockConfigurator);
+        target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, mockConfigurator, assertionConsumerServiceLocationFunction);
 
         SamlIdentityProviderDefinition mockDefinition1 = mock(SamlIdentityProviderDefinition.class);
         when(mockDefinition1.getIdpEntityAlias()).thenReturn("registration1");
         when(mockDefinition1.getNameID()).thenReturn("name1");
         when(mockDefinition1.getMetaDataLocation()).thenReturn("saml-sample-metadata.xml");
 
-        when(mockConfigurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(mockDefinition1));
+        when(mockConfigurator.getIdentityProviderDefinitions()).thenReturn(List.of(mockDefinition1));
         assertNull(target.findByRegistrationId("registrationNotFound"));
     }
 
@@ -55,7 +59,7 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     public void testFindByRegistrationId() throws IOException {
         when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
-        target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, mockConfigurator);
+        target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, mockConfigurator, assertionConsumerServiceLocationFunction);
 
         //definition 1
         SamlIdentityProviderDefinition mockDefinition1 = mock(SamlIdentityProviderDefinition.class);
