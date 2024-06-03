@@ -142,6 +142,51 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
 
             @ParameterizedTest
             @MethodSource("provideExistingEntityArguments")
+            void shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist_UaaToCustomZone(
+                    final ExistingEntityArgument existingEntityArgument
+            ) {
+                shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist(existingEntityArgument, UAA, customZoneId);
+            }
+
+            @ParameterizedTest
+            @MethodSource("provideExistingEntityArguments")
+            void shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist_CustomToUaaZone(
+                    final ExistingEntityArgument existingEntityArgument
+            ) {
+                shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist(existingEntityArgument, customZoneId, UAA);
+            }
+
+            private void shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist(
+                    final ExistingEntityArgument existingEntityArgument,
+                    final String zone1,
+                    final String zone2
+            ) {
+                arrangeZoneExists(zone1);
+                arrangeZoneExists(zone2);
+
+                arrangeCurrentIdz(zone1);
+
+                final ScimUser requestBody = buildEntityWithAliasProps(null, zone2);
+                requestBody.setZoneId(zone1);
+                final String origin = RANDOM_STRING_GENERATOR.generate();
+                requestBody.setOrigin(origin);
+
+                final ScimUser existingUser = resolveExistingEntityArgument(existingEntityArgument);
+                if (existingUser != null) {
+                    existingUser.setZoneId(zone1);
+                    existingUser.setOrigin(origin);
+                }
+
+                // arrange IdP exists for alias user, but not for original user
+                final IdentityProvider<?> idp = buildIdp(UUID.randomUUID().toString(), origin, zone1, null, null);
+                arrangeIdpDoesNotExist(origin, zone1);
+                arrangeIdpExists(origin, zone2, idp);
+
+                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingUser)).isFalse();
+            }
+
+            @ParameterizedTest
+            @MethodSource("provideExistingEntityArguments")
             void shouldReturnFalse_IfIdpHasAliasToDifferentZoneThanUser(
                     final ExistingEntityArgument existingEntityArgument
             ) {
