@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
+import lombok.Getter;
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;
@@ -44,6 +44,7 @@ import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsDate;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsInt;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsString;
 
+@Getter
 @JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)
 public class IdentityProvider<T extends AbstractIdentityProviderDefinition> implements EntityWithAlias {
@@ -78,45 +79,32 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     private String identityZoneId;
     private String aliasId;
     private String aliasZid;
-    public Date getCreated() {
-        return created;
-    }
+    @JsonIgnore
+    private boolean serializeConfigRaw;
 
-    public IdentityProvider setCreated(Date created) {
+    public IdentityProvider<T> setCreated(Date created) {
         this.created = created;
         return this;
     }
 
-    public Date getLastModified() {
-        return lastModified;
-    }
-
-    public IdentityProvider setLastModified(Date lastModified) {
+    public IdentityProvider<T> setLastModified(Date lastModified) {
         this.lastModified = lastModified;
         return this;
     }
 
-    public IdentityProvider setVersion(int version) {
+    public IdentityProvider<T> setVersion(int version) {
         this.version = version;
         return this;
     }
 
-    public int getVersion() {
-        return version;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public IdentityProvider setName(String name) {
+    public IdentityProvider<T> setName(String name) {
         this.name = name;
         return this;
     }
 
-    @Override
-    public String getId() {
-        return id;
+    public IdentityProvider<T> setId(String id) {
+        this.id = id;
+        return this;
     }
 
     @Override
@@ -124,16 +112,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return getIdentityZoneId();
     }
 
-    public IdentityProvider setId(String id) {
-        this.id = id;
-        return this;
-    }
-
-    public T getConfig() {
-        return config;
-    }
-
-    public IdentityProvider setConfig(T config) {
+    public IdentityProvider<T> setConfig(T config) {
         if (config == null) {
             this.type = UNKNOWN;
         } else {
@@ -166,11 +145,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return this;
     }
 
-    public String getOriginKey() {
-        return originKey;
-    }
-
-    public IdentityProvider setOriginKey(String originKey) {
+    public IdentityProvider<T> setOriginKey(String originKey) {
         this.originKey = originKey;
         if (config != null && config instanceof SamlIdentityProviderDefinition) {
             ((SamlIdentityProviderDefinition) config).setIdpEntityAlias(originKey);
@@ -179,29 +154,17 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return this;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public IdentityProvider setType(String type) {
+    public IdentityProvider<T> setType(String type) {
         this.type = type;
         return this;
     }
 
-    public boolean isActive() {
-        return active;
-    }
-
-    public IdentityProvider setActive(boolean active) {
+    public IdentityProvider<T> setActive(boolean active) {
         this.active = active;
         return this;
     }
 
-    public String getIdentityZoneId() {
-        return identityZoneId;
-    }
-
-    public IdentityProvider setIdentityZoneId(String identityZoneId) {
+    public IdentityProvider<T> setIdentityZoneId(String identityZoneId) {
         this.identityZoneId = identityZoneId;
         if (config != null && config instanceof SamlIdentityProviderDefinition) {
             ((SamlIdentityProviderDefinition) config).setZoneId(identityZoneId);
@@ -210,18 +173,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     }
 
     @Override
-    public String getAliasId() {
-        return aliasId;
-    }
-
-    @Override
     public void setAliasId(String aliasId) {
         this.aliasId = aliasId;
-    }
-
-    @Override
-    public String getAliasZid() {
-        return aliasZid;
     }
 
     @Override
@@ -304,9 +257,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         } else if (!aliasZid.equals(other.aliasZid)) {
             return false;
         }
-        if (version != other.version)
-            return false;
-        return true;
+        return version == other.version;
     }
 
     @Override
@@ -342,13 +293,6 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
 
         sb.append('}');
         return sb.toString();
-    }
-
-    private boolean serializeConfigRaw;
-
-    @JsonIgnore
-    public boolean isSerializeConfigRaw() {
-        return serializeConfigRaw;
     }
 
     @JsonIgnore
@@ -446,8 +390,5 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
             result.setAliasZid(getNodeAsString(node, FIELD_ALIAS_ZID, null));
             return result;
         }
-
-
     }
-
 }

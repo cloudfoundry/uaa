@@ -21,6 +21,7 @@ buildscript {
         classpath(libraries.testRetryPlugin)
         classpath(libraries.gradleJcocoPlugin)
         classpath(libraries.sonarqubePlugin)
+        //classpath(libraries.shadowPlugin)
     }
 }
 
@@ -65,6 +66,14 @@ subprojects {
         exclude(group: "org.skyscreamer", module: "jsonassert")
         exclude(group: "com.vaadin.external.google", module: "android-json")
         exclude(group: "com.unboundid.components", module: "json")
+
+        // Exclude opensaml-security-api and non-FIPS bouncycastle libs, and use Shadow library for FIPS compliance
+        exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
+        exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
+        exclude(group: "org.bouncycastle", module: "bcutil-jdk15on")
+        exclude(group: "org.bouncycastle", module: "bcprov-jdk18on")
+        exclude(group: "org.bouncycastle", module: "bcpkix-jdk18on")
+        exclude(group: "org.bouncycastle", module: "bcutil-jdk18on")
 
         resolutionStrategy {
             resolutionStrategy.eachDependency { DependencyResolveDetails details ->

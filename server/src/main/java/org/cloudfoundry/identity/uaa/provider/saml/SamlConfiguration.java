@@ -12,29 +12,23 @@ public class SamlConfiguration {
 
     @Value("${login.entityID:unit-test-sp}")
     private String samlEntityID;
+    @Value("${login.idpMetadataURL:null}")
+    private String metaDataUrl;
+    @Value("${login.idpEntityAlias:null}")
+    private String legacyIdpIdentityAlias;
+    @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
+    private String legacyNameId;
+    @Value("${login.saml.assertionConsumerIndex:0}")
+    private int legacyAssertionConsumerIndex;
+    @Value("${login.saml.metadataTrustCheck:true}")
+    private boolean legacyMetadataTrustCheck;
+    @Value("${login.showSamlLoginLink:true}")
+    private boolean legacyShowSamlLink;
 
     @Bean
     public String samlEntityID() {
         return samlEntityID;
     }
-
-    @Value("${login.idpMetadataURL:null}")
-    private String metaDataUrl;
-
-    @Value("${login.idpEntityAlias:null}")
-    private String legacyIdpIdentityAlias;
-
-    @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
-    private String legacyNameId;
-
-    @Value("${login.saml.assertionConsumerIndex:0}")
-    private int legacyAssertionConsumerIndex;
-
-    @Value("${login.saml.metadataTrustCheck:true}")
-    private boolean legacyMetadataTrustCheck;
-
-    @Value("${login.showSamlLoginLink:true}")
-    private boolean legacyShowSamlLink;
 
     @Autowired
     @Bean
@@ -52,6 +46,17 @@ public class SamlConfiguration {
 }
 
 /* --- previous saml- XML configuration ---
+
+   @Value("${login.saml.signatureAlgorithm:SHA12}")
+    private String signatureAlgorithm;
+
+    @Bean
+    public SamlConfigurationBean defaultSamlConfig(@Value("${login.saml.signatureAlgorithm:SHA12}") String signatureAlgorithm) {
+        SamlConfigurationBean samlConfigurationBean = new SamlConfigurationBean();
+        SamlConfigurationBean.SignatureAlgorithm signatureAlgorithmEnum = SamlConfigurationBean.SignatureAlgorithm.valueOf(signatureAlgorithm);
+        samlConfigurationBean.setSignatureAlgorithm(signatureAlgorithmEnum);
+        return samlConfigurationBean;
+    }
 
     <!-- Register authentication manager with SAML provider -->
     <security:authentication-manager id="samlAuthenticationManager">
@@ -328,10 +333,6 @@ public class SamlConfiguration {
 
 
     <bean id="fixedHttpMetaDataProvider" class="org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider" />
-
-    <bean id="defaultSamlConfig" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean">
-        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA1}"/>
-    </bean>
 
     <beans profile="fileMetadata">
         <bean id="metaDataUrl" class="java.lang.String">

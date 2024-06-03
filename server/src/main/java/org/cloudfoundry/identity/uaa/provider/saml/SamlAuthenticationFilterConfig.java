@@ -1,9 +1,14 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
@@ -17,6 +22,9 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 import javax.servlet.Filter;
 import javax.servlet.http.HttpServletRequest;
 
+/**
+ * Configuration for SAML Filters and Authentication Providers for SAML Authentication.
+ */
 @Configuration
 public class SamlAuthenticationFilterConfig {
 
@@ -29,8 +37,7 @@ public class SamlAuthenticationFilterConfig {
         OpenSaml4AuthenticationRequestResolver openSaml4AuthenticationRequestResolver = new OpenSaml4AuthenticationRequestResolver(defaultRelyingPartyRegistrationResolver);
         openSaml4AuthenticationRequestResolver.setRelayStateResolver(relayStateResolver);
 
-        Saml2WebSsoAuthenticationRequestFilter filter = new Saml2WebSsoAuthenticationRequestFilter(openSaml4AuthenticationRequestResolver);
-        return filter;
+        return new Saml2WebSsoAuthenticationRequestFilter(openSaml4AuthenticationRequestResolver);
     }
 
     @Bean
@@ -40,12 +47,32 @@ public class SamlAuthenticationFilterConfig {
 
     @Autowired
     @Bean
-    Filter saml2WebSsoAuthenticationFilter(SamlLoginAuthenticationProvider authenticationProvider,
+    AuthenticationProvider samlAuthenticationProvider(IdentityZoneManager identityZoneManager,
+                                                      final UaaUserDatabase userDatabase,
+                                                      final JdbcIdentityProviderProvisioning identityProviderProvisioning) {
+
+//        SamlUaaResponseAuthenticationConverter samlResponseAuthenticationConverter =
+//                new SamlUaaResponseAuthenticationConverter(identityZoneManager, userDatabase, identityProviderProvisioning);
+//
+//        OpenSaml4AuthenticationProvider authProvider = new OpenSaml4AuthenticationProvider();
+//        //authProvider.setAssertionValidator(OpenSaml40CompatibleAssertionValidators.createDefaultAssertionValidator());
+//        authProvider.setResponseAuthenticationConverter(samlResponseAuthenticationConverter);
+
+        return new SamlLoginAuthenticationProvider(identityZoneManager, userDatabase, identityProviderProvisioning);
+    }
+
+    @Autowired
+    @Bean
+    Filter saml2WebSsoAuthenticationFilter(AuthenticationProvider samlAuthenticationProvider,
                                            RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
                                            SecurityContextRepository securityContextRepository) {
 
         Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter = new Saml2WebSsoAuthenticationFilter(relyingPartyRegistrationRepository);
-        saml2WebSsoAuthenticationFilter.setAuthenticationManager(authenticationProvider);
+
+        ProviderManager authenticationManager = new ProviderManager(samlAuthenticationProvider);
+        // TODO: set the publisher authenticationManager setAuthenticationEventPublisher(authenticationEventPublisher)
+
+        saml2WebSsoAuthenticationFilter.setAuthenticationManager(authenticationManager);
         saml2WebSsoAuthenticationFilter.setSecurityContextRepository(securityContextRepository);
         return saml2WebSsoAuthenticationFilter;
     }
