@@ -11,6 +11,7 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.util.Assert;
 
 import java.util.List;
+import java.util.function.Function;
 
 @Slf4j
 public class ConfiguratorRelyingPartyRegistrationRepository implements RelyingPartyRegistrationRepository {
@@ -19,16 +20,19 @@ public class ConfiguratorRelyingPartyRegistrationRepository implements RelyingPa
     private final KeyWithCert keyWithCert;
     private final Boolean samlSignRequest;
     private final String samlEntityID;
+    private final Function<String, String> assertionConsumerServiceLocationFunction;
 
     public ConfiguratorRelyingPartyRegistrationRepository(Boolean samlSignRequest,
                                                           @Qualifier("samlEntityID") String samlEntityID,
                                                           KeyWithCert keyWithCert,
-                                                          SamlIdentityProviderConfigurator configurator) {
+                                                          SamlIdentityProviderConfigurator configurator,
+                                                          Function<String, String> assertionConsumerServiceLocationFunction) {
         Assert.notNull(configurator, "configurator cannot be null");
         this.configurator = configurator;
         this.keyWithCert = keyWithCert;
         this.samlSignRequest = samlSignRequest;
         this.samlEntityID = samlEntityID;
+        this.assertionConsumerServiceLocationFunction = assertionConsumerServiceLocationFunction;
     }
 
     /**
@@ -55,6 +59,7 @@ public class ConfiguratorRelyingPartyRegistrationRepository implements RelyingPa
                 .entityId(samlEntityID)
                 .nameIdFormat(def.getNameID())
                 .registrationId(registrationId)
+                .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(samlEntityID))
                 .assertingPartyDetails(details -> details
                         .wantAuthnRequestsSigned(samlSignRequest)
                 )

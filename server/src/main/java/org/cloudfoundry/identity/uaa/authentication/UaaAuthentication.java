@@ -14,6 +14,10 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.ToString;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.LinkedMultiValueMap;
@@ -26,19 +30,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.EMPTY_MAP;
+import static java.util.Collections.emptyMap;
 
 /**
  * Authentication token which represents a user.
  */
 @JsonSerialize(using = UaaAuthenticationSerializer.class)
 @JsonDeserialize(using = UaaAuthenticationDeserializer.class)
-public class UaaAuthentication implements Authentication, Serializable {
+@Getter
+@Setter
+@ToString
+public class UaaAuthentication extends AbstractAuthenticationToken
+        implements Authentication, Serializable {
 
-    private Collection<? extends GrantedAuthority> authorities;
-    private Object credentials;
-    private UaaPrincipal principal;
-    private UaaAuthenticationDetails details;
+    private final Object credentials;
+    private final UaaPrincipal principal;
     private boolean authenticated;
     private long authenticatedTime = -1L;
     private long expiresAt = -1L;
@@ -46,17 +52,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     private Set<String> authenticationMethods;
     private Set<String> authContextClassRef;
     private Long lastLoginSuccessTime;
-
-    private Map userAttributes;
-
-    public Long getLastLoginSuccessTime() {
-        return lastLoginSuccessTime;
-    }
-
-    public UaaAuthentication setLastLoginSuccessTime(Long lastLoginSuccessTime) {
-        this.lastLoginSuccessTime = lastLoginSuccessTime;
-        return this;
-    }
+    private Map<String, List<String>> userAttributes;
 
     /**
      * Creates a token with the supplied array of authorities.
@@ -86,12 +82,13 @@ public class UaaAuthentication implements Authentication, Serializable {
                              boolean authenticated,
                              long authenticatedTime,
                              long expiresAt) {
+        super(authorities);
+
         if (principal == null || authorities == null) {
             throw new IllegalArgumentException("principal and authorities must not be null");
         }
+        setDetails(details);
         this.principal = principal;
-        this.authorities = authorities;
-        this.details = details;
         this.credentials = credentials;
         this.authenticated = authenticated;
         this.authenticatedTime = authenticatedTime <= 0 ? -1 : authenticatedTime;
@@ -112,18 +109,14 @@ public class UaaAuthentication implements Authentication, Serializable {
         this.userAttributes = new HashMap<>(userAttributes);
     }
 
-    public UaaAuthentication(UaaAuthentication existing, UaaPrincipal principal) {
+    public UaaAuthentication(UaaAuthentication existingAuthn, UaaPrincipal principal) {
 
-        this(principal, existing.getCredentials(), List.copyOf(existing.authorities), existing.getExternalGroups(),
-                existing.getUserAttributes(), existing.details, existing.isAuthenticated(),
-                existing.getAuthenticatedTime(), existing.getExpiresAt());
-        this.authContextClassRef = existing.authContextClassRef;
-        this.authenticationMethods = existing.authenticationMethods;
-        this.lastLoginSuccessTime = existing.lastLoginSuccessTime;
-    }
-
-    public long getAuthenticatedTime() {
-        return authenticatedTime;
+        this(principal, existingAuthn.getCredentials(), List.copyOf(existingAuthn.getAuthorities()), existingAuthn.getExternalGroups(),
+                existingAuthn.getUserAttributes(), existingAuthn.getUaaAuthenticationDetails(), existingAuthn.isAuthenticated(),
+                existingAuthn.getAuthenticatedTime(), existingAuthn.getExpiresAt());
+        this.authContextClassRef = existingAuthn.authContextClassRef;
+        this.authenticationMethods = existingAuthn.authenticationMethods;
+        this.lastLoginSuccessTime = existingAuthn.lastLoginSuccessTime;
     }
 
     @Override
@@ -133,38 +126,18 @@ public class UaaAuthentication implements Authentication, Serializable {
         return principal.getName();
     }
 
-    @Override
-    public Collection<? extends GrantedAuthority> getAuthorities() {
-        return authorities;
-    }
-
-    @Override
-    public Object getCredentials() {
-        return credentials;
-    }
-
-    @Override
-    public Object getDetails() {
-        return details;
-    }
-
-    @Override
-    public UaaPrincipal getPrincipal() {
-        return principal;
+    public UaaAuthenticationDetails getUaaAuthenticationDetails() {
+        return (UaaAuthenticationDetails) getDetails();
     }
 
     @Override
     public boolean isAuthenticated() {
-        return authenticated && (expiresAt > 0 ? expiresAt > System.currentTimeMillis() : true);
+        return authenticated && (expiresAt <= 0 || expiresAt > System.currentTimeMillis());
     }
 
     @Override
     public void setAuthenticated(boolean isAuthenticated) {
         authenticated = isAuthenticated;
-    }
-
-    public long getExpiresAt() {
-        return expiresAt;
     }
 
     @Override
@@ -178,78 +151,33 @@ public class UaaAuthentication implements Authentication, Serializable {
 
         UaaAuthentication that = (UaaAuthentication) o;
 
-        if (!authorities.equals(that.authorities)) {
+        if (!getAuthorities().equals(that.getAuthorities())) {
             return false;
         }
-        if (!principal.equals(that.principal)) {
-            return false;
-        }
-
-        return true;
+        return principal.equals(that.principal);
     }
 
     @Override
     public int hashCode() {
-        int result = authorities.hashCode();
+        int result = getAuthorities().hashCode();
         result = 31 * result + principal.hashCode();
         return result;
     }
 
-    public Set<String> getExternalGroups() {
-        return externalGroups;
-    }
-
-    public void setExternalGroups(Set<String> externalGroups) {
-        this.externalGroups = externalGroups;
-    }
-
     public MultiValueMap<String, String> getUserAttributes() {
-        return new LinkedMultiValueMap<>(userAttributes != null ? userAttributes : EMPTY_MAP);
-    }
-
-    public Map<String, List<String>> getUserAttributesAsMap() {
-        return userAttributes != null ? new HashMap<>(userAttributes) : EMPTY_MAP;
+        return new LinkedMultiValueMap<>(userAttributes != null ? userAttributes : emptyMap());
     }
 
     public void setUserAttributes(MultiValueMap<String, String> userAttributes) {
         this.userAttributes = new HashMap<>();
-        for (Map.Entry<String, List<String>> entry : userAttributes.entrySet()) {
-            this.userAttributes.put(entry.getKey(), entry.getValue());
-        }
-    }
-//
-//    @JsonIgnore
-//    public SAMLMessageContext getSamlMessageContext() {
-//        return samlMessageContext;
-//    }
-//
-//    @JsonIgnore
-//    public void setSamlMessageContext(SAMLMessageContext samlMessageContext) {
-//        this.samlMessageContext = samlMessageContext;
-//    }
-
-    public Set<String> getAuthenticationMethods() {
-        return authenticationMethods;
+        this.userAttributes.putAll(userAttributes);
     }
 
-    public void setAuthenticationMethods(Set<String> authenticationMethods) {
-
-        this.authenticationMethods = authenticationMethods;
-    }
-
-    public Set<String> getAuthContextClassRef() {
-        return authContextClassRef;
-    }
-
-    public void setAuthContextClassRef(Set<String> authContextClassRef) {
-        this.authContextClassRef = authContextClassRef;
-    }
-
-    public void setAuthenticatedTime(long authenticatedTime) {
-        this.authenticatedTime = authenticatedTime;
+    public Map<String, List<String>> getUserAttributesAsMap() {
+        return userAttributes != null ? new HashMap<>(userAttributes) : emptyMap();
     }
 
     public void setAuthenticationDetails(UaaAuthenticationDetails authenticationDetails) {
-        this.details = authenticationDetails;
+        setDetails(authenticationDetails);
     }
 }

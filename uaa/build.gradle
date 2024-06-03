@@ -95,6 +95,8 @@ dependencies {
     testImplementation(libraries.commonsIo)
     testImplementation(libraries.owaspEsapi)
     testImplementation(libraries.apacheHttpClient)
+    testImplementation(libraries.openSamlApi)
+    testImplementation(libraries.xmlUnit)
 }
 
 ext {
