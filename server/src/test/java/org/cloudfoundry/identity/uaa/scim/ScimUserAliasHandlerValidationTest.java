@@ -247,8 +247,8 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
                 return idp;
             }
 
-            private void arrangeIdpDoesNotExist(final String origin, final String aliasZid) {
-                when(identityProviderProvisioning.retrieveByOrigin(origin, aliasZid))
+            private void arrangeIdpDoesNotExist(final String origin, final String zoneId) {
+                when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId))
                         .thenThrow(new EmptyResultDataAccessException(1));
             }
 
