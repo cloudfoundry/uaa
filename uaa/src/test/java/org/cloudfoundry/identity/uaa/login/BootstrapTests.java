@@ -25,7 +25,6 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
@@ -35,7 +34,6 @@ import org.springframework.lang.NonNull;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
-//import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
@@ -104,7 +102,82 @@ class BootstrapTests {
             LOGIN_IDP_METADATA_URL,
             LOGIN_SAML_METADATA_TRUST_CHECK);
 
+    private final static MockServletContext mockServletContext = new MockServletContext() {
+        @Override
+        public RequestDispatcher getNamedDispatcher(String path) {
+            return new MockRequestDispatcher("/");
+        }
+
+        @Override
+        public String getVirtualServerName() {
+            return "localhost";
+        }
+
+        @Override
+        public <Type extends EventListener> void addListener(Type t) {
+            //no op
+        }
+    };
+    private static final AbstractRefreshableWebApplicationContext abstractRefreshableWebApplicationContext = new AbstractRefreshableWebApplicationContext() {
+
+        @Override
+        protected void loadBeanDefinitions(@NonNull DefaultListableBeanFactory beanFactory) throws BeansException {
+            XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
+
+            // Configure the bean definition reader with this context's
+            // resource loading environment.
+            beanDefinitionReader.setEnvironment(this.getEnvironment());
+            beanDefinitionReader.setResourceLoader(this);
+            beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
+
+            beanDefinitionReader.loadBeanDefinitions("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        }
+    };
+
     private ConfigurableApplicationContext context;
+
+    static Stream<Arguments> samlSignatureParameterProvider() {
+        final String yamlPath = "test/config/";
+        return Stream.of(
+                arguments(yamlPath + "saml-algorithm-sha256.yml", SamlConfigurationBean.SignatureAlgorithm.SHA256),
+                arguments(yamlPath + "saml-algorithm-sha512.yml", SamlConfigurationBean.SignatureAlgorithm.SHA512)
+        );
+    }
+
+    private static SamlIdentityProviderDefinition findProvider(
+            final List<SamlIdentityProviderDefinition> defs,
+            final String alias) {
+        for (SamlIdentityProviderDefinition def : defs) {
+            if (alias.equals(def.getIdpEntityAlias())) {
+                return def;
+            }
+        }
+        return null;
+    }
+
+    private static ConfigurableApplicationContext getServletContext(
+            final String profiles,
+            final String uaaYamlPath) {
+        System.setProperty("LOGIN_CONFIG_URL", "file:" + System.getProperty("user.dir") + "/../scripts/cargo/uaa.yml");
+        System.setProperty("UAA_CONFIG_URL", "classpath:" + uaaYamlPath);
+
+        abstractRefreshableWebApplicationContext.setServletContext(mockServletContext);
+        MockServletConfig servletConfig = new MockServletConfig(mockServletContext);
+        abstractRefreshableWebApplicationContext.setServletConfig(servletConfig);
+
+        YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
+        initializer.initialize(abstractRefreshableWebApplicationContext);
+        System.clearProperty("LOGIN_CONFIG_URL");
+        System.clearProperty("UAA_CONFIG_URL");
+
+        if (profiles != null) {
+            abstractRefreshableWebApplicationContext.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
+        }
+
+        abstractRefreshableWebApplicationContext.refresh();
+
+        return abstractRefreshableWebApplicationContext;
+    }
 
     @Test
     void xlegacyTestDeprecatedProperties() {
@@ -179,26 +252,18 @@ class BootstrapTests {
         );
     }
 
-    @Disabled("SAML test fails")
     @ParameterizedTest
     @MethodSource("samlSignatureParameterProvider")
-    void samlSignatureAlgorithm(String yamlFile, SamlConfigurationBean.SignatureAlgorithm algorithm) {
+    @Disabled("SAML test fails")
+    void samlSignatureAlgorithmsWereBootstrapped(String yamlFile, SamlConfigurationBean.SignatureAlgorithm algorithm) {
         // When we override the SHA1 default for login.saml.signatureAlgorithm in the yaml, make sure it works.
         context = getServletContext("default", yamlFile);
 
-        SamlConfigurationBean samlConfig = context.getBean("defaultSamlConfig", SamlConfigurationBean.class);
+        SamlConfigurationBean samlConfig = context.getBean(SamlConfigurationBean.class);
         assertEquals(
                 algorithm,
                 samlConfig.getSignatureAlgorithm(),
                 "The SAML signature algorithm in the yaml file is set in the bean"
-        );
-    }
-
-    static Stream<Arguments> samlSignatureParameterProvider() {
-        final String yamlPath = "test/config/";
-        return Stream.of(
-                arguments(yamlPath + "saml-algorithm-sha256.yml", SamlConfigurationBean.SignatureAlgorithm.SHA256),
-                arguments(yamlPath + "saml-algorithm-sha512.yml", SamlConfigurationBean.SignatureAlgorithm.SHA512)
         );
     }
 
@@ -225,74 +290,6 @@ class BootstrapTests {
                 defs.get(defs.size() - 1).getType()
         );
     }
-
-    private static SamlIdentityProviderDefinition findProvider(
-            final List<SamlIdentityProviderDefinition> defs,
-            final String alias) {
-        for (SamlIdentityProviderDefinition def : defs) {
-            if (alias.equals(def.getIdpEntityAlias())) {
-                return def;
-            }
-        }
-        return null;
-    }
-
-    private static ConfigurableApplicationContext getServletContext(
-            final String profiles,
-            final String uaaYamlPath) {
-        System.setProperty("LOGIN_CONFIG_URL", "file:" + System.getProperty("user.dir") + "/../scripts/cargo/uaa.yml");
-        System.setProperty("UAA_CONFIG_URL", "classpath:" + uaaYamlPath);
-
-        abstractRefreshableWebApplicationContext.setServletContext(mockServletContext);
-        MockServletConfig servletConfig = new MockServletConfig(mockServletContext);
-        abstractRefreshableWebApplicationContext.setServletConfig(servletConfig);
-
-        YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
-        initializer.initialize(abstractRefreshableWebApplicationContext);
-        System.clearProperty("LOGIN_CONFIG_URL");
-        System.clearProperty("UAA_CONFIG_URL");
-
-        if (profiles != null) {
-            abstractRefreshableWebApplicationContext.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
-        }
-
-        abstractRefreshableWebApplicationContext.refresh();
-
-        return abstractRefreshableWebApplicationContext;
-    }
-
-    private final static MockServletContext mockServletContext = new MockServletContext() {
-        @Override
-        public RequestDispatcher getNamedDispatcher(String path) {
-            return new MockRequestDispatcher("/");
-        }
-
-        @Override
-        public String getVirtualServerName() {
-            return "localhost";
-        }
-
-        @Override
-        public <Type extends EventListener> void addListener(Type t) {
-            //no op
-        }
-    };
-
-    private static final AbstractRefreshableWebApplicationContext abstractRefreshableWebApplicationContext = new AbstractRefreshableWebApplicationContext() {
-
-        @Override
-        protected void loadBeanDefinitions(@NonNull DefaultListableBeanFactory beanFactory) throws BeansException {
-            XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
-
-            // Configure the bean definition reader with this context's
-            // resource loading environment.
-            beanDefinitionReader.setEnvironment(this.getEnvironment());
-            beanDefinitionReader.setResourceLoader(this);
-            beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
-
-            beanDefinitionReader.loadBeanDefinitions("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        }
-    };
 
 
 }

@@ -67,25 +67,6 @@ class HealthzShouldNotBeProtectedMockMvcTests {
             chainPostProcessor.setRequireHttps(true);
         }
 
-        @DefaultTestContext
-        @Nested
-        class WithHttpPortSetToNonDefaultValue {
-            @BeforeEach
-            void setUp() {
-                chainPostProcessor.setHttpsPort(9998);
-            }
-
-            @Test
-            void redirectedRequestsGoToTheConfiguredPort() throws Exception {
-                MockHttpServletRequestBuilder getRequest = get("/login")
-                        .accept(MediaType.TEXT_HTML);
-
-                mockMvc.perform(getRequest)
-                        .andExpect(status().is3xxRedirection())
-                        .andExpect(header().string("Location", "https://localhost:9998/login"));
-            }
-        }
-
         @ParameterizedTest
         @ArgumentsSource(HealthzGetRequestParams.class)
         void healthzIsNotRejected(MockHttpServletRequestBuilder getRequest) throws Exception {
@@ -112,6 +93,25 @@ class HealthzShouldNotBeProtectedMockMvcTests {
             mockMvc.perform(getRequest)
                     .andExpect(status().is3xxRedirection())
                     .andExpect(header().string("Location", "https://localhost/saml/metadata"));
+        }
+
+        @DefaultTestContext
+        @Nested
+        class WithHttpPortSetToNonDefaultValue {
+            @BeforeEach
+            void setUp() {
+                chainPostProcessor.setHttpsPort(9998);
+            }
+
+            @Test
+            void redirectedRequestsGoToTheConfiguredPort() throws Exception {
+                MockHttpServletRequestBuilder getRequest = get("/login")
+                        .accept(MediaType.TEXT_HTML);
+
+                mockMvc.perform(getRequest)
+                        .andExpect(status().is3xxRedirection())
+                        .andExpect(header().string("Location", "https://localhost:9998/login"));
+            }
         }
     }
 
@@ -150,7 +150,6 @@ class HealthzShouldNotBeProtectedMockMvcTests {
                     .andExpect(status().isOk());
         }
 
-//        @Disabled("trailing slash likely routes to processing with RegistrationID and likely is empty")
         @Test
         void samlMetadataWithTrailingSlashReturnsOk() throws Exception {
             MockHttpServletRequestBuilder getRequest = get("/saml/metadata/")

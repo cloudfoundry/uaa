@@ -18,3 +18,8 @@ project(":cloudfoundry-identity-statsd-lib").projectDir = "$rootDir/statsd-lib" 
 project(":cloudfoundry-identity-samples:cloudfoundry-identity-api").projectDir = "$rootDir/samples/api" as File
 project(":cloudfoundry-identity-samples:cloudfoundry-identity-app").projectDir = "$rootDir/samples/app" as File
 project(":cloudfoundry-identity-samples").projectDir = "$rootDir/samples" as File
+
+// Shadow library is needed for FIPS compliance, as opensaml-security-api relies on non-FIPS compliant libraries
+//include(":cloudfoundry-identity-shadow-opensaml-security-api")
+//project(":cloudfoundry-identity-shadow-opensaml-security-api").projectDir = "$rootDir/shadow/opensaml-security-api" as File
+

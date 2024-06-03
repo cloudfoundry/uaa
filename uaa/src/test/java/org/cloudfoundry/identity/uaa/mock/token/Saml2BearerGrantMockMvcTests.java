@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-//import org.opensaml.saml2.core.NameID;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
@@ -24,8 +23,7 @@ public class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     @Disabled("SAML test doesn't compile")
     void getTokenUsingSaml2BearerGrant() throws Exception {
-        SamlTestUtils samlTestUtils = new SamlTestUtils();
-//        samlTestUtils.initializeSimple();
+        SamlTestUtils.initialize();
 
         final String subdomain = "68uexx";
         //all our SAML defaults use :8080/uaa/ so we have to use that here too
@@ -36,7 +34,7 @@ public class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
         MockMvcUtils.IdentityZoneCreationResult testZone =
                 MockMvcUtils.createOtherIdentityZoneAndReturnResult(
-                    subdomain, mockMvc, this.webApplicationContext, null,
+                        subdomain, mockMvc, this.webApplicationContext, null,
                         IdentityZoneHolder.getCurrentZoneId());
 
         //Mock an IDP metadata
@@ -139,7 +137,7 @@ public class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         //create an IDP in the test zone
         SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(
                 origin, testZone.getIdentityZone().getId(), idpMetadata);
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider provider = new IdentityProvider<>();
         provider.setConfig(idpDef);
         provider.setActive(true);
         provider.setIdentityZoneId(testZone.getIdentityZone().getId());

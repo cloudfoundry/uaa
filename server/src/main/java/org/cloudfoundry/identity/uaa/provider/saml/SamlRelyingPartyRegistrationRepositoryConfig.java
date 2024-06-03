@@ -18,6 +18,7 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID;
 
@@ -29,6 +30,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
     private final String samlEntityID;
     private final SamlConfigProps samlConfigProps;
     private final BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
+    private final Function<String, String> assertionConsumerServiceLocationFunction;
 
     @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
     private String samlSpNameID;
@@ -43,6 +45,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         this.samlEntityID = samlEntityID;
         this.samlConfigProps = samlConfigProps;
         this.bootstrapSamlIdentityProviderData = bootstrapSamlIdentityProviderData;
+        this.assertionConsumerServiceLocationFunction = "{baseUrl}/saml/SSO/alias/%s"::formatted;
     }
 
     @Autowired
@@ -76,7 +79,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         }
 
         InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
-        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlSignRequest, samlEntityID, keyWithCert, samlIdentityProviderConfigurator);
+        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlSignRequest, samlEntityID, keyWithCert, samlIdentityProviderConfigurator, assertionConsumerServiceLocationFunction);
         return new DelegatingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo);
     }
 
@@ -86,7 +89,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
                 .entityId(samlEntityID)
                 .nameIdFormat(samlSpNameID)
                 .registrationId(rpRegstrationId)
-                // TODO: assertionConsumerServiceUrlTemplate can be configured here.
+                .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(samlEntityID))
                 .assertingPartyDetails(details -> details
                         .wantAuthnRequestsSigned(samlSignRequest)
                 )
