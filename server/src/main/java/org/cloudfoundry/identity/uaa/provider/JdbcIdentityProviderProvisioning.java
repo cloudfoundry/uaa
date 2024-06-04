@@ -8,8 +8,10 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
@@ -60,12 +62,17 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     }
 
     public boolean idpWithAliasExistsInZone(final String zoneId) {
-        final Integer idpWithAliasExists = jdbcTemplate.queryForObject(
-                IDP_WITH_ALIAS_EXISTS_QUERY,
-                new Object[]{zoneId},
-                new int[]{VARCHAR},
-                Integer.class
-        );
+        final Integer idpWithAliasExists;
+        try {
+            idpWithAliasExists = jdbcTemplate.queryForObject(
+                    IDP_WITH_ALIAS_EXISTS_QUERY,
+                    new Object[]{zoneId},
+                    new int[]{VARCHAR},
+                    Integer.class
+            );
+        } catch (final EmptyResultDataAccessException e) {
+            return false;
+        }
         if (idpWithAliasExists == null) {
             return false;
         }
