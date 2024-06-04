@@ -296,7 +296,7 @@ class IdentityProviderEndpointsTest {
     void retrieve_all_providers_redacts_data() {
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString()))
                 .thenReturn(Arrays.asList(getLdapDefinition(), getExternalOAuthProvider()));
-        ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true);
+        ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true, "");
         assertNotNull(ldapList);
         assertNotNull(ldapList.getBody());
         assertEquals(2, ldapList.getBody().size());
@@ -311,6 +311,22 @@ class IdentityProviderEndpointsTest {
         assertNotNull(oauth.getConfig());
         assertTrue(oauth.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
         assertNull(oauth.getConfig().getRelyingPartySecret());
+    }
+
+    @Test
+    void retrieve_by_origin_providers_redacts_data() {
+        when(mockIdentityProviderProvisioning.retrieveByOrigin(anyString(), anyString()))
+            .thenReturn(getExternalOAuthProvider());
+        ResponseEntity<List<IdentityProvider>> puppyList = identityProviderEndpoints.retrieveIdentityProviders("false", true, "puppy");
+        assertNotNull(puppyList);
+        assertNotNull(puppyList.getBody());
+        assertEquals(1, puppyList.getBody().size());
+        IdentityProvider<OIDCIdentityProviderDefinition> oidc = puppyList.getBody().get(0);
+        assertNotNull(oidc);
+        assertNotNull(oidc.getConfig());
+        assertTrue(oidc.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
+        assertNull(oidc.getConfig().getRelyingPartySecret());
+        assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC, oidc.getConfig().getAuthMethod());
     }
 
     @Test

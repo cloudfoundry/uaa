@@ -46,6 +46,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
@@ -293,10 +294,19 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     @GetMapping()
-    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(@RequestParam(value = "active_only", required = false) String activeOnly, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
+    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(
+        @RequestParam(value = "active_only", required = false) String activeOnly,
+        @RequestParam(required = false, defaultValue = "false") boolean rawConfig,
+        @RequestParam(required = false, defaultValue = "") String originKey)
+    {
         boolean retrieveActiveOnly = Boolean.parseBoolean(activeOnly);
-        List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, identityZoneManager.getCurrentIdentityZoneId());
-        for(IdentityProvider idp : identityProviderList) {
+        List<IdentityProvider> identityProviderList;
+        if (UaaStringUtils.isNotEmpty(originKey)) {
+            identityProviderList = List.of(identityProviderProvisioning.retrieveByOrigin(originKey, identityZoneManager.getCurrentIdentityZoneId()));
+        } else {
+            identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, identityZoneManager.getCurrentIdentityZoneId());
+        }
+        for(IdentityProvider<?> idp : identityProviderList) {
             idp.setSerializeConfigRaw(rawConfig);
             setAuthMethod(idp);
             redactSensitiveData(idp);
