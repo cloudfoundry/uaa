@@ -52,7 +52,6 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -84,7 +83,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     protected static Logger logger = LoggerFactory.getLogger(IdentityProviderEndpoints.class);
 
-    @Value("${login.aliasEntitiesEnabled:false}")
+    @Qualifier("aliasEntitiesEnabled")
     private boolean aliasEntitiesEnabled;
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
