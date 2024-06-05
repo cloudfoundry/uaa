@@ -69,7 +69,7 @@ class JdbcIdentityProviderProvisioningTests {
     }
 
     @Test
-    void deleteByIdentityZone_ShouldNotDeleteAliasIdentityProviders() {
+    void deleteByIdentityZone_ShouldAlsoDeleteAliasIdentityProviders() {
         final String originSuffix = generator.generate();
 
         // IdP 1: created in custom zone, no alias
@@ -105,13 +105,13 @@ class JdbcIdentityProviderProvisioningTests {
         // delete by zone
         final int rowsDeleted = jdbcIdentityProviderProvisioning.deleteByIdentityZone(otherZoneId1);
 
-        // number should not include the alias IdP
-        Assertions.assertThat(rowsDeleted).isEqualTo(2);
+        // number should also include the alias IdP
+        Assertions.assertThat(rowsDeleted).isEqualTo(3);
 
-        // the two IdPs in the custom zone should be deleted, the alias should still be present
+        // check if all three entries are gone
         assertIdentityProviderDoesNotExist(createdIdp1.getId(), otherZoneId1);
         assertIdentityProviderDoesNotExist(createdIdp2.getId(), otherZoneId1);
-        assertIdentityProviderExists(createdIdp2Alias.getId(), uaaZoneId);
+        assertIdentityProviderDoesNotExist(createdIdp2Alias.getId(), uaaZoneId);
     }
 
     private void assertIdentityProviderExists(final String id, final String zoneId) {
