@@ -59,6 +59,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         this.jdbcTemplate = jdbcTemplate;
     }
 
+    @Override
     public boolean idpWithAliasExistsInZone(final String zoneId) {
         final List<Integer> result = jdbcTemplate.queryForList(
                 IDP_WITH_ALIAS_EXISTS_QUERY,

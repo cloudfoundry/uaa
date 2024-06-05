@@ -21,6 +21,8 @@ public interface IdentityProviderProvisioning {
 
     IdentityProvider update(IdentityProvider identityProvider, String zoneId);
 
+    boolean idpWithAliasExistsInZone(String zoneId);
+
     IdentityProvider retrieve(String id, String zoneId);
 
     List<IdentityProvider> retrieveActive(String zoneId);
