@@ -5,6 +5,7 @@ import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaaZoneId;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -319,7 +320,7 @@ class JdbcIdentityProviderProvisioningTests {
     }
 
     @Test
-    void testIdpWithAliasExistsInZone() {
+    void testIdpWithAliasExistsInZone_TrueCase() {
         final IdentityProvider<AbstractIdentityProviderDefinition> idpWithAlias = MultitenancyFixture.identityProvider(
                 generator.generate(),
                 otherZoneId1
@@ -328,5 +329,15 @@ class JdbcIdentityProviderProvisioningTests {
         idpWithAlias.setAliasId(UUID.randomUUID().toString());
         jdbcIdentityProviderProvisioning.create(idpWithAlias, otherZoneId1);
         assertTrue(jdbcIdentityProviderProvisioning.idpWithAliasExistsInZone(otherZoneId1));
+    }
+
+    @Test
+    void testIdpWithAliasExistsInZone_FalseCase() {
+        final IdentityProvider<AbstractIdentityProviderDefinition> idp = MultitenancyFixture.identityProvider(
+                generator.generate(),
+                otherZoneId2
+        );
+        jdbcIdentityProviderProvisioning.create(idp, otherZoneId2);
+        assertFalse(jdbcIdentityProviderProvisioning.idpWithAliasExistsInZone(otherZoneId2));
     }
 }
