@@ -166,7 +166,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final ScimGroupMembershipManager membershipManager,
             final ScimUserAliasHandler aliasHandler,
             final @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
-            @Qualifier("aliasEntitiesEnabled") final boolean aliasEntitiesEnabled,
+            final @Qualifier("aliasEntitiesEnabled") boolean aliasEntitiesEnabled,
             final @Value("${userMaxCount:500}") int userMaxCount
     ) {
         if (userMaxCount <= 0) {
