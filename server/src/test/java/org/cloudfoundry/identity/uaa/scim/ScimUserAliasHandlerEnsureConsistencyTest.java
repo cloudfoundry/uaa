@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -15,9 +16,11 @@ import java.util.Date;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerEnsureConsistencyTest;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -29,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 @ExtendWith(MockitoExtension.class)
 class ScimUserAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsureConsistencyTest<ScimUser> {
@@ -132,6 +136,14 @@ class ScimUserAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsure
             scimUser.setId(newId);
             return scimUser;
         });
+    }
+
+    private void mockCreateEntityThrows_UsernameAlreadyOccupied(final String username, final String zoneId) {
+        when(scimUserProvisioning.createUser(
+                argThat(scimUser -> Objects.equals(username, scimUser.getUserName())),
+                anyString(),
+                eq(zoneId)
+        )).thenThrow(new ScimResourceAlreadyExistsException("username already occupied"));
     }
 
     @Override
@@ -259,7 +271,23 @@ class ScimUserAliasHandlerEnsureConsistencyTest extends EntityAliasHandlerEnsure
     class NoExistingAlias {
         @Nested
         class AliasFeatureEnabled extends NoExistingAlias_AliasFeatureEnabled {
-            // all tests defined in superclass
+            @Test
+            void shouldThrow_WhenUsernameAlreadyOccupiedInAliasZone() {
+                final ScimUser existingEntity = buildEntityWithAliasProperties(null, null);
+                final ScimUser originalEntity = shallowCloneEntity(existingEntity);
+                originalEntity.setAliasZid(customZoneId);
+
+                mockCreateEntityThrows_UsernameAlreadyOccupied(originalEntity.getUserName(), customZoneId);
+
+                final EntityAliasFailedException exception = assertThrows(EntityAliasFailedException.class, () ->
+                        aliasHandler.ensureConsistencyOfAliasEntity(originalEntity, existingEntity)
+                );
+                assertThat(exception.getHttpStatus()).isEqualTo(HttpStatus.CONFLICT.value());
+                assertThat(exception.getMessage()).isEqualTo(
+                        "Could not create ScimUser[id=null,zid='%s',aliasId='%s',aliasZid='uaa']. A user with the same username already exists in the alias zone."
+                                .formatted(customZoneId, existingEntity.getId())
+                );
+            }
         }
 
         @Nested

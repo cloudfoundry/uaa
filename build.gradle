@@ -242,9 +242,18 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
 }
 
 //task declarations
-task run(dependsOn: cargoRunLocal)
+tasks.register('killUaa', Exec) {
+    workingDir './'
+    executable = 'scripts/kill_uaa.sh'
+}
 
-task manifests(dependsOn: assemble, type: Copy) {
+tasks.register('run') {
+    dependsOn killUaa
+    dependsOn cargoRunLocal
+}
+
+tasks.register('manifests', Copy) {
+    dependsOn assemble
     from("uaa/src/test/resources/sample-manifests") {
         include("**/*.yml")
         filter(ReplaceTokens,
@@ -258,14 +267,17 @@ task manifests(dependsOn: assemble, type: Copy) {
     into("build/sample-manifests")
 }
 
-task cleanCargoConfDir {
+tasks.register('cleanCargoConfDir') {
     delete(file(System.getProperty("java.io.tmpdir") + "/cargo/uaa-${applicationPort}"))
     try {
         Files.createDirectory(Paths.get(System.getProperty("java.io.tmpdir") + "/uaa-${applicationPort}"))
-    } catch (ignored) {}
+    } catch (ignored) {
+    }
 }
 
-task integrationTest(type: Test, dependsOn: subprojects.integrationTest) {
+tasks.register('integrationTest', Test) {
+    dependsOn killUaa
+    dependsOn subprojects.integrationTest
     finalizedBy cargoStopLocal
 }
 

@@ -142,6 +142,51 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
 
             @ParameterizedTest
             @MethodSource("provideExistingEntityArguments")
+            void shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist_UaaToCustomZone(
+                    final ExistingEntityArgument existingEntityArgument
+            ) {
+                shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist(existingEntityArgument, UAA, customZoneId);
+            }
+
+            @ParameterizedTest
+            @MethodSource("provideExistingEntityArguments")
+            void shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist_CustomToUaaZone(
+                    final ExistingEntityArgument existingEntityArgument
+            ) {
+                shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist(existingEntityArgument, customZoneId, UAA);
+            }
+
+            private void shouldReturnFalse_IfIdpOfOriginalUserDoesNotExist(
+                    final ExistingEntityArgument existingEntityArgument,
+                    final String zone1,
+                    final String zone2
+            ) {
+                arrangeZoneExists(zone1);
+                arrangeZoneExists(zone2);
+
+                arrangeCurrentIdz(zone1);
+
+                final ScimUser requestBody = buildEntityWithAliasProps(null, zone2);
+                requestBody.setZoneId(zone1);
+                final String origin = RANDOM_STRING_GENERATOR.generate();
+                requestBody.setOrigin(origin);
+
+                final ScimUser existingUser = resolveExistingEntityArgument(existingEntityArgument);
+                if (existingUser != null) {
+                    existingUser.setZoneId(zone1);
+                    existingUser.setOrigin(origin);
+                }
+
+                // arrange IdP exists for alias user, but not for original user
+                final IdentityProvider<?> idp = buildIdp(UUID.randomUUID().toString(), origin, zone1, null, null);
+                arrangeIdpDoesNotExist(origin, zone1);
+                arrangeIdpExists(origin, zone2, idp);
+
+                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingUser)).isFalse();
+            }
+
+            @ParameterizedTest
+            @MethodSource("provideExistingEntityArguments")
             void shouldReturnFalse_IfIdpHasAliasToDifferentZoneThanUser(
                     final ExistingEntityArgument existingEntityArgument
             ) {
@@ -174,6 +219,55 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
                 final IdentityProvider<?> aliasIdp = buildIdp(aliasIdpId, origin, aliasZidIdp, idpId, UAA);
                 arrangeIdpExists(origin, UAA, idp);
                 arrangeIdpExists(origin, aliasZidIdp, aliasIdp);
+
+                assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingUser)).isFalse();
+            }
+
+            @ParameterizedTest
+            @MethodSource("provideExistingEntityArguments")
+            void shouldReturnFalse_IfIdpOfOriginalUserHasEmptyAliasId_UaaToCustomZone(
+                    final ExistingEntityArgument existingEntityArgument
+            ) {
+                shouldReturnFalse_IfIdpOfOriginalUserHasEmptyAliasId(existingEntityArgument, UAA, customZoneId);
+            }
+
+            @ParameterizedTest
+            @MethodSource("provideExistingEntityArguments")
+            void shouldReturnFalse_IfIdpOfOriginalUserHasEmptyAliasId_CustomToUaaZone(
+                    final ExistingEntityArgument existingEntityArgument
+            ) {
+                shouldReturnFalse_IfIdpOfOriginalUserHasEmptyAliasId(existingEntityArgument, customZoneId, UAA);
+            }
+
+            private void shouldReturnFalse_IfIdpOfOriginalUserHasEmptyAliasId(
+                    final ExistingEntityArgument existingEntityArgument,
+                    final String zone1,
+                    final String zone2
+            ) {
+                arrangeZoneExists(zone1);
+                arrangeZoneExists(zone2);
+
+                arrangeCurrentIdz(zone1);
+
+                final ScimUser requestBody = buildEntityWithAliasProps(null, zone2);
+                requestBody.setZoneId(zone1);
+                final String origin = RANDOM_STRING_GENERATOR.generate();
+                requestBody.setOrigin(origin);
+
+                final ScimUser existingUser = resolveExistingEntityArgument(existingEntityArgument);
+                if (existingUser != null) {
+                    existingUser.setZoneId(zone1);
+                    existingUser.setOrigin(origin);
+                }
+
+                // arrange IdP exists with alias in same zone as the one referenced in the user, but with empty aliasId
+                final String idpId = UUID.randomUUID().toString();
+                final String aliasIdpId = UUID.randomUUID().toString();
+                final IdentityProvider<?> idp = buildIdp(idpId, origin, zone1, aliasIdpId, zone2);
+                idp.setAliasId(""); // arrange IdP of original user has empty alias ID
+                final IdentityProvider<?> aliasIdp = buildIdp(aliasIdpId, origin, zone2, idpId, zone1);
+                arrangeIdpExists(origin, zone1, idp);
+                arrangeIdpExists(origin, zone2, aliasIdp);
 
                 assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingUser)).isFalse();
             }
@@ -247,8 +341,8 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
                 return idp;
             }
 
-            private void arrangeIdpDoesNotExist(final String origin, final String aliasZid) {
-                when(identityProviderProvisioning.retrieveByOrigin(origin, aliasZid))
+            private void arrangeIdpDoesNotExist(final String origin, final String zoneId) {
+                when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId))
                         .thenThrow(new EmptyResultDataAccessException(1));
             }
 

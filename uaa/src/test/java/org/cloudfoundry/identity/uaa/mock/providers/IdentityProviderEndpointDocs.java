@@ -93,7 +93,6 @@ import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterAll;
@@ -879,7 +878,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 MockMvcUtils.createOtherIdentityZoneAndReturnResult(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase(),
                         mockMvc,
                         webApplicationContext,
-                        admin, IdentityZoneHolder.getCurrentZoneId());
+                        admin, identityZoneManager.getCurrentIdentityZoneId());
 
 
         Snippet requestFields = requestFields(fields);
@@ -969,6 +968,47 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     }
 
     @Test
+    void getFilteredIdentityProviders() throws Exception {
+        Snippet responseFields = responseFields(
+            fieldWithPath("[].type").description("Type of the identity provider."),
+            fieldWithPath("[].originKey").description("Unique identifier for the identity provider."),
+            fieldWithPath("[].name").description(NAME_DESC),
+            fieldWithPath("[].config").description(CONFIG_DESCRIPTION),
+            fieldWithPath("[]." + FIELD_ALIAS_ID).description(ALIAS_ID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING),
+            fieldWithPath("[]." + FIELD_ALIAS_ZID).description(ALIAS_ZID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING),
+
+            fieldWithPath("[].version").description(VERSION_DESC),
+            fieldWithPath("[].active").description(ACTIVE_DESC),
+
+            fieldWithPath("[].id").description(ID_DESC),
+            fieldWithPath("[].identityZoneId").description(IDENTITY_ZONE_ID_DESC),
+            fieldWithPath("[].created").description(CREATED_DESC),
+            fieldWithPath("[].last_modified").description(LAST_MODIFIED_DESC)
+        );
+
+        mockMvc.perform(get("/identity-providers")
+                .param("rawConfig", "false")
+                .param("active_only", "false")
+                .param("originKey", "my-oauth2-provider")
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andDo(document("{ClassName}/{methodName}",
+                preprocessResponse(prettyPrint()),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` or `idps.read` (only in the same zone that you are a user of)"),
+                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` scope against the default UAA zone.").optional(),
+                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                requestParameters(
+                    parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."),
+                    parameterWithName("active_only").optional("false").type(BOOLEAN).description("Flag indicating whether only active IdPs should be returned or all."),
+                    parameterWithName("originKey").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Return only IdPs with specific origin.")
+                ),
+                responseFields));
+    }
+
+    @Test
     void getIdentityProvider() throws Exception {
         IdentityProvider identityProvider = JsonUtils.readValue(mockMvc.perform(post("/identity-providers")
                 .header("Authorization", "Bearer " + adminToken)
@@ -1000,7 +1040,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     @Test
     void updateIdentityProvider() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
 
         UaaIdentityProviderDefinition config = new UaaIdentityProviderDefinition();
         config.setLockoutPolicy(new LockoutPolicy(8, 8, 8));
@@ -1067,7 +1107,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     @Test
     void patchIdentityProviderStatus() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
         identityProvider.setConfig(new UaaIdentityProviderDefinition(new PasswordPolicy(0, 20, 0, 0, 0, 0, 0), null));
         identityProviderProvisioning.update(identityProvider, identityProvider.getIdentityZoneId());
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
