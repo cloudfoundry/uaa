@@ -155,7 +155,7 @@ class OidcMetadataFetcherTest {
         }
 
         @Test
-        void shouldPerformTokenKeyUrlNoCacheUsedError() throws OidcMetadataFetchingException, MalformedURLException {
+        void shouldPerformTokenKeyUrlNoCacheUsedError() throws MalformedURLException {
             definition.setTokenKeyUrl(new URL("http://should.be.updated"));
             definition.setSkipSslValidation(false);
             definition.setCacheJwks(false);
