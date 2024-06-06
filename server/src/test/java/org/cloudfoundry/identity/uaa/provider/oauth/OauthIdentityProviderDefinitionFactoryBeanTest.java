@@ -285,7 +285,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
 
     @Test
     public void testAuthMethodSet() {
-        // given: 2 similar entry because of issue #2752
+        // given: jwtclientAuthentication, but overrule it with authMethod=none
         idpDefinitionMap.put("jwtclientAuthentication", true);
         idpDefinitionMap.put("authMethod", "none");
         idpDefinitionMap.put("type", OriginKeys.OIDC10);

@@ -137,7 +137,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (clientSecret == null && config.getJwtClientAuthentication() == null && config.getAuthMethod() == null) {
             throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartySecret, jwtclientAuthentication or authMethod.");
         }
-        String calcAuthMethod = ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), config.getRelyingPartySecret() != null, config.getJwtClientAuthentication() != null);
+        String calcAuthMethod = ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), clientSecret != null, config.getJwtClientAuthentication() != null);
         String userName = authentication.getPrincipal() instanceof String ? (String)authentication.getPrincipal() : null;
         if (userName == null || authentication.getCredentials() == null || !(authentication.getCredentials() instanceof String)) {
             throw new BadCredentialsException("Request is missing username or password.");

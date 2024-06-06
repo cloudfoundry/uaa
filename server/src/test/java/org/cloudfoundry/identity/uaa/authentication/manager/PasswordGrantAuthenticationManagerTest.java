@@ -51,6 +51,8 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
@@ -874,6 +876,23 @@ class PasswordGrantAuthenticationManagerTest {
                 .setRelyingPartyId("client-id")
                 .setRelyingPartySecret("client-secret");
         assertThrows(BadCredentialsException.class, () -> instance.oidcPasswordGrant(authentication, config));
+    }
+
+    @Test
+    void oidcPasswordGrant_credentialsMustBeStringButNoSecretNeeded() throws MalformedURLException {
+        RestTemplate restTemplate = mock(RestTemplate.class);
+        ResponseEntity responseEntity = mock(ResponseEntity.class);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("user", "");
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
+            .setRelyingPartyId("client-id").setTokenUrl(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
+        config.setAuthMethod("none");
+        OIDCIdentityProviderDefinition spyConfig = spy(config);
+        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(restTemplate);
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
+        when(responseEntity.hasBody()).thenReturn(true);
+        when(responseEntity.getBody()).thenReturn(Map.of("id_token", "dummy"));
+        assertNull(instance.oidcPasswordGrant(authentication, spyConfig));
+        verify(spyConfig, atLeast(2)).getAuthMethod();
     }
 
     @Test
