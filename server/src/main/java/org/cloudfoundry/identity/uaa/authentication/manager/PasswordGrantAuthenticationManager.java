@@ -1,10 +1,12 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.apache.commons.lang3.ObjectUtils;
+import org.cloudfoundry.identity.uaa.authentication.AbstractClientParametersAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.Prompt;
@@ -132,9 +134,10 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (clientId == null) {
             throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartyId.");
         }
-        if (clientSecret == null && config.getJwtClientAuthentication() == null) {
-            throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartySecret or jwtclientAuthentication.");
+        if (clientSecret == null && config.getJwtClientAuthentication() == null && config.getAuthMethod() == null) {
+            throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartySecret, jwtclientAuthentication or authMethod.");
         }
+        String calcAuthMethod = ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), config.getRelyingPartySecret() != null, config.getJwtClientAuthentication() != null);
         String userName = authentication.getPrincipal() instanceof String ? (String)authentication.getPrincipal() : null;
         if (userName == null || authentication.getCredentials() == null || !(authentication.getCredentials() instanceof String)) {
             throw new BadCredentialsException("Request is missing username or password.");
@@ -152,12 +155,14 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
 
-        if (clientSecret == null) {
+        if (ClientAuthentication.PRIVATE_KEY_JWT.equals(calcAuthMethod)) {
             params = new JwtClientAuthentication(externalOAuthAuthenticationManager.getKeyInfoService())
                 .getClientAuthenticationParameters(params, config);
-        } else {
+        } else if (ClientAuthentication.secretNeeded(calcAuthMethod)){
             String auth = clientId + ":" + clientSecret;
             headers.add("Authorization", "Basic " + Base64Utils.encodeToString(auth.getBytes()));
+        } else {
+            params.add(AbstractClientParametersAuthenticationFilter.CLIENT_ID, clientId);
         }
         if (config.isSetForwardHeader() && authentication.getDetails() != null &&authentication.getDetails() instanceof UaaAuthenticationDetails) {
             UaaAuthenticationDetails details = (UaaAuthenticationDetails) authentication.getDetails();

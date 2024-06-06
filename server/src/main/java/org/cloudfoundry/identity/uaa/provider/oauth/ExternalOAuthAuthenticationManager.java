@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
@@ -712,7 +713,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         // https://docs.spring.io/spring-security/site/docs/5.3.1.RELEASE/reference/html5/#initiating-the-authorization-request
         if (config.getRelyingPartySecret() == null) {
             // no secret but jwtClientAuthentication
-            if (config instanceof OIDCIdentityProviderDefinition && ((OIDCIdentityProviderDefinition) config).getJwtClientAuthentication() != null) {
+            if (config instanceof OIDCIdentityProviderDefinition oidcDefinition && ClientAuthentication.PRIVATE_KEY_JWT.equals(
+                ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), false, oidcDefinition.getJwtClientAuthentication() != null))) {
                 body = new JwtClientAuthentication(keyInfoService)
                     .getClientAuthenticationParameters(body, (OIDCIdentityProviderDefinition) config);
             }

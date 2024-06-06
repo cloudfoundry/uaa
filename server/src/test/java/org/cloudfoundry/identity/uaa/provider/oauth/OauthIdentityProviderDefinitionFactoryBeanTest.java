@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.junit.Before;
@@ -33,6 +34,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class OauthIdentityProviderDefinitionFactoryBeanTest {
@@ -266,5 +268,35 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         idpDefinitionMap.put("performRpInitiatedLogout", false);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         assertFalse(providerDefinition.isPerformRpInitiatedLogout());
+    }
+
+    @Test
+    public void testAuthMethodNotSet() {
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        assertNull(providerDefinition.getAuthMethod());
+        assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC, ClientAuthentication.getCalculatedMethod(providerDefinition.getAuthMethod(), providerDefinition.getRelyingPartySecret() != null, providerDefinition.getJwtClientAuthentication() != null));
+    }
+
+    @Test
+    public void testAuthMethodSetInvalidValue() {
+        idpDefinitionMap.put("authMethod", "empty");
+        assertThrows(IllegalArgumentException.class, () -> factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition));
+    }
+
+    @Test
+    public void testAuthMethodSet() {
+        // given: 2 similar entry because of issue #2752
+        idpDefinitionMap.put("jwtclientAuthentication", true);
+        idpDefinitionMap.put("authMethod", "none");
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+        Map<String, Map> definitions = new HashMap<>();
+        definitions.put("new.idp", idpDefinitionMap);
+        // when: load beans from uaa.yml
+        factoryBean = new OauthIDPWrapperFactoryBean(definitions);
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+        // then
+        assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
+        assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
+        assertEquals("none", (((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAuthMethod()));
     }
 }

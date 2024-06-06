@@ -876,6 +876,14 @@ class PasswordGrantAuthenticationManagerTest {
         assertThrows(BadCredentialsException.class, () -> instance.oidcPasswordGrant(authentication, config));
     }
 
+    @Test
+    void oidcPasswordGrant_requireAuthenticationStatement() {
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("user", new Object());
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
+            .setRelyingPartyId("client-id");
+        assertThrows(ProviderConfigurationException.class, () -> instance.oidcPasswordGrant(authentication, config));
+    }
+
     private void mockKeyInfoService() throws JOSEException {
         KeyInfoService keyInfoService = mock(KeyInfoService.class);
         KeyInfo keyInfo = mock(KeyInfo.class);

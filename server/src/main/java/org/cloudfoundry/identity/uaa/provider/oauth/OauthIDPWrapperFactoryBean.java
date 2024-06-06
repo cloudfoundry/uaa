@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
@@ -173,6 +174,13 @@ public class OauthIDPWrapperFactoryBean {
         }
         if (idpDefinitionMap.get("performRpInitiatedLogout") instanceof Boolean) {
             idpDefinition.setPerformRpInitiatedLogout((boolean)idpDefinitionMap.get("performRpInitiatedLogout"));
+        }
+        if (idpDefinitionMap.get("authMethod") instanceof String definedAuthMethod) {
+            if (ClientAuthentication.isMethodSupported(definedAuthMethod)) {
+                idpDefinition.setAuthMethod(definedAuthMethod);
+            } else {
+                throw new IllegalArgumentException("Invalid IdP authentication method");
+            }
         }
     }
 
