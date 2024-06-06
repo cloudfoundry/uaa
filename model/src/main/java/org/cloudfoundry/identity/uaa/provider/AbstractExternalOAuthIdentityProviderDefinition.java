@@ -53,6 +53,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private boolean performRpInitiatedLogout = true;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String authMethod;
+    private boolean cacheJwks = true;
 
     public T setAuthUrl(URL authUrl) {
         this.authUrl = authUrl;
@@ -143,6 +144,11 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         return (T) this;
     }
 
+    public T setCacheJwks(final boolean cacheJwks) {
+        this.cacheJwks = cacheJwks;
+        return (T) this;
+    }
+
     public void setPkce(final boolean pkce) {
         this.pkce = pkce;
     }
@@ -194,6 +200,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         if (pkce != that.pkce) return false;
         if (performRpInitiatedLogout != that.performRpInitiatedLogout) return false;
         if (!Objects.equals(authMethod, that.authMethod)) return false;
+        if (cacheJwks != that.cacheJwks) return false;
         return Objects.equals(responseType, that.responseType);
 
     }
@@ -220,6 +227,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
         result = 31 * result + (pkce ? 1 : 0);
         result = 31 * result + (performRpInitiatedLogout ? 1 : 0);
         result = 31 * result + (authMethod != null ? authMethod.hashCode() : 0);
+        result = 31 * result + (cacheJwks ? 1 : 0);
         return result;
     }
 }

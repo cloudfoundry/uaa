@@ -575,6 +575,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setAttributeMappings(getAttributeMappingMap());
         definition.setUserPropagationParameter("username");
         definition.setPkce(true);
+        definition.setCacheJwks(true);
         definition.setPerformRpInitiatedLogout(true);
         identityProvider.setConfig(definition);
         identityProvider.setSerializeConfigRaw(true);
@@ -585,6 +586,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.authUrl").required().type(STRING).description("The OAuth 2.0 authorization endpoint URL"),
                 fieldWithPath("config.tokenUrl").required().type(STRING).description("The OAuth 2.0 token endpoint URL"),
                 fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures"),
+                fieldWithPath("config.cacheJwks").optional(true).type(BOOLEAN).description("<small><mark>UAA 77.11.0</mark></small>. Option to enable or disabled the cache for the JWKS. The verification key is fetched if only `discoveryUrl` is set or `tokenKeyUrl` in combination with `tokenUrl`.").attributes(new Attributes.Attribute("constraints", "Used only if `discoveryUrl` or `tokenKeyUrl` is set.")),
                 fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures, set to null if a `tokenKeyUrl` is provided."),
                 fieldWithPath("config.userInfoUrl").optional(null).type(STRING).description("A URL for fetching user info attributes when queried with the obtained token authorization."),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
@@ -674,6 +676,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         definition.setPkce(true);
+        definition.setCacheJwks(true);
         definition.setPerformRpInitiatedLogout(true);
         definition.setAttributeMappings(getAttributeMappingMap());
         definition.setUserPropagationParameter("username");
@@ -692,6 +695,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.authUrl").optional().type(STRING).description("The OIDC 1.0 authorization endpoint URL. This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
                 fieldWithPath("config.tokenUrl").optional().type(STRING).description("The OIDC 1.0 token endpoint URL.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
                 fieldWithPath("config.tokenKeyUrl").optional(null).type(STRING).description("The URL of the token key endpoint which renders a verification key for validating token signatures.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
+                fieldWithPath("config.cacheJwks").optional(true).type(BOOLEAN).description("<small><mark>UAA 77.11.0</mark></small>. Option to enable or disabled the cache for the JWKS. The verification key is fetched if only `discoveryUrl` is set or `tokenKeyUrl` in combination with `tokenUrl`.").attributes(new Attributes.Attribute("constraints", "Used only if `discoveryUrl` or `tokenKeyUrl` is set.")),
                 fieldWithPath("config.tokenKey").optional(null).type(STRING).description("A verification key for validating token signatures. We recommend not setting this as it will not allow for key rotation.  This can be left blank if a discovery URL is provided. If both are provided, this property overrides the discovery URL.").attributes(new Attributes.Attribute("constraints", "Required unless `discoveryUrl` is set.")),
                 fieldWithPath("config.showLinkText").optional(true).type(BOOLEAN).description("A flag controlling whether a link to this provider's login will be shown on the UAA login page"),
                 fieldWithPath("config.linkText").optional(null).type(STRING).description("Text to use for the login link to the provider"),

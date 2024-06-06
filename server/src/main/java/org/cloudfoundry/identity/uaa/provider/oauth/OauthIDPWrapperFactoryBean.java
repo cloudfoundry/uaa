@@ -174,6 +174,9 @@ public class OauthIDPWrapperFactoryBean {
         if (idpDefinitionMap.get("performRpInitiatedLogout") instanceof Boolean) {
             idpDefinition.setPerformRpInitiatedLogout((boolean)idpDefinitionMap.get("performRpInitiatedLogout"));
         }
+        if (idpDefinitionMap.get("cacheJwks") instanceof Boolean) {
+            idpDefinition.setCacheJwks((boolean)idpDefinitionMap.get("cacheJwks"));
+        }
     }
 
     private static Map<String, String> parseAdditionalParameters(Map<String, Object> idpDefinitionMap) {
