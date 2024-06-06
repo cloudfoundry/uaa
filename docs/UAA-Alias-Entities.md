@@ -1,6 +1,6 @@
 # UAA Alias Entities (Experimental)
 
-This guide describes the motivation behind the alias feature for UAA as well as its usage.
+This guide describes the motivation behind the alias feature of UAA as well as its usage.
 
 ## Motivation
 
@@ -8,13 +8,13 @@ The alias feature addresses the goal of using one single UAA installation for se
 each other.
 
 At first glance, UAA already supports a concept for tenant isolation: identity zones.
-All entities managed by UAA, i.e., OAuth clients, identity providers, users, groups, etc., are associated to an identity
-zone and operations on them are limited to the context of the current identity zone.
+All entities managed by UAA, i.e. OAuth clients, identity providers, users, groups, etc., are associated with an 
+identity zone and operations on them are limited to the context of the current identity zone.
 
-However, components relying on UAA are not making use of the identity zone concept and are only aware of the "uaa" zone.
-In addition to that, UAA itself does not support performing OAuth flows against any other zone than "uaa".
-This implies that users that are only present in a custom identity zone cannot log in to components relying on 
-authentication with UAA.
+However, components like CF runtime are not making use of the identity zone concept and are only aware of the "uaa" 
+zone.
+CF runtime does not support performing OAuth flows against any other zone than "uaa".
+This implies that users that are only present in a custom identity zone cannot log in there.
 
 One option to solve this issue would be to enable specifying the identity zone during authorization flows against custom
 zones, similar to specifying the origin key of the IdP to use for authentication.
@@ -24,8 +24,8 @@ to use when initiating authorization flows.
 Second, all OAuth clients used for these authorization flows, which currently are only present in the "uaa" zone, would 
 need to be duplicated to the custom zones that need to use them or might use them in the future.
 
-The alias concept addresses this issue by supporting the isolated management of users and their IdPs in custom identity 
-zones while guaranteeing that components relying on UAA authentication still work.
+The alias concept addresses this issue by supporting isolated management of users and their IdPs in custom identity 
+zones while guaranteeing that components relying on authentication to the "uaa" identity zone still work.
 This is done by managing synchronized copies of users and identity providers in both the "uaa" and the custom zone.
 The copy of such an entity will be referred to as its "alias".
 An entity and its alias reference each other by the newly introduced properties `alias_id` (ID of the alias) and 
@@ -41,7 +41,7 @@ and therefore do not require any adjustments.
 
 ### Example: Cloud Controller
 
-An example for a component that relies on UAA as an authorization server if the CF Cloud Controller.
+An example for a component that relies on UAA as an authorization server is the CF Cloud Controller.
 Among other functionalities, it manages the roles of users on org and space level.
 This is done by internally assigning the roles to the user IDs they receive from UAA.
 
