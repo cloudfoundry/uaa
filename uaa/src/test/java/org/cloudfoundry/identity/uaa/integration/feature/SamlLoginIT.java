@@ -865,8 +865,11 @@ public class SamlLoginIT {
         String samlUserId = IntegrationTestUtils.getUserId(adminTokenInZone, zoneUrl, provider.getOriginKey(), MARISSA4_EMAIL);
         uaaSamlUserGroup = IntegrationTestUtils.getGroup(adminTokenInZone, null, zoneUrl, "uaa.saml.user");
         uaaSamlAdminGroup = IntegrationTestUtils.getGroup(adminTokenInZone, null, zoneUrl, "uaa.saml.admin");
+        IdentityProvider<SamlIdentityProviderDefinition> finalProvider = provider;
         assertTrue(isMember(samlUserId, uaaSamlUserGroup));
+        assertTrue("Expect saml user members to have origin: " + finalProvider.getOriginKey(), uaaSamlUserGroup.getMembers().stream().allMatch(p -> finalProvider.getOriginKey().equals(p.getOrigin())));
         assertTrue(isMember(samlUserId, uaaSamlAdminGroup));
+        assertTrue("Expect admin members to have origin: " + finalProvider.getOriginKey(), uaaSamlAdminGroup.getMembers().stream().allMatch(p -> finalProvider.getOriginKey().equals(p.getOrigin())));
 
     }
 
