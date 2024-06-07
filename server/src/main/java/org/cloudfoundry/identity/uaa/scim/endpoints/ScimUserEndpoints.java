@@ -83,7 +83,6 @@ import org.springframework.lang.Nullable;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
-import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.Assert;
@@ -165,7 +164,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final ApprovalStore approvalStore,
             final ScimGroupMembershipManager membershipManager,
             final ScimUserAliasHandler aliasHandler,
-            final @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
+            final TransactionTemplate transactionTemplate,
             final @Qualifier("aliasEntitiesEnabled") boolean aliasEntitiesEnabled,
             final @Value("${userMaxCount:500}") int userMaxCount
     ) {
@@ -191,7 +190,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                 new ExceptionReportHttpMessageConverter()
         };
         this.aliasHandler = aliasHandler;
-        this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.transactionTemplate = transactionTemplate;
         scimUpdates = new AtomicInteger();
         scimDeletes = new AtomicInteger();
         errorCounts = new ConcurrentHashMap<>();

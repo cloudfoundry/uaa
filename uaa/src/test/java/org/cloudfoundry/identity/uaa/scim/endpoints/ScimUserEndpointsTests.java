@@ -97,7 +97,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.servlet.View;
 
 import com.unboundid.scim.sdk.AttributePath;
@@ -146,8 +146,7 @@ class ScimUserEndpointsTests {
     private ScimUserAliasHandler scimUserAliasHandler;
 
     @Autowired
-    @Qualifier("transactionManager")
-    private PlatformTransactionManager platformTransactionManager;
+    private TransactionTemplate transactionTemplate;
 
     @Autowired
     @Qualifier("identityZoneProvisioning")
@@ -230,7 +229,7 @@ class ScimUserEndpointsTests {
                 mockApprovalStore,
                 spiedScimGroupMembershipManager,
                 scimUserAliasHandler,
-                platformTransactionManager,
+                transactionTemplate,
                 false,
                 5
         );

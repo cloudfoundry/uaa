@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -47,7 +48,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
 
 @ExtendWith(MockitoExtension.class)
 class ScimUserEndpointsAliasTests {
@@ -74,7 +77,7 @@ class ScimUserEndpointsAliasTests {
     @Mock
     private ScimUserAliasHandler scimUserAliasHandler;
     @Mock
-    private PlatformTransactionManager platformTransactionManager;
+    private TransactionTemplate transactionTemplate;
     @Mock
     private ApplicationEventPublisher applicationEventPublisher;
 
@@ -96,7 +99,7 @@ class ScimUserEndpointsAliasTests {
                 approvalStore,
                 scimGroupMembershipManager,
                 scimUserAliasHandler,
-                platformTransactionManager,
+                transactionTemplate,
                 true, // alias entities are enabled
                 500
         );
@@ -116,6 +119,11 @@ class ScimUserEndpointsAliasTests {
             scimUser.setId(id);
             scimUser.setZoneId(idzId);
             return scimUser;
+        });
+
+        lenient().when(transactionTemplate.execute(any())).then(invocationOnMock -> {
+            final TransactionCallback<?> callback = invocationOnMock.getArgument(0);
+            return callback.doInTransaction(mock(TransactionStatus.class));
         });
     }
 
