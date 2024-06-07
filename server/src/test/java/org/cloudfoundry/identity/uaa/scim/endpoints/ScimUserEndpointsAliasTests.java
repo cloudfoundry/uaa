@@ -97,7 +97,7 @@ class ScimUserEndpointsAliasTests {
                 scimGroupMembershipManager,
                 scimUserAliasHandler,
                 platformTransactionManager,
-                false,
+                true, // alias entities are enabled
                 500
         );
 
@@ -313,8 +313,6 @@ class ScimUserEndpointsAliasTests {
 
             @BeforeEach
             void setUp() {
-                ReflectionTestUtils.setField(scimUserEndpoints, "aliasEntitiesEnabled", true);
-
                 arrangeCurrentIdz(UAA);
 
                 final Pair<ScimUser, ScimUser> userAndAlias = buildUserAndAlias(origin, UAA, aliasZid);
@@ -323,11 +321,6 @@ class ScimUserEndpointsAliasTests {
                 when(scimUserProvisioning.retrieve(originalUser.getId(), UAA)).thenReturn(originalUser);
 
                 aliasUser = userAndAlias.getRight();
-            }
-
-            @AfterEach
-            void tearDown() {
-                ReflectionTestUtils.setField(scimUserEndpoints, "aliasEntitiesEnabled", false);
             }
 
             @Test
@@ -438,6 +431,16 @@ class ScimUserEndpointsAliasTests {
 
         @Nested
         class AliasFeatureDisabled {
+            @BeforeEach
+            void setUp() {
+                arrangeAliasFeatureIsEnabled(false);
+            }
+
+            @AfterEach
+            void tearDown() {
+                arrangeAliasFeatureIsEnabled(true);
+            }
+
             @Test
             void shouldThrowException_IfUserHasExistingAlias() {
                 arrangeCurrentIdz(UAA);
@@ -457,6 +460,10 @@ class ScimUserEndpointsAliasTests {
                 assertThat(exception.getHttpStatus()).isEqualTo(HttpStatus.BAD_REQUEST.value());
             }
         }
+    }
+
+    private void arrangeAliasFeatureIsEnabled(final boolean enabled) {
+        ReflectionTestUtils.setField(scimUserEndpoints, "aliasEntitiesEnabled", enabled);
     }
 
     /**

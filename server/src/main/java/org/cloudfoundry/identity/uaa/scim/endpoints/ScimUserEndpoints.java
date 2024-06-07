@@ -256,8 +256,28 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             throw new ScimException("Alias ID and/or alias ZID are invalid.", HttpStatus.BAD_REQUEST);
         }
 
-        // create the user and an alias for it if necessary
-        ScimUser scimUser;
+        final ScimUser scimUser;
+        if (aliasEntitiesEnabled) {
+            // create the user and an alias for it if necessary
+            scimUser = createScimUserWithAliasHandling(user);
+        } else {
+            // create the user without alias handling
+            scimUser = scimUserProvisioning.createUser(user, user.getPassword(), identityZoneManager.getCurrentIdentityZoneId());
+        }
+
+        if (user.getApprovals() != null) {
+            for (Approval approval : user.getApprovals()) {
+                approval.setUserId(scimUser.getId());
+                approvalStore.addApproval(approval, identityZoneManager.getCurrentIdentityZoneId());
+            }
+        }
+        final ScimUser scimUserWithApprovalsAndGroups = syncApprovals(syncGroups(scimUser));
+        addETagHeader(response, scimUserWithApprovalsAndGroups);
+        return scimUserWithApprovalsAndGroups;
+    }
+
+    private ScimUser createScimUserWithAliasHandling(final ScimUser user) {
+        final ScimUser scimUser;
         try {
             scimUser = transactionTemplate.execute(txStatus -> {
                 final ScimUser originalScimUser = scimUserProvisioning.createUser(
@@ -273,19 +293,9 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         } catch (final EntityAliasFailedException e) {
             throw new ScimException(e.getMessage(), e, HttpStatus.resolve(e.getHttpStatus()));
         }
-
         if (scimUser == null) {
             throw new IllegalStateException("The persisted user is not present after handling the alias.");
         }
-
-        if (user.getApprovals() != null) {
-            for (Approval approval : user.getApprovals()) {
-                approval.setUserId(scimUser.getId());
-                approvalStore.addApproval(approval, identityZoneManager.getCurrentIdentityZoneId());
-            }
-        }
-        scimUser = syncApprovals(syncGroups(scimUser));
-        addETagHeader(response, scimUser);
         return scimUser;
     }
 
@@ -320,27 +330,37 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
         final ScimUser scimUser;
         try {
-            scimUser = transactionTemplate.execute(txStatus -> {
-                final ScimUser updatedOriginalUser = scimUserProvisioning.update(
-                        userId,
-                        user,
-                        identityZoneManager.getCurrentIdentityZoneId()
-                );
-                scimUpdates.incrementAndGet();
-                final ScimUser updatedOriginalUserSynced = syncApprovals(syncGroups(updatedOriginalUser));
-                return aliasHandler.ensureConsistencyOfAliasEntity(
-                        updatedOriginalUserSynced,
-                        existingScimUser
-                );
-            });
-        } catch (OptimisticLockingFailureException e) {
+            if (aliasEntitiesEnabled) {
+                // update user and create/update alias, if necessary
+                scimUser = updateUserWithAliasHandling(userId, user, existingScimUser);
+            } else {
+                // update user without alias handling
+                scimUser = scimUserProvisioning.update(userId, user, identityZoneManager.getCurrentIdentityZoneId());
+            }
+        } catch (final OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
         } catch (final EntityAliasFailedException e) {
             throw new ScimException(e.getMessage(), e, HttpStatus.resolve(e.getHttpStatus()));
         }
 
-        addETagHeader(httpServletResponse, scimUser);
-        return scimUser;
+        scimUpdates.incrementAndGet();
+        final ScimUser scimUserWithApprovalsAndGroups = syncApprovals(syncGroups(scimUser));
+        addETagHeader(httpServletResponse, scimUserWithApprovalsAndGroups);
+        return scimUserWithApprovalsAndGroups;
+    }
+
+    private ScimUser updateUserWithAliasHandling(final String userId, final ScimUser user, final ScimUser existingUser) {
+        return transactionTemplate.execute(txStatus -> {
+            final ScimUser updatedOriginalUser = scimUserProvisioning.update(
+                    userId,
+                    user,
+                    identityZoneManager.getCurrentIdentityZoneId()
+            );
+            return aliasHandler.ensureConsistencyOfAliasEntity(
+                    updatedOriginalUser,
+                    existingUser
+            );
+        });
     }
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PATCH)
