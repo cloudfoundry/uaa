@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.alias;
 
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
@@ -138,7 +137,7 @@ public abstract class AliasMockMvcTestBase {
     }
 
     protected static List<String> getScopesForZone(final String zoneId, final String... scopes) {
-        return Stream.of(scopes).map(scope -> String.format("zones.%s.%s", zoneId, scope)).collect(toList());
+        return Stream.of(scopes).map(scope -> String.format("zones.%s.%s", zoneId, scope)).toList();
     }
 
     protected static IdentityProvider<?> buildUaaIdpWithAliasProperties(

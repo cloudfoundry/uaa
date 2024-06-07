@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -1481,7 +1480,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         final List<String> directGroupNamesAliasUser = aliasUser.getGroups().stream()
                 .filter(group -> group.getType() == DIRECT)
                 .map(ScimUser.Group::getDisplay)
-                .collect(toList());
+                .toList();
         assertThat(directGroupNamesAliasUser).hasSameElementsAs(defaultGroupNamesAliasZone);
 
         final ScimMeta originalUserMeta = originalUser.getMeta();
