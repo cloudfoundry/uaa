@@ -1,25 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
-import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-
+import com.jayway.jsonpath.JsonPathException;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
@@ -99,7 +80,24 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
-import com.jayway.jsonpath.JsonPathException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.util.StringUtils.isEmpty;
 
 import lombok.Getter;
 

@@ -1,23 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.util.StringUtils.hasText;
-
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
 import org.apache.commons.lang3.tuple.Pair;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -51,6 +33,24 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
+
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.util.StringUtils.hasText;
 
 @ExtendWith(MockitoExtension.class)
 class ScimUserEndpointsAliasTests {

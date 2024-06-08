@@ -1,19 +1,5 @@
 package org.cloudfoundry.identity.uaa.alias;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -37,6 +23,20 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
+
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 public abstract class AliasMockMvcTestBase {
     protected static final AlphanumericRandomValueStringGenerator RANDOM_STRING_GENERATOR = new AlphanumericRandomValueStringGenerator(8);
