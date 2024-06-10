@@ -13,8 +13,10 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailed
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.slf4j.Logger;
@@ -27,8 +29,10 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -197,12 +201,31 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public void onApplicationEvent(AbstractUaaEvent event) {
         if (event instanceof IdentityZoneModifiedEvent zevent && zevent.getEventType() == AuditEventType.IdentityZoneCreatedEvent) {
-            final String zoneId = ((IdentityZone) event.getSource()).getId();
-            getSystemScopes().forEach(
+            final IdentityZone zone = (IdentityZone) event.getSource();
+            final String zoneId = zone.getId();
+            getEffectiveSystemScopes(zone).forEach(
                     scope -> createAndIgnoreDuplicate(scope, zoneId)
             );
         }
         SystemDeletable.super.onApplicationEvent(event);
+    }
+
+    /**
+     * Determine the system scopes and remove those that are not part in the groups allow list for the given zone. If no
+     * such allow list is defined, all system scopes are returned.
+     */
+    private List<String> getEffectiveSystemScopes(final IdentityZone zone) {
+        final List<String> systemScopes = new ArrayList<>(getSystemScopes());
+
+        final Optional<Set<String>> allowedGroupsForZoneOpt = Optional.ofNullable(zone.getConfig())
+                .map(IdentityZoneConfiguration::getUserConfig)
+                .map(UserConfig::resultingAllowedGroups);
+        if (allowedGroupsForZoneOpt.isEmpty()) {
+            return systemScopes;
+        }
+
+        final Set<String> allowedGroupsForZone = allowedGroupsForZoneOpt.get();
+        return systemScopes.stream().filter(allowedGroupsForZone::contains).toList();
     }
 
     @Override

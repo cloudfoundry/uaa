@@ -121,7 +121,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
 
     @Override
     public String getZoneId() {
-        return identityZoneId;
+        return getIdentityZoneId();
     }
 
     public IdentityProvider setId(String id) {

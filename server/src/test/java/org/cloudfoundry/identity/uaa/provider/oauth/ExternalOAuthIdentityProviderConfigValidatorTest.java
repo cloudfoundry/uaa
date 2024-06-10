@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.BaseIdentityProviderValidator;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -61,9 +62,32 @@ public class ExternalOAuthIdentityProviderConfigValidatorTest {
         validator.validate(definition);
     }
 
-    @Test
+    @Test(expected = IllegalArgumentException.class)
     public void configWithNullRelyingPartySecret_ThrowsException() {
         definition.setRelyingPartySecret(null);
+        definition.setAuthMethod(ClientAuthentication.CLIENT_SECRET_BASIC);
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
+        validator.validate(definition);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void configWithJwtClientConfiguratButAuthMethodSecret_ThrowsException() {
+        definition.setRelyingPartySecret("secret");
+        ((OIDCIdentityProviderDefinition) definition).setJwtClientAuthentication(new Object());
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
+        validator.validate(definition);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void configWithPrivateKeyJwtButNoJwtConfiguration_ThrowsException() {
+        definition.setAuthMethod(ClientAuthentication.PRIVATE_KEY_JWT);
+        validator = new ExternalOAuthIdentityProviderConfigValidator();
+        validator.validate(definition);
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void configWithInvalidAuthMethod_ThrowsException() {
+        definition.setAuthMethod("no-sure-about-this");
         validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }
