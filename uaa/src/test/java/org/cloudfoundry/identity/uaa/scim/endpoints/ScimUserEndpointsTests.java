@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -22,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -36,6 +38,7 @@ import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -56,9 +59,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.servlet.View;
 
 import java.util.ArrayList;
@@ -70,6 +73,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -138,6 +142,15 @@ class ScimUserEndpointsTests {
     @Autowired
     private IdentityZoneManager identityZoneManager;
 
+    private ScimUserAliasHandler scimUserAliasHandler;
+
+    @Autowired
+    private TransactionTemplate transactionTemplate;
+
+    @Autowired
+    @Qualifier("identityZoneProvisioning")
+    private IdentityZoneProvisioning identityZoneProvisioning;
+
     private ScimUser joel;
     private ScimUser dale;
 
@@ -197,6 +210,12 @@ class ScimUserEndpointsTests {
 
         spiedScimGroupMembershipManager = spy(scimGroupMembershipManager);
 
+        scimUserAliasHandler = mock(ScimUserAliasHandler.class);
+        when(scimUserAliasHandler.aliasPropertiesAreValid(any(), any())).thenReturn(true);
+        when(scimUserAliasHandler.ensureConsistencyOfAliasEntity(any(), any()))
+                .then(invocationOnMock -> invocationOnMock.getArgument(0));
+        when(scimUserAliasHandler.retrieveAliasEntity(any())).thenReturn(Optional.empty());
+
         scimUserEndpoints = new ScimUserEndpoints(
                 new IdentityZoneManagerImpl(),
                 new IsSelfCheck(null),
@@ -208,7 +227,11 @@ class ScimUserEndpointsTests {
                 null,
                 mockApprovalStore,
                 spiedScimGroupMembershipManager,
-                5);
+                scimUserAliasHandler,
+                transactionTemplate,
+                false,
+                5
+        );
     }
 
     @Test
@@ -698,7 +721,7 @@ class ScimUserEndpointsTests {
     void whenSettingAnInvalidUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, 0),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, null, false, 0),
                 containsString("Invalid \"userMaxCount\" value (got 0). Should be positive number."));
     }
 
@@ -706,7 +729,7 @@ class ScimUserEndpointsTests {
     void whenSettingANegativeValueUserMaxCount_ScimUsersEndpointShouldThrowAnException() {
         assertThrowsWithMessageThat(
                 IllegalArgumentException.class,
-                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, -1),
+                () -> new ScimUserEndpoints(null, null, null, null, null, null, null, null, null, null, null, null, false, -1),
                 containsString("Invalid \"userMaxCount\" value (got -1). Should be positive number."));
     }
 
