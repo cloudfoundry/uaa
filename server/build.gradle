@@ -6,7 +6,7 @@ dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
     implementation(project(":cloudfoundry-identity-model"))
     // Shadow library is needed for FIPS compliance, as opensaml-security-api relies on non-FIPS compliant libraries
-    //implementation(project(path: ':cloudfoundry-identity-shadow-opensaml-security-api', configuration: 'shadow'))
+    implementation(project(path: ':cloudfoundry-identity-shadow-opensaml-security-api', configuration: 'shadow'))
 
     implementation(libraries.tomcatJdbc)
     providedCompile(libraries.tomcatEmbed)
@@ -124,7 +124,7 @@ configurations.all {
     exclude(group: "commons-collections", module: "commons-collections")
 
     // Exclude opensaml-security-api and non-FIPS bouncycastle libs, and use Shadow library for FIPS compliance
-    //exclude(group: "org.opensaml", module: "opensaml-security-api")
+    exclude(group: "org.opensaml", module: "opensaml-security-api")
     exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
     exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
     exclude(group: "org.bouncycastle", module: "bcutil-jdk15on")

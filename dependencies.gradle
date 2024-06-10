@@ -19,7 +19,7 @@ versions.seleniumVersion = "4.18.1"
 versions.braveVersion = "6.0.3"
 versions.jacksonVersion = "2.17.1"
 versions.jsonPathVersion = "2.9.0"
-versions.opensaml = "4.0.1" // Spring Security 5.8.x allows OpenSAML 3 or 4. OpenSAML 3 has reached its end-of-life. Spring Security 6 drops support for 3, using 4.
+versions.opensaml = "4.3.2" // Spring Security 5.8.x allows OpenSAML 3 or 4. OpenSAML 3 has reached its end-of-life. Spring Security 6 drops support for 3, using 4.
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
 ext["mariadb.version"] = "2.7.12" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
@@ -144,4 +144,4 @@ libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
 libraries.gradleJcocoPlugin = "org.barfuin.gradle.jacocolog:gradle-jacoco-log:3.1.0"
 libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:5.0.0.4638"
-//libraries.shadowPlugin = "com.github.johnrengelman:shadow:8.1.1"
+libraries.shadowPlugin = "com.github.johnrengelman:shadow:8.1.1"
