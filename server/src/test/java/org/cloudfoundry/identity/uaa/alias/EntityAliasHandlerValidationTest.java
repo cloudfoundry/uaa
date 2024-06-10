@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.alias;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerValidationTest.NoExistingAliasBase.ExistingEntityArgument.ENTITY_WITH_EMPTY_ALIAS_PROPS;
+import static org.junit.Assert.assertFalse;
 
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -128,6 +129,12 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
             // (9) alias ID removed, alias ZID removed
             requestBody = buildEntityWithAliasProps(null, null);
             assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)).isFalse();
+        }
+
+        @Test
+        final void shouldReturnFalse_DefaultSetting() {
+            AliasEntitiesConfig aliasEntitiesConfig = new AliasEntitiesConfig();
+            assertFalse(aliasEntitiesConfig.aliasEntitiesEnabled(false));
         }
     }
 
