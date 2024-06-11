@@ -178,13 +178,13 @@ public class OauthIDPWrapperFactoryBean {
         if (idpDefinitionMap.get("cacheJwks") instanceof Boolean) {
             idpDefinition.setCacheJwks((boolean)idpDefinitionMap.get("cacheJwks"));
         }
-      if (idpDefinitionMap.get("authMethod") instanceof String definedAuthMethod) {
-        if (ClientAuthentication.isMethodSupported(definedAuthMethod)) {
-          idpDefinition.setAuthMethod(definedAuthMethod);
-        } else {
-          throw new IllegalArgumentException("Invalid IdP authentication method");
+        if (idpDefinitionMap.get("authMethod") instanceof String definedAuthMethod) {
+            if (ClientAuthentication.isMethodSupported(definedAuthMethod)) {
+                idpDefinition.setAuthMethod(definedAuthMethod);
+            } else {
+                throw new IllegalArgumentException("Invalid IdP authentication method");
+            }
         }
-      }
     }
 
     private static Map<String, String> parseAdditionalParameters(Map<String, Object> idpDefinitionMap) {
