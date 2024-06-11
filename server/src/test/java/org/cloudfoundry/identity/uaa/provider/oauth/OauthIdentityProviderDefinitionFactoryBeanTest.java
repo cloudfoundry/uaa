@@ -54,6 +54,7 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         idpDefinitionMap.put("tokenKeyUrl", "http://token-key.url");
         idpDefinitionMap.put("logoutUrl", "http://logout.url");
         idpDefinitionMap.put("clientAuthInBody", false);
+        idpDefinitionMap.put("cacheJwks", true);
     }
 
     @Test
