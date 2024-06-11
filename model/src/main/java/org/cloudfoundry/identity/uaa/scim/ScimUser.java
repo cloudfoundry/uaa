@@ -353,11 +353,9 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
     private String zoneId = null;
 
-    @JsonIgnore
     @Setter
     private String aliasZid = null;
 
-    @JsonIgnore
     @Setter
     private String aliasId = null;
 
