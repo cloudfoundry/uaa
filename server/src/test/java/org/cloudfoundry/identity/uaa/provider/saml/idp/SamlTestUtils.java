@@ -30,6 +30,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 // Attempt to move usages to Saml2TestUtils style
 public class SamlTestUtils {
 
+    private SamlTestUtils() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
     public static final String PROVIDER_PRIVATE_KEY_PASSWORD = "password";
 
     public static final String PROVIDER_PRIVATE_KEY = """

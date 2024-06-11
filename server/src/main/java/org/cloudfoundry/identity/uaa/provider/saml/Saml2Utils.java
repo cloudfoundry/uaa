@@ -39,6 +39,7 @@ import java.util.zip.InflaterOutputStream;
 public final class Saml2Utils {
 
     private Saml2Utils() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     public static String samlEncode(byte[] b) {
