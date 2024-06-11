@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -9,14 +10,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-//import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-//import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-//import org.springframework.security.saml.metadata.MetadataMemoryProvider;
 import org.springframework.web.context.WebApplicationContext;
-
-import static org.junit.Assert.*;
 
 @DefaultTestContext
 class SamlInitializationMockMvcTests {

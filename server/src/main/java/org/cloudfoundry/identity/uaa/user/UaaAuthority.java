@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
@@ -30,7 +31,10 @@ import java.util.List;
  */
 public enum UaaAuthority implements GrantedAuthority {
 
-    UAA_INVITED("uaa.invited", 1), UAA_ADMIN("uaa.admin", 1), UAA_USER("uaa.user", 0), UAA_NONE("uaa.none", -1);
+    UAA_INVITED("uaa.invited", 1),
+    UAA_ADMIN("uaa.admin", 1),
+    UAA_USER("uaa.user", 0),
+    UAA_NONE("uaa.none", -1);
 
     public static final List<UaaAuthority> ADMIN_AUTHORITIES = List.of(UAA_ADMIN, UAA_USER);
 
@@ -40,6 +44,10 @@ public enum UaaAuthority implements GrantedAuthority {
 
     private final int value;
 
+    /**
+     *  The name of the type of user, either "uaa.admin" or "uaa.user".
+     */
+    @Getter
     private final String userType;
 
     UaaAuthority(String userType, int value) {
@@ -49,15 +57,6 @@ public enum UaaAuthority implements GrantedAuthority {
 
     public int value() {
         return value;
-    }
-
-    /**
-     * The name of the type of user, either "uaa.admin" or "uaa.user".
-     *
-     * @return a user type name
-     */
-    public String getUserType() {
-        return userType;
     }
 
     /**
@@ -84,6 +83,6 @@ public enum UaaAuthority implements GrantedAuthority {
 
     public static GrantedAuthority authority(String value) {
         return value.equals("uaa.admin") ? UAA_ADMIN : value.contains("uaa.user") ? UAA_USER
-                        : new SimpleGrantedAuthority(value);
+                : new SimpleGrantedAuthority(value);
     }
 }

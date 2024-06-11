@@ -69,6 +69,7 @@ public final class Saml2TestUtils {
     private static final String ASSERTING_PARTY_ENTITY_ID = "https://some.idp.test/saml2/idp";
 
     private Saml2TestUtils() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     public static Saml2AuthenticationToken authenticationToken() {
@@ -76,8 +77,7 @@ public final class Saml2TestUtils {
 
         AbstractSaml2AuthenticationRequest mockAuthenticationRequest = mockedStoredAuthenticationRequest("SAML2",
                 Saml2MessageBinding.POST, false);
-        Saml2AuthenticationToken token = token(response, verifying(registration()), mockAuthenticationRequest);
-        return token;
+        return token(response, verifying(registration()), mockAuthenticationRequest);
     }
 
     public static Response responseWithAssertions() {
@@ -115,8 +115,7 @@ public final class Saml2TestUtils {
     }
 
     private static AuthnRequest request() {
-        AuthnRequest request = TestOpenSamlObjects.authnRequest();
-        return request;
+        return TestOpenSamlObjects.authnRequest();
     }
 
     private static String serializedRequest(AuthnRequest request, Saml2MessageBinding binding) {
@@ -152,8 +151,7 @@ public final class Saml2TestUtils {
     }
 
     private static <T extends SignableSAMLObject> T signed(T toSign) {
-        TestOpenSamlObjects.signed(toSign, TestSaml2X509Credentials.assertingPartySigningCredential(),
-                RELYING_PARTY_ENTITY_ID);
+        TestOpenSamlObjects.signed(toSign, TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID);
         return toSign;
     }
 
@@ -205,17 +203,17 @@ public final class Saml2TestUtils {
         return TestRelyingPartyRegistrations.noCredentials()
                 .entityId(RELYING_PARTY_ENTITY_ID)
                 .assertionConsumerServiceLocation(DESTINATION)
-                .assertingPartyDetails((party) -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
+                .assertingPartyDetails(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
     }
 
     private static RelyingPartyRegistration.Builder verifying(RelyingPartyRegistration.Builder builder) {
-        return builder.assertingPartyDetails((party) -> party
-                .verificationX509Credentials((c) -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
+        return builder.assertingPartyDetails(party -> party
+                .verificationX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
     }
 
     private static RelyingPartyRegistration.Builder decrypting(RelyingPartyRegistration.Builder builder) {
         return builder
-                .decryptionX509Credentials((c) -> c.add(TestSaml2X509Credentials.relyingPartyDecryptingCredential()));
+                .decryptionX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyDecryptingCredential()));
     }
 
     public static Map<String, String> xmlNamespaces() {

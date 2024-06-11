@@ -200,7 +200,7 @@ public class SamlLoginIT {
     @Test
     void samlSPMetadata() {
         RestTemplate request = new RestTemplate();
-        ResponseEntity response = request.getForEntity(
+        ResponseEntity<String> response = request.getForEntity(
                 baseUrl + "/saml/metadata", String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         String metadataXml = (String) response.getBody();
@@ -249,7 +249,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
     void simpleSamlPhpPasscodeRedirect() throws Exception {
         createIdentityProvider(SAML_ORIGIN);
 
@@ -336,8 +335,6 @@ public class SamlLoginIT {
         LoginPage.go(webDriver, baseUrl)
                 .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
-
-        // TODO: validate user last logon
         Long afterTest = System.currentTimeMillis();
 
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
@@ -461,7 +458,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
     void groupIntegration() throws Exception {
         createIdentityProvider(SAML_ORIGIN);
         LoginPage.go(webDriver, baseUrl)
@@ -470,7 +466,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
     void faviconShouldNotSave() throws Exception {
         createIdentityProvider(SAML_ORIGIN);
         FaviconElement.getDefaultIcon(webDriver, baseUrl);
@@ -893,7 +888,6 @@ public class SamlLoginIT {
         final String MANAGERS = "managers";
         final String JOHN_THE_SLOTH = "John the Sloth";
         final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
-
 
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
@@ -1318,7 +1312,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
     void loginClientIDPAuthorizationAlreadyLoggedIn() {
         webDriver.get(baseUrl + "/logout.do");
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");

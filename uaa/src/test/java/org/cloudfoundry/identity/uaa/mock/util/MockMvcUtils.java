@@ -134,6 +134,10 @@ import static org.springframework.util.StringUtils.isEmpty;
 
 public final class MockMvcUtils {
 
+    private MockMvcUtils() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
     public static final String IDP_META_DATA =
             "<?xml version=\"1.0\"?>\n" +
                     "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"%s\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +
@@ -166,9 +170,6 @@ public final class MockMvcUtils {
                     "    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\n" +
                     "  </md:ContactPerson>\n" +
                     "</md:EntityDescriptor>";
-
-    private MockMvcUtils() {
-    }
 
     public static <T> T getEventOfType(ArgumentCaptor<AbstractUaaEvent> captor, Class<T> type) {
         for (AbstractUaaEvent event : captor.getAllValues()) {

@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
@@ -49,16 +51,23 @@ public class SamlAuthenticationFilterConfig {
     @Bean
     AuthenticationProvider samlAuthenticationProvider(IdentityZoneManager identityZoneManager,
                                                       final UaaUserDatabase userDatabase,
-                                                      final JdbcIdentityProviderProvisioning identityProviderProvisioning) {
+                                                      final JdbcIdentityProviderProvisioning identityProviderProvisioning,
+                                                      ScimGroupExternalMembershipManager externalMembershipManager,
 
-//        SamlUaaResponseAuthenticationConverter samlResponseAuthenticationConverter =
-//                new SamlUaaResponseAuthenticationConverter(identityZoneManager, userDatabase, identityProviderProvisioning);
-//
-//        OpenSaml4AuthenticationProvider authProvider = new OpenSaml4AuthenticationProvider();
-//        //authProvider.setAssertionValidator(OpenSaml40CompatibleAssertionValidators.createDefaultAssertionValidator());
-//        authProvider.setResponseAuthenticationConverter(samlResponseAuthenticationConverter);
+                                                      ApplicationEventPublisher applicationEventPublisher) {
 
-        return new SamlLoginAuthenticationProvider(identityZoneManager, userDatabase, identityProviderProvisioning);
+        SamlUaaUserManager samlUaaUserManager = new SamlUaaUserManager(userDatabase);
+        samlUaaUserManager.setApplicationEventPublisher(applicationEventPublisher);
+
+        SamlUaaAuthenticationAttributesConverter attributesConverter = new SamlUaaAuthenticationAttributesConverter();
+        SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter = new SamlUaaAuthenticationAuthoritiesConverter(externalMembershipManager);
+
+        SamlUaaResponseAuthenticationConverter samlResponseAuthenticationConverter =
+                new SamlUaaResponseAuthenticationConverter(identityZoneManager, identityProviderProvisioning,
+                        samlUaaUserManager, attributesConverter, authoritiesConverter);
+        samlResponseAuthenticationConverter.setApplicationEventPublisher(applicationEventPublisher);
+
+        return new SamlLoginAuthenticationProvider(samlResponseAuthenticationConverter);
     }
 
     @Autowired
@@ -70,10 +79,9 @@ public class SamlAuthenticationFilterConfig {
         Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter = new Saml2WebSsoAuthenticationFilter(relyingPartyRegistrationRepository);
 
         ProviderManager authenticationManager = new ProviderManager(samlAuthenticationProvider);
-        // TODO: set the publisher authenticationManager setAuthenticationEventPublisher(authenticationEventPublisher)
-
         saml2WebSsoAuthenticationFilter.setAuthenticationManager(authenticationManager);
         saml2WebSsoAuthenticationFilter.setSecurityContextRepository(securityContextRepository);
+
         return saml2WebSsoAuthenticationFilter;
     }
 }

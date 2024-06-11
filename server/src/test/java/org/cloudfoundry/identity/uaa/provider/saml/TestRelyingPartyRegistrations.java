@@ -30,6 +30,7 @@ import org.springframework.security.saml2.provider.service.web.authentication.Sa
 public final class TestRelyingPartyRegistrations {
 
     private TestRelyingPartyRegistrations() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     public static RelyingPartyRegistration.Builder relyingPartyRegistration() {
@@ -47,9 +48,9 @@ public final class TestRelyingPartyRegistrations {
                 .nameIdFormat("format")
                 .assertionConsumerServiceLocation(assertionConsumerServiceLocation)
                 .singleLogoutServiceLocation(singleLogoutServiceLocation)
-                .providerDetails((c) -> c.entityId(apEntityId).webSsoUrl(singleSignOnServiceLocation))
-                .signingX509Credentials((c) -> c.add(signingCredential))
-                .decryptionX509Credentials((c) -> c.add(verificationCertificate));
+                .providerDetails(c -> c.entityId(apEntityId).webSsoUrl(singleSignOnServiceLocation))
+                .signingX509Credentials(c -> c.add(signingCredential))
+                .decryptionX509Credentials(c -> c.add(verificationCertificate));
     }
 
     public static RelyingPartyRegistration.Builder noCredentials() {
@@ -58,7 +59,7 @@ public final class TestRelyingPartyRegistrations {
                 .singleLogoutServiceLocation("https://rp.example.org/logout/saml2/request")
                 .singleLogoutServiceResponseLocation("https://rp.example.org/logout/saml2/response")
                 .assertionConsumerServiceLocation("https://rp.example.org/acs")
-                .assertingPartyDetails((party) -> party.entityId("ap-entity-id")
+                .assertingPartyDetails(party -> party.entityId("ap-entity-id")
                         .singleSignOnServiceLocation("https://ap.example.org/sso")
                         .singleLogoutServiceLocation("https://ap.example.org/logout/saml2/request")
                         .singleLogoutServiceResponseLocation("https://ap.example.org/logout/saml2/response"));
@@ -66,10 +67,10 @@ public final class TestRelyingPartyRegistrations {
 
     public static RelyingPartyRegistration.Builder full() {
         return noCredentials()
-                .signingX509Credentials((c) -> c.add(TestSaml2X509Credentials.relyingPartySigningCredential()))
-                .decryptionX509Credentials((c) -> c.add(TestSaml2X509Credentials.relyingPartyDecryptingCredential()))
-                .assertingPartyDetails((party) -> party.verificationX509Credentials(
-                        (c) -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
+                .signingX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartySigningCredential()))
+                .decryptionX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyDecryptingCredential()))
+                .assertingPartyDetails(party -> party.verificationX509Credentials(
+                        c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
     }
 
 }

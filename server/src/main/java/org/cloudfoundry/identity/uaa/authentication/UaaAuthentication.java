@@ -109,16 +109,6 @@ public class UaaAuthentication extends AbstractAuthenticationToken
         this.userAttributes = new HashMap<>(userAttributes);
     }
 
-    public UaaAuthentication(UaaAuthentication existingAuthn, UaaPrincipal principal) {
-
-        this(principal, existingAuthn.getCredentials(), List.copyOf(existingAuthn.getAuthorities()), existingAuthn.getExternalGroups(),
-                existingAuthn.getUserAttributes(), existingAuthn.getUaaAuthenticationDetails(), existingAuthn.isAuthenticated(),
-                existingAuthn.getAuthenticatedTime(), existingAuthn.getExpiresAt());
-        this.authContextClassRef = existingAuthn.authContextClassRef;
-        this.authenticationMethods = existingAuthn.authenticationMethods;
-        this.lastLoginSuccessTime = existingAuthn.lastLoginSuccessTime;
-    }
-
     @Override
     public String getName() {
         // Should we return the ID for the principal name? (No, because the
