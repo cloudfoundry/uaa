@@ -900,7 +900,8 @@ class PasswordGrantAuthenticationManagerTest {
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("user", new Object());
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
             .setRelyingPartyId("client-id");
-        assertThrows(ProviderConfigurationException.class, () -> instance.oidcPasswordGrant(authentication, config));
+        Exception exception = assertThrows(ProviderConfigurationException.class, () -> instance.oidcPasswordGrant(authentication, config));
+        assertEquals("External OpenID Connect provider configuration is missing relyingPartySecret, jwtClientAuthentication or authMethod.", exception.getMessage());
     }
 
     private void mockKeyInfoService() throws JOSEException {
