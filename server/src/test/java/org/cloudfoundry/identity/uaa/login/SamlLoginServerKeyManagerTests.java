@@ -82,7 +82,7 @@ public class SamlLoginServerKeyManagerTests {
 
     @Test(expected = IllegalArgumentException.class)
     @Ignore("SAML test doesn't compile")
-    public void tesotWithWorkingCertificateInvalidPassword() {
+    public void testWithWorkingCertificateInvalidPassword() {
         String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
                         "Proc-Type: 4,ENCRYPTED\n" +
                         "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +

@@ -42,6 +42,7 @@ import java.security.spec.PKCS8EncodedKeySpec;
 public final class TestSaml2X509Credentials {
 
     private TestSaml2X509Credentials() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     public static Saml2X509Credential assertingPartySigningCredential() {

@@ -22,15 +22,12 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.rules.ExpectedException;
-import org.springframework.test.context.TestPropertySource;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -67,12 +64,9 @@ public class SamlIdentityProviderConfiguratorTests {
     public static final String xml = String.format(xmlWithoutID, "http://www.okta.com/k2lw4l5bPODCMIIDBRYZ");
     public static final String xmlWithoutHeader = xmlWithoutID.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
     public static final String singleAddAlias = "sample-alias";
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
     SamlIdentityProviderDefinition singleAdd = null;
     SamlIdentityProviderDefinition singleAddWithoutHeader = null;
     IdentityProviderProvisioning provisioning = mock(IdentityProviderProvisioning.class);
-    private Runnable stopHttpServer;
     private FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
     private SlowHttpServer slowHttpServer;
     private SamlIdentityProviderConfigurator configurator;
@@ -268,8 +262,6 @@ public class SamlIdentityProviderConfiguratorTests {
     @Disabled("SAML test doesn't compile")
     void shouldTimeoutWhenFetchingMetadataURL() {
         slowHttpServer.run();
-
-        expectedException.expect(NullPointerException.class);
 
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("https://localhost:23439");

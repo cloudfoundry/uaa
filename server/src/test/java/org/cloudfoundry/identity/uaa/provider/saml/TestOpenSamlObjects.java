@@ -21,14 +21,20 @@ import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.io.MarshallingException;
 import org.opensaml.core.xml.schema.XSAny;
+import org.opensaml.core.xml.schema.XSBase64Binary;
 import org.opensaml.core.xml.schema.XSBoolean;
 import org.opensaml.core.xml.schema.XSBooleanValue;
+import org.opensaml.core.xml.schema.XSDateTime;
 import org.opensaml.core.xml.schema.XSInteger;
+import org.opensaml.core.xml.schema.XSQName;
 import org.opensaml.core.xml.schema.XSString;
 import org.opensaml.core.xml.schema.XSURI;
 import org.opensaml.core.xml.schema.impl.XSAnyBuilder;
+import org.opensaml.core.xml.schema.impl.XSBase64BinaryBuilder;
 import org.opensaml.core.xml.schema.impl.XSBooleanBuilder;
+import org.opensaml.core.xml.schema.impl.XSDateTimeBuilder;
 import org.opensaml.core.xml.schema.impl.XSIntegerBuilder;
+import org.opensaml.core.xml.schema.impl.XSQNameBuilder;
 import org.opensaml.core.xml.schema.impl.XSStringBuilder;
 import org.opensaml.core.xml.schema.impl.XSURIBuilder;
 import org.opensaml.saml.common.SAMLVersion;
@@ -64,7 +70,9 @@ import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.namespace.QName;
 import java.security.cert.X509Certificate;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -95,6 +103,7 @@ public final class TestOpenSamlObjects {
     }
 
     private TestOpenSamlObjects() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     public static Response response() {
@@ -112,7 +121,7 @@ public final class TestOpenSamlObjects {
     }
 
     static Response signedResponseWithOneAssertion() {
-        return signedResponseWithOneAssertion((response) -> {
+        return signedResponseWithOneAssertion(response -> {
         });
     }
 
@@ -291,90 +300,156 @@ public final class TestOpenSamlObjects {
 
     public static List<AttributeStatement> attributeStatements() {
         List<AttributeStatement> attributeStatements = new ArrayList<>();
-        AttributeStatementBuilder attributeStatementBuilder = new AttributeStatementBuilder();
-        AttributeBuilder attributeBuilder = new AttributeBuilder();
-        AttributeStatement attrStmt1 = attributeStatementBuilder.buildObject();
 
-        Attribute emailAttr = attributeBuilder.buildObject();
-        emailAttr.setName("email");
-        XSAny email1 = new XSAnyBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSAny.TYPE_NAME); // gh-8864
-        email1.setTextContent("john.doe@example.com");
-        emailAttr.getAttributeValues().add(email1);
+        attributeStatements.add(attributeStatement(
+                attributeWithAnyValues("email", "john.doe@example.com", "doe.john@example.com"),
+                attributeWithAnyValues("secondaryEmail", "john.doe.secondary@example.com"),
+                attributeWithStringValue("name", "John Doe"),
+                attributeWithStringValue("firstName", "John"),
+                attributeWithStringValue("lastName", "Doe"),
+                attributeWithStringValue("role", "RoleOne"),
+                attributeWithStringValue("role", "RoleTwo"),
+                attributeWithIntValue("age", 21),
+                attributeWithStringValue("phone", "123-456-7890"),
+                attributeWithAnyValues("manager", "John the Sloth", "Kari the Ant Eater"),
+                attributeWithAnyValues("costCenter", "Denver,CO")
+        ));
 
-        XSAny email2 = new XSAnyBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME);
-        email2.setTextContent("doe.john@example.com");
-        emailAttr.getAttributeValues().add(email2);
-        attrStmt1.getAttributes().add(emailAttr);
+        attributeStatements.add(attributeStatement(
+                attributeWithUriValue("website", "https://johndoe.com/"),
+                attributeWithBooleanValue("registered", true),
+                attributeWithStringValue("acr", AuthnContext.PASSWORD_AUTHN_CTX),
+                attributeWithAnyValues("groups", "saml.admin", "saml.user", "saml.unmapped"),
+                attributeWithAnyValues("2ndgroups", "saml.test"),
+                // Ensure an empty attribute is handled properly
+                attributeWithNoValue(),
+                // Ensure an empty attribute value is handled properly
+                attributeWithNullValue()
+        ));
 
-        Attribute nameAttr = attributeBuilder.buildObject();
-        nameAttr.setName("name");
-        XSString name = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
-        name.setValue("John Doe");
-        nameAttr.getAttributeValues().add(name);
-        attrStmt1.getAttributes().add(nameAttr);
+        // Ensure an empty attribute statement is handled properly
+        attributeStatements.add(attributeStatement());
 
-        Attribute firstNameAttr = attributeBuilder.buildObject();
-        firstNameAttr.setName("firstName");
-        XSString firstName = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
-        firstName.setValue("John");
-        firstNameAttr.getAttributeValues().add(firstName);
-        attrStmt1.getAttributes().add(firstNameAttr);
+        attributeStatements.add(attributeStatement(
+                attributeWithUriValue("XSURI", "http://localhost:8080/someuri"),
+                attributeWithAnyValues("XSAny", "XSAnyValue"),
+                attributeWithQNameValue("XSQName", "XSQNameValue"),
+                attributeWithIntValue("XSInteger", 3),
+                attributeWithBooleanValue("XSBoolean", true),
+                attributeWithDateTimeValue("XSDateTime", Instant.ofEpochSecond(0)),
+                attributeWithBase64BinaryValue("XSBase64Binary", "00001111")
+        ));
 
-        Attribute lastNameAttr = attributeBuilder.buildObject();
-        lastNameAttr.setName("lastName");
-        XSString lastName = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
-        lastName.setValue("Doe");
-        lastNameAttr.getAttributeValues().add(lastName);
-        attrStmt1.getAttributes().add(lastNameAttr);
-
-        Attribute roleOneAttr = attributeBuilder.buildObject(); // gh-11042
-        roleOneAttr.setName("role");
-        XSString roleOne = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
-        roleOne.setValue("RoleOne");
-        roleOneAttr.getAttributeValues().add(roleOne);
-        attrStmt1.getAttributes().add(roleOneAttr);
-
-        Attribute roleTwoAttr = attributeBuilder.buildObject(); // gh-11042
-        roleTwoAttr.setName("role");
-        XSString roleTwo = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
-        roleTwo.setValue("RoleTwo");
-        roleTwoAttr.getAttributeValues().add(roleTwo);
-        attrStmt1.getAttributes().add(roleTwoAttr);
-
-        Attribute ageAttr = attributeBuilder.buildObject();
-        ageAttr.setName("age");
-        XSInteger age = new XSIntegerBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSInteger.TYPE_NAME);
-        age.setValue(21);
-        ageAttr.getAttributeValues().add(age);
-        attrStmt1.getAttributes().add(ageAttr);
-
-        Attribute phoneAttr = attributeBuilder.buildObject();
-        phoneAttr.setName("phone");
-        XSString phone = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
-        phone.setValue("123-456-7890");
-        phoneAttr.getAttributeValues().add(phone);
-        attrStmt1.getAttributes().add(phoneAttr);
-
-        attributeStatements.add(attrStmt1);
-        AttributeStatement attrStmt2 = attributeStatementBuilder.buildObject();
-
-        Attribute websiteAttr = attributeBuilder.buildObject();
-        websiteAttr.setName("website");
-        XSURI uri = new XSURIBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSURI.TYPE_NAME);
-        uri.setURI("https://johndoe.com/");
-        websiteAttr.getAttributeValues().add(uri);
-        attrStmt2.getAttributes().add(websiteAttr);
-
-        Attribute registeredAttr = attributeBuilder.buildObject();
-        registeredAttr.setName("registered");
-        XSBoolean registered = new XSBooleanBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME,
-                XSBoolean.TYPE_NAME);
-        registered.setValue(new XSBooleanValue(true, false));
-        registeredAttr.getAttributeValues().add(registered);
-        attrStmt2.getAttributes().add(registeredAttr);
-
-        attributeStatements.add(attrStmt2);
         return attributeStatements;
+    }
+
+    private static AttributeStatement attributeStatement(Attribute... attributes) {
+        AttributeStatement attrStmt = new AttributeStatementBuilder().buildObject();
+        attrStmt.getAttributes().addAll(Arrays.asList(attributes));
+        return attrStmt;
+    }
+
+    /**
+     * Attribute with a null value
+     */
+    private static Attribute attributeWithNullValue() {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName("emptyAttributeValue");
+        attr.getAttributeValues().add(null);
+
+        return attr;
+    }
+
+    /**
+     * Attribute with no values
+     */
+    private static Attribute attributeWithNoValue() {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName("emptyAttribute");
+
+        return attr;
+    }
+
+    private static Attribute attributeWithAnyValues(String attributeName, String... attribValues) {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName(attributeName);
+
+        for (String attribValue : attribValues) {
+            XSAny value = new XSAnyBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSAny.TYPE_NAME);
+            value.setTextContent(attribValue);
+            attr.getAttributeValues().add(value);
+        }
+        return attr;
+    }
+
+    private static Attribute attributeWithStringValue(String attributeName, String attribValue) {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName(attributeName);
+        XSString value = new XSStringBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSString.TYPE_NAME);
+        value.setValue(attribValue);
+        attr.getAttributeValues().add(value);
+
+        return attr;
+    }
+
+    private static Attribute attributeWithBooleanValue(String attributeName, boolean attribValue) {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName(attributeName);
+        XSBoolean value = new XSBooleanBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSBoolean.TYPE_NAME);
+        value.setValue(new XSBooleanValue(attribValue, false));
+        attr.getAttributeValues().add(value);
+
+        return attr;
+    }
+
+    private static Attribute attributeWithUriValue(String attributeName, String attribValue) {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName(attributeName);
+        XSURI value = new XSURIBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSURI.TYPE_NAME);
+        value.setURI(attribValue);
+        attr.getAttributeValues().add(value);
+
+        return attr;
+    }
+
+    private static Attribute attributeWithIntValue(String attributeName, int attribValue) {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName(attributeName);
+        XSInteger value = new XSIntegerBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSInteger.TYPE_NAME);
+        value.setValue(attribValue);
+        attr.getAttributeValues().add(value);
+
+        return attr;
+    }
+
+    private static Attribute attributeWithQNameValue(String attributeName, String attribValue) {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName(attributeName);
+        XSQName value = new XSQNameBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSQName.TYPE_NAME);
+        value.setValue(QName.valueOf(attribValue));
+        attr.getAttributeValues().add(value);
+
+        return attr;
+    }
+
+    private static Attribute attributeWithBase64BinaryValue(String attributeName, String attribValue) {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName(attributeName);
+        XSBase64Binary value = new XSBase64BinaryBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSBase64Binary.TYPE_NAME);
+        value.setValue(attribValue);
+        attr.getAttributeValues().add(value);
+
+        return attr;
+    }
+
+    private static Attribute attributeWithDateTimeValue(String attributeName, Instant attribValue) {
+        Attribute attr = new AttributeBuilder().buildObject();
+        attr.setName(attributeName);
+        XSDateTime value = new XSDateTimeBuilder().buildObject(AttributeValue.DEFAULT_ELEMENT_NAME, XSDateTime.TYPE_NAME);
+        value.setValue(attribValue);
+        attr.getAttributeValues().add(value);
+
+        return attr;
     }
 
     static Status successStatus() {

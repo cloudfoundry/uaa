@@ -6,7 +6,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
-import java.io.IOException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
 import java.util.Arrays;
@@ -35,13 +34,11 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
 
     @Test
     public void constructor_nullConfigurator() {
-        assertThrows(IllegalArgumentException.class, () -> {
-            target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, null, assertionConsumerServiceLocationFunction);
-        });
+        assertThrows(IllegalArgumentException.class, () -> target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, null, assertionConsumerServiceLocationFunction));
     }
 
     @Test
-    public void testFindByRegistrationIdWhenNoneFound() throws IOException {
+    public void testFindByRegistrationIdWhenNoneFound() {
         when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
         target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, mockConfigurator, assertionConsumerServiceLocationFunction);
@@ -56,7 +53,7 @@ public class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     }
 
     @Test
-    public void testFindByRegistrationId() throws IOException {
+    public void testFindByRegistrationId() {
         when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
         target = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert, mockConfigurator, assertionConsumerServiceLocationFunction);
