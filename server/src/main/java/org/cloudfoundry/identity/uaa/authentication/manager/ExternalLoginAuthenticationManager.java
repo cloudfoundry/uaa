@@ -137,7 +137,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             if (!isAddNewShadowUser()) {
                 throw new AccountNotPreCreatedException("The user account must be pre-created. Please contact your system administrator.");
             }
-            publish(new NewUserAuthenticatedEvent(userFromRequest));
+            publish(new NewUserAuthenticatedEvent(userFromRequest.authorities(List.of())));
             try {
                 userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
             } catch (UsernameNotFoundException ex) {

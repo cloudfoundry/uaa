@@ -1049,9 +1049,7 @@ class JdbcScimUserProvisioningTests {
                 () -> jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId));
 
         Map<String, Object> userDetails = new HashMap<>();
-        userDetails.put("active", true);
-        userDetails.put("verified", false);
-        userDetails.put("user_id", "cba09242-aa43-4247-9aa0-b5c75c281f94");
+        userDetails.put("origin", UAA);
         assertEquals(HttpStatus.CONFLICT, e.getStatus());
         assertEquals("Username already in use: user@example.com", e.getMessage());
         assertEquals(userDetails, e.getExtraInfo());

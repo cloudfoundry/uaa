@@ -1382,12 +1382,13 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)                             |
-| 409        | Conflict - Username already exists                                                                     |
+| Error Code | Description                                                                         |
+|------------|-------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields                                 |
+| 401        | Unauthorized - Invalid token                                                        |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)          |
+| 409        | Conflict - Username already exists                                                  |
+| 422        | Unprocessable Entity - `alias_zid` set, but error occurred during creation of alias |
 
 >Example using uaac to view users:
 
@@ -1423,12 +1424,13 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to update user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
+| 422        | Unprocessable Entity - error occurred during creation or update of alias                                                  |
 
 >Example using uaac to view users:
 
@@ -1464,12 +1466,12 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to update user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
 
 >Example using uaac to patch users:
 
@@ -1497,12 +1499,12 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to delete user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
 
 >Example using uaac to delete users:
 

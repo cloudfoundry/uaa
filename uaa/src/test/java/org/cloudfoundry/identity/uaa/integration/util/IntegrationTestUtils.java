@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsReso
 import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
 import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -61,12 +62,12 @@ import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.security.crypto.codec.Base64;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.DefaultResponseErrorHandler;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -208,6 +209,29 @@ public class IntegrationTestUtils {
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
         RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.DELETE, new URI(baseUrl + "/identity-zones/" + id));
         rest.exchange(request, Void.class);
+    }
+
+    public static boolean zoneExists(final String baseUrl, final String id, final String adminToken) throws URISyntaxException {
+        final RestTemplate restTemplate = new RestTemplate(createRequestFactory(true, 60_000));
+
+        final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add(AUTHORIZATION, "Bearer " + adminToken);
+        headers.add(ACCEPT, APPLICATION_JSON_VALUE);
+
+        final RequestEntity<Map<Object, Object>> request = new RequestEntity<>(
+                headers,
+                HttpMethod.GET,
+                new URI(baseUrl + "/identity-zones/" + id)
+        );
+        try {
+            restTemplate.exchange(request, Map.class);
+        } catch (final RestClientException e) {
+            if (e instanceof HttpClientErrorException.NotFound) {
+                return false;
+            }
+            throw new RuntimeException(e);
+        }
+        return true;
     }
 
     public static class RegexMatcher extends TypeSafeMatcher<String> {
@@ -1159,8 +1183,8 @@ public class IntegrationTestUtils {
             headers.add("Cookie", cookie.getName() + "=" + cookie.getValue());
         }
         return headers;
-    } 	
-  
+    }
+
     public static String getAuthorizationResponse(ServerRunning serverRunning,
 			  String clientId,
 			  String username,
@@ -1251,7 +1275,7 @@ public class IntegrationTestUtils {
     	}
     	return location;
     }
-    
+
     public static ResponseEntity<Map> getTokens(ServerRunning serverRunning,
             									UaaTestAccounts testAccounts,
             									String clientId,

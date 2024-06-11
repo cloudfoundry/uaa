@@ -804,6 +804,24 @@ public final class MockMvcUtils {
         }
     }
 
+    public static SearchResults<ScimGroup> getGroups(final MockMvc mockMvc, final String accessToken, final String idzId) throws Exception {
+        final MockHttpServletRequestBuilder builder = get("/Groups");
+        if (hasText(idzId)) {
+            builder.header("X-Identity-Zone-Id", idzId);
+        }
+        final SearchResults<ScimGroup> results = JsonUtils.readValue(
+                mockMvc.perform(builder
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(APPLICATION_JSON))
+                        .andReturn().getResponse().getContentAsString(),
+                new TypeReference<SearchResults<ScimGroup>>() {
+                });
+        if (results == null || results.getResources() == null || results.getResources().isEmpty()) {
+            return null;
+        }
+        return results;
+    }
+
     public static ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
         return createGroup(mockMvc, accessToken, group, null);
     }

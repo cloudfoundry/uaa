@@ -355,6 +355,7 @@ public class OIDCLoginIT {
 
         ScimGroup updatedCreatedGroup = IntegrationTestUtils.getGroup(adminToken, subdomain, baseUrl, createdGroup.getDisplayName());
         assertTrue(isMember(user.getId(), updatedCreatedGroup));
+        assertTrue("Expect group members to have origin: " + user.getOrigin(), updatedCreatedGroup.getMembers().stream().allMatch(p -> user.getOrigin().equals(p.getOrigin())));
     }
 
     @Test
