@@ -135,7 +135,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartyId.");
         }
         if (clientSecret == null && config.getJwtClientAuthentication() == null && config.getAuthMethod() == null) {
-            throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartySecret, jwtclientAuthentication or authMethod.");
+            throw new ProviderConfigurationException("External OpenID Connect provider configuration is missing relyingPartySecret, jwtClientAuthentication or authMethod.");
         }
         String calcAuthMethod = ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), clientSecret != null, config.getJwtClientAuthentication() != null);
         String userName = authentication.getPrincipal() instanceof String ? (String)authentication.getPrincipal() : null;
