@@ -598,7 +598,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             RawExternalOAuthIdentityProviderDefinition narrowedConfig = (RawExternalOAuthIdentityProviderDefinition) config;
 
             HttpHeaders headers = new HttpHeaders();
-            headers.add("Authorization", "token " + idToken);
+            headers.add("Authorization", "Bearer " + idToken);
             headers.add("Accept", "application/json");
 
             URI requestUri;

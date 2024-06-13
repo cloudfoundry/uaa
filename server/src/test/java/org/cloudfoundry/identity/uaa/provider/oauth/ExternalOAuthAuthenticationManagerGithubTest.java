@@ -34,8 +34,6 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationM
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -137,7 +135,7 @@ public class ExternalOAuthAuthenticationManagerGithubTest {
         mockGithubServer.expect(method(GET))
             .andExpect(requestTo(USER_INFO_URL))
             .andExpect(header(ACCEPT, APPLICATION_JSON_VALUE))
-            .andExpect(header(AUTHORIZATION, "token " + accessToken))
+            .andExpect(header(AUTHORIZATION, "Bearer " + accessToken))
             .andRespond(withSuccess(userInfoResponse, APPLICATION_JSON));
         
         ExternalOAuthCodeToken oauth2Authentication = new ExternalOAuthCodeToken(null, origin, "http://uaa.example.com/login/callback/github", idToken, "accesstoken", "signedrequest");
