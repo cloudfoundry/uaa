@@ -31,6 +31,8 @@ public class UserConfig {
 
     private boolean checkOriginEnabled;
 
+    private boolean allowAllOrigins = true;
+
     public List<String> getDefaultGroups() {
         return defaultGroups;
     }
@@ -77,5 +79,13 @@ public class UserConfig {
 
     public void setCheckOriginEnabled(boolean checkOriginEnabled) {
         this.checkOriginEnabled = checkOriginEnabled;
+    }
+
+    public boolean isAllowAllOrigins() {
+        return this.allowAllOrigins;
+    }
+
+    public void setAllowAllOrigins(final boolean allowAllOrigins) {
+        this.allowAllOrigins = allowAllOrigins;
     }
 }

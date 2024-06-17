@@ -11,7 +11,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.sql.ResultSet;
@@ -26,15 +25,15 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     private static Logger logger = LoggerFactory.getLogger(JdbcIdentityProviderProvisioning.class);
 
-    public static final String ID_PROVIDER_FIELDS = "id,version,created,lastmodified,name,origin_key,type,config,identity_zone_id,active,alias_id,alias_zid";
+    public static final String ID_PROVIDER_FIELDS = "id,version,created,lastmodified,name,origin_key,type,config,identity_zone_id,active,alias_id,alias_zid,external_key";
 
-    public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?,?,?)";
+    public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
     public static final String IDENTITY_PROVIDERS_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider where identity_zone_id=?";
 
     public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=?";
 
-    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active,alias_id,alias_zid".replace(",", "=?,") + "=?";
+    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active,alias_id,alias_zid,external_key".replace(",", "=?,") + "=?";
 
     public static final String UPDATE_IDENTITY_PROVIDER_SQL = "update identity_provider set " + ID_PROVIDER_UPDATE_FIELDS + " where id=? and identity_zone_id=?";
 
@@ -47,6 +46,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     public static final String IDENTITY_PROVIDER_BY_ORIGIN_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider " + "where origin_key=? and identity_zone_id=? ";
 
     public static final String IDENTITY_PROVIDER_BY_ORIGIN_QUERY_ACTIVE = IDENTITY_PROVIDER_BY_ORIGIN_QUERY + " and active = ? ";
+
+    public static final String IDENTITY_PROVIDER_BY_EXTERNAL_QUERY = IDENTITY_PROVIDERS_QUERY + " and type=? and external_key=?";
 
     protected final JdbcTemplate jdbcTemplate;
 
@@ -86,8 +87,13 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     }
 
     @Override
+    public IdentityProvider retrieveByExternId(String externId, String type, String zoneId) {
+        return jdbcTemplate.queryForObject(IDENTITY_PROVIDER_BY_EXTERNAL_QUERY, mapper, zoneId, type, externId);
+    }
+
+    @Override
     public IdentityProvider create(final IdentityProvider identityProvider, String zoneId) {
-        validate(identityProvider);
+        String externId = validate(identityProvider);
         final String id = UUID.randomUUID().toString();
         try {
             jdbcTemplate.update(CREATE_IDENTITY_PROVIDER_SQL, ps -> {
@@ -103,7 +109,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 ps.setString(pos++, zoneId);
                 ps.setBoolean(pos++, identityProvider.isActive());
                 ps.setString(pos++, identityProvider.getAliasId());
-                ps.setString(pos, identityProvider.getAliasZid());
+                ps.setString(pos++, identityProvider.getAliasZid());
+                ps.setString(pos, externId);
             });
         } catch (DuplicateKeyException e) {
             throw new IdpAlreadyExistsException(e.getMostSpecificCause().getMessage());
@@ -113,7 +120,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public IdentityProvider update(final IdentityProvider identityProvider, String zoneId) {
-        validate(identityProvider);
+        String externId = validate(identityProvider);
         jdbcTemplate.update(UPDATE_IDENTITY_PROVIDER_SQL, ps -> {
             int pos = 1;
 
@@ -126,6 +133,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             ps.setBoolean(pos++, identityProvider.isActive());
             ps.setString(pos++, identityProvider.getAliasId());
             ps.setString(pos++, identityProvider.getAliasZid());
+            ps.setString(pos++, externId);
 
             // placeholders in WHERE
             ps.setString(pos++, identityProvider.getId().trim());
@@ -134,20 +142,25 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         return retrieve(identityProvider.getId(), zoneId);
     }
 
-    protected void validate(IdentityProvider provider) {
+    private String validate(IdentityProvider provider) {
         if (provider == null) {
             throw new NullPointerException("Provider can not be null.");
         }
         if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new DataIntegrityViolationException("Identity zone ID must be set.");
         }
+        String externId = null;
         //ensure that SAML IDPs have redundant fields synchronized
         if (OriginKeys.SAML.equals(provider.getType()) && provider.getConfig() != null) {
             SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
             saml.setZoneId(provider.getIdentityZoneId());
             provider.setConfig(saml);
+            externId = saml.getIdpEntityId();
+        } else if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> externalOAuthIdentityProviderDefinition) {
+            externId = externalOAuthIdentityProviderDefinition.getIssuer();
         }
+        return externId;
     }
 
     /**
@@ -181,17 +194,25 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             identityProvider.setOriginKey(rs.getString(pos++));
             identityProvider.setType(rs.getString(pos++));
             String config = rs.getString(pos++);
+            identityProvider.setIdentityZoneId(rs.getString(pos++));
+            identityProvider.setActive(rs.getBoolean(pos++));
+            identityProvider.setAliasId(rs.getString(pos++));
+            identityProvider.setAliasZid(rs.getString(pos++));
+            String externId = rs.getString(pos);
             if (StringUtils.hasText(config)) {
                 AbstractIdentityProviderDefinition definition;
                 switch (identityProvider.getType()) {
                     case OriginKeys.SAML:
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
+                        ((SamlIdentityProviderDefinition) definition).setIdpEntityId(externId);
                         break;
                     case OriginKeys.OAUTH20:
                         definition = JsonUtils.readValue(config, RawExternalOAuthIdentityProviderDefinition.class);
+                        ((RawExternalOAuthIdentityProviderDefinition) definition).setIssuer(externId);
                         break;
                     case OriginKeys.OIDC10:
                         definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);
+                        ((OIDCIdentityProviderDefinition) definition).setIssuer(externId);
                         break;
                     case OriginKeys.UAA:
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
@@ -210,10 +231,6 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                     identityProvider.setConfig(definition);
                 }
             }
-            identityProvider.setIdentityZoneId(rs.getString(pos++));
-            identityProvider.setActive(rs.getBoolean(pos++));
-            identityProvider.setAliasId(rs.getString(pos++));
-            identityProvider.setAliasZid(rs.getString(pos));
             return identityProvider;
         }
     }
