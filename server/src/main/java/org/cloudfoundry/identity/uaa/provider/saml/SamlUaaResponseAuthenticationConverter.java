@@ -45,7 +45,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 @Slf4j
 @Getter
 public class SamlUaaResponseAuthenticationConverter
-        implements Converter<SamlLoginAuthenticationProvider.ResponseToken, UaaAuthentication>,
+        implements Converter<OpenSaml4AuthenticationProvider.ResponseToken, UaaAuthentication>,
         ApplicationEventPublisherAware {
 
     public static final String AUTHENTICATION_CONTEXT_CLASS_REFERENCE = "acr";
@@ -56,13 +56,13 @@ public class SamlUaaResponseAuthenticationConverter
 
     private ApplicationEventPublisher eventPublisher;
 
-    private final SamlUaaUserManager userManager;
+    private final SamlUaaAuthenticationUserManager userManager;
     private final SamlUaaAuthenticationAttributesConverter attributesConverter;
     private final SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter;
 
     public SamlUaaResponseAuthenticationConverter(IdentityZoneManager identityZoneManager,
                                                   final JdbcIdentityProviderProvisioning identityProviderProvisioning,
-                                                  SamlUaaUserManager userManager,
+                                                  SamlUaaAuthenticationUserManager userManager,
                                                   SamlUaaAuthenticationAttributesConverter attributesConverter,
                                                   SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter) {
         this.identityZoneManager = identityZoneManager;
@@ -73,9 +73,9 @@ public class SamlUaaResponseAuthenticationConverter
     }
 
     @Override
-    public UaaAuthentication convert(SamlLoginAuthenticationProvider.ResponseToken responseToken) {
-        Saml2AuthenticationToken authenticationToken = responseToken.token();
-        Response response = responseToken.response();
+    public UaaAuthentication convert(OpenSaml4AuthenticationProvider.ResponseToken responseToken) {
+        Saml2AuthenticationToken authenticationToken = responseToken.getToken();
+        Response response = responseToken.getResponse();
         List<Assertion> assertions = response.getAssertions();
 
         IdentityZone zone = identityZoneManager.getCurrentIdentityZone();

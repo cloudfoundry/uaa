@@ -49,25 +49,35 @@ public class SamlAuthenticationFilterConfig {
 
     @Autowired
     @Bean
+    SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager(final UaaUserDatabase userDatabase,
+                                                                      ApplicationEventPublisher applicationEventPublisher) {
+
+        SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager = new SamlUaaAuthenticationUserManager(userDatabase);
+        samlUaaAuthenticationUserManager.setApplicationEventPublisher(applicationEventPublisher);
+
+        return samlUaaAuthenticationUserManager;
+    }
+
+    @Autowired
+    @Bean
     AuthenticationProvider samlAuthenticationProvider(IdentityZoneManager identityZoneManager,
-                                                      final UaaUserDatabase userDatabase,
                                                       final JdbcIdentityProviderProvisioning identityProviderProvisioning,
                                                       ScimGroupExternalMembershipManager externalMembershipManager,
-
+                                                      SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager,
                                                       ApplicationEventPublisher applicationEventPublisher) {
-
-        SamlUaaUserManager samlUaaUserManager = new SamlUaaUserManager(userDatabase);
-        samlUaaUserManager.setApplicationEventPublisher(applicationEventPublisher);
 
         SamlUaaAuthenticationAttributesConverter attributesConverter = new SamlUaaAuthenticationAttributesConverter();
         SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter = new SamlUaaAuthenticationAuthoritiesConverter(externalMembershipManager);
 
         SamlUaaResponseAuthenticationConverter samlResponseAuthenticationConverter =
                 new SamlUaaResponseAuthenticationConverter(identityZoneManager, identityProviderProvisioning,
-                        samlUaaUserManager, attributesConverter, authoritiesConverter);
+                        samlUaaAuthenticationUserManager, attributesConverter, authoritiesConverter);
         samlResponseAuthenticationConverter.setApplicationEventPublisher(applicationEventPublisher);
 
-        return new SamlLoginAuthenticationProvider(samlResponseAuthenticationConverter);
+        OpenSaml4AuthenticationProvider samlResponseAuthenticationProvider = new OpenSaml4AuthenticationProvider();
+        samlResponseAuthenticationProvider.setResponseAuthenticationConverter(samlResponseAuthenticationConverter);
+
+        return samlResponseAuthenticationProvider;
     }
 
     @Autowired

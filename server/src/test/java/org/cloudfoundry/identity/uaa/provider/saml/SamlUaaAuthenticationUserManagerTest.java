@@ -18,7 +18,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 
-class SamlUaaUserManagerTest {
+class SamlUaaAuthenticationUserManagerTest {
 
     private static final String TEST_USERNAME = "test@saml.user";
     private static final String ZONE_ID = "uaa";
@@ -31,43 +31,43 @@ class SamlUaaUserManagerTest {
     @Test
     void haveAttributesChangedReturnsFalseForCopied() {
         UaaUser modified = new UaaUser(new UaaUserPrototype(existing));
-        assertThat(SamlUaaUserManager.haveUserAttributesChanged(existing, modified)).isFalse();
+        assertThat(SamlUaaAuthenticationUserManager.haveUserAttributesChanged(existing, modified)).isFalse();
     }
 
     @Test
     void haveAttributesChangedReturnsTrueForChangedEmail() {
         UaaUser modified = new UaaUser(new UaaUserPrototype(existing).withEmail("other-email"));
-        assertThat(SamlUaaUserManager.haveUserAttributesChanged(existing, modified)).as("email modified").isTrue();
+        assertThat(SamlUaaAuthenticationUserManager.haveUserAttributesChanged(existing, modified)).as("email modified").isTrue();
     }
 
 
     @Test
     void haveAttributesChangedReturnsTrueForChangedPhone() {
         UaaUser modified = new UaaUser(new UaaUserPrototype(existing).withPhoneNumber("other-phone"));
-        assertThat(SamlUaaUserManager.haveUserAttributesChanged(existing, modified)).as("Phone number modified").isTrue();
+        assertThat(SamlUaaAuthenticationUserManager.haveUserAttributesChanged(existing, modified)).as("Phone number modified").isTrue();
     }
 
     @Test
     void haveAttributesChangedReturnsTrueForChangedVerified() {
         UaaUser modified = new UaaUser(new UaaUserPrototype(existing).withVerified(!existing.isVerified()));
-        assertThat(SamlUaaUserManager.haveUserAttributesChanged(existing, modified)).as("Verifiedemail modified").isTrue();
+        assertThat(SamlUaaAuthenticationUserManager.haveUserAttributesChanged(existing, modified)).as("Verifiedemail modified").isTrue();
     }
 
     @Test
     void haveAttributesChangedReturnsTrueForChangedGivenName() {
         UaaUser modified = new UaaUser(new UaaUserPrototype(existing).withGivenName("other-given"));
-        assertThat(SamlUaaUserManager.haveUserAttributesChanged(existing, modified)).as("First name modified").isTrue();
+        assertThat(SamlUaaAuthenticationUserManager.haveUserAttributesChanged(existing, modified)).as("First name modified").isTrue();
     }
 
     @Test
     void haveAttributesChangedReturnsTrueForChangedFamilyName() {
         UaaUser modified = new UaaUser(new UaaUserPrototype(existing).withFamilyName("other-family"));
-        assertThat(SamlUaaUserManager.haveUserAttributesChanged(existing, modified)).as("Last name modified").isTrue();
+        assertThat(SamlUaaAuthenticationUserManager.haveUserAttributesChanged(existing, modified)).as("Last name modified").isTrue();
     }
 
     @Test
     void getUserByDefaultUsesTheAvailableData() {
-        SamlUaaUserManager userManager = new SamlUaaUserManager(null);
+        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null);
 
         UaaPrincipal principal = new UaaPrincipal(
                 UUID.randomUUID().toString(),
@@ -101,7 +101,7 @@ class SamlUaaUserManagerTest {
 
     @Test
     void getUserWithoutVerifiedDefaultsToFalse() {
-        SamlUaaUserManager userManager = new SamlUaaUserManager(null);
+        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null);
 
         UaaPrincipal principal = new UaaPrincipal(
                 UUID.randomUUID().toString(),
@@ -119,7 +119,7 @@ class SamlUaaUserManagerTest {
 
     @Test
     void throwsIfPrincipalUserNameAndUserAttributesEmailIsMissing() {
-        SamlUaaUserManager userManager = new SamlUaaUserManager(null);
+        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null);
 
         UaaPrincipal principal = new UaaPrincipal(
                 UUID.randomUUID().toString(),
