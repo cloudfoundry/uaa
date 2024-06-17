@@ -87,12 +87,12 @@ import java.util.function.Consumer;
  * <p>
  * Changes:
  * - setValue on interface org.opensaml.core.xml.schema.XSURI
- * - added to attributeStatements: firstName, lastName, phone
+ * - added alot of values to attributeStatements
  */
 public final class TestOpenSamlObjects {
 
     private static final String USERNAME = "test@saml.user";
-    private static final String DESTINATION = "https://localhost/login/saml2/sso/idp-alias";
+    private static final String DESTINATION = "http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id";
     private static final String ASSERTING_PARTY_ENTITY_ID = "https://some.idp.test/saml2/idp";
     private static final SecretKey SECRET_KEY = new SecretKeySpec(
             Base64.getDecoder().decode("shOnwNMoCv88HKMEa91+FlYoD5RNvzMTAL5LGxZKIFk="), "AES");

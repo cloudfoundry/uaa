@@ -62,7 +62,7 @@ import static org.mockito.Mockito.mock;
  */
 public final class Saml2TestUtils {
 
-    private static final String DESTINATION = "https://localhost/login/saml2/sso/idp-alias";
+    private static final String DESTINATION = "http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id";
 
     private static final String RELYING_PARTY_ENTITY_ID = "https://localhost/saml2/service-provider-metadata/idp-alias";
 
@@ -82,12 +82,15 @@ public final class Saml2TestUtils {
 
     public static Response responseWithAssertions() {
         Response response = response();
-        Assertion assertion = TestOpenSamlObjects.signed(assertion(),
-                TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID,
-                SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1);
-        response.getAssertions().add(assertion);
+        Assertion assertion = assertion();
         List<AttributeStatement> attributeStatements = attributeStatements();
         assertion.getAttributeStatements().addAll(attributeStatements);
+
+        Assertion signedAssertion = TestOpenSamlObjects.signed(assertion,
+                TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID,
+                SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1);
+
+        response.getAssertions().add(signedAssertion);
 
         return response;
     }

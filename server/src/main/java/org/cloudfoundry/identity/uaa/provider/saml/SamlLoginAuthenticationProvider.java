@@ -14,7 +14,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.core.Saml2Error;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
-import org.springframework.security.saml2.provider.service.authentication.OpenSaml4AuthenticationProvider;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationToken;
 import org.w3c.dom.Document;
@@ -74,7 +73,7 @@ public class SamlLoginAuthenticationProvider implements AuthenticationProvider, 
         String serializedResponse = authenticationToken.getSaml2Response();
         Response response = parseResponse(serializedResponse);
 
-        ResponseToken responseToken = new ResponseToken(response, authenticationToken);
+        OpenSaml4AuthenticationProvider.ResponseToken responseToken = new OpenSaml4AuthenticationProvider.ResponseToken(response, authenticationToken);
         return responseAuthenticationConverter.convert(responseToken);
     }
 
@@ -91,8 +90,5 @@ public class SamlLoginAuthenticationProvider implements AuthenticationProvider, 
         } catch (Exception ex) {
             throw createAuthenticationException(Saml2ErrorCodes.MALFORMED_RESPONSE_DATA, ex.getMessage(), ex);
         }
-    }
-
-    public record ResponseToken(Response response, Saml2AuthenticationToken token) {
     }
 }
