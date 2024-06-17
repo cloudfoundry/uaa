@@ -35,11 +35,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
-import org.joda.time.DateTime;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
@@ -64,6 +62,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.saml2.provider.service.authentication.AbstractSaml2AuthenticationRequest;
+import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
@@ -73,19 +72,16 @@ import org.springframework.web.context.request.ServletWebRequest;
 
 import javax.servlet.ServletContext;
 import java.sql.SQLException;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
@@ -97,9 +93,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -107,7 +100,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
-class SamlLoginAuthenticationProviderTests {
+class OpenSaml4AuthenticationProviderTests {
 
     private static final String SAML_USER = "saml.user";
     private static final String SAML_ADMIN = "saml.admin";
@@ -123,16 +116,19 @@ class SamlLoginAuthenticationProviderTests {
     private static final String JOHN_THE_SLOTH = "John the Sloth";
     private static final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
     private static final String IDP_META_DATA = getResourceAsString(
-            SamlLoginAuthenticationProviderTests.class, "IDP_META_DATA.xml");
+            OpenSaml4AuthenticationProviderTests.class, "IDP_META_DATA.xml");
 
     private static final String TEST_EMAIL = "john.doe@example.com";
     private static final String TEST_USERNAME = "test@saml.user";
     private static final String TEST_PHONE_NUMBER = "123-456-7890";
+
     @Autowired
     NamedParameterJdbcTemplate namedJdbcTemplate;
+
     private JdbcIdentityProviderProvisioning providerProvisioning;
     private CreateUserPublisher publisher;
     private JdbcUaaUserDatabase userDatabase;
+    private SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager;
     private AuthenticationProvider authprovider;
     private SamlIdentityProviderDefinition providerDefinition;
     private IdentityProvider<SamlIdentityProviderDefinition> provider;
@@ -230,11 +226,12 @@ class SamlLoginAuthenticationProviderTests {
         publisher = new CreateUserPublisher(bootstrap);
 
         SamlAuthenticationFilterConfig samlAuthenticationFilterConfig = new SamlAuthenticationFilterConfig();
+        samlUaaAuthenticationUserManager = samlAuthenticationFilterConfig.samlUaaAuthenticationUserManager(userDatabase, publisher);
         authprovider = samlAuthenticationFilterConfig.samlAuthenticationProvider(
-                identityZoneManager, userDatabase, providerProvisioning, externalManager, publisher);
+                identityZoneManager, providerProvisioning, externalManager, samlUaaAuthenticationUserManager, publisher);
 
         providerDefinition = new SamlIdentityProviderDefinition();
-        providerDefinition.setMetaDataLocation(String.format(IDP_META_DATA, OriginKeys.SAML));
+        providerDefinition.setMetaDataLocation(IDP_META_DATA.formatted(OriginKeys.SAML));
         providerDefinition.setIdpEntityAlias(OriginKeys.SAML);
 
         provider = new IdentityProvider<>();
@@ -244,8 +241,7 @@ class SamlLoginAuthenticationProviderTests {
         provider.setActive(true);
         provider.setType(OriginKeys.SAML);
         provider.setConfig(providerDefinition);
-        provider = providerProvisioning.create(provider,
-                identityZoneManager.getCurrentIdentityZone().getId());
+        provider = providerProvisioning.create(provider, identityZoneManager.getCurrentIdentityZone().getId());
     }
 
     @AfterEach
@@ -264,8 +260,12 @@ class SamlLoginAuthenticationProviderTests {
     @NullSource
     @EmptySource
     void relayRedirectRejectsNonUrls(String url) {
-        SamlLoginAuthenticationProvider authprovider = (SamlLoginAuthenticationProvider) this.authprovider;
-        authprovider.getResponseAuthenticationConverter().configureRelayRedirect(url);
+        Saml2AuthenticationToken authenticationToken = authenticationToken();
+        AbstractSaml2AuthenticationRequest mockAuthenticationRequest = authenticationToken.getAuthenticationRequest();
+        when(mockAuthenticationRequest.getRelayState()).thenReturn(url);
+        authenticate(authenticationToken);
+        verify(mockAuthenticationRequest, times(1)).getRelayState();
+
         assertThat(RequestContextHolder.currentRequestAttributes()
                 .getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE,
                         RequestAttributes.SCOPE_REQUEST))
@@ -295,7 +295,6 @@ class SamlLoginAuthenticationProviderTests {
         assertEquals(3, publisher.events.size());
         assertInstanceOf(IdentityProviderAuthenticationSuccessEvent.class, publisher.events.get(2));
     }
-
 
     @Test
     void saml_authentication_contains_acr() {
@@ -528,8 +527,7 @@ class SamlLoginAuthenticationProviderTests {
     }
 
     @Test
-    @DisplayName("Can update existing user with different username but same email")
-    void updateExistingUserWithDifferentUsername() {
+    void updateExistingUserWithDifferentUsernameButSameEmail() {
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("given_name", "firstName");
         attributeMappings.put("family_name", "lastName");
@@ -554,10 +552,8 @@ class SamlLoginAuthenticationProviderTests {
         UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber,
                 "test-changed@saml.user", TEST_EMAIL, OriginKeys.SAML, TEST_USERNAME,
                 identityZoneManager.getCurrentIdentityZone().getId());
-        SamlUaaResponseAuthenticationConverter responseAuthenticationConverter = ((SamlLoginAuthenticationProvider) authprovider).getResponseAuthenticationConverter();
-        UaaUser user = responseAuthenticationConverter.getUserManager()
-                .createIfMissing(samlPrincipal, false, new ArrayList<SimpleGrantedAuthority>(),
-                        attributes);
+
+        UaaUser user = samlUaaAuthenticationUserManager.createIfMissing(samlPrincipal, false, new ArrayList<SimpleGrantedAuthority>(), attributes);
 
         assertNotNull(user);
         assertEquals("test-changed@saml.user", user.getUsername());
@@ -725,11 +721,15 @@ class SamlLoginAuthenticationProviderTests {
 
         createSamlUser(TEST_EMAIL, identityZoneManager.getCurrentIdentityZone().getId(),
                 userProvisioning);
-        // get user by username should fail, then attempt get user by email causes exception
+
+        // get user by username should fail, then attempt get user by email causes exception in JdbcUaaUserDatabase.retrieveUserPrototypeByEmail
         createSamlUser("randomUsername", identityZoneManager.getCurrentIdentityZone().getId(),
                 userProvisioning);
 
-        assertThrows(IncorrectResultSizeDataAccessException.class, this::authenticate);
+        assertThatThrownBy(() -> authenticate())
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasCauseExactlyInstanceOf(IncorrectResultSizeDataAccessException.class)
+                .hasMessage("Multiple users match email=john.doe@example.com origin=saml");
     }
 
     @Test

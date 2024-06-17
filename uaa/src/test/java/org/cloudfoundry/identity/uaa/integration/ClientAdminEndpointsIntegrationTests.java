@@ -115,7 +115,6 @@ public class ClientAdminEndpointsIntegrationTests {
         HttpHeaders headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
         ResponseEntity<String> result = serverRunning.getForString("/oauth/clients", headers);
         assertEquals(HttpStatus.OK, result.getStatusCode());
-        // System.err.println(result.getBody());
         assertTrue(result.getBody().contains("\"client_id\":\"cf\""));
         assertFalse(result.getBody().contains("secret\":"));
     }

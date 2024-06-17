@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -40,11 +39,11 @@ import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedI
  * Part of the AuthenticationConverter used during SAML login flow.
  * This handles User creation and storage in the database.
  */
-public class SamlUaaUserManager implements ApplicationEventPublisherAware {
+public class SamlUaaAuthenticationUserManager implements ApplicationEventPublisherAware {
 
     ApplicationEventPublisher eventPublisher;
 
-    public SamlUaaUserManager(UaaUserDatabase userDatabase) {
+    public SamlUaaAuthenticationUserManager(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
     }
 
