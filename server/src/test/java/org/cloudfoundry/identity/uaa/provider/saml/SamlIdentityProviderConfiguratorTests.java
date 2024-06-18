@@ -19,6 +19,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -26,6 +27,7 @@ import org.junit.Rule;
 import org.junit.jupiter.api.*;
 import org.junit.rules.ExpectedException;
 import org.opensaml.DefaultBootstrap;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
@@ -37,6 +39,8 @@ import java.util.Timer;
 
 import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.asList;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -122,7 +126,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @BeforeEach
     public void setUp() {
-        bootstrap = new BootstrapSamlIdentityProviderData();
+        bootstrap = new BootstrapSamlIdentityProviderData(new SamlIdentityProviderConfigurator(new BasicParserPool(), mock(JdbcIdentityProviderProvisioning.class), mock(FixedHttpMetaDataProvider.class)));
         singleAdd = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
                 .setIdpEntityAlias(singleAddAlias)
@@ -182,6 +186,11 @@ public class SamlIdentityProviderConfiguratorTests {
                 }
                 case "okta-local-2": {
                     ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
+                    IdentityProvider idp2 = mock(IdentityProvider.class);
+                    when(idp2.getType()).thenReturn(OriginKeys.SAML);
+                    when(idp2.getConfig()).thenReturn(def);
+                    when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp2));
+                    configurator.validateSamlIdentityProviderDefinition(def);
                     assertEquals("http://www.okta.com/k2lw4l5bPODCMIIDBRYZ", provider.getEntityID());
                     break;
                 }
@@ -203,6 +212,29 @@ public class SamlIdentityProviderConfiguratorTests {
         t.cancel();
     }
 
+    @Test
+    public void testGetEntityIDExists() throws Exception {
+
+        Timer t = new Timer();
+        bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
+        bootstrap.afterPropertiesSet();
+        for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
+            switch (def.getIdpEntityAlias()) {
+                case "okta-local-2": {
+                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
+                    IdentityProvider idp2 = mock(IdentityProvider.class);
+                    when(idp2.getType()).thenReturn(OriginKeys.SAML);
+                    when(idp2.getConfig()).thenReturn(def.clone().setIdpEntityAlias("okta-local-1"));
+                    when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp2));
+                    assertThrowsWithMessageThat(
+                        MetadataProviderException.class,
+                        () -> configurator.validateSamlIdentityProviderDefinition(def),
+                        startsWith("Duplicate entity ID:http://www.okta.com")
+                    );
+                }
+            }
+        }
+    }
 
     @Test
     public void testIdentityProviderDefinitionSocketFactoryTest() {
