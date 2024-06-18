@@ -154,7 +154,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @Test
     public void testAddNullProvider() {
-        Assertions.assertThrows(NullPointerException.class, () -> configurator.validateSamlIdentityProviderDefinition(null));
+        Assertions.assertThrows(NullPointerException.class, () -> configurator.validateSamlIdentityProviderDefinition(null, true));
     }
 
     @Test
@@ -162,7 +162,7 @@ public class SamlIdentityProviderConfiguratorTests {
         singleAdd.setIdpEntityAlias(null);
 
         Assertions.assertThrows(NullPointerException.class, () -> {
-            configurator.validateSamlIdentityProviderDefinition(singleAdd);
+            configurator.validateSamlIdentityProviderDefinition(singleAdd, true);
         });
     }
 
@@ -190,7 +190,7 @@ public class SamlIdentityProviderConfiguratorTests {
                     when(idp2.getType()).thenReturn(OriginKeys.SAML);
                     when(idp2.getConfig()).thenReturn(def);
                     when(provisioning.retrieveActive(anyString())).thenReturn(asList(idp2));
-                    configurator.validateSamlIdentityProviderDefinition(def);
+                    configurator.validateSamlIdentityProviderDefinition(def, true);
                     assertEquals("http://www.okta.com/k2lw4l5bPODCMIIDBRYZ", provider.getEntityID());
                     break;
                 }
@@ -225,7 +225,7 @@ public class SamlIdentityProviderConfiguratorTests {
                     when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp2));
                     assertThrowsWithMessageThat(
                         MetadataProviderException.class,
-                        () -> configurator.validateSamlIdentityProviderDefinition(def),
+                        () -> configurator.validateSamlIdentityProviderDefinition(def, true),
                         startsWith("Duplicate entity ID:http://www.okta.com")
                     );
                 }

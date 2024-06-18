@@ -71,9 +71,10 @@ public class SamlIdentityProviderConfigurator {
      * adds or replaces a SAML identity proviider
      *
      * @param providerDefinition - the provider to be added
+     * @param creation - check new created config
      * @throws MetadataProviderException if the system fails to fetch meta data for this provider
      */
-    public synchronized String validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws MetadataProviderException {
+    public synchronized String validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition, boolean creation) throws MetadataProviderException {
         ExtendedMetadataDelegate added, deleted = null;
         if (providerDefinition == null) {
             throw new NullPointerException();
@@ -91,7 +92,7 @@ public class SamlIdentityProviderConfigurator {
             throw new MetadataProviderException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
         }
 
-        boolean entityIDexists = entityIdExists(entityIDToBeAdded, providerDefinition.getZoneId());
+        boolean entityIDexists = creation && entityIdExists(entityIDToBeAdded, providerDefinition.getZoneId());
 
         if (!entityIDexists) {
             for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
