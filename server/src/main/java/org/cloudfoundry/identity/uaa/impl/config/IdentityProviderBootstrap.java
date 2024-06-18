@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

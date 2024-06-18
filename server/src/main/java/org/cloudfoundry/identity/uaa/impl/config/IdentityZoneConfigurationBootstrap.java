@@ -23,10 +23,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
 import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.springframework.beans.factory.InitializingBean;
 
-import java.util.Collection;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -63,9 +62,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private boolean accountChooserEnabled;
 
-    private Collection<String> defaultUserGroups;
-
-    private Collection<String> allowedUserGroups;
+    private UserConfig defaultUserConfig;
 
     private IdentityZoneValidator validator = (config, mode) -> config;
     private Map<String, Object> branding;
@@ -92,6 +89,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
         definition.setAccountChooserEnabled(accountChooserEnabled);
         definition.setDefaultIdentityProvider(defaultIdentityProvider);
+        definition.setUserConfig(defaultUserConfig);
 
         samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
         for (Map.Entry<String, Map<String,String>> entry : samlKeys.entrySet()) {
@@ -126,14 +124,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
         BrandingInformation brandingInfo = JsonUtils.convertValue(branding, BrandingInformation.class);
         definition.setBranding(brandingInfo);
-
-        if (defaultUserGroups!=null) {
-            definition.getUserConfig().setDefaultGroups(new LinkedList<>(defaultUserGroups));
-        }
-
-        if (allowedUserGroups!=null) {
-            definition.getUserConfig().setAllowedGroups(new LinkedList<>(allowedUserGroups));
-        }
 
         identityZone.setConfig(definition);
 
@@ -235,19 +225,15 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         return branding;
     }
 
-    public void setDefaultUserGroups(Collection<String> defaultUserGroups) {
-        this.defaultUserGroups = defaultUserGroups;
-    }
-
-    public void setAllowedUserGroups(Collection<String> allowedUserGroups) {
-        this.allowedUserGroups = allowedUserGroups;
-    }
-
     public boolean isDisableSamlInResponseToCheck() {
         return disableSamlInResponseToCheck;
     }
 
     public void setDisableSamlInResponseToCheck(boolean disableSamlInResponseToCheck) {
         this.disableSamlInResponseToCheck = disableSamlInResponseToCheck;
+    }
+
+    public void setDefaultUserConfig(final UserConfig defaultUserConfig) {
+        this.defaultUserConfig = defaultUserConfig;
     }
 }
