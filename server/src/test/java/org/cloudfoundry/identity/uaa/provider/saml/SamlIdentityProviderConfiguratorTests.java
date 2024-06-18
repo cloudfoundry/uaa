@@ -189,7 +189,7 @@ public class SamlIdentityProviderConfiguratorTests {
                     IdentityProvider idp2 = mock(IdentityProvider.class);
                     when(idp2.getType()).thenReturn(OriginKeys.SAML);
                     when(idp2.getConfig()).thenReturn(def);
-                    when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp2));
+                    when(provisioning.retrieveActive(anyString())).thenReturn(asList(idp2));
                     configurator.validateSamlIdentityProviderDefinition(def);
                     assertEquals("http://www.okta.com/k2lw4l5bPODCMIIDBRYZ", provider.getEntityID());
                     break;
@@ -213,15 +213,12 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void testGetEntityIDExists() throws Exception {
-
-        Timer t = new Timer();
+    void testGetEntityIDExists() throws Exception {
         bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
         bootstrap.afterPropertiesSet();
         for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
             switch (def.getIdpEntityAlias()) {
                 case "okta-local-2": {
-                    ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
                     IdentityProvider idp2 = mock(IdentityProvider.class);
                     when(idp2.getType()).thenReturn(OriginKeys.SAML);
                     when(idp2.getConfig()).thenReturn(def.clone().setIdpEntityAlias("okta-local-1"));

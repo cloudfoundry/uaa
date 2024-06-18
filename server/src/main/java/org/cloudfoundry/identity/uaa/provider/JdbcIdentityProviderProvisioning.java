@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component("identityProviderProvisioning")
@@ -217,15 +218,15 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 switch (identityProvider.getType()) {
                     case OriginKeys.SAML:
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
-                        ((SamlIdentityProviderDefinition) definition).setIdpEntityId(externId);
+                        Optional.ofNullable(definition).map(SamlIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIdpEntityId(externId));
                         break;
                     case OriginKeys.OAUTH20:
                         definition = JsonUtils.readValue(config, RawExternalOAuthIdentityProviderDefinition.class);
-                        ((RawExternalOAuthIdentityProviderDefinition) definition).setIssuer(externId);
+                        Optional.ofNullable(definition).map(RawExternalOAuthIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
                         break;
                     case OriginKeys.OIDC10:
                         definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);
-                        ((OIDCIdentityProviderDefinition) definition).setIssuer(externId);
+                        Optional.ofNullable(definition).map(OIDCIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
                         break;
                     case OriginKeys.UAA:
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
