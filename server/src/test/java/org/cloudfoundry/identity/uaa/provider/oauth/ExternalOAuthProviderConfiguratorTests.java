@@ -6,12 +6,15 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -56,6 +59,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(MockitoExtension.class)
 class ExternalOAuthProviderConfiguratorTests {
+    private static final AlphanumericRandomValueStringGenerator RANDOM_STRING_GENERATOR =
+            new AlphanumericRandomValueStringGenerator(6);
 
     private final String UAA_BASE_URL = "https://localhost:8443/uaa";
 
@@ -385,5 +390,13 @@ class ExternalOAuthProviderConfiguratorTests {
         Map<String, String> queryParams =
             UriComponentsBuilder.fromUriString(authzUri).build().getQueryParams().toSingleValueMap();
         assertThat(queryParams, hasEntry("token_format", "jwt"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void testIdpWithAliasExistsInZone(final boolean resultFromDelegate) {
+        final String zoneId = RANDOM_STRING_GENERATOR.generate();
+        when(mockIdentityProviderProvisioning.idpWithAliasExistsInZone(zoneId)).thenReturn(resultFromDelegate);
+        assertEquals(resultFromDelegate, configurator.idpWithAliasExistsInZone(zoneId));
     }
 }

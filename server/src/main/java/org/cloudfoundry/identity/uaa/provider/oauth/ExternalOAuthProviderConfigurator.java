@@ -136,6 +136,11 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     }
 
     @Override
+    public boolean idpWithAliasExistsInZone(final String zoneId) {
+        return providerProvisioning.idpWithAliasExistsInZone(zoneId);
+    }
+
+    @Override
     public IdentityProvider retrieve(String id, String zoneId) {
         IdentityProvider p = providerProvisioning.retrieve(id, zoneId);
         if (p != null && p.getType().equals(OIDC10)) {

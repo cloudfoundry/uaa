@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
+import static java.sql.Types.VARCHAR;
+
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -11,7 +13,6 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
-import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.sql.ResultSet;
@@ -34,13 +35,15 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=?";
 
+    public static final String IDP_WITH_ALIAS_EXISTS_QUERY = "select 1 from identity_provider idp where idp.identity_zone_id = ? and idp.alias_zid is not null and idp.alias_zid <> '' limit 1";
+
     public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active,alias_id,alias_zid".replace(",", "=?,") + "=?";
 
     public static final String UPDATE_IDENTITY_PROVIDER_SQL = "update identity_provider set " + ID_PROVIDER_UPDATE_FIELDS + " where id=? and identity_zone_id=?";
 
     public static final String DELETE_IDENTITY_PROVIDER_BY_ORIGIN_SQL = "delete from identity_provider where identity_zone_id=? and origin_key = ?";
 
-    public static final String DELETE_IDENTITY_PROVIDER_BY_ZONE_SQL = "delete from identity_provider where identity_zone_id=? or alias_zid=?";
+    public static final String DELETE_IDENTITY_PROVIDER_BY_ZONE_SQL = "delete from identity_provider where identity_zone_id=?";
 
     public static final String IDENTITY_PROVIDER_BY_ID_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider " + "where id=? and identity_zone_id=?";
 
@@ -54,6 +57,18 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public JdbcIdentityProviderProvisioning(JdbcTemplate jdbcTemplate) {
         this.jdbcTemplate = jdbcTemplate;
+    }
+
+    @Override
+    public boolean idpWithAliasExistsInZone(final String zoneId) {
+        final List<Integer> result = jdbcTemplate.queryForList(
+                IDP_WITH_ALIAS_EXISTS_QUERY,
+                new Object[]{zoneId},
+                new int[]{VARCHAR},
+                Integer.class
+        );
+        // if an IdP with alias is present, the list contains a single element, otherwise it is empty
+        return result.size() == 1;
     }
 
     @Override
@@ -150,12 +165,9 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         }
     }
 
-    /**
-     * Delete all identity providers in the given zone as well as all alias identity providers of them.
-     */
     @Override
     public int deleteByIdentityZone(String zoneId) {
-        return jdbcTemplate.update(DELETE_IDENTITY_PROVIDER_BY_ZONE_SQL, zoneId, zoneId);
+        return jdbcTemplate.update(DELETE_IDENTITY_PROVIDER_BY_ZONE_SQL, zoneId);
     }
 
     @Override
