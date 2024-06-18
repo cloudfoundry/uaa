@@ -137,9 +137,9 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         return definition.getAuthUrl().toString();
     }
 
-    private boolean isOriginLoopAllowed(String zoneId, boolean allowed) {
-        if (!allowed) {
-            return false;
+    private int isOriginLoopAllowed(String zoneId, int checkDone) {
+        if (checkDone > -1) {
+            return checkDone;
         }
         IdentityZoneConfiguration idzConfig;
         if (identityZoneManager.getCurrentIdentityZoneId().equals(zoneId)) {
@@ -147,7 +147,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         } else {
             idzConfig = identityZoneProvisioning.retrieve(zoneId).getConfig();
         }
-        return idzConfig == null || Optional.of(idzConfig.getUserConfig()).map(UserConfig::isAllowAllOrigins).orElse(true);
+        return (idzConfig == null || Optional.of(idzConfig.getUserConfig()).map(UserConfig::isAllowAllOrigins).orElse(true)) ? 1 : 0;
     }
 
     @Override
@@ -176,7 +176,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
 
     public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
         IdentityProvider issuedProvider = null;
-        boolean originLoopAllowed = true;
+        int originLoopCheckDone = -1;
         try {
             issuedProvider = retrieveByExternId(issuer, OIDC10, zoneId);
             if (issuedProvider != null && issuedProvider.isActive()
@@ -185,12 +185,12 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
                 return issuedProvider;
             }
         } catch (EmptyResultDataAccessException e) {
-            originLoopAllowed = isOriginLoopAllowed(zoneId, true);
-            if (!isOriginLoopAllowed(zoneId, originLoopAllowed)) {
+            originLoopCheckDone = isOriginLoopAllowed(zoneId, originLoopCheckDone);
+            if (originLoopCheckDone == 0) {
                 throw new IncorrectResultSizeDataAccessException(String.format("No provider with unique issuer[%s] found", issuer), 1, 0, e);
             }
         }
-        if (!isOriginLoopAllowed(zoneId, originLoopAllowed) && issuedProvider == null) {
+        if (isOriginLoopAllowed(zoneId, originLoopCheckDone) == 0 && issuedProvider == null) {
             throw new IncorrectResultSizeDataAccessException(String.format("Active provider with unique issuer[%s] not found", issuer), 1);
         }
         List<IdentityProvider> providers = retrieveAll(true, zoneId)

@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -168,6 +169,83 @@ class ExternalOAuthProviderConfiguratorTests {
         assertEquals(issuer, activeExternalOAuthProvider.getConfig().getIssuer());
         verify(configurator, times(1)).overlay(eq(config));
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    void retrieve_by_issuer_search() throws Exception {
+        when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenReturn(oidcProvider);
+
+        String issuer = "https://accounts.google.com";
+        doAnswer(invocation -> {
+            OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
+            definition.setIssuer(issuer);
+            return null;
+        }).when(mockOidcMetadataFetcher)
+            .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
+
+        IdentityProvider<OIDCIdentityProviderDefinition> activeExternalOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
+
+        assertEquals(issuer, activeExternalOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveByExternId(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void retrieve_by_issuer_legacy() throws Exception {
+        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+        when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+
+        String issuer = "https://accounts.google.com";
+        IdentityZone extraZone = IdentityZone.getUaa();
+        extraZone.setId("customer");
+        extraZone.setSubdomain("customer");
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneProvisioning.retrieve("customer")).thenReturn(extraZone);
+        doAnswer(invocation -> {
+            OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
+            definition.setIssuer(issuer);
+            return null;
+        }).when(mockOidcMetadataFetcher)
+            .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
+
+        IdentityProvider<OIDCIdentityProviderDefinition> activeExternalOAuthProvider = configurator.retrieveByIssuer(issuer, "customer");
+
+        assertEquals(issuer, activeExternalOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).retrieveByExternId(anyString(), anyString(), anyString());
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    void retrieve_by_issuer_not_found_error() throws Exception {
+        when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+
+        String issuer = "https://accounts.google.com";
+        IdentityZone extraZone = IdentityZone.getUaa();
+        extraZone.getConfig().getUserConfig().setAllowAllOrigins(false);
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneManager.getCurrentIdentityZone()).thenReturn(extraZone);
+        assertThrowsWithMessageThat(
+            IncorrectResultSizeDataAccessException.class,
+            () -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()),
+            startsWith(String.format("No provider with unique issuer[%s] found", issuer))
+        );
+    }
+
+    @Test
+    void retrieve_by_issuer_null_error() throws Exception {
+        when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenReturn(null);
+
+        String issuer = "https://accounts.google.com";
+        IdentityZone extraZone = IdentityZone.getUaa();
+        extraZone.getConfig().getUserConfig().setAllowAllOrigins(false);
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneManager.getCurrentIdentityZone()).thenReturn(extraZone);
+        assertThrowsWithMessageThat(
+            IncorrectResultSizeDataAccessException.class,
+            () -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()),
+            startsWith(String.format("Active provider with unique issuer[%s] not found", issuer))
+        );
     }
 
     @Test
