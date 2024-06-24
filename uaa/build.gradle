@@ -158,7 +158,15 @@ generateDocs {
     dependsOn(slate)
 }
 
+//task declarations
+tasks.register('killUaa', Exec) {
+    workingDir '../'
+    executable = 'scripts/kill_uaa.sh'
+}
+
 integrationTest {
+    dependsOn killUaa
+
     filter {
         includeTestsMatching("org.cloudfoundry.identity.uaa.integration.*")
         includeTestsMatching("*IT")
