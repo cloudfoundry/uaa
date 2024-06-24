@@ -147,8 +147,8 @@ public class SamlUaaResponseAuthenticationConverter
         List<String> acrValues = userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE);
         if (acrValues != null) {
             authentication.setAuthContextClassRef(Set.copyOf(acrValues));
-
         }
+
         if (samlConfig.getAuthnContext() != null) {
             if (Collections.disjoint(acrValues, samlConfig.getAuthnContext())) {
                 throw new BadCredentialsException(

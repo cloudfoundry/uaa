@@ -36,7 +36,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
-//import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 
@@ -61,7 +60,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  * prior to createAuthorizatioRequest is called.
  * Backwards compatible with Spring Security Oauth2 v1
  * This is a copy of the TokenEndpointAuthenticationFilter from Spring Security Oauth2 v2, but made to work with UAA
- *
  */
 public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Filter {
 

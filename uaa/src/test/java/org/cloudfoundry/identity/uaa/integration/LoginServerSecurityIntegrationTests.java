@@ -249,7 +249,6 @@ public class LoginServerSecurityIntegrationTests {
         assertNotNull("There should be scopes: " + results, results.get("scopes"));
     }
 
-
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
     public void testMissingUserInfoIsError() {
@@ -472,5 +471,4 @@ public class LoginServerSecurityIntegrationTests {
             setAccessTokenUri(test.serverRunning.getAccessTokenUri());
         }
     }
-
 }

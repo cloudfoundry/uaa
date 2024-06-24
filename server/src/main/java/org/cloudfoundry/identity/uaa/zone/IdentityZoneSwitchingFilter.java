@@ -121,7 +121,6 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-
         String identityZoneIdFromHeader = request.getHeader(HEADER);
         String identityZoneSubDomainFromHeader = request.getHeader(SUBDOMAIN_HEADER);
 
@@ -167,5 +166,4 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
         return identityZone;
     }
-
 }
