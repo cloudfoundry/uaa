@@ -252,7 +252,7 @@ class OpenSaml4AuthenticationProviderTests {
 
     @Test
     void testAuthenticateSimple() {
-        assertThat(authprovider.authenticate(authenticationToken())).isNotNull();
+        assertThat(authenticate()).isNotNull();
     }
 
     @ParameterizedTest(name = "#{index} relayRedirectRejectsNonUrls - {0}")
@@ -285,23 +285,21 @@ class OpenSaml4AuthenticationProviderTests {
                 .getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE,
                         RequestAttributes.SCOPE_REQUEST))
                 .isEqualTo(redirectUrl);
-        assertThat(uaaAuthentication.getAuthContextClassRef()).contains(
-                AuthnContext.PASSWORD_AUTHN_CTX);
+        assertThat(uaaAuthentication.getAuthContextClassRef()).contains(AuthnContext.PASSWORD_AUTHN_CTX);
     }
 
     @Test
     void testAuthenticationEvents() {
-        authprovider.authenticate(authenticationToken());
-        assertEquals(3, publisher.events.size());
-        assertInstanceOf(IdentityProviderAuthenticationSuccessEvent.class, publisher.events.get(2));
+        authenticate();
+        assertThat(publisher.events).hasSize(3);
+        assertThat(publisher.events.get(2)).isInstanceOf(IdentityProviderAuthenticationSuccessEvent.class);
     }
 
     @Test
-    void saml_authentication_contains_acr() {
+    void samlAuthenticationContainsAcr() {
         Saml2AuthenticationToken mockAuthenticationToken = authenticationToken();
         UaaAuthentication uaaAuthentication = authenticate(mockAuthenticationToken);
-        assertThat(uaaAuthentication.getAuthContextClassRef()).contains(
-                AuthnContext.PASSWORD_AUTHN_CTX);
+        assertThat(uaaAuthentication.getAuthContextClassRef()).contains(AuthnContext.PASSWORD_AUTHN_CTX);
         verify(mockAuthenticationToken.getAuthenticationRequest(), times(1)).getRelayState();
         assertThat(RequestContextHolder.currentRequestAttributes()
                 .getAttribute(UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE,
@@ -333,10 +331,8 @@ class OpenSaml4AuthenticationProviderTests {
 
     @Test
     void test_external_groups_as_scopes() {
-        providerDefinition.setGroupMappingMode(
-                SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES);
-        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME,
-                Arrays.asList("2ndgroups", "groups"));
+        providerDefinition.setGroupMappingMode(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES);
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups", "groups"));
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
         UaaAuthentication authentication = authenticate();
@@ -360,7 +356,6 @@ class OpenSaml4AuthenticationProviderTests {
                 new SimpleGrantedAuthority(UAA_SAML_USER),
                 new SimpleGrantedAuthority(UaaAuthority.UAA_USER.getAuthority())
         );
-
     }
 
     @Test
@@ -637,36 +632,27 @@ class OpenSaml4AuthenticationProviderTests {
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void authnContext_isvalidated_fail() {
+    void authnContextValidationFails() {
         providerDefinition.setAuthnContext(Arrays.asList("some-context", "another-context"));
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
 
-        try {
-//            getAuthentication(authprovider);
-            fail("Expected authentication to throw BadCredentialsException");
-        } catch (BadCredentialsException ignored) {
-
-        }
+        assertThatThrownBy(this::authenticate)
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasCauseExactlyInstanceOf(BadCredentialsException.class)
+                .hasMessage("Identity Provider did not authenticate with the requested AuthnContext.");
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void authnContext_isvalidated_good() {
-//        providerDefinition.setAuthnContext(Collections.singletonList(AuthnContext.PASSWORD_AUTHN_CTX));
+    void authnContextValidationSucceeds() {
+        providerDefinition.setAuthnContext(Collections.singletonList(AuthnContext.PASSWORD_AUTHN_CTX));
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
 
-        try {
-//            getAuthentication(authprovider);
-        } catch (BadCredentialsException ex) {
-            fail("Expected authentication to succeed");
-        }
+        assertThat(authenticate()).isNotNull();
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
     void shadowAccountNotCreated_givenShadowAccountCreationDisabled() {
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("given_name", "firstName");
@@ -678,19 +664,14 @@ class OpenSaml4AuthenticationProviderTests {
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
 
-        try {
-            authenticate();
-            fail("Expected authentication to throw LoginSAMLException");
-        } catch (SamlLoginException ignored) {
+        assertThatThrownBy(this::authenticate)
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasCauseExactlyInstanceOf(SamlLoginException.class)
+                .hasMessage("SAML user does not exist. You can correct this by creating a shadow user for the SAML user.");
 
-        }
-
-        try {
-            userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
-            fail("Expected user not to exist in database");
-        } catch (UsernameNotFoundException ignored) {
-
-        }
+        assertThatThrownBy(()-> userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML))
+                .isInstanceOf(UsernameNotFoundException.class)
+                .hasMessage(TEST_USERNAME);
     }
 
     @Test

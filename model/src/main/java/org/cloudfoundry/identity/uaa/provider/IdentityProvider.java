@@ -113,36 +113,40 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     }
 
     public IdentityProvider<T> setConfig(T config) {
-        if (config == null) {
-            this.type = UNKNOWN;
-        } else {
-            Class clazz = config.getClass();
-            if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = SAML;
+        this.type = UNKNOWN;
+        if (config != null) {
+            this.type = determineType(config.getClass());
+            if (SAML.equals(this.type)) {
                 if (StringUtils.hasText(getOriginKey())) {
                     ((SamlIdentityProviderDefinition) config).setIdpEntityAlias(getOriginKey());
                 }
                 if (StringUtils.hasText(getIdentityZoneId())) {
                     ((SamlIdentityProviderDefinition) config).setZoneId(getIdentityZoneId());
                 }
-            } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = UAA;
-            } else if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = OAUTH20;
-            } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = OIDC10;
-            } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = LDAP;
-            } else if (KeystoneIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = KEYSTONE;
-            } else if (AbstractIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = UNKNOWN;
-            } else {
-                throw new IllegalArgumentException("Unknown identity provider configuration type:" + clazz.getName());
             }
         }
         this.config = config;
         return this;
+    }
+
+    private static String determineType(Class clazz) {
+        if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return SAML;
+        } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return UAA;
+        } else if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return OAUTH20;
+        } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return OIDC10;
+        } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return LDAP;
+        } else if (KeystoneIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return KEYSTONE;
+        } else if (AbstractIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return UNKNOWN;
+        } else {
+            throw new IllegalArgumentException("Unknown identity provider configuration type:" + clazz.getName());
+        }
     }
 
     public IdentityProvider<T> setOriginKey(String originKey) {

@@ -26,15 +26,12 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.StringUtils;
@@ -50,6 +47,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
@@ -60,16 +60,10 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class Saml2TokenGranterTest {
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
+class Saml2TokenGranterTest {
 
     private Saml2TokenGranter granter;
-    private Saml2TokenGranter mockedgranter;
     private DefaultSecurityContextAccessor mockSecurityAccessor;
-    private AuthorizationServerTokenServices tokenServices;
-    private MultitenantClientServices clientDetailsService;
     private OAuth2RequestFactory requestFactory;
     private UaaOauth2Authentication authentication;
     private TokenRequest tokenRequest;
@@ -77,20 +71,13 @@ public class Saml2TokenGranterTest {
     private Map<String, String> requestParameters;
     private UaaClientDetails requestingClient;
     private UaaClientDetails receivingClient;
-    private UaaClientDetails passwordClient;
-    //  private SAMLAuthenticationToken samltoken;
-//  private SAMLMessageContext samlcontext;
-    private UaaUserDatabase uaaUserDatabase = mock(UaaUserDatabase.class);
 
-    @Before
-    public void setup() {
-//    try { DefaultBootstrap.bootstrap();
-//    } catch (ConfigurationException ignored) { }
-        tokenServices = mock(AuthorizationServerTokenServices.class);
-        clientDetailsService = mock(MultitenantClientServices.class);
+    @BeforeEach
+    void setup() {
+        AuthorizationServerTokenServices tokenServices = mock(AuthorizationServerTokenServices.class);
+        MultitenantClientServices clientDetailsService = mock(MultitenantClientServices.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
-//    samlcontext = mock(SAMLMessageContext.class);
         mockSecurityAccessor = mock(DefaultSecurityContextAccessor.class);
         MockHttpServletRequest request = new MockHttpServletRequest();
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
@@ -103,12 +90,10 @@ public class Saml2TokenGranterTest {
                 clientDetailsService,
                 requestFactory,
                 mockSecurityAccessor);
-//    samltoken = new SAMLAuthenticationToken(samlcontext);
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
         requestingClient = new UaaClientDetails("requestingId", null, "uaa.user", GRANT_TYPE_SAML2_BEARER, null);
         receivingClient = new UaaClientDetails("receivingId", null, "test.scope", GRANT_TYPE_SAML2_BEARER, null);
-        passwordClient = new UaaClientDetails("pwdId", null, "test.scope", "password", null);
         when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
         when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()), anyString())).thenReturn(receivingClient);
         when(mockSecurityAccessor.isUser()).thenReturn(true);
@@ -120,60 +105,65 @@ public class Saml2TokenGranterTest {
         tokenRequest.setRequestParameters(requestParameters);
     }
 
-    @After
-    public void teardown() {
+    @AfterEach
+    void teardown() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    @Ignore("SAML test setup doesn't compile")
-    public void test_not_authenticated() {
+    void notAuthenticated() {
         when(authentication.isAuthenticated()).thenReturn(false);
-        granter.validateRequest(tokenRequest);
+        assertThat(granter.validateRequest(tokenRequest))
+                .isSameAs(authentication);
     }
 
     @Test
-    @Ignore("SAML test setup doesn't compile")
-    public void test_not_a_user_authentication() {
+    void notAUserAuthentication() {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
-        granter.validateRequest(tokenRequest);
+        assertThat(granter.validateRequest(tokenRequest))
+                .isSameAs(authentication);
     }
 
     @Test
-    @Ignore("SAML test setup doesn't compile")
-    public void invalid_grant_type() {
+    void invalidGrantType() {
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        exception.expect(InvalidGrantException.class);
-        exception.expectMessage("Invalid grant type");
         requestParameters.put(GRANT_TYPE, "password");
         tokenRequest.setRequestParameters(requestParameters);
-        granter.validateRequest(tokenRequest);
+
+        assertThatThrownBy(() -> granter.validateRequest(tokenRequest))
+                .isInstanceOf(InvalidGrantException.class)
+                .hasMessage("Invalid grant type");
     }
 
     @Test
-    @Ignore("SAML test setup doesn't compile")
-    public void test_no_user_authentication() {
+    void noUserAuthentication() {
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        exception.expect(InvalidGrantException.class);
-        exception.expectMessage("User authentication not found");
         when(mockSecurityAccessor.isUser()).thenReturn(false);
-        granter.validateRequest(tokenRequest);
-    }
 
-    @Test(expected = InvalidGrantException.class)
-    @Ignore("SAML test setup doesn't compile")
-    public void test_no_grant_type() {
-        missing_parameter(GRANT_TYPE);
+        assertThatThrownBy(() -> granter.validateRequest(tokenRequest))
+                .isInstanceOf(InvalidGrantException.class)
+                .hasMessage("User authentication not found");
     }
 
     @Test
-    @Ignore("SAML test setup doesn't compile")
-    public void test_ensure_that_access_token_is_deleted_and_modified() {
+    void noGrantType() {
+        assertThatThrownBy(() -> missingParameter(GRANT_TYPE))
+                .isInstanceOf(InvalidGrantException.class);
+    }
+
+    @Test
+    void happyDay() {
+        assertThatNoException().isThrownBy(() -> missingParameter("non existent"));
+    }
+
+    @Test
+    void ensureThatAccessTokenIsDeletedAndModified() {
         String tokenId = "access_token";
         DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(tokenId);
         DefaultOAuth2RefreshToken refreshToken = new DefaultOAuth2RefreshToken("refresh_token");
-        Map<String, Object> info = new HashMap(token.getAdditionalInformation());
+
+        Map<String, Object> info = new HashMap<>(token.getAdditionalInformation());
         info.put(JTI, token.getValue());
         token.setAdditionalInformation(info);
         token.setRefreshToken(refreshToken);
@@ -181,23 +171,21 @@ public class Saml2TokenGranterTest {
     }
 
     @Test
-    @Ignore("SAML test setup doesn't compile")
-    public void test_grant() {
+    void grant() {
         tokenRequest.setGrantType(requestParameters.get(GRANT_TYPE));
-        granter.grant(GRANT_TYPE, tokenRequest);
+        assertThatNoException().isThrownBy(() -> granter.grant(GRANT_TYPE, tokenRequest));
     }
 
     @Test
-    @Ignore("SAML test setup doesn't compile")
-    public void test_oauth2_authentication_with_empty_allowed() {
+    void oauth2AuthenticationWithEmptyAllowed() {
         OAuth2Request myReq = new OAuth2Request(requestParameters, receivingClient.getClientId(), receivingClient.getAuthorities(), true, receivingClient.getScope(), receivingClient.getResourceIds(), null, null, null);
         UaaClientDetails myClient = new UaaClientDetails(requestingClient);
-        List<String> allowedProviders = new LinkedList<String>();
+        List<String> allowedProviders = new LinkedList<>();
         Map<String, Object> additionalInformation = new LinkedHashMap<>();
-        Collection me = AuthorityUtils.commaSeparatedStringToAuthorityList("openid,foo.bar,uaa.user,one.read");
-        mockedgranter = mock(Saml2TokenGranter.class);
-        when(mockedgranter.validateRequest(tokenRequest)).thenReturn(userAuthentication);
-        when(mockedgranter.getOAuth2Authentication(myClient, tokenRequest)).thenCallRealMethod();
+        Collection<GrantedAuthority> me = AuthorityUtils.commaSeparatedStringToAuthorityList("openid,foo.bar,uaa.user,one.read");
+        Saml2TokenGranter mockedGranter = mock(Saml2TokenGranter.class);
+        when(mockedGranter.validateRequest(tokenRequest)).thenReturn(userAuthentication);
+        when(mockedGranter.getOAuth2Authentication(myClient, tokenRequest)).thenCallRealMethod();
         myClient.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
         additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, allowedProviders);
         myClient.setAdditionalInformation(additionalInformation);
@@ -206,20 +194,13 @@ public class Saml2TokenGranterTest {
         granter.getOAuth2Authentication(myClient, tokenRequest);
     }
 
-    @Test(expected = InvalidGrantException.class)
-    @Ignore("SAML test setup doesn't compile")
-    public void test_missing_token_Request() {
-        granter.validateRequest(null);
-    }
-
     @Test
-    @Ignore("SAML test setup doesn't compile")
-    public void happy_day() {
-        missing_parameter("non existent");
+    void missingTokenRequest() {
+        assertThatThrownBy(() -> granter.validateRequest(null))
+                .isInstanceOf(InvalidGrantException.class);
     }
 
-
-    protected void missing_parameter(String parameter) {
+    protected void missingParameter(String parameter) {
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
         when(authentication.getUserAuthentication()).thenReturn(userAuthentication);
@@ -236,53 +217,4 @@ public class Saml2TokenGranterTest {
         public PublicTokenRequest() {
         }
     }
-
-//  EntityDescriptor getMetadata(String xml) {
-//    try {
-//      return (EntityDescriptor)unmarshallObject(xml);
-//    } catch(Exception ignored) {
-//    }
-//    return null;
-//  }
-
-//  Assertion getAssertion(String xml) {
-//    try {
-//      return (Assertion)unmarshallObject(xml);
-//    } catch(Exception ignored) {
-//    }
-//    return null;
-//  }
-
-//  String getAssertionXml(Assertion assertion) {
-//    try {
-//      AssertionMarshaller marshaller = new AssertionMarshaller();
-//      Element plaintextElement = marshaller.marshall(assertion);
-//      return XMLHelper.nodeToString(plaintextElement);
-//    } catch(Exception ignored) {
-//    }
-//    return null;
-//  }
-
-    /*
-     * Unmarshall XML string to OpenSAML XMLObject
-     */
-//  private XMLObject unmarshallObject(String xmlString) throws UnmarshallingException, XMLParserException {
-//    BasicParserPool parser = new BasicParserPool();
-//    parser.setNamespaceAware(true);
-//    /* Base64URL encoded */
-//    byte[] bytes = xmlString.getBytes(UTF_8);
-//    if (bytes == null || bytes.length == 0)
-//      throw new InsufficientAuthenticationException("Invalid assertion encoding");
-//    Reader reader = new InputStreamReader(new ByteArrayInputStream(bytes));
-//    Document doc = parser.parse(reader);
-//    Element samlElement = doc.getDocumentElement();
-//
-//    UnmarshallerFactory unmarshallerFactory = Configuration.getUnmarshallerFactory();
-//    Unmarshaller unmarshaller = unmarshallerFactory.getUnmarshaller(samlElement);
-//    if (unmarshaller == null) {
-//      throw new InsufficientAuthenticationException("Unsuccessful to unmarshal assertion string");
-//    }
-//    return unmarshaller.unmarshall(samlElement);
-//  }
-
 }

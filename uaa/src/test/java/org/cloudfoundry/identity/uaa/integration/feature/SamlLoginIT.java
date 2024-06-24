@@ -958,7 +958,7 @@ public class SamlLoginIT {
 
         webDriver.get(zoneUrl + "/logout.do");
 
-        String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl, StandardCharsets.UTF_8) + "&response_type=code&state=8tp0tR";
+        String authUrl = zoneUrl + "/oauth/authorize?response_type=code&state=8tp0tR&client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl, StandardCharsets.UTF_8);
         webDriver.get(authUrl);
         //we should now be in the Simple SAML PHP site
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
@@ -1029,6 +1029,7 @@ public class SamlLoginIT {
         assertThat(userInfoRoles).containsExactlyInAnyOrder(expectedRoles);
     }
 
+    // TODO: work on this next
     @Test
     @Disabled("SAML test fails")
     void samlLoginEmailInIDTokenWhenUserIDIsNotEmail() {
