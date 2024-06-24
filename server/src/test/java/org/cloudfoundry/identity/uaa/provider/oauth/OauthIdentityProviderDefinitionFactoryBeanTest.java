@@ -17,10 +17,12 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -299,5 +301,35 @@ public class OauthIdentityProviderDefinitionFactoryBeanTest {
         assertTrue(factoryBean.getProviders().get(0).getProvider().getConfig() instanceof OIDCIdentityProviderDefinition);
         assertNotNull(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication());
         assertEquals("none", (((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAuthMethod()));
+    }
+
+    /* The following two test cases check whether different values for 'setForwardHeader' and 'passwordGrantEnabled' are
+     * allowed. Due to a copy/paste issue, the value of 'setForwardHeader' was previously always set to the same value
+     * as 'passwordGrantEnabled'. */
+    @Test
+    public void testSetForwardHeader_ShouldAllowValuesDifferentFromPasswordGrantEnabled_True() {
+        testSetForwardHeader_ShouldAllowValuesDifferentFromPasswordGrantEnabled(true);
+    }
+
+    @Test
+    public void testSetForwardHeader_ShouldAllowValuesDifferentFromPasswordGrantEnabled_False() {
+        testSetForwardHeader_ShouldAllowValuesDifferentFromPasswordGrantEnabled(false);
+    }
+
+    private void testSetForwardHeader_ShouldAllowValuesDifferentFromPasswordGrantEnabled(
+            final boolean setForwardHeader
+    ) {
+        idpDefinitionMap.put("setForwardHeader", setForwardHeader);
+        idpDefinitionMap.put("passwordGrantEnabled", !setForwardHeader);
+        idpDefinitionMap.put("type", OriginKeys.OIDC10);
+
+        factoryBean = new OauthIDPWrapperFactoryBean(Collections.singletonMap("new.idp", idpDefinitionMap));
+        factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
+
+        final IdentityProvider provider = factoryBean.getProviders().get(0).getProvider();
+        assertTrue(provider.getConfig() instanceof OIDCIdentityProviderDefinition);
+        final OIDCIdentityProviderDefinition providerConfig = (OIDCIdentityProviderDefinition) provider.getConfig();
+        assertEquals(setForwardHeader, providerConfig.isSetForwardHeader());
+        assertEquals(!setForwardHeader, providerConfig.isPasswordGrantEnabled());
     }
 }
