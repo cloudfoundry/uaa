@@ -72,7 +72,12 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -85,6 +90,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class LoginInfoEndpointTests {
@@ -166,7 +172,7 @@ class LoginInfoEndpointTests {
     @Test
     void savedAccountsPopulatedOnModel() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        assertThat(extendedModelMap, not(hasKey("savedAccounts")));
+        assertThat(extendedModelMap).doesNotContainKey("savedAccounts");
         MockHttpServletRequest request = new MockHttpServletRequest();
         SavedAccountOption savedAccount = new SavedAccountOption();
 
@@ -186,7 +192,7 @@ class LoginInfoEndpointTests {
         request.setCookies(cookie1, cookie2);
         endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));
 
-        assertThat(extendedModelMap, hasKey("savedAccounts"));
+        assertThat(extendedModelMap).containsKey("savedAccounts");
         assertThat(extendedModelMap.get("savedAccounts"), instanceOf(List.class));
         List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) extendedModelMap.get("savedAccounts");
         assertThat(savedAccounts, hasSize(2));
@@ -376,7 +382,7 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
-        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, null,  extendedModelMap, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", "true", null, null, extendedModelMap, session, request);
 
         assertEquals(extendedModelMap.get("email"), "testuser@fake.com");
     }
@@ -396,7 +402,7 @@ class LoginInfoEndpointTests {
     void discoverIdentityProviderCarriesUsername() throws MalformedURLException {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setParameter("username","testuser@fake.com");
+        request.setParameter("username", "testuser@fake.com");
         MockHttpSession session = new MockHttpSession();
         String loginHint = "{\"origin\":\"my-OIDC-idp1\"}";
         IdentityProvider idp = mock(IdentityProvider.class);
@@ -428,7 +434,7 @@ class LoginInfoEndpointTests {
         uaaIdentityProvider.setType(OriginKeys.UAA);
         when(mockIdentityProviderProvisioning.retrieveActive("uaa")).thenReturn(singletonList(uaaIdentityProvider));
 
-        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, null,  extendedModelMap, session, request);
+        endpoint.discoverIdentityProvider("testuser@fake.com", null, null, null, extendedModelMap, session, request);
 
         String loginHint = "{\"origin\":\"uaa\"}";
         assertEquals(loginHint, extendedModelMap.get("login_hint"));
@@ -529,10 +535,10 @@ class LoginInfoEndpointTests {
         assertTrue(extendedModelMap.get("idpDefinitions") instanceof Map);
         Map<String, String> idpDefinitions = (Map<String, String>) extendedModelMap.get("idpDefinitions");
         for (SamlIdentityProviderDefinition def : idps) {
-            assertEquals(
-                    "http://someurl/saml/discovery?returnIDParam=idp&entityID=" + endpoint.getZonifiedEntityId() + "&idp=" + def.getIdpEntityAlias() + "&isPassive=true",
-                    idpDefinitions.get(def.getIdpEntityAlias())
-            );
+            assertThat(idpDefinitions)
+                    .containsEntry(def.getIdpEntityAlias(),
+                            "http://someurl/saml/discovery?returnIDParam=idp&entityID=%s&idp=%s&isPassive=true"
+                                    .formatted(endpoint.getZonifiedEntityId(), def.getIdpEntityAlias()));
         }
     }
 
@@ -1231,7 +1237,7 @@ class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertFalse(((Map)extendedModelMap.get("oauthLinks")).isEmpty());
+        assertFalse(((Map) extendedModelMap.get("oauthLinks")).isEmpty());
     }
 
     @Test
@@ -1529,14 +1535,14 @@ class LoginInfoEndpointTests {
         String oidcOrigin2 = "my-OIDC-idp2"; //Test also non-default idp
 
         List<List<String>> idpCollections = Arrays.asList(
-                Arrays.asList(OriginKeys.UAA,OriginKeys.LDAP,oidcOrigin1,oidcOrigin2),
-                Arrays.asList(OriginKeys.UAA,                oidcOrigin1,oidcOrigin2),
-                Arrays.asList(               OriginKeys.LDAP,oidcOrigin1,oidcOrigin2),
-                Arrays.asList(OriginKeys.UAA,OriginKeys.LDAP,oidcOrigin1),
-                Arrays.asList(OriginKeys.UAA,OriginKeys.LDAP,            oidcOrigin2),
-                Arrays.asList(                               oidcOrigin1,oidcOrigin2),
-                Arrays.asList(                               oidcOrigin1),
-                Arrays.asList(                                           oidcOrigin2));
+                Arrays.asList(OriginKeys.UAA, OriginKeys.LDAP, oidcOrigin1, oidcOrigin2),
+                Arrays.asList(OriginKeys.UAA, oidcOrigin1, oidcOrigin2),
+                Arrays.asList(OriginKeys.LDAP, oidcOrigin1, oidcOrigin2),
+                Arrays.asList(OriginKeys.UAA, OriginKeys.LDAP, oidcOrigin1),
+                Arrays.asList(OriginKeys.UAA, OriginKeys.LDAP, oidcOrigin2),
+                Arrays.asList(oidcOrigin1, oidcOrigin2),
+                Arrays.asList(oidcOrigin1),
+                Arrays.asList(oidcOrigin2));
 
         for (List<String> idpCollection : idpCollections) {
             MultitenantClientServices clientDetailsService = mockClientService(idpCollection);
@@ -1738,7 +1744,7 @@ class LoginInfoEndpointTests {
                 globalLinks,
                 clientDetailsService,
                 mockSamlIdentityProviderConfigurator);
-        if(identityZone.getConfig() != null) {
+        if (identityZone.getConfig() != null) {
             identityZone.getConfig().setPrompts(prompts);
         }
         return endpoint;

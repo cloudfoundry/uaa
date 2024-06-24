@@ -48,13 +48,6 @@ public class SamlUaaAuthenticationAttributesConverter {
             });
         }
 
-//        if (credential.getAuthenticationAssertion() != null && credential.getAuthenticationAssertion().getAuthnStatements() != null) {
-//            for (AuthnStatement statement : credential.getAuthenticationAssertion().getAuthnStatements()) {
-//                if (statement.getAuthnContext() != null && statement.getAuthnContext().getAuthnContextClassRef() != null) {
-//                    userAttributes.add(AUTHENTICATION_CONTEXT_CLASS_REFERENCE, statement.getAuthnContext().getAuthnContextClassRef().getAuthnContextClassRef());
-//                }
-//            }
-//        }
         return userAttributes;
     }
 

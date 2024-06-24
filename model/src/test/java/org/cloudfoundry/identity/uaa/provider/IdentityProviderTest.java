@@ -1,7 +1,13 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
 
 import org.junit.jupiter.api.Test;
 
@@ -110,5 +116,78 @@ class IdentityProviderTest {
         assertThat(idp.getAliasDescription()).isEqualTo(
                 "IdentityProvider[id='12345',zid='uaa',aliasId='id-of-alias-idp',aliasZid='custom-zone']"
         );
+    }
+
+    @Test
+    void setConfigSamlType() {
+        final IdentityProvider<SamlIdentityProviderDefinition> idp = new IdentityProvider<>();
+        final SamlIdentityProviderDefinition config = new SamlIdentityProviderDefinition();
+        idp.setConfig(config);
+
+        assertThat(idp).returns(SAML, IdentityProvider::getType);
+    }
+
+    @Test
+    void setConfigUAAType() {
+        final IdentityProvider<UaaIdentityProviderDefinition> idp = new IdentityProvider<>();
+        final UaaIdentityProviderDefinition config = new UaaIdentityProviderDefinition();
+        idp.setConfig(config);
+
+        assertThat(idp).returns(UAA, IdentityProvider::getType);
+    }
+
+    @Test
+    void setConfigOauth2Type() {
+        final IdentityProvider<RawExternalOAuthIdentityProviderDefinition> idp = new IdentityProvider<>();
+        final RawExternalOAuthIdentityProviderDefinition config = new RawExternalOAuthIdentityProviderDefinition();
+        idp.setConfig(config);
+
+        assertThat(idp).returns(OAUTH20, IdentityProvider::getType);
+    }
+
+    @Test
+    void setConfigOidcType() {
+        final IdentityProvider<OIDCIdentityProviderDefinition> idp = new IdentityProvider<>();
+        final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
+        idp.setConfig(config);
+
+        assertThat(idp).returns(OIDC10, IdentityProvider::getType);
+    }
+
+    @Test
+    void setConfigLdapType() {
+        final IdentityProvider<LdapIdentityProviderDefinition> idp = new IdentityProvider<>();
+        final LdapIdentityProviderDefinition config = new LdapIdentityProviderDefinition();
+        idp.setConfig(config);
+
+        assertThat(idp).returns(LDAP, IdentityProvider::getType);
+    }
+
+    @Test
+    void setConfigKeystoneType() {
+        final IdentityProvider<KeystoneIdentityProviderDefinition> idp = new IdentityProvider<>();
+        final KeystoneIdentityProviderDefinition config = new KeystoneIdentityProviderDefinition();
+        idp.setConfig(config);
+
+        assertThat(idp).returns(KEYSTONE, IdentityProvider::getType);
+    }
+
+    @Test
+    void setConfigUnknownType() {
+        final IdentityProvider<AbstractIdentityProviderDefinition> idp = new IdentityProvider<>();
+        final AbstractIdentityProviderDefinition config = new AbstractIdentityProviderDefinition();
+        idp.setConfig(config);
+
+        assertThat(idp).returns(UNKNOWN, IdentityProvider::getType);
+    }
+
+    @Test
+    void setConfigNull() {
+        final IdentityProvider<AbstractIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setConfig(null);
+
+        assertThat(idp)
+                .returns(UNKNOWN, IdentityProvider::getType)
+                .returns(null, IdentityProvider::getConfig);
     }
 }
