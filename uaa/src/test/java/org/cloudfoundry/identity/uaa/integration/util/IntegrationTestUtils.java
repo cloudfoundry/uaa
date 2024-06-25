@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -992,9 +993,11 @@ public class IntegrationTestUtils {
         return def;
     }
 
-    public static IdentityProvider createOrUpdateProvider(String accessToken,
-                                                          String url,
-                                                          IdentityProvider provider) {
+    public static <T extends AbstractIdentityProviderDefinition> IdentityProvider<T>
+    createOrUpdateProvider(String accessToken,
+                           String url,
+                           IdentityProvider<T> provider) {
+
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
