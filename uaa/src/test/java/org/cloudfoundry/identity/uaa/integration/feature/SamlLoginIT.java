@@ -1,10 +1,10 @@
 /*******************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
+ * <p/>
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
- *
+ * <p/>
  *     This product includes a number of subcomponents with
  *     separate copyright notices and license terms. Your use of these
  *     subcomponents is subject to the terms and conditions of the
@@ -203,7 +203,7 @@ public class SamlLoginIT {
         ResponseEntity<String> response = request.getForEntity(
                 baseUrl + "/saml/metadata", String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        String metadataXml = (String) response.getBody();
+        String metadataXml = response.getBody();
 
         // The SAML SP metadata should match the following UAA configs:
         // login.entityID
@@ -264,7 +264,7 @@ public class SamlLoginIT {
         // create a UAA user with the email address as the username.
         deleteUser(SAML_ORIGIN, testAccounts.getEmail());
 
-        IdentityProvider provider = IntegrationTestUtils.createIdentityProvider(SAML_ORIGIN, false, baseUrl, serverRunning);
+        IdentityProvider<?> provider = IntegrationTestUtils.createIdentityProvider(SAML_ORIGIN, false, baseUrl, serverRunning);
         String clientId = "app-addnew-false" + new RandomValueStringGenerator().generate();
         String redirectUri = "http://nosuchhostname:0/nosuchendpoint";
         createClientAndSpecifyProvider(clientId, provider, redirectUri);
@@ -278,7 +278,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires zones")
     void incorrectResponseFromSamlIDP_showErrorFromSaml() {
         String zoneId = "testzone3";
         String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
@@ -311,7 +311,7 @@ public class SamlLoginIT {
                         "secr3T");
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(SAML_ORIGIN, "testzone3");
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
@@ -343,10 +343,11 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: requires LogoutRequest to be sent to the IDP")
     void simpleSamlPhpLoginDisplaysLastLogin() throws Exception {
+        createIdentityProvider(SAML_ORIGIN);
+
         Long beforeTest = System.currentTimeMillis();
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         LoginPage.go(webDriver, baseUrl)
                 .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
@@ -362,9 +363,9 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires logout")
     void singleLogout() throws Exception {
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
+        createIdentityProvider(SAML_ORIGIN);
 
         LoginPage.go(webDriver, baseUrl)
                 .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
@@ -374,7 +375,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires zones and logout")
     void singleLogoutWithNoLogoutUrlOnIDPWithLogoutRedirect() {
         String zoneId = "testzone2";
         String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
@@ -410,7 +411,7 @@ public class SamlLoginIT {
                         email,
                         "secr3T");
         SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured();
-        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
@@ -435,10 +436,10 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires logout")
     void singleLogoutWithNoLogoutUrlOnIDP() throws Exception {
         SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured();
-        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(OriginKeys.UAA);
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
@@ -447,8 +448,7 @@ public class SamlLoginIT {
         provider.setName("simplesamlphp for uaa");
 
         String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
-
-        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
+        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         LoginPage.go(webDriver, baseUrl)
                 .clickSamlLink_goesToSamlLoginPage("simplesamlphp")
@@ -474,23 +474,6 @@ public class SamlLoginIT {
                 .login_goesToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
-
-    private void testSimpleSamlLogin(String firstUrl, String lookfor) throws Exception {
-        testSimpleSamlLogin(firstUrl, lookfor, testAccounts.getUserName(), testAccounts.getPassword());
-    }
-
-    private void testSimpleSamlLogin(String firstUrl, String lookfor, String username, String password) throws Exception {
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
-
-        webDriver.get(baseUrl + firstUrl);
-        assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        //takeScreenShot();
-        assertThat(webDriver.getCurrentUrl()).contains("loginuserpass");
-        sendCredentials(username, password);
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains(lookfor);
-    }
-
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) throws Exception {
         return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning);
     }
@@ -498,7 +481,7 @@ public class SamlLoginIT {
     protected UaaClientDetails createClientAndSpecifyProvider(String clientId, IdentityProvider provider,
                                                               String redirectUri) {
 
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+        IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
         );
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -529,7 +512,6 @@ public class SamlLoginIT {
     }
 
     protected void deleteUser(String origin, String username) {
-
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning,
                 "admin", "adminsecret");
 
@@ -542,8 +524,8 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
-    void saml_invitation_automatic_redirect_in_zone2() throws Exception {
+    @Disabled("SAML test fails: Requires zones")
+    void saml_invitation_automatic_redirect_in_zone2() {
         perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
         perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
         perform_SamlInvitation_Automatic_Redirect_In_Zone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
@@ -643,7 +625,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires zones")
     void relay_state_redirect_from_idp() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
@@ -706,7 +688,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires zones")
     void samlLoginClientIDPAuthorizationAutomaticRedirectInZone1() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
@@ -758,7 +740,7 @@ public class SamlLoginIT {
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
-        clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
+        IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
 
         webDriver.get(zoneUrl + "/logout.do");
 
@@ -774,7 +756,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires zones and logout")
     void samlLoginMapGroupsInZone1() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
@@ -835,7 +817,6 @@ public class SamlLoginIT {
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
         String adminTokenInZone = IntegrationTestUtils.getClientCredentialsToken(zoneUrl, clientDetails.getClientId(), "secret");
 
-
         ScimGroup uaaSamlUserGroup = new ScimGroup(null, "uaa.saml.user", zoneId);
         uaaSamlUserGroup = IntegrationTestUtils.createOrUpdateGroup(adminTokenInZone, null, zoneUrl, uaaSamlUserGroup);
 
@@ -878,7 +859,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires zones and logout")
     void samlLoginCustomUserAttributesAndRolesInIDToken() throws Exception {
 
         final String COST_CENTER = "costCenter";
@@ -1029,9 +1010,8 @@ public class SamlLoginIT {
         assertThat(userInfoRoles).containsExactlyInAnyOrder(expectedRoles);
     }
 
-    // TODO: work on this next
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires zones and logout")
     void samlLoginEmailInIDTokenWhenUserIDIsNotEmail() {
 
         //ensure we are able to resolve DNS for hostname testzone1.localhost
@@ -1069,8 +1049,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZoneIDP(SAML_ORIGIN, zoneId);
         samlIdentityProviderDefinition.addAttributeMapping(EMAIL_ATTRIBUTE_NAME, "emailAddress");
 
-        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
-        provider.setIdentityZoneId(zoneId);
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
@@ -1091,7 +1070,7 @@ public class SamlLoginIT {
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
         clientDetails.setClientSecret("secret");
 
-        String adminTokenInZone = IntegrationTestUtils.getClientCredentialsToken(zoneUrl, clientDetails.getClientId(), "secret");
+        IntegrationTestUtils.getClientCredentialsToken(zoneUrl, clientDetails.getClientId(), "secret");
 
         webDriver.get(zoneUrl + "/logout.do");
 
@@ -1140,7 +1119,7 @@ public class SamlLoginIT {
 
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires zones and logout")
     void simpleSamlPhpLoginInTestZone1Works() {
         String zoneId = "testzone1";
 
@@ -1159,7 +1138,6 @@ public class SamlLoginIT {
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
-
         String zoneAdminToken =
                 IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
                         UaaTestAccounts.standard(serverRunning),
@@ -1177,7 +1155,6 @@ public class SamlLoginIT {
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
         provider.setName("simplesamlphp for testzone1");
 
-
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         //we have to create two providers to avoid automatic redirect
@@ -1191,7 +1168,7 @@ public class SamlLoginIT {
         provider1.setConfig(samlIdentityProviderDefinition1);
         provider1.setOriginKey(samlIdentityProviderDefinition1.getIdpEntityAlias());
         provider1.setName("simplesamlphp 1 for testzone1");
-        provider1 = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider1);
+        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider1);
 
         assertThat(provider.getId()).isNotNull();
 
@@ -1287,7 +1264,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires logout")
     void samlLoginClientIDPAuthorizationAutomaticRedirect() throws Exception {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         assertThat(provider.getConfig().getIdpEntityAlias()).isEqualTo(provider.getOriginKey());
@@ -1334,7 +1311,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: Requires logout")
     void springSamlEndpointsWithEmptyContext() throws IOException {
         CallEmpptyPageAndCheckHttpStatusCode("/saml/discovery", 200);
         CallEmpptyPageAndCheckHttpStatusCode("/saml/SingleLogout", 400);
@@ -1392,19 +1369,6 @@ public class SamlLoginIT {
         def.setIdpEntityAlias("simplesamlphp");
         def.setLinkText("Login with Simple SAML PHP(simplesamlphp)");
         return def;
-    }
-
-    private void logout() {
-        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
-    }
-
-    private void login(IdentityProvider<SamlIdentityProviderDefinition> provider) {
-        webDriver.get(baseUrl + "/login");
-        assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     private void sendCredentials(String username, String password, By loginButtonSelector) {
