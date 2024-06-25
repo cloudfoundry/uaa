@@ -330,7 +330,7 @@ class OpenSaml4AuthenticationProviderTests {
     }
 
     @Test
-    void test_external_groups_as_scopes() {
+    void externalGroupsAsScopes() {
         providerDefinition.setGroupMappingMode(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES);
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups", "groups"));
         provider.setConfig(providerDefinition);
@@ -346,7 +346,7 @@ class OpenSaml4AuthenticationProviderTests {
     }
 
     @Test
-    void test_group_mapping() {
+    void groupMapping() {
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
@@ -359,7 +359,7 @@ class OpenSaml4AuthenticationProviderTests {
     }
 
     @Test
-    void test_non_string_attributes() {
+    void nonStringAttributes() {
         providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX + "XSURI", "XSURI");
         providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX + "XSAny", "XSAny");
         providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX + "XSQName", "XSQName");
@@ -438,8 +438,8 @@ class OpenSaml4AuthenticationProviderTests {
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void update_invitedUser_whose_username_is_notEmail() throws Exception {
+    @Disabled("SAML test doesn't compile: Invitations. Requires different response data")
+    void updateInvitedUserWhoseUsernameIsNotEmail() throws Exception {
         ScimUser scimUser = getInvitedUser();
 
 //        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "marissa.invited@test.org", null);
@@ -455,8 +455,8 @@ class OpenSaml4AuthenticationProviderTests {
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void invitedUser_authentication_whenAuthenticatedEmailDoesNotMatchInvitedEmail()
+    @Disabled("SAML test doesn't compile: Invitations. Requires different response data")
+    void invitedUserAuthenticationWhenAuthenticatedEmailDoesNotMatchInvitedEmail()
             throws Exception {
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("email", "emailAddress");

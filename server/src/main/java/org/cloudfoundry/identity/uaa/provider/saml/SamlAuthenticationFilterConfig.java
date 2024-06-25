@@ -30,6 +30,9 @@ import javax.servlet.http.HttpServletRequest;
 @Configuration
 public class SamlAuthenticationFilterConfig {
 
+    /**
+     * Handles building and forwarding the SAML2 Authentication Request to the IDP.
+     */
     @Autowired
     @Bean
     Filter saml2WebSsoAuthenticationRequestFilter(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
@@ -80,6 +83,9 @@ public class SamlAuthenticationFilterConfig {
         return samlResponseAuthenticationProvider;
     }
 
+    /**
+     * Handles the SAML2 Authentication Response and creates an Authentication object.
+     */
     @Autowired
     @Bean
     Filter saml2WebSsoAuthenticationFilter(AuthenticationProvider samlAuthenticationProvider,
