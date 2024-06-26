@@ -1,1 +1,1 @@
-CREATE INDEX IF NOT EXISTS identity_provider_alias_zid_idz_id__idx on identity_provider (alias_zid, identity_zone_id);
+CREATE INDEX IF NOT EXISTS alias_in_zone on identity_provider (identity_zone_id, alias_zid);

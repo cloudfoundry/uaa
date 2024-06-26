@@ -1,1 +1,1 @@
-CREATE INDEX identity_provider_alias_zid_idz_id__idx on identity_provider (alias_zid, identity_zone_id) LOCK = SHARED;
+CREATE INDEX alias_in_zone on identity_provider (identity_zone_id, alias_zid) LOCK = SHARED;

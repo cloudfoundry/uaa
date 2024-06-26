@@ -1,1 +1,1 @@
-CREATE INDEX CONCURRENTLY IF NOT EXISTS identity_provider_alias_zid_idz_id__idx on identity_provider (alias_zid, identity_zone_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS alias_in_zone on identity_provider (identity_zone_id, alias_zid) WHERE alias_zid IS NOT NULL;
