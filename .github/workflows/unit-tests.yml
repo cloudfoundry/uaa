@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        database: [ 'postgresql-11', 'postgresql-15', 'mysql', 'mysql-8' ]
+        database: [ 'postgresql-11', 'postgresql-15', 'postgresql-16', 'mysql', 'mysql-8' ]
     container:
       image: cfidentity/uaa-${{ matrix.database }}
       volumes:
