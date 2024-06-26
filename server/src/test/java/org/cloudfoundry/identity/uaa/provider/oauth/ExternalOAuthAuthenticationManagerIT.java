@@ -7,6 +7,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
@@ -906,6 +907,37 @@ class ExternalOAuthAuthenticationManagerIT {
         assertEquals("1234567890", uaaUser.getPhoneNumber());
         assertEquals("12345", uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
+    }
+
+    @Test
+    void publishExternalGroupAuthorizationEvent_skippedIf_notIsRegisteredIdpAuthentication() {
+        claims.put("user_name", "12345");
+        claims.put("origin", "the_origin");
+        claims.put("iss", UAA_ISSUER_URL);
+
+        UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
+                .withUsername("12345")
+                .withPassword("")
+                .withEmail("marissa_old@bloggs.com")
+                .withGivenName("Marissa_Old")
+                .withFamilyName("Bloggs_Old")
+                .withId("user-id")
+                .withOrigin("the_origin")
+                .withZoneId("uaa")
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES));
+
+        userDatabase.addUser(existingShadowUser);
+
+        CompositeToken token = getCompositeAccessToken();
+        String idToken = token.getIdTokenValue();
+        xCodeToken = new ExternalOAuthCodeToken(null, null, null, idToken, null, null);
+
+        externalOAuthAuthenticationManager.authenticate(xCodeToken);
+
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher, times(1)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(1, userArgumentCaptor.getAllValues().size());
+        assertTrue(userArgumentCaptor.getAllValues().get(0) instanceof IdentityProviderAuthenticationSuccessEvent);
     }
 
     @Test

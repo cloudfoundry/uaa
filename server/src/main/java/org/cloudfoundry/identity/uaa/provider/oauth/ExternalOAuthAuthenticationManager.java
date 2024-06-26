@@ -480,8 +480,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             userFromDb = new UaaUser(getUserDatabase().retrieveUserPrototypeById(invitedUserId));
         }
 
+        boolean isRegisteredIdpAuthentication = isRegisteredIdpAuthentication(request);
+
         //we must check and see if the email address has changed between authentications
-        if (haveUserAttributesChanged(userFromDb, userFromRequest) && isRegisteredIdpAuthentication(request)) {
+        if (haveUserAttributesChanged(userFromDb, userFromRequest) && isRegisteredIdpAuthentication) {
             logger.debug("User attributed have changed, updating them.");
             userFromDb = userFromDb.modifyAttributes(email,
                                                      userFromRequest.getGivenName(),
@@ -493,8 +495,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             userModified = true;
         }
 
-        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
-        publish(event);
+        if (isRegisteredIdpAuthentication) {
+            ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
+            publish(event);
+        }
         return getUserDatabase().retrieveUserById(userFromDb.getId());
     }
 
