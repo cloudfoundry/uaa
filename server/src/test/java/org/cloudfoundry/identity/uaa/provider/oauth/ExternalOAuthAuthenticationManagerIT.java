@@ -910,7 +910,7 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     @Test
-    void publishExternalGroupAuthorizationEvent_skippedIf_isRegisteredIdpAuthentication() {
+    void publishExternalGroupAuthorizationEvent_skippedIf_notIsRegisteredIdpAuthentication() {
         claims.put("user_name", "12345");
         claims.put("origin", "the_origin");
         claims.put("iss", UAA_ISSUER_URL);
