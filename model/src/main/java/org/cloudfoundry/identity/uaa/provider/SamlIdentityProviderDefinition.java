@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -26,7 +27,11 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
@@ -52,7 +57,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         List<String> emailDomain = getEmailDomain() != null ? new ArrayList<>(getEmailDomain()) : null;
         List<String> externalGroupsWhitelist = getExternalGroupsWhitelist() != null ? new ArrayList<>(getExternalGroupsWhitelist()) : null;
         List<String> authnContext = getAuthnContext() != null ? new ArrayList<>(getAuthnContext()) : null;
-        Map<String, Object> attributeMappings = getAttributeMappings() != null ? new HashMap(getAttributeMappings()) : null;
+        Map<String, Object> attributeMappings = getAttributeMappings() != null ? new HashMap<>(getAttributeMappings()) : null;
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation(metaDataLocation);
         def.setIdpEntityAlias(idpEntityAlias);
@@ -79,16 +84,22 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     @JsonIgnore
     public MetadataLocation getType() {
-        String trimmedLocation = metaDataLocation.trim();
-        if (trimmedLocation.startsWith("<?xml") ||
-                trimmedLocation.startsWith("<md:EntityDescriptor") ||
-                trimmedLocation.startsWith("<EntityDescriptor")) {
-            if (validateXml(trimmedLocation)) {
+        return getType(this.metaDataLocation);
+    }
+
+    public static MetadataLocation getType(String urlOrXmlData) {
+        String trimmedValue = urlOrXmlData.trim();
+
+        if (trimmedValue.startsWith("<?xml") ||
+                trimmedValue.startsWith("<md:EntityDescriptor") ||
+                trimmedValue.startsWith("<EntityDescriptor")) {
+            if (validateXml(trimmedValue)) {
                 return MetadataLocation.DATA;
             }
-        } else if (trimmedLocation.startsWith("http")) {
+        } else if (trimmedValue.startsWith("http")) {
             try {
-                URL uri = new URL(trimmedLocation);
+                // Check if it is a valid URL
+                new URL(trimmedValue);
                 return MetadataLocation.URL;
             } catch (MalformedURLException e) {
                 //invalid URL
@@ -97,7 +108,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return MetadataLocation.UNKNOWN;
     }
 
-    private boolean validateXml(String xml) {
+    private static boolean validateXml(String xml) {
         if (xml == null || xml.toUpperCase().contains("<!DOCTYPE")) {
             return false;
         }

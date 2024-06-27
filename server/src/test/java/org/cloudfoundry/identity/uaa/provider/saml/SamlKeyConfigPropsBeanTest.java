@@ -15,9 +15,9 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 //import org.opensaml.DefaultBootstrap;
 //import org.opensaml.xml.Configuration;
 //import org.opensaml.xml.security.BasicSecurityConfiguration;
@@ -27,7 +27,7 @@ import java.security.Security;
 
 public class SamlKeyConfigPropsBeanTest {
 
-    @BeforeClass
+    @BeforeAll
     public static void initVM() throws Exception {
         Security.addProvider(new BouncyCastleFipsProvider());
 //        DefaultBootstrap.bootstrap();

@@ -14,14 +14,13 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutHandler;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
@@ -31,14 +30,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
+public class ZoneAwareWhitelistLogoutSuccessHandler implements LogoutSuccessHandler {
 
     private final MultitenantClientServices clientDetailsService;
-    private final ExternalOAuthLogoutHandler externalOAuthLogoutHandler;
+    private final ExternalOAuthLogoutSuccessHandler externalOAuthLogoutHandler;
     private final KeyInfoService keyInfoService;
 
-    public ZoneAwareWhitelistLogoutHandler(MultitenantClientServices clientDetailsService, ExternalOAuthLogoutHandler externalOAuthLogoutHandler,
-        KeyInfoService keyInfoService) {
+    public ZoneAwareWhitelistLogoutSuccessHandler(MultitenantClientServices clientDetailsService, ExternalOAuthLogoutSuccessHandler externalOAuthLogoutHandler,
+                                                  KeyInfoService keyInfoService) {
         this.clientDetailsService = clientDetailsService;
         this.externalOAuthLogoutHandler = externalOAuthLogoutHandler;
         this.keyInfoService = keyInfoService;
@@ -59,7 +58,7 @@ public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
 
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        AbstractExternalOAuthIdentityProviderDefinition oauthConfig = externalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
+        AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oauthConfig = externalOAuthLogoutHandler.getOAuthProviderForAuthentication(authentication);
         String logoutUrl = externalOAuthLogoutHandler.getLogoutUrl(oauthConfig);
 
         if (logoutUrl == null) {
@@ -69,12 +68,12 @@ public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
         }
     }
 
-    protected WhitelistLogoutHandler getZoneHandler() {
+    protected WhitelistLogoutSuccessHandler getZoneHandler() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        if (config==null) {
+        if (config == null) {
             config = new IdentityZoneConfiguration();
         }
-        WhitelistLogoutHandler handler = new WhitelistLogoutHandler(config.getLinks().getLogout().getWhitelist());
+        WhitelistLogoutSuccessHandler handler = new WhitelistLogoutSuccessHandler(config.getLinks().getLogout().getWhitelist());
         handler.setTargetUrlParameter(config.getLinks().getLogout().getRedirectParameterName());
         handler.setDefaultTargetUrl(config.getLinks().getLogout().getRedirectUrl());
         handler.setAlwaysUseDefaultTargetUrl(config.getLinks().getLogout().isDisableRedirectParameter());
@@ -82,5 +81,4 @@ public class ZoneAwareWhitelistLogoutHandler implements LogoutSuccessHandler {
         handler.setKeyInfoService(keyInfoService);
         return handler;
     }
-
 }

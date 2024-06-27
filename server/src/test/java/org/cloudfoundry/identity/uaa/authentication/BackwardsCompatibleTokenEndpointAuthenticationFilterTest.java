@@ -25,10 +25,13 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationM
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -49,9 +52,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_NONE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.same;
@@ -64,7 +64,8 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
+@ExtendWith(MockitoExtension.class)
+class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
     private AuthenticationManager passwordAuthManager;
     private OAuth2RequestFactory requestFactory;
@@ -72,11 +73,14 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     private BackwardsCompatibleTokenEndpointAuthenticationFilter filter;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
-    private FilterChain chain;
-    private AuthenticationEntryPoint entryPoint;
     private TokenTestSupport support;
 
-    @Before
+    @Mock
+    private FilterChain chain;
+    @Mock
+    private AuthenticationEntryPoint entryPoint;
+
+    @BeforeEach
     public void setUp() {
 
         passwordAuthManager = mock(AuthenticationManager.class);
@@ -91,15 +95,12 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
                 )
         );
 
-        entryPoint = mock(AuthenticationEntryPoint.class);
         filter.setAuthenticationEntryPoint(entryPoint);
-
         request = new MockHttpServletRequest("POST", "/oauth/token");
         response = new MockHttpServletResponse();
-        chain = mock(FilterChain.class);
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
@@ -107,7 +108,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
-    public void password_expired() throws Exception {
+    void passwordExpired() throws Exception {
         UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
         when(uaaAuthentication.isAuthenticated()).thenReturn(true);
         MockHttpSession httpSession = new MockHttpSession();
@@ -123,7 +124,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
-    public void attempt_password_authentication() throws Exception {
+    void attemptPasswordAuthentication() throws Exception {
         request.addParameter(GRANT_TYPE, "password");
         request.addParameter("username", "marissa");
         request.addParameter("password", "koala");
@@ -145,7 +146,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
-    public void attempt_password_authentication_with_details() throws Exception {
+    void attemptPasswordAuthenticationWithDetails() throws Exception {
         request.addParameter(GRANT_TYPE, "password");
         request.addParameter("username", "marissa");
         request.addParameter("password", "koala");
@@ -167,7 +168,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
-    public void attempt_saml_assertion_authentication() throws Exception {
+    void attemptSamlAssertionAuthentication() throws Exception {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         request.addParameter("assertion", "saml-assertion-value-here");
         filter.doFilter(request, response, chain);
@@ -177,7 +178,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
-    public void saml_assertion_missing() throws Exception {
+    void samlAssertionMissing() throws Exception {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
@@ -193,7 +194,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
-    public void attempt_jwt_token_authentication() throws Exception {
+    void attemptJwtTokenAuthentication() throws Exception {
         support = new TokenTestSupport(null, null);
         String idToken = support.getIdTokenAsString(Collections.singletonList(OPENID));
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
@@ -209,7 +210,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
     }
 
     @Test
-    public void jwt_assertion_missing() throws Exception {
+    void jwtAssertionMissing() throws Exception {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));

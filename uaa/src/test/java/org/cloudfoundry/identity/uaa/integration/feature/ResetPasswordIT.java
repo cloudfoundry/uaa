@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -17,8 +18,8 @@ import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.test.UnlessProfileActive;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,7 +28,6 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
@@ -37,19 +37,15 @@ import java.util.Collections;
 import java.util.Iterator;
 
 import static org.apache.commons.lang3.StringUtils.contains;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 @UnlessProfileActive(values = "saml")
 public class ResetPasswordIT {
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -121,81 +117,80 @@ public class ResetPasswordIT {
 
         beginPasswordReset(email);
 
-        assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
+        assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize);
     }
 
     @Test
     public void resetPassword_with_clientRedirect() {
         webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=http://example.redirect.com");
-        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
+        assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Reset Password");
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+        assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Instructions Sent");
 
-        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
+        assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
         receivedEmail.remove();
-        assertEquals(email, message.getHeaderValue("To"));
-        assertThat(message.getBody(), containsString("Reset your password"));
+        assertThat(message.getHeaderValue("To")).isEqualTo(email);
+        assertThat(message.getBody()).contains("Reset your password");
 
-        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+        assertThat(webDriver.findElement(By.cssSelector(".instructions-sent")).getText()).isEqualTo("Please check your email for a reset password link.");
 
         // Click link in email
         String link = testClient.extractLink(message.getBody());
-        assertFalse(contains(link, "@"));
-        assertFalse(contains(link, "%40"));
+        assertThat(contains(link, "@")).isFalse();
+        assertThat(contains(link, "%40")).isFalse();
         webDriver.get(link);
 
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
 
-        assertEquals(baseUrl + "/login?success=password_reset&form_redirect_uri=http://example.redirect.com", webDriver.getCurrentUrl());
+        assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login?success=password_reset&form_redirect_uri=http://example.redirect.com");
     }
 
     @Test
     public void testNotAutoLoginAfterResetPassword() {
         webDriver.get(baseUrl + "/oauth/authorize?client_id=" + authCodeClientId + "&redirect_uri=http://example.redirect.com&grant_type=authorization_code&response_type=code");
-//        webDriver.get();
         webDriver.findElement(By.linkText("Reset password")).click();
-        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
+        assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Reset Password");
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+        assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Instructions Sent");
 
-        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
+        assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
         receivedEmail.remove();
-        assertEquals(email, message.getHeaderValue("To"));
-        assertThat(message.getBody(), containsString("Reset your password"));
+        assertThat(message.getHeaderValue("To")).isEqualTo(email);
+        assertThat(message.getBody()).contains("Reset your password");
 
-        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+        assertThat(webDriver.findElement(By.cssSelector(".instructions-sent")).getText()).isEqualTo("Please check your email for a reset password link.");
 
         // Click link in email
         String link = testClient.extractLink(message.getBody());
-        assertFalse(contains(link, "@"));
-        assertFalse(contains(link, "%40"));
+        assertThat(link).doesNotContain("@")
+                .doesNotContain("%40");
         webDriver.get(link);
 
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
 
-        assertEquals(baseUrl + "/login?success=password_reset", webDriver.getCurrentUrl());
-        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Password reset successful"));
+        assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login?success=password_reset");
+        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText()).contains("Password reset successful");
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        assertThat(webDriver.getCurrentUrl(), startsWith("http://example.redirect.com/?code="));
+        assertThat(webDriver.getCurrentUrl()).startsWith("http://example.redirect.com/?code=");
     }
 
     @Test
@@ -204,7 +199,7 @@ public class ResetPasswordIT {
 
         beginPasswordReset("nonexistent_user");
 
-        assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
+        assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize);
     }
 
     @Test
@@ -218,7 +213,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("newsecret");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Passwords must match and not be empty."));
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Passwords must match and not be empty.");
     }
 
     @Test
@@ -231,7 +226,7 @@ public class ResetPasswordIT {
         // Attempt to use same code again
         webDriver.get(link);
 
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Sorry, your reset password link is no longer valid. You can request another one below."));
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Sorry, your reset password link is no longer valid. You can request another one below.");
     }
 
     @Test
@@ -245,7 +240,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys(newPassword);
         webDriver.findElement(By.name("password_confirmation")).sendKeys(newPassword);
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Password must be no more than 255 characters in length."));
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Password must be no more than 255 characters in length.");
     }
 
     @Test
@@ -257,29 +252,29 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Your new password cannot be the same as the old password."));
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Your new password cannot be the same as the old password.");
     }
 
     private void beginPasswordReset(String username) {
         webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
         webDriver.findElement(By.linkText("Reset password")).click();
-        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
+        assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Reset Password");
 
         // Enter email address
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+        assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Instructions Sent");
     }
 
     private String getPasswordResetLink(String email) {
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
         receivedEmail.remove();
-        assertEquals(email, message.getHeaderValue("To"));
-        assertThat(message.getBody(), containsString("Reset your password"));
+        assertThat(message.getHeaderValue("To")).isEqualTo(email);
+        assertThat(message.getBody()).contains("Reset your password");
 
-        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+        assertThat(webDriver.findElement(By.cssSelector(".instructions-sent")).getText()).isEqualTo("Please check your email for a reset password link.");
 
         // Extract link from email
         return testClient.extractLink(message.getBody());
@@ -293,13 +288,12 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.getCurrentUrl(), is(baseUrl + "/login?success=password_reset"));
+        assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login?success=password_reset");
 
         webDriver.findElement(By.name("username")).sendKeys(username);
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
     }
-
 }
