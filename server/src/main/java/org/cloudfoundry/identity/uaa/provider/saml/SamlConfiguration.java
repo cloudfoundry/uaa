@@ -47,6 +47,19 @@ public class SamlConfiguration {
 
 /* --- previous saml- XML configuration ---
 
+    <bean id="samlFilter" class="org.springframework.security.web.FilterChainProxy">
+        <security:filter-chain-map request-matcher="ant">
+            <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint"/>
+            <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter"/>
+            <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter"/>
+            <security:filter-chain pattern="/saml/SSO/**"
+                                   filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter"/>
+            <security:filter-chain pattern="/saml/SingleLogout/**"
+                                   filters="samlSecurityContextPersistenceFilter,samlLogoutProcessingFilter"/>
+            <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery"/>
+        </security:filter-chain-map>
+    </bean>
+
    @Value("${login.saml.signatureAlgorithm:SHA12}")
     private String signatureAlgorithm;
 
@@ -65,19 +78,6 @@ public class SamlConfiguration {
 
     <bean id="samlSecurityContextPersistenceFilter"
           class="org.springframework.security.web.context.SecurityContextPersistenceFilter"/>
-
-    <bean id="samlFilter" class="org.springframework.security.web.FilterChainProxy">
-        <security:filter-chain-map request-matcher="ant">
-            <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint"/>
-            <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter"/>
-            <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter"/>
-            <security:filter-chain pattern="/saml/SSO/**"
-                                   filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter"/>
-            <security:filter-chain pattern="/saml/SingleLogout/**"
-                                   filters="samlSecurityContextPersistenceFilter,samlLogoutProcessingFilter"/>
-            <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery"/>
-        </security:filter-chain-map>
-    </bean>
 
     <!-- Logger for SAML messages and events -->
     <bean id="samlLogger" class="org.springframework.security.saml.log.SAMLDefaultLogger"/>
@@ -200,34 +200,6 @@ public class SamlConfiguration {
         <property name="contextProvider" ref="basicContextProvider"/>
         <property name="SAMLProcessor" ref="processor"/>
         <property name="sessionAuthenticationStrategy" ref="sessionFixationProtectionStrategy"/>
-    </bean>
-
-    <!-- Logout handler terminating local session -->
-    <bean id="samlLogoutHandler"
-          class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler">
-        <property name="invalidateHttpSession" value="true"/>
-    </bean>
-
-    <bean id="samlWhitelistLogoutHandler"
-          class="org.cloudfoundry.identity.uaa.authentication.SamlRedirectLogoutHandler">
-        <constructor-arg name="wrappedHandler" ref="logoutHandler"/>
-    </bean>
-
-    <!-- Override default logout processing filter with the one processing SAML
-        messages -->
-    <bean id="samlLogoutFilter" class="org.cloudfoundry.identity.uaa.authentication.UaaSamlLogoutFilter">
-        <constructor-arg ref="logoutHandler"/>
-        <constructor-arg ref="samlLogoutHandlers"/>
-        <property name="contextProvider" ref="redirectSavingSamlContextProvider"/>
-    </bean>
-
-    <!-- Filter processing incoming logout messages -->
-    <!-- First argument determines URL user will be redirected to after successful
-        global logout -->
-    <bean id="samlLogoutProcessingFilter" class="org.springframework.security.saml.SAMLLogoutProcessingFilter">
-        <constructor-arg ref="samlWhitelistLogoutHandler"/>
-        <constructor-arg ref="samlLogoutHandlers"/>
-        <property name="SAMLProcessor" ref="processor"/>
     </bean>
 
     <bean id="redirectSavingSamlContextProvider"

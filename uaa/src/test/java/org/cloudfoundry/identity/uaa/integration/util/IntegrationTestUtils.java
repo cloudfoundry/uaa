@@ -9,6 +9,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.BasicCookieStore;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.cookie.BasicClientCookie;
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
@@ -187,13 +188,13 @@ public class IntegrationTestUtils {
         user.setVerified(true);
 
         ResponseEntity<ScimUser> result = restTemplate.postForEntity(serverRunning.getUrl("/Users"), user, ScimUser.class);
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        Assertions.assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         return user;
     }
 
     public static boolean isMember(String userId, ScimGroup group) {
-        for (ScimGroupMember member : group.getMembers()) {
+        for (ScimGroupMember<?> member : group.getMembers()) {
             if (userId.equals(member.getMemberId())) {
                 return true;
             }
@@ -327,7 +328,7 @@ public class IntegrationTestUtils {
         if (hasText(zoneSwitchId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneSwitchId);
         }
-        HttpEntity getHeaders = new HttpEntity<>(user, headers);
+        HttpEntity<ScimUser> getHeaders = new HttpEntity<>(user, headers);
         ResponseEntity<ScimUser> userInfoGet = template.exchange(
                 url + "/Users",
                 HttpMethod.POST,
@@ -347,7 +348,7 @@ public class IntegrationTestUtils {
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
         headers.add("If-Match", String.valueOf(user.getVersion()));
-        HttpEntity getHeaders = new HttpEntity<>(user, headers);
+        HttpEntity<ScimUser> getHeaders = new HttpEntity<>(user, headers);
         ResponseEntity<ScimUser> userInfoGet = template.exchange(
                 url + "/Users/" + user.getId(),
                 HttpMethod.PUT,
@@ -804,13 +805,13 @@ public class IntegrationTestUtils {
         response.getBody();
     }
 
-    public static IdentityProvider getProvider(String zoneAdminToken,
-                                               String url,
-                                               String zoneId,
-                                               String originKey) {
-        List<IdentityProvider> providers = getProviders(zoneAdminToken, url, zoneId);
+    public static IdentityProvider<? extends AbstractIdentityProviderDefinition> getProvider(String zoneAdminToken,
+                                                                                             String url,
+                                                                                             String zoneId,
+                                                                                             String originKey) {
+        List<IdentityProvider<? extends AbstractIdentityProviderDefinition>> providers = getProviders(zoneAdminToken, url, zoneId);
         if (providers != null) {
-            for (IdentityProvider p : providers) {
+            for (IdentityProvider<? extends AbstractIdentityProviderDefinition> p : providers) {
                 if (zoneId.equals(p.getIdentityZoneId()) && originKey.equals(p.getOriginKey())) {
                     return p;
                 }
@@ -819,9 +820,9 @@ public class IntegrationTestUtils {
         return null;
     }
 
-    private static List<IdentityProvider> getProviders(String zoneAdminToken,
-                                                       String url,
-                                                       String zoneId) {
+    private static List<IdentityProvider<? extends AbstractIdentityProviderDefinition>> getProviders(String zoneAdminToken,
+                                                                                                     String url,
+                                                                                                     String zoneId) {
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
@@ -836,7 +837,7 @@ public class IntegrationTestUtils {
                 String.class
         );
         if (providerGet != null && providerGet.getStatusCode() == HttpStatus.OK) {
-            return JsonUtils.readValue(providerGet.getBody(), new TypeReference<List<IdentityProvider>>() {
+            return JsonUtils.readValue(providerGet.getBody(), new TypeReference<List<IdentityProvider<? extends AbstractIdentityProviderDefinition>>>() {
             });
         }
         return null;
@@ -846,7 +847,7 @@ public class IntegrationTestUtils {
                                       String url,
                                       String zoneId,
                                       String originKey) {
-        IdentityProvider provider = getProvider(zoneAdminToken, url, zoneId, originKey);
+        IdentityProvider<? extends AbstractIdentityProviderDefinition> provider = getProvider(zoneAdminToken, url, zoneId, originKey);
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Authorization", "bearer " + zoneAdminToken);
@@ -866,7 +867,7 @@ public class IntegrationTestUtils {
      * @return An object representation of an identity provider.
      * @throws Exception on error
      */
-    public static IdentityProvider createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning) throws Exception {
+    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning) throws Exception {
         getZoneAdminToken(baseUrl, serverRunning);
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, OriginKeys.UAA);
         return createIdentityProvider("simplesamlphp for uaa", addShadowUserOnLogin, baseUrl, serverRunning, samlIdentityProviderDefinition);
@@ -877,12 +878,12 @@ public class IntegrationTestUtils {
      * @return An object representation of an identity provider.
      * @throws Exception on error
      */
-    public static IdentityProvider createIdentityProvider(String name, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning, SamlIdentityProviderDefinition samlIdentityProviderDefinition) throws Exception {
+    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String name, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning, SamlIdentityProviderDefinition samlIdentityProviderDefinition) throws Exception {
         String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
 
         samlIdentityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
 
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(OriginKeys.UAA);
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
@@ -952,7 +953,7 @@ public class IntegrationTestUtils {
     }
 
     public static void updateIdentityProvider(
-            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) {
+            String baseUrl, ServerRunning serverRunning, IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
@@ -1004,9 +1005,9 @@ public class IntegrationTestUtils {
         headers.add("Authorization", "bearer " + accessToken);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
         headers.add(IdentityZoneSwitchingFilter.HEADER, provider.getIdentityZoneId());
-        List<IdentityProvider> existing = getProviders(accessToken, url, provider.getIdentityZoneId());
+        List<IdentityProvider<? extends AbstractIdentityProviderDefinition>> existing = getProviders(accessToken, url, provider.getIdentityZoneId());
         if (existing != null) {
-            for (IdentityProvider p : existing) {
+            for (IdentityProvider<? extends AbstractIdentityProviderDefinition> p : existing) {
                 if (p.getOriginKey().equals(provider.getOriginKey()) && p.getIdentityZoneId().equals(provider.getIdentityZoneId())) {
                     provider.setId(p.getId());
                     HttpEntity putHeaders = new HttpEntity<>(provider, headers);

@@ -11,7 +11,7 @@
        http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
-    <context:annotation-config />
+    <context:annotation-config/>
     <context:component-scan base-package="org.cloudfoundry.identity.uaa"/>
 
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
@@ -234,8 +234,12 @@
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
-                <entry value-ref="userManagementSecurityFilter"
+                <entry value-ref="saml2LogoutRequestFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
+                <entry value-ref="saml2LogoutResponseFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter))}"/>
+                <entry value-ref="userManagementSecurityFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter))}"/>
                 <entry value-ref="userManagementFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
                 <entry value-ref="sessionResetFilter"

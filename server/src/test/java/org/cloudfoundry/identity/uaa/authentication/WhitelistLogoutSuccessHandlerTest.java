@@ -16,41 +16,40 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 
 import java.util.Collections;
 
 import static java.util.Collections.EMPTY_LIST;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 
 @ExtendWith(PollutionPreventionExtension.class)
-class WhitelistLogoutHandlerTest {
+class WhitelistLogoutSuccessHandlerTest {
 
-    private WhitelistLogoutHandler handler;
+    private WhitelistLogoutSuccessHandler handler;
     private MockHttpServletRequest request;
     private MockHttpServletResponse response;
-    private UaaClientDetails client;
     private MultitenantClientServices clientDetailsService;
 
     @BeforeEach
     void setUp() {
         request = new MockHttpServletRequest();
         response = new MockHttpServletResponse();
-        client = new UaaClientDetails(CLIENT_ID,"","","","","http://*.testing.com,http://testing.com");
-        clientDetailsService =  mock(MultitenantClientServices.class);
-        handler = new WhitelistLogoutHandler(EMPTY_LIST);
+        UaaClientDetails client = new UaaClientDetails(CLIENT_ID, "", "", "", "", "http://*.testing.com,http://testing.com");
+        clientDetailsService = mock(MultitenantClientServices.class);
+        handler = new WhitelistLogoutSuccessHandler(EMPTY_LIST);
         handler.setDefaultTargetUrl("/login");
         handler.setAlwaysUseDefaultTargetUrl(true);
         handler.setTargetUrlParameter("redirect");
@@ -60,10 +59,9 @@ class WhitelistLogoutHandlerTest {
 
     @Test
     void test_default_redirect_uri() {
-        assertEquals("/login", handler.determineTargetUrl(request, response));
-        assertEquals("/login", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("/login");
         handler.setAlwaysUseDefaultTargetUrl(false);
-        assertEquals("/login", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("/login");
     }
 
     @Test
@@ -71,9 +69,9 @@ class WhitelistLogoutHandlerTest {
         handler.setWhitelist(Collections.singletonList("http://testing.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://testing.com");
-        assertEquals("http://testing.com", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("http://testing.com");
         request.setParameter("redirect", "http://www.testing.com");
-        assertEquals("/login", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("/login");
     }
 
     @Test
@@ -82,9 +80,9 @@ class WhitelistLogoutHandlerTest {
         handler.setAlwaysUseDefaultTargetUrl(false);
         handler.setDefaultTargetUrl("/login");
         request.setParameter("redirect", "http://testing.com");
-        assertEquals("/login", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("/login");
         request.setParameter("redirect", "http://www.testing.com");
-        assertEquals("/login", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("/login");
     }
 
     @Test
@@ -92,7 +90,7 @@ class WhitelistLogoutHandlerTest {
         handler.setWhitelist(Collections.singletonList("http://somethingelse.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://somethingelse.com");
-        assertEquals("http://somethingelse.com", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("http://somethingelse.com");
     }
 
     @Test
@@ -100,7 +98,7 @@ class WhitelistLogoutHandlerTest {
         handler.setWhitelist(Collections.singletonList("http://*.somethingelse.com"));
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://www.somethingelse.com");
-        assertEquals("http://www.somethingelse.com", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("http://www.somethingelse.com");
     }
 
     @Test
@@ -109,7 +107,7 @@ class WhitelistLogoutHandlerTest {
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://testing.com");
         request.setParameter(CLIENT_ID, CLIENT_ID);
-        assertEquals("http://testing.com", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("http://testing.com");
     }
 
     @Test
@@ -119,7 +117,7 @@ class WhitelistLogoutHandlerTest {
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter("redirect", "http://notwhitelisted.com");
         request.setParameter(CLIENT_ID, "test");
-        assertEquals("/login", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("/login");
         verify(clientDetailsService).loadClientByClientId("test", "uaa");
     }
 
@@ -129,7 +127,7 @@ class WhitelistLogoutHandlerTest {
         handler.setAlwaysUseDefaultTargetUrl(false);
         request.setParameter(CLIENT_ID, CLIENT_ID);
         request.setParameter("redirect", "http://www.testing.com");
-        assertEquals("http://www.testing.com", handler.determineTargetUrl(request, response));
+        assertThat(handler.determineTargetUrl(request, response)).isEqualTo("http://www.testing.com");
     }
 
 }

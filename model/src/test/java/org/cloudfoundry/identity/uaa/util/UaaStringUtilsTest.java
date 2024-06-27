@@ -21,10 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.hasEntry;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class UaaStringUtilsTest {
 
@@ -53,14 +50,14 @@ class UaaStringUtilsTest {
 
     @Test
     void nonNull() {
-        assertNull(UaaStringUtils.nonNull());
-        assertNull(UaaStringUtils.nonNull((String) null));
-        assertNull(UaaStringUtils.nonNull(null, null));
-        assertEquals("7", UaaStringUtils.nonNull("7"));
-        assertEquals("6", UaaStringUtils.nonNull(null, "6"));
-        assertEquals("5", UaaStringUtils.nonNull(null, null, "5"));
-        assertEquals("1", UaaStringUtils.nonNull(null, null, "1", "2"));
-        assertEquals("2", UaaStringUtils.nonNull(null, null, null, "2"));
+        assertThat(UaaStringUtils.nonNull()).isNull();
+        assertThat(UaaStringUtils.nonNull((String) null)).isNull();
+        assertThat(UaaStringUtils.nonNull(null, null)).isNull();
+        assertThat(UaaStringUtils.nonNull("7")).isEqualTo("7");
+        assertThat(UaaStringUtils.nonNull(null, "6")).isEqualTo("6");
+        assertThat(UaaStringUtils.nonNull(null, null, "5")).isEqualTo("5");
+        assertThat(UaaStringUtils.nonNull(null, null, "1", "2")).isEqualTo("1");
+        assertThat(UaaStringUtils.nonNull(null, null, null, "2")).isEqualTo("2");
     }
 
     @Test
@@ -72,16 +69,16 @@ class UaaStringUtilsTest {
 
     @Test
     void camelToUnderscore() {
-        assertEquals("test_camel_case", UaaStringUtils.camelToUnderscore("testCamelCase"));
-        assertEquals("testcamelcase", UaaStringUtils.camelToUnderscore("testcamelcase"));
-        assertEquals("test_camel_case", UaaStringUtils.camelToUnderscore("test_camel_case"));
-        assertEquals("test_camel_case", UaaStringUtils.camelToUnderscore("test_Camel_Case"));
+        assertThat(UaaStringUtils.camelToUnderscore("testCamelCase")).isEqualTo("test_camel_case");
+        assertThat(UaaStringUtils.camelToUnderscore("testcamelcase")).isEqualTo("testcamelcase");
+        assertThat(UaaStringUtils.camelToUnderscore("test_camel_case")).isEqualTo("test_camel_case");
+        assertThat(UaaStringUtils.camelToUnderscore("test_Camel_Case")).isEqualTo("test_camel_case");
     }
 
     @Test
     void getErrorName() {
-        assertEquals("illegal_argument", UaaStringUtils.getErrorName(new IllegalArgumentException()));
-        assertEquals("null_pointer", UaaStringUtils.getErrorName(new NullPointerException()));
+        assertThat(UaaStringUtils.getErrorName(new IllegalArgumentException())).isEqualTo("illegal_argument");
+        assertThat(UaaStringUtils.getErrorName(new NullPointerException())).isEqualTo("null_pointer");
     }
 
     @Test
@@ -91,7 +88,7 @@ class UaaStringUtilsTest {
 
         map.put("fail", "reason");
         result = UaaStringUtils.hidePasswords(map);
-        assertThat(map, hasEntry("fail", "reason"));
+        assertThat(map).containsEntry("fail", "reason");
         result.remove("fail");
         checkPasswords(result);
 
@@ -100,42 +97,42 @@ class UaaStringUtilsTest {
 
         properties.put("fail", "reason");
         presult = UaaStringUtils.hidePasswords(properties);
-        assertThat(presult, hasEntry("fail", "reason"));
+        assertThat(presult).containsEntry("fail", "reason");
         presult.remove("fail");
         checkPasswords(new HashMap(presult));
     }
 
     @Test
     void escapeRegExCharacters() {
-        assertTrue(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".*"));
-        assertFalse(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".some other string"));
-        assertTrue(matches(UaaStringUtils.escapeRegExCharacters("x"), "x"));
-        assertTrue(matches(UaaStringUtils.escapeRegExCharacters("x*x"), "x*x"));
-        assertEquals(UaaStringUtils.escapeRegExCharacters("\\"), "\\\\");
-        assertEquals(UaaStringUtils.escapeRegExCharacters("["), "\\[");
+        assertThat(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".*")).isTrue();
+        assertThat(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".some other string")).isFalse();
+        assertThat(matches(UaaStringUtils.escapeRegExCharacters("x"), "x")).isTrue();
+        assertThat(matches(UaaStringUtils.escapeRegExCharacters("x*x"), "x*x")).isTrue();
+        assertThat("\\\\").isEqualTo(UaaStringUtils.escapeRegExCharacters("\\"));
+        assertThat("\\[").isEqualTo(UaaStringUtils.escapeRegExCharacters("["));
     }
 
     @Test
     void constructSimpleWildcardPattern() {
-        assertEquals("space\\.[^\\\\.]+\\.developer", UaaStringUtils.constructSimpleWildcardPattern("space.*.developer"));
-        assertEquals("space\\.developer", UaaStringUtils.constructSimpleWildcardPattern("space.developer"));
+        assertThat(UaaStringUtils.constructSimpleWildcardPattern("space.*.developer")).isEqualTo("space\\.[^\\\\.]+\\.developer");
+        assertThat(UaaStringUtils.constructSimpleWildcardPattern("space.developer")).isEqualTo("space\\.developer");
     }
 
     @Test
     void containsWildcard() {
-        assertTrue(UaaStringUtils.containsWildcard("space.*.developer"));
-        assertTrue(UaaStringUtils.containsWildcard("*.developer"));
-        assertTrue(UaaStringUtils.containsWildcard("space.*"));
-        assertFalse(UaaStringUtils.containsWildcard("space.developer"));
-        assertTrue(UaaStringUtils.containsWildcard("space.*.*.developer"));
-        assertTrue(UaaStringUtils.containsWildcard("*"));
-        assertFalse(UaaStringUtils.containsWildcard(null));
+        assertThat(UaaStringUtils.containsWildcard("space.*.developer")).isTrue();
+        assertThat(UaaStringUtils.containsWildcard("*.developer")).isTrue();
+        assertThat(UaaStringUtils.containsWildcard("space.*")).isTrue();
+        assertThat(UaaStringUtils.containsWildcard("space.developer")).isFalse();
+        assertThat(UaaStringUtils.containsWildcard("space.*.*.developer")).isTrue();
+        assertThat(UaaStringUtils.containsWildcard("*")).isTrue();
+        assertThat(UaaStringUtils.containsWildcard(null)).isFalse();
     }
 
     @Test
     void constructWildcards() {
-        assertEquals(Set.of(), UaaStringUtils.constructWildcards(Collections.EMPTY_LIST));
-        assertFalse(UaaStringUtils.constructWildcards(Collections.singletonList("any")).contains("any"));
+        assertThat(UaaStringUtils.constructWildcards(Collections.EMPTY_LIST)).isEqualTo(Set.of());
+        assertThat(UaaStringUtils.constructWildcards(Collections.singletonList("any")).contains("any")).isFalse();
     }
 
     @Test
@@ -160,11 +157,11 @@ class UaaStringUtilsTest {
         };
         for (String m : matching) {
             String msg = "Testing [" + m + "] against [" + s1 + "]";
-            assertTrue(matches(p1, m), msg);
+            assertThat(matches(p1, m)).as(msg).isTrue();
         }
         for (String n : notmatching) {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
-            assertFalse(matches(p1, n), msg);
+            assertThat(matches(p1, n)).as(msg).isFalse();
         }
     }
 
@@ -188,7 +185,7 @@ class UaaStringUtilsTest {
         };
         for (String n : notmatching) {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
-            assertFalse(matches(p1, n), msg);
+            assertThat(matches(p1, n)).as(msg).isFalse();
         }
     }
 
@@ -213,11 +210,11 @@ class UaaStringUtilsTest {
         };
         for (String m : matching) {
             String msg = "Testing [" + m + "] against [" + s1 + "]";
-            assertTrue(matches(p1, m), msg);
+            assertThat(matches(p1, m)).as(msg).isTrue();
         }
         for (String n : notmatching) {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
-            assertFalse(matches(p1, n), msg);
+            assertThat(matches(p1, n)).as(msg).isFalse();
         }
     }
 
@@ -242,11 +239,11 @@ class UaaStringUtilsTest {
         };
         for (String m : matching) {
             String msg = "Testing [" + m + "] against [" + s1 + "]";
-            assertTrue(matches(p1, m), msg);
+            assertThat(matches(p1, m)).as(msg).isTrue();
         }
         for (String n : notmatching) {
             String msg = "Testing [" + n + "] against [" + s1 + "]";
-            assertFalse(matches(p1, n), msg);
+            assertThat(matches(p1, n)).as(msg).isFalse();
         }
     }
 
@@ -254,149 +251,119 @@ class UaaStringUtilsTest {
     void convertISO8859_1_to_UTF_8() {
         String s = new String(new char[]{'a', '\u0000'});
         String a = UaaStringUtils.convertISO8859_1_to_UTF_8(s);
-        assertEquals(s, a);
-        assertEquals('\u0000', a.toCharArray()[1]);
-        assertNull(UaaStringUtils.convertISO8859_1_to_UTF_8(null));
+        assertThat(a).isEqualTo(s);
+        assertThat(a.toCharArray()[1]).isEqualTo('\u0000');
+        assertThat(UaaStringUtils.convertISO8859_1_to_UTF_8(null)).isNull();
     }
 
     @Test
     void retainAllMatches() {
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml.group.1",
-                                "saml.group.2",
-                                "saml.group1.3"),
-                        Collections.singletonList("saml.group.1")
-                ),
-                containsInAnyOrder("saml.group.1")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                        "saml.group.2",
+                        "saml.group1.3"),
+                Collections.singletonList("saml.group.1")
+        )).contains("saml.group.1");
 
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml.group.1",
-                                "saml.group.2",
-                                "saml.group1.3"),
-                        Collections.singletonList("saml.group.*")
-                ),
-                containsInAnyOrder("saml.group.1", "saml.group.2")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                        "saml.group.2",
+                        "saml.group1.3"),
+                Collections.singletonList("saml.group.*")
+        )).contains("saml.group.1", "saml.group.2");
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml.group.1",
-                                "saml.group.2",
-                                "saml.group1.3",
-                                "saml.group1.3.1"),
-                        Collections.singletonList("saml.group*.*")
-                ),
-                containsInAnyOrder("saml.group.1", "saml.group.2", "saml.group1.3", "saml.group1.3.1")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                        "saml.group.2",
+                        "saml.group1.3",
+                        "saml.group1.3.1"),
+                Collections.singletonList("saml.group*.*")
+        )).contains("saml.group.1", "saml.group.2", "saml.group1.3", "saml.group1.3.1");
 
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml-group-1",
-                                "saml-group-2",
-                                "saml-group1-3"),
-                        Collections.singletonList("saml-group-*")
-                ),
-                containsInAnyOrder("saml-group-1", "saml-group-2")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml-group-1",
+                        "saml-group-2",
+                        "saml-group1-3"),
+                Collections.singletonList("saml-group-*")
+        )).contains("saml-group-1", "saml-group-2");
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml-group-1",
-                                "saml-group-2",
-                                "saml-group1-3"),
-                        Collections.singletonList("saml-*-*")
-                ),
-                containsInAnyOrder("saml-group-1", "saml-group-2", "saml-group1-3")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml-group-1",
+                        "saml-group-2",
+                        "saml-group1-3"),
+                Collections.singletonList("saml-*-*")
+        )).contains("saml-group-1", "saml-group-2", "saml-group1-3");
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml-group-1",
-                                "saml-group-2",
-                                "saml-group1-3"),
-                        Collections.singletonList("saml-*")
-                ),
-                containsInAnyOrder("saml-group-1", "saml-group-2", "saml-group1-3")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml-group-1",
+                        "saml-group-2",
+                        "saml-group1-3"),
+                Collections.singletonList("saml-*")
+        )).contains("saml-group-1", "saml-group-2", "saml-group1-3");
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml.group.1",
-                                "saml.group.2",
-                                "saml.group1.3"),
-                        Collections.singletonList("saml.grou*.*")
-                ),
-                containsInAnyOrder("saml.group.1", "saml.group.2", "saml.group1.3")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                        "saml.group.2",
+                        "saml.group1.3"),
+                Collections.singletonList("saml.grou*.*")
+        )).contains("saml.group.1", "saml.group.2", "saml.group1.3");
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml.group.1",
-                                "saml.group.2",
-                                "saml.group1.3"),
-                        Collections.singletonList("saml.*.1")
-                ),
-                containsInAnyOrder("saml.group.1")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                        "saml.group.2",
+                        "saml.group1.3"),
+                Collections.singletonList("saml.*.1")
+        )).contains("saml.group.1");
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml.group.1",
-                                "saml.group.2",
-                                "saml.group1.3"),
-                        Collections.singletonList("*.group.*")
-                ),
-                containsInAnyOrder("saml.group.1", "saml.group.2")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                        "saml.group.2",
+                        "saml.group1.3"),
+                Collections.singletonList("*.group.*")
+        )).contains("saml.group.1", "saml.group.2");
 
-        assertThat(
-                UaaStringUtils.retainAllMatches(
-                        Arrays.asList("saml.group.1",
-                                "saml.group.2",
-                                "saml.group1.3"),
-                        Collections.singletonList("saml.group*1*")
-                ),
-                containsInAnyOrder("saml.group.1", "saml.group1.3")
-        );
+        assertThat(UaaStringUtils.retainAllMatches(
+                Arrays.asList("saml.group.1",
+                        "saml.group.2",
+                        "saml.group1.3"),
+                Collections.singletonList("saml.group*1*")
+        )).contains("saml.group.1", "saml.group1.3");
     }
 
     @Test
     void toJsonString() {
-        assertEquals("Y1sPgF\\\"Yj4xYZ\\\"", UaaStringUtils.toJsonString("Y1sPgF\"Yj4xYZ\""));
-        assertNull(UaaStringUtils.toJsonString(null));
-        assertEquals("", UaaStringUtils.toJsonString(""));
+        assertThat(UaaStringUtils.toJsonString("Y1sPgF\"Yj4xYZ\"")).isEqualTo("Y1sPgF\\\"Yj4xYZ\\\"");
+        assertThat(UaaStringUtils.toJsonString(null)).isNull();
+        assertThat(UaaStringUtils.toJsonString("")).isEqualTo("");
     }
 
     @Test
     void testGetAuthoritiesFromStrings() {
         List<? extends GrantedAuthority> authorities = UaaStringUtils.getAuthoritiesFromStrings(null);
-        assertEquals(Collections.EMPTY_LIST, authorities);
-        assertEquals(0, UaaStringUtils.getStringsFromAuthorities(null).size());
+        assertThat(authorities).isEqualTo(Collections.EMPTY_LIST);
+        assertThat(UaaStringUtils.getStringsFromAuthorities(null).size()).isEqualTo(0);
         authorities = UaaStringUtils.getAuthoritiesFromStrings(Collections.singletonList("uaa.user"));
-        assertEquals(Set.of("uaa.user"), UaaStringUtils.getStringsFromAuthorities(authorities));
+        assertThat(UaaStringUtils.getStringsFromAuthorities(authorities)).isEqualTo(Set.of("uaa.user"));
     }
 
     @Test
     void getCleanedUserControlString() {
-        assertNull(UaaStringUtils.getCleanedUserControlString(null));
-        assertEquals("test_test", UaaStringUtils.getCleanedUserControlString("test\rtest"));
+        assertThat(UaaStringUtils.getCleanedUserControlString(null)).isNull();
+        assertThat(UaaStringUtils.getCleanedUserControlString("test\rtest")).isEqualTo("test_test");
     }
 
     @Test
     void getHostIfArgIsURL() {
-        assertEquals("string", UaaStringUtils.getHostIfArgIsURL("string"));
-        assertEquals("host", UaaStringUtils.getHostIfArgIsURL("http://host/path"));
+        assertThat(UaaStringUtils.getHostIfArgIsURL("string")).isEqualTo("string");
+        assertThat(UaaStringUtils.getHostIfArgIsURL("http://host/path")).isEqualTo("host");
     }
 
     @Test
     void containsIgnoreCase() {
-        assertTrue(UaaStringUtils.containsIgnoreCase(Arrays.asList("one", "two"), "one"));
-        assertFalse(UaaStringUtils.containsIgnoreCase(Arrays.asList("one", "two"), "any"));
+        assertThat(UaaStringUtils.containsIgnoreCase(Arrays.asList("one", "two"), "one")).isTrue();
+        assertThat(UaaStringUtils.containsIgnoreCase(Arrays.asList("one", "two"), "any")).isFalse();
     }
 
     @ParameterizedTest
@@ -412,7 +379,7 @@ class UaaStringUtilsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { " ", "  ", "\t", "\n", "abc" })
+    @ValueSource(strings = {" ", "  ", "\t", "\n", "abc"})
     void isNullOrEmpty_ShouldReturnFalse(final String input) {
         Assertions.assertThat(UaaStringUtils.isNullOrEmpty(input)).isFalse();
     }
@@ -421,37 +388,37 @@ class UaaStringUtilsTest {
     void getMapFromProperties() {
         Properties properties = new Properties();
         properties.put("pre.key", "value");
-        Map<String, ?> objectMap = UaaStringUtils.getMapFromProperties(properties, "pre.");
-        assertThat(objectMap, hasEntry("key", "value"));
+        Map<String, Object> objectMap = (Map<String, Object>) UaaStringUtils.getMapFromProperties(properties, "pre.");
+        assertThat(objectMap).containsEntry("key", "value")
+                .doesNotContainKey("pre.key");
     }
 
     @Test
     void getSafeParameterValue() {
-        assertEquals("test", UaaStringUtils.getSafeParameterValue(new String[] {"test"}));
-        assertEquals("", UaaStringUtils.getSafeParameterValue(new String[] {"  "}));
-        assertEquals("", UaaStringUtils.getSafeParameterValue(new String[] {}));
-        assertEquals("", UaaStringUtils.getSafeParameterValue(null));
+        assertThat(UaaStringUtils.getSafeParameterValue(new String[]{"test"})).isEqualTo("test");
+        assertThat(UaaStringUtils.getSafeParameterValue(new String[]{"  "})).isEqualTo("");
+        assertThat(UaaStringUtils.getSafeParameterValue(new String[]{})).isEqualTo("");
+        assertThat(UaaStringUtils.getSafeParameterValue(null)).isEqualTo("");
     }
 
     @Test
     void getArrayDefaultValue() {
-        assertEquals(List.of("1", "2").stream().sorted().collect(Collectors.toList()),
-            UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1").stream().sorted().collect(Collectors.toList()));
-        assertEquals(List.of("1"), UaaStringUtils.getValuesOrDefaultValue(Set.of(), "1"));
-        assertEquals(List.of("1"), UaaStringUtils.getValuesOrDefaultValue(null, "1"));
+        assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1").stream().sorted().collect(Collectors.toList())).isEqualTo(List.of("1", "2").stream().sorted().collect(Collectors.toList()));
+        assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of(), "1")).isEqualTo(List.of("1"));
+        assertThat(UaaStringUtils.getValuesOrDefaultValue(null, "1")).isEqualTo(List.of("1"));
     }
 
     private static void replaceZoneVariables(IdentityZone zone) {
         String s = "https://{zone.subdomain}.domain.com/z/{zone.id}?id={zone.id}&domain={zone.subdomain}";
         String expect = String.format("https://%s.domain.com/z/%s?id=%s&domain=%s", zone.getSubdomain(), zone.getId(), zone.getId(), zone.getSubdomain());
-        assertEquals(expect, UaaStringUtils.replaceZoneVariables(s, zone));
+        assertThat(UaaStringUtils.replaceZoneVariables(s, zone)).isEqualTo(expect);
     }
 
     private static void checkPasswords(Map<String, ?> map) {
         for (String key : map.keySet()) {
             Object value = map.get(key);
             if (value instanceof String) {
-                assertEquals("#", value);
+                assertThat(value).isEqualTo("#");
             } else if (value instanceof Map) {
                 checkPasswords((Map) value);
             }
