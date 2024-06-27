@@ -95,6 +95,7 @@ class BootstrapTests {
     private static final String LOGIN_IDP_ENTITY_ALIAS = "login.idpEntityAlias";
     private static final String LOGIN_IDP_METADATA_URL = "login.idpMetadataURL";
     private static final String LOGIN_SAML_METADATA_TRUST_CHECK = "login.saml.metadataTrustCheck";
+
     @RegisterExtension
     static final SystemPropertiesCleanupExtension systemPropertiesCleanupExtension = new SystemPropertiesCleanupExtension(
             LOGIN_IDP_METADATA,
@@ -118,6 +119,7 @@ class BootstrapTests {
             //no op
         }
     };
+
     private static final AbstractRefreshableWebApplicationContext abstractRefreshableWebApplicationContext = new AbstractRefreshableWebApplicationContext() {
 
         @Override
@@ -200,7 +202,7 @@ class BootstrapTests {
     @Disabled("SAML test doesn't compile")
     void legacySamlIdpAsTopLevelElement() {
         System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
-        System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa.com/saml2/idp/metadata.php");
+        System.setProperty(LOGIN_IDP_METADATA_URL, "https://simplesamlphp.uaa.com/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
 
         context = getServletContext("default", "uaa.yml");
@@ -290,6 +292,4 @@ class BootstrapTests {
                 defs.get(defs.size() - 1).getType()
         );
     }
-
-
 }

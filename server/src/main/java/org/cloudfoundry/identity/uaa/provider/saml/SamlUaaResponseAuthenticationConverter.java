@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.UaaSamlPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -114,7 +115,7 @@ public class SamlUaaResponseAuthenticationConverter
                 idp, samlAuthorities), userAttributes);
 
         UaaAuthentication authentication = new UaaAuthentication(
-                new UaaPrincipal(user),
+                new UaaSamlPrincipal(user),
                 authenticationToken.getCredentials(),
                 user.getAuthorities(),
                 authoritiesConverter.filterSamlAuthorities(samlConfig, samlAuthorities),
@@ -150,6 +151,7 @@ public class SamlUaaResponseAuthenticationConverter
         }
 
         if (samlConfig.getAuthnContext() != null) {
+            assert acrValues != null;
             if (Collections.disjoint(acrValues, samlConfig.getAuthnContext())) {
                 throw new BadCredentialsException(
                         "Identity Provider did not authenticate with the requested AuthnContext.");
@@ -160,17 +162,13 @@ public class SamlUaaResponseAuthenticationConverter
     private Collection<? extends GrantedAuthority> getMappedAuthorities(
             IdentityProvider<SamlIdentityProviderDefinition> idp,
             List<? extends GrantedAuthority> samlAuthorities) {
-        Collection<? extends GrantedAuthority> authorities = null;
+        Collection<? extends GrantedAuthority> authorities;
         SamlIdentityProviderDefinition.ExternalGroupMappingMode groupMappingMode = idp.getConfig().getGroupMappingMode();
-        switch (groupMappingMode) {
-            case EXPLICITLY_MAPPED:
-                authorities = authoritiesConverter.mapAuthorities(idp.getOriginKey(),
-                        samlAuthorities, identityZoneManager.getCurrentIdentityZoneId());
-                break;
-            case AS_SCOPES:
-                authorities = List.copyOf(samlAuthorities);
-                break;
-        }
+        authorities = switch (groupMappingMode) {
+            case EXPLICITLY_MAPPED -> authoritiesConverter.mapAuthorities(idp.getOriginKey(),
+                    samlAuthorities, identityZoneManager.getCurrentIdentityZoneId());
+            case AS_SCOPES -> List.copyOf(samlAuthorities);
+        };
         return authorities;
     }
 
@@ -196,13 +194,4 @@ public class SamlUaaResponseAuthenticationConverter
             eventPublisher.publishEvent(event);
         }
     }
-
-//    @Override
-//    public void setUserDetails(SAMLUserDetailsService userDetails) {
-//        super.setUserDetails(userDetails);
-//    }
-
-//    protected ExpiringUsernameAuthenticationToken getExpiringUsernameAuthenticationToken(Authentication authentication) {
-//        return (ExpiringUsernameAuthenticationToken) super.authenticate(authentication);
-//    }
 }

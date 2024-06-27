@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -17,19 +18,21 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.springframework.security.core.AuthenticatedPrincipal;
 
 import java.io.Serializable;
 import java.security.Principal;
 
 /**
- * The principal object which should end up as the representation of an
+ * The {@link Principal} object which should end up as the representation of an
  * authenticated user.
  * <p>
  * Contains the data required for an authenticated user within the UAA
  * application itself.
+ * Note: For SAML, the {@code UaaSamlPrincipal} subclass should be used.
  */
 @Data
-public class UaaPrincipal implements Principal, Serializable {
+public class UaaPrincipal implements AuthenticatedPrincipal, Principal, Serializable {
     private final String id;
     private final String name;
     private final String email;

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -14,17 +15,17 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.passcode.PasscodeInformation;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -37,7 +38,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -55,9 +55,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 
 /**
  * Authentication filter to verify one time passwords with what's cached in the
- * one time password store.
- *
- *
+ * one-time password store.
  */
 public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpointAuthenticationFilter {
 
@@ -67,18 +65,18 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
 
     public PasscodeAuthenticationFilter(UaaUserDatabase uaaUserDatabase, AuthenticationManager authenticationManager, OAuth2RequestFactory oAuth2RequestFactory, ExpiringCodeStore expiringCodeStore) {
         super(
-            new ExpiringCodeAuthenticationManager(
-                uaaUserDatabase,
-                authenticationManager,
-                LoggerFactory.getLogger(PasscodeAuthenticationFilter.class),
-                expiringCodeStore,
-                Collections.singleton(HttpMethod.POST.toString())),
-            oAuth2RequestFactory);
+                new ExpiringCodeAuthenticationManager(
+                        uaaUserDatabase,
+                        authenticationManager,
+                        LoggerFactory.getLogger(PasscodeAuthenticationFilter.class),
+                        expiringCodeStore,
+                        Collections.singleton(HttpMethod.POST.toString())),
+                oAuth2RequestFactory);
     }
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
-        PasscodeHttpServletRequest request = new PasscodeHttpServletRequest((HttpServletRequest)req);
+        PasscodeHttpServletRequest request = new PasscodeHttpServletRequest((HttpServletRequest) req);
         super.doFilter(request, res, chain);
     }
 
@@ -175,10 +173,9 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
 
         @Override
         public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-            if (!(authentication instanceof PasscodeAuthenticationFilter.ExpiringCodeAuthentication)) {
+            if (!(authentication instanceof PasscodeAuthenticationFilter.ExpiringCodeAuthentication expiringCodeAuthentication)) {
                 return parent.authenticate(authentication);
             } else {
-                PasscodeAuthenticationFilter.ExpiringCodeAuthentication expiringCodeAuthentication = (PasscodeAuthenticationFilter.ExpiringCodeAuthentication) authentication;
                 // Validate passcode
                 logger.debug("Located credentials in request, with passcode");
                 if (methods != null && !methods.contains(expiringCodeAuthentication.getRequest().getMethod().toUpperCase())) {
@@ -202,7 +199,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                 if (pi == null) {
                     throw new InsufficientAuthenticationException("Invalid passcode");
                 }
-                logger.debug("Successful passcode authentication request for " + pi.getUsername());
+                logger.debug("Successful passcode authentication request for {}", pi.getUsername());
 
                 Collection<GrantedAuthority> externalAuthorities = null;
 
@@ -210,7 +207,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                     externalAuthorities = (Collection<GrantedAuthority>) pi.getAuthorizationParameters().get("authorities");
                 }
                 UaaPrincipal principal = new UaaPrincipal(pi.getUserId(), pi.getUsername(), null, pi.getOrigin(), null,
-                    IdentityZoneHolder.get().getId());
+                        IdentityZoneHolder.get().getId());
                 List<? extends GrantedAuthority> authorities;
                 try {
                     UaaUser user = uaaUserDatabase.retrieveUserById(pi.getUserId());
@@ -219,16 +216,16 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                     throw new BadCredentialsException("Invalid user.");
                 }
                 Authentication result = new UsernamePasswordAuthenticationToken(
-                    principal,
-                    null,
-                    externalAuthorities == null || externalAuthorities.size() == 0 ? authorities : externalAuthorities
+                        principal,
+                        null,
+                        externalAuthorities == null || externalAuthorities.isEmpty() ? authorities : externalAuthorities
                 );
 
                 //add additional parameters for backwards compatibility
-                PasscodeHttpServletRequest pcRequest = (PasscodeHttpServletRequest)expiringCodeAuthentication.getRequest();
-                //pcRequest.addParameter("user_id", new String[] {pi.getUserId()});
-                pcRequest.addParameter("username", new String[] {pi.getUsername()});
-                pcRequest.addParameter(OriginKeys.ORIGIN, new String[] {pi.getOrigin()});
+                PasscodeHttpServletRequest pcRequest = (PasscodeHttpServletRequest) expiringCodeAuthentication.getRequest();
+                //pcRequest.addParameter("user_id", new String[] {pi.getUserId()})
+                pcRequest.addParameter("username", new String[]{pi.getUsername()});
+                pcRequest.addParameter(OriginKeys.ORIGIN, new String[]{pi.getOrigin()});
 
                 return result;
             }
@@ -242,7 +239,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
         if (grantType != null && grantType.equals(GRANT_TYPE_PASSWORD)) {
             Map<String, String> credentials = getCredentials(request);
             String passcode = credentials.get("passcode");
-            if (passcode!=null) {
+            if (passcode != null) {
                 return new ExpiringCodeAuthentication(request, passcode);
             } else {
                 return super.extractCredentials(request);
@@ -250,8 +247,9 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
         }
         return null;
     }
+
     private Map<String, String> getCredentials(HttpServletRequest request) {
-        Map<String, String> credentials = new HashMap<String, String>();
+        Map<String, String> credentials = new HashMap<>();
 
         for (String paramName : parameterNames) {
             String value = request.getParameter(paramName);
@@ -259,28 +257,19 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                 if (value.startsWith("{")) {
                     try {
                         Map<String, String> jsonCredentials = JsonUtils.readValue(value,
-                                        new TypeReference<Map<String, String>>() {
-                                        });
+                                new TypeReference<>() {
+                                });
                         credentials.putAll(jsonCredentials);
                     } catch (JsonUtils.JsonUtilException e) {
-                        logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
+                        logger.warn("Unknown format of value for request param: {}. Ignoring.", paramName);
                     }
-                }
-                else {
+                } else {
                     credentials.put(paramName, value);
                 }
             }
         }
 
         return credentials;
-    }
-
-    @Override
-    public void init(FilterConfig filterConfig) {
-    }
-
-    @Override
-    public void destroy() {
     }
 
     public void setParameterNames(List<String> parameterNames) {

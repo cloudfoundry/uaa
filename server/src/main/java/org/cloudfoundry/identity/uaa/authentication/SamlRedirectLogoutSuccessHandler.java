@@ -16,10 +16,15 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
+/**
+ * TODO: This is currently not used, and not covered by unit tests.
+ * If it is needed, it should be covered by tests.
+ * Otherwise delete it.
+ */
+public class SamlRedirectLogoutSuccessHandler implements LogoutSuccessHandler {
     private final LogoutSuccessHandler wrappedHandler;
 
-    public SamlRedirectLogoutHandler(LogoutSuccessHandler wrappedHandler) {
+    public SamlRedirectLogoutSuccessHandler(LogoutSuccessHandler wrappedHandler) {
         this.wrappedHandler = wrappedHandler;
     }
 
@@ -27,13 +32,18 @@ public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
     public void onLogoutSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         RequestWrapper requestWrapper = new RequestWrapper(request);
         String relayState = request.getParameter("RelayState");
-        Map<String, String> params = JsonUtils.readValue(relayState, new TypeReference<Map<String, String>>() {});
-        if(params != null) {
+        Map<String, String> params = JsonUtils.readValue(relayState, new TypeReference<>() {
+        });
+        if (params != null) {
             String redirect = params.get("redirect");
-            if(StringUtils.hasText(redirect)) { requestWrapper.setParameter("redirect", redirect); }
+            if (StringUtils.hasText(redirect)) {
+                requestWrapper.setParameter("redirect", redirect);
+            }
 
             String clientId = params.get("client_id");
-            if(StringUtils.hasText(clientId)) { requestWrapper.setParameter("client_id", clientId); }
+            if (StringUtils.hasText(clientId)) {
+                requestWrapper.setParameter("client_id", clientId);
+            }
         }
 
         wrappedHandler.onLogoutSuccess(requestWrapper, response, authentication);
@@ -51,18 +61,21 @@ public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
             parameterMap.put(name, value);
         }
 
+        @Override
         public String getParameter(String name) {
             String[] values = parameterMap.get(name);
             return values != null && values.length > 0 ? values[0] : null;
         }
 
+        @Override
         public Map<String, String[]> getParameterMap() {
             return parameterMap;
         }
 
+        @Override
         public Enumeration<String> getParameterNames() {
-            return new Enumeration<String>() {
-                Iterator<String> iterator = parameterMap.keySet().iterator();
+            return new Enumeration<>() {
+                final Iterator<String> iterator = parameterMap.keySet().iterator();
 
                 @Override
                 public boolean hasMoreElements() {
@@ -76,6 +89,7 @@ public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
             };
         }
 
+        @Override
         public String[] getParameterValues(String name) {
             return parameterMap.get(name);
         }

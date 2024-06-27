@@ -20,7 +20,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.springframework.beans.factory.InitializingBean;
 
-
 public class SamlConfigurationBean implements InitializingBean {
     private SignatureAlgorithm signatureAlgorithm = SignatureAlgorithm.SHA1;
 
