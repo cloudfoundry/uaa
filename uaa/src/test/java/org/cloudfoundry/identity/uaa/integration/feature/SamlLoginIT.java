@@ -109,6 +109,7 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
@@ -229,6 +230,53 @@ public class SamlLoginIT {
                 .contains("WantAssertionsSigned=\"true\"")
                 // login.saml.nameID
                 .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
+
+        assertEquals("saml-sp.xml",
+                response.getHeaders().getContentDisposition().getFilename());
+    }
+
+    @Test
+    void samlSPMetadataForZone() {
+        String zoneId = "testzone1";
+        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
+
+        //identity client token
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+
+        //create the zone
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
+        config.getSamlConfig().setEntityID(zoneId + "-saml-login");
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+
+        RestTemplate request = new RestTemplate();
+        ResponseEntity<String> response = request.getForEntity(
+                zoneUrl + "/saml/metadata", String.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        String metadataXml = response.getBody();
+
+        // The SAML SP metadata should match the following UAA configs:
+        // login.entityID
+        assertThat(metadataXml).contains("entityID=\"" + zoneId + "-saml-login\"")
+                // TODO: Are DigestMethod and SignatureMethod needed?
+                //  login.saml.signatureAlgorithm
+                //.contains("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>")
+                //.contains("<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>")
+                // login.saml.signRequest
+                .contains("AuthnRequestsSigned=\"true\"")
+                // login.saml.wantAssertionSigned
+                .contains("WantAssertionsSigned=\"true\"")
+                // login.saml.nameID
+//                .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
+                .contains("/saml/SSO/alias/" + zoneId + ".cloudfoundry-saml-login");  // TODO: Improve this check
+
+        assertEquals("saml-" + zoneId + "-sp.xml",
+                response.getHeaders().getContentDisposition().getFilename());
     }
 
     @Test
