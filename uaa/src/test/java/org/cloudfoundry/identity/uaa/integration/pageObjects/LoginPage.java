@@ -8,6 +8,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.hamcrest.Matchers.matchesPattern;
 
+/**
+ * The LoginPage class represents the login page on the UAA server.
+ * It has url matching: `/login`.
+ */
 public class LoginPage extends Page {
 
     static final private String urlPath = "/login";
@@ -22,22 +26,29 @@ public class LoginPage extends Page {
         return new LoginPage(driver);
     }
 
-    // When there is a SAML integration, there is a link to go to a SAML login page instead. This assumes there is
-    // only one SAML link.
+    /**
+     * When there is a SAML integration, there is a link to go to a SAML login page.
+     * Clicking the link will go to the SAML login page.
+     */
     public SamlLoginPage clickSamlLink_goesToSamlLoginPage(String matchText) {
         clickSamlLoginLinkWithText(matchText);
         return new SamlLoginPage(driver);
     }
 
-    // If the SAML IDP has no logout URL in the metadata, logging out of UAA will leave
-    // the IDP still logged in, and when going back to the SAML login page, it will log
-    // the app back in automatically and immediately redirect to the post-login page.
+    /**
+     * If the SAML IDP has no logout URL in the metadata, logging out of UAA will leave
+     * the IDP still logged in.
+     * When going back to the SAML login page, it will log
+     * the app back in automatically and immediately redirect to the post-login page.
+     */
     public HomePage clickSamlLink_goesToHomePage(String matchText) {
         clickSamlLoginLinkWithText(matchText);
         return new HomePage(driver);
     }
 
-    // Click the first link that contains the given text
+    /**
+     * Click the first link that contains the given text
+     */
     private void clickSamlLoginLinkWithText(String matchText) {
         final AtomicReference<WebElement> matchingElement = new AtomicReference<>();
         driver.findElements(By.className("saml-login-link")).forEach(webElement -> {
