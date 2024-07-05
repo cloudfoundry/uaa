@@ -1,13 +1,19 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
-import java.time.Duration;
-
+import org.assertj.core.api.HamcrestCondition;
 import org.hamcrest.Matcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
-import static org.junit.Assert.assertThat;
+import java.time.Duration;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+/**
+ * The Page class is the base class, representing a web page.
+ * It provides methods for validating the URL, page source, and title,
+ * as well as performing common page actions like logging out and clearing cookies.
+ */
 public class Page {
     protected WebDriver driver;
 
@@ -16,24 +22,27 @@ public class Page {
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
     }
 
-    protected static void validateUrl(WebDriver driver, Matcher urlMatcher) {
-        assertThat("URL validation failed", driver.getCurrentUrl(), urlMatcher);
+    protected static void validateUrl(WebDriver driver, Matcher<String> urlMatcher) {
+        HamcrestCondition<String> condition = new HamcrestCondition<>(urlMatcher);
+        assertThat(driver.getCurrentUrl()).as("URL validation failed").is(condition);
     }
 
-    public void validateUrl(Matcher urlMatcher) {
+    protected static void validatePageSource(WebDriver driver, Matcher<String> matcher) {
+        HamcrestCondition<String> condition = new HamcrestCondition<>(matcher);
+        assertThat(driver.getPageSource()).is(condition);
+    }
+
+    public void validateUrl(Matcher<String> urlMatcher) {
         validateUrl(driver, urlMatcher);
     }
 
-    protected static void validatePageSource(WebDriver driver, Matcher matcher) {
-        assertThat(driver.getPageSource(), matcher);
-    }
-
-    public void validatePageSource(Matcher matcher) {
+    public void validatePageSource(Matcher<String> matcher) {
         validatePageSource(driver, matcher);
     }
 
-    public void validateTitle(Matcher matcher) {
-        assertThat(driver.getTitle(), matcher);
+    public void validateTitle(Matcher<String> matcher) {
+        HamcrestCondition<String> condition = new HamcrestCondition<>(matcher);
+        assertThat(driver.getTitle()).is(condition);
     }
 
     public LoginPage logout_goesToLoginPage() {

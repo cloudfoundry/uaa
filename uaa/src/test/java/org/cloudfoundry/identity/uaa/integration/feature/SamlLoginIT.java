@@ -359,13 +359,13 @@ public class SamlLoginIT {
         createIdentityProvider(SAML_ORIGIN);
 
         Long beforeTest = System.currentTimeMillis();
-        LoginPage.go(webDriver, baseUrl)
+        HomePage homePage = LoginPage.go(webDriver, baseUrl)
                 .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
                 .logout_goesToLoginPage()
                 .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
-                .hasLastLoginTime();
+                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
+        assertThat(homePage.hasLastLoginTime()).isTrue();
 
         Long afterTest = System.currentTimeMillis();
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
