@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
@@ -11,7 +13,8 @@ import org.springframework.util.Assert;
 import java.util.List;
 
 @Slf4j
-public class ConfiguratorRelyingPartyRegistrationRepository implements RelyingPartyRegistrationRepository {
+public class ConfiguratorRelyingPartyRegistrationRepository
+        implements RelyingPartyRegistrationRepository, ZoneAware {
 
     private final SamlIdentityProviderConfigurator configurator;
     private final KeyWithCert keyWithCert;
@@ -46,6 +49,28 @@ public class ConfiguratorRelyingPartyRegistrationRepository implements RelyingPa
                         keyWithCert, identityProviderDefinition.getMetaDataLocation(), registrationId);
             }
         }
-        return null;
+        return buildDefaultRelyingPartyRegistration();
+    }
+
+    private RelyingPartyRegistration buildDefaultRelyingPartyRegistration() {
+        String samlEntityID, samlServiceUri;
+        IdentityZone zone = retrieveZone();
+        if (zone.isUaa()) {
+            samlEntityID = this.samlEntityID;
+            samlServiceUri = this.samlEntityID;
+        }
+        else if (zone.getConfig() != null && zone.getConfig().getSamlConfig() != null) {
+
+            samlEntityID = zone.getConfig().getSamlConfig().getEntityID();
+            samlServiceUri = zone.getSubdomain() + "." + this.samlEntityID;
+        }
+        else {
+            return null;
+        }
+
+        return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
+                samlEntityID, null, samlSignRequest,
+                keyWithCert, "dummy-saml-idp-metadata.xml", null,
+                samlServiceUri);
     }
 }

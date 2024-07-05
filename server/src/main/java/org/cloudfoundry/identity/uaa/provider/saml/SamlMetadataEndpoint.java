@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
@@ -23,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
 @RestController
-public class SamlMetadataEndpoint {
+public class SamlMetadataEndpoint implements ZoneAware {
     public static final String DEFAULT_REGISTRATION_ID = "example";
     private static final String DEFAULT_FILE_NAME = "saml-sp.xml";
     private static final String APPLICATION_XML_CHARSET_UTF_8 = "application/xml; charset=UTF-8";
@@ -75,13 +77,30 @@ public class SamlMetadataEndpoint {
         String metadata = saml2MetadataResolver.resolve(relyingPartyRegistration);
 
         // @todo - fileName may need to be dynamic based on registrationID
+        String[] fileNames = retrieveZoneAwareFileNames();
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, String.format(CONTENT_DISPOSITION_FORMAT, fileName, encodedFileName))
+                .header(HttpHeaders.CONTENT_DISPOSITION, String.format(
+                        CONTENT_DISPOSITION_FORMAT, fileNames[0], fileNames[1]))
                 .body(metadata);
     }
 
     public void setFileName(String fileName) {
         encodedFileName = URLEncoder.encode(fileName, StandardCharsets.UTF_8);
         this.fileName = fileName;
+    }
+
+    private String[] retrieveZoneAwareFileNames() {
+        IdentityZone zone = retrieveZone();
+        String[] fileNames = new String[2];
+        if (zone.isUaa()) {
+            fileNames[0] = fileName;
+            fileNames[1] = encodedFileName;
+        }
+        else {
+            fileNames[0] = "saml-" + zone.getSubdomain() + "-sp.xml";
+            fileNames[1] = URLEncoder.encode(fileNames[0],
+                    StandardCharsets.UTF_8);
+        }
+        return fileNames;
     }
 }

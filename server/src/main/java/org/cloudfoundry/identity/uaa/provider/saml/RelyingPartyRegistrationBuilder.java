@@ -25,8 +25,18 @@ public class RelyingPartyRegistrationBuilder {
     }
 
     public static RelyingPartyRegistration buildRelyingPartyRegistration(
-            String samlEntityID, String samlSpNameId, boolean samlSignRequest, KeyWithCert keyWithCert,
+            String samlEntityID, String samlSpNameId, boolean samlSignRequest,
+            KeyWithCert keyWithCert,
             String metadataLocation, String rpRegstrationId) {
+        return buildRelyingPartyRegistration(samlEntityID, samlSpNameId,
+                samlSignRequest, keyWithCert, metadataLocation, rpRegstrationId,
+                samlEntityID);
+    }
+
+    public static RelyingPartyRegistration buildRelyingPartyRegistration(
+            String samlEntityID, String samlSpNameId, boolean samlSignRequest,
+            KeyWithCert keyWithCert, String metadataLocation,
+            String rpRegstrationId, String samlServiceUri) {
         SamlIdentityProviderDefinition.MetadataLocation type = SamlIdentityProviderDefinition.getType(metadataLocation);
 
         RelyingPartyRegistration.Builder builder;
@@ -41,14 +51,14 @@ public class RelyingPartyRegistrationBuilder {
             builder = RelyingPartyRegistrations.fromMetadataLocation(metadataLocation);
         }
 
+        builder.entityId(samlEntityID);
+        if (samlSpNameId != null) builder.nameIdFormat(samlSpNameId);
+        if (rpRegstrationId != null) builder.registrationId(rpRegstrationId);
         return builder
-                .entityId(samlEntityID)
-                .nameIdFormat(samlSpNameId)
-                .registrationId(rpRegstrationId)
-                .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(samlEntityID))
-                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlEntityID))
-                .singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(samlEntityID))
-                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlEntityID))
+                .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(samlServiceUri))
+                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlServiceUri))
+                .singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(samlServiceUri))
+                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlServiceUri))
                 // Accept both POST and REDIRECT bindings
                 .singleLogoutServiceBindings(c -> {
                     c.add(Saml2MessageBinding.REDIRECT);
