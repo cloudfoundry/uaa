@@ -7,6 +7,11 @@ import org.openqa.selenium.WebElement;
 
 import static org.hamcrest.Matchers.containsString;
 
+/**
+ * The SamlLoginPage class represents the login page on the SimpleSAML server.
+ * This class provides methods to interact with the SAML login page and perform login actions.
+ * It has url matching: `/module.php/core/loginuserpass`.
+ */
 public class SamlLoginPage extends Page {
     // This is on the saml server, not the UAA server
     static final private String urlPath = "/module.php/core/loginuserpass";
@@ -26,7 +31,7 @@ public class SamlLoginPage extends Page {
         return new PasscodePage(driver);
     }
 
-    public CustomErrorPage login_goesToCustomErrorPage(String username, String password, Matcher urlMatcher) {
+    public CustomErrorPage login_goesToCustomErrorPage(String username, String password, Matcher<String>  urlMatcher) {
         sendLoginCredentials(username, password);
         return new CustomErrorPage(driver, urlMatcher);
     }
