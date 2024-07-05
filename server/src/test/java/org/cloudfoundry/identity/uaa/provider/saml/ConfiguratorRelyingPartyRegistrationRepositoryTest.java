@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -88,6 +89,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     }
 
     @Test
+    @Disabled("Test not valid because ConfiguratorRelyingPartyRegistrationRepository now returns default RelyingPartyRegistration when none found")
     void findByRegistrationIdWhenNoneFound() {
         SamlIdentityProviderDefinition definition = mock(SamlIdentityProviderDefinition.class);
         when(definition.getIdpEntityAlias()).thenReturn(REGISTRATION_ID);
