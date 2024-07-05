@@ -230,6 +230,9 @@ public class SamlLoginIT {
                 .contains("WantAssertionsSigned=\"true\"")
                 // login.saml.nameID
                 .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
+
+        assertEquals("saml-sp.xml",
+                response.getHeaders().getContentDisposition().getFilename());
     }
 
     @Test
@@ -272,9 +275,8 @@ public class SamlLoginIT {
 //                .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
                 .contains("/saml/SSO/alias/" + zoneId + ".cloudfoundry-saml-login");  // TODO: Improve this check
 
-        // TODO: Zone-aware filename not implemented yet.
-//        assertEquals("saml-" + zoneId + "-sp.xml",
-//                response.getHeaders().getContentDisposition().getFilename());
+        assertEquals("saml-" + zoneId + "-sp.xml",
+                response.getHeaders().getContentDisposition().getFilename());
     }
 
     @Test
