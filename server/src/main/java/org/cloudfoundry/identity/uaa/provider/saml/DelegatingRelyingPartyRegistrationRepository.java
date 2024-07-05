@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.util.Assert;
@@ -34,9 +36,10 @@ public class DelegatingRelyingPartyRegistrationRepository implements RelyingPart
      */
     @Override
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
+        boolean isDefaultZone = IdentityZoneHolder.isUaa();
         for (RelyingPartyRegistrationRepository repository : this.delegates) {
             RelyingPartyRegistration registration = repository.findByRegistrationId(registrationId);
-            if (registration != null) {
+            if (registration != null && (isDefaultZone || repository instanceof ZoneAware)) {
                 return registration;
             }
         }
