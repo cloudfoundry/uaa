@@ -244,7 +244,7 @@ public class SamlLoginIT {
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+        IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
 
@@ -263,17 +263,10 @@ public class SamlLoginIT {
         // The SAML SP metadata should match the following UAA configs:
         // login.entityID
         assertThat(metadataXml).contains("entityID=\"" + zoneId + "-saml-login\"")
-                // TODO: Are DigestMethod and SignatureMethod needed?
-                //  login.saml.signatureAlgorithm
-                //.contains("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>")
-                //.contains("<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>")
-                // login.saml.signRequest
                 .contains("AuthnRequestsSigned=\"true\"")
-                // login.saml.wantAssertionSigned
                 .contains("WantAssertionsSigned=\"true\"")
-                // login.saml.nameID
-//                .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
-                .contains("/saml/SSO/alias/" + zoneId + ".cloudfoundry-saml-login");  // TODO: Improve this check
+                // TODO: Improve this check
+                .contains("/saml/SSO/alias/" + zoneId + ".cloudfoundry-saml-login");
 
         assertEquals("saml-" + zoneId + "-sp.xml",
                 response.getHeaders().getContentDisposition().getFilename());
@@ -1058,7 +1051,7 @@ public class SamlLoginIT {
         //validate access token
         String accessToken = authCodeTokenResponse.get(ACCESS_TOKEN);
         Jwt accessTokenJwt = JwtHelper.decode(accessToken);
-        Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+        Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(), new TypeReference<>() {
         });
         List<String> accessTokenScopes = (List<String>) accessTokenClaims.get(ClaimConstants.SCOPE);
         // Check that the user had the roles scope, which is a pre-requisite for getting roles returned in the id_token
@@ -1073,7 +1066,7 @@ public class SamlLoginIT {
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
-        assertThat(claims.get(USER_ATTRIBUTES)).isNotNull();
+        assertThat(claims).containsKey(USER_ATTRIBUTES);
         Map<String, List<String>> userAttributes = (Map<String, List<String>>) claims.get(USER_ATTRIBUTES);
         assertThat(userAttributes.get(COST_CENTERS)).containsExactlyInAnyOrder(DENVER_CO);
         assertThat(userAttributes.get(MANAGERS)).containsExactlyInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER);
@@ -1196,7 +1189,7 @@ public class SamlLoginIT {
         assertThat(idToken).isNotNull();
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<>() {
         });
 
         assertThat(claims).containsKey(USER_ATTRIBUTES)
@@ -1323,8 +1316,8 @@ public class SamlLoginIT {
 
     @Test
     void loginSamlOnlyProviderNoUsernamePassword() throws Exception {
-        IdentityProvider provider = createIdentityProvider(SAML_ORIGIN);
-        IdentityProvider provider2 = createIdentityProvider("simplesamlphp2");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(provider.getOriginKey(), provider2.getOriginKey());
         webDriver.get(baseUrl + "/logout.do");
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");

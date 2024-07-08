@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -30,19 +32,21 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static java.util.Collections.EMPTY_MAP;
 import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
 
+@Setter
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private ClientSecretPolicy clientSecretPolicy;
     private TokenPolicy tokenPolicy;
-    private IdentityZoneProvisioning provisioning;
+
+    private final IdentityZoneProvisioning provisioning;
     private boolean selfServiceLinksEnabled = true;
+    @Getter
     private String homeRedirect = null;
-    private Map<String,Object> selfServiceLinks;
+    private Map<String, Object> selfServiceLinks;
     private List<String> logoutRedirectWhitelist;
     private String logoutRedirectParameterName;
     private String logoutDefaultRedirectUrl;
@@ -59,17 +63,13 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String activeKeyId;
 
     private boolean idpDiscoveryEnabled = false;
-
     private boolean accountChooserEnabled;
 
     private UserConfig defaultUserConfig;
 
     private IdentityZoneValidator validator = (config, mode) -> config;
+    @Getter
     private Map<String, Object> branding;
-
-    public void setValidator(IdentityZoneValidator validator) {
-        this.validator = validator;
-    }
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
         this.provisioning = provisioning;
@@ -91,16 +91,16 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.setDefaultIdentityProvider(defaultIdentityProvider);
         definition.setUserConfig(defaultUserConfig);
 
-        samlKeys = ofNullable(samlKeys).orElse(EMPTY_MAP);
-        for (Map.Entry<String, Map<String,String>> entry : samlKeys.entrySet()) {
+        samlKeys = ofNullable(samlKeys).orElse(Map.of());
+        for (Map.Entry<String, Map<String, String>> entry : samlKeys.entrySet()) {
             SamlKey samlKey = new SamlKey(entry.getValue().get("key"), entry.getValue().get("passphrase"), entry.getValue().get("certificate"));
             definition.getSamlConfig().addKey(ofNullable(entry.getKey()).orElseThrow(() -> new InvalidIdentityZoneDetailsException("SAML key id must not be null.", null)).toLowerCase(Locale.ROOT), samlKey);
         }
         definition.getSamlConfig().setActiveKeyId(this.activeKeyId);
 
-        if (selfServiceLinks!=null) {
-            String signup = (String)selfServiceLinks.get("signup");
-            String passwd = (String)selfServiceLinks.get("passwd");
+        if (selfServiceLinks != null) {
+            String signup = (String) selfServiceLinks.get("signup");
+            String passwd = (String) selfServiceLinks.get("passwd");
             if (hasText(signup)) {
                 definition.getLinks().getSelfService().setSignup(signup);
             }
@@ -129,10 +129,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
         identityZone = validator.validate(identityZone, IdentityZoneValidator.Mode.MODIFY);
         provisioning.update(identityZone);
-    }
-
-    public void setClientSecretPolicy(ClientSecretPolicy clientSecretPolicy) {
-        this.clientSecretPolicy = clientSecretPolicy;
     }
 
     public IdentityZoneConfigurationBootstrap setSamlKeys(Map<String, Map<String, String>> samlKeys) {

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -69,6 +70,7 @@ public class IdentityProviderBootstrap
     private List<IdentityProviderWrapper> oauthIdpDefintions;
     @Setter
     private Map<String, Object> ldapConfig;
+    @Setter
     private Map<String, Object> keystoneConfig;
     @Setter
     private PasswordPolicy defaultPasswordPolicy;
@@ -182,10 +184,6 @@ public class IdentityProviderBootstrap
         }
     }
 
-    public void setKeystoneConfig(HashMap<String, Object> keystoneConfig) {
-        this.keystoneConfig = keystoneConfig;
-    }
-
     protected AbstractIdentityProviderDefinition getKeystoneDefinition(Map<String, Object> config) {
         return new KeystoneIdentityProviderDefinition(config);
     }
@@ -194,13 +192,13 @@ public class IdentityProviderBootstrap
         boolean keystoneProfile = Arrays.asList(environment.getActiveProfiles()).contains(OriginKeys.KEYSTONE);
         if (keystoneConfig != null || keystoneProfile) {
             boolean active = keystoneProfile && keystoneConfig != null;
-            IdentityProvider provider = new IdentityProvider<>();
+            IdentityProvider<AbstractIdentityProviderDefinition> provider = new IdentityProvider<>();
             provider.setOriginKey(OriginKeys.KEYSTONE);
             provider.setType(OriginKeys.KEYSTONE);
             provider.setName("UAA Keystone Provider");
             provider.setActive(active);
             provider.setConfig(getKeystoneDefinition(keystoneConfig));
-            providers.add(new IdentityProviderWrapper(provider));
+            providers.add(new IdentityProviderWrapper<>(provider));
         }
     }
 
