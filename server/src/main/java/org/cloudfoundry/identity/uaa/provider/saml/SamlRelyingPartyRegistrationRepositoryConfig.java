@@ -31,21 +31,17 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
     private final SamlConfigProps samlConfigProps;
     private final BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
     private final String samlSpNameID;
-    private final Boolean samlSignRequest;
 
     public SamlRelyingPartyRegistrationRepositoryConfig(@Qualifier("samlEntityID") String samlEntityID,
                                                         SamlConfigProps samlConfigProps,
                                                         BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData,
                                                         @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
-                                                        String samlSpNameID,
-                                                        @Value("${login.saml.signRequest:true}")
-                                                        Boolean samlSignRequest
+                                                        String samlSpNameID
     ) {
         this.samlEntityID = samlEntityID;
         this.samlConfigProps = samlConfigProps;
         this.bootstrapSamlIdentityProviderData = bootstrapSamlIdentityProviderData;
         this.samlSpNameID = samlSpNameID;
-        this.samlSignRequest = samlSignRequest;
     }
 
     @Autowired
@@ -69,20 +65,21 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         // even when there are no SAML IDPs configured.
         // See relevant issue: https://github.com/spring-projects/spring-security/issues/11369
         RelyingPartyRegistration defaultRelyingPartyRegistration = RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                samlEntityID, samlSpNameID, samlSignRequest, keyWithCert, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, DEFAULT_REGISTRATION_ID);
+                samlEntityID, samlSpNameID, keyWithCert, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, DEFAULT_REGISTRATION_ID, samlConfigProps.getSignRequest());
         relyingPartyRegistrations.add(defaultRelyingPartyRegistration);
 
         for (SamlIdentityProviderDefinition samlIdentityProviderDefinition : bootstrapSamlIdentityProviderData.getIdentityProviderDefinitions()) {
             relyingPartyRegistrations.add(
                     RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                            samlEntityID, samlSpNameID, samlSignRequest, keyWithCert,
+                            samlEntityID, samlSpNameID, keyWithCert,
                             samlIdentityProviderDefinition.getMetaDataLocation(),
-                            samlIdentityProviderDefinition.getIdpEntityAlias())
+                            samlIdentityProviderDefinition.getIdpEntityAlias(),
+                            samlConfigProps.getSignRequest())
             );
         }
 
         InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
-        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlSignRequest, samlEntityID, keyWithCert, samlIdentityProviderConfigurator);
+        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, keyWithCert, samlIdentityProviderConfigurator);
         return new DelegatingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo);
     }
 

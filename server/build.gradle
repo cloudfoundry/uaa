@@ -112,6 +112,7 @@ dependencies {
 
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.guavaTestLib)
+    testImplementation(libraries.xmlUnit)
 
     implementation(libraries.commonsIo)
 }

@@ -91,25 +91,6 @@ public class ZoneAwareMetadataGeneratorTests {
 
     @Test
     @Disabled("SAML test doesn't compile")
-    void testRequestAndWantAssertionSignedInAnotherZone() {
-//        generator.setRequestSigned(true);
-//        generator.setWantAssertionSigned(true);
-//        assertTrue(generator.isRequestSigned());
-//        assertTrue(generator.isWantAssertionSigned());
-//
-//        generator.setRequestSigned(false);
-//        generator.setWantAssertionSigned(false);
-//        assertFalse(generator.isRequestSigned());
-//        assertFalse(generator.isWantAssertionSigned());
-//
-//        IdentityZoneHolder.set(otherZone);
-//
-//        assertTrue(generator.isRequestSigned());
-//        assertTrue(generator.isWantAssertionSigned());
-    }
-
-    @Test
-    @Disabled("SAML test doesn't compile")
     void testMetadataContainsSamlBearerGrantEndpoint() throws Exception {
 //        String metadata = getMetadata(otherZone, keyManager, generator, extendedMetadata);
 //        assertThat(metadata, containsString("md:AssertionConsumerService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:URI\" Location=\"http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityAlias\" index=\"1\"/>"));

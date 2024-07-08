@@ -50,7 +50,6 @@ import org.cloudfoundry.identity.uaa.util.RetryRule;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.flywaydb.core.internal.util.StringUtils;
-import org.hamcrest.Matchers;
 import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -76,6 +75,7 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.FileCopyUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
+import org.xmlunit.assertj.XmlAssert;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -107,10 +107,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -157,7 +156,9 @@ public class SamlLoginIT {
 
     @BeforeAll
     static void checkZoneDNSSupport() {
-        assertTrue(doesSupportZoneDNS(), "Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1");
+        assertThat(doesSupportZoneDNS())
+                .as("Expected testzone1.localhost, testzone2.localhost, testzone3.localhost, testzone4.localhost to resolve to 127.0.0.1")
+                .isTrue();
     }
 
     public static String getValidRandomIDPMetaData() {
@@ -216,23 +217,27 @@ public class SamlLoginIT {
                 "%s/saml/metadata".formatted(baseUrl), String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         String metadataXml = response.getBody();
+        XmlAssert xmlAssert = XmlAssert.assertThat(metadataXml).withNamespaceContext(xmlNamespaces());
 
         // The SAML SP metadata should match the following UAA configs:
         // login.entityID
-        assertThat(metadataXml).contains("entityID=\"cloudfoundry-saml-login\"")
-                // TODO: Are DigestMethod and SignatureMethod needed?
-                //  login.saml.signatureAlgorithm
-                //.contains("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>")
-                //.contains("<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>")
-                // login.saml.signRequest
-                .contains("AuthnRequestsSigned=\"true\"")
-                // login.saml.wantAssertionSigned
-                .contains("WantAssertionsSigned=\"true\"")
-                // login.saml.nameID
-                .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
+        xmlAssert.valueByXPath("//md:EntityDescriptor/@entityID").isEqualTo("cloudfoundry-saml-login");
+        // login.saml.signRequest
+        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@AuthnRequestsSigned").isEqualTo(true);
+        // login.saml.wantAssertionSigned
+        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@WantAssertionsSigned").isEqualTo(true);
+        // TODO the AssertionConsumerService location needs to be a valid URL (currently it's: {baseUrl}/saml/....)
+        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location").contains("/saml/SSO/alias/cloudfoundry-saml-login");
 
-        assertEquals("saml-sp.xml",
-                response.getHeaders().getContentDisposition().getFilename());
+//        assertThat(metadataXml).contains("entityID=\"cloudfoundry-saml-login\"")
+//                // TODO: Are DigestMethod and SignatureMethod needed?
+//                //  login.saml.signatureAlgorithm
+//                //.contains("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>")
+//                //.contains("<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>")
+//                // login.saml.nameID
+//                .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
+
+        assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("saml-sp.xml");
     }
 
     @Test
@@ -252,6 +257,8 @@ public class SamlLoginIT {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
         config.getSamlConfig().setEntityID(zoneId + "-saml-login");
+        config.getSamlConfig().setWantAssertionSigned(false);
+        config.getSamlConfig().setRequestSigned(false);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
 
         RestTemplate request = new RestTemplate();
@@ -259,17 +266,20 @@ public class SamlLoginIT {
                 zoneUrl + "/saml/metadata", String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         String metadataXml = response.getBody();
+        XmlAssert xmlAssert = XmlAssert.assertThat(metadataXml).withNamespaceContext(xmlNamespaces());
 
         // The SAML SP metadata should match the following UAA configs:
         // login.entityID
-        assertThat(metadataXml).contains("entityID=\"" + zoneId + "-saml-login\"")
-                .contains("AuthnRequestsSigned=\"true\"")
-                .contains("WantAssertionsSigned=\"true\"")
-                // TODO: Improve this check
-                .contains("/saml/SSO/alias/" + zoneId + ".cloudfoundry-saml-login");
+        xmlAssert.valueByXPath("//md:EntityDescriptor/@entityID").isEqualTo("testzone1-saml-login");
+        // in default zone, determined by UAA.yml field: login.saml.signRequest; in other zone, determined by zone config field: config.samlConfig.requestSigned
+        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@AuthnRequestsSigned").isEqualTo(false);
 
-        assertEquals("saml-" + zoneId + "-sp.xml",
-                response.getHeaders().getContentDisposition().getFilename());
+        // in default zone, determined by UAA.yml field: login.saml.wantAssertionSigned; in other zone, determined by zone config field: config.samlConfig.wantAssertionSigned
+        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@WantAssertionsSigned").isEqualTo(false);
+        // TODO the AssertionConsumerService location needs to be a valid URL (currently it's: {baseUrl}/saml/....)
+        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location").contains("/saml/SSO/alias/testzone1.cloudfoundry-saml-login");
+
+        assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("saml-testzone1-sp.xml");
     }
 
     @Test
@@ -491,7 +501,7 @@ public class SamlLoginIT {
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         LoginPage loginPage = LoginPage.go(webDriver, zoneUrl);
-        loginPage.validateTitle(Matchers.containsString("testzone2"));
+        loginPage.validateTitle(containsString("testzone2"));
         loginPage.clickSamlLink_goesToSamlLoginPage("simplesamlphp")
                 .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 

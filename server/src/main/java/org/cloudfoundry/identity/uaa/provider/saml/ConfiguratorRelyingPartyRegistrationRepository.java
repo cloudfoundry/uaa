@@ -18,17 +18,14 @@ public class ConfiguratorRelyingPartyRegistrationRepository
 
     private final SamlIdentityProviderConfigurator configurator;
     private final KeyWithCert keyWithCert;
-    private final Boolean samlSignRequest;
     private final String samlEntityID;
 
-    public ConfiguratorRelyingPartyRegistrationRepository(Boolean samlSignRequest,
-                                                          @Qualifier("samlEntityID") String samlEntityID,
+    public ConfiguratorRelyingPartyRegistrationRepository(@Qualifier("samlEntityID") String samlEntityID,
                                                           KeyWithCert keyWithCert,
                                                           SamlIdentityProviderConfigurator configurator) {
         Assert.notNull(configurator, "configurator cannot be null");
         this.configurator = configurator;
         this.keyWithCert = keyWithCert;
-        this.samlSignRequest = samlSignRequest;
         this.samlEntityID = samlEntityID;
     }
 
@@ -44,9 +41,12 @@ public class ConfiguratorRelyingPartyRegistrationRepository
         List<SamlIdentityProviderDefinition> identityProviderDefinitions = configurator.getIdentityProviderDefinitions();
         for (SamlIdentityProviderDefinition identityProviderDefinition : identityProviderDefinitions) {
             if (identityProviderDefinition.getIdpEntityAlias().equals(registrationId)) {
+
+                IdentityZone zone = retrieveZone();
                 return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                        samlEntityID, identityProviderDefinition.getNameID(), samlSignRequest,
-                        keyWithCert, identityProviderDefinition.getMetaDataLocation(), registrationId);
+                        samlEntityID, identityProviderDefinition.getNameID(),
+                        keyWithCert, identityProviderDefinition.getMetaDataLocation(),
+                        registrationId, zone.getConfig().getSamlConfig().isRequestSigned());
             }
         }
         return buildDefaultRelyingPartyRegistration();
@@ -69,8 +69,8 @@ public class ConfiguratorRelyingPartyRegistrationRepository
         }
 
         return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                samlEntityID, null, samlSignRequest,
+                samlEntityID, null,
                 keyWithCert, "dummy-saml-idp-metadata.xml", null,
-                samlServiceUri);
+                samlServiceUri, zone.getConfig().getSamlConfig().isRequestSigned());
     }
 }

@@ -46,14 +46,14 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
 
     @BeforeEach
     void setUp() {
-        repository = new ConfiguratorRelyingPartyRegistrationRepository(true, ENTITY_ID, mockKeyWithCert,
+        repository = new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, mockKeyWithCert,
                 mockConfigurator);
     }
 
     @Test
     void constructorWithNullConfiguratorThrows() {
         assertThatThrownBy(() -> new ConfiguratorRelyingPartyRegistrationRepository(
-                true, ENTITY_ID, mockKeyWithCert, null)
+                ENTITY_ID, mockKeyWithCert, null)
         ).isInstanceOf(IllegalArgumentException.class);
     }
 

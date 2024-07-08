@@ -133,15 +133,20 @@ public class IdentityZoneConfigurationBootstrapTests {
     }
 
     @Test
-    void defaultSamlKeys() throws Exception {
+    void samlKeysAndSigningConfigs() throws Exception {
         bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
         bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
         bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        bootstrap.setSamlWantAssertionSigned(false);
+        bootstrap.setSamlRequestSigned(false);
         bootstrap.afterPropertiesSet();
+
         IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertThat(uaa.getConfig().getSamlConfig().getPrivateKey()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY);
         assertThat(uaa.getConfig().getSamlConfig().getPrivateKeyPassword()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
         assertThat(uaa.getConfig().getSamlConfig().getCertificate()).isEqualTo(SamlTestUtils.PROVIDER_CERTIFICATE);
+        assertThat(uaa.getConfig().getSamlConfig().isWantAssertionSigned()).isEqualTo(false);
+        assertThat(uaa.getConfig().getSamlConfig().isRequestSigned()).isEqualTo(false);
     }
 
     @Test
@@ -257,7 +262,6 @@ public class IdentityZoneConfigurationBootstrapTests {
         assertThat(config.getLinks().getLogout().getWhitelist()).isEqualTo(Collections.singletonList("http://single-url"));
         assertThat(config.getLinks().getLogout().isDisableRedirectParameter()).isFalse();
     }
-
 
     @Test
     void testPrompts() throws Exception {

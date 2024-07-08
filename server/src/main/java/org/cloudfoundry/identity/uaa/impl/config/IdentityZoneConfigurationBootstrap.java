@@ -58,6 +58,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpPrivateKeyPassphrase;
     private String samlSpCertificate;
     private boolean disableSamlInResponseToCheck = false;
+    private boolean samlWantAssertionSigned = true;
+    private boolean samlRequestSigned = true;
 
     private Map<String, Map<String, String>> samlKeys;
     private String activeKeyId;
@@ -86,6 +88,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
         definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
         definition.getSamlConfig().setDisableInResponseToCheck(disableSamlInResponseToCheck);
+        definition.getSamlConfig().setWantAssertionSigned(samlWantAssertionSigned);
+        definition.getSamlConfig().setRequestSigned(samlRequestSigned);
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
         definition.setAccountChooserEnabled(accountChooserEnabled);
         definition.setDefaultIdentityProvider(defaultIdentityProvider);

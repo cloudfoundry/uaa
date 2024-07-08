@@ -31,7 +31,6 @@ class RelyingPartyRegistrationBuilderTest {
     private static final String ENTITY_ID = "entityId";
     private static final String NAME_ID = "nameIdFormat";
     private static final String REGISTRATION_ID = "registrationId";
-    private static final boolean SIGN_REQUEST = true;
 
     @Mock
     private KeyWithCert mockKeyWithCert;
@@ -42,7 +41,7 @@ class RelyingPartyRegistrationBuilderTest {
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
 
         RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, SIGN_REQUEST, mockKeyWithCert, "saml-sample-metadata.xml", REGISTRATION_ID);
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, mockKeyWithCert, "saml-sample-metadata.xml", REGISTRATION_ID, true);
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
@@ -52,7 +51,8 @@ class RelyingPartyRegistrationBuilderTest {
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
+                .returns(true, RelyingPartyRegistration.AssertingPartyDetails::getWantAuthnRequestsSigned);
     }
 
     @Test
@@ -62,7 +62,7 @@ class RelyingPartyRegistrationBuilderTest {
 
         String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
         RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, SIGN_REQUEST, mockKeyWithCert, metadataXml, REGISTRATION_ID);
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, mockKeyWithCert, metadataXml, REGISTRATION_ID, false);
 
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
@@ -73,7 +73,8 @@ class RelyingPartyRegistrationBuilderTest {
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
+                .returns(false, RelyingPartyRegistration.AssertingPartyDetails::getWantAuthnRequestsSigned);
     }
 
     @Test
@@ -81,7 +82,7 @@ class RelyingPartyRegistrationBuilderTest {
         String metadataXml = "<?xml version=\"1.0\"?>\n<xml>invalid xml</xml>";
         assertThatThrownBy(() ->
                 RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(ENTITY_ID, NAME_ID,
-                        SIGN_REQUEST, mockKeyWithCert, metadataXml, REGISTRATION_ID))
+                        mockKeyWithCert, metadataXml, REGISTRATION_ID, true))
                 .isInstanceOf(Saml2Exception.class)
                 .hasMessageContaining("Unsupported element");
     }

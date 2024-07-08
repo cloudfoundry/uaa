@@ -25,18 +25,18 @@ public class RelyingPartyRegistrationBuilder {
     }
 
     public static RelyingPartyRegistration buildRelyingPartyRegistration(
-            String samlEntityID, String samlSpNameId, boolean samlSignRequest,
+            String samlEntityID, String samlSpNameId,
             KeyWithCert keyWithCert,
-            String metadataLocation, String rpRegstrationId) {
+            String metadataLocation, String rpRegstrationId, boolean requestSigned) {
         return buildRelyingPartyRegistration(samlEntityID, samlSpNameId,
-                samlSignRequest, keyWithCert, metadataLocation, rpRegstrationId,
-                samlEntityID);
+                keyWithCert, metadataLocation, rpRegstrationId,
+                samlEntityID, requestSigned);
     }
 
     public static RelyingPartyRegistration buildRelyingPartyRegistration(
-            String samlEntityID, String samlSpNameId, boolean samlSignRequest,
+            String samlEntityID, String samlSpNameId,
             KeyWithCert keyWithCert, String metadataLocation,
-            String rpRegstrationId, String samlServiceUri) {
+            String rpRegstrationId, String samlServiceUri, boolean requestSigned) {
         SamlIdentityProviderDefinition.MetadataLocation type = SamlIdentityProviderDefinition.getType(metadataLocation);
 
         RelyingPartyRegistration.Builder builder;
@@ -65,7 +65,7 @@ public class RelyingPartyRegistrationBuilder {
                     c.add(Saml2MessageBinding.POST);
                 })
                 .assertingPartyDetails(details -> details
-                        .wantAuthnRequestsSigned(samlSignRequest)
+                        .wantAuthnRequestsSigned(requestSigned)
                 )
                 .signingX509Credentials(cred -> cred
                         .add(Saml2X509Credential.signing(keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))

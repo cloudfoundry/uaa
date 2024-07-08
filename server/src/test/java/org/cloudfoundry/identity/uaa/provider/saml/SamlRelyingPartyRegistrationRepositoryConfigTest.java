@@ -26,7 +26,6 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     private static final String CERT = KeyWithCertTest.goodCert;
     private static final String ENTITY_ID = "entityId";
     private static final String NAME_ID = "nameIdFormat";
-    private static final boolean SIGN_REQUEST = true;
 
     @Mock
     SamlConfigProps samlConfigProps;
@@ -55,14 +54,14 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
 
     @Test
     void relyingPartyRegistrationRepository() throws CertificateException {
-        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, SIGN_REQUEST);
+        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         assertThat(repository).isNotNull();
     }
 
     @Test
     void relyingPartyRegistrationResolver() throws CertificateException {
-        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, SIGN_REQUEST);
+        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository);
 
@@ -71,7 +70,7 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
 
     @Test
     void buildsRegistrationForExample() throws CertificateException {
-        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, SIGN_REQUEST);
+        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         RelyingPartyRegistration registration = repository.findByRegistrationId("example");
         assertThat(registration)

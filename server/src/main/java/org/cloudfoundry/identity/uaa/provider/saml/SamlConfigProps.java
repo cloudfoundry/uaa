@@ -16,6 +16,7 @@ public class SamlConfigProps {
     private Map<String, SamlKey> keys;
 
     private Boolean wantAssertionSigned = true;
+    private Boolean signRequest = true;
 
     public SamlKey getActiveSamlKey() {
         return keys.get(activeKeyId);
