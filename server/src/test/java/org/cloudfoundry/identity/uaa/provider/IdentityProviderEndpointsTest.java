@@ -47,9 +47,11 @@ import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -58,7 +60,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -86,21 +87,28 @@ class IdentityProviderEndpointsTest {
     private PlatformTransactionManager mockPlatformTransactionManager;
 
     @Mock
-    private IdentityZoneProvisioning mockIdentityZoneProvisioning;
-
-    @Mock
     private IdentityProviderAliasHandler mockIdpAliasHandler;
 
     @Mock
     SamlIdentityProviderConfigurator samlConfigurator;
 
-    @InjectMocks
     private IdentityProviderEndpoints identityProviderEndpoints;
 
     @BeforeEach
     void setup() {
+        identityProviderEndpoints = new IdentityProviderEndpoints(
+                mockIdentityProviderProvisioning,
+                mock(ScimGroupExternalMembershipManager.class),
+                mock(ScimGroupProvisioning.class),
+                samlConfigurator,
+                mockIdentityProviderConfigValidationDelegator,
+                mockIdentityZoneManager,
+                mockPlatformTransactionManager,
+                mockIdpAliasHandler,
+                false
+        );
+
         lenient().when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
-        arrangeAliasEntitiesEnabled(true);
 
         lenient().when(mockIdpAliasHandler.aliasPropertiesAreValid(any(), any()))
                 .thenReturn(true);
@@ -468,10 +476,24 @@ class IdentityProviderEndpointsTest {
 
     @Nested
     class Alias {
+        @BeforeEach
+        void setUp() {
+            arrangeAliasEntitiesEnabled(true);
+        }
+
+        @AfterEach
+        void tearDown() {
+            arrangeAliasEntitiesEnabled(false);
+        }
+
         private final String customZoneId = UUID.randomUUID().toString();
 
         private void arrangeCurrentIdentityZone(final String zoneId) {
             when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
+        }
+
+        private void arrangeAliasEntitiesEnabled(final boolean enabled) {
+            ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
         }
 
         @Nested
@@ -1043,9 +1065,5 @@ class IdentityProviderEndpointsTest {
                 assertEquals(ClientAuthentication.PRIVATE_KEY_JWT, provider.getConfig().getAuthMethod());
             }
         }
-    }
-
-    private void arrangeAliasEntitiesEnabled(final boolean enabled) {
-        ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
     }
 }
