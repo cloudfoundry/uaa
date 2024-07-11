@@ -202,12 +202,12 @@ public class JwtClientAuthentication {
   }
 
   private static String getDynamicValue(Matcher m) {
+    ApplicationContext applicationContext = ApplicationContextProvider.getApplicationContext();
     /* return a reference from application environment only if in default zone */
-    if (!(new IdentityZoneManagerImpl().isCurrentZoneUaa())) {
+    if (applicationContext == null || !(new IdentityZoneManagerImpl().isCurrentZoneUaa())) {
       return null;
     }
-    ApplicationContext applicationContext = ApplicationContextProvider.getApplicationContext();
-    return applicationContext != null ? applicationContext.getEnvironment().getProperty(m.group("name")) : null;
+    return Optional.ofNullable(applicationContext.getEnvironment().getProperty(m.group("name"))).orElseThrow( () -> new BadCredentialsException("Missing referenced signing entry"));
   }
 
   private static String getDefaultValue(Matcher m) {
