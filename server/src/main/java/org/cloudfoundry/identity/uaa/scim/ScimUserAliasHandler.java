@@ -61,6 +61,9 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         newAliasEntity.setPasswordLastModified(existingAliasEntity.getPasswordLastModified());
         newAliasEntity.setLastLogonTime(existingAliasEntity.getLastLogonTime());
         newAliasEntity.setPreviousLogonTime(existingAliasEntity.getPreviousLogonTime());
+
+        // the version field might differ between the original user and its alias -> use value of existing alias
+        newAliasEntity.setVersion(existingAliasEntity.getVersion());
     }
 
     private Optional<IdentityProvider<?>> retrieveIdpByOrigin(final String originKey, final String zoneId) {
