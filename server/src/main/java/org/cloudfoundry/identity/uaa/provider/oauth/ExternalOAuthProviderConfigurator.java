@@ -147,7 +147,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         } else {
             idzConfig = identityZoneProvisioning.retrieve(zoneId).getConfig();
         }
-        return (idzConfig == null || Optional.of(idzConfig.getUserConfig()).map(UserConfig::isAllowAllOrigins).orElse(true)) ? 1 : 0;
+        return (idzConfig == null || Optional.of(idzConfig.getUserConfig()).map(UserConfig::isAllowOriginLoop).orElse(true)) ? 1 : 0;
     }
 
     @Override

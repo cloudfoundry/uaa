@@ -227,7 +227,7 @@ class ExternalOAuthProviderConfiguratorTests {
 
         String issuer = "https://accounts.google.com";
         IdentityZone extraZone = IdentityZone.getUaa();
-        extraZone.getConfig().getUserConfig().setAllowAllOrigins(false);
+        extraZone.getConfig().getUserConfig().setAllowOriginLoop(false);
         when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
         when(identityZoneManager.getCurrentIdentityZone()).thenReturn(extraZone);
         assertThrowsWithMessageThat(
@@ -243,7 +243,7 @@ class ExternalOAuthProviderConfiguratorTests {
 
         String issuer = "https://accounts.google.com";
         IdentityZone extraZone = IdentityZone.getUaa();
-        extraZone.getConfig().getUserConfig().setAllowAllOrigins(false);
+        extraZone.getConfig().getUserConfig().setAllowOriginLoop(false);
         when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
         when(identityZoneManager.getCurrentIdentityZone()).thenReturn(extraZone);
         assertThrowsWithMessageThat(
