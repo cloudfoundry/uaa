@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
@@ -13,7 +12,7 @@ import java.util.List;
  * A {@link RelyingPartyRegistrationRepository} that delegates to a list of other {@link RelyingPartyRegistrationRepository}
  * instances.
  */
-public class DelegatingRelyingPartyRegistrationRepository implements RelyingPartyRegistrationRepository {
+public class DelegatingRelyingPartyRegistrationRepository implements RelyingPartyRegistrationRepository, ZoneAware {
 
     private final List<RelyingPartyRegistrationRepository> delegates;
 
@@ -36,11 +35,13 @@ public class DelegatingRelyingPartyRegistrationRepository implements RelyingPart
      */
     @Override
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
-        boolean isDefaultZone = IdentityZoneHolder.isUaa();
+        boolean isDefaultZone = retrieveZone().isUaa();
         for (RelyingPartyRegistrationRepository repository : this.delegates) {
-            RelyingPartyRegistration registration = repository.findByRegistrationId(registrationId);
-            if (registration != null && (isDefaultZone || repository instanceof ZoneAware)) {
-                return registration;
+            if (isDefaultZone || repository instanceof ZoneAware) {
+                RelyingPartyRegistration registration = repository.findByRegistrationId(registrationId);
+                if (registration != null) {
+                    return registration;
+                }
             }
         }
         return null;

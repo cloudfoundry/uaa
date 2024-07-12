@@ -13,9 +13,12 @@ public class SamlConfigProps {
 
     private String activeKeyId;
 
+    private String entityIDAlias;
+
     private Map<String, SamlKey> keys;
 
     private Boolean wantAssertionSigned = true;
+
     private Boolean signRequest = true;
 
     public SamlKey getActiveSamlKey() {

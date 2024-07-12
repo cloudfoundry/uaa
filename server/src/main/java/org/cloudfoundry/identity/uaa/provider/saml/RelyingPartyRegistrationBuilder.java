@@ -26,19 +26,10 @@ public class RelyingPartyRegistrationBuilder {
 
     public static RelyingPartyRegistration buildRelyingPartyRegistration(
             String samlEntityID, String samlSpNameId,
-            KeyWithCert keyWithCert,
-            String metadataLocation, String rpRegstrationId, boolean requestSigned) {
-        return buildRelyingPartyRegistration(samlEntityID, samlSpNameId,
-                keyWithCert, metadataLocation, rpRegstrationId,
-                samlEntityID, requestSigned);
-    }
-
-    public static RelyingPartyRegistration buildRelyingPartyRegistration(
-            String samlEntityID, String samlSpNameId,
             KeyWithCert keyWithCert, String metadataLocation,
-            String rpRegstrationId, String samlServiceUri, boolean requestSigned) {
-        SamlIdentityProviderDefinition.MetadataLocation type = SamlIdentityProviderDefinition.getType(metadataLocation);
+            String rpRegstrationId, String samlSpAlias, boolean requestSigned) {
 
+        SamlIdentityProviderDefinition.MetadataLocation type = SamlIdentityProviderDefinition.getType(metadataLocation);
         RelyingPartyRegistration.Builder builder;
         if (type == SamlIdentityProviderDefinition.MetadataLocation.DATA) {
             try (InputStream stringInputStream = new ByteArrayInputStream(metadataLocation.getBytes())) {
@@ -51,14 +42,17 @@ public class RelyingPartyRegistrationBuilder {
             builder = RelyingPartyRegistrations.fromMetadataLocation(metadataLocation);
         }
 
+        // fallback to entityId if alias is not provided TODO has the falling back already happened?
+        samlSpAlias = samlSpAlias == null ? samlEntityID : samlSpAlias;
+
         builder.entityId(samlEntityID);
         if (samlSpNameId != null) builder.nameIdFormat(samlSpNameId);
         if (rpRegstrationId != null) builder.registrationId(rpRegstrationId);
         return builder
-                .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(samlServiceUri))
-                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlServiceUri))
-                .singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(samlServiceUri))
-                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlServiceUri))
+                .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(samlSpAlias))
+                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlSpAlias))
+                .singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(samlSpAlias))
+                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlSpAlias))
                 // Accept both POST and REDIRECT bindings
                 .singleLogoutServiceBindings(c -> {
                     c.add(Saml2MessageBinding.REDIRECT);

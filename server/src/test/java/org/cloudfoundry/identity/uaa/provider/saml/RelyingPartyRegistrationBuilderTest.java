@@ -29,6 +29,7 @@ import static org.mockito.Mockito.when;
 class RelyingPartyRegistrationBuilderTest {
 
     private static final String ENTITY_ID = "entityId";
+    private static final String ENTITY_ID_ALIAS = "entityIdAlias";
     private static final String NAME_ID = "nameIdFormat";
     private static final String REGISTRATION_ID = "registrationId";
 
@@ -41,14 +42,14 @@ class RelyingPartyRegistrationBuilderTest {
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
 
         RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, mockKeyWithCert, "saml-sample-metadata.xml", REGISTRATION_ID, true);
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, mockKeyWithCert, "saml-sample-metadata.xml", REGISTRATION_ID, ENTITY_ID_ALIAS, true);
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
                 .returns(NAME_ID, RelyingPartyRegistration::getNameIdFormat)
                 // from functions
-                .returns("{baseUrl}/saml/SSO/alias/entityId", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
-                .returns("{baseUrl}/saml/SingleLogout/alias/entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
+                .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
+                .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
                 .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
@@ -62,15 +63,15 @@ class RelyingPartyRegistrationBuilderTest {
 
         String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
         RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, mockKeyWithCert, metadataXml, REGISTRATION_ID, false);
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, mockKeyWithCert, metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS,false);
 
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
                 .returns(NAME_ID, RelyingPartyRegistration::getNameIdFormat)
                 // from functions
-                .returns("{baseUrl}/saml/SSO/alias/entityId", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
-                .returns("{baseUrl}/saml/SingleLogout/alias/entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
+                .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
+                .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
                 .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
@@ -82,7 +83,7 @@ class RelyingPartyRegistrationBuilderTest {
         String metadataXml = "<?xml version=\"1.0\"?>\n<xml>invalid xml</xml>";
         assertThatThrownBy(() ->
                 RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(ENTITY_ID, NAME_ID,
-                        mockKeyWithCert, metadataXml, REGISTRATION_ID, true))
+                        mockKeyWithCert, metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, true))
                 .isInstanceOf(Saml2Exception.class)
                 .hasMessageContaining("Unsupported element");
     }

@@ -227,6 +227,7 @@ public class SamlLoginIT {
         // login.saml.wantAssertionSigned
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@WantAssertionsSigned").isEqualTo(true);
         // TODO the AssertionConsumerService location needs to be a valid URL (currently it's: {baseUrl}/saml/....)
+        // the AssertionConsumerService endpoint needs to be: /saml/SSO/alias/[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias or login.entityID]
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location").contains("/saml/SSO/alias/cloudfoundry-saml-login");
 
 //        assertThat(metadataXml).contains("entityID=\"cloudfoundry-saml-login\"")
@@ -269,14 +270,15 @@ public class SamlLoginIT {
         XmlAssert xmlAssert = XmlAssert.assertThat(metadataXml).withNamespaceContext(xmlNamespaces());
 
         // The SAML SP metadata should match the following UAA configs:
-        // login.entityID
+        // id zone config's samlConfig.entityID
         xmlAssert.valueByXPath("//md:EntityDescriptor/@entityID").isEqualTo("testzone1-saml-login");
-        // in default zone, determined by UAA.yml field: login.saml.signRequest; in other zone, determined by zone config field: config.samlConfig.requestSigned
+        // determined by zone config field: config.samlConfig.requestSigned
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@AuthnRequestsSigned").isEqualTo(false);
 
-        // in default zone, determined by UAA.yml field: login.saml.wantAssertionSigned; in other zone, determined by zone config field: config.samlConfig.wantAssertionSigned
+        // determined by zone config field: config.samlConfig.wantAssertionSigned
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@WantAssertionsSigned").isEqualTo(false);
         // TODO the AssertionConsumerService location needs to be a valid URL (currently it's: {baseUrl}/saml/....)
+        // the AssertionConsumerService endpoint needs to be: /saml/SSO/alias/[zone-subdomain].[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias, or fall back on login.entityID]
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location").contains("/saml/SSO/alias/testzone1.cloudfoundry-saml-login");
 
         assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("saml-testzone1-sp.xml");

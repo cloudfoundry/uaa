@@ -53,6 +53,8 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
 
         List<RelyingPartyRegistration> relyingPartyRegistrations = new ArrayList<>();
 
+        String uaaWideSamlEntityIDAlias = samlConfigProps.getEntityIDAlias() != null ? samlConfigProps.getEntityIDAlias() : samlEntityID;
+
         @SuppressWarnings("java:S125")
         // Spring Security requires at least one relyingPartyRegistration before SAML SP metadata generation;
         // and each relyingPartyRegistration needs to contain the SAML IDP metadata.
@@ -64,9 +66,9 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         // here to ensure that the SAML SP metadata will always be present,
         // even when there are no SAML IDPs configured.
         // See relevant issue: https://github.com/spring-projects/spring-security/issues/11369
-        RelyingPartyRegistration defaultRelyingPartyRegistration = RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                samlEntityID, samlSpNameID, keyWithCert, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, DEFAULT_REGISTRATION_ID, samlConfigProps.getSignRequest());
-        relyingPartyRegistrations.add(defaultRelyingPartyRegistration);
+        RelyingPartyRegistration exampleRelyingPartyRegistration = RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
+                samlEntityID, samlSpNameID, keyWithCert, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, DEFAULT_REGISTRATION_ID, uaaWideSamlEntityIDAlias, samlConfigProps.getSignRequest());
+        relyingPartyRegistrations.add(exampleRelyingPartyRegistration);
 
         for (SamlIdentityProviderDefinition samlIdentityProviderDefinition : bootstrapSamlIdentityProviderData.getIdentityProviderDefinitions()) {
             relyingPartyRegistrations.add(
@@ -74,13 +76,15 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
                             samlEntityID, samlSpNameID, keyWithCert,
                             samlIdentityProviderDefinition.getMetaDataLocation(),
                             samlIdentityProviderDefinition.getIdpEntityAlias(),
+                            uaaWideSamlEntityIDAlias,
                             samlConfigProps.getSignRequest())
             );
         }
 
         InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
-        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, keyWithCert, samlIdentityProviderConfigurator);
-        return new DelegatingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo);
+        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, keyWithCert, samlIdentityProviderConfigurator);
+        DefaultRelyingPartyRegistrationRepository defaultRepo = new DefaultRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, keyWithCert);
+        return new DelegatingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo, defaultRepo);
     }
 
     @Autowired

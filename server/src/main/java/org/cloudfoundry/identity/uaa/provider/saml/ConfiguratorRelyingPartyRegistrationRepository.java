@@ -1,16 +1,17 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.extern.slf4j.Slf4j;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAware;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.util.Assert;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public class ConfiguratorRelyingPartyRegistrationRepository
@@ -20,13 +21,17 @@ public class ConfiguratorRelyingPartyRegistrationRepository
     private final KeyWithCert keyWithCert;
     private final String samlEntityID;
 
-    public ConfiguratorRelyingPartyRegistrationRepository(@Qualifier("samlEntityID") String samlEntityID,
+    private final String samlEntityIDAlias;
+
+    public ConfiguratorRelyingPartyRegistrationRepository(String samlEntityID,
+                                                          String samlEntityIDAlias,
                                                           KeyWithCert keyWithCert,
                                                           SamlIdentityProviderConfigurator configurator) {
         Assert.notNull(configurator, "configurator cannot be null");
         this.configurator = configurator;
         this.keyWithCert = keyWithCert;
         this.samlEntityID = samlEntityID;
+        this.samlEntityIDAlias = samlEntityIDAlias;
     }
 
     /**
@@ -38,39 +43,43 @@ public class ConfiguratorRelyingPartyRegistrationRepository
      */
     @Override
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
-        List<SamlIdentityProviderDefinition> identityProviderDefinitions = configurator.getIdentityProviderDefinitions();
+        IdentityZone currentZone = retrieveZone();
+        List<SamlIdentityProviderDefinition> identityProviderDefinitions = configurator.getIdentityProviderDefinitionsForZone(currentZone);
         for (SamlIdentityProviderDefinition identityProviderDefinition : identityProviderDefinitions) {
             if (identityProviderDefinition.getIdpEntityAlias().equals(registrationId)) {
+                String zonedSamlEntityID = getZoneEntityId(currentZone);
+                String zonedSamlEntityAlias = getZoneEntityAlias(currentZone);
+                boolean requestSigned = currentZone.getConfig().getSamlConfig().isRequestSigned();
 
-                IdentityZone zone = retrieveZone();
                 return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                        samlEntityID, identityProviderDefinition.getNameID(),
+                        zonedSamlEntityID, identityProviderDefinition.getNameID(),
                         keyWithCert, identityProviderDefinition.getMetaDataLocation(),
-                        registrationId, zone.getConfig().getSamlConfig().isRequestSigned());
+                        registrationId, zonedSamlEntityAlias, requestSigned);
             }
         }
-        return buildDefaultRelyingPartyRegistration();
+        return null;
     }
 
-    private RelyingPartyRegistration buildDefaultRelyingPartyRegistration() {
-        String samlEntityID, samlServiceUri;
-        IdentityZone zone = retrieveZone();
-        if (zone.isUaa()) {
-            samlEntityID = this.samlEntityID;
-            samlServiceUri = this.samlEntityID;
-        }
-        else if (zone.getConfig() != null && zone.getConfig().getSamlConfig() != null) {
-
-            samlEntityID = zone.getConfig().getSamlConfig().getEntityID();
-            samlServiceUri = zone.getSubdomain() + "." + this.samlEntityID;
-        }
-        else {
-            return null;
+    private String getZoneEntityId(IdentityZone currentZone) {
+        // for default zone, use the samlEntityID
+        if (currentZone.isUaa() ) {
+            return samlEntityID;
         }
 
-        return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                samlEntityID, null,
-                keyWithCert, "dummy-saml-idp-metadata.xml", null,
-                samlServiceUri, zone.getConfig().getSamlConfig().isRequestSigned());
+        // for non-default zone, use the zone specific entityID, if it exists
+        return Optional.ofNullable(currentZone.getConfig().getSamlConfig().getEntityID())
+                // otherwise use the zone subdomain + default entityID
+                .orElseGet(() -> "%s.%s".formatted(currentZone.getSubdomain(), samlEntityID));
+    }
+
+    private String getZoneEntityAlias(IdentityZone currentZone) {
+        String alias = Optional.ofNullable(samlEntityIDAlias)
+                .orElse(samlEntityID);
+        // for default zone, use the samlEntityIDAlias, if it exists, otherwise samlEntityID
+        if (currentZone.isUaa()) {
+            return alias;
+        }
+        // for non-default zone, use the zone subdomain . samlEntityIDAlias(if it exists, otherwise samlEntityID)
+        return "%s.%s".formatted(currentZone.getSubdomain(), alias);
     }
 }
