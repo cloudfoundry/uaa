@@ -776,6 +776,65 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
                 @ParameterizedTest
                 @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void testVersionHandling_UaaToCustomZone(final HttpMethod method) throws Throwable {
+                    testVersionHandling(method, uaaZone, customZone);
+                }
+
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
+                void testVersionHandling_CustomToUaaZone(final HttpMethod method) throws Throwable {
+                    testVersionHandling(method, customZone, uaaZone);
+                }
+
+                private void testVersionHandling(
+                        final HttpMethod method,
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAliasAndUserWithoutAlias(zone1, zone2)
+                    );
+                    assertThat(createdScimUser.getVersion()).isZero();
+
+                    createdScimUser.setAliasZid(zone2.getId());
+                    final ScimUser updatedScimUser = updateUser(method, zone1, createdScimUser);
+                    assertThat(updatedScimUser.getAliasId()).isNotBlank();
+                    assertThat(updatedScimUser.getAliasZid()).isNotBlank().isEqualTo(zone2.getId());
+
+                    /* the version of the original user will be incremented twice when a new alias is created:
+                     * 1. during the update of the original user itself (set aliasZid and update other properties)
+                     * 2. after the creation of the alias entity (set aliasId to alias entity's ID) */
+                    assertThat(updatedScimUser.getVersion()).isEqualTo(2);
+
+                    final Optional<ScimUser> aliasUserOpt = readUserFromZoneIfExists(
+                            updatedScimUser.getAliasId(),
+                            updatedScimUser.getAliasZid()
+                    );
+                    assertThat(aliasUserOpt).isPresent();
+                    final ScimUser aliasUser = aliasUserOpt.get();
+                    assertIsCorrectAliasPair(updatedScimUser, aliasUser, zone2);
+
+                    // the alias is newly created -> version 0
+                    assertThat(aliasUser.getVersion()).isZero();
+
+                    /* update the alias entity to check whether the non-zero version of the original entity (2) is
+                     * correctly handled */
+                    aliasUser.setActive(false);
+                    final ScimUser updatedAliasUser = updateUser(method, zone2, aliasUser);
+                    assertThat(updatedAliasUser.getVersion()).isEqualTo(1); // incremented by one
+
+                    final Optional<ScimUser> originalUserAfter2ndUpdateOpt = readUserFromZoneIfExists(
+                            createdScimUser.getId(),
+                            zone1.getId()
+                    );
+                    assertThat(originalUserAfter2ndUpdateOpt).isPresent();
+                    final ScimUser originalUserAfter2ndUpdate = originalUserAfter2ndUpdateOpt.get();
+                    assertThat(originalUserAfter2ndUpdate.getVersion()).isEqualTo(3); // incremented by one
+                }
+
+                @ParameterizedTest
+                @EnumSource(value = HttpMethod.class, names = {"PUT", "PATCH"})
                 void shouldReject_ConflictingUserAlreadyExistsInAliasZone_UaaToCustomZone(final HttpMethod method) throws Throwable {
                     shouldReject_ConflictingUserAlreadyExistsInAliasZone(method, uaaZone, customZone);
                 }

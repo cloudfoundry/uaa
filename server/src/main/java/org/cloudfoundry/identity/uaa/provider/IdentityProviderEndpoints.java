@@ -83,8 +83,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     protected static Logger logger = LoggerFactory.getLogger(IdentityProviderEndpoints.class);
 
-    @Qualifier("aliasEntitiesEnabled")
-    private boolean aliasEntitiesEnabled;
+    private final boolean aliasEntitiesEnabled;
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
@@ -110,7 +109,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             final @Qualifier("identityProviderConfigValidator") IdentityProviderConfigValidator configValidator,
             final IdentityZoneManager identityZoneManager,
             final @Qualifier("transactionManager") PlatformTransactionManager transactionManager,
-            final IdentityProviderAliasHandler idpAliasHandler
+            final IdentityProviderAliasHandler idpAliasHandler,
+            final @Qualifier("aliasEntitiesEnabled") boolean aliasEntitiesEnabled
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
@@ -120,6 +120,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         this.identityZoneManager = identityZoneManager;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
         this.idpAliasHandler = idpAliasHandler;
+        this.aliasEntitiesEnabled = aliasEntitiesEnabled;
     }
 
     @PostMapping()
