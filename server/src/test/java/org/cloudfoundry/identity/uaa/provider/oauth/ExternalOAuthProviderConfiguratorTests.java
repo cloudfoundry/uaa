@@ -191,7 +191,7 @@ class ExternalOAuthProviderConfiguratorTests {
         IdentityProvider<OIDCIdentityProviderDefinition> activeExternalOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
 
         assertEquals(issuer, activeExternalOAuthProvider.getConfig().getIssuer());
-        verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).overlay(config);
         verify(configurator, times(1)).retrieveByExternId(anyString(), anyString(), anyString());
     }
 
@@ -216,13 +216,13 @@ class ExternalOAuthProviderConfiguratorTests {
         IdentityProvider<OIDCIdentityProviderDefinition> activeExternalOAuthProvider = configurator.retrieveByIssuer(issuer, "customer");
 
         assertEquals(issuer, activeExternalOAuthProvider.getConfig().getIssuer());
-        verify(configurator, times(1)).overlay(eq(config));
+        verify(configurator, times(1)).overlay(config);
         verify(configurator, times(1)).retrieveByExternId(anyString(), anyString(), anyString());
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
     }
 
     @Test
-    void retrieve_by_issuer_not_found_error() throws Exception {
+    void retrieve_by_issuer_not_found_error() {
         when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
 
         String issuer = "https://accounts.google.com";
@@ -238,7 +238,7 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @Test
-    void retrieve_by_issuer_null_error() throws Exception {
+    void retrieve_by_issuer_null_error() {
         when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenReturn(null);
 
         String issuer = "https://accounts.google.com";

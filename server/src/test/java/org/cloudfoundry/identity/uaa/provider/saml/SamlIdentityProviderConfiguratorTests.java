@@ -213,22 +213,20 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-    void testGetEntityIDExists() throws Exception {
+    void testGetEntityIDExists() {
         bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
         bootstrap.afterPropertiesSet();
         for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
-            switch (def.getIdpEntityAlias()) {
-                case "okta-local-2": {
-                    IdentityProvider idp2 = mock(IdentityProvider.class);
-                    when(idp2.getType()).thenReturn(OriginKeys.SAML);
-                    when(idp2.getConfig()).thenReturn(def.clone().setIdpEntityAlias("okta-local-1"));
-                    when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp2));
-                    assertThrowsWithMessageThat(
-                        MetadataProviderException.class,
-                        () -> configurator.validateSamlIdentityProviderDefinition(def, true),
-                        startsWith("Duplicate entity ID:http://www.okta.com")
-                    );
-                }
+            if ("okta-local-2".equalsIgnoreCase(def.getIdpEntityAlias())) {
+                IdentityProvider idp2 = mock(IdentityProvider.class);
+                when(idp2.getType()).thenReturn(OriginKeys.SAML);
+                when(idp2.getConfig()).thenReturn(def.clone().setIdpEntityAlias("okta-local-1"));
+                when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp2));
+                assertThrowsWithMessageThat(
+                    MetadataProviderException.class,
+                    () -> configurator.validateSamlIdentityProviderDefinition(def, true),
+                    startsWith("Duplicate entity ID:http://www.okta.com")
+                );
             }
         }
     }
