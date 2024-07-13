@@ -312,7 +312,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
-                fieldWithPath("config.userConfig.allowAllOrigins").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
+                fieldWithPath("config.userConfig.allowOriginLoop").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
 
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()
@@ -475,7 +475,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
                 fieldWithPath("[].config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("[].config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("optional")).optional().type(BOOLEAN),
-                fieldWithPath("[].config.userConfig.allowAllOrigins").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
+                fieldWithPath("[].config.userConfig.allowOriginLoop").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
 
                 fieldWithPath("[].created").ignored(),
                 fieldWithPath("[].last_modified").ignored()
@@ -622,7 +622,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
-                fieldWithPath("config.userConfig.allowAllOrigins").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
+                fieldWithPath("config.userConfig.allowOriginLoop").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
 
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()
@@ -806,7 +806,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).optional().type(ARRAY),
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).optional().type(BOOLEAN),
-                fieldWithPath("config.userConfig.allowAllOrigins").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
+                fieldWithPath("config.userConfig.allowOriginLoop").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
 
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()
