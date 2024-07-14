@@ -101,6 +101,7 @@ class IdentityProviderBootstrapTest {
 
         samlIdentityProviderDefinition1 = samlIdentityProviderDefinition.clone();
         samlIdentityProviderDefinition1.setIdpEntityAlias("alias2");
+        samlIdentityProviderDefinition1.setIdpEntityId("alias2");
         samlIdentityProviderDefinition1.setMetaDataLocation("http://location2");
 
         oauthProvider = new RawExternalOAuthIdentityProviderDefinition();
