@@ -138,7 +138,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
-            samlConfigurator.validateSamlIdentityProviderDefinition(definition);
+            definition.setIdpEntityId(samlConfigurator.validateSamlIdentityProviderDefinition(definition, true));
             body.setConfig(definition);
         }
 
@@ -223,7 +223,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
-            samlConfigurator.validateSamlIdentityProviderDefinition(definition);
+            samlConfigurator.validateSamlIdentityProviderDefinition(definition, false);
             body.setConfig(definition);
         }
 
