@@ -13,13 +13,9 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
-import org.opensaml.DefaultBootstrap;
-import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.beans.factory.config.YamlMapFactoryBean;
 import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.core.io.ByteArrayResource;
@@ -149,16 +145,9 @@ public class BootstrapSamlIdentityProviderDataTests {
         "        " + testXmlFileData.replace("\n","\n        ") + "\n"
         ;
 
-    @BeforeClass
-    public static void initializeOpenSAML() throws Exception {
-        if (!org.apache.xml.security.Init.isInitialized()) {
-            DefaultBootstrap.bootstrap();
-        }
-    }
-
     @Before
     public void setUp() {
-        bootstrap = new BootstrapSamlIdentityProviderData(new SamlIdentityProviderConfigurator(new BasicParserPool(), mock(JdbcIdentityProviderProvisioning.class), mock(FixedHttpMetaDataProvider.class)));
+        bootstrap = new BootstrapSamlIdentityProviderData();
         singleAdd = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
             .setIdpEntityAlias(singleAddAlias)

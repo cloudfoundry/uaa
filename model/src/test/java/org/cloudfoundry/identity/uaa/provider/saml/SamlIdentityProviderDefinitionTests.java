@@ -181,13 +181,14 @@ public class SamlIdentityProviderDefinitionTests {
     public void testSetIdpEntityAlias() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setIdpEntityAlias("testalias");
+        assertThat(def.getIdpEntityAlias()).isEqualTo("testalias");
     }
 
     @Test
     public void testSetIdpEntityId() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setIdpEntityId("testalias");
-        assertEquals("testalias", def.getIdpEntityId());
+        assertThat(def.getIdpEntityId()).isEqualTo("testalias");
     }
 
     @Test

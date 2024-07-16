@@ -50,13 +50,6 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     private boolean legacyShowSamlLink = true;
     private List<IdentityProviderWrapper<SamlIdentityProviderDefinition>> samlProviders = new LinkedList<>();
     private Map<String, Map<String, Object>> providers = null;
-    private final SamlIdentityProviderConfigurator samlConfigurator;
-
-    public BootstrapSamlIdentityProviderData(
-        final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator
-    ) {
-      this.samlConfigurator = samlConfigurator;
-    }
 
     public static IdentityProvider<SamlIdentityProviderDefinition> parseSamlProvider(SamlIdentityProviderDefinition def) {
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
@@ -181,14 +174,6 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setAuthnContext(authnContext);
 
             IdentityProvider provider = parseSamlProvider(def);
-            try {
-                if (def.getType() == SamlIdentityProviderDefinition.MetadataLocation.DATA) {
-                    ExtendedMetadataDelegate metadataDelegate = samlConfigurator.getExtendedMetadataDelegate(def);
-                    def.setIdpEntityId(((ConfigMetadataProvider) metadataDelegate.getDelegate()).getEntityID());
-                }
-            } catch (MetadataProviderException e) {
-                throw new IllegalArgumentException(e.getMessage(), e);
-            }
             IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
             wrapper.setOverride(override == null || override);
             samlProviders.add(wrapper);

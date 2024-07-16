@@ -427,7 +427,7 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider samlProvider = provisioning.retrieveByExternId(samlIdentityProviderDefinition.getIdpEntityAlias(), SAML, IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
+        assertThat(samlProvider).isNotNull();
         samlIdentityProviderDefinition.setZoneId(IdentityZone.getUaaZoneId());
         assertThat(samlProvider.getConfig()).isEqualTo(samlIdentityProviderDefinition);
         assertThat(samlProvider.getCreated()).isNotNull();

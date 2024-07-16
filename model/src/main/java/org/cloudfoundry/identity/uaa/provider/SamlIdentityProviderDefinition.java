@@ -122,7 +122,6 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.idpEntityId = idpEntityId;
     }
 
-    private boolean validateXml(String xml) {
     private static boolean validateXml(String xml) {
         if (xml == null || xml.toUpperCase().contains("<!DOCTYPE")) {
             return false;
