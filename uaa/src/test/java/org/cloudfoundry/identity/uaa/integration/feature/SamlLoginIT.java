@@ -1252,7 +1252,8 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition1 = samlIdentityProviderDefinition.clone();
         samlIdentityProviderDefinition1.setIdpEntityAlias(samlIdentityProviderDefinition.getIdpEntityAlias() + "-1");
         samlIdentityProviderDefinition1.setMetaDataLocation(getValidRandomIDPMetaData());
-        IdentityProvider<SamlIdentityProviderDefinition> provider1 = new IdentityProvider<>();
+        samlIdentityProviderDefinition1.setLinkText("Dummy SAML provider");
+        IdentityProvider<SamlIdentityProviderDefinition> provider1 = new IdentityProvider();
         provider1.setIdentityZoneId(zoneId);
         provider1.setType(OriginKeys.SAML);
         provider1.setActive(true);
@@ -1269,12 +1270,15 @@ public class SamlLoginIT {
         webDriver.get(testZone1Url + "/login");
         assertThat(webDriver.getTitle()).isEqualTo(zone.getName());
 
-        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
-        assertThat(elements).hasSize(2);
+        // the first provider is shown
+        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
+        assertThat(elements).hasSize(1);
+        // the dummy provider is shown
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
+        assertThat(elements).hasSize(1);
 
-        WebElement element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition1.getLinkText() + "']"));
-        assertThat(element).isNotNull();
-        element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
+        // click on the first provider to login
+        WebElement element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         element.click();
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
@@ -1283,24 +1287,32 @@ public class SamlLoginIT {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(testZone1Url + "/logout.do");
 
-        //disable the provider
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        //disable the first provider
+        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         provider.setActive(false);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
         assertThat(provider.getId()).isNotNull();
         webDriver.get(testZone1Url + "/login");
         assertThat(webDriver.getTitle()).isEqualTo(zone.getName());
-        elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
+        // the first provider is not shown
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
+        assertThat(elements).isEmpty();
+        // the dummy provider is shown
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
         assertThat(elements).hasSize(1);
 
-        //enable the provider
+        //enable the first provider
         provider.setActive(true);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
         assertThat(provider.getId()).isNotNull();
         webDriver.get(testZone1Url + "/login");
         assertThat(webDriver.getTitle()).isEqualTo(zone.getName());
-        elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
-        assertThat(elements).hasSize(2);
+        // the first provider is shown
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
+        assertThat(elements).hasSize(1);
+        // the dummy provider is shown
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
+        assertThat(elements).hasSize(1);
     }
 
     @Test

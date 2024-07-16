@@ -92,10 +92,11 @@ public class ScimGroupEndpointsIntegrationTests {
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Rule
-    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Rule
-    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccountSetup);
+
 
     private RestTemplate client;
     private List<ScimGroup> scimGroups;
