@@ -91,6 +91,8 @@ public class TestAccountSetup extends TestWatchman {
         return user;
     }
 
+    public UaaTestAccounts getTestAccounts() { return testAccounts; }
+
     private void initializeIfNecessary(FrameworkMethod method, Object target) {
         OAuth2ProtectedResourceDetails resource = testAccounts.getAdminClientCredentialsResource();
         OAuth2RestTemplate client = createRestTemplate(resource, new DefaultAccessTokenRequest());
