@@ -115,7 +115,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @BeforeEach
     public void setUp() {
-        bootstrap = new BootstrapSamlIdentityProviderData();
+        bootstrap = new BootstrapSamlIdentityProviderData(new SamlIdentityProviderConfigurator(new BasicParserPool(), mock(JdbcIdentityProviderProvisioning.class), mock(FixedHttpMetaDataProvider.class)));
         singleAdd = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
                 .setIdpEntityAlias(singleAddAlias)

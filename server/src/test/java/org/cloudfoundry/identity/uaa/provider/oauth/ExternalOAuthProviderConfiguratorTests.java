@@ -9,6 +9,8 @@ import org.cloudfoundry.identity.uaa.provider.RawExternalOAuthIdentityProviderDe
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -17,6 +19,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -74,6 +77,10 @@ class ExternalOAuthProviderConfiguratorTests {
     private IdentityProviderProvisioning mockIdentityProviderProvisioning;
     @Mock
     private UaaRandomStringUtil mockUaaRandomStringUtil;
+    @Mock
+    private IdentityZoneProvisioning identityZoneProvisioning;
+    @Mock
+    private IdentityZoneManager identityZoneManager;
 
     private OIDCIdentityProviderDefinition config;
     private IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider;
@@ -101,7 +108,9 @@ class ExternalOAuthProviderConfiguratorTests {
         configurator = spy(new ExternalOAuthProviderConfigurator(
                 mockIdentityProviderProvisioning,
                 mockOidcMetadataFetcher,
-                mockUaaRandomStringUtil));
+                mockUaaRandomStringUtil,
+                identityZoneProvisioning,
+                identityZoneManager));
 
         config = new OIDCIdentityProviderDefinition();
         config.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
@@ -151,6 +160,8 @@ class ExternalOAuthProviderConfiguratorTests {
         when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
 
         String issuer = "https://accounts.google.com";
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
         doAnswer(invocation -> {
             OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
             definition.setIssuer(issuer);
@@ -166,9 +177,88 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @Test
+    void retrieve_by_issuer_search() throws Exception {
+        when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenReturn(oidcProvider);
+
+        String issuer = "https://accounts.google.com";
+        doAnswer(invocation -> {
+            OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
+            definition.setIssuer(issuer);
+            return null;
+        }).when(mockOidcMetadataFetcher)
+            .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
+
+        IdentityProvider<OIDCIdentityProviderDefinition> activeExternalOAuthProvider = configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId());
+
+        assertEquals(issuer, activeExternalOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(1)).overlay(config);
+        verify(configurator, times(1)).retrieveByExternId(anyString(), anyString(), anyString());
+    }
+
+    @Test
+    void retrieve_by_issuer_legacy() throws Exception {
+        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+        when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+
+        String issuer = "https://accounts.google.com";
+        IdentityZone extraZone = IdentityZone.getUaa();
+        extraZone.setId("customer");
+        extraZone.setSubdomain("customer");
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneProvisioning.retrieve("customer")).thenReturn(extraZone);
+        doAnswer(invocation -> {
+            OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
+            definition.setIssuer(issuer);
+            return null;
+        }).when(mockOidcMetadataFetcher)
+            .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
+
+        IdentityProvider<OIDCIdentityProviderDefinition> activeExternalOAuthProvider = configurator.retrieveByIssuer(issuer, "customer");
+
+        assertEquals(issuer, activeExternalOAuthProvider.getConfig().getIssuer());
+        verify(configurator, times(1)).overlay(config);
+        verify(configurator, times(1)).retrieveByExternId(anyString(), anyString(), anyString());
+        verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @Test
+    void retrieve_by_issuer_not_found_error() {
+        when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
+
+        String issuer = "https://accounts.google.com";
+        IdentityZone extraZone = IdentityZone.getUaa();
+        extraZone.getConfig().getUserConfig().setAllowOriginLoop(false);
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneManager.getCurrentIdentityZone()).thenReturn(extraZone);
+        assertThrowsWithMessageThat(
+            IncorrectResultSizeDataAccessException.class,
+            () -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()),
+            startsWith(String.format("No provider with unique issuer[%s] found", issuer))
+        );
+    }
+
+    @Test
+    void retrieve_by_issuer_null_error() {
+        when(mockIdentityProviderProvisioning.retrieveByExternId(anyString(), anyString(), anyString())).thenReturn(null);
+
+        String issuer = "https://accounts.google.com";
+        IdentityZone extraZone = IdentityZone.getUaa();
+        extraZone.getConfig().getUserConfig().setAllowOriginLoop(false);
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneManager.getCurrentIdentityZone()).thenReturn(extraZone);
+        assertThrowsWithMessageThat(
+            IncorrectResultSizeDataAccessException.class,
+            () -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()),
+            startsWith(String.format("Active provider with unique issuer[%s] not found", issuer))
+        );
+    }
+
+    @Test
     void issuer_not_found() {
         String issuer = "https://accounts.google.com";
         when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oauthProvider, new IdentityProvider<>().setType(LDAP)));
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
         assertThrowsWithMessageThat(
                 IncorrectResultSizeDataAccessException.class,
                 () -> configurator.retrieveByIssuer(issuer, IdentityZone.getUaaZoneId()),
@@ -180,6 +270,8 @@ class ExternalOAuthProviderConfiguratorTests {
     void duplicate_issuer_found() throws Exception {
         String issuer = "https://accounts.google.com";
         when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(Arrays.asList(oidcProvider, oidcProvider, oauthProvider, new IdentityProvider<>().setType(LDAP)));
+        when(identityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
+        when(identityZoneManager.getCurrentIdentityZone()).thenReturn(IdentityZone.getUaa());
         doAnswer(invocation -> {
             OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
             definition.setIssuer(issuer);

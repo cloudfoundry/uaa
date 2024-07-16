@@ -25,9 +25,12 @@ import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -105,6 +108,8 @@ class LoginInfoEndpointTests {
     private IdentityProviderProvisioning mockIdentityProviderProvisioning;
     private IdentityProvider uaaIdentityProvider;
     private IdentityZoneConfiguration originalConfiguration;
+    private IdentityZoneProvisioning identityZoneProvisioning;
+    private IdentityZoneManager identityZoneManager;
     private ExternalOAuthProviderConfigurator configurator;
 
     @BeforeEach
@@ -120,6 +125,8 @@ class LoginInfoEndpointTests {
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitionsForZone(any())).thenReturn(emptyList());
         mockIdentityProviderProvisioning = mock(IdentityProviderProvisioning.class);
         uaaIdentityProvider = new IdentityProvider();
+        identityZoneProvisioning = mock(IdentityZoneProvisioning.class);
+        identityZoneManager = new IdentityZoneManagerImpl();
         when(mockIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(eq(OriginKeys.UAA), anyString())).thenReturn(uaaIdentityProvider);
         when(mockIdentityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.LDAP), anyString())).thenReturn(new IdentityProvider());
         idps = getIdps();
@@ -128,7 +135,7 @@ class LoginInfoEndpointTests {
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
         UaaRandomStringUtil randomStringUtil = mock(UaaRandomStringUtil.class);
         when(randomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
-        configurator = new ExternalOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher, randomStringUtil);
+        configurator = new ExternalOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher, randomStringUtil, identityZoneProvisioning, identityZoneManager);
         extendedModelMap = new ExtendedModelMap();
     }
 

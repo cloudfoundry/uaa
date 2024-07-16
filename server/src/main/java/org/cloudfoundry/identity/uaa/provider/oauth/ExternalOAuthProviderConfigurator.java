@@ -8,9 +8,14 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.util.CollectionUtils;
@@ -23,7 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Optional;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -33,19 +38,26 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
 public class ExternalOAuthProviderConfigurator implements IdentityProviderProvisioning {
 
-    private static Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthProviderConfigurator.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthProviderConfigurator.class);
 
     private final IdentityProviderProvisioning providerProvisioning;
     private final OidcMetadataFetcher oidcMetadataFetcher;
     private final UaaRandomStringUtil uaaRandomStringUtil;
+    private final IdentityZoneProvisioning identityZoneProvisioning;
+    private final IdentityZoneManager identityZoneManager;
 
     public ExternalOAuthProviderConfigurator(
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
             final OidcMetadataFetcher oidcMetadataFetcher,
-            final UaaRandomStringUtil uaaRandomStringUtil) {
+            final UaaRandomStringUtil uaaRandomStringUtil,
+            final @Qualifier("identityZoneProvisioning") IdentityZoneProvisioning identityZoneProvisioning,
+            final IdentityZoneManager identityZoneManager
+        ) {
         this.providerProvisioning = providerProvisioning;
         this.oidcMetadataFetcher = oidcMetadataFetcher;
         this.uaaRandomStringUtil = uaaRandomStringUtil;
+        this.identityZoneProvisioning = identityZoneProvisioning;
+        this.identityZoneManager = identityZoneManager;
     }
 
     protected OIDCIdentityProviderDefinition overlay(OIDCIdentityProviderDefinition definition) {
@@ -119,10 +131,23 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     }
 
     private String getIdpUrlBase(final AbstractExternalOAuthIdentityProviderDefinition definition) {
-        if (definition instanceof OIDCIdentityProviderDefinition) {
-            return overlay((OIDCIdentityProviderDefinition) definition).getAuthUrl().toString();
+        if (definition instanceof OIDCIdentityProviderDefinition oidcIdentityProviderDefinition) {
+            return overlay(oidcIdentityProviderDefinition).getAuthUrl().toString();
         }
         return definition.getAuthUrl().toString();
+    }
+
+    private int isOriginLoopAllowed(String zoneId, int checkDone) {
+        if (checkDone > -1) {
+            return checkDone;
+        }
+        IdentityZoneConfiguration idzConfig;
+        if (identityZoneManager.getCurrentIdentityZoneId().equals(zoneId)) {
+            idzConfig = identityZoneManager.getCurrentIdentityZone().getConfig();
+        } else {
+            idzConfig = identityZoneProvisioning.retrieve(zoneId).getConfig();
+        }
+        return (idzConfig == null || Optional.of(idzConfig.getUserConfig()).map(UserConfig::isAllowOriginLoop).orElse(true)) ? 1 : 0;
     }
 
     @Override
@@ -155,11 +180,29 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     }
 
     public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
+        IdentityProvider issuedProvider = null;
+        int originLoopCheckDone = -1;
+        try {
+            issuedProvider = retrieveByExternId(issuer, OIDC10, zoneId);
+            if (issuedProvider != null && issuedProvider.isActive()
+                && issuedProvider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> oAuthIdentityProviderDefinition
+                && oAuthIdentityProviderDefinition.getIssuer().equals(issuer)) {
+                return issuedProvider;
+            }
+        } catch (EmptyResultDataAccessException e) {
+            originLoopCheckDone = isOriginLoopAllowed(zoneId, originLoopCheckDone);
+            if (originLoopCheckDone == 0) {
+                throw new IncorrectResultSizeDataAccessException(String.format("No provider with unique issuer[%s] found", issuer), 1, 0, e);
+            }
+        }
+        if (isOriginLoopAllowed(zoneId, originLoopCheckDone) == 0 && issuedProvider == null) {
+            throw new IncorrectResultSizeDataAccessException(String.format("Active provider with unique issuer[%s] not found", issuer), 1);
+        }
         List<IdentityProvider> providers = retrieveAll(true, zoneId)
                 .stream()
                 .filter(p -> OIDC10.equals(p.getType()) &&
                         issuer.equals(((OIDCIdentityProviderDefinition) p.getConfig()).getIssuer()))
-                .collect(Collectors.toList());
+                .toList();
         if (providers.isEmpty()) {
             throw new IncorrectResultSizeDataAccessException(String.format("Active provider with issuer[%s] not found", issuer), 1);
         } else if (providers.size() > 1) {
@@ -194,6 +237,15 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     public IdentityProvider retrieveByOrigin(String origin, String zoneId) {
         IdentityProvider p = providerProvisioning.retrieveByOrigin(origin, zoneId);
         if (p != null && p.getType().equals(OIDC10)) {
+            p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
+        }
+        return p;
+    }
+
+    @Override
+    public IdentityProvider retrieveByExternId(String externId, String type, String zoneId) {
+        IdentityProvider p = providerProvisioning.retrieveByExternId(externId, type, zoneId);
+        if (p != null && OIDC10.equals(type)) {
             p.setConfig(overlay((OIDCIdentityProviderDefinition) p.getConfig()));
         }
         return p;

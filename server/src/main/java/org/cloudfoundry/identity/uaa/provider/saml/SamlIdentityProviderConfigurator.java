@@ -71,10 +71,12 @@ public class SamlIdentityProviderConfigurator {
      * adds or replaces a SAML identity proviider
      *
      * @param providerDefinition - the provider to be added
+     * @param creation - check new created config
      * @throws MetadataProviderException if the system fails to fetch meta data for this provider
      */
-    public synchronized void validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) /* throws MetadataProviderException */ {
 //        ExtendedMetadataDelegate added, deleted = null;
+    public synchronized String validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition, boolean creation) {
+        ExtendedMetadataDelegate added, deleted = null;
         if (providerDefinition == null) {
             throw new NullPointerException();
         }
@@ -91,20 +93,22 @@ public class SamlIdentityProviderConfigurator {
 //            throw new MetadataProviderException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
 //        }
 
-        boolean entityIDexists = false;
+        boolean entityIDexists = creation && entityIdExists(entityIDToBeAdded, providerDefinition.getZoneId());
 
-//        for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
-////            ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
-////            if (entityIDToBeAdded.equals(existingProvider.getEntityID()) &&
-////                    !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
-////                entityIDexists = true;
-////                break;
-////            }
-//        }
+        if (!entityIDexists) {
+            for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
+                ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
+                if (entityIDToBeAdded.equals(existingProvider.getEntityID()) && !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
+                    entityIDexists = true;
+                    break;
+                }
+            }
+        }
 
-//        if (entityIDexists) {
-//            throw new MetadataProviderException("Duplicate entity ID:" + entityIDToBeAdded);
-//        }
+        if (entityIDexists) {
+            throw new MetadataProviderException("Duplicate entity ID:" + entityIDToBeAdded);
+        }
+        return entityIDToBeAdded;
     }
 
 //    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws MetadataProviderException {

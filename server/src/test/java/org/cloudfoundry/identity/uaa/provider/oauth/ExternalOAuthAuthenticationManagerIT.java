@@ -44,7 +44,10 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -142,6 +145,8 @@ class ExternalOAuthAuthenticationManagerIT {
     private InMemoryUaaUserDatabase userDatabase;
     private ExternalOAuthCodeToken xCodeToken;
     private ApplicationEventPublisher publisher;
+    private IdentityZoneProvisioning identityZoneProvisioning;
+    private IdentityZoneManager identityZoneManager;
     private static final String CODE = "the_code";
 
     private static final String ORIGIN = "the_origin";
@@ -196,6 +201,8 @@ class ExternalOAuthAuthenticationManagerIT {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(keyName, PRIVATE_KEY));
 
         provisioning = mock(IdentityProviderProvisioning.class);
+        identityZoneProvisioning = mock(IdentityZoneProvisioning.class);
+        identityZoneManager = new IdentityZoneManagerImpl();
         ScimGroupExternalMembershipManager externalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
 
         for (String scope : SCOPES_LIST) {
@@ -219,7 +226,9 @@ class ExternalOAuthAuthenticationManagerIT {
                 new ExternalOAuthProviderConfigurator(
                         provisioning,
                         oidcMetadataFetcher,
-                        mock(UaaRandomStringUtil.class))
+                        mock(UaaRandomStringUtil.class),
+                        identityZoneProvisioning,
+                        identityZoneManager)
         );
         externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
