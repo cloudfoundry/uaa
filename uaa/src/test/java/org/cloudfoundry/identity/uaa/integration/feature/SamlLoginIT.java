@@ -455,7 +455,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones and logout")
     void singleLogoutWithNoLogoutUrlOnIDPWithLogoutRedirect() {
         String zoneId = "testzone2";
         String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
@@ -1210,7 +1209,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones and logout")
     void simpleSamlPhpLoginInTestZone1Works() {
         String zoneId = "testzone1";
 
