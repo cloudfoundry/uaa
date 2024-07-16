@@ -55,6 +55,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Integration test to verify that the Login Server authentication channel is
@@ -229,11 +230,15 @@ public class LoginServerSecurityIntegrationTests {
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> results = response.getBody();
-        // The approval page messaging response
-        assertNotNull("There should be scopes: " + results, results.get("scopes"));
+        if (response.getStatusCode().is4xxClientError()) {
+            fail(response.getBody().toString());
+        } else {
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> results = response.getBody();
+            // The approval page messaging response
+            assertNotNull("There should be scopes: " + results, results.get("scopes"));
+        }
     }
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
@@ -244,11 +249,15 @@ public class LoginServerSecurityIntegrationTests {
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> results = response.getBody();
-        // The approval page messaging response
-        assertNotNull("There should be scopes: " + results, results.get("scopes"));
+        if (response.getStatusCode().is4xxClientError()) {
+            fail(response.getBody().toString());
+        } else {
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> results = response.getBody();
+            // The approval page messaging response
+            assertNotNull("There should be scopes: " + results, results.get("scopes"));
+        }
     }
 
 
