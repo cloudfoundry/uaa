@@ -217,7 +217,7 @@ class SamlAuthenticationMockMvcTests {
     @Test
     void sendAuthnRequestFromNonDefaultZoneToIdpRedirectBindingMode() throws Exception {
         // create IDP in non-default zone
-        createMockSamlIdpInSpZone();
+        createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-redirect-binding.xml", "testsaml-redirect-binding");
 
         // trigger saml login in the non-default zone
         MvcResult mvcResult = mockMvc.perform(
@@ -243,6 +243,81 @@ class SamlAuthenticationMockMvcTests {
         xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
                 .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
         xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+                .isEqualTo(spZone.getConfig().getSamlConfig().getEntityID()); // should match zone config's samlConfig.entityID
+    }
+
+    @Test
+    void sendAuthnRequestFromNonDefaultZoneToIdpRedirectBindingMode_ZoneConfigSamlEntityIDNotSet() throws Exception {
+        // create a new zone without zone saml entity ID not set
+        UaaClientDetails adminClient = new UaaClientDetails("admin", "", "", "client_credentials", "uaa.admin");
+        adminClient.setClientSecret("adminsecret");
+        String spZoneSubdomain = "uaa-acting-as-saml-proxy-zone-" + generator.generate();
+        spZone = createZoneWithSamlSpConfig(spZoneSubdomain, adminClient, true, true, null);
+
+        // create IDP in non-default zone
+        createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-redirect-binding.xml", "testsaml-redirect-binding");
+
+        // trigger saml login in the non-default zone
+        MvcResult mvcResult = mockMvc.perform(
+                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                                .contextPath("/uaa")
+                                .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
+                )
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
+        Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
+        MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get("SAMLRequest"), notNullValue());
+        assertThat("SigAlg is missing", parameterMap.get("SigAlg"), notNullValue());
+        assertThat("Signature is missing", parameterMap.get("Signature"), notNullValue());
+        assertThat("RelayState is missing", parameterMap.get("RelayState"), notNullValue());
+        assertThat(parameterMap.get("RelayState")[0], equalTo("testsaml-redirect-binding"));
+
+        // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
+        String samlRequestXml = samlDecodeAndInflate(parameterMap.get("SAMLRequest")[0]);
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml).withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+                .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+                .isEqualTo("%s.%s".formatted(spZone.getSubdomain(), "integration-saml-entity-id")); // should match zone config's samlConfig.entityID; if not set, fail over to zone-subdomain.uaa-wide-saml-entity-id
+    }
+
+    @Test
+    void sendAuthnRequestFromNonDefaultZoneToIdpPostBindingMode() throws Exception {
+        // create IDP in non-default zone
+        createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-post-binding.xml", "testsaml-post-binding");
+
+        final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
+
+        MvcResult mvcResult = mockMvc.perform(
+                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
+                                .contextPath("/uaa")
+                                .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
+                )
+                .andDo(print())
+                .andExpectAll(
+                        status().isOk(),
+                        content().string(containsString("name=\"SAMLRequest\"")),
+                        content().string(containsString("name=\"RelayState\" value=\"testsaml-post-binding\"")))
+                .andReturn();
+
+        // Decode the SAMLRequest and check the AssertionConsumerServiceURL
+        String contentHtml = mvcResult.getResponse().getContentAsString();
+        contentHtml = contentHtml.substring(contentHtml.indexOf(samlRequestMatch) + samlRequestMatch.length());
+        contentHtml = contentHtml.substring(0, contentHtml.indexOf("\""));
+        String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
+        assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
+
+        XmlAssert.assertThat(samlRequestXml)
+                .withNamespaceContext(xmlNamespaces())
+                .valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+                .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
+
+        XmlAssert.assertThat(samlRequestXml)
+                .withNamespaceContext(xmlNamespaces())
+                .valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo(spZone.getConfig().getSamlConfig().getEntityID()); // should match zone config's samlConfig.entityID
     }
 
@@ -336,15 +411,15 @@ class SamlAuthenticationMockMvcTests {
         idp = jdbcIdentityProviderProvisioning.create(idp, spZone.getId());
     }
 
-    private void createMockSamlIdpInSpZone() {
+    private void createMockSamlIdpInSpZone(String metadataLocation, String idpOriginKey) {
         idp = new IdentityProvider<SamlIdentityProviderDefinition>()
                 .setType(OriginKeys.SAML)
-                .setOriginKey("testsaml-redirect-binding")
+                .setOriginKey(idpOriginKey)
                 .setActive(true)
                 .setName("SAML IDP for Mock Tests")
                 .setIdentityZoneId(spZone.getId());
         SamlIdentityProviderDefinition idpDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation("classpath:test-saml-idp-metadata-redirect-binding.xml")
+                .setMetaDataLocation(metadataLocation)
                 .setIdpEntityAlias(idp.getOriginKey())
                 .setLinkText(idp.getName())
                 .setZoneId(spZone.getId());
