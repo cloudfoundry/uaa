@@ -4,9 +4,6 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -161,8 +158,8 @@ class SamlMetadataMockMvcTests {
         @Test
         void testNonDefaultZoneSamlMetadataXMLValidation_ZoneSamlEntityIDNotSet() throws Exception {
             generator = new RandomValueStringGenerator();
-            String zoneSubdomain = "testzone-" + generator.generate().toLowerCase(); // TODO Why is this lowercase needed here only?
-            IdentityZone alternativeSpZone = createZone(zoneSubdomain, adminClient, false, false, null);
+            IdentityZone alternativeSpZone = createZone("testzone-" + generator.generate(), adminClient, false, false, null);
+            String zoneSubdomain = alternativeSpZone.getSubdomain();
 
             mockMvc.perform(get(new URI("/saml/metadata"))
                             .header(HOST, zoneSubdomain + ".localhost:8080"))
@@ -170,7 +167,7 @@ class SamlMetadataMockMvcTests {
                     .andExpectAll(
                             status().isOk(),
                             header().string(HttpHeaders.CONTENT_DISPOSITION, containsString("filename=\"saml-%s-sp.xml\";".formatted(zoneSubdomain))),
-                            xpath("/EntityDescriptor/@entityID").string("integration-saml-entity-id"), // matches zone config samlConfig.entityID, or fall back on UAA config login.entityID
+                            xpath("/EntityDescriptor/@entityID").string("%s.integration-saml-entity-id".formatted(zoneSubdomain)), // matches zone config samlConfig.entityID, or fall back on UAA config login.entityID
                             xpath("/EntityDescriptor/SPSSODescriptor/@AuthnRequestsSigned").booleanValue(false), // matches zone config samlConfig.requestSigned
                             xpath("/EntityDescriptor/SPSSODescriptor/@WantAssertionsSigned").booleanValue(false), // matches zone config samlConfig.wantAssertionSigned
                             //xpath("/EntityDescriptor/SPSSODescriptor/NameIDFormat").string("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"),  // TODO matches UAA config login.saml.NameID???

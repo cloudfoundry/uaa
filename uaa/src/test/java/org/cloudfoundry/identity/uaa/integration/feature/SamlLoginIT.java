@@ -126,6 +126,8 @@ public class SamlLoginIT {
     public static final String MARISSA3_USERNAME = "marissa3";
     private static final String MARISSA3_PASSWORD = "saml2";
     private static final String SAML_ORIGIN = "simplesamlphp";
+    private static final By byUsername = By.name("username");
+    private static final By byPassword = By.name("password");
 
     @Autowired
     @Rule
@@ -293,7 +295,7 @@ public class SamlLoginIT {
                 HttpMethod.GET,
                 new HttpEntity<>(jsonHeaders),
                 Map.class);
-        assertThat(jsonResponseEntity.getHeaders().get("Content-Type").get(0)).contains(APPLICATION_JSON_VALUE);
+        assertThat(jsonResponseEntity.getHeaders().getFirst("Content-Type")).contains(APPLICATION_JSON_VALUE);
 
         HttpHeaders htmlHeaders = new HttpHeaders();
         htmlHeaders.add("Accept", "text/html");
@@ -301,7 +303,7 @@ public class SamlLoginIT {
                 HttpMethod.GET,
                 new HttpEntity<>(htmlHeaders),
                 Void.class);
-        assertThat(htmlResponseEntity.getHeaders().get("Content-Type").get(0)).contains(TEXT_HTML_VALUE);
+        assertThat(htmlResponseEntity.getHeaders().getFirst("Content-Type")).contains(TEXT_HTML_VALUE);
 
         HttpHeaders defaultHeaders = new HttpHeaders();
         defaultHeaders.add("Accept", "*/*");
@@ -309,7 +311,7 @@ public class SamlLoginIT {
                 HttpMethod.GET,
                 new HttpEntity<>(defaultHeaders),
                 Void.class);
-        assertThat(defaultResponseEntity.getHeaders().get("Content-Type").get(0)).contains(TEXT_HTML_VALUE);
+        assertThat(defaultResponseEntity.getHeaders().getFirst("Content-Type")).contains(TEXT_HTML_VALUE);
     }
 
     @Test
@@ -997,13 +999,13 @@ public class SamlLoginIT {
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX + COST_CENTERS, COST_CENTER);
         samlIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX + MANAGERS, MANAGER);
 
-        // External groups will only appear as roles if they are whitelisted
+        // External groups will only appear as roles if they are allowlisted
         samlIdentityProviderDefinition.setExternalGroupsWhitelist(List.of("*"));
 
         // External groups will only be found when there is a configured attribute name for them
         samlIdentityProviderDefinition.addAttributeMapping("external_groups", Collections.singletonList("groups"));
 
-        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
@@ -1041,7 +1043,7 @@ public class SamlLoginIT {
 
         //do an auth code grant
         //pass up the jsessionid
-        System.out.println("cookie = " + "%s=%s".formatted(cookie.getName(), cookie.getValue()));
+        System.out.printf("Cookie: %s=%s%n", cookie.getName(), cookie.getValue());
 
         serverRunning.setHostName("testzone1.localhost");
         Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
@@ -1350,13 +1352,14 @@ public class SamlLoginIT {
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         testClient.createClient(adminAccessToken, clientDetails);
         webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fuaa%3Alogin&response_type=code&state=8tp0tR");
+
         try {
-            webDriver.findElement(By.name("username"));
+            webDriver.findElement(byUsername);
             fail("Element username should not be present");
         } catch (NoSuchElementException ignored) {
         }
         try {
-            webDriver.findElement(By.name("password"));
+            webDriver.findElement(byPassword);
             fail("Element username should not be present");
         } catch (NoSuchElementException ignored) {
         }
@@ -1459,9 +1462,9 @@ public class SamlLoginIT {
     }
 
     private void sendCredentials(String username, String password, By loginButtonSelector) {
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.name("password")).sendKeys(password);
+        webDriver.findElement(byUsername).clear();
+        webDriver.findElement(byUsername).sendKeys(username);
+        webDriver.findElement(byPassword).sendKeys(password);
         webDriver.findElement(loginButtonSelector).click();
     }
 
@@ -1471,8 +1474,8 @@ public class SamlLoginIT {
 
     private void CallEmptyPageAndCheckHttpStatusCode(String errorPath, int codeExpected) throws IOException {
         HttpURLConnection cn = (HttpURLConnection) new URL(baseUrl + errorPath).openConnection();
-        cn.setRequestMethod("GET");
-        cn.connect();
-        assertThat(codeExpected).as("Check status code from " + errorPath + " is " + codeExpected).isEqualTo(cn.getResponseCode());
+        assertThat(cn.getResponseCode())
+                .as("Check status code from " + errorPath + " is " + codeExpected)
+                .isEqualTo(codeExpected);
     }
 }

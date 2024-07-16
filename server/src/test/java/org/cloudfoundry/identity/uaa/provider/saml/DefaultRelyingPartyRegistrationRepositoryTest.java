@@ -26,7 +26,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     private static final String ZONE_SUBDOMAIN = "testzone";
     private static final String ZONED_ENTITY_ID = "%s.%s".formatted(ZONE_SUBDOMAIN, ENTITY_ID);
     private static final String REGISTRATION_ID = "registrationId";
-    private static final String NAME_ID = "name1";
+    private static final String REGISTRATION_ID_2 = "registrationId2";
 
     @Mock
     private KeyWithCert mockKeyWithCert;
@@ -45,13 +45,12 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     @BeforeEach
     void setUp() {
         repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, mockKeyWithCert));
+        when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
+        when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
     }
 
     @Test
     void findByRegistrationId() {
-        when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
-        when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
-
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
 
         assertThat(registration)
@@ -69,8 +68,6 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void findByRegistrationIdForZone() {
-        when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
-        when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.isUaa()).thenReturn(false);
         when(identityZone.getConfig()).thenReturn(identityZoneConfig);
@@ -91,5 +88,43 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
                 .returns("exampleEntityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+    }
+
+    @Test
+    void findByRegistrationIdForZoneWithoutConfig() {
+        when(repository.retrieveZone()).thenReturn(identityZone);
+        when(identityZone.isUaa()).thenReturn(false);
+        when(identityZone.getSubdomain()).thenReturn(ZONE_SUBDOMAIN);
+
+        RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID_2);
+
+        assertThat(registration)
+                // from definition
+                .returns(REGISTRATION_ID_2, RelyingPartyRegistration::getRegistrationId)
+                .returns(ZONED_ENTITY_ID, RelyingPartyRegistration::getEntityId)
+                .returns(null, RelyingPartyRegistration::getNameIdFormat)
+                // from functions
+                .returns("{baseUrl}/saml/SSO/alias/testzone.entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
+                .returns("{baseUrl}/saml/SingleLogout/alias/testzone.entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation);
+    }
+
+    @Test
+    void findByRegistrationId_NoAliasFailsOverToEntityId() {
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null, mockKeyWithCert));
+
+        when(repository.retrieveZone()).thenReturn(identityZone);
+        when(identityZone.isUaa()).thenReturn(false);
+        when(identityZone.getSubdomain()).thenReturn(ZONE_SUBDOMAIN);
+
+        RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID_2);
+
+        assertThat(registration)
+                // from definition
+                .returns(REGISTRATION_ID_2, RelyingPartyRegistration::getRegistrationId)
+                .returns(ZONED_ENTITY_ID, RelyingPartyRegistration::getEntityId)
+                .returns(null, RelyingPartyRegistration::getNameIdFormat)
+                // from functions
+                .returns("{baseUrl}/saml/SSO/alias/testzone.entityId", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
+                .returns("{baseUrl}/saml/SingleLogout/alias/testzone.entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation);
     }
 }

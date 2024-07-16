@@ -42,9 +42,6 @@ public class RelyingPartyRegistrationBuilder {
             builder = RelyingPartyRegistrations.fromMetadataLocation(metadataLocation);
         }
 
-        // fallback to entityId if alias is not provided TODO has the falling back already happened?
-        samlSpAlias = samlSpAlias == null ? samlEntityID : samlSpAlias;
-
         builder.entityId(samlEntityID);
         if (samlSpNameId != null) builder.nameIdFormat(samlSpNameId);
         if (rpRegstrationId != null) builder.registrationId(rpRegstrationId);

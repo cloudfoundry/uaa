@@ -40,8 +40,6 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     private static final String REGISTRATION_ID = "registrationId";
     private static final String REGISTRATION_ID_2 = "registrationId2";
     private static final String NAME_ID = "name1";
-    private static final String UAA_ZONE_ID = "uaa";
-    private static final String ZONE_ID = "zoneId";
     private static final String ZONE_DOMAIN = "zoneDomain";
     private static final String ZONED_ENTITY_ID = "zoneDomain.entityId";
     private static final String ZONE_SPECIFIC_ENTITY_ID = "zoneEntityId";
@@ -179,7 +177,6 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
                 .returns("https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
     }
-
 
     @Test
     void fallsBackToUaaWideEntityIdWhenNoAlias() {
