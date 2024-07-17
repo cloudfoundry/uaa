@@ -176,11 +176,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             provider.setConfig(saml);
             externalKey = saml.getIdpEntityId();
         } else if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> externalOAuthIdentityProviderDefinition) {
-            if (isNotEmpty(externalOAuthIdentityProviderDefinition.getIssuer())) {
-                externalKey = externalOAuthIdentityProviderDefinition.getIssuer();
-            } else {
-                externalKey = externalOAuthIdentityProviderDefinition.getTokenUrl().toString();
-            }
+            externalKey = externalOAuthIdentityProviderDefinition.getIssuer();
         }
         return externalKey;
     }
