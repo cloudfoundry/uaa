@@ -240,7 +240,7 @@ class JdbcIdentityProviderProvisioningTests {
         assertEquals(providerDescription, readAgain.getConfig().getProviderDescription());
         RawExternalOAuthIdentityProviderDefinition readAgainConfig = (RawExternalOAuthIdentityProviderDefinition) readAgain.getConfig();
         assertNotNull(tokenEndPointUrl, readAgainConfig.getTokenUrl().toString());
-        // oauth2 allows to omit issuer, but tokenEncPointUrl is used then for check, e.g. checkIssuer in JwtTokenSignedByThisUAA
+        // OAuth2 allows to omit issuer, but tokenEncPointUrl is used then for check, e.g. checkIssuer in JwtTokenSignedByThisUAA
         assertNull(readAgainConfig.getIssuer());
     }
 
