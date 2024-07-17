@@ -223,7 +223,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
-            samlConfigurator.validateSamlIdentityProviderDefinition(definition, false);
+            definition.setIdpEntityId(samlConfigurator.validateSamlIdentityProviderDefinition(definition, false));
             body.setConfig(definition);
         }
 
