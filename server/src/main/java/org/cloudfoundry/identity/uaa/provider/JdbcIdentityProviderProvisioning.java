@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import static java.sql.Types.VARCHAR;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isNotEmpty;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -218,15 +219,21 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 switch (identityProvider.getType()) {
                     case OriginKeys.SAML:
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
-                        Optional.ofNullable(definition).map(SamlIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIdpEntityId(externId));
+                        if (isNotEmpty(externId)) {
+                            Optional.ofNullable(definition).map(SamlIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIdpEntityId(externId));
+                        }
                         break;
                     case OriginKeys.OAUTH20:
                         definition = JsonUtils.readValue(config, RawExternalOAuthIdentityProviderDefinition.class);
-                        Optional.ofNullable(definition).map(RawExternalOAuthIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
+                        if (isNotEmpty(externId)) {
+                            Optional.ofNullable(definition).map(RawExternalOAuthIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
+                        }
                         break;
                     case OriginKeys.OIDC10:
                         definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);
-                        Optional.ofNullable(definition).map(OIDCIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
+                        if (isNotEmpty(externId)) {
+                            Optional.ofNullable(definition).map(OIDCIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
+                        }
                         break;
                     case OriginKeys.UAA:
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
