@@ -213,26 +213,26 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             identityProvider.setActive(rs.getBoolean(pos++));
             identityProvider.setAliasId(rs.getString(pos++));
             identityProvider.setAliasZid(rs.getString(pos++));
-            String externId = rs.getString(pos);
+            String externalKey = rs.getString(pos);
             if (StringUtils.hasText(config)) {
                 AbstractIdentityProviderDefinition definition;
                 switch (identityProvider.getType()) {
                     case OriginKeys.SAML:
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
-                        if (isNotEmpty(externId)) {
-                            Optional.ofNullable(definition).map(SamlIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIdpEntityId(externId));
+                        if (isNotEmpty(externalKey)) {
+                            Optional.ofNullable(definition).map(SamlIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIdpEntityId(externalKey));
                         }
                         break;
                     case OriginKeys.OAUTH20:
                         definition = JsonUtils.readValue(config, RawExternalOAuthIdentityProviderDefinition.class);
-                        if (isNotEmpty(externId)) {
-                            Optional.ofNullable(definition).map(RawExternalOAuthIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
+                        if (isNotEmpty(externalKey)) {
+                            Optional.ofNullable(definition).map(RawExternalOAuthIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externalKey));
                         }
                         break;
                     case OriginKeys.OIDC10:
                         definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);
-                        if (isNotEmpty(externId)) {
-                            Optional.ofNullable(definition).map(OIDCIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
+                        if (isNotEmpty(externalKey)) {
+                            Optional.ofNullable(definition).map(OIDCIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externalKey));
                         }
                         break;
                     case OriginKeys.UAA:
