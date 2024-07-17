@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.mock.util;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -63,8 +62,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.junit.Assert;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.context.ApplicationContext;
@@ -100,8 +97,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
 import java.io.File;
+import java.io.Serial;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
@@ -115,12 +112,11 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -130,7 +126,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
 
 public final class MockMvcUtils {
 
@@ -171,20 +166,6 @@ public final class MockMvcUtils {
                     "  </md:ContactPerson>\n" +
                     "</md:EntityDescriptor>";
 
-    public static <T> T getEventOfType(ArgumentCaptor<AbstractUaaEvent> captor, Class<T> type) {
-        for (AbstractUaaEvent event : captor.getAllValues()) {
-            if (event.getClass().equals(type)) {
-                return (T) event;
-            }
-        }
-        return null;
-    }
-
-    public static UaaAuthentication getUaaAuthentication(HttpSession session) {
-        SecurityContext context = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
-        return (UaaAuthentication) context.getAuthentication();
-    }
-
     public static File getLimitedModeStatusFile(ApplicationContext context) {
         return context.getBean(LimitedModeUaaFilter.class).getStatusFile();
     }
@@ -197,24 +178,6 @@ public final class MockMvcUtils {
 
     public static void resetLimitedModeStatusFile(ApplicationContext context, File file) {
         context.getBean(LimitedModeUaaFilter.class).setStatusFile(file);
-    }
-
-    public static String getSPMetadata(MockMvc mockMvc, String subdomain) throws Exception {
-        return mockMvc.perform(
-                        get("/saml/metadata")
-                                .accept(MediaType.APPLICATION_XML)
-                                .header(HOST, hasText(subdomain) ? subdomain + ".localhost" : "localhost")
-                ).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-    }
-
-    public static String getIDPMetaData(MockMvc mockMvc, String subdomain) throws Exception {
-        return mockMvc.perform(
-                        get("/saml/idp/metadata")
-                                .accept(MediaType.APPLICATION_XML)
-                                .header(HOST, hasText(subdomain) ? subdomain + ".localhost" : "localhost")
-                ).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
     }
 
     public static MockHttpSession getSavedRequestSession() {
@@ -231,8 +194,7 @@ public final class MockMvcUtils {
         MvcResult userResult = mockMvc.perform(get)
                 .andExpect(status().isOk()).andReturn();
         SearchResults<ScimUser> results = JsonUtils.readValue(userResult.getResponse().getContentAsString(),
-                new TypeReference<SearchResults<ScimUser>>() {
-                });
+                new TypeReference<>() {});
         return results.getResources().get(0);
     }
 
@@ -327,13 +289,13 @@ public final class MockMvcUtils {
 
     public static URL inviteUser(ApplicationContext context, MockMvc mockMvc, String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin, String REDIRECT_URI) throws Exception {
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(context, mockMvc, userInviteToken, subdomain, clientId, REDIRECT_URI, email);
-        assertEquals(1, response.getNewInvites().size());
-        assertEquals(expectedOrigin, context.getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class));
+        assertThat(response.getNewInvites()).hasSize(1);
+        assertThat(context.getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class)).isEqualTo(expectedOrigin);
         return response.getNewInvites().get(0).getInviteLink();
     }
 
-    public static IdentityProvider createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
-        IdentityProvider provider = new IdentityProvider();
+    public static <T extends AbstractIdentityProviderDefinition> IdentityProvider<T> createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, T definition) throws Exception {
+        IdentityProvider<T> provider = new IdentityProvider<>();
         provider.setConfig(definition);
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getIdentityZone().getId());
@@ -373,7 +335,6 @@ public final class MockMvcUtils {
                 "",
                 zone.getIdentityZone().getSubdomain()
         );
-
 
         String username = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@example.com";
         ScimUser user = new ScimUser(userId, username, "given-name", "family-name");
@@ -449,7 +410,7 @@ public final class MockMvcUtils {
                     .andExpect(status().isCreated());
         } else {
             webApplicationContext.getBean(IdentityZoneProvisioning.class).create(identityZone);
-            IdentityProvider defaultIdp = new IdentityProvider();
+            IdentityProvider<UaaIdentityProviderDefinition> defaultIdp = new IdentityProvider<>();
             defaultIdp.setName(OriginKeys.UAA);
             defaultIdp.setType(OriginKeys.UAA);
             defaultIdp.setOriginKey(OriginKeys.UAA);
@@ -617,7 +578,7 @@ public final class MockMvcUtils {
     }
 
     public static ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain, String zoneId) throws Exception {
-        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
+        String requestDomain = subdomain.isEmpty() ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/Users");
         post.header("Authorization", "Bearer " + accessToken)
                 .with(new SetServerNameRequestPostProcessor(requestDomain))
@@ -632,7 +593,7 @@ public final class MockMvcUtils {
     }
 
     public static ScimUser readUserInZone(MockMvc mockMvc, String accessToken, String userId, String subdomain, String zoneId) throws Exception {
-        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
+        String requestDomain = subdomain.isEmpty() ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder get = get("/Users/" + userId);
         get.header("Authorization", "Bearer " + accessToken)
                 .with(new SetServerNameRequestPostProcessor(requestDomain))
@@ -662,7 +623,7 @@ public final class MockMvcUtils {
                 group.setMembers(Collections.singletonList(new ScimGroupMember(createdUser.getId())));
                 createGroup(mockMvc, accessToken, group);
             } else {
-                List<ScimGroupMember> members = new LinkedList(group.getMembers());
+                List<ScimGroupMember> members = new LinkedList<>(group.getMembers());
                 members.add(new ScimGroupMember(createdUser.getId()));
                 group.setMembers(members);
                 updateGroup(mockMvc, accessToken, group);
@@ -687,8 +648,7 @@ public final class MockMvcUtils {
                                 .contentType(APPLICATION_JSON)
                                 .param("filter", filter))
                         .andReturn().getResponse().getContentAsString(),
-                new TypeReference<SearchResults<ScimGroup>>() {
-                });
+                new TypeReference<>() {});
         if (results == null || results.getResources() == null || results.getResources().isEmpty()) {
             return null;
         } else {
@@ -706,7 +666,7 @@ public final class MockMvcUtils {
                                 .header("Authorization", "Bearer " + accessToken)
                                 .contentType(APPLICATION_JSON))
                         .andReturn().getResponse().getContentAsString(),
-                new TypeReference<SearchResults<ScimGroup>>() {
+                new TypeReference<>() {
                 });
         if (results == null || results.getResources() == null || results.getResources().isEmpty()) {
             return null;
@@ -907,7 +867,6 @@ public final class MockMvcUtils {
                 group.getDisplayName(),
                 zoneId
         );
-
     }
 
     public static String getUserOAuthAccessToken(MockMvc mockMvc,
@@ -994,7 +953,7 @@ public final class MockMvcUtils {
                 .getBytes()));
         UaaPrincipal p = new UaaPrincipal(userId, username, "test@test.org", OriginKeys.UAA, "", zoneId);
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, null);
-        Assert.assertTrue(auth.isAuthenticated());
+        assertThat(auth.isAuthenticated()).isTrue();
 
         SecurityContextHolder.getContext().setAuthentication(auth);
         MockHttpSession session = new MockHttpSession();
@@ -1037,7 +996,6 @@ public final class MockMvcUtils {
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
                 OAuthToken.class);
         return oauthToken.accessToken;
-
     }
 
     public static String getScimInviteUserToken(MockMvc mockMvc, String clientId, String clientSecret, IdentityZone zone, String adminClientId, String adminClientSecret) throws Exception {
@@ -1100,10 +1058,10 @@ public final class MockMvcUtils {
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
                 .param("revocable", "true");
-        if (!isEmpty(scope)) {
+        if (!hasText(scope)) {
             oauthTokenPost.param("scope", scope);
         }
-        if (subdomain != null && !subdomain.equals("")) {
+        if (subdomain != null && !subdomain.isEmpty()) {
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         }
         if (opaque) {
@@ -1222,7 +1180,6 @@ public final class MockMvcUtils {
         public Map<String, String[]> getParameterMap() {
             return null;
         }
-
     }
 
     public static class ZoneScimInviteData {
@@ -1284,6 +1241,7 @@ public final class MockMvcUtils {
 
     public static class MockSecurityContext implements SecurityContext {
 
+        @Serial
         private static final long serialVersionUID = -1386535243513362694L;
 
         private Authentication authentication;

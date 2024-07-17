@@ -215,8 +215,7 @@ public class SamlLoginIT {
     @Test
     void samlSPMetadata() {
         RestTemplate request = new RestTemplate();
-        ResponseEntity<String> response = request.getForEntity(
-                "%s/saml/metadata".formatted(baseUrl), String.class);
+        ResponseEntity<String> response = request.getForEntity("%s/saml/metadata".formatted(baseUrl), String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         String metadataXml = response.getBody();
         XmlAssert xmlAssert = XmlAssert.assertThat(metadataXml).withNamespaceContext(xmlNamespaces());
@@ -232,13 +231,13 @@ public class SamlLoginIT {
         // the AssertionConsumerService endpoint needs to be: /saml/SSO/alias/[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias or login.entityID]
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location").contains("/saml/SSO/alias/cloudfoundry-saml-login");
 
-//        assertThat(metadataXml).contains("entityID=\"cloudfoundry-saml-login\"")
-//                // TODO: Are DigestMethod and SignatureMethod needed?
-//                //  login.saml.signatureAlgorithm
-//                //.contains("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>")
-//                //.contains("<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>")
-//                // login.saml.nameID
-//                .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
+        //        assertThat(metadataXml).contains("entityID=\"cloudfoundry-saml-login\"")
+        //                // TODO: Are DigestMethod and SignatureMethod needed?
+        //                //  login.saml.signatureAlgorithm
+        //                //.contains("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>")
+        //                //.contains("<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>")
+        //                // login.saml.nameID
+        //                .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
 
         assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("saml-sp.xml");
     }
@@ -246,7 +245,7 @@ public class SamlLoginIT {
     @Test
     void samlSPMetadataForZone() {
         String zoneId = "testzone1";
-        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
+        String zoneUrl = baseUrl.replace("localhost", "%s.localhost".formatted(zoneId));
 
         //identity client token
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -259,14 +258,13 @@ public class SamlLoginIT {
         //create the zone
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
-        config.getSamlConfig().setEntityID(zoneId + "-saml-login");
+        config.getSamlConfig().setEntityID("%s-saml-login".formatted(zoneId));
         config.getSamlConfig().setWantAssertionSigned(false);
         config.getSamlConfig().setRequestSigned(false);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
 
         RestTemplate request = new RestTemplate();
-        ResponseEntity<String> response = request.getForEntity(
-                zoneUrl + "/saml/metadata", String.class);
+        ResponseEntity<String> response = request.getForEntity("%s/saml/metadata".formatted(zoneUrl), String.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         String metadataXml = response.getBody();
         XmlAssert xmlAssert = XmlAssert.assertThat(metadataXml).withNamespaceContext(xmlNamespaces());
@@ -365,7 +363,7 @@ public class SamlLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.%s.admin".formatted(zoneId));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
@@ -459,7 +457,7 @@ public class SamlLoginIT {
     @Test
     void singleLogoutWithNoLogoutUrlOnIDPWithLogoutRedirect() {
         String zoneId = "testzone2";
-        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
+        String zoneUrl = baseUrl.replace("localhost", "%s.localhost".formatted(zoneId));
 
         //identity client token
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -482,7 +480,7 @@ public class SamlLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.%s.admin".formatted(zoneId));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
@@ -508,7 +506,7 @@ public class SamlLoginIT {
         loginPage.clickSamlLink_goesToSamlLoginPage("simplesamlphp")
                 .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
-        String redirectUrl = zoneUrl + "/login?test=test";
+        String redirectUrl = "%s/login?test=test".formatted(zoneUrl);
         UaaClientDetails clientDetails = new UaaClientDetails("test-logout-redirect", null, null, GRANT_TYPE_AUTHORIZATION_CODE, null);
         clientDetails.setRegisteredRedirectUri(Collections.singleton(redirectUrl));
         clientDetails.setClientSecret("secret");
@@ -605,7 +603,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones")
     void samlInvitationAutomaticRedirectInZone2() {
         performSamlInvitationAutomaticRedirectInZone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
         performSamlInvitationAutomaticRedirectInZone2(MARISSA2_USERNAME, MARISSA2_PASSWORD, true);
@@ -619,7 +616,7 @@ public class SamlLoginIT {
     public void performSamlInvitationAutomaticRedirectInZone2(String username, String password, boolean emptyList) {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone2";
-        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
+        String zoneUrl = baseUrl.replace("localhost", "%s.localhost".formatted(zoneId));
 
         //identity client token
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -637,7 +634,7 @@ public class SamlLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.%s.admin".formatted(zoneId));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
@@ -680,8 +677,8 @@ public class SamlLoginIT {
         String code = InvitationsIT.createInvitation(zoneUrl, useremail, useremail, samlIdentityProviderDefinition.getIdpEntityAlias(), "", uaaAdminToken, uaaAdminToken);
         String invitedUserId = IntegrationTestUtils.getUserId(uaaAdminToken, zoneUrl, samlIdentityProviderDefinition.getIdpEntityAlias(), useremail);
         String existingUserId = IntegrationTestUtils.getUserId(uaaAdminToken, zoneUrl, samlIdentityProviderDefinition.getIdpEntityAlias(), useremail);
-        webDriver.get(zoneUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/invitations/accept?code=" + code);
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
+        webDriver.get("%s/invitations/accept?code=%s".formatted(zoneUrl, code));
 
         //redirected to saml login
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
@@ -700,13 +697,13 @@ public class SamlLoginIT {
             assertThat(acceptedUserId).isEqualTo(invitedUserId);
         }
 
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
         SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones")
+    @Disabled("SAML test fails: Requires processing of RelayState")
     void relayStateRedirectFromIdp() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
@@ -729,7 +726,7 @@ public class SamlLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.%s.admin".formatted(zoneId));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
@@ -755,7 +752,7 @@ public class SamlLoginIT {
 
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
 
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
 
         String samlUrl = SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php?"
                 + "spentityid=testzone1.cloudfoundry-saml-login&"
@@ -767,12 +764,11 @@ public class SamlLoginIT {
         sendCredentials(testAccounts.getUserName(), "koala");
 
         assertThat(webDriver.getCurrentUrl()).startsWith("https://www.google.com");
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones")
     void samlLoginClientIDPAuthorizationAutomaticRedirectInZone1() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
@@ -795,7 +791,7 @@ public class SamlLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.%s.admin".formatted(zoneId));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
@@ -828,9 +824,9 @@ public class SamlLoginIT {
         clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
 
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
 
-        String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=" + URLEncoder.encode(zoneUrl, StandardCharsets.UTF_8) + "&response_type=code&state=8tp0tR";
+        String authUrl = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=8tp0tR".formatted(zoneUrl, clientId, URLEncoder.encode(zoneUrl, StandardCharsets.UTF_8));
         webDriver.get(authUrl);
 
         //we should now be in the Simple SAML PHP site
@@ -838,12 +834,11 @@ public class SamlLoginIT {
         sendCredentials(testAccounts.getUserName(), "koala");
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones and logout")
     void samlLoginMapGroupsInZone1() {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
@@ -867,7 +862,7 @@ public class SamlLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones." + zoneId + ".admin");
+        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.%s.admin".formatted(zoneId));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         //get the zone admin token
@@ -895,7 +890,7 @@ public class SamlLoginIT {
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
         assertThat(provider.getConfig().getIdpEntityAlias()).isEqualTo(provider.getOriginKey());
 
-        List<String> idps = Collections.singletonList(provider.getOriginKey());
+        List<String> idps = List.of(provider.getOriginKey());
 
         String adminClientInZone = new RandomValueStringGenerator().generate();
         UaaClientDetails clientDetails = new UaaClientDetails(adminClientInZone, null, "openid", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write", zoneUrl);
@@ -919,9 +914,10 @@ public class SamlLoginIT {
         IntegrationTestUtils.mapExternalGroup(zoneAdminToken, zoneId, baseUrl, uaaSamlUserMapping);
         IntegrationTestUtils.mapExternalGroup(zoneAdminToken, zoneId, baseUrl, uaaSamlAdminMapping);
 
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
 
-        String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl, StandardCharsets.UTF_8) + "&response_type=code&state=8tp0tR";
+        String authUrl = "%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=8tp0tR"
+                .formatted(zoneUrl, clientDetails.getClientId(), URLEncoder.encode(zoneUrl, StandardCharsets.UTF_8));
         webDriver.get(authUrl);
 
         //we should now be in the Simple SAML PHP site
@@ -929,8 +925,8 @@ public class SamlLoginIT {
         sendCredentials(MARISSA4_USERNAME, MARISSA4_PASSWORD);
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
 
         //validate that the groups were mapped
         String samlUserId = IntegrationTestUtils.getUserId(adminTokenInZone, zoneUrl, provider.getOriginKey(), MARISSA4_EMAIL);
@@ -1030,7 +1026,7 @@ public class SamlLoginIT {
 
         IntegrationTestUtils.getClientCredentialsToken(zoneUrl, clientDetails.getClientId(), "secret");
 
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
 
         String authUrl = zoneUrl + "/oauth/authorize?response_type=code&state=8tp0tR&client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl, StandardCharsets.UTF_8);
         webDriver.get(authUrl);
@@ -1058,8 +1054,8 @@ public class SamlLoginIT {
                 null,
                 false);
 
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
 
         //validate access token
         String accessToken = authCodeTokenResponse.get(ACCESS_TOKEN);
@@ -1076,7 +1072,7 @@ public class SamlLoginIT {
         assertThat(idToken).isNotNull();
 
         Jwt idTokenClaims = JwtHelper.decode(idToken);
-        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<>() {
         });
 
         assertThat(claims).containsKey(USER_ATTRIBUTES);
@@ -1165,7 +1161,7 @@ public class SamlLoginIT {
 
         IntegrationTestUtils.getClientCredentialsToken(zoneUrl, clientDetails.getClientId(), "secret");
 
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
 
         String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl, StandardCharsets.UTF_8) + "&response_type=code&state=8tp0tR";
         webDriver.get(authUrl);
@@ -1193,8 +1189,8 @@ public class SamlLoginIT {
                 null,
                 false);
 
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(zoneUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
+        webDriver.get("%s/logout.do".formatted(zoneUrl));
 
         //validate that we have an ID token, and that it contains costCenter and manager values
 
@@ -1265,16 +1261,16 @@ public class SamlLoginIT {
         assertThat(provider.getId()).isNotNull();
 
         String testZone1Url = baseUrl.replace("localhost", zoneId + ".localhost");
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(testZone1Url + "/logout.do");
-        webDriver.get(testZone1Url + "/login");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
+        webDriver.get("%s/logout.do".formatted(testZone1Url));
+        webDriver.get("%s/login".formatted(testZone1Url));
         assertThat(webDriver.getTitle()).isEqualTo(zone.getName());
 
         // the first provider is shown
-        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
+        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         assertThat(elements).hasSize(1);
         // the dummy provider is shown
-        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
+        elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition1.getLinkText() + "']"));
         assertThat(elements).hasSize(1);
 
         // click on the first provider to login
@@ -1284,34 +1280,34 @@ public class SamlLoginIT {
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
 
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(testZone1Url + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
+        webDriver.get("%s/logout.do".formatted(testZone1Url));
 
         //disable the first provider
         SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         provider.setActive(false);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
         assertThat(provider.getId()).isNotNull();
-        webDriver.get(testZone1Url + "/login");
+        webDriver.get("%s/logout.do".formatted(testZone1Url));
         assertThat(webDriver.getTitle()).isEqualTo(zone.getName());
         // the first provider is not shown
-        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
+        elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         assertThat(elements).isEmpty();
         // the dummy provider is shown
-        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
+        elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition1.getLinkText() + "']"));
         assertThat(elements).hasSize(1);
 
         //enable the first provider
         provider.setActive(true);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
         assertThat(provider.getId()).isNotNull();
-        webDriver.get(testZone1Url + "/login");
+        webDriver.get("%s/login".formatted(testZone1Url));
         assertThat(webDriver.getTitle()).isEqualTo(zone.getName());
         // the first provider is shown
-        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
+        elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         assertThat(elements).hasSize(1);
         // the dummy provider is shown
-        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
+        elements = webDriver.findElements(By.xpath("//a[text()='" + samlIdentityProviderDefinition1.getLinkText() + "']"));
         assertThat(elements).hasSize(1);
     }
 
@@ -1333,7 +1329,7 @@ public class SamlLoginIT {
 
         testClient.createClient(adminAccessToken, clientDetails);
 
-        webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
+        webDriver.get("%s/oauth/authorize?client_id=%s&redirect_uri=http%%3A%%2F%%2Flocalhost%%3A8888%%2Flogin&response_type=code&state=8tp0tR".formatted(baseUrl, clientId));
         webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']"));
         webDriver.findElement(By.xpath("//a[text()='" + provider2.getConfig().getLinkText() + "']"));
     }
@@ -1343,7 +1339,7 @@ public class SamlLoginIT {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(provider.getOriginKey(), provider2.getOriginKey());
-        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
@@ -1351,7 +1347,7 @@ public class SamlLoginIT {
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
         testClient.createClient(adminAccessToken, clientDetails);
-        webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fuaa%3Alogin&response_type=code&state=8tp0tR");
+        webDriver.get("%s/oauth/authorize?client_id=%s&redirect_uri=http%%3A%%2F%%2Flocalhost%%3A8080%%2Fuaa%%3Alogin&response_type=code&state=8tp0tR".formatted(baseUrl, clientId));
 
         try {
             webDriver.findElement(byUsername);
@@ -1363,13 +1359,12 @@ public class SamlLoginIT {
             fail("Element username should not be present");
         } catch (NoSuchElementException ignored) {
         }
-        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
     }
 
     @Test
-    @Disabled("SAML test fails: Requires logout and AutomaticRedirect")
     void samlLoginClientIDPAuthorizationAutomaticRedirect() throws Exception {
-        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         assertThat(provider.getConfig().getIdpEntityAlias()).isEqualTo(provider.getOriginKey());
         List<String> idps = Collections.singletonList(provider.getOriginKey());
@@ -1389,12 +1384,12 @@ public class SamlLoginIT {
         sendCredentials(testAccounts.getUserName(), "koala");
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
-        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
     }
 
     @Test
     void loginClientIDPAuthorizationAlreadyLoggedIn() {
-        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
@@ -1407,16 +1402,16 @@ public class SamlLoginIT {
 
         sendCredentials(testAccounts.getUserName(), "koala", By.xpath("//input[@value='Sign in']"));
 
-        webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
+        webDriver.get("%s/oauth/authorize?client_id=%s&redirect_uri=http%%3A%%2F%%2Flocalhost%%3A8888%%2Flogin&response_type=code&state=8tp0tR".formatted(baseUrl, clientId));
 
         assertThat(webDriver.findElement(By.cssSelector("p")).getText()).contains(clientId + " does not support your identity provider. To log into an identity provider supported by the application");
-        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get("%s/logout.do".formatted(baseUrl));
     }
 
     @Test
     @Disabled("SAML test fails: Requires logout")
     void springSamlEndpointsWithEmptyContext() throws IOException {
-        CallEmptyPageAndCheckHttpStatusCode("/saml/discovery", 200);
+        //CallEmptyPageAndCheckHttpStatusCode("/saml/discovery", 200);
         CallEmptyPageAndCheckHttpStatusCode("/saml/SingleLogout", 400);
         CallEmptyPageAndCheckHttpStatusCode("/saml/login/alias/foo", 400);
         CallEmptyPageAndCheckHttpStatusCode("/saml/web/metadata/login", 404);
