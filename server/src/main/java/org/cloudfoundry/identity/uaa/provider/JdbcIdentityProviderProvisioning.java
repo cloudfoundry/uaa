@@ -167,18 +167,22 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new DataIntegrityViolationException("Identity zone ID must be set.");
         }
-        String externId = null;
+        String externalKey = null;
         //ensure that SAML IDPs have redundant fields synchronized
         if (OriginKeys.SAML.equals(provider.getType()) && provider.getConfig() != null) {
             SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
             saml.setZoneId(provider.getIdentityZoneId());
             provider.setConfig(saml);
-            externId = saml.getIdpEntityId();
+            externalKey = saml.getIdpEntityId();
         } else if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> externalOAuthIdentityProviderDefinition) {
-            externId = externalOAuthIdentityProviderDefinition.getIssuer();
+            if (isNotEmpty(externalOAuthIdentityProviderDefinition.getIssuer())) {
+                externalKey = externalOAuthIdentityProviderDefinition.getIssuer();
+            } else {
+                externalKey = externalOAuthIdentityProviderDefinition.getTokenUrl().toString();
+            }
         }
-        return externId;
+        return externalKey;
     }
 
     @Override

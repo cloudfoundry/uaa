@@ -16,6 +16,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
+import java.net.URI;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
@@ -219,12 +221,12 @@ class JdbcIdentityProviderProvisioningTests {
     }
 
     @Test
-    void retrieveOAuth2IdentityProviderWithoutExternalId() {
-        String issuerURI = "https://oauth2.issuer.domain.org";
+    void retrieveOAuth2IdentityProviderWithoutExternalId() throws MalformedURLException {
+        String tokenEndPointUrl = "https://oauth2.issuer.domain.org";
         IdentityProvider<RawExternalOAuthIdentityProviderDefinition> idp = MultitenancyFixture.identityProvider(origin, uaaZoneId);
         String providerDescription = "Test Description";
         RawExternalOAuthIdentityProviderDefinition rawExternalOAuthIdentityProviderDefinition = new RawExternalOAuthIdentityProviderDefinition();
-        rawExternalOAuthIdentityProviderDefinition.setIssuer(issuerURI);
+        rawExternalOAuthIdentityProviderDefinition.setTokenUrl(URI.create(tokenEndPointUrl).toURL());
         idp.setConfig(rawExternalOAuthIdentityProviderDefinition);
         idp.getConfig().setProviderDescription(providerDescription);
         idp.setType(OAUTH20);
@@ -237,7 +239,9 @@ class JdbcIdentityProviderProvisioningTests {
         assertEquals(idp.getType(), readAgain.getType());
         assertEquals(providerDescription, readAgain.getConfig().getProviderDescription());
         RawExternalOAuthIdentityProviderDefinition readAgainConfig = (RawExternalOAuthIdentityProviderDefinition) readAgain.getConfig();
-        assertEquals(issuerURI, readAgainConfig.getIssuer());
+        assertNotNull(tokenEndPointUrl, readAgainConfig.getTokenUrl().toString());
+        // oauth2 allows to omit issuer, but tokenEncPointUrl is used then for check, e.g. checkIssuer in JwtTokenSignedByThisUAA
+        assertNull(readAgainConfig.getIssuer());
     }
 
     @Test
