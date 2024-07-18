@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import static java.sql.Types.VARCHAR;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isNotEmpty;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -166,18 +167,18 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new DataIntegrityViolationException("Identity zone ID must be set.");
         }
-        String externId = null;
+        String externalKey = null;
         //ensure that SAML IDPs have redundant fields synchronized
         if (OriginKeys.SAML.equals(provider.getType()) && provider.getConfig() != null) {
             SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
             saml.setZoneId(provider.getIdentityZoneId());
             provider.setConfig(saml);
-            externId = saml.getIdpEntityId();
+            externalKey = saml.getIdpEntityId();
         } else if (provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> externalOAuthIdentityProviderDefinition) {
-            externId = externalOAuthIdentityProviderDefinition.getIssuer();
+            externalKey = externalOAuthIdentityProviderDefinition.getIssuer();
         }
-        return externId;
+        return externalKey;
     }
 
     @Override
@@ -212,21 +213,27 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             identityProvider.setActive(rs.getBoolean(pos++));
             identityProvider.setAliasId(rs.getString(pos++));
             identityProvider.setAliasZid(rs.getString(pos++));
-            String externId = rs.getString(pos);
+            String externalKey = rs.getString(pos);
             if (StringUtils.hasText(config)) {
                 AbstractIdentityProviderDefinition definition;
                 switch (identityProvider.getType()) {
                     case OriginKeys.SAML:
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
-                        Optional.ofNullable(definition).map(SamlIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIdpEntityId(externId));
+                        if (isNotEmpty(externalKey)) {
+                            Optional.ofNullable(definition).map(SamlIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIdpEntityId(externalKey));
+                        }
                         break;
                     case OriginKeys.OAUTH20:
                         definition = JsonUtils.readValue(config, RawExternalOAuthIdentityProviderDefinition.class);
-                        Optional.ofNullable(definition).map(RawExternalOAuthIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
+                        if (isNotEmpty(externalKey)) {
+                            Optional.ofNullable(definition).map(RawExternalOAuthIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externalKey));
+                        }
                         break;
                     case OriginKeys.OIDC10:
                         definition = JsonUtils.readValue(config, OIDCIdentityProviderDefinition.class);
-                        Optional.ofNullable(definition).map(OIDCIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externId));
+                        if (isNotEmpty(externalKey)) {
+                            Optional.ofNullable(definition).map(OIDCIdentityProviderDefinition.class::cast).ifPresent(e -> e.setIssuer(externalKey));
+                        }
                         break;
                     case OriginKeys.UAA:
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
