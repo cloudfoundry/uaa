@@ -15,6 +15,7 @@ import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandler;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerValidationTest;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.junit.jupiter.api.Nested;
@@ -44,7 +45,11 @@ public class IdentityProviderAliasHandlerValidationTest extends EntityAliasHandl
     }
 
     @Override
-    protected IdentityProvider<?> buildEntityWithAliasProps(@Nullable final String aliasId, @Nullable final String aliasZid) {
+    protected IdentityProvider<?> buildEntityWithAliasProps(
+            @Nullable final String zoneId,
+            @Nullable final String aliasId,
+            @Nullable final String aliasZid
+    ) {
         final IdentityProvider<AbstractIdentityProviderDefinition> idp = new IdentityProvider<>();
         idp.setName("example");
         idp.setOriginKey("example");
@@ -52,6 +57,7 @@ public class IdentityProviderAliasHandlerValidationTest extends EntityAliasHandl
         idp.setIdentityZoneId(UAA);
         idp.setAliasId(aliasId);
         idp.setAliasZid(aliasZid);
+        setZoneId(idp, zoneId);
         return idp;
     }
 
@@ -61,7 +67,7 @@ public class IdentityProviderAliasHandlerValidationTest extends EntityAliasHandl
     }
 
     @Override
-    protected void setZoneId(@NonNull final IdentityProvider<?> entity, @NonNull final String zoneId) {
+    protected void setZoneId(@NonNull final IdentityProvider<?> entity, @Nullable final String zoneId) {
         entity.setIdentityZoneId(zoneId);
     }
 
@@ -89,7 +95,7 @@ public class IdentityProviderAliasHandlerValidationTest extends EntityAliasHandl
                 final String aliasZid = UUID.randomUUID().toString();
                 arrangeZoneExists(aliasZid);
 
-                final IdentityProvider<?> requestBody = buildEntityWithAliasProps(null, aliasZid);
+                final IdentityProvider<?> requestBody = buildEntityWithAliasProps(IdentityZone.getUaaZoneId(), null, aliasZid);
                 requestBody.setIdentityZoneId(UAA);
                 requestBody.setType(typeAliasNotSupported);
 
@@ -113,7 +119,7 @@ public class IdentityProviderAliasHandlerValidationTest extends EntityAliasHandl
                 final String aliasZid = UUID.randomUUID().toString();
                 arrangeZoneExists(aliasZid);
 
-                final IdentityProvider<?> requestBody = buildEntityWithAliasProps(null, aliasZid);
+                final IdentityProvider<?> requestBody = buildEntityWithAliasProps(IdentityZone.getUaaZoneId(), null, aliasZid);
                 requestBody.setIdentityZoneId(UAA);
                 requestBody.setType(typeAliasSupported);
 
