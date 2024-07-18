@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.provider;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaaZoneId;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -7,6 +10,7 @@ import static org.hamcrest.core.Is.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -182,6 +186,82 @@ class JdbcIdentityProviderProvisioningTests {
         assertTrue(Math.abs(idp.getLastModified().getTime() - createdIdp.getLastModified().getTime()) < 1001);
         assertEquals(Integer.valueOf(rawCreatedIdp.get("version").toString()) + 1, createdIdp.getVersion());
         assertEquals(uaaZoneId, createdIdp.getIdentityZoneId());
+    }
+
+    @Test
+    void retrieveOidcIdentityProviderWithoutExternalId() {
+        String issuerURI = "https://oidc.issuer.domain.org";
+        IdentityProvider<OIDCIdentityProviderDefinition> idp = MultitenancyFixture.identityProvider(origin, uaaZoneId);
+        String providerDescription = "Test Description";
+        OIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
+        oidcIdentityProviderDefinition.setIssuer(issuerURI);
+        idp.setConfig(oidcIdentityProviderDefinition);
+        idp.getConfig().setProviderDescription(providerDescription);
+        idp.setType(OIDC10);
+        IdentityProvider createdIdp = jdbcIdentityProviderProvisioning.create(idp, uaaZoneId);
+        // remove external_key to simulate existing IdP entry
+        jdbcTemplate.update("update identity_provider set external_key='' where id = '" + createdIdp.getId() + "';");
+        IdentityProvider readAgain = jdbcIdentityProviderProvisioning.retrieve(createdIdp.getId(), uaaZoneId);
+        assertEquals(idp.getName(), readAgain.getName());
+        assertEquals(idp.getOriginKey(), readAgain.getOriginKey());
+        assertEquals(idp.getType(), readAgain.getType());
+        assertEquals(providerDescription, readAgain.getConfig().getProviderDescription());
+        OIDCIdentityProviderDefinition readAgainConfig = (OIDCIdentityProviderDefinition) readAgain.getConfig();
+        assertEquals(issuerURI, readAgainConfig.getIssuer());
+        // update
+        oidcIdentityProviderDefinition.setIssuer("https://new");
+        idp.setId(readAgain.getId());
+        idp.setLastModified(new Timestamp(System.currentTimeMillis()));
+        idp.setConfig(oidcIdentityProviderDefinition);
+        IdentityProvider updateIdp = jdbcIdentityProviderProvisioning.update(idp, uaaZoneId);
+        readAgainConfig = (OIDCIdentityProviderDefinition) updateIdp.getConfig();
+        assertEquals("https://new", readAgainConfig.getIssuer());
+    }
+
+    @Test
+    void retrieveOAuth2IdentityProviderWithoutExternalId() {
+        String issuerURI = "https://oauth2.issuer.domain.org";
+        IdentityProvider<RawExternalOAuthIdentityProviderDefinition> idp = MultitenancyFixture.identityProvider(origin, uaaZoneId);
+        String providerDescription = "Test Description";
+        RawExternalOAuthIdentityProviderDefinition rawExternalOAuthIdentityProviderDefinition = new RawExternalOAuthIdentityProviderDefinition();
+        rawExternalOAuthIdentityProviderDefinition.setIssuer(issuerURI);
+        idp.setConfig(rawExternalOAuthIdentityProviderDefinition);
+        idp.getConfig().setProviderDescription(providerDescription);
+        idp.setType(OAUTH20);
+        IdentityProvider createdIdp = jdbcIdentityProviderProvisioning.create(idp, uaaZoneId);
+        // remove external_key to simulate existing IdP entry
+        jdbcTemplate.update("update identity_provider set external_key='' where id = '" + createdIdp.getId() + "';");
+        IdentityProvider readAgain = jdbcIdentityProviderProvisioning.retrieve(createdIdp.getId(), uaaZoneId);
+        assertEquals(idp.getName(), readAgain.getName());
+        assertEquals(idp.getOriginKey(), readAgain.getOriginKey());
+        assertEquals(idp.getType(), readAgain.getType());
+        assertEquals(providerDescription, readAgain.getConfig().getProviderDescription());
+        RawExternalOAuthIdentityProviderDefinition readAgainConfig = (RawExternalOAuthIdentityProviderDefinition) readAgain.getConfig();
+        assertEquals(issuerURI, readAgainConfig.getIssuer());
+    }
+
+    @Test
+    void retrieveSamlIdentityProviderWithoutExternalId() {
+        String entityId = "https://entity.samlworld.domain.org";
+        IdentityProvider<SamlIdentityProviderDefinition> idp = MultitenancyFixture.identityProvider(origin, uaaZoneId);
+        String providerDescription = "Test Description";
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = new SamlIdentityProviderDefinition();
+        samlIdentityProviderDefinition.setIdpEntityId(entityId);
+        idp.setConfig(samlIdentityProviderDefinition);
+        idp.getConfig().setProviderDescription(providerDescription);
+        idp.setType(SAML);
+        IdentityProvider createdIdp = jdbcIdentityProviderProvisioning.create(idp, uaaZoneId);
+        SamlIdentityProviderDefinition readAgainConfig = (SamlIdentityProviderDefinition) createdIdp.getConfig();
+        assertEquals(entityId, readAgainConfig.getIdpEntityId());
+        // remove external_key to simulate existing IdP entry
+        jdbcTemplate.update("update identity_provider set external_key='' where id = '" + createdIdp.getId() + "';");
+        IdentityProvider readAgain = jdbcIdentityProviderProvisioning.retrieve(createdIdp.getId(), uaaZoneId);
+        assertEquals(idp.getName(), readAgain.getName());
+        assertEquals(idp.getOriginKey(), readAgain.getOriginKey());
+        assertEquals(idp.getType(), readAgain.getType());
+        assertEquals(providerDescription, readAgain.getConfig().getProviderDescription());
+        readAgainConfig = (SamlIdentityProviderDefinition) readAgain.getConfig();
+        assertNull(readAgainConfig.getIdpEntityId());
     }
 
     @Test
