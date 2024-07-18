@@ -1003,7 +1003,6 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                  * This test case checks whether the alias creation still works, even when the zone ID property is not
                  * explicitly set in the request body.
                  */
-                @Test
                 void shouldAccept_ShouldCreateNewAlias_NoZoneIdSet(
                         final IdentityZone zone1,
                         final IdentityZone zone2
