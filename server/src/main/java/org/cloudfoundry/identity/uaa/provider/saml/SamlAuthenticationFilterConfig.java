@@ -50,6 +50,8 @@ import javax.servlet.http.HttpServletRequest;
 @Configuration
 public class SamlAuthenticationFilterConfig {
 
+    public static final String BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI = "/saml/SSO/alias/{registrationId}";
+
     /**
      * Handles building and forwarding the SAML2 Authentication Request to the IDP.
      */
@@ -103,15 +105,6 @@ public class SamlAuthenticationFilterConfig {
     }
 
     /**
-     * Handles the legacy SAML2 Authentication Response URL from the IDP
-     * and forwards the response to the new SAML2 Authentication Response URL.
-     */
-    @Bean
-    SamlLegacyAliasResponseForwardingFilter samlLegacyAliasResponseForwardingFilter() {
-        return new SamlLegacyAliasResponseForwardingFilter();
-    }
-
-    /**
      * Handles the return SAML2 Authentication Response from the IDP and creates the Authentication object.
      */
     @Autowired
@@ -125,6 +118,7 @@ public class SamlAuthenticationFilterConfig {
         ProviderManager authenticationManager = new ProviderManager(samlAuthenticationProvider);
         saml2WebSsoAuthenticationFilter.setAuthenticationManager(authenticationManager);
         saml2WebSsoAuthenticationFilter.setSecurityContextRepository(securityContextRepository);
+        saml2WebSsoAuthenticationFilter.setFilterProcessesUrl(BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
 
         return saml2WebSsoAuthenticationFilter;
     }
