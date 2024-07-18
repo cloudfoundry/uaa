@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.alias.AliasMockMvcTestBase;
@@ -986,6 +987,39 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     final IdentityZone otherCustomZone = MockMvcUtils.createZoneUsingWebRequest(mockMvc, identityToken);
                     createdScimUser.setAliasZid(otherCustomZone.getId());
                     shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
+                }
+
+                @Test
+                void shouldAccept_ShouldCreateNewAlias_NoZoneIdSet_UaaToCustomZone() throws Throwable {
+                    shouldAccept_ShouldCreateNewAlias_NoZoneIdSet(IdentityZone.getUaa(), customZone);
+                }
+
+                @Test
+                void shouldAccept_ShouldCreateNewAlias_NoZoneIdSet_CustomToUaaZone() throws Throwable {
+                    shouldAccept_ShouldCreateNewAlias_NoZoneIdSet(customZone, IdentityZone.getUaa());
+                }
+
+                /**
+                 * This test case checks whether the alias creation still works, even when the zone ID property is not
+                 * explicitly set in the request body.
+                 */
+                @Test
+                void shouldAccept_ShouldCreateNewAlias_NoZoneIdSet(
+                        final IdentityZone zone1,
+                        final IdentityZone zone2
+                ) throws Throwable {
+                    final ScimUser createdScimUser = executeWithTemporarilyEnabledAliasFeature(
+                            aliasFeatureEnabled,
+                            () -> createIdpWithAliasAndUserWithoutAlias(zone1, zone2)
+                    );
+
+                    // the update endpoint allows sending the user with an empty zone ID property
+                    createdScimUser.setZoneId(null);
+
+                    createdScimUser.setAliasZid(zone2.getId());
+                    createdScimUser.setName(new ScimUser.Name("John", "Doe Jr."));
+
+                    updateUser(HttpMethod.PUT, zone1, createdScimUser);
                 }
             }
         }
