@@ -33,6 +33,10 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
             @NonNull final T requestBody,
             @Nullable final T existingEntity
     ) {
+        if (!hasText(requestBody.getZoneId())) {
+            throw new IllegalArgumentException("The zone ID of the request body must not be empty.");
+        }
+
         // if the entity already has an alias, the alias properties must not be changed
         final boolean entityAlreadyHasAlias = existingEntity != null && hasText(existingEntity.getAliasZid());
         if (entityAlreadyHasAlias) {

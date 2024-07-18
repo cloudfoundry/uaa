@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.alias;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 import static org.assertj.core.api.Assertions.assertThatIllegalStateException;
 import static org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerValidationTest.NoExistingAliasBase.ExistingEntityArgument.ENTITY_WITH_EMPTY_ALIAS_PROPS;
 import static org.junit.Assert.assertFalse;
@@ -25,7 +26,7 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
 
     protected abstract void changeNonAliasProperties(@NonNull final T entity);
 
-    protected abstract void setZoneId(@NonNull final T entity, @NonNull final String zoneId);
+    protected abstract void setZoneId(@NonNull final T entity, @Nullable final String zoneId);
 
     protected abstract void arrangeZoneExists(@NonNull final String zoneId);
 
@@ -58,6 +59,24 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
             final T requestBody = buildEntityWithAliasProps(null, null);
             final T existingEntity = resolveExistingEntityArgument(existingEntityArg);
             assertThat(aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)).isTrue();
+        }
+
+        /**
+         * For some endpoints, we allow the identity zone ID of to be empty in the request body. However, the field is
+         * required during alias validation. We therefore rely on the endpoint methods to set the identity zone ID to
+         * the one resolved from the token.
+         */
+        @ParameterizedTest
+        @MethodSource("existingEntityArgNoAlias")
+        final void shouldThrowIllegalArgumentException_ZoneIdEmptyInReqBody(final ExistingEntityArgument existingEntityArg) {
+            // alias property values are not important here, the zoneId is checked before them
+            final T requestBody = buildEntityWithAliasProps(null, null);
+            setZoneId(requestBody, null);
+
+            final T existingEntity = resolveExistingEntityArgument(existingEntityArg);
+            assertThatIllegalArgumentException().isThrownBy(() ->
+                    aliasHandler.aliasPropertiesAreValid(requestBody, existingEntity)
+            ).withMessage("The zone ID of the request body must not be empty.");
         }
 
         /**
