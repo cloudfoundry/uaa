@@ -316,7 +316,7 @@ class SamlAuthenticationMockMvcTests {
 
         String encodedSamlResponse = serializedResponse(responseWithAssertions());
         mockMvc.perform(
-                        post("/uaa/saml/SSO/alias/%s".formatted("cloudfoundry-saml-login"))
+                        post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
                                 .contextPath("/uaa")
                                 .header(HOST, "localhost:8080")
                                 .param("SAMLResponse", encodedSamlResponse)
