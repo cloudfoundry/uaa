@@ -4,23 +4,24 @@ import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 //import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 //import org.opensaml.xml.parse.BasicParserPool;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 //import org.springframework.security.saml.metadata.ExtendedMetadata;
 //import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
+import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrations;
 import org.springframework.stereotype.Component;
-import org.springframework.util.StringUtils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -28,14 +29,17 @@ import static org.springframework.util.StringUtils.hasText;
 public class SamlIdentityProviderConfigurator {
 //    private final BasicParserPool parserPool;
     private final IdentityProviderProvisioning providerProvisioning;
+    private final IdentityZoneManager identityZoneManager;
 //    private final FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
 
     public SamlIdentityProviderConfigurator(
 //            final BasicParserPool parserPool,
-            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
+            final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager
            /* final FixedHttpMetaDataProvider fixedHttpMetaDataProvider*/) {
 //        this.parserPool = parserPool;
         this.providerProvisioning = providerProvisioning;
+        this.identityZoneManager = identityZoneManager;
 //        this.fixedHttpMetaDataProvider = fixedHttpMetaDataProvider;
     }
 
@@ -85,13 +89,17 @@ public class SamlIdentityProviderConfigurator {
             throw new NullPointerException("IDP Zone Id must be set");
         }
         SamlIdentityProviderDefinition clone = providerDefinition.clone();
+        RelyingPartyRegistration idp = RelyingPartyRegistrations.fromMetadataLocation(providerDefinition.getMetaDataLocation()).build();
+        //idp.getAssertingPartyDetails().
+        providerProvisioning.retrieveByExternId(idp.getEntityId(), OriginKeys.SAML, identityZoneManager.getCurrentIdentityZoneId());
+
 //        added = getExtendedMetadataDelegate(clone);
 //        String entityIDToBeAdded = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
 //        if (!StringUtils.hasText(entityIDToBeAdded)) {
 //            throw new MetadataProviderException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
 //        }
 
-        boolean entityIDexists = false;
+        boolean entityIDexists = Optional.ofNullable(providerProvisioning.retrieveByExternId(idp.getEntityId(), OriginKeys.SAML, identityZoneManager.getCurrentIdentityZoneId())).isPresent();
 
 //        for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
 ////            ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
@@ -102,9 +110,9 @@ public class SamlIdentityProviderConfigurator {
 ////            }
 //        }
 
-//        if (entityIDexists) {
-//            throw new MetadataProviderException("Duplicate entity ID:" + entityIDToBeAdded);
-//        }
+        if (entityIDexists) {
+            throw new IllegalArgumentException("Duplicate entity ID:" + idp.getEntityId());
+        }
     }
 
 //    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws MetadataProviderException {
