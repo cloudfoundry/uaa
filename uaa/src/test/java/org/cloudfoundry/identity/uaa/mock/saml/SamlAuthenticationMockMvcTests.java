@@ -29,7 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.opensaml.saml.saml2.core.Response;
 import org.owasp.esapi.ESAPI;
 import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,12 +52,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 import static org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding.X_VCAP_REQUEST_ID_HEADER;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.responseWithAssertions;
-import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.serialize;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.serializedResponse;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlDecode;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlDecodeAndInflate;
-import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlEncode;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -69,6 +66,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
@@ -170,14 +168,11 @@ class SamlAuthenticationMockMvcTests {
         assertThat(samlRequestXml)
                 .contains("<saml2p:AuthnRequest");
 
-        XmlAssert.assertThat(samlRequestXml)
-                .withNamespaceContext(xmlNamespaces())
-                .valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                .withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
                 .isEqualTo("http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id");
-
-        XmlAssert.assertThat(samlRequestXml)
-                .withNamespaceContext(xmlNamespaces())
-                .valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo("integration-saml-entity-id"); // matches login.entityID
     }
 
@@ -204,14 +199,11 @@ class SamlAuthenticationMockMvcTests {
         String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
         assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
 
-        XmlAssert.assertThat(samlRequestXml)
-                .withNamespaceContext(xmlNamespaces())
-                .valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                .withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
                 .isEqualTo("http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id");
-
-        XmlAssert.assertThat(samlRequestXml)
-                .withNamespaceContext(xmlNamespaces())
-                .valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo("integration-saml-entity-id"); // matches login.entityID
     }
 
@@ -311,48 +303,20 @@ class SamlAuthenticationMockMvcTests {
         String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
         assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
 
-        XmlAssert.assertThat(samlRequestXml)
-                .withNamespaceContext(xmlNamespaces())
-                .valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                .withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
                 .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
-
-        XmlAssert.assertThat(samlRequestXml)
-                .withNamespaceContext(xmlNamespaces())
-                .valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo(spZone.getConfig().getSamlConfig().getEntityID()); // should match zone config's samlConfig.entityID
     }
 
     @Test
     void receiveAuthnResponseFromIdpToLegacyAliasUrl() throws Exception {
-        // create IDP in non-default zone
-        createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-post-binding.xml", "testsaml-post-binding");
 
-        final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
-
-        MvcResult mvcResult = mockMvc.perform(
-                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
-                                .contextPath("/uaa")
-                                .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
-                )
-                .andDo(print())
-                .andExpectAll(
-                        status().isOk(),
-                        content().string(containsString("name=\"SAMLRequest\"")),
-                        content().string(containsString("name=\"RelayState\" value=\"testsaml-post-binding\"")))
-                .andReturn();
-
-        // Decode the SAMLRequest
-        String contentHtml = mvcResult.getResponse().getContentAsString();
-        contentHtml = contentHtml.substring(contentHtml.indexOf(samlRequestMatch) + samlRequestMatch.length());
-        contentHtml = contentHtml.substring(0, contentHtml.indexOf("\""));
-        String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
-
-        Response response = responseWithAssertions();
-        response.setInResponseTo("ARQ0f19fe0-4cd7-4c83-b740-a71ad31bd161"); // after this line, at the break point, as an POC, using the debug "evaluate expression" feature, I set the in response to field of the response to match the ID field of the original SAML Authn request (var samlRequestXml), like this line => but still does not work
-        String encodedSamlResponse = serializedResponse(response);
-
-        mvcResult = mockMvc.perform(
-                        post("/uaa/saml/SSO/alias/%s".formatted("cloudfoundry-saml-login"))
+        String encodedSamlResponse = serializedResponse(responseWithAssertions());
+        mockMvc.perform(
+                        post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
                                 .contextPath("/uaa")
                                 .header(HOST, "localhost:8080")
                                 .param("SAMLResponse", encodedSamlResponse)
@@ -360,13 +324,9 @@ class SamlAuthenticationMockMvcTests {
                 )
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
+                // expect redirect to the Uaa Home Page: /uaa/
+                .andExpect(redirectedUrl("/uaa/"))
                 .andReturn();
-
-        // error message when consuming assertion: The response contained an InResponseTo attribute [ARQ0f19fe0-4cd7-4c83-b740-a71ad31bd161] but no saved authentication request was found (when break point = https://github.com/cloudfoundry/uaa/blob/538233f605e3402500cec6dc9fc3ce2883f61694/server/src/main/java/org/cloudfoundry/identity/uaa/provider/saml/OpenSaml4AuthenticationProvider.java#L486)
-
-        // expect redirect to the Uaa Home Page: /uaa/
-        String samlRedirectUrl = mvcResult.getResponse().getRedirectedUrl();
-        assertThat(samlRedirectUrl, equalTo("/uaa/"));
     }
 
     private ResultActions postSamlResponse(

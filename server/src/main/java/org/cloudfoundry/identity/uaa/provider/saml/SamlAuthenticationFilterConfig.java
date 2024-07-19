@@ -22,6 +22,7 @@ import org.springframework.security.saml2.provider.service.authentication.logout
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
+import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationTokenConverter;
 import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.OpenSaml4AuthenticationRequestResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2WebSsoAuthenticationFilter;
@@ -113,7 +114,9 @@ public class SamlAuthenticationFilterConfig {
                                            RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
                                            SecurityContextRepository securityContextRepository) {
 
-        Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter = new Saml2WebSsoAuthenticationFilter(relyingPartyRegistrationRepository);
+        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new RelayStateRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
+        Saml2AuthenticationTokenConverter saml2AuthenticationTokenConverter = new Saml2AuthenticationTokenConverter(relyingPartyRegistrationResolver);
+        Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter = new Saml2WebSsoAuthenticationFilter(saml2AuthenticationTokenConverter, BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
 
         ProviderManager authenticationManager = new ProviderManager(samlAuthenticationProvider);
         saml2WebSsoAuthenticationFilter.setAuthenticationManager(authenticationManager);
