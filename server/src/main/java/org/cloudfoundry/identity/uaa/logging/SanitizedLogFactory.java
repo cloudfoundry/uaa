@@ -55,6 +55,12 @@ public class SanitizedLogFactory {
             }
         }
 
+        public void debug(String message, Object... params) {
+            if (fallback.isDebugEnabled()) {
+                fallback.debug(LogSanitizerUtil.sanitize(message), params);
+            }
+        }
+
         public void debug(String message, Throwable t) {
             if (fallback.isDebugEnabled()) {
                 fallback.debug(LogSanitizerUtil.sanitize(message), t);
