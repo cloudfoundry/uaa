@@ -317,6 +317,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = getVersion(userId, etag);
         user.setVersion(version);
 
+        user.setZoneId(identityZoneManager.getCurrentIdentityZoneId());
+
         final ScimUser existingScimUser = scimUserProvisioning.retrieve(
                 userId,
                 identityZoneManager.getCurrentIdentityZoneId()

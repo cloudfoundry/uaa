@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.alias.EntityAliasHandlerValidationTest;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -51,7 +52,7 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
     }
 
     @Override
-    protected ScimUser buildEntityWithAliasProps(final String aliasId, final String aliasZid) {
+    protected ScimUser buildEntityWithAliasProps(final String zoneId, final String aliasId, final String aliasZid) {
         final ScimUser scimUser = new ScimUser();
 
         scimUser.setDisplayName("Some Displayname");
@@ -62,6 +63,7 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
         scimUser.setAliasId(aliasId);
         scimUser.setAliasZid(aliasZid);
 
+        setZoneId(scimUser, zoneId);
         return scimUser;
     }
 
@@ -121,7 +123,7 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
 
                 arrangeCurrentIdz(zone1);
 
-                final ScimUser requestBody = buildEntityWithAliasProps(null, zone2);
+                final ScimUser requestBody = buildEntityWithAliasProps(IdentityZone.getUaaZoneId(), null, zone2);
                 requestBody.setZoneId(zone1);
                 final String origin = RANDOM_STRING_GENERATOR.generate();
                 requestBody.setOrigin(origin);
@@ -166,7 +168,7 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
 
                 arrangeCurrentIdz(zone1);
 
-                final ScimUser requestBody = buildEntityWithAliasProps(null, zone2);
+                final ScimUser requestBody = buildEntityWithAliasProps(IdentityZone.getUaaZoneId(), null, zone2);
                 requestBody.setZoneId(zone1);
                 final String origin = RANDOM_STRING_GENERATOR.generate();
                 requestBody.setOrigin(origin);
@@ -201,7 +203,7 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
                 // should always be true
                 assertThat(aliasZidIdp).isNotEqualTo(customZoneId);
 
-                final ScimUser requestBody = buildEntityWithAliasProps(null, customZoneId);
+                final ScimUser requestBody = buildEntityWithAliasProps(IdentityZone.getUaaZoneId(), null, customZoneId);
                 requestBody.setZoneId(UAA);
                 final String origin = RANDOM_STRING_GENERATOR.generate();
                 requestBody.setOrigin(origin);
@@ -249,7 +251,7 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
 
                 arrangeCurrentIdz(zone1);
 
-                final ScimUser requestBody = buildEntityWithAliasProps(null, zone2);
+                final ScimUser requestBody = buildEntityWithAliasProps(IdentityZone.getUaaZoneId(), null, zone2);
                 requestBody.setZoneId(zone1);
                 final String origin = RANDOM_STRING_GENERATOR.generate();
                 requestBody.setOrigin(origin);
@@ -298,7 +300,7 @@ class ScimUserAliasHandlerValidationTest extends EntityAliasHandlerValidationTes
 
                 arrangeCurrentIdz(zone1);
 
-                final ScimUser requestBody = buildEntityWithAliasProps(null, zone2);
+                final ScimUser requestBody = buildEntityWithAliasProps(IdentityZone.getUaaZoneId(), null, zone2);
                 requestBody.setZoneId(zone1);
                 final String origin = RANDOM_STRING_GENERATOR.generate();
                 requestBody.setOrigin(origin);
