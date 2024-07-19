@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -27,13 +28,13 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 @PropertySource("classpath:integration.test.properties")
 public class DefaultIntegrationTestConfig {
-    static final int IMPLICIT_WAIT_TIME = 30;
-    static final int PAGE_LOAD_TIMEOUT = 40;
-    static final int SCRIPT_TIMEOUT = 30;
+    static final Duration IMPLICIT_WAIT_TIME = Duration.ofSeconds(30L);
+    static final Duration PAGE_LOAD_TIMEOUT = Duration.ofSeconds(40L);
+    static final Duration SCRIPT_TIMEOUT = Duration.ofSeconds(30L);
 
     private final int timeoutMultiplier;
 
@@ -58,29 +59,32 @@ public class DefaultIntegrationTestConfig {
         System.setProperty("webdriver.chrome.verboseLogging", "true");
         System.setProperty("webdriver.http.factory", "jdk-http-client");
 
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments(
-          "--verbose",
-          "--headless",
-          "--disable-web-security",
-          "--ignore-certificate-errors",
-          "--allow-running-insecure-content",
-          "--allow-insecure-localhost",
-          "--no-sandbox",
-          "--disable-gpu",
-          "--remote-allow-origins=*"
-        );
-
-        options.setAcceptInsecureCerts(true);
-
-        ChromeDriver driver = new ChromeDriver(options);
-
+        ChromeDriver driver = new ChromeDriver(getChromeOptions());
         driver.manage().timeouts()
-                .implicitlyWait(IMPLICIT_WAIT_TIME * timeoutMultiplier, TimeUnit.SECONDS)
-                .pageLoadTimeout(PAGE_LOAD_TIMEOUT * timeoutMultiplier, TimeUnit.SECONDS)
-                .setScriptTimeout(SCRIPT_TIMEOUT * timeoutMultiplier, TimeUnit.SECONDS);
+                .implicitlyWait(IMPLICIT_WAIT_TIME.multipliedBy(timeoutMultiplier))
+                .pageLoadTimeout(PAGE_LOAD_TIMEOUT.multipliedBy(timeoutMultiplier))
+                .scriptTimeout(SCRIPT_TIMEOUT.multipliedBy(timeoutMultiplier));
         driver.manage().window().setSize(new Dimension(1024, 768));
         return driver;
+    }
+
+    private static ChromeOptions getChromeOptions() {
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments(
+                "--verbose",
+                // Comment the following line to run selenium test browser in Headed Mode
+                "--headless",
+                "--disable-web-security",
+                "--ignore-certificate-errors",
+                "--allow-running-insecure-content",
+                "--allow-insecure-localhost",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--remote-allow-origins=*"
+        );
+        options.setAcceptInsecureCerts(true);
+
+        return options;
     }
 
     @Bean(destroyMethod = "stop")
