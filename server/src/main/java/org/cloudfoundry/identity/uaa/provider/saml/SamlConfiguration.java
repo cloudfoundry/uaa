@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -32,8 +33,9 @@ public class SamlConfiguration {
 
     @Autowired
     @Bean
-    public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders(SamlConfigProps samlConfigProps) {
-        BootstrapSamlIdentityProviderData idpData = new BootstrapSamlIdentityProviderData();
+    public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders(SamlConfigProps samlConfigProps,
+                           final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator metaDataProviders) {
+        BootstrapSamlIdentityProviderData idpData = new BootstrapSamlIdentityProviderData(metaDataProviders);
         idpData.setIdentityProviders(samlConfigProps.getProviders());
         idpData.setLegacyIdpMetaData(metaDataUrl);
         idpData.setLegacyIdpIdentityAlias(legacyIdpIdentityAlias);
