@@ -5,6 +5,7 @@ import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -94,6 +95,7 @@ public class SamlIdentityProviderConfigurator {
 
         if (!entityIDexists) {
             for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
+                if (existing.getType() != SamlIdentityProviderDefinition.MetadataLocation.DATA) continue;
                 RelyingPartyRegistration existingProvider = getExtendedMetadataDelegate(existing);
                 if (entityIDToBeAdded.equals(existingProvider.getAssertingPartyDetails().getEntityId()) && !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
                     entityIDexists = true;
@@ -103,7 +105,7 @@ public class SamlIdentityProviderConfigurator {
         }
 
         if (entityIDexists) {
-            throw new IllegalArgumentException("Duplicate entity ID:" + entityIDToBeAdded);
+            throw new IdpAlreadyExistsException("Duplicate entity ID:" + entityIDToBeAdded);
         }
         return entityIDToBeAdded;
     }
