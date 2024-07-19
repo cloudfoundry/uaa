@@ -95,11 +95,14 @@ deleted.
 
 ## Deletion of an identity zone
 
-When deleting an identity zone that contains entities with alias, all those identity providers that have an alias to the
-deleted zone are also deleted.
+When deleting an identity zone, all entities (users, IdPs, clients, etc.) inside it are deleted as well.
+Without adjustments, this would lead to dangling references in the aliases of entities inside the deleted zone: the 
+`aliasId` and `aliasZid` would point to a no longer existing entity.
 
-> **WARNING:** Please note that the users of this IdP in the alias zone are not deleted.
-> They will still have a reference (via `alias_zid` and `alias_id`) to their deleted counterparts in the deleted zone.
+Therefore, the deletion of an identity zone will be rejected if at least one identity provider with an alias exists 
+inside the zone.
+Checking for identity providers is sufficient since users can only have an alias if their origin IdP has an alias as 
+well.
 
 ## Enablement
 
