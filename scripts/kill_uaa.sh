@@ -21,11 +21,12 @@ function main() {
   local pid
   local jps_command
   local kill_count=5
+  local port=${PORT:-8080}
   jps_command=$(find_jps_command)
 
-  pid=$($jps_command -vlm | grep Bootstrap | grep uaa | cut -f 1 -d' ')
+  pid=$($jps_command -vlm | grep Bootstrap | grep uaa | grep "${port}" | cut -f 1 -d' ')
   if [ -z "$pid" ]; then
-    echo "No UAA process found"
+    echo "No UAA process found on port: ${port}"
     exit 0
   fi
 
@@ -35,7 +36,7 @@ function main() {
   echo -n "Attempting to kill UAA process with PID=$pid: "
 
   while [ "$kill_count" -ge "0" ]; do
-    if ! $jps_command | egrep "^${pid} " > /dev/null; then
+    if ! $jps_command | egrep "^${pid} " >/dev/null; then
       break
     fi
     echo -n .
@@ -44,7 +45,7 @@ function main() {
     kill_count=$((kill_count - 1))
   done
 
-  if $jps_command | egrep "^${pid} " > /dev/null; then
+  if $jps_command | egrep "^${pid} " >/dev/null; then
     echo -n " Forcibly killing: "
     kill -9 "${pid}" || true
     sleep 2
