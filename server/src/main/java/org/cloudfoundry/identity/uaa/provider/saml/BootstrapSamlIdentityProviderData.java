@@ -22,6 +22,8 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.Ext
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -50,6 +52,13 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     private boolean legacyShowSamlLink = true;
     private List<IdentityProviderWrapper<SamlIdentityProviderDefinition>> samlProviders = new LinkedList<>();
     private Map<String, Map<String, Object>> providers = null;
+    private final SamlIdentityProviderConfigurator samlConfigurator;
+
+    public BootstrapSamlIdentityProviderData(
+        final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator
+    ) {
+        this.samlConfigurator = samlConfigurator;
+    }
 
     public static IdentityProvider<SamlIdentityProviderDefinition> parseSamlProvider(SamlIdentityProviderDefinition def) {
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
@@ -174,6 +183,10 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setAuthnContext(authnContext);
 
             IdentityProvider provider = parseSamlProvider(def);
+            if (def.getType() == SamlIdentityProviderDefinition.MetadataLocation.DATA) {
+                RelyingPartyRegistration metadataDelegate = samlConfigurator.getExtendedMetadataDelegate(def);
+                def.setIdpEntityId(metadataDelegate.getAssertingPartyDetails().getEntityId());
+            }
             IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
             wrapper.setOverride(override == null || override);
             samlProviders.add(wrapper);

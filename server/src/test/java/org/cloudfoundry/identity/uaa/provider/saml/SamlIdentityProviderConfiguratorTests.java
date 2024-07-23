@@ -19,9 +19,10 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
@@ -115,7 +116,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @BeforeEach
     public void setUp() {
-        bootstrap = new BootstrapSamlIdentityProviderData();
+        bootstrap = new BootstrapSamlIdentityProviderData(new SamlIdentityProviderConfigurator(mock(JdbcIdentityProviderProvisioning.class), new IdentityZoneManagerImpl(), mock(FixedHttpMetaDataProvider.class)));
         singleAdd = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
                 .setIdpEntityAlias(singleAddAlias)
@@ -143,7 +144,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @Test
     void testAddNullProvider() {
-        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> configurator.validateSamlIdentityProviderDefinition(null));
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> configurator.validateSamlIdentityProviderDefinition(null, false));
     }
 
     @Test
@@ -151,7 +152,7 @@ public class SamlIdentityProviderConfiguratorTests {
         singleAdd.setIdpEntityAlias(null);
 
         assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> {
-            configurator.validateSamlIdentityProviderDefinition(singleAdd);
+            configurator.validateSamlIdentityProviderDefinition(singleAdd, false);
         });
     }
 
@@ -228,7 +229,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
         when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp1, idp2));
 
-        return configurator.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
+        return configurator.getIdentityProviderDefinitions(clientIdpAliases, new IdentityZoneManagerImpl().getCurrentIdentityZone());
     }
 
     @Test

@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
+@Component("fixedHttpMetaDataProvider")
 public class FixedHttpMetaDataProvider {
 
     private final RestTemplate trustingRestTemplate;

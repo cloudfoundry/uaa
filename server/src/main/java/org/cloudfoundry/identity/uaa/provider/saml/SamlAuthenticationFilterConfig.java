@@ -121,6 +121,7 @@ public class SamlAuthenticationFilterConfig {
         ProviderManager authenticationManager = new ProviderManager(samlAuthenticationProvider);
         saml2WebSsoAuthenticationFilter.setAuthenticationManager(authenticationManager);
         saml2WebSsoAuthenticationFilter.setSecurityContextRepository(securityContextRepository);
+        saml2WebSsoAuthenticationFilter.setFilterProcessesUrl(BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
 
         return saml2WebSsoAuthenticationFilter;
     }
