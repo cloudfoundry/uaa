@@ -71,7 +71,7 @@ public class ErrorRoutingIT {
         cn.setRequestMethod(method);
         // connection initiate
         cn.connect();
-        Assert.assertEquals("Check status code from " + errorPath + " is " + codeExpected, cn.getResponseCode(), codeExpected);
+        Assert.assertEquals("Check status code from " + errorPath + " is " + codeExpected, codeExpected, cn.getResponseCode());
         return getResponseBody(cn);
     }
 
