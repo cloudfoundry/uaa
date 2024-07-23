@@ -69,9 +69,10 @@ public class ErrorRoutingIT {
     private String CallErrorPageAndCheckHttpStatusCode(String errorPath, String method, int codeExpected) throws IOException {
         HttpURLConnection cn = (HttpURLConnection)new URL(baseUrl + errorPath).openConnection();
         cn.setRequestMethod(method);
+        cn.setRequestProperty("Accept", "text/html");
         // connection initiate
         cn.connect();
-        Assert.assertEquals("Check status code from " + errorPath + " is " + codeExpected, cn.getResponseCode(), codeExpected);
+        Assert.assertEquals("Check status code from " + errorPath + " is " + codeExpected, codeExpected, cn.getResponseCode());
         return getResponseBody(cn);
     }
 
