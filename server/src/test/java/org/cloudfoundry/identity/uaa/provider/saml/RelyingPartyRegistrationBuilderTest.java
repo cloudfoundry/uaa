@@ -18,6 +18,7 @@ import java.io.Reader;
 import java.io.UncheckedIOException;
 import java.security.PrivateKey;
 import java.security.cert.X509Certificate;
+import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -42,7 +43,7 @@ class RelyingPartyRegistrationBuilderTest {
         when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
 
         RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, mockKeyWithCert, "saml-sample-metadata.xml", REGISTRATION_ID, ENTITY_ID_ALIAS, true);
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(mockKeyWithCert), "saml-sample-metadata.xml", REGISTRATION_ID, ENTITY_ID_ALIAS, true);
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
@@ -63,7 +64,7 @@ class RelyingPartyRegistrationBuilderTest {
 
         String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
         RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, mockKeyWithCert, metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS,false);
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(mockKeyWithCert), metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, false);
 
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
@@ -81,9 +82,11 @@ class RelyingPartyRegistrationBuilderTest {
     @Test
     void failsWithInvalidXML() {
         String metadataXml = "<?xml version=\"1.0\"?>\n<xml>invalid xml</xml>";
+        List<KeyWithCert> keyList = List.of(mockKeyWithCert);
+
         assertThatThrownBy(() ->
                 RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(ENTITY_ID, NAME_ID,
-                        mockKeyWithCert, metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, true))
+                        keyList, metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, true))
                 .isInstanceOf(Saml2Exception.class)
                 .hasMessageContaining("Unsupported element");
     }

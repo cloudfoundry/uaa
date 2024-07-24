@@ -20,6 +20,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -104,7 +105,7 @@ class SamlConfigTest {
         config.setPrivateKeyPassword(passphrase);
         config.setCertificate(certificate);
         Map<String, SamlKey> keys = config.getKeys();
-        assertThat(keys).hasSize(1).containsKey(LEGACY_KEY_ID);
+        assertThat(keys).containsOnlyKeys(LEGACY_KEY_ID);
         assertThat(keys.get(LEGACY_KEY_ID).getKey()).isEqualTo(privateKey);
         assertThat(keys.get(LEGACY_KEY_ID).getPassphrase()).isEqualTo(passphrase);
         assertThat(keys.get(LEGACY_KEY_ID).getCertificate()).isEqualTo(certificate);
@@ -116,12 +117,14 @@ class SamlConfigTest {
         String keyId = "testKeyId";
         config.addAndActivateKey(keyId, key);
         Map<String, SamlKey> keys = config.getKeys();
-        assertThat(keys).hasSize(1);
+        assertThat(keys).hasSize(1)
+                .containsKey(keyId);
         assertThat(config.getActiveKeyId()).isEqualTo(keyId);
-        assertThat(keys).containsKey(keyId);
-        assertThat(keys.get(keyId).getKey()).isEqualTo(privateKey);
-        assertThat(keys.get(keyId).getPassphrase()).isEqualTo(passphrase);
-        assertThat(keys.get(keyId).getCertificate()).isEqualTo(certificate);
+        assertThat(keys.get(keyId)).returns(privateKey, SamlKey::getKey)
+                .returns(passphrase, SamlKey::getPassphrase)
+                .returns(certificate, SamlKey::getCertificate);
+        assertThat(config.getActiveKey()).isSameAs(keys.get(keyId));
+        assertThat(config.getKeyList()).hasSize(1).containsExactly(key);
     }
 
     @Test
@@ -131,12 +134,44 @@ class SamlConfigTest {
         String keyId = "nonActiveKeyId";
         config.addKey(keyId, key);
         Map<String, SamlKey> keys = config.getKeys();
-        assertThat(keys).hasSize(2);
+        assertThat(keys).hasSize(2)
+                .containsKey(keyId);
         assertThat(config.getActiveKeyId()).isNotEqualTo(keyId);
-        assertThat(keys).containsKey(keyId);
-        assertThat(keys.get(keyId).getKey()).isEqualTo(privateKey);
-        assertThat(keys.get(keyId).getPassphrase()).isEqualTo(passphrase);
-        assertThat(keys.get(keyId).getCertificate()).isEqualTo(certificate);
+        assertThat(keys.get(keyId)).returns(privateKey, SamlKey::getKey)
+                .returns(passphrase, SamlKey::getPassphrase)
+                .returns(certificate, SamlKey::getCertificate);
+    }
+
+    @Test
+    void getKeyList() {
+        // Default is empty
+        assertThat(config.getKeyList()).isEmpty();
+
+        // Add active key, should only have that key
+        addActiveKey();
+        SamlKey activeKey = config.getActiveKey();
+        assertThat(config.getKeyList()).containsExactly(activeKey);
+
+        // Add another key, should have both keys
+        SamlKey nonActiveKey = new SamlKey(privateKey, passphrase, certificate);
+        String nonActiveKeyId = "nonActiveKeyId";
+        config.addKey(nonActiveKeyId, nonActiveKey);
+        assertThat(config.getKeyList()).containsExactly(activeKey, nonActiveKey);
+
+        // add another active key, should have the new key first
+        SamlKey otherActiveKey = new SamlKey(privateKey, passphrase, certificate);
+        config.addAndActivateKey("anotherActiveKeyId", otherActiveKey);
+        assertThat(config.getKeyList()).hasSize(3).first().isSameAs(otherActiveKey);
+
+        // remove the non-active key, should have other 2 keys
+        config.removeKey(nonActiveKeyId);
+        assertThat(config.getKeyList()).containsExactly(otherActiveKey, activeKey);
+
+        // drop the current active key, should have only the remaining key... even though it is not active
+        config.removeKey("anotherActiveKeyId");
+        assertThat(config.getActiveKey()).isNull();
+        assertThat(config.getKeys()).hasSize(1);
+        assertThat(config.getKeyList()).containsExactly(activeKey);
     }
 
     @Test
@@ -153,19 +188,56 @@ class SamlConfigTest {
 
     @Test
     void testSetKeyAndCert() {
+        // Default values are null
+        assertThat(config).returns(null, SamlConfig::getPrivateKey)
+                .returns(null, SamlConfig::getPrivateKeyPassword)
+                .returns(null, SamlConfig::getCertificate)
+                .extracting(SamlConfig::getActiveKey)
+                .isNull();
+
+        // Set values to null, does not create a key
+        config.setPrivateKey(null);
+        config.setPrivateKeyPassword(null);
+        config.setCertificate(null);
+        assertThat(config).returns(null, SamlConfig::getPrivateKey)
+                .returns(null, SamlConfig::getPrivateKeyPassword)
+                .returns(null, SamlConfig::getCertificate)
+                .extracting(SamlConfig::getActiveKey)
+                .isNull();
+
+        // Set values to non-null, creates a key object
         config.setPrivateKey(privateKey);
         config.setPrivateKeyPassword(passphrase);
         config.setCertificate(certificate);
-        assertThat(config.getPrivateKey()).isEqualTo(privateKey);
-        assertThat(config.getPrivateKeyPassword()).isEqualTo(passphrase);
+        assertThat(config).returns(privateKey, SamlConfig::getPrivateKey)
+                .returns(passphrase, SamlConfig::getPrivateKeyPassword)
+                .returns(certificate, SamlConfig::getCertificate)
+                .extracting(SamlConfig::getActiveKey)
+                .isNotNull()
+                .returns(privateKey, SamlKey::getKey)
+                .returns(certificate, SamlKey::getCertificate)
+                .returns(passphrase, SamlKey::getPassphrase);
+
+        // Set values to null, retains the key object with nulls
+        config.setPrivateKey(null);
+        config.setPrivateKeyPassword(null);
+        config.setCertificate(null);
+        assertThat(config).returns(null, SamlConfig::getPrivateKey)
+                .returns(null, SamlConfig::getPrivateKeyPassword)
+                .returns(null, SamlConfig::getCertificate)
+                .extracting(SamlConfig::getActiveKey)
+                .isNotNull()
+                .returns(null, SamlKey::getKey)
+                .returns(null, SamlKey::getCertificate)
+                .returns(null, SamlKey::getPassphrase);
     }
 
     @Test
     void read_old_json_works() {
         read_json(oldJson);
-        assertThat(config.getPrivateKey()).isEqualTo(privateKey);
-        assertThat(config.getPrivateKeyPassword()).isEqualTo(passphrase);
-        assertThat(config.getCertificate()).isEqualTo(certificate);
+        assertThat(config).returns(privateKey, SamlConfig::getPrivateKey)
+                .returns(passphrase, SamlConfig::getPrivateKeyPassword)
+                .returns(certificate, SamlConfig::getCertificate);
     }
 
     public void read_json(String json) {
@@ -177,9 +249,9 @@ class SamlConfigTest {
         read_json(oldJson);
         String json = JsonUtils.writeValueAsString(config);
         read_json(json);
-        assertThat(config.getPrivateKey()).isEqualTo(privateKey);
-        assertThat(config.getPrivateKeyPassword()).isEqualTo(passphrase);
-        assertThat(config.getCertificate()).isEqualTo(certificate);
+        assertThat(config).returns(privateKey, SamlConfig::getPrivateKey)
+                .returns(passphrase, SamlConfig::getPrivateKeyPassword)
+                .returns(certificate, SamlConfig::getCertificate);
     }
 
     @Test
@@ -193,8 +265,10 @@ class SamlConfigTest {
         read_json(oldJson);
         assertThat(config.getKeys()).hasSize(1);
         assertThat(config.getActiveKeyId()).isNotNull();
+        assertThat(config.getActiveKey()).isNotNull();
         config.setKeys(Collections.emptyMap());
         assertThat(config.getKeys()).isEmpty();
         assertThat(config.getActiveKeyId()).isNull();
+        assertThat(config.getActiveKey()).isNull();
     }
 }

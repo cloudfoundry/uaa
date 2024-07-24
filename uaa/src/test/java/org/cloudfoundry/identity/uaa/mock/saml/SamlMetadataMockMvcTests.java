@@ -7,7 +7,6 @@ import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerato
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,22 +31,8 @@ class SamlMetadataMockMvcTests {
     @Autowired
     private MockMvc mockMvc;
 
-    private RandomValueStringGenerator generator;
-    private IdentityZone spZone;
-
     @Autowired
     private WebApplicationContext webApplicationContext;
-    private UaaClientDetails adminClient;
-
-    @BeforeEach
-    void setUp() throws Exception {
-        adminClient = new UaaClientDetails("admin", "", "", "client_credentials", "uaa.admin");
-        adminClient.setClientSecret("adminsecret");
-
-        generator = new RandomValueStringGenerator();
-        String zoneSubdomain = "testzone-" + generator.generate();
-        spZone = createZone(zoneSubdomain, adminClient, false, false, zoneSubdomain + "-entity-id");
-    }
 
     @Test
     void testSamlMetadataRootNoEndingSlash() throws Exception {
@@ -93,6 +78,7 @@ class SamlMetadataMockMvcTests {
 
     @Test
     void testNonDefaultZoneSamlMetadataXMLValidation() throws Exception {
+        IdentityZone spZone = setupIdentityZone(true);
         String subdomain = spZone.getSubdomain();
 
         mockMvc.perform(get(new URI("/saml/metadata"))
@@ -137,6 +123,7 @@ class SamlMetadataMockMvcTests {
 
         @Test
         void testNonDefaultZoneSamlMetadataXMLValidation() throws Exception {
+            IdentityZone spZone = setupIdentityZone(true);
             String subdomain = spZone.getSubdomain();
 
             mockMvc.perform(get(new URI("/saml/metadata"))
@@ -157,8 +144,7 @@ class SamlMetadataMockMvcTests {
 
         @Test
         void testNonDefaultZoneSamlMetadataXMLValidation_ZoneSamlEntityIDNotSet() throws Exception {
-            generator = new RandomValueStringGenerator();
-            IdentityZone alternativeSpZone = createZone("testzone-" + generator.generate(), adminClient, false, false, null);
+            IdentityZone alternativeSpZone = setupIdentityZone(false);
             String zoneSubdomain = alternativeSpZone.getSubdomain();
 
             mockMvc.perform(get(new URI("/saml/metadata"))
@@ -176,6 +162,16 @@ class SamlMetadataMockMvcTests {
                             xpath("/EntityDescriptor/SPSSODescriptor/AssertionConsumerService/@Location").string(containsString("/saml/SSO/alias/%s.integration-saml-entity-id-alias".formatted(zoneSubdomain))) // this needs to be: /saml/SSO/alias/[zone-subdomain].[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias, or fall back on login.entityID]
                     );
         }
+    }
+
+    private IdentityZone setupIdentityZone(boolean hasEntityId) throws Exception {
+        UaaClientDetails adminClient = new UaaClientDetails("admin", "", "", "client_credentials", "uaa.admin");
+        adminClient.setClientSecret("adminsecret");
+
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        String zoneSubdomain = "testzone-" + generator.generate();
+        String entityId = hasEntityId ? zoneSubdomain + "-entity-id" : null;
+        return createZone(zoneSubdomain, adminClient, false, false, entityId);
     }
 
     private IdentityZone createZone(String zoneSubdomain, UaaClientDetails adminClient, Boolean samlRequestSigned, Boolean samlWantAssertionSigned, String samlZoneEntityID) throws Exception {

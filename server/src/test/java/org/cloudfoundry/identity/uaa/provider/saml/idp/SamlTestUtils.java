@@ -5,25 +5,6 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.w3c.dom.Document;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathExpression;
-import javax.xml.xpath.XPathExpressionException;
-import javax.xml.xpath.XPathFactory;
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.LinkedList;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-//import static org.opensaml.common.xml.SAMLConstants.SAML20P_NS;
 
 // TODO: this class seems to be used more broadly than what its location indicates (uaa as saml idp); need to move it
 // also remove unused code in here
@@ -100,29 +81,5 @@ public class SamlTestUtils {
             def.setLinkText("Login with Local SAML IdP(" + alias + ")");
         }
         return def;
-    }
-
-    public static List<String> getCertificates(String metadata, String type) throws Exception {
-        Document doc = getMetadataDoc(metadata);
-        NodeList nodeList = evaluateXPathExpression(doc, "//*[local-name()='KeyDescriptor' and @*[local-name() = 'use']='" + type + "']//*[local-name()='X509Certificate']/text()");
-        assertThat(nodeList).isNotNull();
-        List<String> result = new LinkedList<>();
-        for (int i = 0; i < nodeList.getLength(); i++) {
-            result.add(nodeList.item(i).getNodeValue().replace("\n", ""));
-        }
-        return result;
-    }
-
-    public static NodeList evaluateXPathExpression(Document doc, String xpath) throws XPathExpressionException {
-        XPath xPath = XPathFactory.newInstance().newXPath();
-        XPathExpression expression = xPath.compile(xpath);
-        return (NodeList) expression.evaluate(doc, XPathConstants.NODESET);
-    }
-
-    public static Document getMetadataDoc(String metadata) throws SAXException, IOException, ParserConfigurationException {
-        DocumentBuilderFactory documentBuilderFactory = DocumentBuilderFactory.newInstance();
-        documentBuilderFactory.setNamespaceAware(false);
-        InputSource is = new InputSource(new StringReader(metadata));
-        return documentBuilderFactory.newDocumentBuilder().parse(is);
     }
 }

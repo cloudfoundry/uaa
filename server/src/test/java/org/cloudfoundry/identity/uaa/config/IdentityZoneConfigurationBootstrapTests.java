@@ -145,8 +145,8 @@ public class IdentityZoneConfigurationBootstrapTests {
         assertThat(uaa.getConfig().getSamlConfig().getPrivateKey()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY);
         assertThat(uaa.getConfig().getSamlConfig().getPrivateKeyPassword()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
         assertThat(uaa.getConfig().getSamlConfig().getCertificate()).isEqualTo(SamlTestUtils.PROVIDER_CERTIFICATE);
-        assertThat(uaa.getConfig().getSamlConfig().isWantAssertionSigned()).isEqualTo(false);
-        assertThat(uaa.getConfig().getSamlConfig().isRequestSigned()).isEqualTo(false);
+        assertThat(uaa.getConfig().getSamlConfig().isWantAssertionSigned()).isFalse();
+        assertThat(uaa.getConfig().getSamlConfig().isRequestSigned()).isFalse();
     }
 
     @Test
@@ -220,11 +220,11 @@ public class IdentityZoneConfigurationBootstrapTests {
 
     @Test
     void setHomeRedirect() throws Exception {
-        bootstrap.setHomeRedirect("http://some.redirect.com/redirect");
+        bootstrap.setHomeRedirect("https://some.redirect.com/redirect");
         bootstrap.afterPropertiesSet();
 
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaaZoneId());
-        assertThat(zone.getConfig().getLinks().getHomeRedirect()).isEqualTo("http://some.redirect.com/redirect");
+        assertThat(zone.getConfig().getLinks().getHomeRedirect()).isEqualTo("https://some.redirect.com/redirect");
     }
 
     @Test

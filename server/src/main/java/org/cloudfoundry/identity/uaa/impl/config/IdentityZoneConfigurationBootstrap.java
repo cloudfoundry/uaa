@@ -12,8 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.Data;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -36,7 +35,7 @@ import static java.util.Objects.nonNull;
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.hasText;
 
-@Setter
+@Data
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private ClientSecretPolicy clientSecretPolicy;
@@ -44,7 +43,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private final IdentityZoneProvisioning provisioning;
     private boolean selfServiceLinksEnabled = true;
-    @Getter
     private String homeRedirect = null;
     private Map<String, Object> selfServiceLinks;
     private List<String> logoutRedirectWhitelist;
@@ -70,7 +68,6 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private UserConfig defaultUserConfig;
 
     private IdentityZoneValidator validator = (config, mode) -> config;
-    @Getter
     private Map<String, Object> branding;
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
@@ -143,97 +140,5 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     public IdentityZoneConfigurationBootstrap setActiveKeyId(String activeKeyId) {
         this.activeKeyId = activeKeyId != null ? activeKeyId.toLowerCase(Locale.ROOT) : null;
         return this;
-    }
-
-    public void setTokenPolicy(TokenPolicy tokenPolicy) {
-        this.tokenPolicy = tokenPolicy;
-    }
-
-    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
-        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
-    }
-
-    public void setHomeRedirect(String homeRedirect) {
-        this.homeRedirect = homeRedirect;
-    }
-
-    public String getHomeRedirect() {
-        return homeRedirect;
-    }
-
-    public void setSelfServiceLinks(Map<String, Object> links) {
-        this.selfServiceLinks = links;
-    }
-
-    public void setLogoutDefaultRedirectUrl(String logoutDefaultRedirectUrl) {
-        this.logoutDefaultRedirectUrl = logoutDefaultRedirectUrl;
-    }
-
-    public void setLogoutDisableRedirectParameter(boolean logoutDisableRedirectParameter) {
-        this.logoutDisableRedirectParameter = logoutDisableRedirectParameter;
-    }
-
-    public void setLogoutRedirectParameterName(String logoutRedirectParameterName) {
-        this.logoutRedirectParameterName = logoutRedirectParameterName;
-    }
-
-    public void setLogoutRedirectWhitelist(List<String> logoutRedirectWhitelist) {
-        this.logoutRedirectWhitelist = logoutRedirectWhitelist;
-    }
-
-    public void setPrompts(List<Prompt> prompts) {
-        this.prompts = prompts;
-    }
-
-    public void setDefaultIdentityProvider(String defaultIdentityProvider) {
-        this.defaultIdentityProvider = defaultIdentityProvider;
-    }
-
-    public void setSamlSpCertificate(String samlSpCertificate) {
-        this.samlSpCertificate = samlSpCertificate;
-    }
-
-    public void setSamlSpPrivateKey(String samlSpPrivateKey) {
-        this.samlSpPrivateKey = samlSpPrivateKey;
-    }
-
-    public void setSamlSpPrivateKeyPassphrase(String samlSpPrivateKeyPassphrase) {
-        this.samlSpPrivateKeyPassphrase = samlSpPrivateKeyPassphrase;
-    }
-
-    public boolean isIdpDiscoveryEnabled() {
-        return idpDiscoveryEnabled;
-    }
-
-    public void setIdpDiscoveryEnabled(boolean idpDiscoveryEnabled) {
-        this.idpDiscoveryEnabled = idpDiscoveryEnabled;
-    }
-
-    public boolean isAccountChooserEnabled() {
-        return accountChooserEnabled;
-    }
-
-    public void setAccountChooserEnabled(boolean accountChooserEnabled) {
-        this.accountChooserEnabled = accountChooserEnabled;
-    }
-
-    public void setBranding(Map<String, Object> branding) {
-        this.branding = branding;
-    }
-
-    public Map<String, Object> getBranding() {
-        return branding;
-    }
-
-    public boolean isDisableSamlInResponseToCheck() {
-        return disableSamlInResponseToCheck;
-    }
-
-    public void setDisableSamlInResponseToCheck(boolean disableSamlInResponseToCheck) {
-        this.disableSamlInResponseToCheck = disableSamlInResponseToCheck;
-    }
-
-    public void setDefaultUserConfig(final UserConfig defaultUserConfig) {
-        this.defaultUserConfig = defaultUserConfig;
     }
 }

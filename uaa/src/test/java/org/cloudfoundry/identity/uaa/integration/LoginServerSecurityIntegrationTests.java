@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -49,14 +50,8 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 /**
  * Integration test to verify that the Login Server authentication channel is
@@ -69,7 +64,6 @@ public class LoginServerSecurityIntegrationTests {
     private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
     private final String LOGIN_SERVER_JOE = "ls_joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
-    private final String userEndpoint = "/Users";
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
     private ScimUser joe;
@@ -81,7 +75,7 @@ public class LoginServerSecurityIntegrationTests {
     @Rule
     public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccountSetup);
 
-    private final MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
+    private final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
 
     private final HttpHeaders headers = new HttpHeaders();
     private ScimUser userForLoginServer;
@@ -130,6 +124,7 @@ public class LoginServerSecurityIntegrationTests {
         userForLoginServer.setVerified(true);
         userForLoginServer.setOrigin(LOGIN_SERVER);
 
+        String userEndpoint = "/Users";
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
         userForLoginServer = client.postForEntity(serverRunning.getUrl(userEndpoint), userForLoginServer,
                 ScimUser.class).getBody();
@@ -140,18 +135,17 @@ public class LoginServerSecurityIntegrationTests {
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("Passwo3d");
 
-        HttpHeaders headers = new HttpHeaders();
+        headers.clear();
         ResponseEntity<Void> result = client
                 .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
+                        HttpMethod.PUT, new HttpEntity<>(change, headers),
                         Void.class, joe.getId());
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         // The implicit grant for cf requires extra parameters in the
         // authorization request
         context.setParameters(Collections.singletonMap("credentials",
                 testAccounts.getJsonCredentials(joe.getUserName(), "Passwo3d")));
-
     }
 
     @Test
@@ -160,10 +154,11 @@ public class LoginServerSecurityIntegrationTests {
         params.set("username", JOE);
         params.set("password", "Passwo3d");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(JOE, response.getBody().get("username"));
-        assertEquals(OriginKeys.UAA, response.getBody().get(OriginKeys.ORIGIN));
-        assertTrue(StringUtils.hasText((String) response.getBody().get("user_id")));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody())
+                .containsEntry("username", JOE)
+                .containsEntry(OriginKeys.ORIGIN, OriginKeys.UAA);
+        assertThat(StringUtils.hasText((String) response.getBody().get("user_id"))).isTrue();
     }
 
     @Test
@@ -172,10 +167,10 @@ public class LoginServerSecurityIntegrationTests {
         params.set("username", testAccounts.getUserName());
         params.set("password", testAccounts.getPassword());
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("marissa", response.getBody().get("username"));
-        assertEquals(OriginKeys.UAA, response.getBody().get(OriginKeys.ORIGIN));
-        assertTrue(StringUtils.hasText((String) response.getBody().get("user_id")));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsEntry("username", "marissa")
+                .containsEntry(OriginKeys.ORIGIN, OriginKeys.UAA);
+        assertThat(StringUtils.hasText((String) response.getBody().get("user_id"))).isTrue();
     }
 
     @Test
@@ -184,7 +179,7 @@ public class LoginServerSecurityIntegrationTests {
         params.set("username", testAccounts.getUserName());
         params.set("password", "");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
@@ -192,10 +187,10 @@ public class LoginServerSecurityIntegrationTests {
         params.set("username", testAccounts.getUserName());
         params.set("password", testAccounts.getPassword());
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("marissa", response.getBody().get("username"));
-        assertNull(response.getBody().get(OriginKeys.ORIGIN));
-        assertNull(response.getBody().get("user_id"));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).containsEntry("username", "marissa")
+                .doesNotContainKey(OriginKeys.ORIGIN)
+                .doesNotContainKey("user_id");
     }
 
     @Test
@@ -212,9 +207,9 @@ public class LoginServerSecurityIntegrationTests {
         }
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertEquals(HttpStatus.FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         String results = response.getHeaders().getLocation().toString();
-        assertTrue("There should be an access token: " + results, results.contains("access_token"));
+        assertThat(results).as("There should be an access token: " + results).contains("access_token");
     }
 
     @Test
@@ -230,11 +225,11 @@ public class LoginServerSecurityIntegrationTests {
         if (response.getStatusCode().is4xxClientError()) {
             fail(response.getBody().toString());
         } else {
-            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             @SuppressWarnings("unchecked")
             Map<String, Object> results = response.getBody();
             // The approval page messaging response
-            assertNotNull("There should be scopes: " + results, results.get("scopes"));
+            assertThat(results).as("There should be scopes: " + results).containsKey("scopes");
         }
     }
 
@@ -250,11 +245,11 @@ public class LoginServerSecurityIntegrationTests {
         if (response.getStatusCode().is4xxClientError()) {
             fail(response.getBody().toString());
         } else {
-            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             @SuppressWarnings("unchecked")
             Map<String, Object> results = response.getBody();
             // The approval page messaging response
-            assertNotNull("There should be scopes: " + results, results.get("scopes"));
+            assertThat(results).as("There should be scopes: " + results).containsKey("scopes");
         }
     }
 
@@ -265,10 +260,10 @@ public class LoginServerSecurityIntegrationTests {
         params.remove("username");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertTrue("There should be an error: " + results, results.containsKey("error"));
+        assertThat(results).as("There should be an error: " + results).containsKey("error");
     }
 
     @Test
@@ -282,10 +277,10 @@ public class LoginServerSecurityIntegrationTests {
         params.set("given_name", "Mabel");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertTrue("There should be an error: " + results, results.containsKey("error"));
+        assertThat(results).as("There should be an error: " + results).containsKey("error");
     }
 
     @Test
@@ -306,9 +301,9 @@ public class LoginServerSecurityIntegrationTests {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
         // add_new:true user accounts are automatically provisioned.
-        assertEquals(HttpStatus.FOUND, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         String results = response.getHeaders().getLocation().getFragment();
-        assertTrue("There should be an access token: " + results, results.contains("access_token"));
+        assertThat(results).as("There should be an access token: " + results).contains("access_token");
     }
 
     @Test
@@ -328,10 +323,10 @@ public class LoginServerSecurityIntegrationTests {
         }
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
-        assertTrue("There should be an error: " + results, results.containsKey("error"));
+        assertThat(results).as("There should be an error: " + results).containsKey("error");
     }
 
     @Test
@@ -348,13 +343,14 @@ public class LoginServerSecurityIntegrationTests {
         params.set(UaaAuthenticationDetails.ADD_NEW, "true");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertNotNull(response);
-        assertNotEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals(HttpStatus.FOUND, response.getStatusCode());
+        assertThat(response).isNotNull()
+                .extracting(ResponseEntity::getStatusCode)
+                .isNotEqualTo(HttpStatus.INTERNAL_SERVER_ERROR)
+                .isEqualTo(HttpStatus.FOUND);
         @SuppressWarnings("unchecked")
         Map<String, String> results = response.getBody();
         if (results != null) {
-            assertFalse("There should not be an error: " + results, results.containsKey("error"));
+            assertThat(results).as("There should not be an error: " + results).doesNotContainKey("error");
         }
     }
 
@@ -362,7 +358,7 @@ public class LoginServerSecurityIntegrationTests {
     @OAuth2ContextConfiguration(LoginClient.class)
     public void testLoginServerCfPasswordToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
-        HttpHeaders headers = new HttpHeaders();
+        headers.clear();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         params.set("client_id", resource.getClientId());
         params.set("client_secret", "");
@@ -377,17 +373,17 @@ public class LoginServerSecurityIntegrationTests {
         }
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         Map results = response.getBody();
-        assertTrue("There should be a token: " + results, results.containsKey("access_token"));
-        assertTrue("There should be a refresh: " + results, results.containsKey("refresh_token"));
+        assertThat(results).as("There should be a token: " + results).containsKey("access_token")
+                .as("There should be a refresh: " + results).containsKey("refresh_token");
     }
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
     public void testLoginServerWithoutBearerToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
-        HttpHeaders headers = new HttpHeaders();
+        headers.clear();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.add("Authorization", getAuthorizationEncodedValue(resource.getClientId(), ""));
         params.set("client_id", resource.getClientId());
@@ -401,14 +397,14 @@ public class LoginServerSecurityIntegrationTests {
         }
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
     public void testLoginServerCfInvalidClientPasswordToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
-        HttpHeaders headers = new HttpHeaders();
+        headers.clear();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         params.set("client_id", resource.getClientId());
         params.set("client_secret", "bogus");
@@ -423,14 +419,14 @@ public class LoginServerSecurityIntegrationTests {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
         HttpStatus statusCode = response.getStatusCode();
-        assertTrue("Status code should be 401 or 403.", statusCode == HttpStatus.FORBIDDEN || statusCode == HttpStatus.UNAUTHORIZED);
+        assertThat(statusCode == HttpStatus.FORBIDDEN || statusCode == HttpStatus.UNAUTHORIZED).as("Status code should be 401 or 403.").isTrue();
     }
 
     @Test
     @OAuth2ContextConfiguration(AppClient.class)
     public void testLoginServerCfInvalidClientToken() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
-        HttpHeaders headers = new HttpHeaders();
+        headers.clear();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         params.set("client_id", resource.getClientId());
         params.set("client_secret", "bogus");
@@ -446,7 +442,7 @@ public class LoginServerSecurityIntegrationTests {
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAccessTokenUri(), params, headers);
         HttpStatus statusCode = response.getStatusCode();
 
-        assertTrue("Status code should be 401 or 403.", statusCode == HttpStatus.FORBIDDEN || statusCode == HttpStatus.UNAUTHORIZED);
+        assertThat(statusCode == HttpStatus.FORBIDDEN || statusCode == HttpStatus.UNAUTHORIZED).as("Status code should be 401 or 403.").isTrue();
     }
 
     private String getAuthorizationEncodedValue(String username, String password) {
@@ -454,7 +450,6 @@ public class LoginServerSecurityIntegrationTests {
         byte[] encodedAuth = Base64.encodeBase64(auth.getBytes(StandardCharsets.US_ASCII));
         return "Basic " + new String(encodedAuth);
     }
-
 
     private static class LoginClient extends ClientCredentialsResourceDetails {
         @SuppressWarnings("unused")

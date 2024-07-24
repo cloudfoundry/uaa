@@ -11,6 +11,7 @@ import org.springframework.security.saml2.provider.service.registration.Saml2Mes
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.List;
 import java.util.function.UnaryOperator;
 
 @Slf4j
@@ -24,10 +25,22 @@ public class RelyingPartyRegistrationBuilder {
         throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
+    /**
+     * @param samlEntityID the entityId of the relying party
+     * @param samlSpNameId the nameIdFormat of the relying party
+     * @param keys a list of KeyWithCert objects, with the first key in the list being the active key, all keys in the
+     *             list will be added for signing. Although it is possible to have multiple decryption keys,
+     *             only the first one will be used to maintain parity with existing UAA
+     * @param metadataLocation the location or XML data of the metadata
+     * @param rpRegistrationId the registrationId of the relying party
+     * @param samlSpAlias the alias of the relying party for the SAML endpoints
+     * @param requestSigned whether the AuthnRequest should be signed
+     * @return a RelyingPartyRegistration object
+     */
     public static RelyingPartyRegistration buildRelyingPartyRegistration(
             String samlEntityID, String samlSpNameId,
-            KeyWithCert keyWithCert, String metadataLocation,
-            String rpRegstrationId, String samlSpAlias, boolean requestSigned) {
+            List<KeyWithCert> keys, String metadataLocation,
+            String rpRegistrationId, String samlSpAlias, boolean requestSigned) {
 
         SamlIdentityProviderDefinition.MetadataLocation type = SamlIdentityProviderDefinition.getType(metadataLocation);
         RelyingPartyRegistration.Builder builder;
@@ -43,27 +56,32 @@ public class RelyingPartyRegistrationBuilder {
         }
 
         builder.entityId(samlEntityID);
+        if (rpRegistrationId != null) builder.registrationId(rpRegistrationId);
         if (samlSpNameId != null) builder.nameIdFormat(samlSpNameId);
-        if (rpRegstrationId != null) builder.registrationId(rpRegstrationId);
+
         return builder
+                .signingX509Credentials(cred ->
+                        keys.stream()
+                                .map(k -> Saml2X509Credential.signing(k.getPrivateKey(), k.getCertificate()))
+                                .forEach(cred::add)
+                )
+                .decryptionX509Credentials(cred -> keys.stream()
+                        .findFirst()
+                        .map(k -> Saml2X509Credential.decryption(k.getPrivateKey(), k.getCertificate()))
+                        .ifPresent(cred::add)
+                )
                 .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(samlSpAlias))
-                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlSpAlias))
+                .assertionConsumerServiceBinding(Saml2MessageBinding.POST)
                 .singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(samlSpAlias))
                 .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlSpAlias))
                 // Accept both POST and REDIRECT bindings
                 .singleLogoutServiceBindings(c -> {
-                    c.add(Saml2MessageBinding.REDIRECT);
                     c.add(Saml2MessageBinding.POST);
+                    c.add(Saml2MessageBinding.REDIRECT);
                 })
-                .assertingPartyDetails(details -> details
-                        .wantAuthnRequestsSigned(requestSigned)
-                )
-                .signingX509Credentials(cred -> cred
-                        .add(Saml2X509Credential.signing(keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
-                )
-                .decryptionX509Credentials(cred -> cred
-                        .add(Saml2X509Credential.decryption(keyWithCert.getPrivateKey(), keyWithCert.getCertificate()))
-                )
+                // alter the default value of the APs wantAuthnRequestsSigned,
+                // to reflect the UAA configured desire to always sign/or-not the AuthnRequest
+                .assertingPartyDetails(details -> details.wantAuthnRequestsSigned(requestSigned))
                 .build();
     }
 }

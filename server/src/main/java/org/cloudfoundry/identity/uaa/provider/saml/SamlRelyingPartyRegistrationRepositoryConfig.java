@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -15,7 +14,6 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -46,13 +44,10 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
 
     @Autowired
     @Bean
-    RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) throws CertificateException {
+    RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) {
 
-        SamlKey activeSamlKey = samlConfigProps.getActiveSamlKey();
-        KeyWithCert keyWithCert = new KeyWithCert(activeSamlKey.getKey(), activeSamlKey.getPassphrase(), activeSamlKey.getCertificate());
-
+        List<KeyWithCert> defaultKeysWithCerts = samlConfigProps.getKeysWithCerts();
         List<RelyingPartyRegistration> relyingPartyRegistrations = new ArrayList<>();
-
         String uaaWideSamlEntityIDAlias = samlConfigProps.getEntityIDAlias() != null ? samlConfigProps.getEntityIDAlias() : samlEntityID;
 
         @SuppressWarnings("java:S125")
@@ -67,13 +62,13 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         // even when there are no SAML IDPs configured.
         // See relevant issue: https://github.com/spring-projects/spring-security/issues/11369
         RelyingPartyRegistration exampleRelyingPartyRegistration = RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                samlEntityID, samlSpNameID, keyWithCert, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, DEFAULT_REGISTRATION_ID, uaaWideSamlEntityIDAlias, samlConfigProps.getSignRequest());
+                samlEntityID, samlSpNameID, defaultKeysWithCerts, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, DEFAULT_REGISTRATION_ID, uaaWideSamlEntityIDAlias, samlConfigProps.getSignRequest());
         relyingPartyRegistrations.add(exampleRelyingPartyRegistration);
 
         for (SamlIdentityProviderDefinition samlIdentityProviderDefinition : bootstrapSamlIdentityProviderData.getIdentityProviderDefinitions()) {
             relyingPartyRegistrations.add(
                     RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                            samlEntityID, samlSpNameID, keyWithCert,
+                            samlEntityID, samlSpNameID, defaultKeysWithCerts,
                             samlIdentityProviderDefinition.getMetaDataLocation(),
                             samlIdentityProviderDefinition.getIdpEntityAlias(),
                             uaaWideSamlEntityIDAlias,
@@ -82,8 +77,8 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         }
 
         InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
-        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, keyWithCert, samlIdentityProviderConfigurator);
-        DefaultRelyingPartyRegistrationRepository defaultRepo = new DefaultRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, keyWithCert);
+        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, defaultKeysWithCerts, samlIdentityProviderConfigurator);
+        DefaultRelyingPartyRegistrationRepository defaultRepo = new DefaultRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, defaultKeysWithCerts);
         return new DelegatingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo, defaultRepo);
     }
 

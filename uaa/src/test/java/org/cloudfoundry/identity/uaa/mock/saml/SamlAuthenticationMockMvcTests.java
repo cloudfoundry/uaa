@@ -73,7 +73,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class SamlAuthenticationMockMvcTests {
 
     private RandomValueStringGenerator generator;
-
     private IdentityZone spZone;
     private IdentityZone idpZone;
     private String spZoneEntityId;
@@ -101,7 +100,6 @@ class SamlAuthenticationMockMvcTests {
         jdbcScimUserProvisioning.createUser(user, "secret", identityZone.getId());
     }
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @BeforeEach
     void createSamlRelationship(
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
@@ -443,7 +441,6 @@ class SamlAuthenticationMockMvcTests {
     }
 
     @Nested
-    @DefaultTestContext
     class WithCustomLogAppender {
         private List<LogEvent> logEvents;
         private AbstractAppender appender;

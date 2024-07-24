@@ -21,9 +21,12 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.springframework.util.StringUtils.hasText;
 
@@ -55,69 +58,66 @@ public class SamlConfig {
 
     @JsonProperty("certificate")
     public void setCertificate(String certificate) {
-        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (hasText(certificate) && null == legacyKey) {
-            legacyKey = new SamlKey();
+        if (hasText(certificate)) {
+            keys.computeIfAbsent(LEGACY_KEY_ID, k -> new SamlKey());
         }
-        if (legacyKey != null) {
-            legacyKey.setCertificate(certificate);
-            keys.put(LEGACY_KEY_ID, legacyKey);
-        }
+        keys.computeIfPresent(LEGACY_KEY_ID, (k, v) -> {
+            v.setCertificate(certificate);
+            return v;
+        });
     }
 
     @JsonProperty("privateKey")
     public void setPrivateKey(String privateKey) {
-        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (hasText(privateKey) && null == legacyKey) {
-            legacyKey = new SamlKey();
+        if (hasText(privateKey)) {
+            keys.computeIfAbsent(LEGACY_KEY_ID, k -> new SamlKey());
         }
-        if (legacyKey != null) {
-            legacyKey.setKey(privateKey);
-            keys.put(LEGACY_KEY_ID, legacyKey);
-        }
+        keys.computeIfPresent(LEGACY_KEY_ID, (k, v) -> {
+            v.setKey(privateKey);
+            return v;
+        });
     }
 
     @JsonProperty("privateKeyPassword")
     public void setPrivateKeyPassword(String privateKeyPassword) {
-        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (hasText(privateKeyPassword) && null == legacyKey) {
-            legacyKey = new SamlKey();
+        if (hasText(privateKeyPassword)) {
+            keys.computeIfAbsent(LEGACY_KEY_ID, k -> new SamlKey());
         }
-        if (legacyKey != null) {
-            legacyKey.setPassphrase(privateKeyPassword);
-            keys.put(LEGACY_KEY_ID, legacyKey);
-        }
+        keys.computeIfPresent(LEGACY_KEY_ID, (k, v) -> {
+            v.setPassphrase(privateKeyPassword);
+            return v;
+        });
     }
 
     @JsonProperty("certificate")
     public String getCertificate() {
-        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (null != legacyKey) {
-            return legacyKey.getCertificate();
-        }
-        return null;
+        return Optional.ofNullable(keys.get(LEGACY_KEY_ID))
+                .map(SamlKey::getCertificate)
+                .orElse(null);
     }
 
     @JsonProperty
     public String getPrivateKey() {
-        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (null != legacyKey) {
-            return legacyKey.getKey();
-        }
-        return null;
+        return Optional.ofNullable(keys.get(LEGACY_KEY_ID))
+                .map(SamlKey::getKey)
+                .orElse(null);
     }
 
     @JsonProperty
     public String getPrivateKeyPassword() {
-        SamlKey legacyKey = keys.get(LEGACY_KEY_ID);
-        if (null != legacyKey) {
-            return legacyKey.getPassphrase();
-        }
-        return null;
+        return Optional.ofNullable(keys.get(LEGACY_KEY_ID))
+                .map(SamlKey::getPassphrase)
+                .orElse(null);
     }
 
     public String getActiveKeyId() {
         return hasText(activeKeyId) ? activeKeyId : hasLegacyKey() ? LEGACY_KEY_ID : null;
+    }
+
+    @JsonIgnore
+    public SamlKey getActiveKey() {
+        String keyId = getActiveKeyId();
+        return keyId != null ? keys.get(keyId) : null;
     }
 
     public void setActiveKeyId(String activeKeyId) {
@@ -126,8 +126,26 @@ public class SamlConfig {
         }
     }
 
+    /**
+     * @return a map of all keys by keyName
+     */
     public Map<String, SamlKey> getKeys() {
         return Collections.unmodifiableMap(keys);
+    }
+
+    /**
+     * @return the list of keys, with the active key first.
+     */
+    @JsonIgnore
+    public List<SamlKey> getKeyList() {
+        List<SamlKey> keyList = new ArrayList<>();
+        String activeKeyId = getActiveKeyId();
+        Optional.ofNullable(getActiveKey()).ifPresent(keyList::add);
+        keyList.addAll(keys.entrySet().stream()
+                .filter(e -> !e.getKey().equals(activeKeyId))
+                .map(Map.Entry::getValue)
+                .toList());
+        return Collections.unmodifiableList(keyList);
     }
 
     public void setKeys(Map<String, SamlKey> keys) {

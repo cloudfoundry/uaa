@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +15,7 @@ import org.springframework.security.saml2.provider.service.web.RelyingPartyRegis
 
 import java.security.Security;
 import java.security.cert.CertificateException;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
@@ -36,31 +37,26 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     @Mock
     SamlIdentityProviderConfigurator samlIdentityProviderConfigurator;
 
-    @Mock
-    SamlKey activeSamlKey;
-
     @BeforeAll
     public static void addProvider() {
         Security.addProvider(new BouncyCastleFipsProvider());
     }
 
     @BeforeEach
-    public void setup() {
-        when(samlConfigProps.getActiveSamlKey()).thenReturn(activeSamlKey);
-        when(activeSamlKey.getKey()).thenReturn(KEY);
-        when(activeSamlKey.getPassphrase()).thenReturn(PASSPHRASE);
-        when(activeSamlKey.getCertificate()).thenReturn(CERT);
+    public void setup() throws CertificateException {
+        KeyWithCert keyWithCert = new KeyWithCert(KEY, PASSPHRASE, CERT);
+        when(samlConfigProps.getKeysWithCerts()).thenReturn(List.of(keyWithCert));
     }
 
     @Test
-    void relyingPartyRegistrationRepository() throws CertificateException {
+    void relyingPartyRegistrationRepository() {
         SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         assertThat(repository).isNotNull();
     }
 
     @Test
-    void relyingPartyRegistrationResolver() throws CertificateException {
+    void relyingPartyRegistrationResolver() {
         SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository);
@@ -69,7 +65,7 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     }
 
     @Test
-    void buildsRegistrationForExample() throws CertificateException {
+    void buildsRegistrationForExample() {
         SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         RelyingPartyRegistration registration = repository.findByRegistrationId("example");
