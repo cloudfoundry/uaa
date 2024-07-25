@@ -944,7 +944,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones and logout")
     void samlLoginCustomUserAttributesAndRolesInIDToken() throws Exception {
 
         final String COST_CENTER = "costCenter";
@@ -1100,7 +1099,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones and logout")
     void samlLoginEmailInIDTokenWhenUserIDIsNotEmail() {
 
         //ensure we are able to resolve DNS for hostname testzone1.localhost
@@ -1139,6 +1137,7 @@ public class SamlLoginIT {
         samlIdentityProviderDefinition.addAttributeMapping(EMAIL_ATTRIBUTE_NAME, "emailAddress");
 
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
+        provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
