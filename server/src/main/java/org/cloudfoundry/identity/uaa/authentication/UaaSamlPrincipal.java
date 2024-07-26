@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.ToString;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -29,6 +30,8 @@ import java.io.Serializable;
  * The SAML Logout Handlers check if the Principal is an instance of Saml2AuthenticatedPrincipal to handle SAML Logout.
  */
 @ToString(callSuper = true)
+@JsonIgnoreProperties({"relyingPartyRegistrationId", "sessionIndexes",
+        "attributes"})
 public class UaaSamlPrincipal extends UaaPrincipal implements Saml2AuthenticatedPrincipal, Serializable {
     public UaaSamlPrincipal(UaaUser user) {
         super(user);
