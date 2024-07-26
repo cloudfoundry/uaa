@@ -56,11 +56,11 @@ public class IdentityZone {
     }
 
     public static String getUaaZoneId() {
-        return getUaa().getId();
+        return OriginKeys.UAA;
     }
 
     @JsonIgnore
     public boolean isUaa() {
-        return this.equals(getUaa());
+        return OriginKeys.UAA.equals(getId());
     }
 }

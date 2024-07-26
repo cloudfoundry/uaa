@@ -3,11 +3,9 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.security.cert.CertificateException;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
@@ -20,24 +18,20 @@ public class SamlConfigProps {
 
     private String entityIDAlias;
 
-    private Map<String, SamlKey> keys;
+    /**
+     * Algorithm for SAML signatures.
+     * Accepts: SHA1, SHA256, SHA512
+     * Defaults to SHA256.
+     */
+    private String signatureAlgorithm = "SHA256";
+
+    private Map<String, SamlKey> keys = new HashMap<>();
 
     private Boolean wantAssertionSigned = true;
 
     private Boolean signRequest = true;
 
     public SamlKey getActiveSamlKey() {
-        return keys.get(activeKeyId);
-    }
-
-    public List<KeyWithCert> getKeysWithCerts() {
-        return keys.values().stream().map(k -> {
-            try {
-                return new KeyWithCert(k);
-            } catch (CertificateException e) {
-                log.error("Error converting key with cert", e);
-                throw new CertificateRuntimeException(e);
-            }
-        }).toList();
+        return keys != null ? keys.get(activeKeyId) : null;
     }
 }

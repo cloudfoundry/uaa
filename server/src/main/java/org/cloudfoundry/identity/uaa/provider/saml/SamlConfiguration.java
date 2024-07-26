@@ -45,6 +45,12 @@ public class SamlConfiguration {
         idpData.setLegacyShowSamlLink(legacyShowSamlLink);
         return idpData;
     }
+
+    @Autowired
+    @Bean
+    public SignatureAlgorithm getSignatureAlgorithm(SamlConfigProps samlConfigProps) {
+        return SignatureAlgorithm.valueOf(samlConfigProps.getSignatureAlgorithm());
+    }
 }
 
 /* --- previous saml- XML configuration ---
@@ -61,9 +67,6 @@ public class SamlConfiguration {
             <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery"/>
         </security:filter-chain-map>
     </bean>
-
-   @Value("${login.saml.signatureAlgorithm:SHA12}")
-    private String signatureAlgorithm;
 
     @Bean
     public SamlConfigurationBean defaultSamlConfig(@Value("${login.saml.signatureAlgorithm:SHA12}") String signatureAlgorithm) {

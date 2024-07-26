@@ -6,15 +6,12 @@ import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.saml2.core.Saml2X509Credential;
@@ -22,10 +19,10 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 
 import java.security.Security;
 import java.security.cert.CertificateException;
-import java.util.List;
-import java.util.stream.Stream;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -43,6 +40,8 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     private static KeyWithCert keyWithCert1;
     private static KeyWithCert keyWithCert2;
 
+    private static final SamlConfigProps samlConfigProps = new SamlConfigProps();
+
     @Mock
     private IdentityZone identityZone;
 
@@ -58,16 +57,17 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     public static void addProvider() {
         Security.addProvider(new BouncyCastleFipsProvider());
         try {
-            keyWithCert1 = new KeyWithCert(samlKey1);
-            keyWithCert2 = new KeyWithCert(samlKey2);
+            keyWithCert1 = KeyWithCert.fromSamlKey(samlKey1);
+            keyWithCert2 = KeyWithCert.fromSamlKey(samlKey2);
         } catch (CertificateException e) {
-            throw new RuntimeException(e);
+            fail("Failed to create key with cert", e);
         }
+        new IdentityZoneHolder.Initializer(null, new SamlKeyManagerFactory(samlConfigProps));
     }
 
     @BeforeEach
     void setUp() {
-        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of()));
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS));
     }
 
     @Test
@@ -78,7 +78,6 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
         when(identityZoneConfig.getSamlConfig()).thenReturn(samlConfig);
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-
         assertThat(registration)
                 // from definition
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
@@ -102,7 +101,6 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
         when(samlConfig.getEntityID()).thenReturn(ZONED_ENTITY_ID);
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-
         assertThat(registration)
                 // from definition
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
@@ -123,7 +121,6 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
         when(identityZone.getSubdomain()).thenReturn(ZONE_SUBDOMAIN);
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID_2);
-
         assertThat(registration)
                 // from definition
                 .returns(REGISTRATION_ID_2, RelyingPartyRegistration::getRegistrationId)
@@ -136,13 +133,12 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void findByRegistrationId_NoAliasFailsOverToEntityId() {
-        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null, List.of()));
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.isUaa()).thenReturn(false);
         when(identityZone.getSubdomain()).thenReturn(ZONE_SUBDOMAIN);
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID_2);
-
         assertThat(registration)
                 // from definition
                 .returns(REGISTRATION_ID_2, RelyingPartyRegistration::getRegistrationId)
@@ -155,46 +151,13 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void zoneWithCredentialsUsesCorrectValues() {
+        samlConfigProps.setKeys(Map.of("key1", samlKey1, "key2", samlKey2));
+        samlConfigProps.setActiveKeyId("key1");
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.getConfig()).thenReturn(identityZoneConfig);
         when(identityZoneConfig.getSamlConfig()).thenReturn(samlConfig);
-        when(samlConfig.getKeyList()).thenReturn(List.of(samlKey1, samlKey2));
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-
-        assertThat(registration.getDecryptionX509Credentials())
-                .hasSize(1)
-                .first()
-                .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert1.getCertificate());
-        assertThat(registration.getSigningX509Credentials())
-                .hasSize(2)
-                .first()
-                .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert1.getCertificate());
-        // Check the second element
-        assertThat(registration.getSigningX509Credentials())
-                .element(1)
-                .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert2.getCertificate());
-    }
-
-    private static Stream<Arguments> emptyList() {
-        return Stream.of(Arguments.of(List.of()));
-    }
-
-    @ParameterizedTest
-    @NullSource
-    @MethodSource("emptyList")
-    void zoneWithoutCredentialsUsesDefault(List<SamlKey> samlConfigKeys) {
-        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null, List.of(keyWithCert1, keyWithCert2)));
-        when(repository.retrieveZone()).thenReturn(identityZone);
-        when(identityZone.getConfig()).thenReturn(identityZoneConfig);
-        when(identityZoneConfig.getSamlConfig()).thenReturn(samlConfig);
-        when(samlConfig.getKeyList()).thenReturn(samlConfigKeys);
-
-        RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-
         assertThat(registration.getDecryptionX509Credentials())
                 .hasSize(1)
                 .first()

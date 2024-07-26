@@ -15,7 +15,6 @@ import org.springframework.web.context.WebApplicationContext;
 
 @DefaultTestContext
 class SamlInitializationMockMvcTests {
-    private NonSnarlMetadataManager spManager;
     private String entityID;
     private String entityAlias;
     private IdentityZoneProvisioning zoneProvisioning;
@@ -23,7 +22,6 @@ class SamlInitializationMockMvcTests {
     @BeforeEach
     void setUp(@Autowired WebApplicationContext webApplicationContext) {
         zoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        spManager = webApplicationContext.getBean(NonSnarlMetadataManager.class);
         entityID = webApplicationContext.getBean("samlEntityID", String.class);
         entityAlias = webApplicationContext.getBean("samlSPAlias", String.class);
     }

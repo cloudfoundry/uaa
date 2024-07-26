@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootst
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean;
+import org.cloudfoundry.identity.uaa.provider.saml.SignatureAlgorithm;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -33,6 +33,7 @@ import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
@@ -71,17 +72,19 @@ class BootstrapTests {
 
     private final static MockServletContext mockServletContext = new MockServletContext() {
         @Override
-        public RequestDispatcher getNamedDispatcher(String path) {
+        @NonNull
+        public RequestDispatcher getNamedDispatcher(@Nullable String path) {
             return new MockRequestDispatcher("/");
         }
 
         @Override
+        @NonNull
         public String getVirtualServerName() {
             return "localhost";
         }
 
         @Override
-        public <Type extends EventListener> void addListener(Type t) {
+        public <Type extends EventListener> void addListener(@Nullable Type t) {
             //no op
         }
     };
@@ -107,8 +110,8 @@ class BootstrapTests {
     static Stream<Arguments> samlSignatureParameterProvider() {
         final String yamlPath = "test/config/";
         return Stream.of(
-                arguments(yamlPath + "saml-algorithm-sha256.yml", SamlConfigurationBean.SignatureAlgorithm.SHA256),
-                arguments(yamlPath + "saml-algorithm-sha512.yml", SamlConfigurationBean.SignatureAlgorithm.SHA512)
+                arguments(yamlPath + "saml-algorithm-sha256.yml", SignatureAlgorithm.SHA256),
+                arguments(yamlPath + "saml-algorithm-sha512.yml", SignatureAlgorithm.SHA512)
         );
     }
 
@@ -161,9 +164,9 @@ class BootstrapTests {
         IdentityZoneConfiguration defaultConfig = defaultZone.getConfig();
 
         assertThat(defaultConfig.getSamlConfig().getKeys()).as("Legacy SAML keys should be available").containsKey(SamlConfig.LEGACY_KEY_ID);
-        assertThat(defaultConfig.getSamlConfig().getCertificate().trim()).isEqualTo(SamlLoginServerKeyManagerTests.CERTIFICATE.trim());
-        assertThat(defaultConfig.getSamlConfig().getPrivateKey().trim()).isEqualTo(SamlLoginServerKeyManagerTests.KEY.trim());
-        assertThat(defaultConfig.getSamlConfig().getPrivateKeyPassword().trim()).isEqualTo(SamlLoginServerKeyManagerTests.PASSWORD.trim());
+        assertThat(defaultConfig.getSamlConfig().getCertificate().trim()).isEqualTo(SamlKeyManagerFactoryCertificateTests.CERTIFICATE.trim());
+        assertThat(defaultConfig.getSamlConfig().getPrivateKey().trim()).isEqualTo(SamlKeyManagerFactoryCertificateTests.KEY.trim());
+        assertThat(defaultConfig.getSamlConfig().getPrivateKeyPassword().trim()).isEqualTo(SamlKeyManagerFactoryCertificateTests.PASSWORD.trim());
     }
 
     @Test
@@ -211,18 +214,18 @@ class BootstrapTests {
         Assertions.assertThat(providerByAlias(defs, "testIDPUrl"))
                 .isNotNull()
                 .returns(null, SamlIdentityProviderDefinition::getSocketFactoryClassName)
-                .returns(SamlIdentityProviderDefinition.MetadataLocation.URL, SamlIdentityProviderDefinition::getType);   
+                .returns(SamlIdentityProviderDefinition.MetadataLocation.URL, SamlIdentityProviderDefinition::getType);
     }
 
     @ParameterizedTest
     @MethodSource("samlSignatureParameterProvider")
     @Disabled("SAML test fails")
-    void samlSignatureAlgorithmsWereBootstrapped(String yamlFile, SamlConfigurationBean.SignatureAlgorithm algorithm) {
+    void samlSignatureAlgorithmsWereBootstrapped(String yamlFile, SignatureAlgorithm algorithm) {
         // When we override the SHA1 default for login.saml.signatureAlgorithm in the yaml, make sure it works.
         context = getServletContext("default", yamlFile);
 
-        SamlConfigurationBean samlConfig = context.getBean(SamlConfigurationBean.class);
-        assertThat(samlConfig.getSignatureAlgorithm())
+        SignatureAlgorithm signatureAlgorithm = context.getBean(SignatureAlgorithm.class);
+        assertThat(signatureAlgorithm)
                 .as("The SAML signature algorithm in the yaml file is set in the bean")
                 .isEqualTo(algorithm);
     }

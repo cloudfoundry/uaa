@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 
@@ -19,9 +18,8 @@ public class DefaultRelyingPartyRegistrationRepository extends BaseUaaRelyingPar
     public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
     public DefaultRelyingPartyRegistrationRepository(String uaaWideSamlEntityID,
-                                                     String uaaWideSamlEntityIDAlias,
-                                                     List<KeyWithCert> defaultKeysWithCerts) {
-        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias, defaultKeysWithCerts);
+                                                     String uaaWideSamlEntityIDAlias) {
+        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias);
     }
 
     /**
@@ -34,18 +32,14 @@ public class DefaultRelyingPartyRegistrationRepository extends BaseUaaRelyingPar
     @Override
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
         IdentityZone currentZone = retrieveZone();
-        List<KeyWithCert> keyWithCerts = null;
 
         boolean requestSigned = true;
         if (currentZone.getConfig() != null && currentZone.getConfig().getSamlConfig() != null) {
-            SamlConfig samlConfig = currentZone.getConfig().getSamlConfig();
-            keyWithCerts = convertToKeysWithCerts(samlConfig.getKeyList());
             requestSigned = currentZone.getConfig().getSamlConfig().isRequestSigned();
         }
 
-        if (keyWithCerts == null || keyWithCerts.isEmpty()) {
-            keyWithCerts = defaultKeysWithCerts;
-        }
+        SamlKeyManager samlKeyManager = retrieveKeyManager();
+        List<KeyWithCert> keyWithCerts = samlKeyManager.getAvailableCredentials();
 
         String zonedSamlEntityID = getZoneEntityId(currentZone);
         String zonedSamlEntityIDAlias = getZoneEntityIdAlias(currentZone);

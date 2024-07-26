@@ -13,16 +13,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.cloudfoundry.identity.uaa.provider.saml.CertificateRuntimeException;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlConfigProps;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManager;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
+import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.fail;
+import java.security.Security;
+import java.security.cert.CertificateException;
 
-class SamlLoginServerKeyManagerTests {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-    //    private KeyManager keyManager = null
+class SamlKeyManagerFactoryCertificateTests {
 
     public static final String KEY = """
             -----BEGIN RSA PRIVATE KEY-----
@@ -61,83 +68,25 @@ class SamlLoginServerKeyManagerTests {
     public static final String PASSWORD = "password";
 
     @BeforeAll
-    public static void setUpBC() {
-        AddBcProvider.noop();
+    static void addBCProvider() {
+        Security.addProvider(new BouncyCastleFipsProvider());
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void testWithWorkingCertificate() {
+    void workingCertificate() {
         SamlConfig config = new SamlConfig();
         config.setPrivateKey(KEY);
         config.setPrivateKeyPassword(PASSWORD);
         config.setCertificate(CERTIFICATE);
-//        keyManager = new SamlKeyManagerFactory().getKeyManager(config);
-//        Credential credential = keyManager.getDefaultCredential();
-//        assertNotNull(credential.getPrivateKey());
-//        assertNotNull(credential.getPublicKey());
-//        assertNotNull(credential);
+        SamlKeyManager keyManager = new SamlKeyManagerFactory(new SamlConfigProps()).getKeyManager(config);
+        KeyWithCert credential = keyManager.getDefaultCredential();
+        assertThat(credential).isNotNull();
+        assertThat(credential.getPrivateKey()).isNotNull();
+        assertThat(credential.getCertificate()).isNotNull();
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    public void testWithWorkingCertificateInvalidPassword() {
-        String key = """
-                -----BEGIN RSA PRIVATE KEY-----
-                Proc-Type: 4,ENCRYPTED
-                DEK-Info: DES-EDE3-CBC,5771044F3450A262
-
-                VfRgIdzq/TUFdIwTOxochDs02sSQXA/Z6mRnffYTQMwXpQ5f5nRuqcY8zECGMaDe
-                aLrndpWzGbxiePKgN5AxuIDYNnKMrDRgyCzaaPx66rb87oMwtuq1HM18qqs+yN5v
-                CdsoS2uz57fCDI24BuJkIDSIeumLXc5MdN0HUeaxOVzmpbpsbBXjRYa24gW38mUh
-                DzmOAsNDxfoSTox02Cj+GV024e+PiWR6AMA7RKhsKPf9F4ctWwozvEHrV8fzTy5B
-                +KM361P7XwJYueiV/gMZW2DXSujNRBEVfC1CLaxDV3eVsFX5iIiUbc4JQYOM6oQ3
-                KxGPImcRQPY0asKgEDIaWtysUuBoDSbfQ/FxGWeqwR6P/Vth4dXzVGheYLu1V1CU
-                o6M+EXC/VUhERKwi13EgqXLKrDI352/HgEKG60EhM6xIJy9hLHy0UGjdHDcA+cF6
-                NEl6E3CivddMHIPQWil5x4AMaevGa3v/gcZI0DN8t7L1g4fgjtSPYzvwmOxoxHGi
-                7V7PdzaD4GWV75fv99sBlq2e0KK9crNUzs7vbFA/m6tgNA628SGhU1uAc/5xOskI
-                0Ez6kjgHoh4U7t/fu7ey1MbFQt6byHY9lk27nW1ub/QMAaRJ+EDnrReB/NN6q5Vu
-                h9eQNniNOeQfflzFyPB9omLNsVJkENn+lZNNrrlbn8OmJ0pT58Iaetfh79rDZPw9
-                zmHVqmMynmecTWAcA9ATf7+lh+xV88JDjQkLcG/3WEXNH7HXKO00pUa8+JtyxbAb
-                dAwGgrjJkbbk1qLLScOqY4mA5WXa5+80LMkCYO44vVTp2VKmnxj8Mw==
-                -----END RSA PRIVATE KEY-----""";
-
-        String certificate = """
-                -----BEGIN CERTIFICATE-----
-                MIIB1TCCAT4CCQCpQCfJYT8ZJTANBgkqhkiG9w0BAQUFADAvMS0wKwYDVQQDFCRz
-                YW1sX2xvZ2luLE9VPXRlbXBlc3QsTz12bXdhcmUsTz1jb20wHhcNMTMwNzAyMDAw
-                MzM3WhcNMTQwNzAyMDAwMzM3WjAvMS0wKwYDVQQDFCRzYW1sX2xvZ2luLE9VPXRl
-                bXBlc3QsTz12bXdhcmUsTz1jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGB
-                ANK8mv+mUzhPH/8iTdMsZ6mY4r4At/GZIFS34L+/I0V2g6PkZ84VBgodqqV6Z6NY
-                OSk0lcjrzU650zbES7yn4MjuvP0N5T9LydlvjOEzfA+uRETiy8d+DsS3rThRY+Ja
-                dvmS0PswJ8cvHAksYmGNUWfTU+Roxcv0ZDqD+cUNi1+NAgMBAAEwDQYJKoZIhvcN
-                AQEFBQADgYEAy54UVlZifk1PPdTg9OJuumdxgzZk3QEWZGjdJYEc134MeKKsIX50
-                +6y5GDyXmxvJx33ySTZuRaaXClOuAtXRWpz0KlceujYuwboyUxhn46SUASD872nb
-                cN0E1UrhDloFcftXEXudDL2S2cSQjsyxLNbBop63xq+U6MYG/uFe7GQ=
-                -----END CERTIFICATE-----""";
-
-        String password = "vmware";
-
-        try {
-            SamlConfig config = new SamlConfig();
-            config.setPrivateKey(key);
-            config.setPrivateKeyPassword(password);
-            config.setCertificate(certificate);
-//            keyManager = new SamlKeyManagerFactory().getKeyManager(config);
-            // expect exception
-            fail("Password invalid. Should not reach this line.");
-        } catch (Exception x) {
-            if (x.getClass().getName().equals("org.bouncycastle.openssl.EncryptionException")) {
-                throw new IllegalArgumentException(x); // PASS
-            } else if (x.getClass().equals(IllegalArgumentException.class)) {
-                throw x;
-            }
-        }
-    }
-
-    @Test
-    @Disabled("SAML test doesn't compile")
-    void testWithWorkingCertificateNullPassword() {
+    void workingCertificateNullPassword() {
         String key = """
                 -----BEGIN RSA PRIVATE KEY-----
                 MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3
@@ -182,22 +131,33 @@ class SamlLoginServerKeyManagerTests {
                 lshe50nayKrT
                 -----END CERTIFICATE-----""";
 
-        String password = null;
-
         SamlConfig config = new SamlConfig();
         config.setPrivateKey(key);
-        config.setPrivateKeyPassword(password);
+        config.setPrivateKeyPassword(null);
         config.setCertificate(certificate);
-//        keyManager = new SamlKeyManagerFactory().getKeyManager(config);
-//        Credential credential = keyManager.getDefaultCredential();
-//        assertNotNull(credential.getPrivateKey());
-//        assertNotNull(credential.getPublicKey());
-//        assertNotNull(credential);
+        SamlKeyManager keyManager = new SamlKeyManagerFactory(new SamlConfigProps()).getKeyManager(config);
+        KeyWithCert credential = keyManager.getDefaultCredential();
+        assertThat(credential).isNotNull();
+        assertThat(credential.getPrivateKey()).isNotNull();
+        assertThat(credential.getCertificate()).isNotNull();
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void testWithWorkingCertificateIllegalKey() {
+    void failsWithWorkingCertificateInvalidPassword() {
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(KEY);
+        config.setPrivateKeyPassword("anIncorrectPassword");
+        config.setCertificate(CERTIFICATE);
+        SamlKeyManager keyManager = new SamlKeyManagerFactory(new SamlConfigProps()).getKeyManager(config);
+        assertThatThrownBy(keyManager::getDefaultCredential)
+                .isInstanceOf(CertificateRuntimeException.class)
+                .getCause()
+                .isInstanceOf(CertificateException.class)
+                .hasMessageContaining("Failed to read private key");
+    }
+
+    @Test
+    void failsWithWorkingCertificateIllegalKey() {
         String key = """
                 -----BEGIN RSA PRIVATE KEY-----
                 Proc-Type: 4,ENCRYPTED
@@ -230,19 +190,21 @@ class SamlLoginServerKeyManagerTests {
                 +6y5GDyXmxvJx33ySTZuRaaXClOuAtXRWpz0KlceujYuwboyUxhn46SUASD872nb
                 cN0E1UrhDloFcftXEXudDL2S2cSQjsyxLNbBop63xq+U6MYG/uFe7GQ=
                 -----END CERTIFICATE-----""";
-        String password = "password";
 
         SamlConfig config = new SamlConfig();
         config.setPrivateKey(key);
-        config.setPrivateKeyPassword(password);
+        config.setPrivateKeyPassword(PASSWORD);
         config.setCertificate(certificate);
-//        keyManager = new SamlKeyManagerFactory().getKeyManager(config);
-        // expected = IllegalArgumentException.class
+        SamlKeyManager keyManager = new SamlKeyManagerFactory(new SamlConfigProps()).getKeyManager(config);
+        assertThatThrownBy(keyManager::getDefaultCredential)
+                .isInstanceOf(CertificateRuntimeException.class)
+                .getCause()
+                .isInstanceOf(CertificateException.class)
+                .hasMessageContaining("Failed to read private key");
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void testWithNonWorkingCertificate() {
+    void failsWithNonWorkingCertificate() {
         String key = """
                 -----BEGIN RSA PRIVATE KEY-----
                 Proc-Type: 4,ENCRYPTED
@@ -276,30 +238,20 @@ class SamlLoginServerKeyManagerTests {
                 cN0E1UrhDloFcftXEXudDL2S2cSQjsyxLNbBop63xq+U6MYG/uFe7GQ=
                 -----END CERTIFICATE-----""";
 
-        String password = "password";
-
-        try {
-            SamlConfig config = new SamlConfig();
-            config.setPrivateKey(key);
-            config.setPrivateKeyPassword(password);
-            config.setCertificate(certificate);
-//            keyManager = new SamlKeyManagerFactory().getKeyManager(config);
-            // expected = IllegalArgumentException.class
-            fail("Key/Cert pair is invalid. Should not reach this line.");
-        } catch (Exception x) {
-            if (x.getClass().getName().equals("org.bouncycastle.openssl.PEMException")) {
-                throw new IllegalArgumentException(x); // PASS
-            } else if (x.getClass().getName().equals("org.bouncycastle.openssl.EncryptionException")) {
-                throw new IllegalArgumentException(x); // PASS
-            } else if (x.getClass().equals(IllegalArgumentException.class)) {
-                throw x;
-            }
-        }
+        SamlConfig config = new SamlConfig();
+        config.setPrivateKey(key);
+        config.setPrivateKeyPassword(PASSWORD);
+        config.setCertificate(certificate);
+        SamlKeyManager keyManager = new SamlKeyManagerFactory(new SamlConfigProps()).getKeyManager(config);
+        assertThatThrownBy(keyManager::getDefaultCredential)
+                .isInstanceOf(CertificateRuntimeException.class)
+                .getCause()
+                .isInstanceOf(CertificateException.class)
+                .hasMessageContaining("Failed to read certificate");
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void testKeyPairValidated() {
+    void failsWithUnmatchedKeyPair() {
         String key = """
                 -----BEGIN RSA PRIVATE KEY-----
                 Proc-Type: 4,ENCRYPTED
@@ -350,13 +302,15 @@ class SamlLoginServerKeyManagerTests {
                 -----END CERTIFICATE-----
                 """;
 
-        String password = "password";
-
         SamlConfig config = new SamlConfig();
         config.setPrivateKey(key);
-        config.setPrivateKeyPassword(password);
+        config.setPrivateKeyPassword(PASSWORD);
         config.setCertificate(certificate);
-//        keyManager = new SamlKeyManagerFactory().getKeyManager(config);
-        // expected = IllegalArgumentException.class
+        SamlKeyManager keyManager = new SamlKeyManagerFactory(new SamlConfigProps()).getKeyManager(config);
+        assertThatThrownBy(keyManager::getDefaultCredential)
+                .isInstanceOf(CertificateRuntimeException.class)
+                .getCause()
+                .isInstanceOf(CertificateException.class)
+                .hasMessageContaining("Certificate does not match private key");
     }
 }

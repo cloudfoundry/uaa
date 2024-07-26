@@ -111,7 +111,10 @@ public class SamlConfig {
     }
 
     public String getActiveKeyId() {
-        return hasText(activeKeyId) ? activeKeyId : hasLegacyKey() ? LEGACY_KEY_ID : null;
+        if (hasText(activeKeyId)) {
+            return activeKeyId;
+        }
+        return hasLegacyKey() ? LEGACY_KEY_ID : null;
     }
 
     @JsonIgnore
@@ -139,10 +142,10 @@ public class SamlConfig {
     @JsonIgnore
     public List<SamlKey> getKeyList() {
         List<SamlKey> keyList = new ArrayList<>();
-        String activeKeyId = getActiveKeyId();
+        String resolvedActiveKeyId = getActiveKeyId();
         Optional.ofNullable(getActiveKey()).ifPresent(keyList::add);
         keyList.addAll(keys.entrySet().stream()
-                .filter(e -> !e.getKey().equals(activeKeyId))
+                .filter(e -> !e.getKey().equals(resolvedActiveKeyId))
                 .map(Map.Entry::getValue)
                 .toList());
         return Collections.unmodifiableList(keyList);

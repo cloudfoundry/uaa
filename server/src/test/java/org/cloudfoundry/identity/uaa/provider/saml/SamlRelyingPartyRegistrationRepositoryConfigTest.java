@@ -1,10 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.cloudfoundry.identity.uaa.util.KeyWithCert;
-import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -14,17 +11,11 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 
 import java.security.Security;
-import java.security.cert.CertificateException;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SamlRelyingPartyRegistrationRepositoryConfigTest {
-    private static final String KEY = KeyWithCertTest.encryptedKey;
-    private static final String PASSPHRASE = KeyWithCertTest.password;
-    private static final String CERT = KeyWithCertTest.goodCert;
     private static final String ENTITY_ID = "entityId";
     private static final String NAME_ID = "nameIdFormat";
 
@@ -40,12 +31,6 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     @BeforeAll
     public static void addProvider() {
         Security.addProvider(new BouncyCastleFipsProvider());
-    }
-
-    @BeforeEach
-    public void setup() throws CertificateException {
-        KeyWithCert keyWithCert = new KeyWithCert(KEY, PASSPHRASE, CERT);
-        when(samlConfigProps.getKeysWithCerts()).thenReturn(List.of(keyWithCert));
     }
 
     @Test

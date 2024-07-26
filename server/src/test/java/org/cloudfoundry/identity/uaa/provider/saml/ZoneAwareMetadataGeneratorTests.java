@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -24,19 +23,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 //import org.springframework.security.saml.util.SAMLUtil;
 
 import java.security.Security;
-import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.*;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.mock;
 
 @ExtendWith(PollutionPreventionExtension.class)
 public class ZoneAwareMetadataGeneratorTests {
 
     private static final String ZONE_ID = "zone-id";
-    private ZoneAwareMetadataGenerator generator;
+    //private ZoneAwareMetadataGenerator generator;
     private IdentityZone otherZone;
     private IdentityZoneConfiguration otherZoneDefinition;
 //    private KeyManager keyManager;
@@ -70,7 +65,7 @@ public class ZoneAwareMetadataGeneratorTests {
 
         otherZone.setConfig(otherZoneDefinition);
 
-        generator = new ZoneAwareMetadataGenerator();
+        //generator = new ZoneAwareMetadataGenerator();
 //        generator.setEntityBaseURL("http://localhost:8080/uaa");
 //        generator.setEntityId("entityIdValue");
 

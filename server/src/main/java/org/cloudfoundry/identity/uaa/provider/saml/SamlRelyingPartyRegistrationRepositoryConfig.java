@@ -45,8 +45,9 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
     @Autowired
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) {
+        SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl samlKeyManager = new SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl(samlConfigProps);
+        List<KeyWithCert> defaultKeysWithCerts =samlKeyManager.getAvailableCredentials();
 
-        List<KeyWithCert> defaultKeysWithCerts = samlConfigProps.getKeysWithCerts();
         List<RelyingPartyRegistration> relyingPartyRegistrations = new ArrayList<>();
         String uaaWideSamlEntityIDAlias = samlConfigProps.getEntityIDAlias() != null ? samlConfigProps.getEntityIDAlias() : samlEntityID;
 
@@ -77,8 +78,8 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         }
 
         InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
-        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, defaultKeysWithCerts, samlIdentityProviderConfigurator);
-        DefaultRelyingPartyRegistrationRepository defaultRepo = new DefaultRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, defaultKeysWithCerts);
+        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, samlIdentityProviderConfigurator);
+        DefaultRelyingPartyRegistrationRepository defaultRepo = new DefaultRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias);
         return new DelegatingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo, defaultRepo);
     }
 

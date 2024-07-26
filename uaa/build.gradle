@@ -49,6 +49,7 @@ dependencies {
     implementation(libraries.braveContextSlf4j)
 
     providedCompile(libraries.tomcatEmbed)
+    implementation(libraries.bouncyCastleFipsProv)
 
     testImplementation(identityServer.sourceSets.test.output)
 

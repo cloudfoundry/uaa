@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,74 +13,152 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-//import org.springframework.security.saml.key.JKSKeyManager;
-//import org.springframework.security.saml.key.KeyManager;
 
-import java.security.KeyStore;
-import java.security.PrivateKey;
-import java.security.cert.Certificate;
-import java.security.cert.X509Certificate;
-import java.util.HashMap;
+import java.security.cert.CertificateException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
+import java.util.Optional;
 
-import static java.util.Optional.ofNullable;
-
+@Slf4j
 public final class SamlKeyManagerFactory {
+    private final SamlConfigProps samlConfigProps;
 
-    protected final static Logger logger = LoggerFactory.getLogger(SamlKeyManagerFactory.class);
-
-    public SamlKeyManagerFactory() {
+    public SamlKeyManagerFactory(SamlConfigProps samlConfigProps) {
+        this.samlConfigProps = samlConfigProps;
     }
 
-//    public KeyManager getKeyManager(SamlConfig config) {
-//        return getKeyManager(config.getKeys(), config.getActiveKeyId());
-//    }
+    public SamlKeyManager getKeyManager(SamlConfig config) {
+        boolean hasKeys = Optional.ofNullable(config)
+                .map(SamlConfig::getKeys)
+                .map(k -> !k.isEmpty())
+                .orElse(false);
 
-//    private KeyManager getKeyManager(Map<String, SamlKey> keys, String activeKeyId) {
-//        SamlKey activeKey = keys.get(activeKeyId);
-//
-//        if (activeKey == null) {
-//            return null;
-//        }
-//
-//        try {
-//            KeyStore keystore = KeyStore.getInstance("JKS");
-//            keystore.load(null);
-//            Map<String, String> aliasPasswordMap = new HashMap<>();
-//            for (Map.Entry<String, SamlKey> entry : keys.entrySet()) {
-//                Supplier<String> passProvider = () -> ofNullable(entry.getValue().getPassphrase()).orElse("");
-//                KeyWithCert keyWithCert = entry.getValue().getKey() == null ?
-//                        new KeyWithCert(entry.getValue().getCertificate()) :
-//                        new KeyWithCert(entry.getValue().getKey(), passProvider.get(), entry.getValue().getCertificate());
-//
-//                X509Certificate certificate = keyWithCert.getCertificate();
-//
-//                String alias = entry.getKey();
-//                keystore.setCertificateEntry(alias, certificate);
-//
-//                PrivateKey privateKey = keyWithCert.getPrivateKey();
-//                if (privateKey != null) {
-//                    keystore.setKeyEntry(alias, privateKey, passProvider.get().toCharArray(), new Certificate[]{certificate});
-//                    aliasPasswordMap.put(alias, passProvider.get());
-//                }
-//            }
-//
-//            JKSKeyManager keyManager = new JKSKeyManager(keystore, aliasPasswordMap, activeKeyId);
-//
-//            logger.info("Loaded service provider certificate " + keyManager.getDefaultCredentialName());
-//
-//            return keyManager;
-//        } catch (Throwable t) {
-//            logger.error("Could not load certificate", t);
-//            throw new IllegalArgumentException(
-//                    "Could not load service provider certificate. Check serviceProviderKey and certificate parameters",
-//                    t);
-//        }
-//    }
+        if (hasKeys) {
+            return new SamlConfigSamlKeyManagerImpl(config);
+        }
+        // fall back to default keys in samlConfigProps
+        return new SamlConfigPropsSamlKeyManagerImpl(samlConfigProps);
+    }
+
+    //*****************************
+    // Key Manager Implementations
+    //*****************************
+
+    abstract static class BaseSamlKeyManagerImpl implements SamlKeyManager {
+
+        protected List<KeyWithCert> convertList(List<SamlKey> samlKeys) {
+            try {
+                return samlKeys.stream()
+                        .map(BaseSamlKeyManagerImpl::convertKey)
+                        .toList();
+            } catch (CertificateRuntimeException e) {
+                return List.of();
+            }
+        }
+
+        protected static KeyWithCert convertKey(SamlKey k) {
+            try {
+                return KeyWithCert.fromSamlKey(k);
+            } catch (CertificateException e) {
+                log.error("Error converting key with cert", e);
+                throw new CertificateRuntimeException(e);
+            }
+        }
+    }
+
+    static class SamlConfigSamlKeyManagerImpl extends BaseSamlKeyManagerImpl {
+
+        private final SamlConfig samlConfig;
+
+        SamlConfigSamlKeyManagerImpl(SamlConfig samlConfig) {
+            this.samlConfig = samlConfig;
+        }
+
+        @Override
+        public KeyWithCert getCredential(String keyName) {
+            return convertKey(samlConfig.getKeys().get(keyName));
+        }
+
+        @Override
+        public KeyWithCert getDefaultCredential() {
+            return convertKey(samlConfig.getActiveKey());
+        }
+
+        @Override
+        public String getDefaultCredentialName() {
+            return samlConfig.getActiveKeyId();
+        }
+
+        @Override
+        public List<KeyWithCert> getAvailableCredentials() {
+            return convertList(samlConfig.getKeyList());
+        }
+
+        @Override
+        public List<String> getAvailableCredentialIds() {
+            List<String> keyList = new ArrayList<>();
+            String activeKeyId = getDefaultCredentialName();
+            Optional.ofNullable(activeKeyId).ifPresent(keyList::add);
+            keyList.addAll(samlConfig.getKeys().keySet().stream()
+                    .filter(k -> !k.equals(activeKeyId))
+                    .toList());
+
+            return Collections.unmodifiableList(keyList);
+        }
+    }
+
+    static class SamlConfigPropsSamlKeyManagerImpl extends BaseSamlKeyManagerImpl {
+
+        private final SamlConfigProps samlConfigProps;
+
+        SamlConfigPropsSamlKeyManagerImpl(SamlConfigProps samlConfigProps) {
+            this.samlConfigProps = samlConfigProps;
+        }
+
+        @Override
+        public KeyWithCert getCredential(String keyName) {
+            return convertKey(samlConfigProps.getKeys().get(keyName));
+        }
+
+        @Override
+        public KeyWithCert getDefaultCredential() {
+            return convertKey(samlConfigProps.getActiveSamlKey());
+        }
+
+        @Override
+        public String getDefaultCredentialName() {
+            return samlConfigProps.getActiveKeyId();
+        }
+
+        @Override
+        public List<KeyWithCert> getAvailableCredentials() {
+            List<SamlKey> keyList = new ArrayList<>();
+            String activeKeyId = getDefaultCredentialName();
+            Optional.ofNullable(samlConfigProps.getActiveSamlKey()).ifPresent(keyList::add);
+            keyList.addAll(samlConfigProps.getKeys().entrySet().stream()
+                    .filter(e -> !e.getKey().equals(activeKeyId))
+                    .map(Map.Entry::getValue)
+                    .toList());
+
+            return convertList(keyList);
+        }
+
+        @Override
+        public List<String> getAvailableCredentialIds() {
+            List<String> keyList = new ArrayList<>();
+            String activeKeyId = samlConfigProps.getActiveKeyId();
+            Optional.ofNullable(activeKeyId).ifPresent(keyList::add);
+            keyList.addAll(samlConfigProps.getKeys().keySet().stream()
+                    .filter(k -> !k.equals(activeKeyId))
+                    .toList());
+
+            return Collections.unmodifiableList(keyList);
+        }
+    }
 }

@@ -2,12 +2,8 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.AddBcProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 
-// TODO: this class seems to be used more broadly than what its location indicates (uaa as saml idp); need to move it
-// also remove unused code in here
 // Attempt to move usages to Saml2TestUtils style
 public class SamlTestUtils {
 
@@ -55,15 +51,6 @@ public class SamlTestUtils {
             KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
             RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
             -----END CERTIFICATE-----""";
-
-    public static void initialize() /* throws ConfigurationException */ {
-        IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKey(PROVIDER_PRIVATE_KEY);
-        IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
-        IdentityZone.getUaa().getConfig().getSamlConfig().setCertificate(PROVIDER_CERTIFICATE);
-        AddBcProvider.noop();
-//        DefaultBootstrap.bootstrap();
-//        initializeSimple();
-    }
 
     public static SamlIdentityProviderDefinition createLocalSamlIdpDefinition(String alias, String zoneId, String idpMetaData) {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();

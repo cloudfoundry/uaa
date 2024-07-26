@@ -48,8 +48,16 @@ public class KeyWithCert {
         }
     }
 
-    public KeyWithCert(SamlKey samlKey) throws CertificateException {
-        this(samlKey.getKey(), samlKey.getPassphrase(), samlKey.getCertificate());
+    public static KeyWithCert fromSamlKey(SamlKey samlKey) throws CertificateException {
+        if (samlKey == null) {
+            return null;
+        }
+
+        if (samlKey.getKey() == null) {
+            return new KeyWithCert(samlKey.getCertificate());
+        }
+
+        return new KeyWithCert(samlKey.getKey(), samlKey.getPassphrase(), samlKey.getCertificate());
     }
 
     private boolean keysMatch(PublicKey publicKey, PrivateKey privateKey) {

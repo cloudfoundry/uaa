@@ -5,15 +5,17 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import javax.net.ssl.KeyManager;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.Security;
 import java.util.HashMap;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.zone.SamlConfig.LEGACY_KEY_ID;
 
 public class SamlKeyManagerFactoryTests {
 
@@ -33,6 +35,7 @@ public class SamlKeyManagerFactoryTests {
             N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB
             qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             -----END RSA PRIVATE KEY-----""";
+
     public static final String legacyPassphrase = "password";
     public static final String legacyCertificate = """
             -----BEGIN CERTIFICATE-----
@@ -164,109 +167,135 @@ public class SamlKeyManagerFactoryTests {
             iQpMzNWb7zZWlCfDL4dJZHYoNfg=
             -----END CERTIFICATE-----""";
 
+    private static final String KEY_1 = "key-1";
+    private static final String KEY_2 = "key-2";
+    private static final String KEY_3 = "key-3";
+
     private SamlKeyManagerFactory samlKeyManagerFactory;
     private SamlConfig config;
 
+    private final SamlConfigProps samlConfigProps = new SamlConfigProps();
+
     @BeforeAll
     static void addBCProvider() {
-        try {
-            Security.addProvider(new BouncyCastleFipsProvider());
-        } catch (SecurityException e) {
-            e.printStackTrace();
-            System.err.println("Ignoring provider error, may already be added.");
-        }
+        Security.addProvider(new BouncyCastleFipsProvider());
     }
 
     @BeforeEach
     void setup() {
-        samlKeyManagerFactory = new SamlKeyManagerFactory();
-
         IdentityZoneHolder.clear();
         config = new SamlConfig();
         config.setPrivateKey(legacyKey);
         config.setCertificate(legacyCertificate);
         config.setPrivateKeyPassword(legacyPassphrase);
 
-        config.addKey("key-1", new SamlKey(key1, passphrase1, certificate1));
-        config.addKey("key-2", new SamlKey(key2, passphrase2, certificate2));
+        config.addKey(KEY_1, new SamlKey(key1, passphrase1, certificate1));
+        config.addKey(KEY_2, new SamlKey(key2, passphrase2, certificate2));
+
+        samlKeyManagerFactory = new SamlKeyManagerFactory(samlConfigProps);
     }
 
-    @AfterEach
-    void clear() {
+    @AfterAll
+    static void clear() {
         IdentityZoneHolder.clear();
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
+    void withKeysInSamlConfig_Returns_SamlConfigSamlKeyManagerImpl() {
+        SamlKeyManager manager = samlKeyManagerFactory.getKeyManager(config);
+        assertThat(manager).isInstanceOf(SamlKeyManagerFactory.SamlConfigSamlKeyManagerImpl.class);
+        assertThat(manager.getDefaultCredentialName()).isEqualTo(LEGACY_KEY_ID);
+        assertThat(manager.getAvailableCredentials()).hasSize(3);
+        assertThat(manager.getAvailableCredentialIds())
+                .contains(LEGACY_KEY_ID, KEY_1, KEY_2)
+                .first()
+                .isEqualTo(LEGACY_KEY_ID);
+
+        assertThat(manager.getDefaultCredential().getCertificate())
+                .isEqualTo(manager.getCredential(LEGACY_KEY_ID).getCertificate());
+        assertThat(manager.getCredential("notFound")).isNull();
+    }
+
+    @Test
+    void withNoKeysInSamlConfig_FallsBackTo_SamlConfigPropsSamlKeyManagerImpl() {
+        samlConfigProps.setKeys(Map.of(LEGACY_KEY_ID, new SamlKey(legacyKey, legacyPassphrase, legacyCertificate),
+                KEY_1, new SamlKey(key1, passphrase1, certificate1),
+                KEY_2, new SamlKey(key2, passphrase2, certificate2)));
+        samlConfigProps.setActiveKeyId(LEGACY_KEY_ID);
+
+        SamlKeyManager manager = samlKeyManagerFactory.getKeyManager(new SamlConfig());
+        assertThat(manager).isInstanceOf(SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl.class);
+        assertThat(manager.getDefaultCredentialName()).isEqualTo(LEGACY_KEY_ID);
+        assertThat(manager.getAvailableCredentials()).hasSize(3);
+        assertThat(manager.getAvailableCredentialIds())
+                .contains(LEGACY_KEY_ID, KEY_1, KEY_2)
+                .first()
+                .isEqualTo(LEGACY_KEY_ID);
+
+        assertThat(manager.getDefaultCredential().getCertificate())
+                .isEqualTo(manager.getCredential(LEGACY_KEY_ID).getCertificate());
+        assertThat(manager.getCredential("notFound")).isNull();
+    }
+
+    @Test
     void multipleKeysLegacyIsActiveKey() {
-        String alias = SamlConfig.LEGACY_KEY_ID;
-//        KeyManager manager = samlKeyManagerFactory.getKeyManager(config);
-//        assertEquals(alias, manager.getDefaultCredentialName());
-//        assertEquals(3, manager.getAvailableCredentials().size());
-//        assertThat(manager.getAvailableCredentials(), containsInAnyOrder(SamlConfig.LEGACY_KEY_ID, "key-1", "key-2"));
+        SamlKeyManager manager = samlKeyManagerFactory.getKeyManager(config);
+        assertThat(manager.getDefaultCredentialName()).isEqualTo(LEGACY_KEY_ID);
+        assertThat(manager.getAvailableCredentials()).hasSize(3);
+        assertThat(manager.getAvailableCredentialIds())
+                .contains(LEGACY_KEY_ID, KEY_1, KEY_2)
+                .first()
+                .isEqualTo(LEGACY_KEY_ID);
+        assertThat(manager.getCredential(KEY_1)).isNotNull();
+        assertThat(manager.getCredential("notFound")).isNull();
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
     void multipleKeysWithActiveKey() {
-        config.setActiveKeyId("key-1");
-        String alias = "key-1";
-//        JKSKeyManager manager = (JKSKeyManager) samlKeyManagerFactory.getKeyManager(config);
-//        assertEquals(alias, manager.getDefaultCredentialName());
-//        assertEquals(3, manager.getAvailableCredentials().size());
-//        assertThat(manager.getAvailableCredentials(), containsInAnyOrder(SamlConfig.LEGACY_KEY_ID + "", "key-1", "key-2"));
+        config.setActiveKeyId(KEY_1);
+
+        SamlKeyManager manager = samlKeyManagerFactory.getKeyManager(config);
+        assertThat(manager.getDefaultCredentialName()).isEqualTo(KEY_1);
+        assertThat(manager.getAvailableCredentials()).hasSize(3);
+        assertThat(manager.getAvailableCredentialIds())
+                .containsOnly(LEGACY_KEY_ID, KEY_1, KEY_2)
+                .first()
+                .isEqualTo(KEY_1);
+        assertThat(manager.getDefaultCredential().getCertificate())
+                .isEqualTo(manager.getCredential(KEY_1).getCertificate());
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
     void addActiveKey() {
-        config.addAndActivateKey("key-3", new SamlKey(key1, passphrase1, certificate1));
-        String alias = "key-3";
-//        JKSKeyManager manager = (JKSKeyManager) samlKeyManagerFactory.getKeyManager(config);
-//        assertEquals(alias, manager.getDefaultCredentialName());
-//        assertEquals(4, manager.getAvailableCredentials().size());
-//        assertThat(manager.getAvailableCredentials(), containsInAnyOrder(SamlConfig.LEGACY_KEY_ID, "key-1", "key-2", alias));
+        config.addAndActivateKey(KEY_3, new SamlKey(key1, passphrase1, certificate1));
+        SamlKeyManager manager = samlKeyManagerFactory.getKeyManager(config);
+        assertThat(manager.getDefaultCredentialName()).isEqualTo(KEY_3);
+        assertThat(manager.getAvailableCredentials()).hasSize(4);
+        assertThat(manager.getAvailableCredentialIds())
+                .containsOnly(LEGACY_KEY_ID, KEY_1, KEY_2, KEY_3)
+                .first()
+                .isEqualTo(KEY_3);
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
     void multipleKeysWithActiveKeyInOtherZone() {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("other-zone-id", "domain"));
-        config.setActiveKeyId("key-1");
-        String alias = "key-1";
-//        JKSKeyManager manager = (JKSKeyManager) samlKeyManagerFactory.getKeyManager(config);
-//        assertEquals(alias, manager.getDefaultCredentialName());
-//        assertEquals(3, manager.getAvailableCredentials().size());
-//        assertThat(manager.getAvailableCredentials(), containsInAnyOrder(SamlConfig.LEGACY_KEY_ID, "key-1", "key-2"));
+        config.setActiveKeyId(KEY_1);
+        SamlKeyManager manager = samlKeyManagerFactory.getKeyManager(config);
+        assertThat(manager.getDefaultCredentialName()).isEqualTo(KEY_1);
+        assertThat(manager.getAvailableCredentials()).hasSize(3);
+        assertThat(manager.getAvailableCredentialIds())
+                .containsOnly(LEGACY_KEY_ID, KEY_1, KEY_2)
+                .first()
+                .isEqualTo(KEY_1);
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void keystoreImplsIsNotASingleton() throws KeyStoreException {
-        assertThat(KeyStore.getInstance("JKS")).isNotSameAs(KeyStore.getInstance("JKS"));
-//        JKSKeyManager manager1 = (JKSKeyManager) samlKeyManagerFactory.getKeyManager(config);
-        config.setKeys(new HashMap<>());
-        config.setPrivateKey(key1);
-        config.setPrivateKeyPassword("password");
-        config.setCertificate(certificate1);
-
-//        JKSKeyManager manager2 = (JKSKeyManager) samlKeyManagerFactory.getKeyManager(config);
-//        KeyStore ks1 = (KeyStore) ReflectionTestUtils.getField(manager1, JKSKeyManager.class, "keyStore");
-//        KeyStore ks2 = (KeyStore) ReflectionTestUtils.getField(manager2, JKSKeyManager.class, "keyStore");
-
-        String alias = SamlConfig.LEGACY_KEY_ID;
-
-//        assertNotEquals(ks1.getCertificate(alias), ks2.getCertificate(alias));
-//        assertEquals(ks1.getCertificate(alias), ks1.getCertificate(alias));
-    }
-
-    @Test
-    @Disabled("SAML test doesn't compile")
     void testAddCertsKeysOnly() {
         config.setKeys(new HashMap<>());
         config.addAndActivateKey("cert-only", new SamlKey(null, null, certificate1));
-//        JKSKeyManager manager1 = (JKSKeyManager) samlKeyManagerFactory.getKeyManager(config);
-//        assertNotNull(manager1.getDefaultCredential().getPublicKey());
-//        assertNull(manager1.getDefaultCredential().getPrivateKey());
+        SamlKeyManager manager1 = samlKeyManagerFactory.getKeyManager(config);
+        assertThat(manager1.getDefaultCredential()).isNotNull();
+        assertThat(manager1.getDefaultCredential().getPrivateKey()).isNull();
     }
 }

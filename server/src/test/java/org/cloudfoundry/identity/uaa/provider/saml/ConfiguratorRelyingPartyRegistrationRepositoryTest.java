@@ -7,15 +7,12 @@ import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.junit.jupiter.params.provider.NullSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.DefaultResourceLoader;
@@ -34,11 +31,12 @@ import java.security.Security;
 import java.security.cert.CertificateException;
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Stream;
+import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -58,6 +56,8 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     private static final SamlKey samlKey2 = new SamlKey(KeyWithCertTest.ecPrivateKey, KeyWithCertTest.password, KeyWithCertTest.ecCertificate);
     private static KeyWithCert keyWithCert1;
     private static KeyWithCert keyWithCert2;
+
+    private static final SamlConfigProps samlConfigProps = new SamlConfigProps();
 
     @Mock
     private SamlIdentityProviderConfigurator configurator;
@@ -80,23 +80,23 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     public static void addProvider() {
         Security.addProvider(new BouncyCastleFipsProvider());
         try {
-            keyWithCert1 = new KeyWithCert(samlKey1);
-            keyWithCert2 = new KeyWithCert(samlKey2);
+            keyWithCert1 = KeyWithCert.fromSamlKey(samlKey1);
+            keyWithCert2 = KeyWithCert.fromSamlKey(samlKey2);
         } catch (CertificateException e) {
-            throw new RuntimeException(e);
+            fail("Failed to create key with cert", e);
         }
+        new IdentityZoneHolder.Initializer(null, new SamlKeyManagerFactory(samlConfigProps));
     }
 
     @BeforeEach
     void setUp() {
-        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of(), configurator));
+        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, configurator));
     }
 
     @Test
     void constructorWithNullConfiguratorThrows() {
-        List<KeyWithCert> emptyKeysWithCerts = List.of();
         assertThatThrownBy(() -> new ConfiguratorRelyingPartyRegistrationRepository(
-                ENTITY_ID, ENTITY_ID_ALIAS, emptyKeysWithCerts, null)
+                ENTITY_ID, ENTITY_ID_ALIAS, null)
         ).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -154,7 +154,6 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
         when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-
         assertThat(registration)
                 // from definition
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
@@ -170,55 +169,17 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void zoneWithCredentialsUsesCorrectValues() {
+        samlConfigProps.setKeys(Map.of("key1", samlKey1, "key2", samlKey2));
+        samlConfigProps.setActiveKeyId("key1");
+
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
         when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
-        when(samlConfig.getKeyList()).thenReturn(List.of(samlKey1, samlKey2));
-
         when(definition.getIdpEntityAlias()).thenReturn(REGISTRATION_ID);
         when(definition.getMetaDataLocation()).thenReturn("saml-sample-metadata.xml");
         when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
 
         RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-
-        assertThat(registration.getDecryptionX509Credentials())
-                .hasSize(1)
-                .first()
-                .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert1.getCertificate());
-        assertThat(registration.getSigningX509Credentials())
-                .hasSize(2)
-                .first()
-                .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert1.getCertificate());
-        // Check the second element
-        assertThat(registration.getSigningX509Credentials())
-                .element(1)
-                .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert2.getCertificate());
-    }
-
-    private static Stream<Arguments> emptyList() {
-        return Stream.of(Arguments.of(List.of()));
-    }
-
-    @ParameterizedTest
-    @NullSource
-    @MethodSource("emptyList")
-    void zoneWithoutCredentialsUsesDefault(List<SamlKey> samlConfigKeys) {
-        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of(keyWithCert1, keyWithCert2), configurator));
-
-        when(repository.retrieveZone()).thenReturn(identityZone);
-        when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
-        when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
-        when(samlConfig.getKeyList()).thenReturn(samlConfigKeys);
-
-        when(definition.getIdpEntityAlias()).thenReturn(REGISTRATION_ID);
-        when(definition.getMetaDataLocation()).thenReturn("saml-sample-metadata.xml");
-        when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
-
-        RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
-
         assertThat(registration.getDecryptionX509Credentials())
                 .hasSize(1)
                 .first()
@@ -263,8 +224,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void fallsBackToUaaWideEntityIdWhenNoAlias() {
-        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, null, List.of(), configurator));
-
+        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, null, configurator));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.isUaa()).thenReturn(true);
         when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
@@ -314,8 +274,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void buildsCorrectRegistrationWithZoneEntityIdSet() {
-        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, null, List.of(), configurator));
-
+        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, null, configurator));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.isUaa()).thenReturn(false);
         when(identityZone.getSubdomain()).thenReturn(ZONE_DOMAIN);
@@ -337,7 +296,6 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SSO/alias/zoneDomain.entityId", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/zoneDomain.entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation);
     }
-
 
     @Test
     void failsWhenInvalidMetadataLocationIsStored() {
