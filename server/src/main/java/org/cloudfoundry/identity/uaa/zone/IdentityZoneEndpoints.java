@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.logging.SanitizedLogFactory;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -14,8 +15,6 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -64,7 +63,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 @RequestMapping("/identity-zones")
 public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
-    private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
+    private static final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(IdentityZoneEndpoints.class);
     private static final String ID_SUBDOMAIN_LOGGING = "[{}] subdomain [{}]";
 
     private final IdentityZoneProvisioning zoneDao;

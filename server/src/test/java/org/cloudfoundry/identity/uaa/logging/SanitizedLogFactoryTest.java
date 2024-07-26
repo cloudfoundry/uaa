@@ -57,6 +57,8 @@ public class SanitizedLogFactoryTest {
         when(mockLog.isDebugEnabled()).thenReturn(true);
         log.debug(dirtyMessage);
         verify(mockLog).debug(sanitizedMsg);
+        log.debug(dirtyMessage, true);
+        verify(mockLog).debug(sanitizedMsg);
         log.debug(dirtyMessage, ex);
         verify(mockLog).debug(sanitizedMsg, ex);
     }

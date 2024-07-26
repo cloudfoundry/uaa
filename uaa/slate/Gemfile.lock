@@ -102,8 +102,8 @@ GEM
     rb-inotify (0.10.1)
       ffi (~> 1.0)
     redcarpet (3.6.0)
-    rexml (3.2.8)
-      strscan (>= 3.0.9)
+    rexml (3.3.2)
+      strscan
     rouge (3.30.0)
     sass (3.7.4)
       sass-listen (~> 4.0.0)
