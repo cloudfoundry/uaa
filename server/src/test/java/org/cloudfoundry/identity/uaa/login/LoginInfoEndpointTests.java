@@ -839,6 +839,7 @@ class LoginInfoEndpointTests {
 
         Collection<Map<String, String>> idpDefinitions = (Collection<Map<String, String>>) extendedModelMap.asMap().get("oauthLinks");
         assertEquals(2, idpDefinitions.size());
+        // Expect this always on top of list because of sorting
         assertEquals("my-OIDC-idp1", ((Map.Entry<String, String>) idpDefinitions.iterator().next()).getValue());
     }
 
