@@ -827,9 +827,9 @@ class LoginInfoEndpointTests {
         when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
 
         List<IdentityProvider> clientAllowedIdps = new LinkedList<>();
-        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
-        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
         clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp3"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
 
         when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(clientAllowedIdps);
 
@@ -837,8 +837,9 @@ class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));
 
-        Map<String, AbstractExternalOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractExternalOAuthIdentityProviderDefinition>) extendedModelMap.asMap().get("oauthLinks");
+        Collection<Map<String, String>> idpDefinitions = (Collection<Map<String, String>>) extendedModelMap.asMap().get("oauthLinks");
         assertEquals(2, idpDefinitions.size());
+        assertEquals("my-OIDC-idp1", ((Map.Entry<String, String>) idpDefinitions.iterator().next()).getValue());
     }
 
     @Test
@@ -1243,7 +1244,7 @@ class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertFalse(((Map)extendedModelMap.get("oauthLinks")).isEmpty());
+        assertFalse(((Collection<Map<String, String>>)extendedModelMap.get("oauthLinks")).isEmpty());
     }
 
     @Test
@@ -1701,7 +1702,7 @@ class LoginInfoEndpointTests {
         assertEquals("{\"origin\":\"uaa\"}", extendedModelMap.get("login_hint"));
         assertEquals("login", redirect);
 
-        Map<String, String> oauthLinks = (Map<String, String>) extendedModelMap.get("oauthLinks");
+        Collection<Map<String, String>> oauthLinks = (Collection<Map<String, String>>) extendedModelMap.get("oauthLinks");
         assertEquals(1, oauthLinks.size());
     }
 
@@ -1812,6 +1813,7 @@ class LoginInfoEndpointTests {
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("https://" + originKey + ".com"));
         definition.setRelyingPartySecret("client-secret");
+        definition.setLinkText(originKey);
         oidcIdentityProvider.setConfig(definition);
 
         return oidcIdentityProvider;
