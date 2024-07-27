@@ -451,7 +451,7 @@ public class LoginInfoEndpoint {
             boolean fieldUsernameShow,
             boolean linkCreateAccountShow
     ) {
-        Comparator sortingByLinkText = Comparator.comparing(SamlIdentityProviderDefinition::getLinkText);
+        Comparator<SamlIdentityProviderDefinition> sortingByLinkText = Comparator.comparing(SamlIdentityProviderDefinition::getLinkText);
         model.addAttribute(LINK_CREATE_ACCOUNT_SHOW, linkCreateAccountShow);
         model.addAttribute(FIELD_USERNAME_SHOW, fieldUsernameShow);
         model.addAttribute(IDP_DEFINITIONS, samlIdentityProviders.values().stream().sorted(sortingByLinkText).toList());
