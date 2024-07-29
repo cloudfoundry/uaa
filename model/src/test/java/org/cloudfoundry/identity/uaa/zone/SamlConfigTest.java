@@ -21,7 +21,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
 
-import java.security.cert.CertificateException;
 import java.util.Map;
 
 import static java.util.Collections.EMPTY_MAP;
