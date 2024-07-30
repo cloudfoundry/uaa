@@ -451,7 +451,7 @@ public class LoginInfoEndpoint {
             boolean fieldUsernameShow,
             boolean linkCreateAccountShow
     ) {
-        Comparator<SamlIdentityProviderDefinition> sortingByLinkText = Comparator.comparing(SamlIdentityProviderDefinition::getLinkText);
+        Comparator<SamlIdentityProviderDefinition> sortingByLinkText = Comparator.comparing(SamlIdentityProviderDefinition::getLinkText, String.CASE_INSENSITIVE_ORDER);
         model.addAttribute(LINK_CREATE_ACCOUNT_SHOW, linkCreateAccountShow);
         model.addAttribute(FIELD_USERNAME_SHOW, fieldUsernameShow);
         model.addAttribute(IDP_DEFINITIONS, samlIdentityProviders.values().stream().sorted(sortingByLinkText).toList());
@@ -467,7 +467,7 @@ public class LoginInfoEndpoint {
                                 e.getValue().getLinkText()
                         )
                 );
-        model.addAttribute(OAUTH_LINKS, oauthLinks.entrySet().stream().sorted(Map.Entry.comparingByValue()).toList());
+        model.addAttribute(OAUTH_LINKS, oauthLinks.entrySet().stream().sorted(Map.Entry.comparingByValue(String::compareToIgnoreCase)).toList());
         model.addAttribute("clientName", clientName);
     }
 
