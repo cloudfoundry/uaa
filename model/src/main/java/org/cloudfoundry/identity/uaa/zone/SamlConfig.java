@@ -31,23 +31,12 @@ import static org.springframework.util.StringUtils.hasText;
 public class SamlConfig {
     public static final String LEGACY_KEY_ID = "legacy-saml-key";
 
-    private boolean assertionSigned = true;
     private boolean requestSigned = true;
     private boolean wantAssertionSigned = true;
-    private boolean wantAuthnRequestSigned = false;
-    private int assertionTimeToLiveSeconds = 600;
     private String activeKeyId;
     private Map<String, SamlKey> keys = new HashMap<>();
     private String entityID;
     private boolean disableInResponseToCheck = false;
-
-    public boolean isAssertionSigned() {
-        return assertionSigned;
-    }
-
-    public void setAssertionSigned(boolean assertionSigned) {
-        this.assertionSigned = assertionSigned;
-    }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getEntityID() {
@@ -109,22 +98,6 @@ public class SamlConfig {
             legacyKey.setPassphrase(privateKeyPassword);
             keys.put(LEGACY_KEY_ID, legacyKey);
         }
-    }
-
-    public boolean isWantAuthnRequestSigned() {
-        return wantAuthnRequestSigned;
-    }
-
-    public void setWantAuthnRequestSigned(boolean wantAuthnRequestSigned) {
-        this.wantAuthnRequestSigned = wantAuthnRequestSigned;
-    }
-
-    public int getAssertionTimeToLiveSeconds() {
-        return assertionTimeToLiveSeconds;
-    }
-
-    public void setAssertionTimeToLiveSeconds(int assertionTimeToLiveSeconds) {
-        this.assertionTimeToLiveSeconds = assertionTimeToLiveSeconds;
     }
 
     @JsonProperty("certificate")
