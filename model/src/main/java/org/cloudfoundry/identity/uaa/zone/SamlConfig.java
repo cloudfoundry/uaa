@@ -36,11 +36,8 @@ import static org.springframework.util.StringUtils.hasText;
 public class SamlConfig {
     public static final String LEGACY_KEY_ID = "legacy-saml-key";
 
-    private boolean assertionSigned = true;
     private boolean requestSigned = true;
     private boolean wantAssertionSigned = true;
-    private boolean wantAuthnRequestSigned = false;
-    private int assertionTimeToLiveSeconds = 600;
     private String activeKeyId;
     private Map<String, SamlKey> keys = new HashMap<>();
     private String entityID;

@@ -803,16 +803,12 @@ class IdentityZoneEndpointsMockMvcTests {
 
         SamlConfig samlConfig = created.getConfig().getSamlConfig();
 
-
-        samlConfig.setAssertionTimeToLiveSeconds(77);
-
         samlConfig.setPrivateKey(null);
         samlConfig.setPrivateKeyPassword(null);
         updateZone(created, HttpStatus.OK, identityClientToken);
 
         IdentityZone updated = provisioning.retrieve(created.getId());
         SamlConfig updatedSamlConfig = updated.getConfig().getSamlConfig();
-        assertThat(samlConfig.getAssertionTimeToLiveSeconds()).isEqualTo(77);
         assertThat(updatedSamlConfig.getCertificate()).isEqualTo(serviceProviderCertificate);
         assertThat(updatedSamlConfig.getPrivateKey()).isEqualTo(serviceProviderKey);
         assertThat(updatedSamlConfig.getPrivateKeyPassword()).isEqualTo(serviceProviderKeyPassword);
@@ -825,8 +821,6 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
 
         SamlConfig samlConfig = created.getConfig().getSamlConfig();
-
-        samlConfig.setAssertionTimeToLiveSeconds(77);
 
         samlConfig.setCertificate(KeyWithCertTest.invalidCert);
         samlConfig.setPrivateKey(null);
@@ -841,8 +835,6 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
 
         SamlConfig samlConfig = created.getConfig().getSamlConfig();
-
-        samlConfig.setAssertionTimeToLiveSeconds(77);
 
         samlConfig.setCertificate(null);
         samlConfig.setPrivateKey(serviceProviderKey);

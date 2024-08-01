@@ -25,11 +25,8 @@
       }
     },
     "samlConfig": {
-      "assertionSigned": true,
       "requestSigned": true,
       "wantAssertionSigned": true,
-      "wantAuthnRequestSigned": false,
-      "assertionTimeToLiveSeconds": 600,
       "keys": {
       },
       "disableInResponseToCheck": true
