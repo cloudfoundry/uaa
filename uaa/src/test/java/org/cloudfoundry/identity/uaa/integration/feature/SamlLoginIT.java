@@ -342,7 +342,6 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: Requires zones")
     void incorrectResponseFromSamlIdpShowErrorFromSaml() {
         String zoneId = "testzone3";
         String zoneUrl = baseUrl.replace("localhost", "%s.localhost".formatted(zoneId));
@@ -389,7 +388,7 @@ public class SamlLoginIT {
         HomePage.tryToGoHome_redirectsToLoginPage(webDriver, zoneUrl)
                 .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .login_goesToSamlErrorPage(testAccounts.getUserName(), testAccounts.getPassword())
-                .validatePageSource(containsString("No local entity found for alias invalid, verify your configuration"));
+                .validatePageSource(containsString("Invalid destination"));
     }
 
     @Test

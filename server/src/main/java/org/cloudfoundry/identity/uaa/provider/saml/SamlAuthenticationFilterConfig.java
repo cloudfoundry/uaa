@@ -112,7 +112,8 @@ public class SamlAuthenticationFilterConfig {
     @Bean
     Filter saml2WebSsoAuthenticationFilter(AuthenticationProvider samlAuthenticationProvider,
                                            RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-                                           SecurityContextRepository securityContextRepository) {
+                                           SecurityContextRepository securityContextRepository,
+                                           SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler) {
 
         RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new RelayStateRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
         Saml2AuthenticationTokenConverter saml2AuthenticationTokenConverter = new Saml2AuthenticationTokenConverter(relyingPartyRegistrationResolver);
@@ -122,8 +123,17 @@ public class SamlAuthenticationFilterConfig {
         saml2WebSsoAuthenticationFilter.setAuthenticationManager(authenticationManager);
         saml2WebSsoAuthenticationFilter.setSecurityContextRepository(securityContextRepository);
         saml2WebSsoAuthenticationFilter.setFilterProcessesUrl(BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
+        saml2WebSsoAuthenticationFilter.setAuthenticationFailureHandler(samlLoginAuthenticationFailureHandler);
 
         return saml2WebSsoAuthenticationFilter;
+    }
+
+    @Bean
+    public SamlLoginAuthenticationFailureHandler getSamlLoginAuthenticationFailureHandler() {
+        SamlLoginAuthenticationFailureHandler handler =
+                new SamlLoginAuthenticationFailureHandler();
+        handler.setDefaultFailureUrl("/saml_error");
+        return handler;
     }
 
     @Autowired
