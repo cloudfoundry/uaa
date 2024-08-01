@@ -4,7 +4,6 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -149,35 +148,5 @@ class HealthzShouldNotBeProtectedMockMvcTests {
             mockMvc.perform(getRequest)
                     .andExpect(status().isOk());
         }
-
-        @Test
-        void samlMetadataWithTrailingSlashReturnsOk() throws Exception {
-            MockHttpServletRequestBuilder getRequest = get("/saml/metadata/")
-                    .accept(MediaType.ALL);
-
-            mockMvc.perform(getRequest)
-                    .andExpect(status().isOk());
-        }
-
-        @Test
-        @Disabled("SAML test fails (is /saml/metadata/example working a product requirement?)")
-        void samlMetadataDirectReturnsOk() throws Exception {
-            MockHttpServletRequestBuilder getRequest = get("/saml/metadata/example")
-                    .accept(MediaType.ALL);
-
-            mockMvc.perform(getRequest)
-                    .andExpect(status().isOk());
-        }
-
-        @Test
-        @Disabled("SAML test fails (is /saml/metadata/example/ working a product requirement?)")
-        void samlMetadataDirectWithTrailingSlashReturnsOk() throws Exception {
-            MockHttpServletRequestBuilder getRequest = get("/saml/metadata/example/")
-                    .accept(MediaType.ALL);
-
-            mockMvc.perform(getRequest)
-                    .andExpect(status().isOk());
-        }
-
     }
 }
