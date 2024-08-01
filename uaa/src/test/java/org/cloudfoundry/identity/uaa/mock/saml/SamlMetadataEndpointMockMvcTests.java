@@ -26,7 +26,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 @DefaultTestContext
-class SamlMetadataMockMvcTests {
+class SamlMetadataEndpointMockMvcTests {
 
     @Autowired
     private MockMvc mockMvc;

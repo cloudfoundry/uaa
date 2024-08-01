@@ -17,7 +17,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
@@ -110,6 +110,7 @@ class BootstrapTests {
     static Stream<Arguments> samlSignatureParameterProvider() {
         final String yamlPath = "test/config/";
         return Stream.of(
+                arguments(yamlPath + "saml-algorithm-sha1.yml", SignatureAlgorithm.SHA1),
                 arguments(yamlPath + "saml-algorithm-sha256.yml", SignatureAlgorithm.SHA256),
                 arguments(yamlPath + "saml-algorithm-sha512.yml", SignatureAlgorithm.SHA512)
         );
@@ -149,6 +150,14 @@ class BootstrapTests {
         return abstractRefreshableWebApplicationContext;
     }
 
+    @BeforeEach
+    void beforeEach() {
+        System.clearProperty(LOGIN_IDP_METADATA);
+        System.clearProperty(LOGIN_IDP_ENTITY_ALIAS);
+        System.clearProperty(LOGIN_IDP_METADATA_URL);
+        System.clearProperty(LOGIN_SAML_METADATA_TRUST_CHECK);
+    }
+
     @Test
     void legacyDeprecatedProperties() {
         context = getServletContext(null, "test/bootstrap/deprecated_properties_still_work.yml");
@@ -182,12 +191,10 @@ class BootstrapTests {
                 .returns(false, BootstrapSamlIdentityProviderData::isLegacyMetadataTrustCheck);
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertThat(providerByAlias(defs, "testIDPFile"))
-                // TODO: should file return URL? previously this test did
-                .returns(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN, SamlIdentityProviderDefinition::getType);
+                .returns(SamlIdentityProviderDefinition.MetadataLocation.URL, SamlIdentityProviderDefinition::getType);
     }
 
     @Test
-    @Disabled("SAML test fails")
     void legacySamlMetadataAsXml() {
         String metadataString = loadResouceAsString("sample-okta-localhost.xml");
         System.setProperty(LOGIN_IDP_METADATA, metadataString);
@@ -219,7 +226,6 @@ class BootstrapTests {
 
     @ParameterizedTest
     @MethodSource("samlSignatureParameterProvider")
-    @Disabled("SAML test fails")
     void samlSignatureAlgorithmsWereBootstrapped(String yamlFile, SignatureAlgorithm algorithm) {
         // When we override the SHA1 default for login.saml.signatureAlgorithm in the yaml, make sure it works.
         context = getServletContext("default", yamlFile);
@@ -228,6 +234,14 @@ class BootstrapTests {
         assertThat(signatureAlgorithm)
                 .as("The SAML signature algorithm in the yaml file is set in the bean")
                 .isEqualTo(algorithm);
+    }
+
+    @Test
+    void samlSignatureAlgorithmIsInvalid() {
+        context = getServletContext("default", "test/config/saml-algorithm-invalid.yml");
+        // When we override the SHA1 default for login.saml.signatureAlgorithm in the yaml, make sure it works.
+        SignatureAlgorithm signatureAlgorithm = context.getBean(SignatureAlgorithm.class);
+        assertThat(signatureAlgorithm).isSameAs(SignatureAlgorithm.INVALID);
     }
 
     private static String loadResouceAsString(String resourceLocation) {

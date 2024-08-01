@@ -17,7 +17,7 @@ import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,15 +32,16 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate2;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key2;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyCertificate;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyKey;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyPassphrase;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.formatCert;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyCertificate;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyKey;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyPassphrase;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey2;
 import static org.springframework.http.MediaType.APPLICATION_XML;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -53,7 +54,6 @@ class SamlKeyRotationMockMvcTests {
     public static final String KEY_DESCRIPTOR_CERTIFICATE_XPATH_FORMAT = "//md:SPSSODescriptor/md:KeyDescriptor[@use='%s']//ds:X509Certificate";
 
     private IdentityZone zone;
-    private SamlKey samlKey2;
 
     @Autowired
     private MockMvc mockMvc;
@@ -72,13 +72,11 @@ class SamlKeyRotationMockMvcTests {
         Map<String, String> keys = Map.of("exampleKeyId", "s1gNiNg.K3y/t3XT");
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
         SamlConfig samlConfig = new SamlConfig();
-        samlConfig.setCertificate(legacyCertificate);
-        samlConfig.setPrivateKey(legacyKey);
-        samlConfig.setPrivateKeyPassword(legacyPassphrase);
-        SamlKey samlKey1 = new SamlKey(key1, passphrase1, certificate1);
-        samlConfig.addKey("key1", samlKey1);
-        samlKey2 = new SamlKey(key2, passphrase2, certificate2);
-        samlConfig.addKey("key2", samlKey2);
+        samlConfig.setCertificate(legacyCertificate());
+        samlConfig.setPrivateKey(legacyKey());
+        samlConfig.setPrivateKeyPassword(legacyPassphrase());
+        samlConfig.addKey(keyName1(), samlKey1());
+        samlConfig.addKey(keyName2(), samlKey2());
         identityZone.getConfig().setSamlConfig(samlConfig);
 
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null,
@@ -96,38 +94,38 @@ class SamlKeyRotationMockMvcTests {
     void key_rotation() throws Exception {
         //default with three keys
         XmlAssert metadataAssert = getMetadataAssert();
-        assertThatSigningKeyHasValues(metadataAssert, legacyCertificate, certificate1, certificate2);
-        assertThatEncryptionKeyHasValues(metadataAssert, legacyCertificate);
-        assertSignatureKeyHasValue(metadataAssert, legacyCertificate);
+        assertThatSigningKeyHasValues(metadataAssert, legacyCertificate(), certificate1(), certificate2());
+        assertThatEncryptionKeyHasValues(metadataAssert, legacyCertificate());
+        assertSignatureKeyHasValue(metadataAssert, legacyCertificate());
 
         //activate key1
-        zone.getConfig().getSamlConfig().setActiveKeyId("key1");
+        zone.getConfig().getSamlConfig().setActiveKeyId(keyName1());
         zone = MockMvcUtils.updateZone(mockMvc, zone);
         metadataAssert = getMetadataAssert();
-        assertThatSigningKeyHasValues(metadataAssert, legacyCertificate, certificate1, certificate2);
-        assertThatEncryptionKeyHasValues(metadataAssert, certificate1);
-        assertSignatureKeyHasValue(metadataAssert, certificate1);
+        assertThatSigningKeyHasValues(metadataAssert, legacyCertificate(), certificate1(), certificate2());
+        assertThatEncryptionKeyHasValues(metadataAssert, certificate1());
+        assertSignatureKeyHasValue(metadataAssert, certificate1());
 
         //remove all but key2
         zone.getConfig().getSamlConfig().setKeys(new HashMap<>());
-        zone.getConfig().getSamlConfig().addAndActivateKey("key2", samlKey2);
+        zone.getConfig().getSamlConfig().addAndActivateKey(keyName2(), samlKey2());
         zone = MockMvcUtils.updateZone(mockMvc, zone);
         metadataAssert = getMetadataAssert();
-        assertThatSigningKeyHasValues(metadataAssert, certificate2);
-        assertThatEncryptionKeyHasValues(metadataAssert, certificate2);
-        assertSignatureKeyHasValue(metadataAssert, certificate2);
+        assertThatSigningKeyHasValues(metadataAssert, certificate2());
+        assertThatEncryptionKeyHasValues(metadataAssert, certificate2());
+        assertSignatureKeyHasValue(metadataAssert, certificate2());
     }
 
     @Test
     void check_metadata_signature_key() throws Exception {
         XmlAssert metadataAssert = getMetadataAssert();
-        assertSignatureKeyHasValue(metadataAssert, legacyCertificate);
+        assertSignatureKeyHasValue(metadataAssert, legacyCertificate());
 
-        zone.getConfig().getSamlConfig().setActiveKeyId("key1");
+        zone.getConfig().getSamlConfig().setActiveKeyId(keyName1());
         zone = MockMvcUtils.updateZone(mockMvc, zone);
 
         metadataAssert = getMetadataAssert();
-        assertSignatureKeyHasValue(metadataAssert, certificate1);
+        assertSignatureKeyHasValue(metadataAssert, certificate1());
     }
 
     private XmlAssert getMetadataAssert() throws Exception {
@@ -143,17 +141,11 @@ class SamlKeyRotationMockMvcTests {
         return XmlAssert.assertThat(metadata).withNamespaceContext(xmlNamespaces());
     }
 
-    private String clean(String cert) {
-        return cert.replace("-----BEGIN CERTIFICATE-----", "")
-                .replace("-----END CERTIFICATE-----", "")
-                .replace("\n", "");
-    }
-
     private void assertSignatureKeyHasValue(XmlAssert metadata, String expectedKey) {
         metadata.hasXPath(SIGNATURE_CERTIFICATE_XPATH_FORMAT)
                 .isNotEmpty()
                 .extractingText()
-                .containsOnly(clean(expectedKey));
+                .containsOnly(formatCert(expectedKey));
     }
 
     private void assertThatSigningKeyHasValues(XmlAssert xmlAssert, String... certificates) {
@@ -165,7 +157,7 @@ class SamlKeyRotationMockMvcTests {
     }
 
     private void assertThatXmlKeysOfTypeHasValues(XmlAssert xmlAssert, String type, String... certificates) {
-        String[] cleanCerts = Arrays.stream(certificates).map(this::clean).toArray(String[]::new);
+        String[] cleanCerts = Arrays.stream(certificates).map(TestCredentialObjects::bare).toArray(String[]::new);
         xmlAssert.hasXPath(KEY_DESCRIPTOR_CERTIFICATE_XPATH_FORMAT.formatted(type))
                 .isNotEmpty()
                 .extractingText()

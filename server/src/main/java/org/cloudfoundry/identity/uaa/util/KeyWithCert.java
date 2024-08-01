@@ -20,8 +20,10 @@ import java.security.KeyPair;
 import java.security.PrivateKey;
 import java.security.PublicKey;
 import java.security.Signature;
+import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+import java.util.Base64;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwt.JwtAlgorithms.DEFAULT_RSA;
 
@@ -139,5 +141,9 @@ public class KeyWithCert {
         }
 
         return certificate;
+    }
+
+    public String getEncodedCertificate() throws CertificateEncodingException {
+        return new String(Base64.getEncoder().encode(certificate.getEncoded()));
     }
 }

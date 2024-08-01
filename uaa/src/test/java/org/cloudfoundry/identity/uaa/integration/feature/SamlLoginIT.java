@@ -108,8 +108,15 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_EMAIL;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_PERSISTENT;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_TRANSIENT;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_UNSPECIFIED;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_X509SUBJECT;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_DIGEST_SHA256;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -227,17 +234,19 @@ public class SamlLoginIT {
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@AuthnRequestsSigned").isEqualTo(true);
         // login.saml.wantAssertionSigned
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@WantAssertionsSigned").isEqualTo(true);
-        // TODO the AssertionConsumerService location needs to be a valid URL (currently it's: {baseUrl}/saml/....)
         // the AssertionConsumerService endpoint needs to be: /saml/SSO/alias/[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias or login.entityID]
-        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location").contains("/saml/SSO/alias/cloudfoundry-saml-login");
-
-        //        assertThat(metadataXml).contains("entityID=\"cloudfoundry-saml-login\"")
-        //                // TODO: Are DigestMethod and SignatureMethod needed?
-        //                //  login.saml.signatureAlgorithm
-        //                //.contains("<ds:DigestMethod Algorithm=\"http://www.w3.org/2001/04/xmlenc#sha256\"/>")
-        //                //.contains("<ds:SignatureMethod Algorithm=\"http://www.w3.org/2001/04/xmldsig-more#rsa-sha256\"/>")
-        //                // login.saml.nameID
-        //                .contains("<md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat>");
+        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location")
+                .contains("localhost", "/saml/SSO/alias/cloudfoundry-saml-login");
+        //  login.saml.signatureAlgorithm
+        xmlAssert.valueByXPath("/md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:SignatureMethod/@Algorithm").isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA256);
+        xmlAssert.valueByXPath("/md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestMethod/@Algorithm").isEqualTo(ALGO_ID_DIGEST_SHA256);
+        xmlAssert.nodesByXPath("/md:EntityDescriptor/ds:Signature/ds:SignatureValue").exist();
+        xmlAssert.nodesByXPath("/md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestValue").exist();
+        // login.saml.nameID
+        xmlAssert.nodesByXPath("/md:EntityDescriptor/md:SPSSODescriptor/md:NameIDFormat")
+                .extractingText()
+                .contains(NAMEID_FORMAT_UNSPECIFIED, NAMEID_FORMAT_EMAIL, NAMEID_FORMAT_X509SUBJECT,
+                        NAMEID_FORMAT_PERSISTENT, NAMEID_FORMAT_TRANSIENT);
 
         assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("saml-sp.xml");
     }
@@ -273,13 +282,17 @@ public class SamlLoginIT {
         // id zone config's samlConfig.entityID
         xmlAssert.valueByXPath("//md:EntityDescriptor/@entityID").isEqualTo("testzone1-saml-login");
         // determined by zone config field: config.samlConfig.requestSigned
-        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@AuthnRequestsSigned").isEqualTo(false);
+        xmlAssert.valueByXPath("//md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:SignatureMethod/@Algorithm").isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA256);
+        xmlAssert.valueByXPath("//md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestMethod/@Algorithm").isEqualTo(ALGO_ID_DIGEST_SHA256);
 
         // determined by zone config field: config.samlConfig.wantAssertionSigned
         xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/@WantAssertionsSigned").isEqualTo(false);
-        // TODO the AssertionConsumerService location needs to be a valid URL (currently it's: {baseUrl}/saml/....)
         // the AssertionConsumerService endpoint needs to be: /saml/SSO/alias/[zone-subdomain].[UAA-wide SAML entity ID, aka UAA.yml's login.saml.entityIDAlias, or fall back on login.entityID]
-        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location").contains("/saml/SSO/alias/testzone1.cloudfoundry-saml-login");
+        xmlAssert.valueByXPath("//md:EntityDescriptor/md:SPSSODescriptor/md:AssertionConsumerService/@Location")
+                .contains("testzone1.localhost")
+                .contains("/saml/SSO/alias/testzone1.cloudfoundry-saml-login");
+        xmlAssert.nodesByXPath("//md:EntityDescriptor/ds:Signature/ds:SignatureValue").exist();
+        xmlAssert.nodesByXPath("//md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestValue").exist();
 
         assertThat(response.getHeaders().getContentDisposition().getFilename()).isEqualTo("saml-testzone1-sp.xml");
     }

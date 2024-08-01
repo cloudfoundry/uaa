@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -7,6 +8,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+@Slf4j
 @EnableConfigurationProperties({SamlConfigProps.class})
 @Configuration
 public class SamlConfiguration {
@@ -15,6 +17,8 @@ public class SamlConfiguration {
     private String samlEntityID;
     @Value("${login.idpMetadataURL:null}")
     private String metaDataUrl;
+    @Value("${login.idpMetadata:null}")
+    private String metaData;
     @Value("${login.idpEntityAlias:null}")
     private String legacyIdpIdentityAlias;
     @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
@@ -34,10 +38,14 @@ public class SamlConfiguration {
     @Autowired
     @Bean
     public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders(SamlConfigProps samlConfigProps,
-                           final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator metaDataProviders) {
+                                                                        final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator metaDataProviders) {
         BootstrapSamlIdentityProviderData idpData = new BootstrapSamlIdentityProviderData(metaDataProviders);
         idpData.setIdentityProviders(samlConfigProps.getProviders());
-        idpData.setLegacyIdpMetaData(metaDataUrl);
+        if (isNotNull(metaData)) {
+            idpData.setLegacyIdpMetaData(metaData);
+        } else if (isNotNull(metaDataUrl)) {
+            idpData.setLegacyIdpMetaData(metaDataUrl);
+        }
         idpData.setLegacyIdpIdentityAlias(legacyIdpIdentityAlias);
         idpData.setLegacyNameId(legacyNameId);
         idpData.setLegacyAssertionConsumerIndex(legacyAssertionConsumerIndex);
@@ -46,10 +54,30 @@ public class SamlConfiguration {
         return idpData;
     }
 
+    private boolean isNotNull(String value) {
+        if (value == null) {
+            return false;
+        }
+        return !value.isEmpty() && !value.equals("null");
+    }
+
     @Autowired
     @Bean
     public SignatureAlgorithm getSignatureAlgorithm(SamlConfigProps samlConfigProps) {
-        return SignatureAlgorithm.valueOf(samlConfigProps.getSignatureAlgorithm());
+        try {
+            return SignatureAlgorithm.valueOf(samlConfigProps.getSignatureAlgorithm());
+        } catch (IllegalArgumentException e) {
+            // default to INVALID (SHA256), if the signature algorithm is not valid
+            SignatureAlgorithm defaultSignatureAlgorithm = SignatureAlgorithm.INVALID;
+            log.error("Invalid signature algorithm: '{}', defaulting to {}", samlConfigProps.getSignatureAlgorithm(), defaultSignatureAlgorithm, e);
+            return defaultSignatureAlgorithm;
+        }
+    }
+
+    @Autowired
+    @Bean
+    public boolean signSamlMetaData(SamlConfigProps samlConfigProps) {
+        return samlConfigProps.getSignMetaData();
     }
 }
 

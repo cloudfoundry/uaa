@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.saml2.provider.service.metadata.OpenSamlMetadataResolver;
@@ -29,12 +30,14 @@ public class SamlMetadataEndpoint implements ZoneAware {
     private final RelyingPartyRegistrationResolver relyingPartyRegistrationResolver;
 
     public SamlMetadataEndpoint(RelyingPartyRegistrationResolver registrationResolver,
-                                IdentityZoneManager identityZoneManager) {
+                                IdentityZoneManager identityZoneManager, SignatureAlgorithm signatureAlgorithms,
+                                @Qualifier("signSamlMetaData") boolean signMetaData) {
         Assert.notNull(registrationResolver, "registrationResolver cannot be null");
         relyingPartyRegistrationResolver = registrationResolver;
         OpenSamlMetadataResolver metadataResolver = new OpenSamlMetadataResolver();
         saml2MetadataResolver = metadataResolver;
-        metadataResolver.setEntityDescriptorCustomizer(new SamlMetadataEntityDescriptorCustomizer(identityZoneManager));
+        metadataResolver.setEntityDescriptorCustomizer(
+                new SamlMetadataEntityDescriptorCustomizer(identityZoneManager, signatureAlgorithms, signMetaData));
     }
 
     @GetMapping(value = "/saml/metadata", produces = APPLICATION_XML_CHARSET_UTF_8)

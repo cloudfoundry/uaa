@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -23,19 +22,18 @@ import org.xmlunit.assertj.XmlAssert;
 
 import java.security.Security;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.certificate2;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.key2;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyCertificate;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyKey;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.legacyPassphrase;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase1;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.passphrase2;
-import static org.cloudfoundry.identity.uaa.zone.SamlConfig.LEGACY_KEY_ID;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyKeyName;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacySamlKey;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey2;
 import static org.mockito.Mockito.spy;
 
 public class SamlMetadataEndpointKeyRotationTests {
@@ -45,8 +43,6 @@ public class SamlMetadataEndpointKeyRotationTests {
     private static final String ENTITY_ID = "entityIdValue";
     private static final String ENTITY_ALIAS = "entityAlias";
     public static final String KEY_DESCRIPTOR_CERTIFICATE_XPATH_FORMAT = "//md:SPSSODescriptor/md:KeyDescriptor[@use='%s']//ds:X509Certificate";
-    private static final String KEY_1 = "key-1";
-    private static final String KEY_2 = "key2";
 
     private static IdentityZoneHolder.Initializer initializer;
 
@@ -55,16 +51,13 @@ public class SamlMetadataEndpointKeyRotationTests {
 
     private MockHttpServletRequest request;
 
-    private static final SamlKey samlKey1 = new SamlKey(key1, passphrase1, certificate1);
-    private static final SamlKey samlKey2 = new SamlKey(key2, passphrase2, certificate2);
-
     @BeforeAll
     static void beforeAll() {
         Security.addProvider(new BouncyCastleFipsProvider());
 
         SamlConfigProps samlConfigProps = new SamlConfigProps();
-        samlConfigProps.setKeys(Map.of(LEGACY_KEY_ID, new SamlKey(legacyKey, legacyPassphrase, legacyCertificate)));
-        samlConfigProps.setActiveKeyId(LEGACY_KEY_ID);
+        samlConfigProps.setKeys(Map.of(legacyKeyName(), legacySamlKey()));
+        samlConfigProps.setActiveKeyId(legacyKeyName());
         samlConfigProps.setEntityIDAlias(ENTITY_ALIAS);
         samlConfigProps.setSignMetaData(true);
 
@@ -86,14 +79,15 @@ public class SamlMetadataEndpointKeyRotationTests {
         samlConfig.setWantAssertionSigned(true);
         samlConfig.setEntityID(ENTITY_ID);
         otherZoneDefinition.setIdpDiscoveryEnabled(true);
-        samlConfig.addAndActivateKey(KEY_1, samlKey1);
+        samlConfig.addAndActivateKey(keyName1(), samlKey1());
 
         IdentityZoneManager identityZoneManager = new IdentityZoneManagerImpl();
         request = new MockHttpServletRequest();
 
-        RelyingPartyRegistrationRepository registrationRepository = new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias");
+        RelyingPartyRegistrationRepository registrationRepository =
+                new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias", List.of());
         RelyingPartyRegistrationResolver registrationResolver = new DefaultRelyingPartyRegistrationResolver(registrationRepository);
-        endpoint = spy(new SamlMetadataEndpoint(registrationResolver, identityZoneManager));
+        endpoint = spy(new SamlMetadataEndpoint(registrationResolver, identityZoneManager, SignatureAlgorithm.SHA256, true));
         IdentityZoneHolder.set(otherZone);
 
         request.setRequestURI("http://localhost:8080/uaa");
@@ -121,49 +115,43 @@ public class SamlMetadataEndpointKeyRotationTests {
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 
-        assertThatEncryptionKeyHasValues(xmlAssert, certificate1);
-        assertThatSigningKeyHasValues(xmlAssert, certificate1);
+        assertThatEncryptionKeyHasValues(xmlAssert, certificate1());
+        assertThatSigningKeyHasValues(xmlAssert, certificate1());
     }
 
     @Test
     void multipleKeys() {
-        samlConfig.addKey(KEY_2, samlKey2);
+        samlConfig.addKey(keyName2(), samlKey2());
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 
-        assertThatEncryptionKeyHasValues(xmlAssert, certificate1);
-        assertThatSigningKeyHasValues(xmlAssert, certificate1, certificate2);
+        assertThatEncryptionKeyHasValues(xmlAssert, certificate1());
+        assertThatSigningKeyHasValues(xmlAssert, certificate1(), certificate2());
     }
 
     @Test
     void changeActiveKey() {
         multipleKeys();
-        samlConfig.addAndActivateKey(KEY_2, samlKey2);
+        samlConfig.addAndActivateKey(keyName2(), samlKey2());
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 
-        assertThatEncryptionKeyHasValues(xmlAssert, certificate2);
-        assertThatSigningKeyHasValues(xmlAssert, certificate1, certificate2);
+        assertThatEncryptionKeyHasValues(xmlAssert, certificate2());
+        assertThatSigningKeyHasValues(xmlAssert, certificate1(), certificate2());
     }
 
     @Test
     void removeKey() {
         changeActiveKey();
-        samlConfig.removeKey(KEY_1);
+        samlConfig.removeKey(keyName1());
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 
-        assertThatEncryptionKeyHasValues(xmlAssert, certificate2);
-        assertThatSigningKeyHasValues(xmlAssert, certificate2);
-    }
-
-    private String clean(String cert) {
-        return cert.replace("-----BEGIN CERTIFICATE-----", "")
-                .replace("-----END CERTIFICATE-----", "")
-                .replace("\n", "");
+        assertThatEncryptionKeyHasValues(xmlAssert, certificate2());
+        assertThatSigningKeyHasValues(xmlAssert, certificate2());
     }
 
     private void assertThatSigningKeyHasValues(XmlAssert xmlAssert, String... certificates) {
@@ -175,7 +163,7 @@ public class SamlMetadataEndpointKeyRotationTests {
     }
 
     private void assertThatXmlKeysOfTypeHasValues(XmlAssert xmlAssert, String type, String... certificates) {
-        String[] cleanCerts = Arrays.stream(certificates).map(this::clean).toArray(String[]::new);
+        String[] cleanCerts = Arrays.stream(certificates).map(TestCredentialObjects::bare).toArray(String[]::new);
         xmlAssert.hasXPath(KEY_DESCRIPTOR_CERTIFICATE_XPATH_FORMAT.formatted(type))
                 .isNotEmpty()
                 .extractingText()

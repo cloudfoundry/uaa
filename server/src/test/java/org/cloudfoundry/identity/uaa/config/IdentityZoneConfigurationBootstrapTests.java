@@ -4,7 +4,6 @@ import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneConfigurationValidator;
@@ -33,6 +32,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.JWT;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.key1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.passphrase1;
 
 @WithDatabaseContext
 public class IdentityZoneConfigurationBootstrapTests {
@@ -90,42 +92,42 @@ public class IdentityZoneConfigurationBootstrapTests {
 
     @Test
     void multipleKeys() throws InvalidIdentityZoneDetailsException {
-        bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
-        bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
-        bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        bootstrap.setSamlSpPrivateKey(key1());
+        bootstrap.setSamlSpCertificate(certificate1());
+        bootstrap.setSamlSpPrivateKeyPassphrase(passphrase1());
         Map<String, Map<String, String>> keys = new HashMap<>();
         Map<String, String> key1 = new HashMap<>();
-        key1.put("key", SamlTestUtils.PROVIDER_PRIVATE_KEY);
-        key1.put("passphrase", SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
-        key1.put("certificate", SamlTestUtils.PROVIDER_CERTIFICATE);
+        key1.put("key", key1());
+        key1.put("passphrase", passphrase1());
+        key1.put("certificate", certificate1());
         keys.put("Key1", key1);
         bootstrap.setActiveKeyId("KEY1");
         bootstrap.setSamlKeys(keys);
         bootstrap.afterPropertiesSet();
         IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
         SamlConfig config = uaa.getConfig().getSamlConfig();
-        assertThat(config.getPrivateKey()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY);
-        assertThat(config.getPrivateKeyPassword()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
-        assertThat(config.getCertificate()).isEqualTo(SamlTestUtils.PROVIDER_CERTIFICATE);
+        assertThat(config.getPrivateKey()).isEqualTo(key1());
+        assertThat(config.getPrivateKeyPassword()).isEqualTo(passphrase1());
+        assertThat(config.getCertificate()).isEqualTo(certificate1());
 
         assertThat(config.getActiveKeyId()).isEqualTo("key1");
         assertThat(config.getKeys()).hasSize(2);
 
-        assertThat(config.getKeys().get("key1").getKey()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY);
-        assertThat(config.getKeys().get("key1").getPassphrase()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
-        assertThat(config.getKeys().get("key1").getCertificate()).isEqualTo(SamlTestUtils.PROVIDER_CERTIFICATE);
+        assertThat(config.getKeys().get("key1").getKey()).isEqualTo(key1());
+        assertThat(config.getKeys().get("key1").getPassphrase()).isEqualTo(passphrase1());
+        assertThat(config.getKeys().get("key1").getCertificate()).isEqualTo(certificate1());
     }
 
     @Test
     void keyIdNullException() {
-        bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
-        bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
-        bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        bootstrap.setSamlSpPrivateKey(key1());
+        bootstrap.setSamlSpCertificate(certificate1());
+        bootstrap.setSamlSpPrivateKeyPassphrase(passphrase1());
         Map<String, Map<String, String>> keys = new HashMap<>();
         Map<String, String> key1 = new HashMap<>();
-        key1.put("key", SamlTestUtils.PROVIDER_PRIVATE_KEY);
-        key1.put("passphrase", SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
-        key1.put("certificate", SamlTestUtils.PROVIDER_CERTIFICATE);
+        key1.put("key", key1());
+        key1.put("passphrase", passphrase1());
+        key1.put("certificate", certificate1());
         keys.put(null, key1);
         bootstrap.setActiveKeyId(null);
         bootstrap.setSamlKeys(keys);
@@ -134,17 +136,17 @@ public class IdentityZoneConfigurationBootstrapTests {
 
     @Test
     void samlKeysAndSigningConfigs() throws Exception {
-        bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
-        bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
-        bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        bootstrap.setSamlSpPrivateKey(key1());
+        bootstrap.setSamlSpCertificate(certificate1());
+        bootstrap.setSamlSpPrivateKeyPassphrase(passphrase1());
         bootstrap.setSamlWantAssertionSigned(false);
         bootstrap.setSamlRequestSigned(false);
         bootstrap.afterPropertiesSet();
 
         IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
-        assertThat(uaa.getConfig().getSamlConfig().getPrivateKey()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY);
-        assertThat(uaa.getConfig().getSamlConfig().getPrivateKeyPassword()).isEqualTo(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
-        assertThat(uaa.getConfig().getSamlConfig().getCertificate()).isEqualTo(SamlTestUtils.PROVIDER_CERTIFICATE);
+        assertThat(uaa.getConfig().getSamlConfig().getPrivateKey()).isEqualTo(key1());
+        assertThat(uaa.getConfig().getSamlConfig().getPrivateKeyPassword()).isEqualTo(passphrase1());
+        assertThat(uaa.getConfig().getSamlConfig().getCertificate()).isEqualTo(certificate1());
         assertThat(uaa.getConfig().getSamlConfig().isWantAssertionSigned()).isFalse();
         assertThat(uaa.getConfig().getSamlConfig().isRequestSigned()).isFalse();
     }

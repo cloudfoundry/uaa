@@ -29,24 +29,26 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
     private final SamlConfigProps samlConfigProps;
     private final BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
     private final String samlSpNameID;
+    private final List<SignatureAlgorithm> signatureAlgorithms;
 
     public SamlRelyingPartyRegistrationRepositoryConfig(@Qualifier("samlEntityID") String samlEntityID,
                                                         SamlConfigProps samlConfigProps,
                                                         BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData,
                                                         @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
-                                                        String samlSpNameID
+                                                        String samlSpNameID, List<SignatureAlgorithm> signatureAlgorithms
     ) {
         this.samlEntityID = samlEntityID;
         this.samlConfigProps = samlConfigProps;
         this.bootstrapSamlIdentityProviderData = bootstrapSamlIdentityProviderData;
         this.samlSpNameID = samlSpNameID;
+        this.signatureAlgorithms = signatureAlgorithms;
     }
 
     @Autowired
     @Bean
     RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(SamlIdentityProviderConfigurator samlIdentityProviderConfigurator) {
         SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl samlKeyManager = new SamlKeyManagerFactory.SamlConfigPropsSamlKeyManagerImpl(samlConfigProps);
-        List<KeyWithCert> defaultKeysWithCerts =samlKeyManager.getAvailableCredentials();
+        List<KeyWithCert> defaultKeysWithCerts = samlKeyManager.getAvailableCredentials();
 
         List<RelyingPartyRegistration> relyingPartyRegistrations = new ArrayList<>();
         String uaaWideSamlEntityIDAlias = samlConfigProps.getEntityIDAlias() != null ? samlConfigProps.getEntityIDAlias() : samlEntityID;
@@ -63,7 +65,8 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
         // even when there are no SAML IDPs configured.
         // See relevant issue: https://github.com/spring-projects/spring-security/issues/11369
         RelyingPartyRegistration exampleRelyingPartyRegistration = RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                samlEntityID, samlSpNameID, defaultKeysWithCerts, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, DEFAULT_REGISTRATION_ID, uaaWideSamlEntityIDAlias, samlConfigProps.getSignRequest());
+                samlEntityID, samlSpNameID, defaultKeysWithCerts, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, DEFAULT_REGISTRATION_ID,
+                uaaWideSamlEntityIDAlias, samlConfigProps.getSignRequest(), signatureAlgorithms);
         relyingPartyRegistrations.add(exampleRelyingPartyRegistration);
 
         for (SamlIdentityProviderDefinition samlIdentityProviderDefinition : bootstrapSamlIdentityProviderData.getIdentityProviderDefinitions()) {
@@ -73,13 +76,18 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
                             samlIdentityProviderDefinition.getMetaDataLocation(),
                             samlIdentityProviderDefinition.getIdpEntityAlias(),
                             uaaWideSamlEntityIDAlias,
-                            samlConfigProps.getSignRequest())
+                            samlConfigProps.getSignRequest(),
+                            signatureAlgorithms)
             );
         }
 
         InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);
-        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo = new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, samlIdentityProviderConfigurator);
-        DefaultRelyingPartyRegistrationRepository defaultRepo = new DefaultRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias);
+        ConfiguratorRelyingPartyRegistrationRepository configuratorRepo =
+                new ConfiguratorRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias,
+                        samlIdentityProviderConfigurator, signatureAlgorithms);
+        DefaultRelyingPartyRegistrationRepository defaultRepo =
+                new DefaultRelyingPartyRegistrationRepository(samlEntityID, uaaWideSamlEntityIDAlias, signatureAlgorithms);
+
         return new DelegatingRelyingPartyRegistrationRepository(bootstrapRepo, configuratorRepo, defaultRepo);
     }
 

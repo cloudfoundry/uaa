@@ -108,6 +108,8 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
             } catch (MalformedURLException e) {
                 //invalid URL
             }
+        } else if (trimmedValue.startsWith("classpath:")) {
+            return MetadataLocation.URL;
         }
         return MetadataLocation.UNKNOWN;
     }

@@ -19,8 +19,9 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
 
     public ConfiguratorRelyingPartyRegistrationRepository(String uaaWideSamlEntityID,
                                                           String uaaWideSamlEntityIDAlias,
-                                                          SamlIdentityProviderConfigurator configurator) {
-        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias);
+                                                          SamlIdentityProviderConfigurator configurator,
+                                                          List<SignatureAlgorithm> signatureAlgorithms) {
+        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias, signatureAlgorithms);
         Assert.notNull(configurator, "configurator cannot be null");
         this.configurator = configurator;
     }
@@ -49,7 +50,8 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
                 return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
                         zonedSamlEntityID, identityProviderDefinition.getNameID(),
                         keyWithCerts, identityProviderDefinition.getMetaDataLocation(),
-                        registrationId, zonedSamlEntityIDAlias, requestSigned);
+                        registrationId, zonedSamlEntityIDAlias, requestSigned,
+                        signatureAlgorithms);
             }
         }
         return null;

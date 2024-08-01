@@ -2,13 +2,11 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.security.saml2.Saml2Exception;
+import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.util.FileCopyUtils;
 
@@ -16,17 +14,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
 import java.io.UncheckedIOException;
-import java.security.PrivateKey;
-import java.security.cert.X509Certificate;
 import java.util.List;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyWithCert1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyWithCert2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.x509Certificate1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.x509Certificate2;
 
-@ExtendWith(MockitoExtension.class)
 class RelyingPartyRegistrationBuilderTest {
 
     private static final String ENTITY_ID = "entityId";
@@ -34,16 +31,13 @@ class RelyingPartyRegistrationBuilderTest {
     private static final String NAME_ID = "nameIdFormat";
     private static final String REGISTRATION_ID = "registrationId";
 
-    @Mock
-    private KeyWithCert mockKeyWithCert;
-
     @Test
     void buildsRelyingPartyRegistrationFromLocation() {
-        when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
-        when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
-
         RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(mockKeyWithCert), "saml-sample-metadata.xml", REGISTRATION_ID, ENTITY_ID_ALIAS, true);
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(keyWithCert1()),
+                        "saml-sample-metadata.xml", REGISTRATION_ID, ENTITY_ID_ALIAS,
+                        true, List.of());
+
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
@@ -59,12 +53,10 @@ class RelyingPartyRegistrationBuilderTest {
 
     @Test
     void buildsRelyingPartyRegistrationFromXML() {
-        when(mockKeyWithCert.getCertificate()).thenReturn(mock(X509Certificate.class));
-        when(mockKeyWithCert.getPrivateKey()).thenReturn(mock(PrivateKey.class));
-
         String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
         RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(mockKeyWithCert), metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, false);
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(keyWithCert1()),
+                        metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, false, List.of());
 
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
@@ -80,13 +72,37 @@ class RelyingPartyRegistrationBuilderTest {
     }
 
     @Test
+    void withCredentials() {
+        String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
+        RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
+                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(keyWithCert1(), keyWithCert2()),
+                        metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, false,
+                        List.of(SignatureAlgorithm.SHA512, SignatureAlgorithm.SHA256));
+
+        assertThat(registration.getSigningX509Credentials())
+                .hasSize(2)
+                .extracting(Saml2X509Credential::getCertificate)
+                .containsOnly(x509Certificate1(), x509Certificate2());
+
+        assertThat(registration.getDecryptionX509Credentials())
+                .hasSize(1)
+                .extracting(Saml2X509Credential::getCertificate)
+                .containsOnly(x509Certificate1());
+
+        assertThat(registration.getAssertingPartyDetails().getSigningAlgorithms())
+                .hasSize(2)
+                .containsOnly(SignatureAlgorithm.SHA512.getSignatureAlgorithmURI(), SignatureAlgorithm.SHA256.getSignatureAlgorithmURI());
+    }
+
+    @Test
     void failsWithInvalidXML() {
         String metadataXml = "<?xml version=\"1.0\"?>\n<xml>invalid xml</xml>";
-        List<KeyWithCert> keyList = List.of(mockKeyWithCert);
+        List<KeyWithCert> keyList = List.of(keyWithCert1());
+        List<SignatureAlgorithm> signatureAlgorithms = List.of();
 
         assertThatThrownBy(() ->
                 RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(ENTITY_ID, NAME_ID,
-                        keyList, metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, true))
+                        keyList, metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, true, signatureAlgorithms))
                 .isInstanceOf(Saml2Exception.class)
                 .hasMessageContaining("Unsupported element");
     }

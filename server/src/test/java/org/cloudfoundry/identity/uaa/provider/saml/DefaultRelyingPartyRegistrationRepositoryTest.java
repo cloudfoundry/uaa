@@ -1,9 +1,5 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.cloudfoundry.identity.uaa.util.KeyWithCert;
-import org.cloudfoundry.identity.uaa.util.KeyWithCertTest;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -17,14 +13,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 
-import java.security.Security;
-import java.security.cert.CertificateException;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.x509Certificate1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.x509Certificate2;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA512;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultRelyingPartyRegistrationRepositoryTest {
@@ -34,11 +36,6 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     private static final String ZONED_ENTITY_ID = "%s.%s".formatted(ZONE_SUBDOMAIN, ENTITY_ID);
     private static final String REGISTRATION_ID = "registrationId";
     private static final String REGISTRATION_ID_2 = "registrationId2";
-
-    private static final SamlKey samlKey1 = new SamlKey(KeyWithCertTest.encryptedKey, KeyWithCertTest.password, KeyWithCertTest.goodCert);
-    private static final SamlKey samlKey2 = new SamlKey(KeyWithCertTest.ecPrivateKey, KeyWithCertTest.password, KeyWithCertTest.ecCertificate);
-    private static KeyWithCert keyWithCert1;
-    private static KeyWithCert keyWithCert2;
 
     private static final SamlConfigProps samlConfigProps = new SamlConfigProps();
 
@@ -54,20 +51,13 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     private DefaultRelyingPartyRegistrationRepository repository;
 
     @BeforeAll
-    public static void addProvider() {
-        Security.addProvider(new BouncyCastleFipsProvider());
-        try {
-            keyWithCert1 = KeyWithCert.fromSamlKey(samlKey1);
-            keyWithCert2 = KeyWithCert.fromSamlKey(samlKey2);
-        } catch (CertificateException e) {
-            fail("Failed to create key with cert", e);
-        }
+    public static void beforeAll() {
         new IdentityZoneHolder.Initializer(null, new SamlKeyManagerFactory(samlConfigProps));
     }
 
     @BeforeEach
-    void setUp() {
-        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS));
+    void beforeEach() {
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of()));
     }
 
     @Test
@@ -111,7 +101,10 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SingleLogout/alias/testzone.entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("exampleEntityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .returns("exampleEntityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
+                // signature algorithm defaults to SHA256
+                .extracting(RelyingPartyRegistration.AssertingPartyDetails::getSigningAlgorithms)
+                .isEqualTo(List.of(ALGO_ID_SIGNATURE_RSA_SHA256));
     }
 
     @Test
@@ -133,7 +126,11 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void findByRegistrationId_NoAliasFailsOverToEntityId() {
-        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null));
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null, List.of()));
+        when(repository.retrieveZone()).thenReturn(identityZone);
+        when(identityZone.isUaa()).thenReturn(true);
+        when(identityZone.getConfig()).thenReturn(identityZoneConfig);
+        when(identityZoneConfig.getSamlConfig()).thenReturn(samlConfig);
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.isUaa()).thenReturn(false);
         when(identityZone.getSubdomain()).thenReturn(ZONE_SUBDOMAIN);
@@ -151,7 +148,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void zoneWithCredentialsUsesCorrectValues() {
-        samlConfigProps.setKeys(Map.of("key1", samlKey1, "key2", samlKey2));
+        samlConfigProps.setKeys(Map.of(keyName1(), samlKey1(), keyName2(), samlKey2()));
         samlConfigProps.setActiveKeyId("key1");
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.getConfig()).thenReturn(identityZoneConfig);
@@ -162,16 +159,30 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 .hasSize(1)
                 .first()
                 .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert1.getCertificate());
+                .isEqualTo(x509Certificate1());
         assertThat(registration.getSigningX509Credentials())
                 .hasSize(2)
                 .first()
                 .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert1.getCertificate());
+                .isEqualTo(x509Certificate1());
         // Check the second element
         assertThat(registration.getSigningX509Credentials())
                 .element(1)
                 .extracting(Saml2X509Credential::getCertificate)
-                .isEqualTo(keyWithCert2.getCertificate());
+                .isEqualTo(x509Certificate2());
+    }
+
+    @Test
+    void withSha512SignatureAlgorithm() {
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of(SignatureAlgorithm.SHA512)));
+        when(repository.retrieveZone()).thenReturn(identityZone);
+        when(identityZone.getConfig()).thenReturn(identityZoneConfig);
+        when(identityZoneConfig.getSamlConfig()).thenReturn(samlConfig);
+
+        RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID);
+        assertThat(registration.getAssertingPartyDetails().getSigningAlgorithms())
+                .hasSize(1)
+                .first()
+                .isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA512);
     }
 }

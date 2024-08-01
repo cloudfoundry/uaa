@@ -18,8 +18,9 @@ public class DefaultRelyingPartyRegistrationRepository extends BaseUaaRelyingPar
     public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
     public DefaultRelyingPartyRegistrationRepository(String uaaWideSamlEntityID,
-                                                     String uaaWideSamlEntityIDAlias) {
-        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias);
+                                                     String uaaWideSamlEntityIDAlias,
+                                                     List<SignatureAlgorithm> signatureAlgorithms) {
+        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias, signatureAlgorithms);
     }
 
     /**
@@ -47,6 +48,6 @@ public class DefaultRelyingPartyRegistrationRepository extends BaseUaaRelyingPar
         return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
                 zonedSamlEntityID, null,
                 keyWithCerts, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, registrationId,
-                zonedSamlEntityIDAlias, requestSigned);
+                zonedSamlEntityIDAlias, requestSigned, signatureAlgorithms);
     }
 }

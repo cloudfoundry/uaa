@@ -7,16 +7,20 @@ import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
 public abstract class BaseUaaRelyingPartyRegistrationRepository implements RelyingPartyRegistrationRepository, ZoneAware {
     protected final String uaaWideSamlEntityID;
     protected final String uaaWideSamlEntityIDAlias;
+    protected final List<SignatureAlgorithm> signatureAlgorithms;
 
-    protected BaseUaaRelyingPartyRegistrationRepository(String uaaWideSamlEntityID, String uaaWideSamlEntityIDAlias) {
+    protected BaseUaaRelyingPartyRegistrationRepository(String uaaWideSamlEntityID, String uaaWideSamlEntityIDAlias,
+                                                        List<SignatureAlgorithm> signatureAlgorithms) {
         this.uaaWideSamlEntityID = uaaWideSamlEntityID;
         this.uaaWideSamlEntityIDAlias = uaaWideSamlEntityIDAlias;
+        this.signatureAlgorithms = signatureAlgorithms;
     }
 
     String getZoneEntityId(IdentityZone currentZone) {

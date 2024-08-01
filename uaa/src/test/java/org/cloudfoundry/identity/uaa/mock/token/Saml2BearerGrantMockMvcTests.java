@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -16,9 +17,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import java.security.Security;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.PROVIDER_CERTIFICATE;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.PROVIDER_PRIVATE_KEY;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.key1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.passphrase1;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.createLocalSamlIdpDefinition;
 import static org.springframework.http.HttpHeaders.HOST;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -28,12 +29,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
+    @BeforeAll
+    static void beforeAll() {
+        Security.addProvider(new BouncyCastleFipsProvider());
+    }
+
     @BeforeEach
     void setup() {
-        IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKey(PROVIDER_PRIVATE_KEY);
-        IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
-        IdentityZone.getUaa().getConfig().getSamlConfig().setCertificate(PROVIDER_CERTIFICATE);
-        Security.addProvider(new BouncyCastleFipsProvider());
+        IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKey(key1());
+        IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKeyPassword(passphrase1());
+        IdentityZone.getUaa().getConfig().getSamlConfig().setCertificate(certificate1());
     }
 
     @Test

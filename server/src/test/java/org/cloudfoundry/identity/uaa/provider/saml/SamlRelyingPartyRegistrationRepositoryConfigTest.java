@@ -11,6 +11,7 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 
 import java.security.Security;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -29,20 +30,22 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     SamlIdentityProviderConfigurator samlIdentityProviderConfigurator;
 
     @BeforeAll
-    public static void addProvider() {
+    public static void beforeAll() {
         Security.addProvider(new BouncyCastleFipsProvider());
     }
 
     @Test
     void relyingPartyRegistrationRepository() {
-        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
+        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
+                samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         assertThat(repository).isNotNull();
     }
 
     @Test
     void relyingPartyRegistrationResolver() {
-        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
+        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
+                samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository);
 
@@ -51,7 +54,8 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
 
     @Test
     void buildsRegistrationForExample() {
-        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID, samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID);
+        SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
+                samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         RelyingPartyRegistration registration = repository.findByRegistrationId("example");
         assertThat(registration)
