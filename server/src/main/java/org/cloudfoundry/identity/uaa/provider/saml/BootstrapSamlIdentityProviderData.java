@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -30,7 +31,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -54,14 +54,13 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     private Map<String, Map<String, Object>> providers = null;
     private final SamlIdentityProviderConfigurator samlConfigurator;
 
-    public BootstrapSamlIdentityProviderData(
-        final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator
+    public BootstrapSamlIdentityProviderData(final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator
     ) {
         this.samlConfigurator = samlConfigurator;
     }
 
     public static IdentityProvider<SamlIdentityProviderDefinition> parseSamlProvider(SamlIdentityProviderDefinition def) {
-        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setType(OriginKeys.SAML);
         provider.setOriginKey(def.getIdpEntityAlias());
         provider.setName("UAA SAML Identity Provider[" + provider.getOriginKey() + "]");
@@ -77,7 +76,8 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
         return samlProviders
                 .stream()
-                .map(p -> p.getProvider().getConfig()).collect(Collectors.toUnmodifiableList());
+                .map(p -> p.getProvider().getConfig())
+                .toList();
     }
 
     protected void parseIdentityProviderDefinitions() {
@@ -96,13 +96,13 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setLinkText("Use your corporate credentials");
             def.setZoneId(IdentityZone.getUaaZoneId()); //legacy only has UAA zone
             log.debug("Legacy SAML provider configured with alias: " + alias);
-            IdentityProviderWrapper wrapper = new IdentityProviderWrapper<>(parseSamlProvider(def));
+            IdentityProviderWrapper<SamlIdentityProviderDefinition> wrapper = new IdentityProviderWrapper<>(parseSamlProvider(def));
             wrapper.setOverride(true);
             samlProviders.add(wrapper);
         }
         Set<String> uniqueAlias = new HashSet<>();
-        for (IdentityProviderWrapper wrapper : samlProviders) {
-            String alias = getUniqueAlias((SamlIdentityProviderDefinition) wrapper.getProvider().getConfig());
+        for (IdentityProviderWrapper<SamlIdentityProviderDefinition> wrapper : samlProviders) {
+            String alias = getUniqueAlias(wrapper.getProvider().getConfig());
             if (uniqueAlias.contains(alias)) {
                 throw new IllegalStateException("Duplicate IDP alias found:" + alias);
             }
@@ -182,15 +182,14 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setSkipSslValidation(skipSslValidation);
             def.setAuthnContext(authnContext);
 
-            IdentityProvider provider = parseSamlProvider(def);
+            IdentityProvider<SamlIdentityProviderDefinition> provider = parseSamlProvider(def);
             if (def.getType() == SamlIdentityProviderDefinition.MetadataLocation.DATA) {
                 RelyingPartyRegistration metadataDelegate = samlConfigurator.getExtendedMetadataDelegate(def);
                 def.setIdpEntityId(metadataDelegate.getAssertingPartyDetails().getEntityId());
             }
-            IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
+            IdentityProviderWrapper<SamlIdentityProviderDefinition> wrapper = new IdentityProviderWrapper<>(provider);
             wrapper.setOverride(override == null || override);
             samlProviders.add(wrapper);
-
         }
     }
 

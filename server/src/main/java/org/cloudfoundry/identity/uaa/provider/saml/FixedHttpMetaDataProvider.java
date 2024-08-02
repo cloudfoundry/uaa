@@ -23,20 +23,19 @@ public class FixedHttpMetaDataProvider {
         this.cache = cache;
     }
 
-    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) /* throws MetadataProviderException */ {
+    public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderNotFoundException {
         validateMetadataURL(metadataURL);
-
         if (isSkipSSLValidation) {
             return cache.getUrlContent(metadataURL, trustingRestTemplate);
         }
         return cache.getUrlContent(metadataURL, nonTrustingRestTemplate);
     }
 
-    private void validateMetadataURL(String metadataURL) /* throws MetadataProviderException */ {
+    private void validateMetadataURL(String metadataURL) throws MetadataProviderNotFoundException {
         try {
             new URI(metadataURL);
         } catch (URISyntaxException e) {
-//            throw new MetadataProviderException("Illegal URL syntax", e);
+            throw new MetadataProviderNotFoundException("Illegal URL syntax", e);
         }
     }
 

@@ -70,8 +70,7 @@ public class SamlIdentityProviderConfigurator {
      * adds or replaces a SAML identity proviider
      *
      * @param providerDefinition - the provider to be added
-     * @param creation - check new created config
-     * @throws MetadataProviderException if the system fails to fetch meta data for this provider
+     * @param creation           - check new created config
      */
     public synchronized String validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition, boolean creation) {
         RelyingPartyRegistration added;
@@ -119,21 +118,12 @@ public class SamlIdentityProviderConfigurator {
     }
 
     public RelyingPartyRegistration getExtendedMetadataDelegate(SamlIdentityProviderDefinition def) {
-        RelyingPartyRegistration metadata;
-        switch (def.getType()) {
-            case DATA: {
-                metadata = configureXMLMetadata(def);
-                break;
-            }
-            case URL: {
-                metadata = configureURLMetadata(def);
-                break;
-            }
-            default: {
-                throw new IllegalStateException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
-            }
-        }
-        return metadata;
+        return switch (def.getType()) {
+            case DATA -> configureXMLMetadata(def);
+            case URL -> configureURLMetadata(def);
+            default ->
+                    throw new IllegalStateException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
+        };
     }
 
     protected RelyingPartyRegistration configureXMLMetadata(SamlIdentityProviderDefinition def) {
@@ -143,24 +133,20 @@ public class SamlIdentityProviderConfigurator {
     protected String adjustURIForPort(String uri) throws URISyntaxException {
         URI metadataURI = new URI(uri);
         if (metadataURI.getPort() < 0) {
-            switch (metadataURI.getScheme()) {
-                case "https":
-                    return new URIBuilder(uri).setPort(443).build().toString();
-                case "http":
-                    return new URIBuilder(uri).setPort(80).build().toString();
-                default:
-                    return uri;
-            }
+            return switch (metadataURI.getScheme()) {
+                case "https" -> new URIBuilder(uri).setPort(443).build().toString();
+                case "http" -> new URIBuilder(uri).setPort(80).build().toString();
+                default -> uri;
+            };
         }
         return uri;
     }
 
-    protected RelyingPartyRegistration configureURLMetadata(SamlIdentityProviderDefinition def)  {
+    protected RelyingPartyRegistration configureURLMetadata(SamlIdentityProviderDefinition def) {
         try {
             def = def.clone();
-            String adjustedMetatadataURIForPort = adjustURIForPort(def.getMetaDataLocation());
-
-            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetatadataURIForPort, def.isSkipSslValidation());
+            String adjustedMetadataURIForPort = adjustURIForPort(def.getMetaDataLocation());
+            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata(adjustedMetadataURIForPort, def.isSkipSslValidation());
 
             def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
             return configureXMLMetadata(def);

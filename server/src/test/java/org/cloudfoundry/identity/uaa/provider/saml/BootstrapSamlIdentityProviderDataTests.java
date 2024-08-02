@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,28 +13,33 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.config.YamlMapFactoryBean;
 import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 
 public class BootstrapSamlIdentityProviderDataTests {
 
-    public static final String testXmlFileData = """
+    private static final String testXmlFileData = """
             <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lvtem0VAJDMINKEYJW"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
               A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
               MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
@@ -47,7 +53,7 @@ public class BootstrapSamlIdentityProviderDataTests {
               vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
               GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>""";
 
-    public static final String testXmlFileData2 = """
+    private static final String testXmlFileData2 = """
             <?xml version="1.0" encoding="UTF-8"?><!--
               ~ ******************************************************************************
               ~      Cloud Foundry
@@ -76,90 +82,87 @@ public class BootstrapSamlIdentityProviderDataTests {
               GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>""";
 
     public static final String xmlWithoutID = """
-                    <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="%s"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
-                    A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
-                    MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
-                    Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
-                    VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
-                    BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
-                    AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
-                    WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
-                    Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
-                    3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
-                    vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
-                    GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
-                    """;
+            <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="%s"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
+            A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
+            MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
+            Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC
+            VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM
+            BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN
+            AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU
+            WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O
+            Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL
+            3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk
+            vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
+            GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>
+            """;
 
-    public static final String xml = String.format(xmlWithoutID, "http://www.okta.com/k2lw4l5bPODCMIIDBRYZ");
-
-    BootstrapSamlIdentityProviderData bootstrap = null;
-    SamlIdentityProviderDefinition singleAdd = null;
-    public static final String singleAddAlias = "sample-alias";
+    private BootstrapSamlIdentityProviderData bootstrap = null;
+    private SamlIdentityProviderDefinition singleAdd = null;
+    private static final String singleAddAlias = "sample-alias";
 
     public static String sampleYaml = "  providers:\n" +
-        "    okta-local:\n" +
-        "      storeCustomAttributes: true\n" +
-        "      idpMetadata: |\n" +
-        "        " + testXmlFileData.replace("\n","\n        ") + "\n"+
-        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
-        "      assertionConsumerIndex: 0\n" +
-        "      metadataTrustCheck: true\n" +
-        "      showSamlLoginLink: true\n" +
-        "      linkText: 'Okta Preview 1'\n" +
-        "      iconUrl: 'http://link.to/icon.jpg'\n" +
-        "      "+ AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR+":\n" +
-        "       - test.org\n" +
-        "       - test.com\n" +
-        "      externalGroupsWhitelist:\n" +
-        "       - admin\n" +
-        "       - user\n" +
-        "      attributeMappings:\n" +
-        "        given_name: first_name\n" +
-        "        external_groups:\n" +
-        "         - roles\n" +
-        "    okta-local-2:\n" +
-        "      idpMetadata: |\n" +
-        "        <?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lw4l5bPODCMIIDBRYZ\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
-        "        A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU\n" +
-        "        MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu\n" +
-        "        Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC\n" +
-        "        VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM\n" +
-        "        BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN\n" +
-        "        AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU\n" +
-        "        WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O\n" +
-        "        Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL\n" +
-        "        3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk\n" +
-        "        vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6\n" +
-        "        GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml\"/><md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml\"/></md:IDPSSODescriptor></md:EntityDescriptor>\n" +
-        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
-        "      assertionConsumerIndex: 0\n" +
-        "      metadataTrustCheck: true\n" +
-        "      showSamlLoginLink: true\n" +
-        "      linkText: 'Okta Preview 2'\n" +
-        "    simplesamlphp-url:\n" +
-        "      storeCustomAttributes: false\n" +
-        "      assertionConsumerIndex: 0\n" +
-        "      idpMetadata: http://simplesamlphp.com/saml2/idp/metadata.php\n" +
-        "      metadataTrustCheck: false\n" +
-        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
-        "    custom-authncontext:\n" +
-        "      authnContext: [\"custom-context\", \"another-context\"]\n" +
-        "      idpMetadata: |\n" +
-        "        " + testXmlFileData.replace("\n","\n        ") + "\n"
-        ;
+            "    okta-local:\n" +
+            "      storeCustomAttributes: true\n" +
+            "      idpMetadata: |\n" +
+            "        " + testXmlFileData.replace("\n", "\n        ") + "\n" +
+            "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+            "      assertionConsumerIndex: 0\n" +
+            "      metadataTrustCheck: true\n" +
+            "      showSamlLoginLink: true\n" +
+            "      linkText: 'Okta Preview 1'\n" +
+            "      iconUrl: 'http://link.to/icon.jpg'\n" +
+            "      " + AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR + ":\n" +
+            "       - test.org\n" +
+            "       - test.com\n" +
+            "      externalGroupsWhitelist:\n" +
+            "       - admin\n" +
+            "       - user\n" +
+            "      attributeMappings:\n" +
+            "        given_name: first_name\n" +
+            "        external_groups:\n" +
+            "         - roles\n" +
+            "    okta-local-2:\n" +
+            "      idpMetadata: |\n" +
+            "        <?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lw4l5bPODCMIIDBRYZ\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
+            "        A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU\n" +
+            "        MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu\n" +
+            "        Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC\n" +
+            "        VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM\n" +
+            "        BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN\n" +
+            "        AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU\n" +
+            "        WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O\n" +
+            "        Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL\n" +
+            "        3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk\n" +
+            "        vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6\n" +
+            "        GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml\"/><md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml\"/></md:IDPSSODescriptor></md:EntityDescriptor>\n" +
+            "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+            "      assertionConsumerIndex: 0\n" +
+            "      metadataTrustCheck: true\n" +
+            "      showSamlLoginLink: true\n" +
+            "      linkText: 'Okta Preview 2'\n" +
+            "    simplesamlphp-url:\n" +
+            "      storeCustomAttributes: false\n" +
+            "      assertionConsumerIndex: 0\n" +
+            "      idpMetadata: http://simplesamlphp.com/saml2/idp/metadata.php\n" +
+            "      metadataTrustCheck: false\n" +
+            "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+            "    custom-authncontext:\n" +
+            "      authnContext: [\"custom-context\", \"another-context\"]\n" +
+            "      idpMetadata: |\n" +
+            "        " + testXmlFileData.replace("\n", "\n        ") + "\n";
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void beforeEach() {
         bootstrap = new BootstrapSamlIdentityProviderData(new SamlIdentityProviderConfigurator(mock(JdbcIdentityProviderProvisioning.class), new IdentityZoneManagerImpl(), mock(FixedHttpMetaDataProvider.class)));
         singleAdd = new SamlIdentityProviderDefinition()
-            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
-            .setIdpEntityAlias(singleAddAlias)
-            .setNameID("sample-nameID")
-            .setAssertionConsumerIndex(1)
-            .setMetadataTrustCheck(true)
-            .setLinkText("sample-link-test")
-            .setIconUrl("sample-icon-url")
-            .setZoneId("uaa");
+                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
+                .setIdpEntityAlias(singleAddAlias)
+                .setNameID("sample-nameID")
+                .setAssertionConsumerIndex(1)
+                .setMetadataTrustCheck(true)
+                .setLinkText("sample-link-test")
+                .setIconUrl("sample-icon-url")
+                .setZoneId("uaa");
     }
 
     public static Map<String, Map<String, Object>> parseYaml(String sampleYaml) {
@@ -171,22 +174,22 @@ public class BootstrapSamlIdentityProviderDataTests {
         factory.setResources(resources.toArray(new Resource[0]));
         Map<String, Object> tmpdata = factory.getObject();
         Map<String, Map<String, Object>> dataMap = new HashMap<>();
-        for (Map.Entry<String, Object> entry : ((Map<String, Object>)tmpdata.get("providers")).entrySet()) {
-            dataMap.put(entry.getKey(), (Map<String, Object>)entry.getValue());
+        for (Map.Entry<String, Object> entry : ((Map<String, Object>) tmpdata.get("providers")).entrySet()) {
+            dataMap.put(entry.getKey(), (Map<String, Object>) entry.getValue());
         }
         return Collections.unmodifiableMap(dataMap);
     }
 
-    private Map<String, Map<String, Object>> sampleData = parseYaml(sampleYaml);
+    private final Map<String, Map<String, Object>> sampleData = parseYaml(sampleYaml);
 
     @Test
-    public void testCloneIdentityProviderDefinition() {
+    void testCloneIdentityProviderDefinition() {
         SamlIdentityProviderDefinition clone = singleAdd.clone();
         assertThat(clone).isEqualTo(singleAdd).isNotSameAs(singleAdd);
     }
 
     @Test
-    public void testAddProviderDefinition() throws Exception {
+    void testAddProviderDefinition() {
         bootstrap.setIdentityProviders(sampleData);
         bootstrap.afterPropertiesSet();
         testGetIdentityProviderDefinitions(4, false);
@@ -194,7 +197,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     }
 
     @Test
-    public void test_override() throws Exception {
+    void test_override() {
         sampleData.get("okta-local").put("override", false);
         bootstrap.setIdentityProviders(sampleData);
         bootstrap.afterPropertiesSet();
@@ -208,16 +211,16 @@ public class BootstrapSamlIdentityProviderDataTests {
                 .isOverride()).isFalse();
     }
 
-
     @Test
-    public void testGetIdentityProviderDefinitions() throws Exception {
+    void testGetIdentityProviderDefinitions() {
         testGetIdentityProviderDefinitions(4);
     }
 
-    protected void testGetIdentityProviderDefinitions(int count) throws Exception {
+    private void testGetIdentityProviderDefinitions(int count) {
         testGetIdentityProviderDefinitions(count, true);
     }
-    protected void testGetIdentityProviderDefinitions(int count, boolean addData) {
+
+    private void testGetIdentityProviderDefinitions(int count, boolean addData) {
         if (addData) {
             bootstrap.setIdentityProviders(sampleData);
             bootstrap.afterPropertiesSet();
@@ -226,7 +229,7 @@ public class BootstrapSamlIdentityProviderDataTests {
         assertThat(idps).hasSize(count);
         for (SamlIdentityProviderDefinition idp : idps) {
             switch (idp.getIdpEntityAlias()) {
-                case "okta-local" : {
+                case "okta-local": {
                     assertThat(idp.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.DATA);
                     assertThat(idp.getMetaDataLocation().trim()).isEqualTo(testXmlFileData.trim());
                     assertThat(idp.getNameID()).isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
@@ -245,7 +248,7 @@ public class BootstrapSamlIdentityProviderDataTests {
                     assertThat(idp.getAuthnContext()).isNull();
                     break;
                 }
-                case "okta-local-2" : {
+                case "okta-local-2": {
                     assertThat(idp.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.DATA);
                     assertThat(idp.getNameID()).isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
                     assertThat(idp.getAssertionConsumerIndex()).isZero();
@@ -256,7 +259,7 @@ public class BootstrapSamlIdentityProviderDataTests {
                     assertThat(idp.isStoreCustomAttributes()).isTrue();
                     break;
                 }
-                case "okta-local-3" : {
+                case "okta-local-3": {
                     assertThat(idp.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.DATA);
                     assertThat(idp.getNameID()).isEqualTo("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
                     assertThat(idp.getAssertionConsumerIndex()).isZero();
@@ -266,17 +269,17 @@ public class BootstrapSamlIdentityProviderDataTests {
                     assertThat(idp.isMetadataTrustCheck()).isTrue();
                     break;
                 }
-                case singleAddAlias : {
+                case singleAddAlias: {
                     assertThat(idp).isEqualTo(singleAdd).isNotSameAs(singleAdd);
                     break;
                 }
-                case "simplesamlphp-url" : {
+                case "simplesamlphp-url": {
                     assertThat(idp.isShowSamlLink()).isTrue();
                     assertThat(idp.getLinkText()).isEqualTo("simplesamlphp-url");
                     assertThat(idp.isStoreCustomAttributes()).isFalse();
                     break;
                 }
-                case "custom-authncontext" : {
+                case "custom-authncontext": {
                     assertThat(idp.getAuthnContext()).hasSize(2);
                     assertThat(idp.getAuthnContext().get(0)).isEqualTo("custom-context");
                     assertThat(idp.getAuthnContext().get(1)).isEqualTo("another-context");
@@ -290,7 +293,7 @@ public class BootstrapSamlIdentityProviderDataTests {
     }
 
     @Test
-    public void testGetIdentityProvidersWithLegacy_Valid_Provider() throws Exception {
+    void testGetIdentityProvidersWithLegacy_Valid_Provider() {
         bootstrap.setLegacyIdpMetaData(testXmlFileData2);
         bootstrap.setLegacyIdpIdentityAlias("okta-local-3");
         bootstrap.setLegacyShowSamlLink(true);
@@ -299,12 +302,12 @@ public class BootstrapSamlIdentityProviderDataTests {
     }
 
     @Test
-    public void testGetIdentityProviders() throws Exception {
+    void testGetIdentityProviders() {
         testGetIdentityProviderDefinitions(4);
     }
 
     @Test
-    public void testCanParseASimpleSamlConfig() {
+    void testCanParseASimpleSamlConfig() {
         String yaml = """
                   providers:
                     my-okta:
@@ -323,12 +326,12 @@ public class BootstrapSamlIdentityProviderDataTests {
                       storeCustomAttributes: true\
                 """;
 
-        bootstrap.setIdentityProviders(parseYaml(yaml));
-        bootstrap.afterPropertiesSet();
+        assertThatNoException().isThrownBy(() -> bootstrap.setIdentityProviders(parseYaml(yaml)));
+        assertThatNoException().isThrownBy(() -> bootstrap.afterPropertiesSet());
     }
-    
+
     @Test
-    public void testSetAddShadowUserOnLoginFromYaml() {
+    void testSetAddShadowUserOnLoginFromYaml() {
         String yaml = """
                   providers:
                     provider-without-shadow-user-definition:
@@ -387,24 +390,24 @@ public class BootstrapSamlIdentityProviderDataTests {
 
         for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
             switch (def.getIdpEntityAlias()) {
-                case "provider-without-shadow-user-definition" : {
+                case "provider-without-shadow-user-definition": {
                     assertThat(def.isAddShadowUserOnLogin()).as("If not specified, addShadowUserOnLogin is set to true").isTrue();
                     assertThat(def.isStoreCustomAttributes()).as("Override store custom attributes to true").isTrue();
                     break;
                 }
-                case "provider-with-shadow-users-enabled" : {
+                case "provider-with-shadow-users-enabled": {
                     assertThat(def.isAddShadowUserOnLogin()).as("addShadowUserOnLogin can be set to true").isTrue();
                     assertThat(def.isStoreCustomAttributes()).as("Default store custom attributes is false").isFalse();
                     break;
                 }
-                case "provider-with-shadow-user-disabled" : {
+                case "provider-with-shadow-user-disabled": {
                     assertThat(def.isAddShadowUserOnLogin()).as("addShadowUserOnLogin can be set to false").isFalse();
                     assertThat(def.isStoreCustomAttributes()).as("Default store custom attributes is false").isTrue();
                     break;
                 }
-                default: fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
+                default:
+                    fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
             }
-
         }
     }
 }
