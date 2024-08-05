@@ -173,7 +173,6 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     @Test
-        //@Disabled("SAML test fails")
     void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() {
         List<String> clientIdpAliases = Collections.singletonList("non-existent");
         List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);

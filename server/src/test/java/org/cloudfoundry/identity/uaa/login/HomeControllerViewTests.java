@@ -3,19 +3,22 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.home.HomeController;
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.provider.saml.MetadataProviderNotFoundException;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-//import org.opensaml.common.SAMLException;
-//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
@@ -48,7 +51,10 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
@@ -71,7 +77,7 @@ class HomeControllerViewTests extends TestClassNullifier {
     private HomeController homeController;
 
     @BeforeEach
-    void setUp() {
+    void beforeEach() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
@@ -85,7 +91,7 @@ class HomeControllerViewTests extends TestClassNullifier {
     }
 
     @AfterEach
-    void tearDown() {
+    void afterEach() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         IdentityZoneHolder.get().setConfig(originalConfiguration);
@@ -160,9 +166,9 @@ class HomeControllerViewTests extends TestClassNullifier {
     @Test
     void errorOauthWithExceptionString() throws Exception {
         mockMvc.perform(get("/oauth_error").sessionAttr("oauth_error", "auth error"))
-            .andExpect(status().isOk())
-            .andExpect(content().string(containsString(customFooterText)))
-            .andExpect(content().string(containsString(base64ProductLogo)));
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
     }
 
     @Test
@@ -176,27 +182,26 @@ class HomeControllerViewTests extends TestClassNullifier {
     @Test
     void error500WithSAMLExceptionAsCause() throws Exception {
         mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new Saml2Exception("bad"))))
-            .andExpect(status().isBadRequest())
-            .andExpect(content().string(containsString(customFooterText)))
-            .andExpect(content().string(containsString(base64ProductLogo)));
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
     }
 
     @Test
-    @Disabled("SAML test doesn't compile")
-    void error500WithMetadataProviderExceptionCause() throws Exception {
-//        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new MetadataProviderException("bad"))))
-//            .andExpect(status().isBadRequest())
-//            .andExpect(content().string(containsString(customFooterText)))
-//            .andExpect(content().string(containsString(base64ProductLogo)));
+    void error500WithMetadataProviderNotFoundExceptionCause() throws Exception {
+        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {
-        "/rejected"
+            "/rejected"
     })
     void errorRejection(final String errorUrl) throws Exception {
         mockMvc.perform(get(errorUrl))
-            .andExpect(status().isBadRequest());
+                .andExpect(status().isBadRequest());
     }
 
     @Test
