@@ -27,6 +27,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.opensaml.saml.saml2.core.Response;
 import org.owasp.esapi.ESAPI;
 import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -349,7 +350,7 @@ class SamlAuthenticationMockMvcTests {
             final String xVcapRequestId
     ) throws Exception {
         return mockMvc.perform(
-                post("/uaa/saml/SSO/alias/" + spZoneEntityId + queryString)
+                post("/uaa/saml/SSO/alias/%s%s".formatted(spZoneEntityId, queryString))
                         .contextPath("/uaa")
                         .header(HOST, spZone.getSubdomain() + ".localhost:8080")
                         .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -420,7 +421,7 @@ class SamlAuthenticationMockMvcTests {
     @Nested
     @DefaultTestContext
     @TestPropertySource(properties = {"login.saml.signRequest = false"})
-    class SamlAuthenticationAlternativeConfigsMockMvcTests {
+    class UnsignedConfigMockMvcTests {
         @Autowired
         private MockMvc mockMvc;
 
@@ -478,6 +479,54 @@ class SamlAuthenticationMockMvcTests {
         }
     }
 
+    @Test
+    void AuthnResponseFailsWithWithInvalidInResponseTo() throws Exception {
+
+        Response response = responseWithAssertions();
+        response.setInResponseTo("incorrect");
+        String encodedSamlResponse = serializedResponse(response);
+        mockMvc.perform(
+                        post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                                .contextPath("/uaa")
+                                .header(HOST, "localhost:8080")
+                                .param("SAMLResponse", encodedSamlResponse)
+                                .param("RelayState", "testsaml-post-binding")
+                )
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                // expect redirect to the Error Page: /uaa/saml_error, not the Uaa Home Page
+                .andExpect(redirectedUrl("/uaa/saml_error"))
+                .andReturn();
+    }
+
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "login.saml.disableInResponseToCheck=true")
+    class InResponseToConfigMockMvcTests {
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void AuthnResponseSucceedsWithWithInvalidInResponseTo() throws Exception {
+
+            Response response = responseWithAssertions();
+            response.setInResponseTo("incorrect");
+            String encodedSamlResponse = serializedResponse(response);
+            mockMvc.perform(
+                            post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                                    .contextPath("/uaa")
+                                    .header(HOST, "localhost:8080")
+                                    .param("SAMLResponse", encodedSamlResponse)
+                                    .param("RelayState", "testsaml-post-binding")
+                    )
+                    .andDo(print())
+                    .andExpect(status().is3xxRedirection())
+                    // expect redirect to the Uaa Home Page: /uaa/, not error
+                    .andExpect(redirectedUrl("/uaa/"))
+                    .andReturn();
+        }
+    }
+
     @Nested
     class WithCustomLogAppender {
         private List<LogEvent> logEvents;
@@ -513,7 +562,7 @@ class SamlAuthenticationMockMvcTests {
         }
 
         @Test
-        @Disabled("SAML test fails")
+        @Disabled("SAML test fails: logging")
         void malformedSamlRequestLogsQueryStringAndContentMetadata() throws Exception {
             postSamlResponse(null, "?bogus=query", "someKey=someVal&otherKey=otherVal&emptyKey=", "vcap_request_id_abc123");
 
@@ -522,7 +571,7 @@ class SamlAuthenticationMockMvcTests {
         }
 
         @Test
-        @Disabled("SAML test fails")
+        @Disabled("SAML test fails: logging")
         void malformedSamlRequestWithNoQueryStringAndNoContentMetadata() throws Exception {
             postSamlResponse(null, "", "", "");
 
@@ -531,7 +580,7 @@ class SamlAuthenticationMockMvcTests {
         }
 
         @Test
-        @Disabled("SAML test fails")
+        @Disabled("SAML test fails: logging")
         void malformedSamlRequestWithRepeatedParams() throws Exception {
             postSamlResponse(null, "?foo=a&foo=ab&foo=aaabbbccc", "", "");
 

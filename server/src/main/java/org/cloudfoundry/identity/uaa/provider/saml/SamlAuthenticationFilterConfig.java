@@ -89,7 +89,8 @@ public class SamlAuthenticationFilterConfig {
                                                       final JdbcIdentityProviderProvisioning identityProviderProvisioning,
                                                       ScimGroupExternalMembershipManager externalMembershipManager,
                                                       SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager,
-                                                      ApplicationEventPublisher applicationEventPublisher) {
+                                                      ApplicationEventPublisher applicationEventPublisher,
+                                                      SamlConfigProps samlConfigProps) {
 
         SamlUaaAuthenticationAttributesConverter attributesConverter = new SamlUaaAuthenticationAttributesConverter();
         SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter = new SamlUaaAuthenticationAuthoritiesConverter(externalMembershipManager);
@@ -101,6 +102,11 @@ public class SamlAuthenticationFilterConfig {
 
         OpenSaml4AuthenticationProvider samlResponseAuthenticationProvider = new OpenSaml4AuthenticationProvider();
         samlResponseAuthenticationProvider.setResponseAuthenticationConverter(samlResponseAuthenticationConverter);
+
+        // This validator ignores wraps the default validator and ignores InResponseTo errors, if configured
+        UaaInResponseToHandlingResponseValidator uaaInResponseToHandlingResponseValidator =
+                new UaaInResponseToHandlingResponseValidator(OpenSaml4AuthenticationProvider.createDefaultResponseValidator(), samlConfigProps.getDisableInResponseToCheck());
+        samlResponseAuthenticationProvider.setResponseValidator(uaaInResponseToHandlingResponseValidator);
 
         return samlResponseAuthenticationProvider;
     }
@@ -168,7 +174,7 @@ public class SamlAuthenticationFilterConfig {
     /**
      * Handles a Logout click from the user, removes the Authentication object,
      * and determines if an OAuth2 or SAML2 Logout should be performed.
-     * if Saml, it forwards a Saml2LogoutRequest to IDP/asserting party if configured.
+     * If Saml, it forwards a Saml2LogoutRequest to IDP/asserting party if configured.
      */
     @Autowired
     @Bean

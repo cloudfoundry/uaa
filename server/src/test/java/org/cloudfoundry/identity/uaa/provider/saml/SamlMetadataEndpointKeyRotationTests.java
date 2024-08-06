@@ -111,7 +111,6 @@ public class SamlMetadataEndpointKeyRotationTests {
 
     @Test
     void defaultKeys() {
-
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 

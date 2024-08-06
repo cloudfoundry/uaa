@@ -410,6 +410,8 @@ login:
     wantAssertionSigned: true
     # Algorithm for SAML signatures. Defaults to SHA256. Accepts SHA1, SHA256, SHA512
     signatureAlgorithm: SHA256
+    # If true, do not validate the InResponseToField part of an incoming IDP assertion (default: false)
+    disableInResponseToCheck: false
     socket:
       # URL metadata fetch - pool timeout
       connectionManagerTimeout: 10000

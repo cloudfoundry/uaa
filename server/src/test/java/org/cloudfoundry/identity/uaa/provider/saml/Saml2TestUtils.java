@@ -181,12 +181,12 @@ public final class Saml2TestUtils {
         return new Saml2AuthenticationToken(registration.build(), serialize(response));
     }
 
-    private static Saml2AuthenticationToken token(Response response, RelyingPartyRegistration.Builder registration,
+    public static Saml2AuthenticationToken token(Response response, RelyingPartyRegistration.Builder registration,
                                                   AbstractSaml2AuthenticationRequest authenticationRequest) {
         return new Saml2AuthenticationToken(registration.build(), serialize(response), authenticationRequest);
     }
 
-    private static AbstractSaml2AuthenticationRequest mockedStoredAuthenticationRequest(String requestId,
+    public static AbstractSaml2AuthenticationRequest mockedStoredAuthenticationRequest(String requestId,
                                                                                         Saml2MessageBinding binding, boolean corruptRequestString) {
         AuthnRequest request = request();
         if (requestId != null) {
@@ -202,14 +202,14 @@ public final class Saml2TestUtils {
         return mockAuthenticationRequest;
     }
 
-    private static RelyingPartyRegistration.Builder registration() {
+    public static RelyingPartyRegistration.Builder registration() {
         return TestRelyingPartyRegistrations.noCredentials()
                 .entityId(RELYING_PARTY_ENTITY_ID)
                 .assertionConsumerServiceLocation(DESTINATION)
                 .assertingPartyDetails(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
     }
 
-    private static RelyingPartyRegistration.Builder verifying(RelyingPartyRegistration.Builder builder) {
+    public static RelyingPartyRegistration.Builder verifying(RelyingPartyRegistration.Builder builder) {
         return builder.assertingPartyDetails(party -> party
                 .verificationX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
     }

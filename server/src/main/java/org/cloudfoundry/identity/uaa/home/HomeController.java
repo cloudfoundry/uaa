@@ -1,20 +1,9 @@
 package org.cloudfoundry.identity.uaa.home;
 
-import static java.util.Objects.nonNull;
-import static org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter.RATE_LIMIT_ERROR_ATTRIBUTE;
-import static org.springframework.util.StringUtils.hasText;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
@@ -23,8 +12,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.Links;
-//import org.opensaml.common.SAMLException;
-//import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -35,18 +22,25 @@ import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.Getter;
+import javax.servlet.RequestDispatcher;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import static java.util.Objects.nonNull;
+import static org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter.RATE_LIMIT_ERROR_ATTRIBUTE;
+import static org.springframework.util.StringUtils.hasText;
 
 @SuppressWarnings("SpringMVCViewInspection")
 @Controller
@@ -70,7 +64,7 @@ public class HomeController {
     }
 
     private void populateBuildAndLinkInfo(Model model) {
-        model.addAllAttributes( new HashMap<>() );
+        model.addAllAttributes(new HashMap<>());
     }
 
     @RequestMapping(value = {"/", "/home"})
@@ -82,14 +76,14 @@ public class HomeController {
                         globalLinks != null && globalLinks.getHomeRedirect() != null ?
                                 globalLinks.getHomeRedirect() : null;
         if (homePage != null && !"/".equals(homePage) && !"/home".equals(homePage)) {
-            homePage = UaaStringUtils.replaceZoneVariables( homePage, identityZone );
+            homePage = UaaStringUtils.replaceZoneVariables(homePage, identityZone);
             return "redirect:" + homePage;
         }
 
         model.addAttribute("principal", principal);
 
         List<TileData> tiles = new ArrayList<>();
-        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll( identityZone.getId());
+        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll(identityZone.getId());
 
         clientMetadataList.stream()
                 .filter(this::shouldShowClient)
@@ -113,10 +107,10 @@ public class HomeController {
         }
 
         return TileData.builder()
-                .clientId( clientMetadata.getClientId() )
-                .appLaunchUrl( clientMetadata.getAppLaunchUrl().toString() )
-                .appIcon( "data:image/png;base64," + clientMetadata.getAppIcon() )
-                .clientName( clientName )
+                .clientId(clientMetadata.getClientId())
+                .appLaunchUrl(clientMetadata.getAppLaunchUrl().toString())
+                .appIcon("data:image/png;base64," + clientMetadata.getAppIcon())
+                .clientName(clientName)
                 .build();
     }
 
@@ -131,7 +125,7 @@ public class HomeController {
 
         // check for common SAML related exceptions and redirect these to bad_request
         if (nonNull(genericException) &&
-            (genericException.getCause() instanceof Saml2Exception)) {
+                (genericException.getCause() instanceof Saml2Exception)) {
             Exception samlException = (Exception) genericException.getCause();
             model.addAttribute("saml_error", samlException.getMessage());
             response.setStatus(400);
@@ -142,7 +136,8 @@ public class HomeController {
         return ERROR;
     }
 
-    @RequestMapping(path = "/error429", method = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.PUT, RequestMethod.PATCH }) //NOSONAR
+    @RequestMapping(path = "/error429", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.PUT, RequestMethod.PATCH})
+    //NOSONAR
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     @ResponseBody
     public JsonError error429Json(HttpServletRequest request) {
@@ -153,7 +148,8 @@ public class HomeController {
         }
     }
 
-    @RequestMapping(path="/error429", produces = MediaType.TEXT_HTML_VALUE, method = { RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.PUT, RequestMethod.PATCH }) //NOSONAR
+    @RequestMapping(path = "/error429", produces = MediaType.TEXT_HTML_VALUE, method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.PUT, RequestMethod.PATCH})
+    //NOSONAR
     public String error429(Model model, HttpServletRequest request) {
         model.addAttribute(RATE_LIMIT_ERROR_ATTRIBUTE, request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE));
         return "error429";
@@ -189,8 +185,8 @@ public class HomeController {
     @RequestMapping("/rejected")
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleRequestRejected(Model model,
-        @RequestAttribute(RequestDispatcher.ERROR_EXCEPTION) RequestRejectedException ex,
-        @RequestAttribute(RequestDispatcher.ERROR_REQUEST_URI) String uri) {
+                                        @RequestAttribute(RequestDispatcher.ERROR_EXCEPTION) RequestRejectedException ex,
+                                        @RequestAttribute(RequestDispatcher.ERROR_REQUEST_URI) String uri) {
 
         logger.error("Request with encoded URI [{}] rejected. {}", URLEncoder.encode(uri, StandardCharsets.UTF_8), ex.getMessage());
         model.addAttribute("oauth_error", "The request was rejected because it contained a potentially malicious character.");

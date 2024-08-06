@@ -46,6 +46,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.opensaml.core.config.InitializationException;
 import org.opensaml.core.config.InitializationService;
 import org.opensaml.saml.saml2.core.AuthnContext;
+import org.opensaml.saml.saml2.core.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -64,6 +65,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.saml2.provider.service.authentication.AbstractSaml2AuthenticationRequest;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationToken;
+import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -88,10 +90,14 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.authenticationToken;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.mockedStoredAuthenticationRequest;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.registration;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.responseWithAssertions;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.token;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.verifying;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
@@ -137,6 +143,7 @@ class OpenSaml4AuthenticationProviderTests {
     private ScimGroup uaaSamlUser;
     private ScimGroup uaaSamlAdmin;
     private IdentityZoneManager identityZoneManager;
+    private SamlAuthenticationFilterConfig samlAuthenticationFilterConfig;
     @Autowired
     private JdbcTemplate jdbcTemplate;
     @Autowired
@@ -225,23 +232,23 @@ class OpenSaml4AuthenticationProviderTests {
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
 
-        SamlAuthenticationFilterConfig samlAuthenticationFilterConfig = new SamlAuthenticationFilterConfig();
+        samlAuthenticationFilterConfig = new SamlAuthenticationFilterConfig();
         samlUaaAuthenticationUserManager = samlAuthenticationFilterConfig.samlUaaAuthenticationUserManager(userDatabase, publisher);
         authprovider = samlAuthenticationFilterConfig.samlAuthenticationProvider(
-                identityZoneManager, providerProvisioning, externalManager, samlUaaAuthenticationUserManager, publisher);
+                identityZoneManager, providerProvisioning, externalManager, samlUaaAuthenticationUserManager, publisher, new SamlConfigProps());
 
         providerDefinition = new SamlIdentityProviderDefinition();
         providerDefinition.setMetaDataLocation(IDP_META_DATA.formatted(OriginKeys.SAML));
         providerDefinition.setIdpEntityAlias(OriginKeys.SAML);
 
-        provider = new IdentityProvider<>();
-        provider.setIdentityZoneId(IdentityZone.getUaaZoneId());
-        provider.setOriginKey(OriginKeys.SAML);
-        provider.setName("saml-test");
-        provider.setActive(true);
-        provider.setType(OriginKeys.SAML);
-        provider.setConfig(providerDefinition);
-        provider = providerProvisioning.create(provider, identityZoneManager.getCurrentIdentityZone().getId());
+        IdentityProvider<SamlIdentityProviderDefinition> createProvider = new IdentityProvider<>();
+        createProvider.setIdentityZoneId(IdentityZone.getUaaZoneId());
+        createProvider.setOriginKey(OriginKeys.SAML);
+        createProvider.setName("saml-test");
+        createProvider.setActive(true);
+        createProvider.setType(OriginKeys.SAML);
+        createProvider.setConfig(providerDefinition);
+        provider = providerProvisioning.create(createProvider, identityZoneManager.getCurrentIdentityZone().getId());
     }
 
     @AfterEach
@@ -439,7 +446,7 @@ class OpenSaml4AuthenticationProviderTests {
 
     @Test
     @Disabled("SAML test doesn't compile: Invitations. Requires different response data")
-    void updateInvitedUserWhoseUsernameIsNotEmail() throws Exception {
+    void updateInvitedUserWhoseUsernameIsNotEmail() {
         ScimUser scimUser = getInvitedUser();
 
 //        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "marissa.invited@test.org", null);
@@ -456,15 +463,14 @@ class OpenSaml4AuthenticationProviderTests {
 
     @Test
     @Disabled("SAML test doesn't compile: Invitations. Requires different response data")
-    void invitedUserAuthenticationWhenAuthenticatedEmailDoesNotMatchInvitedEmail()
-            throws Exception {
+    void invitedUserAuthenticationWhenAuthenticatedEmailDoesNotMatchInvitedEmail() {
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
 
-        ScimUser scimUser = getInvitedUser();
+//        ScimUser scimUser = getInvitedUser();
 
 //        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "different@test.org", null);
 //        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
@@ -518,7 +524,6 @@ class OpenSaml4AuthenticationProviderTests {
         user = userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML);
         assertThat(user).returns("John", UaaUser::getGivenName)
                 .returns(TEST_EMAIL, UaaUser::getEmail);
-
     }
 
     @Test
@@ -669,7 +674,7 @@ class OpenSaml4AuthenticationProviderTests {
                 .hasCauseExactlyInstanceOf(SamlLoginException.class)
                 .hasMessage("SAML user does not exist. You can correct this by creating a shadow user for the SAML user.");
 
-        assertThatThrownBy(()-> userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML))
+        assertThatThrownBy(() -> userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML))
                 .isInstanceOf(UsernameNotFoundException.class)
                 .hasMessage(TEST_USERNAME);
     }
@@ -751,6 +756,41 @@ class OpenSaml4AuthenticationProviderTests {
                 .hasSize(2)
                 .containsEntry(COST_CENTERS, List.of(DENVER_CO))
                 .containsEntry(MANAGERS, List.of(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+    }
+
+    @Test
+    void failsWithIncorrectInResponseTo() {
+        // This test is to ensure that the InResponseTo attribute is being validated
+        // and that the response is not accepted if it does not match the stored request
+        Response response = responseWithAssertions();
+        response.setInResponseTo("incorrect");
+        AbstractSaml2AuthenticationRequest mockAuthenticationRequest = mockedStoredAuthenticationRequest("SAML2",
+                Saml2MessageBinding.POST, false);
+        Saml2AuthenticationToken authenticationToken = token(response, verifying(registration()), mockAuthenticationRequest);
+
+        assertThatThrownBy(() -> authenticate(authenticationToken))
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasMessage("The InResponseTo attribute [incorrect] does not match the ID of the authentication request [SAML2]");
+    }
+
+    @Test
+    void successWithIncorrectInResponseTo() {
+        // setup the same as failsWithIncorrectInResponseTo,
+        // but with the disableInResponseToCheck property set to true
+        // so that the InResponseTo check is skipped
+        SamlConfigProps samlConfigProps = new SamlConfigProps();
+        samlConfigProps.setDisableInResponseToCheck(true);
+        authprovider = samlAuthenticationFilterConfig.samlAuthenticationProvider(
+                identityZoneManager, providerProvisioning, externalManager, samlUaaAuthenticationUserManager, publisher, samlConfigProps);
+
+        Response response = responseWithAssertions();
+        response.setInResponseTo("incorrect");
+        AbstractSaml2AuthenticationRequest mockAuthenticationRequest = mockedStoredAuthenticationRequest("SAML2",
+                Saml2MessageBinding.POST, false);
+        Saml2AuthenticationToken authenticationToken = token(response, verifying(registration()), mockAuthenticationRequest);
+
+        UaaAuthentication authentication = authenticate(authenticationToken);
+        assertThat(authentication.isAuthenticated()).isTrue();
     }
 
     public static class CreateUserPublisher implements ApplicationEventPublisher {

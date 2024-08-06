@@ -160,7 +160,7 @@ public class IdentityZoneConfigurationBootstrapTests {
     }
 
     @Test
-    void samlDisableInResponseTo() throws Exception {
+    void disableInResponseTo() throws Exception {
         bootstrap.setDisableSamlInResponseToCheck(true);
         bootstrap.afterPropertiesSet();
         IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());

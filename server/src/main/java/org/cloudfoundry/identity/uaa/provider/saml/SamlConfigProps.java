@@ -31,6 +31,8 @@ public class SamlConfigProps {
 
     private Boolean signRequest = true;
 
+    private Boolean disableInResponseToCheck = false;
+
     /**
      * When login.saml.signMetaData is true or not set, the SAML SP metadata has a Signature section;
      * when it's false, there is no Signature. This applies to both default and non-default zones
