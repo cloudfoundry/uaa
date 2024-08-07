@@ -30,13 +30,21 @@ class RelyingPartyRegistrationBuilderTest {
     private static final String ENTITY_ID_ALIAS = "entityIdAlias";
     private static final String NAME_ID = "nameIdFormat";
     private static final String REGISTRATION_ID = "registrationId";
+    private static final String SAML_SAMPLE_METADATA_XML = "saml-sample-metadata.xml";
 
     @Test
     void buildsRelyingPartyRegistrationFromLocation() {
-        RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(keyWithCert1()),
-                        "saml-sample-metadata.xml", REGISTRATION_ID, ENTITY_ID_ALIAS,
-                        true, List.of());
+        RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
+                .samlEntityID(ENTITY_ID)
+                .samlSpNameId(NAME_ID)
+                .keys(List.of(keyWithCert1()))
+                .metadataLocation(SAML_SAMPLE_METADATA_XML)
+                .rpRegistrationId(REGISTRATION_ID)
+                .samlSpAlias(ENTITY_ID_ALIAS)
+                .requestSigned(true)
+                .signatureAlgorithms(List.of())
+                .build();
+        RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params);
 
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
@@ -53,10 +61,19 @@ class RelyingPartyRegistrationBuilderTest {
 
     @Test
     void buildsRelyingPartyRegistrationFromXML() {
-        String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
-        RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(keyWithCert1()),
-                        metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, false, List.of());
+        String metadataXml = loadResouceAsString(SAML_SAMPLE_METADATA_XML);
+
+        RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
+                .samlEntityID(ENTITY_ID)
+                .samlSpNameId(NAME_ID)
+                .keys(List.of(keyWithCert1()))
+                .metadataLocation(metadataXml)
+                .rpRegistrationId(REGISTRATION_ID)
+                .samlSpAlias(ENTITY_ID_ALIAS)
+                .requestSigned(false)
+                .signatureAlgorithms(List.of())
+                .build();
+        RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params);
 
         assertThat(registration)
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
@@ -73,11 +90,19 @@ class RelyingPartyRegistrationBuilderTest {
 
     @Test
     void withCredentials() {
-        String metadataXml = loadResouceAsString("saml-sample-metadata.xml");
-        RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder
-                .buildRelyingPartyRegistration(ENTITY_ID, NAME_ID, List.of(keyWithCert1(), keyWithCert2()),
-                        metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, false,
-                        List.of(SignatureAlgorithm.SHA512, SignatureAlgorithm.SHA256));
+        String metadataXml = loadResouceAsString(SAML_SAMPLE_METADATA_XML);
+
+        RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
+                .samlEntityID(ENTITY_ID)
+                .samlSpNameId(NAME_ID)
+                .keys(List.of(keyWithCert1(), keyWithCert2()))
+                .metadataLocation(metadataXml)
+                .rpRegistrationId(REGISTRATION_ID)
+                .samlSpAlias(ENTITY_ID_ALIAS)
+                .requestSigned(false)
+                .signatureAlgorithms(List.of(SignatureAlgorithm.SHA512, SignatureAlgorithm.SHA256))
+                .build();
+        RelyingPartyRegistration registration = RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params);
 
         assertThat(registration.getSigningX509Credentials())
                 .hasSize(2)
@@ -100,9 +125,19 @@ class RelyingPartyRegistrationBuilderTest {
         List<KeyWithCert> keyList = List.of(keyWithCert1());
         List<SignatureAlgorithm> signatureAlgorithms = List.of();
 
+        RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
+                .samlEntityID(ENTITY_ID)
+                .samlSpNameId(NAME_ID)
+                .keys(keyList)
+                .metadataLocation(metadataXml)
+                .rpRegistrationId(REGISTRATION_ID)
+                .samlSpAlias(ENTITY_ID_ALIAS)
+                .requestSigned(true)
+                .signatureAlgorithms(signatureAlgorithms)
+                .build();
+
         assertThatThrownBy(() ->
-                RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(ENTITY_ID, NAME_ID,
-                        keyList, metadataXml, REGISTRATION_ID, ENTITY_ID_ALIAS, true, signatureAlgorithms))
+                RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params))
                 .isInstanceOf(Saml2Exception.class)
                 .hasMessageContaining("Unsupported element");
     }

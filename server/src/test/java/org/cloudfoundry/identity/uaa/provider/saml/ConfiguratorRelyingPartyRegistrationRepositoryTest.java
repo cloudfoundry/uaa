@@ -48,6 +48,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     private static final String ENTITY_ID_ALIAS = "entityIdAlias";
     private static final String REGISTRATION_ID = "registrationId";
     private static final String REGISTRATION_ID_2 = "registrationId2";
+    private static final String DEFAULT_NAME_ID = "defaultNameId";
     private static final String NAME_ID = "name1";
     private static final String ZONE_DOMAIN = "zoneDomain";
     private static final String ZONED_ENTITY_ID = "zoneDomain.entityId";
@@ -79,13 +80,14 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
 
     @BeforeEach
     void beforeEach() {
-        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, configurator, List.of()));
+        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, configurator, List.of(), DEFAULT_NAME_ID));
     }
 
     @Test
     void constructorWithNullConfiguratorThrows() {
+        List<SignatureAlgorithm> signatureAlgorithms = List.of();
         assertThatThrownBy(() -> new ConfiguratorRelyingPartyRegistrationRepository(
-                ENTITY_ID, ENTITY_ID_ALIAS, null, List.of())
+                ENTITY_ID, ENTITY_ID_ALIAS, null, signatureAlgorithms, DEFAULT_NAME_ID)
         ).isInstanceOf(IllegalArgumentException.class);
     }
 
@@ -212,15 +214,14 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     }
 
     @Test
-    void fallsBackToUaaWideEntityIdWhenNoAlias() {
+    void fallsBackToUaaWideValuesWhenNotProvided() {
         repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID,
-                null, configurator, List.of()));
+                null, configurator, List.of(), DEFAULT_NAME_ID));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.isUaa()).thenReturn(true);
         when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
         when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
         when(definition.getIdpEntityAlias()).thenReturn(REGISTRATION_ID);
-        when(definition.getNameID()).thenReturn(NAME_ID);
         when(definition.getMetaDataLocation()).thenReturn("saml-sample-metadata.xml");
         when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
 
@@ -229,7 +230,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
                 // from definition
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
-                .returns(NAME_ID, RelyingPartyRegistration::getNameIdFormat)
+                .returns(DEFAULT_NAME_ID, RelyingPartyRegistration::getNameIdFormat)
                 // from functions
                 .returns("{baseUrl}/saml/SSO/alias/entityId", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation);
@@ -267,7 +268,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     @Test
     void buildsCorrectRegistrationWithZoneEntityIdSet() {
         repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID,
-                null, configurator, List.of()));
+                null, configurator, List.of(), DEFAULT_NAME_ID));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.isUaa()).thenReturn(false);
         when(identityZone.getSubdomain()).thenReturn(ZONE_DOMAIN);
@@ -324,7 +325,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void withSha512SignatureAlgorithm() {
-        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, configurator, List.of(SignatureAlgorithm.SHA512)));
+        repository = spy(new ConfiguratorRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, configurator, List.of(SignatureAlgorithm.SHA512), DEFAULT_NAME_ID));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
         when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);

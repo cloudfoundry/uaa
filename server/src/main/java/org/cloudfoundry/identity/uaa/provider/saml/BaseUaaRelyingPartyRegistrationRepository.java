@@ -14,13 +14,16 @@ import java.util.Optional;
 public abstract class BaseUaaRelyingPartyRegistrationRepository implements RelyingPartyRegistrationRepository, ZoneAware {
     protected final String uaaWideSamlEntityID;
     protected final String uaaWideSamlEntityIDAlias;
+    protected final String uaaWideSamlNameId;
     protected final List<SignatureAlgorithm> signatureAlgorithms;
 
     protected BaseUaaRelyingPartyRegistrationRepository(String uaaWideSamlEntityID, String uaaWideSamlEntityIDAlias,
-                                                        List<SignatureAlgorithm> signatureAlgorithms) {
+                                                        List<SignatureAlgorithm> signatureAlgorithms,
+                                                        String uaaWideSamlNameId) {
         this.uaaWideSamlEntityID = uaaWideSamlEntityID;
         this.uaaWideSamlEntityIDAlias = uaaWideSamlEntityIDAlias;
         this.signatureAlgorithms = signatureAlgorithms;
+        this.uaaWideSamlNameId = uaaWideSamlNameId;
     }
 
     String getZoneEntityId(IdentityZone currentZone) {

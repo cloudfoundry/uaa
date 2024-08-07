@@ -40,6 +40,7 @@ public class SamlMetadataEndpointKeyRotationTests {
 
     private static final String ZONE_ID = "zone-id";
     private static final String REGISTRATION_ID = "regId";
+    private static final String NAME_ID_FORMAT = "nameIdFormat";
     private static final String ENTITY_ID = "entityIdValue";
     private static final String ENTITY_ALIAS = "entityAlias";
     public static final String KEY_DESCRIPTOR_CERTIFICATE_XPATH_FORMAT = "//md:SPSSODescriptor/md:KeyDescriptor[@use='%s']//ds:X509Certificate";
@@ -85,7 +86,7 @@ public class SamlMetadataEndpointKeyRotationTests {
         request = new MockHttpServletRequest();
 
         RelyingPartyRegistrationRepository registrationRepository =
-                new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias", List.of());
+                new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias", List.of(), NAME_ID_FORMAT);
         RelyingPartyRegistrationResolver registrationResolver = new DefaultRelyingPartyRegistrationResolver(registrationRepository);
         endpoint = spy(new SamlMetadataEndpoint(registrationResolver, identityZoneManager, SignatureAlgorithm.SHA256, true));
         IdentityZoneHolder.set(otherZone);

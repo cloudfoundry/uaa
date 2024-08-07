@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import lombok.Builder;
+import lombok.Value;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
@@ -26,54 +28,31 @@ public class RelyingPartyRegistrationBuilder {
     }
 
     /**
-     * @param samlEntityID     the entityId of the relying party
-     * @param samlSpNameId     the nameIdFormat of the relying party
-     * @param keys             a list of KeyWithCert objects, with the first key in the list being the active key, all keys in the
-     *                         list will be added for signing. Although it is possible to have multiple decryption keys,
-     *                         only the first one will be used to maintain parity with existing UAA
-     * @param metadataLocation the location or XML data of the metadata
-     * @param rpRegistrationId the registrationId of the relying party
-     * @param samlSpAlias      the alias of the relying party for the SAML endpoints
-     * @param requestSigned    whether the AuthnRequest should be signed
+     * Build a RelyingPartyRegistration object from the given parameters
+     *
+     * @param params the params object used to build the RelyingPartyRegistration object
      * @return a RelyingPartyRegistration object
      */
-    public static RelyingPartyRegistration buildRelyingPartyRegistration(
-            String samlEntityID, String samlSpNameId,
-            List<KeyWithCert> keys, String metadataLocation,
-            String rpRegistrationId, String samlSpAlias, boolean requestSigned, List<SignatureAlgorithm> signatureAlgorithms) {
+    public static RelyingPartyRegistration buildRelyingPartyRegistration(Params params) {
 
-        SamlIdentityProviderDefinition.MetadataLocation type = SamlIdentityProviderDefinition.getType(metadataLocation);
+        SamlIdentityProviderDefinition.MetadataLocation type = SamlIdentityProviderDefinition.getType(params.metadataLocation);
         RelyingPartyRegistration.Builder builder;
         if (type == SamlIdentityProviderDefinition.MetadataLocation.DATA) {
-            try (InputStream stringInputStream = new ByteArrayInputStream(metadataLocation.getBytes())) {
+            try (InputStream stringInputStream = new ByteArrayInputStream(params.metadataLocation.getBytes())) {
                 builder = RelyingPartyRegistrations.fromMetadata(stringInputStream);
             } catch (Exception e) {
-                log.error("Error reading metadata from string: {}", metadataLocation, e);
+                log.error("Error reading metadata from string: {}", params.metadataLocation, e);
                 throw new Saml2Exception(e);
             }
         } else {
-            builder = RelyingPartyRegistrations.fromMetadataLocation(metadataLocation);
+            builder = RelyingPartyRegistrations.fromMetadataLocation(params.metadataLocation);
         }
 
-        builder.entityId(samlEntityID);
-        if (rpRegistrationId != null) builder.registrationId(rpRegistrationId);
-        if (samlSpNameId != null) builder.nameIdFormat(samlSpNameId);
+        builder.entityId(params.samlEntityID);
+        if (params.rpRegistrationId != null) builder.registrationId(params.rpRegistrationId);
+        if (params.samlSpNameId != null) builder.nameIdFormat(params.samlSpNameId);
 
-        return builder
-                .signingX509Credentials(cred ->
-                        keys.stream()
-                                .map(k -> Saml2X509Credential.signing(k.getPrivateKey(), k.getCertificate()))
-                                .forEach(cred::add)
-                )
-                .decryptionX509Credentials(cred -> keys.stream()
-                        .findFirst()
-                        .map(k -> Saml2X509Credential.decryption(k.getPrivateKey(), k.getCertificate()))
-                        .ifPresent(cred::add)
-                )
-                .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(samlSpAlias))
-                .assertionConsumerServiceBinding(Saml2MessageBinding.POST)
-                .singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(samlSpAlias))
-                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(samlSpAlias))
+        return builder.signingX509Credentials(cred -> params.keys.stream().map(k -> Saml2X509Credential.signing(k.getPrivateKey(), k.getCertificate())).forEach(cred::add)).decryptionX509Credentials(cred -> params.keys.stream().findFirst().map(k -> Saml2X509Credential.decryption(k.getPrivateKey(), k.getCertificate())).ifPresent(cred::add)).assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(params.samlSpAlias)).assertionConsumerServiceBinding(Saml2MessageBinding.POST).singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(params.samlSpAlias)).singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(params.samlSpAlias))
                 // Accept both POST and REDIRECT bindings
                 .singleLogoutServiceBindings(c -> {
                     c.add(Saml2MessageBinding.POST);
@@ -82,9 +61,57 @@ public class RelyingPartyRegistrationBuilder {
                 // alter the default value of the APs wantAuthnRequestsSigned,
                 // to reflect the UAA configured desire to always sign/or-not the AuthnRequest
                 .assertingPartyDetails(details -> {
-                    details.wantAuthnRequestsSigned(requestSigned);
-                    details.signingAlgorithms(alg -> alg.addAll(signatureAlgorithms.stream().map(SignatureAlgorithm::getSignatureAlgorithmURI).toList()));
-                })
-                .build();
+                    details.wantAuthnRequestsSigned(params.requestSigned);
+                    details.signingAlgorithms(alg -> alg.addAll(params.signatureAlgorithms.stream().map(SignatureAlgorithm::getSignatureAlgorithmURI).toList()));
+                }).build();
+    }
+
+    /**
+     * Parameters for building a {@link RelyingPartyRegistration} using {@link RelyingPartyRegistrationBuilder}
+     */
+    @Value
+    @Builder
+    public static class Params {
+        /**
+         * the entityId of the relying party
+         */
+        String samlEntityID;
+
+        /**
+         * the nameIdFormat of the relying party
+         */
+        String samlSpNameId;
+
+        /**
+         * A list of KeyWithCert objects, with the first key in the list being the active key, all keys in the
+         * list will be added for signing. Although it is possible to have multiple decryption keys,
+         * only the first one will be used to maintain parity with existing UAA
+         */
+        List<KeyWithCert> keys;
+
+        /**
+         * the location or XML data of the metadata
+         */
+        String metadataLocation;
+
+        /**
+         * the registrationId of the relying party
+         */
+        String rpRegistrationId;
+
+        /**
+         * the alias of the relying party for the SAML endpoints
+         */
+        String samlSpAlias;
+
+        /**
+         * whether the AuthnRequest should be signed
+         */
+        boolean requestSigned;
+
+        /**
+         * the list of signature algorithms to use for signing
+         */
+        List<SignatureAlgorithm> signatureAlgorithms;
     }
 }

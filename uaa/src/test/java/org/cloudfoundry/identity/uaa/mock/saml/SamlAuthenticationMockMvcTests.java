@@ -178,6 +178,8 @@ class SamlAuthenticationMockMvcTests {
                 .isEqualTo("http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id");
         xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo("integration-saml-entity-id"); // matches login.entityID
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
     }
 
     @Test
@@ -210,6 +212,8 @@ class SamlAuthenticationMockMvcTests {
                 .isEqualTo("http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id");
         xmlAssert.valueByXPath("/saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo("integration-saml-entity-id"); // matches login.entityID
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
         xmlAssert.nodesByXPath("/saml2p:AuthnRequest/ds:Signature").exist();
         xmlAssert.valueByXPath("/saml2p:AuthnRequest/ds:Signature/ds:SignedInfo/ds:SignatureMethod/@Algorithm")
                 .isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA256);
@@ -251,6 +255,8 @@ class SamlAuthenticationMockMvcTests {
                 .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
         xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo(spZone.getConfig().getSamlConfig().getEntityID()); // should match zone config's samlConfig.entityID
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
     }
 
     @Test
@@ -289,6 +295,8 @@ class SamlAuthenticationMockMvcTests {
                 .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
         xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo("%s.%s".formatted(spZone.getSubdomain(), "integration-saml-entity-id")); // should match zone config's samlConfig.entityID; if not set, fail over to zone-subdomain.uaa-wide-saml-entity-id
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
     }
 
     @Test
@@ -323,6 +331,8 @@ class SamlAuthenticationMockMvcTests {
                 .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
         xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
                 .isEqualTo(spZone.getConfig().getSamlConfig().getEntityID()); // should match zone config's samlConfig.entityID
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
     }
 
     @Test
@@ -524,6 +534,38 @@ class SamlAuthenticationMockMvcTests {
                     // expect redirect to the Uaa Home Page: /uaa/, not error
                     .andExpect(redirectedUrl("/uaa/"))
                     .andReturn();
+        }
+    }
+
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "login.saml.nameID=urn:oasis:names:tc:SAML:1.1:nameid-format:peaches")
+    class NameIdConfigMockMvcTests {
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void sendAuthnRequestToIdpRedirectBindingMode() throws Exception {
+            MvcResult mvcResult = mockMvc.perform(
+                            get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                                    .contextPath("/uaa")
+                                    .header(HOST, "localhost:8080")
+                    )
+                    .andDo(print())
+                    .andExpect(status().is3xxRedirection())
+                    .andReturn();
+
+            String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
+            Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
+
+            // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
+            String samlRequestXml = samlDecodeAndInflate(parameterMap.get("SAMLRequest")[0]);
+            assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
+
+            XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                    .withNamespaceContext(xmlNamespaces());
+            xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                    .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:peaches"); // matches login.saml.nameID
         }
     }
 

@@ -32,6 +32,7 @@ import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_S
 class DefaultRelyingPartyRegistrationRepositoryTest {
     private static final String ENTITY_ID = "entityId";
     private static final String ENTITY_ID_ALIAS = "entityIdAlias";
+    private static final String NAME_ID_FORMAT = "nameIdFormat";
     private static final String ZONE_SUBDOMAIN = "testzone";
     private static final String ZONED_ENTITY_ID = "%s.%s".formatted(ZONE_SUBDOMAIN, ENTITY_ID);
     private static final String REGISTRATION_ID = "registrationId";
@@ -57,7 +58,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
 
     @BeforeEach
     void beforeEach() {
-        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of()));
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of(), NAME_ID_FORMAT));
     }
 
     @Test
@@ -72,7 +73,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 // from definition
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
-                .returns(null, RelyingPartyRegistration::getNameIdFormat)
+                .returns(NAME_ID_FORMAT, RelyingPartyRegistration::getNameIdFormat)
                 // from functions
                 .returns("{baseUrl}/saml/SSO/alias/entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
@@ -95,7 +96,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 // from definition
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ZONED_ENTITY_ID, RelyingPartyRegistration::getEntityId)
-                .returns(null, RelyingPartyRegistration::getNameIdFormat)
+                .returns(NAME_ID_FORMAT, RelyingPartyRegistration::getNameIdFormat)
                 // from functions
                 .returns("{baseUrl}/saml/SSO/alias/testzone.entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/testzone.entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
@@ -118,7 +119,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 // from definition
                 .returns(REGISTRATION_ID_2, RelyingPartyRegistration::getRegistrationId)
                 .returns(ZONED_ENTITY_ID, RelyingPartyRegistration::getEntityId)
-                .returns(null, RelyingPartyRegistration::getNameIdFormat)
+                .returns(NAME_ID_FORMAT, RelyingPartyRegistration::getNameIdFormat)
                 // from functions
                 .returns("{baseUrl}/saml/SSO/alias/testzone.entityIdAlias", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/testzone.entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation);
@@ -126,7 +127,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void findByRegistrationId_NoAliasFailsOverToEntityId() {
-        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null, List.of()));
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null, List.of(), NAME_ID_FORMAT));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.isUaa()).thenReturn(true);
         when(identityZone.getConfig()).thenReturn(identityZoneConfig);
@@ -140,7 +141,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 // from definition
                 .returns(REGISTRATION_ID_2, RelyingPartyRegistration::getRegistrationId)
                 .returns(ZONED_ENTITY_ID, RelyingPartyRegistration::getEntityId)
-                .returns(null, RelyingPartyRegistration::getNameIdFormat)
+                .returns(NAME_ID_FORMAT, RelyingPartyRegistration::getNameIdFormat)
                 // from functions
                 .returns("{baseUrl}/saml/SSO/alias/testzone.entityId", RelyingPartyRegistration::getAssertionConsumerServiceLocation)
                 .returns("{baseUrl}/saml/SingleLogout/alias/testzone.entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation);
@@ -149,7 +150,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     @Test
     void zoneWithCredentialsUsesCorrectValues() {
         samlConfigProps.setKeys(Map.of(keyName1(), samlKey1(), keyName2(), samlKey2()));
-        samlConfigProps.setActiveKeyId("key1");
+        samlConfigProps.setActiveKeyId(keyName1());
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.getConfig()).thenReturn(identityZoneConfig);
         when(identityZoneConfig.getSamlConfig()).thenReturn(samlConfig);
@@ -174,7 +175,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
 
     @Test
     void withSha512SignatureAlgorithm() {
-        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of(SignatureAlgorithm.SHA512)));
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, ENTITY_ID_ALIAS, List.of(SignatureAlgorithm.SHA512), NAME_ID_FORMAT));
         when(repository.retrieveZone()).thenReturn(identityZone);
         when(identityZone.getConfig()).thenReturn(identityZoneConfig);
         when(identityZoneConfig.getSamlConfig()).thenReturn(samlConfig);

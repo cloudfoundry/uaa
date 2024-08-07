@@ -10,6 +10,7 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.util.Assert;
 
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyingPartyRegistrationRepository
@@ -20,8 +21,9 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
     public ConfiguratorRelyingPartyRegistrationRepository(String uaaWideSamlEntityID,
                                                           String uaaWideSamlEntityIDAlias,
                                                           SamlIdentityProviderConfigurator configurator,
-                                                          List<SignatureAlgorithm> signatureAlgorithms) {
-        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias, signatureAlgorithms);
+                                                          List<SignatureAlgorithm> signatureAlgorithms,
+                                                          String uaaWideSamlNameId) {
+        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias, signatureAlgorithms, uaaWideSamlNameId);
         Assert.notNull(configurator, "configurator cannot be null");
         this.configurator = configurator;
     }
@@ -46,12 +48,19 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
                 String zonedSamlEntityID = getZoneEntityId(currentZone);
                 String zonedSamlEntityIDAlias = getZoneEntityIdAlias(currentZone);
                 boolean requestSigned = currentZone.getConfig().getSamlConfig().isRequestSigned();
+                String nameID = Optional.ofNullable(identityProviderDefinition.getNameID()).orElse(uaaWideSamlNameId);
 
-                return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                        zonedSamlEntityID, identityProviderDefinition.getNameID(),
-                        keyWithCerts, identityProviderDefinition.getMetaDataLocation(),
-                        registrationId, zonedSamlEntityIDAlias, requestSigned,
-                        signatureAlgorithms);
+                RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
+                        .samlEntityID(zonedSamlEntityID)
+                        .samlSpNameId(nameID)
+                        .keys(keyWithCerts)
+                        .metadataLocation(identityProviderDefinition.getMetaDataLocation())
+                        .rpRegistrationId(registrationId)
+                        .samlSpAlias(zonedSamlEntityIDAlias)
+                        .requestSigned(requestSigned)
+                        .signatureAlgorithms(signatureAlgorithms)
+                        .build();
+                return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params);
             }
         }
         return null;

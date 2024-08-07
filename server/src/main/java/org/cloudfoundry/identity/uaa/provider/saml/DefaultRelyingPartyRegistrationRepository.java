@@ -19,8 +19,9 @@ public class DefaultRelyingPartyRegistrationRepository extends BaseUaaRelyingPar
 
     public DefaultRelyingPartyRegistrationRepository(String uaaWideSamlEntityID,
                                                      String uaaWideSamlEntityIDAlias,
-                                                     List<SignatureAlgorithm> signatureAlgorithms) {
-        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias, signatureAlgorithms);
+                                                     List<SignatureAlgorithm> signatureAlgorithms,
+                                                     String uaaWideSamlNameId) {
+        super(uaaWideSamlEntityID, uaaWideSamlEntityIDAlias, signatureAlgorithms, uaaWideSamlNameId);
     }
 
     /**
@@ -45,9 +46,16 @@ public class DefaultRelyingPartyRegistrationRepository extends BaseUaaRelyingPar
         String zonedSamlEntityID = getZoneEntityId(currentZone);
         String zonedSamlEntityIDAlias = getZoneEntityIdAlias(currentZone);
 
-        return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(
-                zonedSamlEntityID, null,
-                keyWithCerts, CLASSPATH_DUMMY_SAML_IDP_METADATA_XML, registrationId,
-                zonedSamlEntityIDAlias, requestSigned, signatureAlgorithms);
+        RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
+                .samlEntityID(zonedSamlEntityID)
+                .samlSpNameId(uaaWideSamlNameId)
+                .keys(keyWithCerts)
+                .metadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
+                .rpRegistrationId(registrationId)
+                .samlSpAlias(zonedSamlEntityIDAlias)
+                .requestSigned(requestSigned)
+                .signatureAlgorithms(signatureAlgorithms)
+                .build();
+        return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params);
     }
 }
