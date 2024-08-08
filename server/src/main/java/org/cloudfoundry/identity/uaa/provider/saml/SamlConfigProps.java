@@ -32,14 +32,16 @@ public class SamlConfigProps {
     private String entityIDAlias;
 
     /**
-     * Default nameID if IDP nameID is not set
+     * Default nameID if IDP nameID is not set.
+     * Defaults to urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified
      * Used in SAML Authn Request:
      * <saml2p:NameIDPolicy Format="{login.saml.nameID}"/>
      */
-    private String nameID;
+    private String nameID = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";
 
     /**
      * Default assertionConsumerIndex if IDP value is not set
+     * Defaults to 0
      */
     private int assertionConsumerIndex = 0;
 
@@ -55,17 +57,20 @@ public class SamlConfigProps {
 
     /**
      * Local/SP metadata - want incoming assertions signed
+     * Defaults to true
      */
     private Boolean wantAssertionSigned = true;
 
     /**
      * When login.saml.signMetaData is true or not set, the SAML SP metadata has a Signature section;
-     * when it's false, there is no Signature. This applies to both default and non-default zones
+     * when it's false, there is no Signature. This applies to both default and non-default zones.
+     * Defaults to true
      */
     private Boolean signMetaData = true;
 
     /**
      * Local/SP metadata - requests signed
+     * Defaults to true
      */
     private Boolean signRequest = true;
 
@@ -77,7 +82,8 @@ public class SamlConfigProps {
     private String signatureAlgorithm = "SHA256";
 
     /**
-     * If true, do not validate the InResponseToField part of an incoming IDP assertion (default: false)
+     * If true, do not validate the InResponseToField part of an incoming IDP assertion
+     * Defaults to false
      */
     private Boolean disableInResponseToCheck = false;
 

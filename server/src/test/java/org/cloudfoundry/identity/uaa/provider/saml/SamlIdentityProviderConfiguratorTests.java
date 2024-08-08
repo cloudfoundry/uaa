@@ -15,6 +15,9 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.apache.http.conn.ConnectTimeoutException;
+import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
+import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -23,13 +26,21 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestTemplate;
 
+import java.net.SocketTimeoutException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.Security;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -39,7 +50,7 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -64,9 +75,17 @@ public class SamlIdentityProviderConfiguratorTests {
     private SamlIdentityProviderDefinition singleAdd = null;
     private SlowHttpServer slowHttpServer;
     private SamlIdentityProviderConfigurator configurator;
+    private SamlConfiguration samlConfiguration;
+
+    @BeforeAll
+    static void beforeAll() {
+        Security.addProvider(new BouncyCastleFipsProvider());
+    }
 
     @BeforeEach
     public void beforeEach() {
+        samlConfiguration = new SamlConfiguration();
+
         slowHttpServer = new SlowHttpServer();
         singleAdd = new SamlIdentityProviderDefinition()
                 .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
@@ -179,16 +198,46 @@ public class SamlIdentityProviderConfiguratorTests {
         assertThat(clientIdps).isEmpty();
     }
 
+    FixedHttpMetaDataProvider createNonMockFixedHttpMetaDataProvider(SamlConfiguration samlConfiguration) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        RestTemplate trustingRestTemplate = samlConfiguration.trustingRestTemplate();
+        RestTemplate nonTrustingRestTemplate = samlConfiguration.nonTrustingRestTemplate();
+        UrlContentCache urlContentCache = samlConfiguration.urlContentCache(samlConfiguration.timeService());
+
+        return samlConfiguration.fixedHttpMetaDataProvider(trustingRestTemplate, nonTrustingRestTemplate, urlContentCache);
+    }
+
     @Test
-    void shouldTimeoutWhenFetchingMetadataURL() {
+    void shouldTimeoutOnReadWhenFetchingMetadataURL() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
         slowHttpServer.run();
+        // set read timeout to value that will cause read timeout before 1s
+        samlConfiguration.setSocketReadTimeout(100);
+        FixedHttpMetaDataProvider realFixedHttpMetaDataProvider = createNonMockFixedHttpMetaDataProvider(samlConfiguration);
+        configurator = new SamlIdentityProviderConfigurator(provisioning, new IdentityZoneManagerImpl(), realFixedHttpMetaDataProvider);
 
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-        def.setMetaDataLocation("https://localhost:23439");
+        def.setMetaDataLocation(slowHttpServer.getUrl());
         def.setSkipSslValidation(true);
 
-        assertTimeout(ofSeconds(1), () -> assertThatThrownBy(() -> configurator.configureURLMetadata(def))
-                .isInstanceOf(NullPointerException.class));
+        assertTimeoutPreemptively(ofSeconds(1), () -> assertThatThrownBy(() -> configurator.configureURLMetadata(def))
+                .isInstanceOf(ResourceAccessException.class)
+                .hasCauseInstanceOf(SocketTimeoutException.class));
+    }
+
+    @Test
+    void shouldTimeoutOnConnectingWhenFetchingMetadataURL() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        slowHttpServer.run();
+        // Set connection timeout to very low value to cause connect timeout
+        samlConfiguration.setSocketConnectionTimeout(1);
+        FixedHttpMetaDataProvider realFixedHttpMetaDataProvider = createNonMockFixedHttpMetaDataProvider(samlConfiguration);
+        configurator = new SamlIdentityProviderConfigurator(provisioning, new IdentityZoneManagerImpl(), realFixedHttpMetaDataProvider);
+
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setMetaDataLocation(slowHttpServer.getUrl());
+        def.setSkipSslValidation(true);
+
+        assertTimeoutPreemptively(ofSeconds(1), () -> assertThatThrownBy(() -> configurator.configureURLMetadata(def))
+                .isInstanceOf(ResourceAccessException.class)
+                .hasCauseInstanceOf(ConnectTimeoutException.class));
     }
 
     private String getSimpleSamlPhpMetadata(String domain) {
