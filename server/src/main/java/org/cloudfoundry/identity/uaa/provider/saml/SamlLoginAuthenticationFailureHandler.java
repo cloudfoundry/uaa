@@ -2,9 +2,11 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.client.utils.URIBuilder;
+import org.cloudfoundry.identity.uaa.authentication.MalformedSamlResponseLogger;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 
@@ -49,6 +51,9 @@ public class SamlLoginAuthenticationFailureHandler extends SimpleUrlAuthenticati
                     }
                 }
             }
+        } else if (exception instanceof Saml2AuthenticationException) {
+            MalformedSamlResponseLogger logger = new MalformedSamlResponseLogger();
+            logger.logMalformedResponse(request);
         }
 
         if (redirectTo == null) {

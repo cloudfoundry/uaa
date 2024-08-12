@@ -7,7 +7,8 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding;
+import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
+import org.cloudfoundry.identity.uaa.authentication.MalformedSamlResponseLogger;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -50,7 +51,7 @@ import static org.apache.logging.log4j.Level.DEBUG;
 import static org.apache.logging.log4j.Level.WARN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
-import static org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding.X_VCAP_REQUEST_ID_HEADER;
+import static org.cloudfoundry.identity.uaa.authentication.MalformedSamlResponseLogger.X_VCAP_REQUEST_ID_HEADER;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.responseWithAssertions;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.serializedResponse;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
@@ -571,6 +572,7 @@ class SamlAuthenticationMockMvcTests {
 
     @Nested
     class WithCustomLogAppender {
+        private static final String LOGGER_NAME = "org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding";
         private List<LogEvent> logEvents;
         private AbstractAppender appender;
         private Level originalLevel;
@@ -581,7 +583,7 @@ class SamlAuthenticationMockMvcTests {
             appender = new AbstractAppender("", null, null) {
                 @Override
                 public void append(LogEvent event) {
-                    if (SamlResponseLoggerBinding.class.getName().equals(event.getLoggerName())) {
+                    if (LOGGER_NAME.equals(event.getLoggerName())) {
                         logEvents.add(event);
                     }
                 }
@@ -604,7 +606,6 @@ class SamlAuthenticationMockMvcTests {
         }
 
         @Test
-        @Disabled("SAML test fails: logging")
         void malformedSamlRequestLogsQueryStringAndContentMetadata() throws Exception {
             postSamlResponse(null, "?bogus=query", "someKey=someVal&otherKey=otherVal&emptyKey=", "vcap_request_id_abc123");
 
@@ -613,7 +614,6 @@ class SamlAuthenticationMockMvcTests {
         }
 
         @Test
-        @Disabled("SAML test fails: logging")
         void malformedSamlRequestWithNoQueryStringAndNoContentMetadata() throws Exception {
             postSamlResponse(null, "", "", "");
 
@@ -622,7 +622,6 @@ class SamlAuthenticationMockMvcTests {
         }
 
         @Test
-        @Disabled("SAML test fails: logging")
         void malformedSamlRequestWithRepeatedParams() throws Exception {
             postSamlResponse(null, "?foo=a&foo=ab&foo=aaabbbccc", "", "");
 
@@ -630,13 +629,22 @@ class SamlAuthenticationMockMvcTests {
             assertThatMessageWasLogged(logEvents, DEBUG, "Method: POST, Params (name/size): (foo/1) (foo/2) (foo/9) (SAMLResponse/0), Content-type: application/x-www-form-urlencoded, Request-size: 0, X-Vcap-Request-Id: ");
         }
 
+        @Test
+        void malformedSamlRequest() throws Exception {
+            postSamlResponse("<a/>", "?foo=a", "", "");
+
+            assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
+            assertThatMessageWasLogged(logEvents, DEBUG, "Method: POST, Params (name/size): (foo/1) (SAMLResponse/4), Content-type: application/x-www-form-urlencoded, Request-size: 0, X-Vcap-Request-Id: ");
+        }
+
         private void assertThatMessageWasLogged(
                 final List<LogEvent> logEvents,
                 final Level expectedLevel,
-                final String expectedMessage
-        ) {
-            assertThat(logEvents).extracting(LogEvent::getLevel, LogEvent::getMessage)
-                    .contains(tuple(expectedLevel, expectedMessage));
+                final String expectedMessage) {
+
+            assertThat(logEvents).filteredOn(l -> l.getLevel().equals(expectedLevel))
+                    .first()
+                    .returns(expectedMessage, l -> l.getMessage().getFormattedMessage());
         }
     }
 }
