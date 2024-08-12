@@ -48,6 +48,11 @@ public interface UrlContentCache {
     void clear();
 
     /**
+     * Performs any pending maintenance operations needed by the cache.
+     */
+    void cleanUp();
+
+    /**
      * Returns the current number of entries in the cache
      * @return the number of entries in the cache
      */

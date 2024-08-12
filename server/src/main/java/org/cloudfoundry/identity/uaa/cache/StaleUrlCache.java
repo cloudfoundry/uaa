@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.cache;
 
-import com.google.common.base.Ticker;
-import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.CacheLoader;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -18,8 +18,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 public class StaleUrlCache implements UrlContentCache {
@@ -37,7 +35,7 @@ public class StaleUrlCache implements UrlContentCache {
 
     public StaleUrlCache(final Duration cacheExpiration, final TimeService timeService, final int maxEntries,
                          final Ticker ticker) {
-        this.cache = CacheBuilder.newBuilder().refreshAfterWrite(cacheExpiration.toMillis(), TimeUnit.MILLISECONDS)
+        this.cache = Caffeine.newBuilder().refreshAfterWrite(cacheExpiration)
                 .maximumSize(maxEntries).ticker(ticker).build(new UrlCacheLoader(timeService));
     }
 
@@ -54,9 +52,6 @@ public class StaleUrlCache implements UrlContentCache {
         } catch (UncheckedExecutionException e) {
             log.warn("UncheckedException {}", e.getMessage(), e);
             throw (RuntimeException) e.getCause();
-        } catch (ExecutionException e) {
-            log.warn("ExecutionException {}", e.getMessage(), e);
-            throw new IllegalArgumentException(e);
         }
     }
 
@@ -66,8 +61,13 @@ public class StaleUrlCache implements UrlContentCache {
     }
 
     @Override
+    public void cleanUp() {
+        cache.cleanUp();
+    }
+
+    @Override
     public long size() {
-        return cache.size();
+        return cache.estimatedSize();
     }
 
     static class UriRequest {
@@ -117,10 +117,9 @@ public class StaleUrlCache implements UrlContentCache {
             this.timeEntered = timeEntered;
             this.data = data;
         }
-
     }
 
-    static class UrlCacheLoader extends CacheLoader<UriRequest, CacheEntry> {
+    static class UrlCacheLoader implements CacheLoader<UriRequest, CacheEntry> {
 
         private final TimeService timeService;
 
