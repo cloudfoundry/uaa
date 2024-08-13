@@ -132,7 +132,7 @@ public class KeyWithCert {
             } else {
                 throw new CertificateException("Unsupported certificate type, not an X509CertificateHolder.");
             }
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             throw new CertificateException("Failed to read certificate.", ex);
         }
 
