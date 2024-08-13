@@ -96,7 +96,7 @@ public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSaml
      * Add a signature element to the entity descriptor.
      * The signature contains the active key's certificate.
      *
-     * @param entityDescriptorParameters
+     * @param entityDescriptorParameters the entity descriptor parameters
      */
     private void signMetadata(OpenSamlMetadataResolver.EntityDescriptorParameters entityDescriptorParameters) {
 

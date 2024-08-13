@@ -1,5 +1,5 @@
-package org.cloudfoundry.identity.uaa.provider.saml;
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -11,6 +11,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.junit.Test;
 

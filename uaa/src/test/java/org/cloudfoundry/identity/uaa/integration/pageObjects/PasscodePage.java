@@ -11,16 +11,16 @@ import static org.hamcrest.Matchers.endsWith;
  * It has url matching: `/passcode`.
  */
 public class PasscodePage extends Page {
-    static final private String urlPath = "/passcode";
+    private static final String URL_PATH = "/passcode";
 
     public PasscodePage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, endsWith(urlPath));
+        validateUrl(driver, endsWith(URL_PATH));
         validatePageSource(driver, containsString("Temporary Authentication Code"));
     }
 
-    static public LoginPage requestPasscode_goesToLoginPage(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl + urlPath);
+    public static LoginPage requestPasscode_goesToLoginPage(WebDriver driver, String baseUrl) {
+        driver.get(baseUrl + URL_PATH);
         return new LoginPage(driver);
     }
 }

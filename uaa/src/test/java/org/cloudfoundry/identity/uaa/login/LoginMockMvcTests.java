@@ -57,7 +57,6 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -83,6 +82,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -149,8 +149,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DefaultTestContext
 @DirtiesContext
 public class LoginMockMvcTests {
+    private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
-    public static final String ENTITY_ID = "integration-saml-entity-id";
     private WebApplicationContext webApplicationContext;
 
     private AlphanumericRandomValueStringGenerator generator;
@@ -177,7 +177,7 @@ public class LoginMockMvcTests {
         this.limitedModeUaaFilter = limitedModeUaaFilter;
         SecurityContextHolder.clearContext();
 
-        String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
+        MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", null, null);
         identityZoneConfiguration = identityZoneProvisioning.retrieve(IdentityZone.getUaaZoneId()).getConfig();
         IdentityZoneHolder.setProvisioning(identityZoneProvisioning);
 
@@ -584,8 +584,8 @@ public class LoginMockMvcTests {
         securityContext = (SecurityContext) session.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
 
         Long lastLoginTime = ((UaaAuthentication) securityContext.getAuthentication()).getLastLoginSuccessTime();
-        assertThat(lastLoginTime).isGreaterThanOrEqualTo(beforeAuthTime);
-        assertThat(lastLoginTime).isLessThanOrEqualTo(afterAuthTime);
+        assertThat(lastLoginTime).isGreaterThanOrEqualTo(beforeAuthTime)
+                .isLessThanOrEqualTo(afterAuthTime);
 
     }
 
@@ -1655,7 +1655,7 @@ public class LoginMockMvcTests {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
 
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition3 = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://example3.com/saml/metadata"))
+                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID, "http://example3.com/saml/metadata"))
                 .setIdpEntityAlias(alias3)
                 .setLinkText("Active3 SAML Provider")
                 .setZoneId(identityZone.getId());
@@ -1668,7 +1668,7 @@ public class LoginMockMvcTests {
         activeIdentityProvider3 = createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, activeIdentityProvider3);
 
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition2 = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://example2.com/saml/metadata"))
+                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID, "http://example2.com/saml/metadata"))
                 .setIdpEntityAlias(alias2)
                 .setLinkText("Active2 SAML Provider")
                 .setZoneId(identityZone.getId());
@@ -2233,7 +2233,7 @@ public class LoginMockMvcTests {
         request.setUsername("marissa");
         request.setPassword("koala");
         mockMvc.perform(post("/autologin")
-                        .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
+                        .header("Authorization", "Basic " + new String(ENCODER.encode("admin:adminsecret".getBytes())))
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -2256,7 +2256,7 @@ public class LoginMockMvcTests {
         request.setUsername("marissa");
         request.setPassword("koala");
         mockMvc.perform(post("/autologin")
-                        .header("Authorization", "Basic " + new String(Base64.encode("admin:adminsecret".getBytes())))
+                        .header("Authorization", "Basic " + new String(ENCODER.encode("admin:adminsecret".getBytes())))
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -2531,10 +2531,10 @@ public class LoginMockMvcTests {
                 UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
         assertThat(location).startsWith("http://myauthurl.com");
-        assertThat(queryParams).containsEntry("client_id", "id");
-        assertThat(queryParams).containsEntry("response_type", "id_token+code");
-        assertThat(queryParams).containsEntry("redirect_uri", "http%3A%2F%2F" + subdomain + ".localhost%2Flogin%2Fcallback%2F" + originKey);
-        assertThat(queryParams).containsKey("nonce");
+        assertThat(queryParams).containsEntry("client_id", "id")
+                .containsEntry("response_type", "id_token+code")
+                .containsEntry("redirect_uri", "http%3A%2F%2F" + subdomain + ".localhost%2Flogin%2Fcallback%2F" + originKey)
+                .containsKey("nonce");
     }
 
     @Test
@@ -2875,7 +2875,7 @@ public class LoginMockMvcTests {
     }
 
     private static void attemptUnsuccessfulLogin(MockMvc mockMvc, int numberOfAttempts, String username, String subdomain) throws Exception {
-        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
+        String requestDomain = subdomain.isEmpty() ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/uaa/login.do")
                 .with(new SetServerNameRequestPostProcessor(requestDomain))
                 .with(cookieCsrf())

@@ -187,12 +187,6 @@ public class SamlConfiguration {
         <constructor-arg value="true"/>
     </bean>
 
-    <bean id="nonCachingSPMetadataCredentialsResolver"
-          class="org.cloudfoundry.identity.uaa.provider.saml.NonCachingMetadataCredentialResolver">
-        <constructor-arg name="keyManager" ref="zoneAwareSamlSpKeyManager"/>
-        <constructor-arg name="metadataProvider" ref="metadata"/>
-    </bean>
-
     <!-- Provider of default SAML Context -->
     <bean id="basicContextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl"
           primary="true">

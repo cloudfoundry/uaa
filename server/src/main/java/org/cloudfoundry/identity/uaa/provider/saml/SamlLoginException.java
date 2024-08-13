@@ -2,10 +2,13 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.springframework.security.authentication.BadCredentialsException;
 
+import java.io.Serial;
+
 public class SamlLoginException extends BadCredentialsException {
     /**
      * Generated serialization id.
      */
+    @Serial
     private static final long serialVersionUID = 9115629621572693116L;
 
     /**

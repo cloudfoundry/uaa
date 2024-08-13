@@ -20,7 +20,7 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
     private final String cspHeader;
 
     public ContentSecurityPolicyFilter(List<String> allowedScriptSrc) {
-        this.allowedScriptSrc = unmodifiableSet(new HashSet<String>(allowedScriptSrc));
+        this.allowedScriptSrc = unmodifiableSet(new HashSet<>(allowedScriptSrc));
         this.cspHeader = cspHeaderValue();
     }
 

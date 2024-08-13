@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -165,7 +166,7 @@ class IdentityProviderEndpointsMockMvcTests {
     @Test
     void test_Create_and_Delete_SamlProvider() throws Exception {
         String origin = "idp-mock-saml-" + new RandomValueStringGenerator().generate();
-        String metadata = String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://localhost:9999/metadata/" + origin);
+        String metadata = String.format(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID, "http://localhost:9999/metadata/" + origin);
         String accessToken = setUpAccessToken();
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setActive(true);
@@ -429,7 +430,7 @@ class IdentityProviderEndpointsMockMvcTests {
         identityProvider.setType(OriginKeys.SAML);
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://www.okta.com/" + identityProvider.getOriginKey()))
+                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID, "http://www.okta.com/" + identityProvider.getOriginKey()))
                 .setIdpEntityAlias(identityProvider.getOriginKey())
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
@@ -470,7 +471,7 @@ class IdentityProviderEndpointsMockMvcTests {
         identityProvider.setType(OriginKeys.SAML);
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://www.okta.com/" + identityProvider.getOriginKey()))
+                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID, "http://www.okta.com/" + identityProvider.getOriginKey()))
                 .setIdpEntityAlias(identityProvider.getOriginKey())
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())

@@ -32,25 +32,7 @@ public class SamlLoginAuthenticationFailureHandler extends SimpleUrlAuthenticati
 
         String redirectTo = null;
         if (exception instanceof SamlLoginException) {
-            HttpSession session = request.getSession();
-            if (session != null) {
-                DefaultSavedRequest savedRequest =
-                        (DefaultSavedRequest) SessionUtils.getSavedRequestSession(session);
-                if (savedRequest != null) {
-                    String[] redirectURI = savedRequest.getParameterMap().get("redirect_uri");
-
-                    if (redirectURI != null && redirectURI.length > 0) {
-                        URI uri = URI.create(redirectURI[0]);
-                        URIBuilder uriBuilder = new URIBuilder(uri);
-                        uriBuilder.addParameter("error", "access_denied");
-                        uriBuilder.addParameter("error_description", exception.getMessage());
-                        redirectTo = uriBuilder.toString();
-
-                        log.debug("Error redirect to: {}", redirectTo);
-                        getRedirectStrategy().sendRedirect(request, response, redirectTo);
-                    }
-                }
-            }
+            redirectTo = handleSamlLoginException(request, response, exception);
         } else if (exception instanceof Saml2AuthenticationException) {
             MalformedSamlResponseLogger logger = new MalformedSamlResponseLogger();
             logger.logMalformedResponse(request);
@@ -66,7 +48,32 @@ public class SamlLoginAuthenticationFailureHandler extends SimpleUrlAuthenticati
                 logger.debug(exception);
                 super.onAuthenticationFailure(request, response, exception);
             }
-
         }
+    }
+
+    private String handleSamlLoginException(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException {
+        String redirectTo = null;
+
+        HttpSession session = request.getSession();
+        if (session != null) {
+            DefaultSavedRequest savedRequest =
+                    (DefaultSavedRequest) SessionUtils.getSavedRequestSession(session);
+            if (savedRequest != null) {
+                String[] redirectURI = savedRequest.getParameterMap().get("redirect_uri");
+
+                if (redirectURI != null && redirectURI.length > 0) {
+                    URI uri = URI.create(redirectURI[0]);
+                    URIBuilder uriBuilder = new URIBuilder(uri);
+                    uriBuilder.addParameter("error", "access_denied");
+                    uriBuilder.addParameter("error_description", exception.getMessage());
+                    redirectTo = uriBuilder.toString();
+
+                    log.debug("Error redirect to: {}", redirectTo);
+                    getRedirectStrategy().sendRedirect(request, response, redirectTo);
+                }
+            }
+        }
+
+        return redirectTo;
     }
 }

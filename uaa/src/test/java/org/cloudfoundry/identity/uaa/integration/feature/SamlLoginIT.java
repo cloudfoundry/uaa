@@ -1364,11 +1364,13 @@ public class SamlLoginIT {
             webDriver.findElement(byUsername);
             fail("Element username should not be present");
         } catch (NoSuchElementException ignored) {
+            // expected
         }
         try {
             webDriver.findElement(byPassword);
             fail("Element username should not be present");
         } catch (NoSuchElementException ignored) {
+            // expected
         }
         webDriver.get("%s/logout.do".formatted(baseUrl));
     }

@@ -132,8 +132,8 @@ public class ResetPasswordIT {
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Instructions Sent");
 
         assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        Iterator<SmtpMessage> receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = receivedEmail.next();
         receivedEmail.remove();
         assertThat(message.getHeaderValue("To")).isEqualTo(email);
         assertThat(message.getBody()).contains("Reset your password");
@@ -166,8 +166,8 @@ public class ResetPasswordIT {
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Instructions Sent");
 
         assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        Iterator<SmtpMessage> receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = receivedEmail.next();
         receivedEmail.remove();
         assertThat(message.getHeaderValue("To")).isEqualTo(email);
         assertThat(message.getBody()).contains("Reset your password");
@@ -268,8 +268,8 @@ public class ResetPasswordIT {
     }
 
     private String getPasswordResetLink(String email) {
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        Iterator<SmtpMessage> receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = receivedEmail.next();
         receivedEmail.remove();
         assertThat(message.getHeaderValue("To")).isEqualTo(email);
         assertThat(message.getBody()).contains("Reset your password");

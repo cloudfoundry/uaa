@@ -28,6 +28,8 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class IdentityZoneConfiguration {
 
+    private static final String PASSWORD = "password";
+
     private ClientSecretPolicy clientSecretPolicy = new ClientSecretPolicy();
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
@@ -35,8 +37,8 @@ public class IdentityZoneConfiguration {
     private Links links = new Links();
     private List<Prompt> prompts = Arrays.asList(
             new Prompt("username", "text", "Email"),
-            new Prompt("password", "password", "Password"),
-            new Prompt("passcode", "password", "Temporary Authentication Code (Get on at /passcode)")
+            new Prompt(PASSWORD, PASSWORD, "Password"),
+            new Prompt("passcode", PASSWORD, "Temporary Authentication Code (Get on at /passcode)")
     );
     private boolean idpDiscoveryEnabled = false;
     private BrandingInformation branding;

@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.xml.sax.InputSource;
@@ -35,6 +36,7 @@ import java.util.Objects;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @Data
+@NoArgsConstructor
 public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
 
     private String metaDataLocation;
@@ -52,9 +54,6 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     @JsonIgnore
     private String idpEntityId;
-
-    public SamlIdentityProviderDefinition() {
-    }
 
     public SamlIdentityProviderDefinition clone() {
         List<String> emailDomain = getEmailDomain() != null ? new ArrayList<>(getEmailDomain()) : null;
@@ -251,5 +250,4 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         EXPLICITLY_MAPPED,
         AS_SCOPES
     }
-
 }

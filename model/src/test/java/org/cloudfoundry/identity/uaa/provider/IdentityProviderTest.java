@@ -84,19 +84,19 @@ class IdentityProviderTest {
         idp2.setLastModified(idp1.getLastModified());
 
         // initially, the tow IdPs should be equal
-        assertThat(idp1.equals(idp2)).isTrue();
-        assertThat(idp1).hasSameHashCodeAs(idp2);
+        assertThat(idp1).isEqualTo(idp2)
+                .hasSameHashCodeAs(idp2);
 
         // remove aliasZid
         idp2.setAliasZid(null);
-        assertThat(idp1.equals(idp2)).isFalse();
-        assertThat(idp2.equals(idp1)).isFalse();
+        assertThat(idp1).isNotEqualTo(idp2);
+        assertThat(idp2).isNotEqualTo(idp1);
         idp2.setAliasZid(customZoneId);
 
         // remove aliasId
         idp2.setAliasId(null);
-        assertThat(idp1.equals(idp2)).isFalse();
-        assertThat(idp2.equals(idp1)).isFalse();
+        assertThat(idp1).isNotEqualTo(idp2);
+        assertThat(idp2).isNotEqualTo(idp1);
     }
 
     @Test

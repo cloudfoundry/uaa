@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import lombok.Getter;
 import lombok.Setter;
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,16 +53,15 @@ import java.util.Map;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.authentication.SystemAuthentication.SYSTEM_AUTHENTICATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_NAMES;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
 
+@Slf4j
 public class IdentityProviderBootstrap
         implements InitializingBean, ApplicationListener<ContextRefreshedEvent>, ApplicationEventPublisherAware {
-    private static final Logger logger = LoggerFactory.getLogger(IdentityProviderBootstrap.class);
 
     private final IdentityProviderProvisioning provisioning;
     private final List<IdentityProviderWrapper> providers = new LinkedList<>();
@@ -106,7 +106,7 @@ public class IdentityProviderBootstrap
     }
 
     public void validateDuplicateAlias(String originKey) {
-        for (IdentityProvider provider : providers.stream().map(IdentityProviderWrapper::getProvider).collect(toList())) {
+        for (IdentityProvider provider : providers.stream().map(IdentityProviderWrapper::getProvider).toList()) {
             if (provider.getOriginKey().equals(originKey)) {
                 throw new IllegalArgumentException("Provider alias " + originKey + " is not unique.");
             }
@@ -132,7 +132,7 @@ public class IdentityProviderBootstrap
         boolean ldapProfile = Arrays.asList(environment.getActiveProfiles()).contains(LDAP);
         //the LDAP provider has to be there
         //and we activate, deactivate based on the `ldap` profile presence
-        IdentityProvider provider = new IdentityProvider<>();
+        IdentityProvider<LdapIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setActive(ldapProfile);
         provider.setOriginKey(LDAP);
         provider.setType(LDAP);
@@ -151,7 +151,7 @@ public class IdentityProviderBootstrap
             IdentityProvider existing = getProviderByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
             override = existing == null || existing.getConfig() == null;
         }
-        IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
+        IdentityProviderWrapper<LdapIdentityProviderDefinition> wrapper = new IdentityProviderWrapper<>(provider);
         wrapper.setOverride(override);
         providers.add(wrapper);
     }
@@ -256,16 +256,16 @@ public class IdentityProviderBootstrap
     private void deleteIdentityProviders(String zoneId) {
         for (String origin : getOriginsToDelete()) {
             if (!UAA.equals(origin) && !LDAP.equals(origin)) {
-                logger.debug("Attempting to deactivating identity provider:" + origin);
+                log.debug("Attempting to deactivating identity provider: {}", origin);
                 IdentityProvider provider = getProviderByOriginIgnoreActiveFlag(origin, zoneId);
                 //delete provider
                 if (provider != null) {
                     EntityDeletedEvent<IdentityProvider> event = new EntityDeletedEvent<>(provider, SYSTEM_AUTHENTICATION, IdentityZoneHolder.getCurrentZoneId());
                     if (this.publisher != null) {
                         publisher.publishEvent(event);
-                        logger.debug("Identity provider deactivated: {}", origin);
+                        log.debug("Identity provider deactivated: {}", origin);
                     } else {
-                        logger.warn("Unable to delete identity provider with origin '{}', no application publisher", origin);
+                        log.warn("Unable to delete identity provider with origin '{}', no application publisher", origin);
                     }
                 }
             }

@@ -11,6 +11,7 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
+import java.io.Serial;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -25,7 +26,7 @@ public class SamlLoginAuthenticationFailureHandlerTest {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
-        Map<String, String[]> parameterMap = new HashMap<String, String[]>();
+        Map<String, String[]> parameterMap = new HashMap<>();
         parameterMap.put("redirect_uri", new String[] { "https://example.com" });
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
@@ -49,7 +50,7 @@ public class SamlLoginAuthenticationFailureHandlerTest {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
-        Map<String, String[]> parameterMap = new HashMap<String, String[]>();
+        Map<String, String[]> parameterMap = new HashMap<>();
         parameterMap.put("redirect_uri", new String[] { "https://example.com?go=bears" });
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
@@ -73,7 +74,7 @@ public class SamlLoginAuthenticationFailureHandlerTest {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
-        Map<String, String[]> parameterMap = new HashMap<String, String[]>();
+        Map<String, String[]> parameterMap = new HashMap<>();
         parameterMap.put("redirect_uri", new String[] { "https://example.com?go=bears" });
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
@@ -87,6 +88,7 @@ public class SamlLoginAuthenticationFailureHandlerTest {
             /**
              *
              */
+            @Serial
             private static final long serialVersionUID = 1L;
         };
         handler.onAuthenticationFailure(request, response, exception);
@@ -117,7 +119,7 @@ public class SamlLoginAuthenticationFailureHandlerTest {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
-        Map<String, String[]> parameterMap = new HashMap<String, String[]>();
+        Map<String, String[]> parameterMap = new HashMap<>();
         parameterMap.put("redirect_uri", new String[] { "https://example.com" });
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
@@ -140,7 +142,7 @@ public class SamlLoginAuthenticationFailureHandlerTest {
         SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
 
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
-        Map<String, String[]> parameterMap = new HashMap<String, String[]>();
+        Map<String, String[]> parameterMap = new HashMap<>();
         when(savedRequest.getParameterMap()).thenReturn(parameterMap);
 
         MockHttpSession session = new MockHttpSession();

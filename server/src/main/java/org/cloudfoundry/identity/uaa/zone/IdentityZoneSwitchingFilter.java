@@ -46,10 +46,9 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
 
     protected OAuth2Authentication getAuthenticationForZone(String identityZoneId, HttpServletRequest servletRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (!(authentication instanceof OAuth2Authentication)) {
+        if (!(authentication instanceof OAuth2Authentication oa)) {
             return null;
         }
-        OAuth2Authentication oa = (OAuth2Authentication) authentication;
 
         Object oaDetails = oa.getDetails();
 
@@ -79,7 +78,6 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
                 request.getExtensions()
         );
 
-
         UaaAuthentication userAuthentication = (UaaAuthentication) oa.getUserAuthentication();
         if (userAuthentication != null) {
             userAuthentication = new UaaAuthentication(
@@ -107,7 +105,6 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
 
         //replace zones.<id>.
-
         if (s.startsWith(replace)) {
             return s.substring(replace.length());
         }

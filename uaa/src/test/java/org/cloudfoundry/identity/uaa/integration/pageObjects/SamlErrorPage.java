@@ -9,10 +9,10 @@ import static org.hamcrest.Matchers.endsWith;
  * It has url matching: `/saml_error`.
  */
 public class SamlErrorPage extends Page {
-    static final private String urlPath = "/saml_error";
+    private static final String URL_PATH = "/saml_error";
 
     public SamlErrorPage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, endsWith(urlPath));
+        validateUrl(driver, endsWith(URL_PATH));
     }
 }

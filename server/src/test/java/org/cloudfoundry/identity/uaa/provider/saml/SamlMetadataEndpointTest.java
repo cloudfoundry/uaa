@@ -70,8 +70,6 @@ class SamlMetadataEndpointTest {
     SamlConfig samlConfig;
     @Mock
     SamlKeyManagerFactory keyManagerFactory;
-    @Mock
-    SamlKeyManager keyManager;
 
     MockHttpServletRequest request;
 

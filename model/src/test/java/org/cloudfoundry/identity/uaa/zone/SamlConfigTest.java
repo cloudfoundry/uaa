@@ -256,7 +256,8 @@ class SamlConfigTest {
     @Test
     void keys_are_not_modifiable() {
         read_json(oldJson);
-        assertThatThrownBy(() -> config.getKeys().clear()).isInstanceOf(UnsupportedOperationException.class);
+        Map<String, SamlKey> keys = config.getKeys();
+        assertThatThrownBy(keys::clear).isInstanceOf(UnsupportedOperationException.class);
     }
 
     @Test

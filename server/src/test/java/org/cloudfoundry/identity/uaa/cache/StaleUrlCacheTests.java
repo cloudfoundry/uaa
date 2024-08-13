@@ -44,7 +44,7 @@ class StaleUrlCacheTests {
 
     private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
     private static final Duration CACHE_EXPIRED = CACHE_EXPIRATION.plusMinutes(1);
-    private static final String uri = "http://localhost:8080/uaa/.well-known/openid-configuration";
+    private static final String URI = "http://localhost:8080/uaa/.well-known/openid-configuration";
     private static final byte[] content1;
     private static final byte[] content2;
     private static final byte[] content3;
@@ -79,8 +79,8 @@ class StaleUrlCacheTests {
 
     @Test
     void correct_method_invoked_on_rest_template() throws URISyntaxException {
-        cache.getUrlContent(uri, mockRestTemplate);
-        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
+        cache.getUrlContent(URI, mockRestTemplate);
+        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(URI)), same(byte[].class));
     }
 
     @Test
@@ -91,14 +91,14 @@ class StaleUrlCacheTests {
     @Test
     void rest_client_exception_is_propagated() {
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenThrow(new RestClientException("mock"));
-        assertThatExceptionOfType(RestClientException.class).isThrownBy(() -> cache.getUrlContent(uri, mockRestTemplate));
+        assertThatExceptionOfType(RestClientException.class).isThrownBy(() -> cache.getUrlContent(URI, mockRestTemplate));
     }
 
     @Test
     void calling_twice_uses_cache() throws Exception {
-        byte[] c1 = cache.getUrlContent(uri, mockRestTemplate);
-        byte[] c2 = cache.getUrlContent(uri, mockRestTemplate);
-        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(uri)), same(byte[].class));
+        byte[] c1 = cache.getUrlContent(URI, mockRestTemplate);
+        byte[] c2 = cache.getUrlContent(URI, mockRestTemplate);
+        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(URI)), same(byte[].class));
         assertThat(c2).isSameAs(c1);
         assertThat(cache.size()).isOne();
     }
@@ -109,18 +109,18 @@ class StaleUrlCacheTests {
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content1, content2, content3);
 
         // populate the cache
-        byte[] c1 = cache.getUrlContent(uri, mockRestTemplate);
+        byte[] c1 = cache.getUrlContent(URI, mockRestTemplate);
         ticker.advance(CACHE_EXPIRED);
 
         // next call after timeout, should force async refresh
-        byte[] c2 = cache.getUrlContent(uri, mockRestTemplate);
+        byte[] c2 = cache.getUrlContent(URI, mockRestTemplate);
         assertThat(c2).isSameAs(c1);
 
         // allow the async refresh to complete
-        verify(mockRestTemplate, timeout(1000).times(2)).getForObject(eq(new URI(uri)), same(byte[].class));
+        verify(mockRestTemplate, timeout(1000).times(2)).getForObject(eq(new URI(URI)), same(byte[].class));
 
         // the next call should return the new content
-        byte[] c3 = cache.getUrlContent(uri, mockRestTemplate);
+        byte[] c3 = cache.getUrlContent(URI, mockRestTemplate);
         assertThat(c3).isNotSameAs(c1);
     }
 
@@ -156,18 +156,18 @@ class StaleUrlCacheTests {
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content3).thenThrow(new RestClientException("mock"));
 
         // populate the cache
-        byte[] c1 = cache.getUrlContent(uri, mockRestTemplate);
+        byte[] c1 = cache.getUrlContent(URI, mockRestTemplate);
         ticker.advance(CACHE_EXPIRED);
 
         // next call after timeout, should force async refresh
-        byte[] c2 = cache.getUrlContent(uri, mockRestTemplate);
+        byte[] c2 = cache.getUrlContent(URI, mockRestTemplate);
         assertThat(c2).isSameAs(c1);
 
         // allow the async refresh to complete
-        verify(mockRestTemplate, timeout(1000).times(2)).getForObject(eq(new URI(uri)), same(byte[].class));
+        verify(mockRestTemplate, timeout(1000).times(2)).getForObject(eq(new URI(URI)), same(byte[].class));
 
         // the next call would normally return the new content, in this case it should return the stale content
-        byte[] c3 = cache.getUrlContent(uri, mockRestTemplate);
+        byte[] c3 = cache.getUrlContent(URI, mockRestTemplate);
         assertThat(c3).isSameAs(c1);
     }
 
@@ -176,8 +176,8 @@ class StaleUrlCacheTests {
         when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
         when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
         when(responseEntity.getBody()).thenReturn(new byte[1]);
-        cache.getUrlContent(uri, mockRestTemplate, HttpMethod.GET, httpEntity);
-        verify(mockRestTemplate, times(1)).exchange(eq(new URI(uri)),
+        cache.getUrlContent(URI, mockRestTemplate, HttpMethod.GET, httpEntity);
+        verify(mockRestTemplate, times(1)).exchange(eq(new URI(URI)),
                 eq(HttpMethod.GET), any(HttpEntity.class), same(byte[].class));
     }
 
@@ -185,7 +185,7 @@ class StaleUrlCacheTests {
     void extended_method_invoked_on_rest_template_invalid_http_response() {
         when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
         when(responseEntity.getStatusCode()).thenReturn(HttpStatus.TEMPORARY_REDIRECT);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> cache.getUrlContent(uri, mockRestTemplate, HttpMethod.GET, httpEntity));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> cache.getUrlContent(URI, mockRestTemplate, HttpMethod.GET, httpEntity));
     }
 
     @Test

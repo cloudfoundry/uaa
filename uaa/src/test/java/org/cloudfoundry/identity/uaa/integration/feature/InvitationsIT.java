@@ -159,7 +159,7 @@ public class InvitationsIT {
     }
 
     @Test
-    void testInviteUserWithClientRedirect() throws Exception {
+    void testInviteUserWithClientRedirect() {
         String userEmail = "user-" + new RandomValueStringGenerator().generate() + "@example.com";
         //user doesn't exist
         performInviteUser(userEmail, false);
@@ -181,6 +181,7 @@ public class InvitationsIT {
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
         } catch (RuntimeException ignored) {
+            // ignored
         }
         assertThat(currentUserId).isEqualTo(invitedUserId);
 
@@ -321,6 +322,7 @@ public class InvitationsIT {
             userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
             scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         } catch (RuntimeException ignored) {
+            // ignored
         }
         if (userId == null) {
             HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);

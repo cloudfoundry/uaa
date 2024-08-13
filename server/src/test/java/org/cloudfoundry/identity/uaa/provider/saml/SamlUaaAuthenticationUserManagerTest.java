@@ -22,9 +22,9 @@ class SamlUaaAuthenticationUserManagerTest {
 
     private static final String TEST_USERNAME = "test@saml.user";
     private static final String ZONE_ID = "uaa";
-    private UaaUser existing = createUaaUser(TEST_USERNAME, OriginKeys.SAML);
+    private final UaaUser existing = createUaaUser(TEST_USERNAME);
 
-    private UaaUser createUaaUser(String username, String zoneId) {
+    private UaaUser createUaaUser(String username) {
         return new UaaUser(username, "", "john.doe@example.com", "John", "Doe");
     }
 

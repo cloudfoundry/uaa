@@ -48,7 +48,7 @@ public final class TestRelyingPartyRegistrations {
                 .nameIdFormat("format")
                 .assertionConsumerServiceLocation(assertionConsumerServiceLocation)
                 .singleLogoutServiceLocation(singleLogoutServiceLocation)
-                .providerDetails(c -> c.entityId(apEntityId).webSsoUrl(singleSignOnServiceLocation))
+                .assertingPartyDetails(c -> c.entityId(apEntityId).singleSignOnServiceLocation(singleSignOnServiceLocation))
                 .signingX509Credentials(c -> c.add(signingCredential))
                 .decryptionX509Credentials(c -> c.add(verificationCertificate));
     }
@@ -72,5 +72,4 @@ public final class TestRelyingPartyRegistrations {
                 .assertingPartyDetails(party -> party.verificationX509Credentials(
                         c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
     }
-
 }

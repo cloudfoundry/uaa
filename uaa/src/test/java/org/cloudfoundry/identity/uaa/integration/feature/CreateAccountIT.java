@@ -88,8 +88,8 @@ class CreateAccountIT {
         String userEmail = startCreateUserFlow(SECRET);
 
         assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        Iterator<SmtpMessage> receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = receivedEmail.next();
         receivedEmail.remove();
         assertThat(message.getHeaderValue("To")).isEqualTo(userEmail);
         String body = message.getBody();

@@ -26,11 +26,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 public class KeyWithCertTest {
 
     @BeforeAll
-    public static void addProvider() {
+    static void addProvider() {
         Security.addProvider(new BouncyCastleFipsProvider());
     }
 
-    public static final String key = """
+    private static final String KEY = """
             -----BEGIN RSA PRIVATE KEY-----
             MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3
             AnkyB06wFZ02sBLB7hko42LIsVEOyTuUBird/3vlyHFKytG7UEt60Fl88SbAEfsU
@@ -47,7 +47,7 @@ public class KeyWithCertTest {
             waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==
             -----END RSA PRIVATE KEY-----""";
 
-    public static final String invalidCert = """
+    public static final String INVALID_CERT = """
             -----BEGIN CERTIFICATE-----
             FILIPMIIEJTCCA46gAwIBAgIJANIqfxWTfhpkMA0GCSqGSIb3DQEBBQUAMIG+MQswCQYD
             VQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5j
@@ -75,9 +75,9 @@ public class KeyWithCertTest {
             -----END CERTIFICATE-----
             """;
 
-    public static final String password = "password";
+    private static final String PASSWORD = "password";
 
-    public static final String encryptedKey = """
+    private static final String ENCRYPTED_KEY = """
             -----BEGIN RSA PRIVATE KEY-----
             Proc-Type: 4,ENCRYPTED
             DEK-Info: DES-EDE3-CBC,BE03AC562D734AB1
@@ -97,7 +97,7 @@ public class KeyWithCertTest {
             -----END RSA PRIVATE KEY-----
             """;
 
-    public static final String goodCert = """
+    private static final String GOOD_CERT = """
             -----BEGIN CERTIFICATE-----
             MIIC6TCCAlICCQDN85uMN+4K5jANBgkqhkiG9w0BAQsFADCBuDELMAkGA1UEBhMC
             VVMxCzAJBgNVBAgMAkNBMRYwFAYDVQQHDA1TYW4gRnJhbmNpc2NvMR0wGwYDVQQK
@@ -119,7 +119,7 @@ public class KeyWithCertTest {
             """;
 
     // openssl req -out cert.pem -nodes -keyout private.key -newkey rsa:2048 -new -x509
-    public static final String opensslCert = """
+    private static final String OPEN_SSL_CERT = """
             -----BEGIN CERTIFICATE-----
             MIIDXTCCAkWgAwIBAgIJAOpOBuLToBXJMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV
             BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX
@@ -143,7 +143,7 @@ public class KeyWithCertTest {
             -----END CERTIFICATE-----
             """;
 
-    public static final String opensslPrivateKey = """
+    private static final String OPEN_SSL_PRIVATE_KEY = """
             -----BEGIN PRIVATE KEY-----
             MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDf7TsXhLkXPfC/
             9QWb85awlebqzekojaanh9IBjyvH37RzIsAex51bN6rm4pwN5FbznwM52cKVpM5k
@@ -176,7 +176,7 @@ public class KeyWithCertTest {
 
     // openssl req -out cert.pem -nodes -keyout private.key
     //   -newkey ec:<(openssl ecparam -name secp224r1) -new -x509
-    public static final String ecCertificate = """
+    private static final String EC_CERTIFICATE = """
             -----BEGIN CERTIFICATE-----
             MIIBvjCCAWygAwIBAgIJAK/rmJC9QdjcMAoGCCqGSM49BAMCMEUxCzAJBgNVBAYT
             AkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBXaWRn
@@ -191,7 +191,7 @@ public class KeyWithCertTest {
             -----END CERTIFICATE-----
             """;
 
-    public static final String ecPrivateKey = """
+    private static final String EC_PRIVATE_KEY = """
             -----BEGIN PRIVATE KEY-----
             MHgCAQAwEAYHKoZIzj0CAQYFK4EEACEEYTBfAgEBBBz+XVZZoypybMtDZWBVcrPu
             IiVn3yZ+kzF+f2NyoTwDOgAEY83DklF/qOPmJkASvf25MaDvzF7w+MeYaBZHiC18
@@ -201,34 +201,34 @@ public class KeyWithCertTest {
 
     @Test
     void invalidCert() {
-        assertThatThrownBy(() -> new KeyWithCert(key, password, invalidCert))
+        assertThatThrownBy(() -> new KeyWithCert(KEY, PASSWORD, INVALID_CERT))
                 .isInstanceOf(CertificateException.class);
     }
 
     @Test
     void keyMismatch() {
-        assertThatThrownBy(() -> new KeyWithCert(key, "", opensslCert))
+        assertThatThrownBy(() -> new KeyWithCert(KEY, "", OPEN_SSL_CERT))
                 .isInstanceOf(CertificateException.class);
     }
 
     @Test
     void validCert() throws CertificateException {
-        assertThat(new KeyWithCert(encryptedKey, password, goodCert)).isNotNull();
+        assertThat(new KeyWithCert(ENCRYPTED_KEY, PASSWORD, GOOD_CERT)).isNotNull();
     }
 
     @Test
     void ellipticCurve() throws CertificateException {
-        assertThat(new KeyWithCert(ecPrivateKey, "", ecCertificate)).isNotNull();
+        assertThat(new KeyWithCert(EC_PRIVATE_KEY, "", EC_CERTIFICATE)).isNotNull();
     }
 
     @Test
     void embeddedPrivateKey() throws CertificateException {
-        assertThat(new KeyWithCert(opensslPrivateKey, "", opensslCert)).isNotNull();
+        assertThat(new KeyWithCert(OPEN_SSL_PRIVATE_KEY, "", OPEN_SSL_CERT)).isNotNull();
     }
 
     @Test
     void certOnly() throws CertificateException {
-        assertThat(new KeyWithCert(goodCert))
+        assertThat(new KeyWithCert(GOOD_CERT))
                 .isNotNull()
                 .extracting(KeyWithCert::getCertificate)
                 .isNotNull();

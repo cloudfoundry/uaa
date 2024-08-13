@@ -108,8 +108,8 @@ class UaaStringUtilsTest {
         assertThat(matches(UaaStringUtils.escapeRegExCharacters(".*"), ".some other string")).isFalse();
         assertThat(matches(UaaStringUtils.escapeRegExCharacters("x"), "x")).isTrue();
         assertThat(matches(UaaStringUtils.escapeRegExCharacters("x*x"), "x*x")).isTrue();
-        assertThat("\\\\").isEqualTo(UaaStringUtils.escapeRegExCharacters("\\"));
-        assertThat("\\[").isEqualTo(UaaStringUtils.escapeRegExCharacters("["));
+        assertThat(UaaStringUtils.escapeRegExCharacters("\\")).isEqualTo("\\\\");
+        assertThat(UaaStringUtils.escapeRegExCharacters("[")).isEqualTo("\\[");
     }
 
     @Test
@@ -131,8 +131,8 @@ class UaaStringUtilsTest {
 
     @Test
     void constructWildcards() {
-        assertThat(UaaStringUtils.constructWildcards(Collections.EMPTY_LIST)).isEqualTo(Set.of());
-        assertThat(UaaStringUtils.constructWildcards(Collections.singletonList("any")).contains("any")).isFalse();
+        assertThat(UaaStringUtils.constructWildcards(List.of())).isEmpty();
+        assertThat(UaaStringUtils.constructWildcards(List.of("any")).contains("any")).isFalse();
     }
 
     @Test
@@ -336,14 +336,14 @@ class UaaStringUtilsTest {
     void toJsonString() {
         assertThat(UaaStringUtils.toJsonString("Y1sPgF\"Yj4xYZ\"")).isEqualTo("Y1sPgF\\\"Yj4xYZ\\\"");
         assertThat(UaaStringUtils.toJsonString(null)).isNull();
-        assertThat(UaaStringUtils.toJsonString("")).isEqualTo("");
+        assertThat(UaaStringUtils.toJsonString("")).isEmpty();
     }
 
     @Test
     void testGetAuthoritiesFromStrings() {
         List<? extends GrantedAuthority> authorities = UaaStringUtils.getAuthoritiesFromStrings(null);
         assertThat(authorities).isEqualTo(Collections.EMPTY_LIST);
-        assertThat(UaaStringUtils.getStringsFromAuthorities(null).size()).isEqualTo(0);
+        assertThat(UaaStringUtils.getStringsFromAuthorities(null)).isEmpty();
         authorities = UaaStringUtils.getAuthoritiesFromStrings(Collections.singletonList("uaa.user"));
         assertThat(UaaStringUtils.getStringsFromAuthorities(authorities)).isEqualTo(Set.of("uaa.user"));
     }
@@ -396,9 +396,9 @@ class UaaStringUtilsTest {
     @Test
     void getSafeParameterValue() {
         assertThat(UaaStringUtils.getSafeParameterValue(new String[]{"test"})).isEqualTo("test");
-        assertThat(UaaStringUtils.getSafeParameterValue(new String[]{"  "})).isEqualTo("");
-        assertThat(UaaStringUtils.getSafeParameterValue(new String[]{})).isEqualTo("");
-        assertThat(UaaStringUtils.getSafeParameterValue(null)).isEqualTo("");
+        assertThat(UaaStringUtils.getSafeParameterValue(new String[]{"  "})).isEmpty();
+        assertThat(UaaStringUtils.getSafeParameterValue(new String[]{})).isEmpty();
+        assertThat(UaaStringUtils.getSafeParameterValue(null)).isEmpty();
     }
 
     @Test

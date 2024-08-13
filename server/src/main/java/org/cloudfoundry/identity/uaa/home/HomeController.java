@@ -141,8 +141,8 @@ public class HomeController {
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     @ResponseBody
     public JsonError error429Json(HttpServletRequest request) {
-        if (request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE) instanceof String) {
-            return new JsonError((String) request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE));
+        if (request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE) instanceof String rateLimitErrorString) {
+            return new JsonError(rateLimitErrorString);
         } else {
             return new JsonError("Too Many Requests");
         }

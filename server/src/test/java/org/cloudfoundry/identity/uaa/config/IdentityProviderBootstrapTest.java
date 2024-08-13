@@ -71,8 +71,8 @@ class IdentityProviderBootstrapTest {
     private IdentityProviderProvisioning provisioning;
     private IdentityProviderBootstrap bootstrap;
     private MockEnvironment environment;
-    private AbstractExternalOAuthIdentityProviderDefinition oauthProvider;
-    private AbstractExternalOAuthIdentityProviderDefinition oidcProvider;
+    private RawExternalOAuthIdentityProviderDefinition oauthProvider;
+    private OIDCIdentityProviderDefinition oidcProvider;
     private HashMap<String, AbstractExternalOAuthIdentityProviderDefinition> oauthProviderConfig;
 
     @Autowired
@@ -156,7 +156,7 @@ class IdentityProviderBootstrapTest {
         assertThat(ldapProvider.getType()).isEqualTo(LDAP);
         assertThat(ldapProvider.getConfig().getEmailDomain()).contains("test.domain");
         assertThat(ldapProvider.getConfig().getExternalGroupsWhitelist()).isEqualTo(Collections.singletonList("value"));
-        assertThat(ldapProvider.getConfig().getAttributeMappings().get("given_name")).isEqualTo("first_name");
+        assertThat(ldapProvider.getConfig().getAttributeMappings()).containsEntry("given_name", "first_name");
         assertThat(ldapProvider.getConfig().getProviderDescription()).isEqualTo("Test LDAP Provider Description");
         assertThat(ldapProvider.getConfig().isStoreCustomAttributes()).isFalse();
     }
@@ -311,7 +311,7 @@ class IdentityProviderBootstrapTest {
     void oauthAndOidcProviderDeletion() throws Exception {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
         setOauthIDPWrappers();
-        bootstrap.setOriginsToDelete(new LinkedList(oauthProviderConfig.keySet()));
+        bootstrap.setOriginsToDelete(new LinkedList<>(oauthProviderConfig.keySet()));
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
             try {
@@ -326,7 +326,7 @@ class IdentityProviderBootstrapTest {
     private void setOauthIDPWrappers() {
         List<IdentityProviderWrapper> wrappers = oauthProviderConfig.entrySet().stream()
                 .map(e -> {
-                    IdentityProvider provider = new IdentityProvider();
+                    IdentityProvider provider = new IdentityProvider<>();
                     if (e.getValue() instanceof OIDCIdentityProviderDefinition) {
                         provider.setType(OIDC10);
                     } else if (e.getValue() instanceof RawExternalOAuthIdentityProviderDefinition) {

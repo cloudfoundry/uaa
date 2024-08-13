@@ -58,7 +58,7 @@ curl 'http://localhost:8080/uaa/identity-providers?rawConfig=true' -i -X POST \
     "addShadowUserOnLogin" : true,
     "storeCustomAttributes" : true,
     "metaDataLocation" : "https://dev-73893672.okta.com/app/exk9ojp48mcTeKG9t5d7/sso/saml/metadata",
-    "assertionConsumerIndex" : 0,
+    "assertionConsumerIndex" : 1,
     "metadataTrustCheck" : true,
     "showSamlLink" : true,
     "linkText" : "Okta post-binding SAML",

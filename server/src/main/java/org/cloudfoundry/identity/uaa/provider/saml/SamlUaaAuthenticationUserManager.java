@@ -136,7 +136,7 @@ public class SamlUaaAuthenticationUserManager implements ApplicationEventPublish
                         .withGivenName(userAttributes.getFirst(GIVEN_NAME_ATTRIBUTE_NAME))
                         .withFamilyName(userAttributes.getFirst(FAMILY_NAME_ATTRIBUTE_NAME))
                         .withAuthorities(Collections.emptyList())
-                        .withVerified(Boolean.valueOf(userAttributes.getFirst(EMAIL_VERIFIED_ATTRIBUTE_NAME)))
+                        .withVerified(Boolean.parseBoolean(userAttributes.getFirst(EMAIL_VERIFIED_ATTRIBUTE_NAME)))
                         .withOrigin(principal.getOrigin() != null ? principal.getOrigin() : OriginKeys.LOGIN_SERVER)
                         .withExternalId(name)
                         .withZoneId(principal.getZoneId())
@@ -147,7 +147,7 @@ public class SamlUaaAuthenticationUserManager implements ApplicationEventPublish
         userDatabase.storeUserInfo(user.getId(),
                 new UserInfo()
                         .setUserAttributes(authentication.getUserAttributes())
-                        .setRoles(new LinkedList(authentication.getExternalGroups()))
+                        .setRoles(new LinkedList<>(authentication.getExternalGroups()))
         );
     }
 

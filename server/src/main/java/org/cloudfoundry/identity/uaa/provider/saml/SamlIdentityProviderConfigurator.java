@@ -94,7 +94,9 @@ public class SamlIdentityProviderConfigurator {
 
         if (!entityIDexists) {
             for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
-                if (existing.getType() != SamlIdentityProviderDefinition.MetadataLocation.DATA) continue;
+                if (existing.getType() != SamlIdentityProviderDefinition.MetadataLocation.DATA) {
+                    continue;
+                }
                 RelyingPartyRegistration existingProvider = getExtendedMetadataDelegate(existing);
                 if (entityIDToBeAdded.equals(existingProvider.getAssertingPartyDetails().getEntityId()) && !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
                     entityIDexists = true;

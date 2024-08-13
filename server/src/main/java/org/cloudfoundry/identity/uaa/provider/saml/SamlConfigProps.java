@@ -11,7 +11,7 @@ import java.util.Map;
 
 /**
  * Configuration properties for SAML
- * Loaded from the 'login.saml' section of the UAA configuration yaml file
+ * Loaded from the 'login.saml' section of the UAA configuration YAML file
  */
 @Slf4j
 @Data

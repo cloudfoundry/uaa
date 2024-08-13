@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
@@ -48,6 +47,7 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Base64;
 import java.util.Collections;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.MockSecurityContext;
@@ -97,6 +97,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(JUnitRestDocumentationExtension.class)
 class TokenEndpointDocs extends AbstractTokenMockMvcTests {
+    private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
     private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).required().type(STRING).description("OAuth 2 grant type");
 
@@ -124,7 +125,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private final SnippetUtils.ConstrainableHeader authorizationHeader = SnippetUtils.headerWithName("Authorization");
 
-    private Snippet listTokenResponseFields = responseFields(
+    private final Snippet listTokenResponseFields = responseFields(
             fieldWithPath("[].zoneId").type(STRING).description("The zone ID for the token"),
             fieldWithPath("[].tokenId").type(STRING).description("The unique ID for the token"),
             fieldWithPath("[].clientId").type(STRING).description("Client ID for this token, will always match the client_id claim in the access token used for this call"),
@@ -196,7 +197,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         UriComponents location = UriComponentsBuilder.fromUri(URI.create(authCodeResponse.getHeader("Location"))).build();
         String code = location.getQueryParams().getFirst("code");
 
-        String clientAuthBase64 = new String(org.springframework.security.crypto.codec.Base64.encode(("login:loginsecret".getBytes())));
+        String clientAuthBase64 = new String(ENCODER.encode(("login:loginsecret".getBytes())));
         Snippet headerFields = requestHeaders(CLIENT_BASIC_AUTH_HEADER);
 
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
@@ -279,7 +280,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     @Test
     void getTokenUsingClientCredentialGrantWithAuthorizationHeader() throws Exception {
 
-        String clientAuthorization = new String(Base64.encodeBase64("login:loginsecret".getBytes()));
+        String clientAuthorization = new String(ENCODER.encode("login:loginsecret".getBytes()));
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_FORM_URLENCODED)
@@ -575,7 +576,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
     @Test
     void getTokenWithClientAuthInHeader() throws Exception {
 
-        String clientAuthorization = new String(Base64.encodeBase64("app:appclientsecret".getBytes()));
+        String clientAuthorization = new String(ENCODER.encode("app:appclientsecret".getBytes()));
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
                 .accept(APPLICATION_JSON)
                 .header("Authorization", "Basic " + clientAuthorization)
@@ -631,7 +632,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
                         .andReturn().getResponse().getContentAsString(),
                 String.class);
 
-        String clientAuthorization = new String(Base64.encodeBase64("app:appclientsecret".getBytes()));
+        String clientAuthorization = new String(ENCODER.encode("app:appclientsecret".getBytes()));
 
         MockHttpServletRequestBuilder postForToken = post("/oauth/token")
                 .accept(APPLICATION_JSON)

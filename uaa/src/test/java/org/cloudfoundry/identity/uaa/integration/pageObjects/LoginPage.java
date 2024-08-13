@@ -14,15 +14,15 @@ import static org.hamcrest.Matchers.matchesPattern;
  */
 public class LoginPage extends Page {
 
-    static final private String urlPath = "/login";
+    private static final String URL_PATH = "/login";
 
     public LoginPage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, matchesPattern(".*" + urlPath + "(\\?.*)?$"));
+        validateUrl(driver, matchesPattern(".*" + URL_PATH + "(\\?.*)?$"));
     }
 
-    static public LoginPage go(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl + urlPath);
+    public static LoginPage go(WebDriver driver, String baseUrl) {
+        driver.get(baseUrl + URL_PATH);
         return new LoginPage(driver);
     }
 

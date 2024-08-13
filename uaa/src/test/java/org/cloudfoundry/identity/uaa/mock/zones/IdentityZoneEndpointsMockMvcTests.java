@@ -822,7 +822,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         SamlConfig samlConfig = created.getConfig().getSamlConfig();
 
-        samlConfig.setCertificate(KeyWithCertTest.invalidCert);
+        samlConfig.setCertificate(KeyWithCertTest.INVALID_CERT);
         samlConfig.setPrivateKey(null);
         samlConfig.setPrivateKeyPassword(null);
         updateZone(created, HttpStatus.UNPROCESSABLE_ENTITY, identityClientToken);

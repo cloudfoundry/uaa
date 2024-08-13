@@ -27,7 +27,6 @@ class IdentityZoneTest {
         Date expectedDate = calendar.getTime();
 
         IdentityZone actual = IdentityZone.getUaa();
-
         assertThat(actual.getId()).isEqualTo("uaa");
         assertThat(actual.getSubdomain()).isEmpty();
         assertThat(actual.getName()).isEqualTo("uaa");
@@ -37,9 +36,8 @@ class IdentityZoneTest {
         assertThat(actual.getCreated()).isEqualTo(expectedDate);
         assertThat(actual.getLastModified()).isEqualTo(expectedDate);
 
-        // TODO: Validate that the config is the result of `new IdentityZoneConfiguration()`
-        // Currently this is not possible because not all objects have a `.equals()` method
-//        assertThat(actual.getConfig(), is(new IdentityZoneConfiguration()));
+        // Validate that the config is the result of `new IdentityZoneConfiguration()`
+        assertThat(actual.getConfig()).usingRecursiveComparison().isEqualTo(new IdentityZoneConfiguration());
     }
 
     private static class IsUaaArgumentsSource implements ArgumentsProvider {
@@ -145,6 +143,6 @@ class IdentityZoneTest {
                 "profile", "roles", "user_attributes", "uaa.offline_token",
                 "scim.me", "cloud_controller.user"));
         assertThat(sampleIdentityZone.getConfig().getUserConfig().getMaxUsers()).isEqualTo(1000);
-        assertThat(sampleIdentityZone.getConfig().getUserConfig().isCheckOriginEnabled()).isEqualTo(true);
+        assertThat(sampleIdentityZone.getConfig().getUserConfig().isCheckOriginEnabled()).isTrue();
     }
 }

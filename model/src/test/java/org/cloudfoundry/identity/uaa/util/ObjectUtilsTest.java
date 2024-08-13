@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.ParserConfigurationException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,9 +18,9 @@ class ObjectUtilsTest {
 
     @Test
     void countNonNull() {
-        assertThat(ObjectUtils.countNonNull(NULLARRAY)).as("NULLARRAY").isEqualTo(0);
-        assertThat(ObjectUtils.countNonNull(EMPTY)).as("EMPTY").isEqualTo(0);
-        assertThat(ObjectUtils.countNonNull(JUST_NULLS)).as("JUST_NULLS").isEqualTo(0);
+        assertThat(ObjectUtils.countNonNull(NULLARRAY)).as("NULLARRAY").isZero();
+        assertThat(ObjectUtils.countNonNull(EMPTY)).as("EMPTY").isZero();
+        assertThat(ObjectUtils.countNonNull(JUST_NULLS)).as("JUST_NULLS").isZero();
         assertThat(ObjectUtils.countNonNull(VALUES)).as("VALUES").isEqualTo(4);
     }
 
@@ -29,14 +29,14 @@ class ObjectUtilsTest {
         DocumentBuilder builder = ObjectUtils.getDocumentBuilder();
         assertThat(builder).isNotNull();
         assertThat(builder.getDOMImplementation()).isNotNull();
-        assertThat(builder.isValidating()).isEqualTo(false);
-        assertThat(builder.isNamespaceAware()).isEqualTo(true);
-        assertThat(builder.isXIncludeAware()).isEqualTo(false);
+        assertThat(builder.isValidating()).isFalse();
+        assertThat(builder.isNamespaceAware()).isTrue();
+        assertThat(builder.isXIncludeAware()).isFalse();
     }
 
     @Test
     void isNotEmpty() {
-        assertThat(ObjectUtils.isNotEmpty(Arrays.asList("1"))).isTrue();
+        assertThat(ObjectUtils.isNotEmpty(List.of("1"))).isTrue();
         assertThat(ObjectUtils.isNotEmpty(new ArrayList<>())).isFalse();
         assertThat(ObjectUtils.isNotEmpty(null)).isFalse();
     }

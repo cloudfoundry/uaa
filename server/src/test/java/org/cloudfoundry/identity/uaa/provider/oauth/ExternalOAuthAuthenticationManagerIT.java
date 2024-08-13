@@ -87,7 +87,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -394,7 +393,7 @@ class ExternalOAuthAuthenticationManagerIT {
         CompositeToken token = getCompositeAccessToken();
         xCodeToken = new ExternalOAuthCodeToken(null, null, null, token.getIdTokenValue(), null, null);
         String zoneId = IdentityZoneHolder.get().getId();
-        when(provisioning.retrieveAll(eq(true), eq(zoneId))).thenReturn(emptyList());
+        when(provisioning.retrieveAll(true, zoneId)).thenReturn(emptyList());
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
                 .isInstanceOf(InsufficientAuthenticationException.class)
                 .hasMessage("Unable to map issuer, %s , to a single registered provider".formatted(claims.get(ISS)));
@@ -562,7 +561,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setTokenUrl(null);
         config.setDiscoveryUrl(new URL("http://some.discovery.url"));
 
-        Map<String, Object> discoveryContent = new HashMap();
+        Map<String, Object> discoveryContent = new HashMap<>();
         discoveryContent.put("authorization_endpoint", authUrl.toString());
         discoveryContent.put("token_endpoint", tokenUrl.toString());
         //mandatory but not used
@@ -579,7 +578,7 @@ class ExternalOAuthAuthenticationManagerIT {
         mockToken();
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
-        verify(externalOAuthProviderConfigurator, atLeast(1)).overlay(eq(config));
+        verify(externalOAuthProviderConfigurator, atLeast(1)).overlay(config);
         mockUaaServer.verify();
 
     }
@@ -712,7 +711,7 @@ class ExternalOAuthAuthenticationManagerIT {
     @Test
     void single_key_response_without_value() throws Exception {
         String json = getKeyJson(PRIVATE_KEY, "correctKey", false);
-        Map<String, Object> map = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> map = JsonUtils.readValue(json, new TypeReference<>() {
         });
         map.remove("value");
         json = JsonUtils.writeValueAsString(map);
@@ -725,9 +724,9 @@ class ExternalOAuthAuthenticationManagerIT {
     void multi_key_response_without_value() throws Exception {
         String jsonValid = getKeyJson(PRIVATE_KEY, "correctKey", false);
         String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
-        Map<String, Object> mapValid = JsonUtils.readValue(jsonValid, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> mapValid = JsonUtils.readValue(jsonValid, new TypeReference<>() {
         });
-        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<>() {
         });
         mapValid.remove("value");
         mapInvalid.remove("value");
@@ -741,9 +740,9 @@ class ExternalOAuthAuthenticationManagerIT {
     void multi_key_all_invalid() throws Exception {
         String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
         String jsonInvalid2 = getKeyJson(invalidRsaSigningKey, "invalidKey2", false);
-        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<>() {
         });
-        Map<String, Object> mapInvalid2 = JsonUtils.readValue(jsonInvalid2, new TypeReference<Map<String, Object>>() {
+        Map<String, Object> mapInvalid2 = JsonUtils.readValue(jsonInvalid2, new TypeReference<>() {
         });
         String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapInvalid2))));
         assertThat(json).contains("\"invalidKey\"", "\"invalidKey2\"");
@@ -765,7 +764,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void invalid_key() throws Exception {
-        String json = new String("{x}");
+        String json = "{x}";
         configureTokenKeyResponse("http://localhost/token_key", json);
         addTheUserOnAuth();
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
@@ -798,7 +797,7 @@ class ExternalOAuthAuthenticationManagerIT {
             externalOAuthAuthenticationManager.authenticate(xCodeToken);
             fail("not expected");
         } catch (Exception e) {
-            assertThat(e instanceof IllegalArgumentException).isTrue();
+            assertThat(e).isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -874,7 +873,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher, times(2)).publishEvent(userArgumentCaptor.capture());
-        assertThat(userArgumentCaptor.getAllValues().size()).isEqualTo(2);
+        assertThat(userArgumentCaptor.getAllValues()).hasSize(2);
         ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent) userArgumentCaptor.getAllValues().get(0);
 
         UaaUser uaaUser = event.getUser();
@@ -933,7 +932,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher, times(3)).publishEvent(userArgumentCaptor.capture());
-        assertThat(userArgumentCaptor.getAllValues().size()).isEqualTo(3);
+        assertThat(userArgumentCaptor.getAllValues()).hasSize(3);
         assertThat(userArgumentCaptor.getAllValues().get(0)).isInstanceOf(InvitedUserAuthenticatedEvent.class);
 
         RequestContextHolder.resetRequestAttributes();
@@ -1273,8 +1272,7 @@ class ExternalOAuthAuthenticationManagerIT {
     private void addTheUserOnAuth() {
         doAnswer(invocation -> {
             Object e = invocation.getArguments()[0];
-            if (e instanceof NewUserAuthenticatedEvent) {
-                NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) e;
+            if (e instanceof NewUserAuthenticatedEvent event) {
                 UaaUser user = event.getUser();
                 userDatabase.addUser(user);
             }
@@ -1319,7 +1317,7 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     private CompositeToken getCompositeAccessToken(List<String> removeClaims) {
-        removeClaims.stream().forEach(c -> claims.remove(c));
+        removeClaims.forEach(c -> claims.remove(c));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
@@ -1351,7 +1349,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         UaaUser uaaUser = externalOAuthAuthenticationManager.getUser(xCodeToken, externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken));
 
-        List<String> authorities = uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+        List<String> authorities = uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
         for (String scope : SCOPES_LIST) {
             assertThat(authorities).contains(scope);
         }

@@ -14,11 +14,11 @@ import static org.hamcrest.Matchers.containsString;
  */
 public class SamlLoginPage extends Page {
     // This is on the saml server, not the UAA server
-    static final private String urlPath = "/module.php/core/loginuserpass";
+    private static final String URL_PATH = "/module.php/core/loginuserpass";
 
     public SamlLoginPage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, containsString(urlPath));
+        validateUrl(driver, containsString(URL_PATH));
     }
 
     public HomePage login_goesToHomePage(String username, String password) {

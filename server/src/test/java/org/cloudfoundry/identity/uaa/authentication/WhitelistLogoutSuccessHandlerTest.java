@@ -129,5 +129,4 @@ class WhitelistLogoutSuccessHandlerTest {
         request.setParameter("redirect", "http://www.testing.com");
         assertThat(handler.determineTargetUrl(request, response)).isEqualTo("http://www.testing.com");
     }
-
 }

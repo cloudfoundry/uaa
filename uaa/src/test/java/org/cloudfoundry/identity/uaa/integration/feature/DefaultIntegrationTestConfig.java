@@ -109,6 +109,7 @@ public class DefaultIntegrationTestConfig {
     }
 
     public static class HttpClientFactory extends SimpleClientHttpRequestFactory {
+        @Override
         protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
             super.prepareConnection(connection, httpMethod);
             connection.setInstanceFollowRedirects(false);

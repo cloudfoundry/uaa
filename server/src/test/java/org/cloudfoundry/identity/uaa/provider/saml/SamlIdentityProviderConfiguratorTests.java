@@ -88,7 +88,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
         slowHttpServer = new SlowHttpServer();
         singleAdd = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
+                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID, new RandomValueStringGenerator().generate()))
                 .setIdpEntityAlias(singleAddAlias)
                 .setNameID("sample-nameID")
                 .setAssertionConsumerIndex(1)

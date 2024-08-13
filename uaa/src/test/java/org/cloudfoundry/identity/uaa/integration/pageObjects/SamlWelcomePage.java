@@ -9,10 +9,10 @@ import static org.hamcrest.Matchers.endsWith;
  * It has url matching: `/module.php/core/welcome`.
  */
 public class SamlWelcomePage extends Page {
-    static final private String urlPath = "module.php/core/welcome";
+    private static final String URL_PATH = "module.php/core/welcome";
 
     public SamlWelcomePage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, endsWith(urlPath));
+        validateUrl(driver, endsWith(URL_PATH));
     }
 }

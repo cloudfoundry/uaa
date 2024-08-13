@@ -48,13 +48,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.crypto.codec.Base64;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
@@ -75,6 +75,8 @@ public class ClientAdminEndpointsIntegrationTests {
     public static final String SECRET_TOO_LONG = "adfdfdasgdasgasdgafsgasfgfasgfadsgfagsagasddsafdsafsdfdafsdafdsfasdffasfasdfasdfdsfds" +
             "ewrewrewqrweqrewqrewqrewerwqqweewqrdsadsfewqrewqrtewrewrewrewrererererererererererdfadsafasfdasfsdaf" +
             "dsfasdfdsagfdsao43o4p43adfsfasdvcdasfmdsafzxcvaddsaaddfsafdsafdsfdsdfsfdsfdsasdfadfsadfsasadfsdfadfs";
+    private static final Base64.Encoder ENCODER = Base64.getEncoder();
+
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
@@ -948,7 +950,7 @@ public class ClientAdminEndpointsIntegrationTests {
         HttpHeaders myHeaders = new HttpHeaders();
         myHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         myHeaders.set("Authorization",
-                "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+                "Basic " + new String(ENCODER.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, myHeaders);
@@ -969,7 +971,7 @@ public class ClientAdminEndpointsIntegrationTests {
         HttpHeaders myHeaders = new HttpHeaders();
         myHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         myHeaders.set("Authorization",
-                "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+                "Basic " + new String(ENCODER.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, myHeaders);

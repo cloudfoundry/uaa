@@ -63,7 +63,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
-import org.springframework.security.crypto.codec.Base64;
+import java.util.Base64;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -152,6 +152,9 @@ public class IntegrationTestUtils {
             """;
 
     public static final String OIDC_ACCEPTANCE_URL = "https://oidc10.uaa-acceptance.cf-app.com/";
+    private static final Base64.Encoder BASE_64_ENCODER = Base64.getEncoder();
+
+
     private static final DefaultResponseErrorHandler fiveHundredErrorHandler = new DefaultResponseErrorHandler() {
         @Override
         protected boolean hasError(HttpStatus statusCode) {
@@ -388,7 +391,7 @@ public class IntegrationTestUtils {
             SearchResults<ScimUser> results = JsonUtils.readValue(userInfoGet.getBody(), SearchResults.class);
             assertNotNull(results);
             List<ScimUser> resources = results.getResources();
-            if (resources.size() < 1) {
+            if (resources.isEmpty()) {
                 return null;
             }
             user = JsonUtils.readValue(JsonUtils.writeValueAsString(resources.get(0)), ScimUser.class);
@@ -439,7 +442,7 @@ public class IntegrationTestUtils {
             HashMap results = JsonUtils.readValue(userInfoGet.getBody(), HashMap.class);
             assertNotNull(results);
             List resources = (List) results.get("resources");
-            if (resources.size() < 1) {
+            if (resources.isEmpty()) {
                 return null;
             }
             HashMap resource = (HashMap) resources.get(0);
@@ -513,7 +516,7 @@ public class IntegrationTestUtils {
                 url + "/Groups?filter=displayName eq \"{groupId}\"",
                 HttpMethod.GET,
                 new HttpEntity<>(headers),
-                new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
+                new ParameterizedTypeReference<>() {
                 },
                 displayName
         );
@@ -1050,7 +1053,7 @@ public class IntegrationTestUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.set("Authorization", "Basic " + new String(Base64.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
+        headers.set("Authorization", "Basic " + new String(BASE_64_ENCODER.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = template.exchange(
@@ -1087,7 +1090,7 @@ public class IntegrationTestUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        headers.set("Authorization", "Basic " + new String(Base64.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
+        headers.set("Authorization", "Basic " + new String(BASE_64_ENCODER.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = template.exchange(
@@ -1109,7 +1112,7 @@ public class IntegrationTestUtils {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
-                "Basic " + new String(Base64.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
+                "Basic " + new String(BASE_64_ENCODER.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);

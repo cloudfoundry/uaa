@@ -39,8 +39,8 @@ public class SamlUaaAuthenticationAuthoritiesConverter {
     }
 
     protected Set<String> filterSamlAuthorities(SamlIdentityProviderDefinition definition, Collection<? extends GrantedAuthority> samlAuthorities) {
-        List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(Collections.EMPTY_LIST);
-        Set<String> authorities = samlAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
+        List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(List.of());
+        Set<String> authorities = samlAuthorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet());
         Set<String> result = retainAllMatches(authorities, whiteList);
         log.debug("White listed external SAML groups:'{}'", result);
         return result;

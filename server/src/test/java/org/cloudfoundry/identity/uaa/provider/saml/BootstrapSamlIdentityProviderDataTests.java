@@ -39,7 +39,7 @@ import static org.mockito.Mockito.mock;
 
 public class BootstrapSamlIdentityProviderDataTests {
 
-    private static final String testXmlFileData = """
+    private static final String TEST_XML_FILE_DATA = """
             <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lvtem0VAJDMINKEYJW"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
               A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
               MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
@@ -53,7 +53,7 @@ public class BootstrapSamlIdentityProviderDataTests {
               vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
               GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>""";
 
-    private static final String testXmlFileData2 = """
+    private static final String TEST_XML_FILE_DATA_2 = """
             <?xml version="1.0" encoding="UTF-8"?><!--
               ~ ******************************************************************************
               ~      Cloud Foundry
@@ -81,7 +81,7 @@ public class BootstrapSamlIdentityProviderDataTests {
               vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6
               GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/><md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://pivotal.oktapreview.com/app/pivotal_pivotalcfdevelopment_1/k2lvtem0VAJDMINKEYJW/sso/saml"/></md:IDPSSODescriptor></md:EntityDescriptor>""";
 
-    public static final String xmlWithoutID = """
+    public static final String XML_WITHOUT_ID = """
             <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="%s"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
             A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU
             MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu
@@ -98,13 +98,13 @@ public class BootstrapSamlIdentityProviderDataTests {
 
     private BootstrapSamlIdentityProviderData bootstrap = null;
     private SamlIdentityProviderDefinition singleAdd = null;
-    private static final String singleAddAlias = "sample-alias";
+    private static final String SINGLE_ADD_ALIAS = "sample-alias";
 
     public static String sampleYaml = "  providers:\n" +
             "    okta-local:\n" +
             "      storeCustomAttributes: true\n" +
             "      idpMetadata: |\n" +
-            "        " + testXmlFileData.replace("\n", "\n        ") + "\n" +
+            "        " + TEST_XML_FILE_DATA.replace("\n", "\n        ") + "\n" +
             "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
             "      assertionConsumerIndex: 0\n" +
             "      metadataTrustCheck: true\n" +
@@ -149,14 +149,14 @@ public class BootstrapSamlIdentityProviderDataTests {
             "    custom-authncontext:\n" +
             "      authnContext: [\"custom-context\", \"another-context\"]\n" +
             "      idpMetadata: |\n" +
-            "        " + testXmlFileData.replace("\n", "\n        ") + "\n";
+            "        " + TEST_XML_FILE_DATA.replace("\n", "\n        ") + "\n";
 
     @BeforeEach
     void beforeEach() {
         bootstrap = new BootstrapSamlIdentityProviderData(new SamlIdentityProviderConfigurator(mock(JdbcIdentityProviderProvisioning.class), new IdentityZoneManagerImpl(), mock(FixedHttpMetaDataProvider.class)));
         singleAdd = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, new RandomValueStringGenerator().generate()))
-                .setIdpEntityAlias(singleAddAlias)
+                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID, new RandomValueStringGenerator().generate()))
+                .setIdpEntityAlias(SINGLE_ADD_ALIAS)
                 .setNameID("sample-nameID")
                 .setAssertionConsumerIndex(1)
                 .setMetadataTrustCheck(true)
@@ -231,7 +231,7 @@ public class BootstrapSamlIdentityProviderDataTests {
             switch (idp.getIdpEntityAlias()) {
                 case "okta-local": {
                     assertThat(idp.getType()).isEqualTo(SamlIdentityProviderDefinition.MetadataLocation.DATA);
-                    assertThat(idp.getMetaDataLocation().trim()).isEqualTo(testXmlFileData.trim());
+                    assertThat(idp.getMetaDataLocation().trim()).isEqualTo(TEST_XML_FILE_DATA.trim());
                     assertThat(idp.getNameID()).isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
                     assertThat(idp.getAssertionConsumerIndex()).isZero();
                     assertThat(idp.getLinkText()).isEqualTo("Okta Preview 1");
@@ -269,7 +269,7 @@ public class BootstrapSamlIdentityProviderDataTests {
                     assertThat(idp.isMetadataTrustCheck()).isTrue();
                     break;
                 }
-                case singleAddAlias: {
+                case SINGLE_ADD_ALIAS: {
                     assertThat(idp).isEqualTo(singleAdd).isNotSameAs(singleAdd);
                     break;
                 }
@@ -294,7 +294,7 @@ public class BootstrapSamlIdentityProviderDataTests {
 
     @Test
     void testGetIdentityProvidersWithLegacy_Valid_Provider() {
-        bootstrap.setLegacyIdpMetaData(testXmlFileData2);
+        bootstrap.setLegacyIdpMetaData(TEST_XML_FILE_DATA_2);
         bootstrap.setLegacyIdpIdentityAlias("okta-local-3");
         bootstrap.setLegacyShowSamlLink(true);
         bootstrap.setLegacyNameId("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");

@@ -537,9 +537,8 @@ public class OIDCLoginIT {
         uaaClient = IntegrationTestUtils.createClient(clientCredentialsToken, baseUrl, uaaClient);
         uaaClient.setClientSecret("secret");
 
-        StringBuilder uriBuilder = new StringBuilder();
-        uriBuilder.append(baseUrl).append("/oauth/authorize").append("?scope=openid&client_id=").append(uaaClient.getClientId()).append("&redirect_uri=").append(baseUrl);
-        webDriver.get(uriBuilder.toString());
+        String uriBuilder = baseUrl + "/oauth/authorize" + "?scope=openid&client_id=" + uaaClient.getClientId() + "&redirect_uri=" + baseUrl;
+        webDriver.get(uriBuilder);
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();

@@ -18,17 +18,17 @@ import static org.hamcrest.Matchers.endsWith;
  * {@link HomeController#home(Model, Principal)}
  */
 public class HomePage extends Page {
-    static final private String slashUrlPath = "/";
-    static final private String homeUrlPath = "/home";
+    private static final String SLASH_URL_PATH = "/";
+    private static final String HOME_URL_PATH = "/home";
 
     public HomePage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, anyOf(endsWith(slashUrlPath), endsWith(homeUrlPath)));
+        validateUrl(driver, anyOf(endsWith(SLASH_URL_PATH), endsWith(HOME_URL_PATH)));
         validatePageSource(driver, containsString("Where to?"));
     }
 
-    static public LoginPage tryToGoHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
-        driver.get(baseUrl + slashUrlPath);
+    public static LoginPage tryToGoHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
+        driver.get(baseUrl + SLASH_URL_PATH);
         return new LoginPage(driver);
     }
 
