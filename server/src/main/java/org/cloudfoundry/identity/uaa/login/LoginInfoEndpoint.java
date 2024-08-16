@@ -10,6 +10,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -450,12 +451,13 @@ public class LoginInfoEndpoint {
             boolean fieldUsernameShow,
             boolean linkCreateAccountShow
     ) {
+        Comparator<SamlIdentityProviderDefinition> sortingByLinkText = Comparator.comparing(SamlIdentityProviderDefinition::getLinkText, String.CASE_INSENSITIVE_ORDER);
         model.addAttribute(LINK_CREATE_ACCOUNT_SHOW, linkCreateAccountShow);
         model.addAttribute(FIELD_USERNAME_SHOW, fieldUsernameShow);
-        model.addAttribute(IDP_DEFINITIONS, samlIdentityProviders.values());
+        model.addAttribute(IDP_DEFINITIONS, samlIdentityProviders.values().stream().sorted(sortingByLinkText).toList());
         Map<String, String> oauthLinks = new HashMap<>();
         ofNullable(oauthIdentityProviders).orElse(emptyMap()).entrySet().stream()
-                .filter(e -> e.getValue().isShowLinkText())
+                .filter(e -> e.getValue() != null && e.getValue().isShowLinkText() && e.getKey() != null)
                 .forEach(e ->
                         oauthLinks.put(
                                 externalOAuthProviderConfigurator.getIdpAuthenticationUrl(
@@ -465,7 +467,7 @@ public class LoginInfoEndpoint {
                                 e.getValue().getLinkText()
                         )
                 );
-        model.addAttribute(OAUTH_LINKS, oauthLinks);
+        model.addAttribute(OAUTH_LINKS, oauthLinks.entrySet().stream().sorted(Map.Entry.comparingByValue(String::compareToIgnoreCase)).toList());
         model.addAttribute("clientName", clientName);
     }
 
