@@ -457,7 +457,7 @@ public class LoginInfoEndpoint {
         model.addAttribute(IDP_DEFINITIONS, samlIdentityProviders.values().stream().sorted(sortingByLinkText).toList());
         Map<String, String> oauthLinks = new HashMap<>();
         ofNullable(oauthIdentityProviders).orElse(emptyMap()).entrySet().stream()
-                .filter(e.getValue() != null && e -> e.getValue().isShowLinkText() && e.getValue() != null && e.getKey() != null)
+                .filter(e -> e.getValue() != null && e.getValue().isShowLinkText() && e.getKey() != null)
                 .forEach(e ->
                         oauthLinks.put(
                                 externalOAuthProviderConfigurator.getIdpAuthenticationUrl(
