@@ -73,6 +73,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -188,7 +189,9 @@ public class LoginInfoEndpoint {
         /**
          * These must be public. They are accessed in templates.
          */
-        public int red, green, blue;
+        public int red;
+        public int green;
+        public int blue;
 
         void assignColors(Color color) {
             red = color.getRed();
@@ -333,6 +336,7 @@ public class LoginInfoEndpoint {
                     OriginKeys.LDAP, IdentityZoneHolder.get().getId()
             );
         } catch (EmptyResultDataAccessException ignored) {
+            // ignore
         }
         IdentityProvider uaaIdentityProvider =
                 providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
