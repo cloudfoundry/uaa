@@ -32,6 +32,7 @@ import org.springframework.web.util.HtmlUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -94,11 +95,15 @@ public class TestClient {
         );
     }
 
-    public String createClientJwt(String clientId, String jwks) {
+    public String createClientJwt(String clientId, String keyId, String jwks) {
         KeyInfoService keyInfoService = new KeyInfoService(baseUrl);
         JwtClientAuthentication jwtClientAuthentication = new JwtClientAuthentication(keyInfoService);
+        HashMap oidcKeyInfo = new HashMap();
+        oidcKeyInfo.put("kid", keyId);
+        oidcKeyInfo.put("key", jwks);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.setRelyingPartyId(clientId);
+        config.setJwtClientAuthentication(oidcKeyInfo);
         try {
             config.setTokenUrl(new URL(baseUrl + "/oauth/token"));
         } catch (MalformedURLException e) {
