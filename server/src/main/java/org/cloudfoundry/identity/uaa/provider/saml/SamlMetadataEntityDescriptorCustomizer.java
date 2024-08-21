@@ -9,6 +9,7 @@ import org.opensaml.core.xml.XMLObjectBuilder;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.io.MarshallingException;
 import org.opensaml.saml.common.xml.SAMLConstants;
+import org.opensaml.saml.saml2.metadata.AssertionConsumerService;
 import org.opensaml.saml.saml2.metadata.EntityDescriptor;
 import org.opensaml.saml.saml2.metadata.NameIDFormat;
 import org.opensaml.saml.saml2.metadata.SPSSODescriptor;
@@ -42,6 +43,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_EMAIL;
@@ -58,6 +60,8 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAME
 @Value
 public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSamlMetadataResolver.EntityDescriptorParameters> {
     private static final Set<String> NAME_ID_FORMATS = new HashSet<>();
+    private static final String URI_BINDING = "urn:oasis:names:tc:SAML:2.0:bindings:URI";
+    private static final UnaryOperator<String> assertionConsumerServiceLocationMutationFunction = o -> o.replace("/saml/SSO/alias/", "/oauth/token/alias/");
 
     static {
         NAME_ID_FORMATS.add(NAMEID_FORMAT_EMAIL);
@@ -90,6 +94,29 @@ public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSaml
         spSsoDescriptor.setWantAssertionsSigned(samlConfig.isWantAssertionSigned());
         spSsoDescriptor.setAuthnRequestsSigned(samlConfig.isRequestSigned());
         updateNameIdFormats(spSsoDescriptor);
+        updateAssertionConsumerServices(spSsoDescriptor);
+    }
+
+    /**
+     * Update the assertion consumer services.
+     * The first existing assertion consumer service is used as the default,
+     * and the second is added for the oauth token endpoint.
+     *
+     * @param spSsoDescriptor the SP SSO descriptor to update
+     */
+    private void updateAssertionConsumerServices(SPSSODescriptor spSsoDescriptor) {
+        List<AssertionConsumerService> assertionConsumerServices = spSsoDescriptor.getAssertionConsumerServices();
+
+        AssertionConsumerService existingService = assertionConsumerServices.get(0);
+        existingService.setIndex(0);
+        existingService.setIsDefault(true);
+        String existingUrl = existingService.getLocation();
+
+        AssertionConsumerService additionalService = build(AssertionConsumerService.DEFAULT_ELEMENT_NAME);
+        additionalService.setBinding(URI_BINDING);
+        additionalService.setLocation(assertionConsumerServiceLocationMutationFunction.apply(existingUrl));
+        additionalService.setIndex(1);
+        assertionConsumerServices.add(additionalService);
     }
 
     /**

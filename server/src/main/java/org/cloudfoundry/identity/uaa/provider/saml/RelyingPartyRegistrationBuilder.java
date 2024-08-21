@@ -16,6 +16,9 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
+/**
+ * A utility class to build a {@link RelyingPartyRegistration} object from the given parameters
+ */
 @Slf4j
 public class RelyingPartyRegistrationBuilder {
 
@@ -52,7 +55,17 @@ public class RelyingPartyRegistrationBuilder {
         if (params.rpRegistrationId != null) builder.registrationId(params.rpRegistrationId);
         if (params.samlSpNameId != null) builder.nameIdFormat(params.samlSpNameId);
 
-        return builder.signingX509Credentials(cred -> params.keys.stream().map(k -> Saml2X509Credential.signing(k.getPrivateKey(), k.getCertificate())).forEach(cred::add)).decryptionX509Credentials(cred -> params.keys.stream().findFirst().map(k -> Saml2X509Credential.decryption(k.getPrivateKey(), k.getCertificate())).ifPresent(cred::add)).assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(params.samlSpAlias)).assertionConsumerServiceBinding(Saml2MessageBinding.POST).singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(params.samlSpAlias)).singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(params.samlSpAlias))
+        return builder
+                .signingX509Credentials(cred -> params.keys.stream()
+                        .map(k -> Saml2X509Credential.signing(k.getPrivateKey(), k.getCertificate()))
+                        .forEach(cred::add))
+                .decryptionX509Credentials(cred -> params.keys.stream().findFirst()
+                        .map(k -> Saml2X509Credential.decryption(k.getPrivateKey(), k.getCertificate()))
+                        .ifPresent(cred::add))
+                .assertionConsumerServiceLocation(assertionConsumerServiceLocationFunction.apply(params.samlSpAlias))
+                .assertionConsumerServiceBinding(Saml2MessageBinding.POST)
+                .singleLogoutServiceLocation(singleLogoutServiceLocationFunction.apply(params.samlSpAlias))
+                .singleLogoutServiceResponseLocation(singleLogoutServiceResponseLocationFunction.apply(params.samlSpAlias))
                 // Accept both POST and REDIRECT bindings
                 .singleLogoutServiceBindings(c -> {
                     c.add(Saml2MessageBinding.POST);

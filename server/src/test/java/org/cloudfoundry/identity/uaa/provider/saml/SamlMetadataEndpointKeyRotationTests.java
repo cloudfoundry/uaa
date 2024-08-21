@@ -10,7 +10,6 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -83,7 +82,6 @@ public class SamlMetadataEndpointKeyRotationTests {
         samlConfig.addAndActivateKey(keyName1(), samlKey1());
 
         IdentityZoneManager identityZoneManager = new IdentityZoneManagerImpl();
-        request = new MockHttpServletRequest();
 
         RelyingPartyRegistrationRepository registrationRepository =
                 new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias", List.of(), NAME_ID_FORMAT);
@@ -91,7 +89,7 @@ public class SamlMetadataEndpointKeyRotationTests {
         endpoint = spy(new SamlMetadataEndpoint(registrationResolver, identityZoneManager, SignatureAlgorithm.SHA256, true));
         IdentityZoneHolder.set(otherZone);
 
-        request.setRequestURI("http://localhost:8080/uaa");
+        request = new MockHttpServletRequest();
     }
 
     @AfterAll
@@ -101,12 +99,15 @@ public class SamlMetadataEndpointKeyRotationTests {
     }
 
     @Test
-    @Disabled("SAML test: depends on URI Binding in metadata")
     void metadataContainsSamlBearerGrantEndpoint() {
+        request.setServerName("zone-id.localhost");
+        request.setServerPort(8080);
+        request.setContextPath("uaa");
+
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         MultipleNodeAssert acsAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces()).nodesByXPath("//md:AssertionConsumerService");
         acsAssert.extractingAttribute("Binding").contains("urn:oasis:names:tc:SAML:2.0:bindings:URI");
-        acsAssert.extractingAttribute("Location").contains("http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityAlias");
+        acsAssert.extractingAttribute("Location").contains("http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityIdAlias");
         acsAssert.extractingAttribute("index").contains("1");
     }
 

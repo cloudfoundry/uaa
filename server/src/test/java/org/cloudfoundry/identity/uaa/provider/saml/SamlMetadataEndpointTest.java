@@ -18,6 +18,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
+import org.xmlunit.assertj.MultipleNodeAssert;
 import org.xmlunit.assertj.XmlAssert;
 
 import java.security.Security;
@@ -49,7 +50,8 @@ import static org.opensaml.xmlsec.signature.support.SignatureConstants.TRANSFORM
 
 @ExtendWith(MockitoExtension.class)
 class SamlMetadataEndpointTest {
-    private static final String ASSERTION_CONSUMER_SERVICE = "http://localhost:8080/saml/SSO/alias/entityAlias";
+    private static final String ASSERTION_CONSUMER_SERVICE_1 = "http://localhost:8080/saml/SSO/alias/entityAlias";
+    private static final String ASSERTION_CONSUMER_SERVICE_2 = "http://localhost:8080/oauth/token/alias/entityAlias";
     private static final String REGISTRATION_ID = "regId";
     private static final String ENTITY_ID = "entityId";
     private static final String TEST_ZONE = "testzone1";
@@ -86,7 +88,7 @@ class SamlMetadataEndpointTest {
         when(registration.getSigningX509Credentials()).thenReturn(List.of(relyingPartySigningCredential()));
         when(registration.getDecryptionX509Credentials()).thenReturn(List.of(relyingPartyVerifyingCredential()));
         when(registration.getAssertionConsumerServiceBinding()).thenReturn(Saml2MessageBinding.REDIRECT);
-        when(registration.getAssertionConsumerServiceLocation()).thenReturn(ASSERTION_CONSUMER_SERVICE);
+        when(registration.getAssertionConsumerServiceLocation()).thenReturn(ASSERTION_CONSUMER_SERVICE_1);
         when(identityZoneManager.getCurrentIdentityZone()).thenReturn(identityZone);
         when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
         when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
@@ -128,7 +130,10 @@ class SamlMetadataEndpointTest {
         xmlAssert.valueByXPath("//md:SPSSODescriptor/@WantAssertionsSigned").isEqualTo(true);
         xmlAssert.nodesByXPath("//md:AssertionConsumerService")
                 .extractingAttribute("Location")
-                .containsExactly(ASSERTION_CONSUMER_SERVICE);
+                .containsExactly(ASSERTION_CONSUMER_SERVICE_1, ASSERTION_CONSUMER_SERVICE_2);
+        xmlAssert.nodesByXPath("//md:AssertionConsumerService")
+                .extractingAttribute("Binding")
+                .containsExactly(Saml2MessageBinding.REDIRECT.getUrn(), "urn:oasis:names:tc:SAML:2.0:bindings:URI");
         xmlAssert.nodesByXPath("//md:NameIDFormat")
                 .extractingText()
                 .containsExactlyInAnyOrder(NAMEID_FORMAT_EMAIL, NAMEID_FORMAT_PERSISTENT,
