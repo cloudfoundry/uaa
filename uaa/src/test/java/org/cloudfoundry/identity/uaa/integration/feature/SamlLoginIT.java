@@ -1422,13 +1422,13 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: Requires logout")
     void springSamlEndpointsWithEmptyContext() throws IOException {
-        //CallEmptyPageAndCheckHttpStatusCode("/saml/discovery", 200);
-        CallEmptyPageAndCheckHttpStatusCode("/saml/SingleLogout", 400);
-        CallEmptyPageAndCheckHttpStatusCode("/saml/login/alias/foo", 400);
         CallEmptyPageAndCheckHttpStatusCode("/saml/web/metadata/login", 404);
-        CallEmptyPageAndCheckHttpStatusCode("/saml/SSO/foo", 200);
+        // These endpoints are now redirect to /login
+        CallEmptyPageAndCheckHttpStatusCode("/saml/SingleLogout/alias/foo", 302);
+        CallEmptyPageAndCheckHttpStatusCode("/saml/login/alias/foo", 302);
+        // and to /saml_error
+        CallEmptyPageAndCheckHttpStatusCode("/saml/SSO/alias/foo", 302);
     }
 
     public SamlIdentityProviderDefinition createTestZone2IDP(String alias) {
@@ -1482,8 +1482,9 @@ public class SamlLoginIT {
 
     private void CallEmptyPageAndCheckHttpStatusCode(String errorPath, int codeExpected) throws IOException {
         HttpURLConnection cn = (HttpURLConnection) new URL(baseUrl + errorPath).openConnection();
+        cn.setInstanceFollowRedirects(false);
         assertThat(cn.getResponseCode())
-                .as("Check status code from " + errorPath + " is " + codeExpected)
+                .as("Check status code from %s", errorPath)
                 .isEqualTo(codeExpected);
     }
 }
