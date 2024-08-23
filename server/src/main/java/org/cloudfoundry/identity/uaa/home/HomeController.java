@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.home;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Data;
 import lombok.Getter;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
@@ -125,8 +124,7 @@ public class HomeController {
 
         // check for common SAML related exceptions and redirect these to bad_request
         if (nonNull(genericException) &&
-                (genericException.getCause() instanceof Saml2Exception)) {
-            Exception samlException = (Exception) genericException.getCause();
+                (genericException.getCause() instanceof Saml2Exception samlException)) {
             model.addAttribute("saml_error", samlException.getMessage());
             response.setStatus(400);
             return EXTERNAL_AUTH_ERROR;
@@ -136,8 +134,8 @@ public class HomeController {
         return ERROR;
     }
 
+    @SuppressWarnings("java:S3752")
     @RequestMapping(path = "/error429", method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.PUT, RequestMethod.PATCH})
-    //NOSONAR
     @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
     @ResponseBody
     public JsonError error429Json(HttpServletRequest request) {
@@ -148,8 +146,8 @@ public class HomeController {
         }
     }
 
+    @SuppressWarnings("java:S3752")
     @RequestMapping(path = "/error429", produces = MediaType.TEXT_HTML_VALUE, method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE, RequestMethod.PUT, RequestMethod.PATCH})
-    //NOSONAR
     public String error429(Model model, HttpServletRequest request) {
         model.addAttribute(RATE_LIMIT_ERROR_ATTRIBUTE, request.getAttribute(RATE_LIMIT_ERROR_ATTRIBUTE));
         return "error429";
@@ -209,9 +207,6 @@ public class HomeController {
         private final String clientName;
     }
 
-    @Data
-    @AllArgsConstructor
-    private static class JsonError {
-        private final String error;
+    public record JsonError(String error) {
     }
 }
