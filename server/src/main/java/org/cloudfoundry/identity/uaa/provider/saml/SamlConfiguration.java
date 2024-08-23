@@ -41,7 +41,8 @@ public class SamlConfiguration {
     private String metaData;
     @Value("${login.idpEntityAlias:null}")
     private String legacyIdpIdentityAlias;
-    @Value("${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}")
+    @SuppressWarnings("java:S6857") // Properly formatted default
+    @Value("${login.saml.nameID:'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'}")
     private String legacyNameId = "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified";
     @Value("${login.saml.assertionConsumerIndex:0}")
     private int legacyAssertionConsumerIndex = 0;
@@ -52,17 +53,17 @@ public class SamlConfiguration {
 
     /**
      * Sets the timeout in milliseconds retrieving an HTTP connection, used when fetching URL metadata
-     * Defaults to 10,000ms (10seconds)
+     * Defaults to 10,000ms (10 seconds)
      */
     @Value("${login.saml.socket.connectionManagerTimeout:10000}")
     private int socketConnectionTimeout = 10_000;
 
     /**
      * Sets the timeout in milliseconds reading data from an HTTP connection, used when fetching URL metadata
-     * Defaults to 10,000ms (10seconds)
+     * Defaults to 10,000ms (10 seconds)
      */
     @Value("${login.saml.socket.soTimeout:10000}")
-    private int socketReadTimeout= 10_000;
+    private int socketReadTimeout = 10_000;
 
     @Bean
     public String samlEntityID() {
