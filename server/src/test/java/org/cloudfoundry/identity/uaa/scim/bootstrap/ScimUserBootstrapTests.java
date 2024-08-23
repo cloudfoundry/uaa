@@ -159,12 +159,13 @@ class ScimUserBootstrapTests {
     @Test
     void canDeleteUsersButOnlyInDefaultZone() throws Exception {
         String randomZoneId = "randomZoneId-" + new RandomValueStringGenerator().generate().toLowerCase();
-        canAddUsers(OriginKeys.UAA, IdentityZone.getUaaZoneId(), jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager,
-                scimUserService);
-        canAddUsers(OriginKeys.LDAP, IdentityZone.getUaaZoneId(), jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager,
-                scimUserService);
-        canAddUsers(OriginKeys.UAA, randomZoneId, jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager,
-                scimUserService); //this is just an update of the same two users, zoneId is ignored
+        canAddUsers(OriginKeys.UAA, IdentityZone.getUaaZoneId(), jdbcScimUserProvisioning, jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager, scimUserService);
+        canAddUsers(OriginKeys.LDAP, IdentityZone.getUaaZoneId(), jdbcScimUserProvisioning, jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager, scimUserService);
+        //this is just an update of the same two users, zoneId is ignored
+        canAddUsers(OriginKeys.UAA, randomZoneId, jdbcScimUserProvisioning, jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager, scimUserService);
         List<ScimUser> users = jdbcScimUserProvisioning.retrieveAll(IdentityZone.getUaaZoneId());
         assertEquals(4, users.size());
         reset(jdbcScimUserProvisioning);
@@ -204,8 +205,7 @@ class ScimUserBootstrapTests {
 
     @Test
     void canAddUsers() throws Exception {
-        canAddUsers(OriginKeys.UAA, IdentityZone.getUaaZoneId(), jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager,
-                scimUserService);
+        canAddUsers(OriginKeys.UAA, IdentityZone.getUaaZoneId(), jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, scimUserService);
         Collection<ScimUser> users = jdbcScimUserProvisioning.retrieveAll(IdentityZone.getUaaZoneId());
         assertEquals(2, users.size());
     }
@@ -449,14 +449,12 @@ class ScimUserBootstrapTests {
 
     @Test
     void canAddNonExistentGroupThroughEvent() throws Exception {
-        nonExistentGroupThroughEvent(true, jdbcTemplate, jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager,
-                scimUserService);
+        nonExistentGroupThroughEvent(true, jdbcTemplate, jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, scimUserService);
     }
 
     @Test
     void doNotAddNonExistentUsers() throws Exception {
-        nonExistentGroupThroughEvent(false, jdbcTemplate, jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager,
-                scimUserService);
+        nonExistentGroupThroughEvent(false, jdbcTemplate, jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, scimUserService);
     }
 
     @Test
