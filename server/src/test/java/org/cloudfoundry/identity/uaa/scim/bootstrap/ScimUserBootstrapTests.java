@@ -22,7 +22,10 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -48,6 +51,10 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.springframework.transaction.TransactionStatus;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.util.StringUtils;
 
 import java.sql.SQLException;
 import java.util.ArrayList;
@@ -79,6 +86,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
 class ScimUserBootstrapTests {
@@ -97,12 +105,15 @@ class ScimUserBootstrapTests {
     @Autowired
     private PasswordEncoder passwordEncoder;
     private ScimUserService scimUserService;
+    private JdbcIdentityZoneProvisioning identityZoneProvisioning;
+    private IdentityZoneManager identityZoneManager;
+    private IdentityProviderProvisioning idpProvisioning;
 
     @BeforeEach
     void init() throws SQLException {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
-        final IdentityZoneManager identityZoneManager = new IdentityZoneManagerImpl();
-        final JdbcIdentityZoneProvisioning identityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        identityZoneManager = new IdentityZoneManagerImpl();
+        identityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         jdbcScimUserProvisioning = spy(new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder,
                 identityZoneManager, identityZoneProvisioning));
         DbUtils dbUtils = new DbUtils();
@@ -110,7 +121,7 @@ class ScimUserBootstrapTests {
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
                 jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null, dbUtils);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(jdbcScimGroupProvisioning);
-        final IdentityProviderProvisioning idpProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        idpProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         final ScimUserAliasHandler scimUserAliasHandler = new ScimUserAliasHandler(
                 identityZoneProvisioning,
                 jdbcScimUserProvisioning,
@@ -350,6 +361,125 @@ class ScimUserBootstrapTests {
         passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class);
         bootstrap.afterPropertiesSet();
         assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
+    }
+
+    @Test
+    void shouldPropagateAliasPropertiesOfExistingUserDuringUpdate() {
+        // arrange custom zone exists
+        final String customZoneId = new AlphanumericRandomValueStringGenerator(8).generate();
+        final IdentityZone customZone = new IdentityZone();
+        customZone.setId(customZoneId);
+        customZone.setSubdomain(customZoneId);
+        customZone.setName(customZoneId);
+        identityZoneProvisioning.create(customZone);
+
+        // arrange that a user with alias exists
+        final String userName = "john.doe-" + new AlphanumericRandomValueStringGenerator(8).generate();
+        final String givenName = "John";
+        final String familyName = "Doe";
+        final ScimUser scimUser = new ScimUser(null, userName, givenName, familyName);
+        final ScimUser.Email email = new ScimUser.Email();
+        email.setPrimary(true);
+        final String emailAddress = "john.doe@example.com";
+        email.setValue(emailAddress);
+        scimUser.setEmails(Collections.singletonList(email));
+        final String originKey = new AlphanumericRandomValueStringGenerator(8).generate();
+        scimUser.setOrigin(originKey);
+        scimUser.setZoneId(IdentityZone.getUaaZoneId());
+        final ScimUser createdOriginalUser = jdbcScimUserProvisioning.createUser(scimUser, "", IdentityZone.getUaaZoneId());
+        final String originalUserId = createdOriginalUser.getId();
+        assertTrue(StringUtils.hasText(originalUserId));
+
+        // create an alias of the user in the custom zone
+        createdOriginalUser.setId(null);
+        createdOriginalUser.setZoneId(customZoneId);
+        createdOriginalUser.setAliasId(originalUserId);
+        createdOriginalUser.setAliasZid(IdentityZone.getUaaZoneId());
+        final ScimUser createdAliasUser = jdbcScimUserProvisioning.createUser(createdOriginalUser, "", customZoneId);
+        final String aliasUserId = createdAliasUser.getId();
+        assertTrue(StringUtils.hasText(aliasUserId));
+
+        // update the original user to point ot the alias user
+        createdOriginalUser.setId(originalUserId);
+        createdOriginalUser.setZoneId(IdentityZone.getUaaZoneId());
+        createdOriginalUser.setAliasId(aliasUserId);
+        createdOriginalUser.setAliasZid(customZoneId);
+        jdbcScimUserProvisioning.update(originalUserId, createdOriginalUser, IdentityZone.getUaaZoneId());
+
+        // create and emit event that contains the user with changed fields
+        final String externalId = new AlphanumericRandomValueStringGenerator(8).generate();
+        final String phoneNumber = "12345";
+        final UaaUserPrototype userPrototype = new UaaUserPrototype()
+                .withVerified(true)
+                .withUsername(userName)
+                .withPassword("")
+                .withEmail(emailAddress)
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withCreated(new Date())
+                .withModified(new Date())
+                .withOrigin(originKey)
+                .withExternalId(externalId) // changed field
+                .withZoneId(IdentityZone.getUaaZoneId())
+                .withPhoneNumber(phoneNumber); // changed field
+        final UaaUser uaaUser = new UaaUser(userPrototype);
+
+        final ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(uaaUser, true, Collections.emptyList(), true);
+        final ScimUserBootstrap bootstrap = buildScimUserBootstrapWithAliasEnabled();
+        bootstrap.onApplicationEvent(event);
+
+        // should update both users and the alias reference should stay intact
+        final ScimUser originalUserAfterEvent = jdbcScimUserProvisioning.retrieve(originalUserId, IdentityZone.getUaaZoneId());
+        assertEquals(aliasUserId, originalUserAfterEvent.getAliasId());
+        assertEquals(customZoneId, originalUserAfterEvent.getAliasZid());
+        assertEquals(externalId, originalUserAfterEvent.getExternalId());
+        assertEquals(phoneNumber, originalUserAfterEvent.getPhoneNumbers().get(0).getValue());
+
+        final ScimUser aliasUserAfterEvent = jdbcScimUserProvisioning.retrieve(aliasUserId, customZoneId);
+        assertEquals(originalUserId, aliasUserAfterEvent.getAliasId());
+        assertEquals(IdentityZone.getUaaZoneId(), aliasUserAfterEvent.getAliasZid());
+        assertEquals(externalId, aliasUserAfterEvent.getExternalId());
+        assertEquals(phoneNumber, aliasUserAfterEvent.getPhoneNumbers().get(0).getValue());
+    }
+
+    private ScimUserBootstrap buildScimUserBootstrapWithAliasEnabled() {
+        final ScimUserService scimUserServiceAliasEnabled = buildScimUserServiceAliasEnabled();
+        return new ScimUserBootstrap(
+                jdbcScimUserProvisioning,
+                scimUserServiceAliasEnabled,
+                jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager,
+                Collections.emptyList(),
+                false,
+                Collections.emptyList()
+        );
+    }
+
+    private ScimUserService buildScimUserServiceAliasEnabled() {
+        final ScimUserAliasHandler aliasHandlerAliasEnabled = buildScimUserAliasHandlerAliasEnabled();
+        final TransactionTemplate txTemplate = mock(TransactionTemplate.class);
+        when(txTemplate.execute(any())).then(invocationOnMock -> {
+            final TransactionCallback<?> action = invocationOnMock.getArgument(0);
+            return action.doInTransaction(mock(TransactionStatus.class));
+        });
+        return new ScimUserService(
+                aliasHandlerAliasEnabled,
+                jdbcScimUserProvisioning,
+                identityZoneManager,
+                txTemplate,
+                true
+        );
+    }
+
+    private ScimUserAliasHandler buildScimUserAliasHandlerAliasEnabled() {
+        return new ScimUserAliasHandler(
+                identityZoneProvisioning,
+                jdbcScimUserProvisioning,
+                idpProvisioning,
+                identityZoneManager,
+                true
+        );
     }
 
     @Test
