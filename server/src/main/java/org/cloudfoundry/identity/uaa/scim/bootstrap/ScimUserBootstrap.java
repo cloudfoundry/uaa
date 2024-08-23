@@ -164,7 +164,18 @@ public class ScimUserBootstrap implements
 
         final ScimUser newScimUser = convertToScimUser(updatedUser);
         newScimUser.setVersion(existingUser.getVersion());
-        scimUserProvisioning.update(id, newScimUser, IdentityZoneHolder.get().getId());
+        newScimUser.setZoneId(existingUser.getZoneId());
+
+        /* the user in the event won't have the alias properties set, we must therefore propagate them from the existing
+         * user, if present */
+        if (hasText(existingUser.getAliasId()) && hasText(existingUser.getAliasZid())) {
+            newScimUser.setAliasId(existingUser.getAliasId());
+            newScimUser.setAliasZid(existingUser.getAliasZid());
+        }
+
+        // this will also handle the update of the alias user, if necessary
+        scimUserService.updateUser(id, newScimUser);
+
         if (OriginKeys.UAA.equals(newScimUser.getOrigin()) && hasText(updatedUser.getPassword())) { //password is not relevant for non UAA users
             scimUserProvisioning.changePassword(id, null, updatedUser.getPassword(), IdentityZoneHolder.get().getId());
         }
