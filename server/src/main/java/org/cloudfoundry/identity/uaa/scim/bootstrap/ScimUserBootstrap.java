@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
@@ -49,6 +50,7 @@ public class ScimUserBootstrap implements
     private static final Logger logger = LoggerFactory.getLogger(ScimUserBootstrap.class);
 
     private final ScimUserProvisioning scimUserProvisioning;
+    private final ScimUserService scimUserService;
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final ScimGroupMembershipManager membershipManager;
     private final Collection<UaaUser> users;
@@ -62,12 +64,14 @@ public class ScimUserBootstrap implements
      * @param override Flag to indicate that user accounts can be updated as well as created
      */
     public ScimUserBootstrap(final ScimUserProvisioning scimUserProvisioning,
+                             final ScimUserService scimUserService,
                              final ScimGroupProvisioning scimGroupProvisioning,
                              final ScimGroupMembershipManager membershipManager,
                              final Collection<UaaUser> users,
                              @Value("${scim.user.override:false}") final boolean override,
                              @Value("${delete.users:#{null}}") final List<String> usersToDelete) {
         this.scimUserProvisioning = scimUserProvisioning;
+        this.scimUserService = scimUserService;
         this.scimGroupProvisioning = scimGroupProvisioning;
         this.membershipManager = membershipManager;
         this.users = Collections.unmodifiableCollection(users);
