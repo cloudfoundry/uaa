@@ -5,17 +5,21 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -24,6 +28,7 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
 import org.junit.jupiter.api.AfterEach;
@@ -91,18 +96,37 @@ class ScimUserBootstrapTests {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+    private ScimUserService scimUserService;
 
     @BeforeEach
     void init() throws SQLException {
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter());
-        jdbcScimUserProvisioning = spy(new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate)));
+        final IdentityZoneManager identityZoneManager = new IdentityZoneManagerImpl();
+        final JdbcIdentityZoneProvisioning identityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        jdbcScimUserProvisioning = spy(new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder,
+                identityZoneManager, identityZoneProvisioning));
         DbUtils dbUtils = new DbUtils();
         jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
                 jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null, dbUtils);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(jdbcScimGroupProvisioning);
+        final IdentityProviderProvisioning idpProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        final ScimUserAliasHandler scimUserAliasHandler = new ScimUserAliasHandler(
+                identityZoneProvisioning,
+                jdbcScimUserProvisioning,
+                idpProvisioning,
+                identityZoneManager,
+                false
+        );
+        scimUserService = new ScimUserService(
+                scimUserAliasHandler,
+                jdbcScimUserProvisioning,
+                identityZoneManager,
+                null, // not required since alias is disabled
+                false
+        );
         scimUserEndpoints = new ScimUserEndpoints(
-                new IdentityZoneManagerImpl(),
+                identityZoneManager,
                 new IsSelfCheck(null),
                 jdbcScimUserProvisioning,
                 null,
@@ -112,6 +136,7 @@ class ScimUserBootstrapTests {
                 null,
                 null,
                 jdbcScimGroupMembershipManager,
+                scimUserService,
                 null,
                 null,
                 false,

@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
+import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
@@ -89,6 +90,14 @@ class ScimUserEndpointsAliasTests {
 
     @BeforeEach
     void setUp() {
+        final ScimUserService scimUserService = new ScimUserService(
+                scimUserAliasHandler,
+                scimUserProvisioning,
+                identityZoneManager,
+                transactionTemplate,
+                true // alias entities are enabled
+        );
+
         scimUserEndpoints = new ScimUserEndpoints(
                 identityZoneManager,
                 isSelfCheck,
@@ -100,6 +109,7 @@ class ScimUserEndpointsAliasTests {
                 expiringCodeStore,
                 approvalStore,
                 scimGroupMembershipManager,
+                scimUserService,
                 scimUserAliasHandler,
                 transactionTemplate,
                 true, // alias entities are enabled
