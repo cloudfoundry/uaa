@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEvent;
@@ -46,7 +45,6 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URL;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -57,16 +55,14 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private IdentityProviderProvisioning identityProviderProvisioning;
     private RestTemplateConfig restTemplateConfig;
     private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
-    private MultitenantClientServices clientDetailsService;
     private ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning;
     private ApplicationEventPublisher eventPublisher;
 
-    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager, MultitenantClientServices clientDetailsService, ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning) {
+    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager, ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.restTemplateConfig = restTemplateConfig;
         this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
-        this.clientDetailsService = clientDetailsService;
         this.externalOAuthProviderProvisioning = externalOAuthProviderProvisioning;
     }
 
@@ -81,8 +77,8 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (identityProvider != null) {
             possibleProviders = List.of(identityProvider.getOriginKey());
         } else {
-            List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).map(IdentityProvider::getOriginKey).collect(Collectors.toList());
-            possibleProviders = Optional.ofNullable(allowedProviders).orElse(identityProviders).stream().filter(identityProviders::contains).collect(Collectors.toList());
+            List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).map(IdentityProvider::getOriginKey).toList();
+            possibleProviders = Optional.ofNullable(allowedProviders).orElse(identityProviders).stream().filter(identityProviders::contains).toList();
         }
         if (uaaLoginHint == null) {
             if (defaultProvider != null && possibleProviders.contains(defaultProvider)) {
@@ -255,11 +251,11 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (clientAuth == null) {
             throw new BadCredentialsException("No client authentication found.");
         }
+        List<String> allowedProviders = null;
         if (clientAuth.getPrincipal() instanceof UaaClient uaaClient && uaaClient.getAdditionalInformation() != null) {
-            return (List<String>) uaaClient.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-        } else {
-            return null;
+            allowedProviders = (List<String>) uaaClient.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
         }
+        return allowedProviders;
     }
 
     @Override

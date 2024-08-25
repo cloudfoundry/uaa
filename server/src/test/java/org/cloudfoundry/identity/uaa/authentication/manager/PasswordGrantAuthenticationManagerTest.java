@@ -29,7 +29,6 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationM
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,7 +78,6 @@ class PasswordGrantAuthenticationManagerTest {
     private IdentityProviderProvisioning identityProviderProvisioning;
     private RestTemplateConfig restTemplateConfig;
     private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
-    private MultitenantClientServices clientDetailsService;
     private ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
     private ApplicationEventPublisher eventPublisher;
 
@@ -95,7 +93,6 @@ class PasswordGrantAuthenticationManagerTest {
         identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
         restTemplateConfig = mock(RestTemplateConfig.class);
         externalOAuthAuthenticationManager = mock(ExternalOAuthAuthenticationManager.class);
-        clientDetailsService = mock(MultitenantClientServices.class);
         externalOAuthProviderConfigurator = mock(ExternalOAuthProviderConfigurator.class);
 
         idp = mock(IdentityProvider.class);
@@ -126,7 +123,7 @@ class PasswordGrantAuthenticationManagerTest {
         when(clientAuth.getPrincipal()).thenReturn(uaaClient);
         when(uaaClient.getAdditionalInformation()).thenReturn(mock(Map.class));
 
-        instance = new PasswordGrantAuthenticationManager(zoneAwareAuthzAuthenticationManager, identityProviderProvisioning, restTemplateConfig, externalOAuthAuthenticationManager, clientDetailsService, externalOAuthProviderConfigurator);
+        instance = new PasswordGrantAuthenticationManager(zoneAwareAuthzAuthenticationManager, identityProviderProvisioning, restTemplateConfig, externalOAuthAuthenticationManager, externalOAuthProviderConfigurator);
         IdentityZoneHolder.clear();
         eventPublisher = mock(ApplicationEventPublisher.class);
         instance.setApplicationEventPublisher(eventPublisher);
