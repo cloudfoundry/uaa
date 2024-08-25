@@ -25,6 +25,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -112,9 +113,15 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         IdentityProvider<OIDCIdentityProviderDefinition> idp = null;
         String useOrigin = loginHint != null && loginHint.getOrigin() != null ? loginHint.getOrigin() : defaultOrigin;
         if (useOrigin != null && !useOrigin.equalsIgnoreCase(OriginKeys.UAA) && !useOrigin.equalsIgnoreCase(OriginKeys.LDAP)) {
-            IdentityProvider<OIDCIdentityProviderDefinition> retrievedByOrigin = externalOAuthProviderProvisioning.retrieveByOrigin(useOrigin, IdentityZoneHolder.get().getId());
-            if (retrievedByOrigin != null && retrievedByOrigin.isActive() && retrievedByOrigin.getOriginKey().equals(useOrigin) && providerSupportsPasswordGrant(retrievedByOrigin) && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
-                idp = retrievedByOrigin;
+            try {
+                IdentityProvider<OIDCIdentityProviderDefinition> retrievedByOrigin = externalOAuthProviderProvisioning.retrieveByOrigin(useOrigin,
+                    IdentityZoneHolder.get().getId());
+                if (retrievedByOrigin != null && retrievedByOrigin.isActive() && retrievedByOrigin.getOriginKey().equals(useOrigin)
+                    && providerSupportsPasswordGrant(retrievedByOrigin) && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
+                    idp = retrievedByOrigin;
+                }
+            } catch (EmptyResultDataAccessException e) {
+                // ignore
             }
         }
         return idp;
