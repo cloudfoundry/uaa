@@ -25,7 +25,7 @@
         <property name="testWhileIdle" value="${database.testwhileidle:false}"/>
         <property name="minIdle" value="${database.minidle:10}"/>
         <property name="maxActive" value="${database.maxactive:100}"/>
-        <property name="maxIdle" value="${database.maxidle:100}"/>
+        <property name="maxIdle" value="${database.maxidle:50}"/>
         <property name="maxWait" value="${database.maxwait:30000}"/>
         <property name="initialSize" value="${database.initialsize:10}"/>
         <property name="validationQueryTimeout" value="${database.validationquerytimeout:10}"/>
