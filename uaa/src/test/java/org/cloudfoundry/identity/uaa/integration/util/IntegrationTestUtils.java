@@ -576,7 +576,10 @@ public class IntegrationTestUtils {
                 new HttpEntity<>(JsonUtils.writeValueAsBytes(group), headers),
                 ScimGroup.class
         );
-        return createGroup.getBody();
+        assertStatusCode(createGroup, HttpStatus.CREATED);
+        final ScimGroup responseBody = createGroup.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     private static ScimGroup updateGroup(String token,
