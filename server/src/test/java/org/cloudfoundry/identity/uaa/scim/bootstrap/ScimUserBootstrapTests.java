@@ -419,7 +419,7 @@ class ScimUserBootstrapTests {
     }
 
     @Test
-    public void shouldOnlyUpdateOriginalUser_WhenUserHasAliasButAliasEntitiesDisabled() {
+    void shouldOnlyUpdateOriginalUser_WhenUserHasAliasButAliasEntitiesDisabled() {
         // arrange custom zone exists
         final String customZoneId = new AlphanumericRandomValueStringGenerator(8).generate();
         createCustomZone(customZoneId);
