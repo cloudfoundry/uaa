@@ -850,8 +850,8 @@ public class IntegrationTestUtils {
                 getHeaders,
                 UaaClientDetails.class
         );
-
-        response.getBody();
+        assertStatusCode(response, HttpStatus.OK);
+        assertNotNull(response.getBody());
     }
 
     public static IdentityProvider getProvider(String zoneAdminToken,
