@@ -121,7 +121,11 @@ identity zone.
 
 During logon, the information of the matching shadow user is updated with the information from the identity provider 
 (e.g., the ID token in the OpenID Connect flow).
-If this shadow user has an alias, the updated properties are propagated to it. 
+
+If this shadow user has an alias, ...
+- *alias entities enabled:* the updated properties are propagated to the alias.
+- *alias entities disabled:* only the user itself is updated, the alias user is left unchanged.
+  - the alias properties are not changed - original and alias user still reference each other
 
 
 
