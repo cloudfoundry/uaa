@@ -23,7 +23,7 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final IdentityZoneManager identityZoneManager;
 
-    protected ScimUserAliasHandler(
+    public ScimUserAliasHandler(
             @Qualifier("identityZoneProvisioning") final IdentityZoneProvisioning identityZoneProvisioning,
             final ScimUserProvisioning scimUserProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning,
