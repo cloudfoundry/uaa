@@ -153,13 +153,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         super(namedJdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(namedJdbcTemplate, "JdbcTemplate required");
         this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
+        setQueryConverter(queryConverter);
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
         this.identityZoneManager = identityZoneManager;
         this.joinConverter = joinConverter;
         this.timeService = timeService;
         this.deactivateOnDelete = deactivateOnDelete;
-        setQueryConverter(queryConverter);
     }
 
     @Override
