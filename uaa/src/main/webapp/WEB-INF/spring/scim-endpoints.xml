@@ -39,7 +39,6 @@
         <property name="queryConverter" ref="scimUserQueryConverter"/>
         <property name="joinConverter" ref="scimJoinQueryConverter"/>
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}"/>
-        <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}"/>
         <property name="timeService" ref="timeService"/>
         <constructor-arg name="passwordEncoder" ref="nonCachingPasswordEncoder"/>
     </bean>
