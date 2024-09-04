@@ -557,29 +557,48 @@ public class IntegrationTestUtils {
         }
     }
 
-    public static ScimGroup createGroup(String token,
+    public static ScimGroup createGroupAndIgnoreStatusCode(String token,
                                         String zoneId,
                                         String url,
                                         ScimGroup group) {
-        RestTemplate template = new RestTemplate();
+        final ResponseEntity<ScimGroup> response = createGroupAndReturnResponse(token, zoneId, url, group);
+        return response.getBody();
+    }
+
+    public static ScimGroup createGroup(
+            final String token,
+            final String zoneId,
+            final String url,
+            final ScimGroup group
+    ) {
+        final ResponseEntity<ScimGroup> response = createGroupAndReturnResponse(token, zoneId, url, group);
+        assertStatusCode(response, HttpStatus.CREATED);
+        final ScimGroup responseBody = response.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
+    }
+
+    private static ResponseEntity<ScimGroup> createGroupAndReturnResponse(
+            final String token,
+            final String zoneId,
+            final String url,
+            final ScimGroup group
+    ) {
+        final RestTemplate template = new RestTemplate();
         template.setErrorHandler(fiveHundredErrorHandler);
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
         if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
-        ResponseEntity<ScimGroup> createGroup = template.exchange(
+        return template.exchange(
                 url + "/Groups",
                 HttpMethod.POST,
                 new HttpEntity<>(JsonUtils.writeValueAsBytes(group), headers),
                 ScimGroup.class
         );
-        assertStatusCode(createGroup, HttpStatus.CREATED);
-        final ScimGroup responseBody = createGroup.getBody();
-        assertNotNull(responseBody);
-        return responseBody;
     }
 
     private static ScimGroup updateGroup(String token,
@@ -983,7 +1002,7 @@ public class IntegrationTestUtils {
 
         String groupName = "zones." + zoneId + ".admin";
         ScimGroup group = new ScimGroup(null, groupName, null);
-        createGroup(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, group);
+        createGroupAndIgnoreStatusCode(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, group);
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
         assertThat("Couldn't find group : " + groupId, groupId, is(CoreMatchers.notNullValue()));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
