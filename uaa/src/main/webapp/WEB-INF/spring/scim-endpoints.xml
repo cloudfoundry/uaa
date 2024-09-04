@@ -33,16 +33,6 @@
         <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>
 
-    <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
-        <constructor-arg ref="jdbcTemplate"/>
-        <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory"/>
-        <property name="queryConverter" ref="scimUserQueryConverter"/>
-        <property name="joinConverter" ref="scimJoinQueryConverter"/>
-        <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}"/>
-        <property name="timeService" ref="timeService"/>
-        <constructor-arg name="passwordEncoder" ref="nonCachingPasswordEncoder"/>
-    </bean>
-
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
         <constructor-arg name="minLength" value="${password.policy.global.minLength:0}"/>
         <constructor-arg name="maxLength" value="${password.policy.global.maxLength:255}"/>
