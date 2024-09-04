@@ -1329,7 +1329,9 @@ public class IntegrationTestUtils {
     	}
     	HttpHeaders tokenHeaders = new HttpHeaders();
     	tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
-    	return serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
+        final ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
+        assertStatusCode(response, HttpStatus.OK);
+        return response;
 	}
 
     public static void callCheckToken(ServerRunning serverRunning,
