@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import com.jayway.jsonpath.JsonPathException;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
+import org.cloudfoundry.identity.uaa.alias.AliasPropertiesInvalidException;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -33,6 +34,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
+import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
@@ -142,6 +144,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
      */
     private final AtomicInteger scimDeletes;
     private final Map<String, AtomicInteger> errorCounts;
+    private final ScimUserService scimUserService;
     private final ScimUserAliasHandler aliasHandler;
     private final TransactionTemplate transactionTemplate;
 
@@ -161,6 +164,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             final ExpiringCodeStore codeStore,
             final ApprovalStore approvalStore,
             final ScimGroupMembershipManager membershipManager,
+            final ScimUserService scimUserService,
             final ScimUserAliasHandler aliasHandler,
             final TransactionTemplate transactionTemplate,
             final @Qualifier("aliasEntitiesEnabled") boolean aliasEntitiesEnabled,
@@ -187,6 +191,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.messageConverters = new HttpMessageConverter[] {
                 new ExceptionReportHttpMessageConverter()
         };
+        this.scimUserService = scimUserService;
         this.aliasHandler = aliasHandler;
         this.transactionTemplate = transactionTemplate;
         scimUpdates = new AtomicInteger();
@@ -319,23 +324,11 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
         user.setZoneId(identityZoneManager.getCurrentIdentityZoneId());
 
-        final ScimUser existingScimUser = scimUserProvisioning.retrieve(
-                userId,
-                identityZoneManager.getCurrentIdentityZoneId()
-        );
-        if (!aliasHandler.aliasPropertiesAreValid(user, existingScimUser)) {
-            throw new ScimException("The fields 'aliasId' and/or 'aliasZid' are invalid.", HttpStatus.BAD_REQUEST);
-        }
-
         final ScimUser scimUser;
         try {
-            if (aliasEntitiesEnabled) {
-                // update user and create/update alias, if necessary
-                scimUser = updateUserWithAliasHandling(userId, user, existingScimUser);
-            } else {
-                // update user without alias handling
-                scimUser = scimUserProvisioning.update(userId, user, identityZoneManager.getCurrentIdentityZoneId());
-            }
+            scimUser = scimUserService.updateUser(userId, user);
+        } catch (final AliasPropertiesInvalidException e) {
+            throw new ScimException("The fields 'aliasId' and/or 'aliasZid' are invalid.", HttpStatus.BAD_REQUEST);
         } catch (final OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
         } catch (final EntityAliasFailedException e) {
@@ -346,20 +339,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         final ScimUser scimUserWithApprovalsAndGroups = syncApprovals(syncGroups(scimUser));
         addETagHeader(httpServletResponse, scimUserWithApprovalsAndGroups);
         return scimUserWithApprovalsAndGroups;
-    }
-
-    private ScimUser updateUserWithAliasHandling(final String userId, final ScimUser user, final ScimUser existingUser) {
-        return transactionTemplate.execute(txStatus -> {
-            final ScimUser updatedOriginalUser = scimUserProvisioning.update(
-                    userId,
-                    user,
-                    identityZoneManager.getCurrentIdentityZoneId()
-            );
-            return aliasHandler.ensureConsistencyOfAliasEntity(
-                    updatedOriginalUser,
-                    existingUser
-            );
-        });
     }
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PATCH)

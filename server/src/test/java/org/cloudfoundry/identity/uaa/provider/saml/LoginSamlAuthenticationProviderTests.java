@@ -16,12 +16,14 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -200,7 +202,26 @@ class LoginSamlAuthenticationProviderTests {
         JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(
                 jdbcTemplate, new TimeServiceImpl(), userProvisioning, null, dbUtils);
         membershipManager.setScimGroupProvisioning(groupProvisioning);
-        ScimUserBootstrap bootstrap = new ScimUserBootstrap(userProvisioning, groupProvisioning, membershipManager, Collections.emptyList(), false, Collections.emptyList());
+
+        final ScimUserAliasHandler aliasHandler = mock(ScimUserAliasHandler.class);
+        when(aliasHandler.aliasPropertiesAreValid(any(), any())).thenReturn(true);
+
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(
+                userProvisioning,
+                new ScimUserService(
+                        aliasHandler,
+                        userProvisioning,
+                        identityZoneManager,
+                        null, // not required since alias is disabled
+                        false
+                ),
+                groupProvisioning,
+                membershipManager,
+                Collections.emptyList(),
+                false,
+                Collections.emptyList(),
+                false
+        );
 
         externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         externalManager.setScimGroupProvisioning(groupProvisioning);
