@@ -549,6 +549,7 @@ public class IntegrationTestUtils {
                 },
                 displayName
         );
+        assertStatusCode(findGroup, HttpStatus.OK);
         if (findGroup.getBody().getTotalResults() == 0) {
             return null;
         } else {
