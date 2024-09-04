@@ -135,9 +135,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private static final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
-    @Autowired
-    @Qualifier("timeService")
-    private TimeService timeService;
+    private final TimeService timeService;
 
     private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
     private final IdentityZoneManager identityZoneManager;
@@ -149,7 +147,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             @Qualifier("nonCachingPasswordEncoder") final PasswordEncoder passwordEncoder,
             final IdentityZoneManager identityZoneManager,
             final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning,
-            @Qualifier("scimJoinQueryConverter") final SearchQueryConverter joinConverter
+            @Qualifier("scimJoinQueryConverter") final SearchQueryConverter joinConverter,
+            @Qualifier("timeService") final TimeService timeService
     ) {
         super(namedJdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(namedJdbcTemplate, "JdbcTemplate required");
@@ -159,6 +158,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
         this.identityZoneManager = identityZoneManager;
         this.joinConverter = joinConverter;
+        this.timeService = timeService;
     }
 
     @Override

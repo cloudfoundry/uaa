@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -52,7 +53,7 @@ class PasswordChangeEndpointTests {
                 namedJdbcTemplate,
                 new JdbcPagingListFactory(namedJdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
                 passwordEncoder, mockIdentityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate),
-                new SimpleSearchQueryConverter());
+                new SimpleSearchQueryConverter(), new TimeServiceImpl());
 
         final RandomValueStringGenerator generator = new RandomValueStringGenerator();
 

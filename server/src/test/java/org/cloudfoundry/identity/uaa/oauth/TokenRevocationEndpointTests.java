@@ -78,7 +78,7 @@ public class TokenRevocationEndpointTests {
         ScimUserProvisioning userProvisioning = new JdbcScimUserProvisioning(
                 namedJdbcTemplate,
                 new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter),
-                passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter());
+                passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new TimeServiceImpl());
         JdbcRevocableTokenProvisioning provisioning = spy(new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter, new TimeServiceImpl()));
         endpoint = spy(new TokenRevocationEndpoint(clientService, userProvisioning, provisioning));
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);

@@ -55,6 +55,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -125,7 +126,7 @@ class JdbcScimUserProvisioningTests {
 
         SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
         joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, joinConverter);
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, joinConverter, new TimeServiceImpl());
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
@@ -317,7 +318,7 @@ class JdbcScimUserProvisioningTests {
         SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
         joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
         jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, notInUse, passwordEncoder, new IdentityZoneManagerImpl(),
-            new JdbcIdentityZoneProvisioning(jdbcTemplate), joinConverter);
+            new JdbcIdentityZoneProvisioning(jdbcTemplate), joinConverter, new TimeServiceImpl());
         String originActive = randomString();
         addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originActive, true);
 
@@ -373,7 +374,7 @@ class JdbcScimUserProvisioningTests {
         NamedParameterJdbcTemplate mockedJdbcTemplate = mock(NamedParameterJdbcTemplate.class);
         SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
         joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(mockedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, joinConverter);
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(mockedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, joinConverter, new TimeServiceImpl());
 
         String scimFilter = "id eq '1111' or username eq 'j4hyqpassX' or origin eq 'uaa'";
         jdbcScimUserProvisioning.setPageSize(0);
@@ -775,7 +776,7 @@ class JdbcScimUserProvisioningTests {
     void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
-        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter()) {
+        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new TimeServiceImpl()) {
             @Override
             public ScimUser retrieve(String id, String zoneId) {
                 ScimUser createdUserId = new ScimUser();
