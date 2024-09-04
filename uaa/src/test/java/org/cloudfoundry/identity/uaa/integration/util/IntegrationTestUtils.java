@@ -200,7 +200,11 @@ public class IntegrationTestUtils {
         headers.add(AUTHORIZATION, "Bearer " + token);
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
         RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.GET, new URI(url + "/userinfo"));
-        return rest.exchange(request, UserInfoResponse.class).getBody();
+        final ResponseEntity<UserInfoResponse> response = rest.exchange(request, UserInfoResponse.class);
+        assertStatusCode(response, HttpStatus.OK);
+        final UserInfoResponse responseBody = response.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     public static void deleteZone(String baseUrl, String id, String adminToken) throws URISyntaxException {
