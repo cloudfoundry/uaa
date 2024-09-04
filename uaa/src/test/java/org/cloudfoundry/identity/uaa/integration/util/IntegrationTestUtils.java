@@ -213,7 +213,8 @@ public class IntegrationTestUtils {
         headers.add(AUTHORIZATION, "Bearer " + adminToken);
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
         RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.DELETE, new URI(baseUrl + "/identity-zones/" + id));
-        rest.exchange(request, Void.class);
+        final ResponseEntity<Void> response = rest.exchange(request, Void.class);
+        assertStatusCode(response, HttpStatus.OK);
     }
 
     public static boolean zoneExists(final String baseUrl, final String id, final String adminToken) throws URISyntaxException {
