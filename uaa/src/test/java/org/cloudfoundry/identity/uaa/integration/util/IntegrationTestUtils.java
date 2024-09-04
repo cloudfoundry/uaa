@@ -661,8 +661,9 @@ public class IntegrationTestUtils {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
 
-
-        template.exchange(url + "/Groups/{groupId}", HttpMethod.DELETE, new HttpEntity<>(headers), ScimGroup.class, groupId);
+        final ResponseEntity<ScimGroup> response = template.exchange(url + "/Groups/{groupId}", HttpMethod.DELETE,
+                new HttpEntity<>(headers), ScimGroup.class, groupId);
+        assertStatusCode(response, HttpStatus.OK);
     }
 
     private static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
