@@ -685,7 +685,7 @@ public class IntegrationTestUtils {
     public static IdentityZone createInactiveIdentityZone(RestTemplate client, String url) {
         createZoneOrUpdateSubdomain(client, url, "testzoneinactive", "testzoneinactive", new IdentityZoneConfiguration(), false);
         ResponseEntity<IdentityZone> zoneGet = client.getForEntity(url + "/identity-zones/{id}", IdentityZone.class, "testzoneinactive");
-        if (!(zoneGet.getStatusCode() == HttpStatus.OK)) {
+        if (zoneGet.getStatusCode() != HttpStatus.OK) {
             throw new RuntimeException("Could not create inactive zone.");
         }
         return zoneGet.getBody();
