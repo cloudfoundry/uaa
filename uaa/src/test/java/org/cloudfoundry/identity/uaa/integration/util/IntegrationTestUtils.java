@@ -1345,7 +1345,9 @@ public class IntegrationTestUtils {
         formData.add("token", accessToken);
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        assertNotNull(tokenResponse.getBody().get("iss"));
+        final Map tokenResponseBody = tokenResponse.getBody();
+        assertNotNull(tokenResponseBody);
+        assertNotNull(tokenResponseBody.get("iss"));
     }
 
     public static String getAuthorizationCodeToken(
