@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -56,6 +57,7 @@ public class ScimUserBootstrap implements
     private final Collection<UaaUser> users;
     private final boolean override;
     private final List<String> usersToDelete;
+    private final boolean aliasEntitiesEnabled;
     private ApplicationEventPublisher publisher;
 
     /**
@@ -63,13 +65,16 @@ public class ScimUserBootstrap implements
      * @param users Users to create
      * @param override Flag to indicate that user accounts can be updated as well as created
      */
-    public ScimUserBootstrap(final ScimUserProvisioning scimUserProvisioning,
-                             final ScimUserService scimUserService,
-                             final ScimGroupProvisioning scimGroupProvisioning,
-                             final ScimGroupMembershipManager membershipManager,
-                             final Collection<UaaUser> users,
-                             @Value("${scim.user.override:false}") final boolean override,
-                             @Value("${delete.users:#{null}}") final List<String> usersToDelete) {
+    public ScimUserBootstrap(
+            final ScimUserProvisioning scimUserProvisioning,
+            final ScimUserService scimUserService,
+            final ScimGroupProvisioning scimGroupProvisioning,
+            final ScimGroupMembershipManager membershipManager,
+            final Collection<UaaUser> users,
+            @Value("${scim.user.override:false}") final boolean override,
+            @Value("${delete.users:#{null}}") final List<String> usersToDelete,
+            @Qualifier("aliasEntitiesEnabled") final boolean aliasEntitiesEnabled
+    ) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.scimUserService = scimUserService;
         this.scimGroupProvisioning = scimGroupProvisioning;
@@ -77,6 +82,7 @@ public class ScimUserBootstrap implements
         this.users = Collections.unmodifiableCollection(users);
         this.override = override;
         this.usersToDelete = usersToDelete;
+        this.aliasEntitiesEnabled = aliasEntitiesEnabled;
     }
 
     @Override

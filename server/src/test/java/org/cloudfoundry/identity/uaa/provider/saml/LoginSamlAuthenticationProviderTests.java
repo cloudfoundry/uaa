@@ -219,7 +219,8 @@ class LoginSamlAuthenticationProviderTests {
                 membershipManager,
                 Collections.emptyList(),
                 false,
-                Collections.emptyList()
+                Collections.emptyList(),
+                false
         );
 
         externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
