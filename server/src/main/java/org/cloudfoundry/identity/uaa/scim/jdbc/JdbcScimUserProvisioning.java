@@ -37,7 +37,6 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
@@ -146,6 +145,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             @Qualifier("nonCachingPasswordEncoder") final PasswordEncoder passwordEncoder,
             final IdentityZoneManager identityZoneManager,
             final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning,
+            @Qualifier("scimUserQueryConverter") final SearchQueryConverter queryConverter,
             @Qualifier("scimJoinQueryConverter") final SearchQueryConverter joinConverter,
             final TimeService timeService,
             @Value("${scim.delete.deactivate:false}") final boolean deactivateOnDelete
@@ -153,13 +153,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         super(namedJdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(namedJdbcTemplate, "JdbcTemplate required");
         this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
-        setQueryConverter(new SimpleSearchQueryConverter());
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
         this.identityZoneManager = identityZoneManager;
         this.joinConverter = joinConverter;
         this.timeService = timeService;
         this.deactivateOnDelete = deactivateOnDelete;
+        setQueryConverter(queryConverter);
     }
 
     @Override
