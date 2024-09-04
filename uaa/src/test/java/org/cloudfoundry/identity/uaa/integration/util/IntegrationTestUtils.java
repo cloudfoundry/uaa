@@ -851,6 +851,9 @@ public class IntegrationTestUtils {
         return null;
     }
 
+    /**
+     * @return the list of identity providers or {@code null} if the request was not successful
+     */
     private static List<IdentityProvider> getProviders(String zoneAdminToken,
                                                        String url,
                                                        String zoneId) {
