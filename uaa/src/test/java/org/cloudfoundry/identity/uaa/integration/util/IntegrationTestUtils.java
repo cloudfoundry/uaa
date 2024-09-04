@@ -343,7 +343,11 @@ public class IntegrationTestUtils {
         user.setActive(true);
         user.setPassword("secr3T");
         user.setPhoneNumbers(Collections.singletonList(new PhoneNumber(phoneNumber)));
-        return client.postForEntity(url + "/Users", user, ScimUser.class).getBody();
+        final ResponseEntity<ScimUser> response = client.postForEntity(url + "/Users", user, ScimUser.class);
+        assertStatusCode(response, HttpStatus.CREATED);
+        final ScimUser responseBody = response.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     public static ScimUser createUser(String token, String url, ScimUser user, String zoneSwitchId) {
