@@ -53,7 +53,7 @@ class PasswordChangeEndpointTests {
                 namedJdbcTemplate,
                 new JdbcPagingListFactory(namedJdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
                 passwordEncoder, mockIdentityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate),
-                new SimpleSearchQueryConverter(), new TimeServiceImpl());
+                new SimpleSearchQueryConverter(), new TimeServiceImpl(), true);
 
         final RandomValueStringGenerator generator = new RandomValueStringGenerator();
 

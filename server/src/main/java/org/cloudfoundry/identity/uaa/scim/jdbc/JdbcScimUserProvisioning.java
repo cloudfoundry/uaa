@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
@@ -57,7 +58,6 @@ import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
@@ -130,7 +130,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private final PasswordEncoder passwordEncoder;
 
-    @Value("${scim.delete.deactivate:false}")
     private boolean deactivateOnDelete;
 
     private static final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
@@ -148,7 +147,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             final IdentityZoneManager identityZoneManager,
             final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning,
             @Qualifier("scimJoinQueryConverter") final SearchQueryConverter joinConverter,
-            @Qualifier("timeService") final TimeService timeService
+            final TimeService timeService,
+            @Value("${scim.delete.deactivate:false}") final boolean deactivateOnDelete
     ) {
         super(namedJdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(namedJdbcTemplate, "JdbcTemplate required");
@@ -159,6 +159,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         this.identityZoneManager = identityZoneManager;
         this.joinConverter = joinConverter;
         this.timeService = timeService;
+        this.deactivateOnDelete = deactivateOnDelete;
     }
 
     @Override
@@ -503,6 +504,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return updated;
     }
 
+    @VisibleForTesting
     public void setDeactivateOnDelete(boolean deactivateOnDelete) {
         this.deactivateOnDelete = deactivateOnDelete;
     }

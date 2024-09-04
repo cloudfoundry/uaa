@@ -126,7 +126,7 @@ class JdbcScimUserProvisioningTests {
 
         SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
         joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, joinConverter, new TimeServiceImpl());
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, joinConverter, new TimeServiceImpl(), true);
 
         SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
@@ -318,7 +318,7 @@ class JdbcScimUserProvisioningTests {
         SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
         joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
         jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, notInUse, passwordEncoder, new IdentityZoneManagerImpl(),
-            new JdbcIdentityZoneProvisioning(jdbcTemplate), joinConverter, new TimeServiceImpl());
+            new JdbcIdentityZoneProvisioning(jdbcTemplate), joinConverter, new TimeServiceImpl(), true);
         String originActive = randomString();
         addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originActive, true);
 
@@ -374,7 +374,7 @@ class JdbcScimUserProvisioningTests {
         NamedParameterJdbcTemplate mockedJdbcTemplate = mock(NamedParameterJdbcTemplate.class);
         SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
         joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(mockedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, joinConverter, new TimeServiceImpl());
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(mockedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, joinConverter, new TimeServiceImpl(), true);
 
         String scimFilter = "id eq '1111' or username eq 'j4hyqpassX' or origin eq 'uaa'";
         jdbcScimUserProvisioning.setPageSize(0);
@@ -776,7 +776,7 @@ class JdbcScimUserProvisioningTests {
     void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
-        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new TimeServiceImpl()) {
+        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new TimeServiceImpl(), true) {
             @Override
             public ScimUser retrieve(String id, String zoneId) {
                 ScimUser createdUserId = new ScimUser();
