@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import org.apache.commons.lang3.tuple.Triple;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
@@ -367,44 +368,18 @@ class ScimUserBootstrapTests {
     void shouldPropagateAliasPropertiesOfExistingUserDuringUpdate() {
         // arrange custom zone exists
         final String customZoneId = new AlphanumericRandomValueStringGenerator(8).generate();
-        final IdentityZone customZone = new IdentityZone();
-        customZone.setId(customZoneId);
-        customZone.setSubdomain(customZoneId);
-        customZone.setName(customZoneId);
-        identityZoneProvisioning.create(customZone);
+        createCustomZone(customZoneId);
 
-        // arrange that a user with alias exists
+        // create a user with alias
+        final String originKey = new AlphanumericRandomValueStringGenerator(8).generate();
         final String userName = "john.doe-" + new AlphanumericRandomValueStringGenerator(8).generate();
         final String givenName = "John";
         final String familyName = "Doe";
-        final ScimUser scimUser = new ScimUser(null, userName, givenName, familyName);
-        final ScimUser.Email email = new ScimUser.Email();
-        email.setPrimary(true);
         final String emailAddress = "john.doe@example.com";
-        email.setValue(emailAddress);
-        scimUser.setEmails(Collections.singletonList(email));
-        final String originKey = new AlphanumericRandomValueStringGenerator(8).generate();
-        scimUser.setOrigin(originKey);
-        scimUser.setZoneId(IdentityZone.getUaaZoneId());
-        final ScimUser createdOriginalUser = jdbcScimUserProvisioning.createUser(scimUser, "", IdentityZone.getUaaZoneId());
-        final String originalUserId = createdOriginalUser.getId();
-        assertTrue(StringUtils.hasText(originalUserId));
-
-        // create an alias of the user in the custom zone
-        createdOriginalUser.setId(null);
-        createdOriginalUser.setZoneId(customZoneId);
-        createdOriginalUser.setAliasId(originalUserId);
-        createdOriginalUser.setAliasZid(IdentityZone.getUaaZoneId());
-        final ScimUser createdAliasUser = jdbcScimUserProvisioning.createUser(createdOriginalUser, "", customZoneId);
-        final String aliasUserId = createdAliasUser.getId();
-        assertTrue(StringUtils.hasText(aliasUserId));
-
-        // update the original user to point ot the alias user
-        createdOriginalUser.setId(originalUserId);
-        createdOriginalUser.setZoneId(IdentityZone.getUaaZoneId());
-        createdOriginalUser.setAliasId(aliasUserId);
-        createdOriginalUser.setAliasZid(customZoneId);
-        jdbcScimUserProvisioning.update(originalUserId, createdOriginalUser, IdentityZone.getUaaZoneId());
+        final Triple<String, String, ScimUser> userIdsAndOriginalUser = createUserWithAlias(customZoneId, originKey,
+                emailAddress, userName, givenName, familyName);
+        final String originalUserId = userIdsAndOriginalUser.getLeft();
+        final String aliasUserId = userIdsAndOriginalUser.getMiddle();
 
         // create and emit event that contains the user with changed fields
         final String externalId = new AlphanumericRandomValueStringGenerator(8).generate();
@@ -441,6 +416,123 @@ class ScimUserBootstrapTests {
         assertEquals(IdentityZone.getUaaZoneId(), aliasUserAfterEvent.getAliasZid());
         assertEquals(externalId, aliasUserAfterEvent.getExternalId());
         assertEquals(phoneNumber, aliasUserAfterEvent.getPhoneNumbers().get(0).getValue());
+    }
+
+    @Test
+    public void shouldOnlyUpdateOriginalUser_WhenUserHasAliasButAliasEntitiesDisabled() {
+        // arrange custom zone exists
+        final String customZoneId = new AlphanumericRandomValueStringGenerator(8).generate();
+        createCustomZone(customZoneId);
+
+        // create a user with alias
+        final String originKey = new AlphanumericRandomValueStringGenerator(8).generate();
+        final String userName = "john.doe-" + new AlphanumericRandomValueStringGenerator(8).generate();
+        final String givenName = "John";
+        final String familyName = "Doe";
+        final String emailAddress = "john.doe@example.com";
+        final Triple<String, String, ScimUser> userIdsAndOriginalUser = createUserWithAlias(customZoneId, originKey,
+                emailAddress, userName, givenName, familyName);
+        final String originalUserId = userIdsAndOriginalUser.getLeft();
+        final String aliasUserId = userIdsAndOriginalUser.getMiddle();
+        final ScimUser originalUser = userIdsAndOriginalUser.getRight();
+
+        // create and emit event that contains the user with changed fields
+        final String externalId = new AlphanumericRandomValueStringGenerator(8).generate();
+        final String phoneNumber = "12345";
+        final UaaUserPrototype userPrototype = new UaaUserPrototype()
+                .withVerified(true)
+                .withUsername(userName)
+                .withPassword("")
+                .withEmail(emailAddress)
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withCreated(new Date())
+                .withModified(new Date())
+                .withOrigin(originKey)
+                .withExternalId(externalId) // changed field
+                .withZoneId(IdentityZone.getUaaZoneId())
+                .withPhoneNumber(phoneNumber); // changed field
+        final UaaUser uaaUser = new UaaUser(userPrototype);
+
+        final ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(uaaUser, true, Collections.emptyList(), true);
+        final ScimUserBootstrap bootstrapAliasDisabled = new ScimUserBootstrap(
+                jdbcScimUserProvisioning,
+                scimUserService,
+                jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager,
+                Collections.emptyList(),
+                false,
+                Collections.emptyList(),
+                false
+        );
+        bootstrapAliasDisabled.onApplicationEvent(event);
+
+        // should only update the original user and the alias reference should stay intact
+        final ScimUser originalUserAfterEvent = jdbcScimUserProvisioning.retrieve(originalUserId, IdentityZone.getUaaZoneId());
+        assertEquals(aliasUserId, originalUserAfterEvent.getAliasId());
+        assertEquals(customZoneId, originalUserAfterEvent.getAliasZid());
+        assertEquals(externalId, originalUserAfterEvent.getExternalId());
+        assertEquals(phoneNumber, originalUserAfterEvent.getPhoneNumbers().get(0).getValue());
+
+        assertNotEquals(originalUser.getExternalId(), originalUserAfterEvent.getExternalId());
+        assertNotEquals(originalUser.getPhoneNumbers(), originalUserAfterEvent.getPhoneNumbers());
+
+        final ScimUser aliasUserAfterEvent = jdbcScimUserProvisioning.retrieve(aliasUserId, customZoneId);
+        assertEquals(originalUserId, aliasUserAfterEvent.getAliasId());
+        assertEquals(IdentityZone.getUaaZoneId(), aliasUserAfterEvent.getAliasZid());
+        assertEquals(originalUser.getExternalId(), aliasUserAfterEvent.getExternalId()); // should be left unchanged
+        assertEquals(originalUser.getPhoneNumbers(), aliasUserAfterEvent.getPhoneNumbers()); // should be left unchanged
+    }
+
+    private void createCustomZone(final String customZoneId) {
+        final IdentityZone customZone = new IdentityZone();
+        customZone.setId(customZoneId);
+        customZone.setSubdomain(customZoneId);
+        customZone.setName(customZoneId);
+        identityZoneProvisioning.create(customZone);
+    }
+
+    /**
+     * @return a triple of the original user's ID, the alias user's ID and the original user
+     */
+    private Triple<String, String, ScimUser> createUserWithAlias(
+            final String customZoneId,
+            final String originKey,
+            final String emailAddress,
+            final String userName,
+            final String givenName,
+            final String familyName
+    ) {
+        // arrange that a user with alias exists
+        final ScimUser scimUser = new ScimUser(null, userName, givenName, familyName);
+        final ScimUser.Email email = new ScimUser.Email();
+        email.setPrimary(true);
+        email.setValue(emailAddress);
+        scimUser.setEmails(Collections.singletonList(email));
+        scimUser.setOrigin(originKey);
+        scimUser.setZoneId(IdentityZone.getUaaZoneId());
+        final ScimUser createdOriginalUser = jdbcScimUserProvisioning.createUser(scimUser, "", IdentityZone.getUaaZoneId());
+        final String originalUserId = createdOriginalUser.getId();
+        assertTrue(StringUtils.hasText(originalUserId));
+
+        // create an alias of the user in the custom zone
+        createdOriginalUser.setId(null);
+        createdOriginalUser.setZoneId(customZoneId);
+        createdOriginalUser.setAliasId(originalUserId);
+        createdOriginalUser.setAliasZid(IdentityZone.getUaaZoneId());
+        final ScimUser createdAliasUser = jdbcScimUserProvisioning.createUser(createdOriginalUser, "", customZoneId);
+        final String aliasUserId = createdAliasUser.getId();
+        assertTrue(StringUtils.hasText(aliasUserId));
+
+        // update the original user to point ot the alias user
+        createdOriginalUser.setId(originalUserId);
+        createdOriginalUser.setZoneId(IdentityZone.getUaaZoneId());
+        createdOriginalUser.setAliasId(aliasUserId);
+        createdOriginalUser.setAliasZid(customZoneId);
+        final ScimUser originalUser = jdbcScimUserProvisioning.update(originalUserId, createdOriginalUser, IdentityZone.getUaaZoneId());
+
+        return Triple.of(originalUserId, aliasUserId, originalUser);
     }
 
     private ScimUserBootstrap buildScimUserBootstrapWithAliasEnabled() {

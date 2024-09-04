@@ -179,8 +179,13 @@ public class ScimUserBootstrap implements
             newScimUser.setAliasZid(existingUser.getAliasZid());
         }
 
-        // this will also handle the update of the alias user, if necessary
-        scimUserService.updateUser(id, newScimUser);
+        if (aliasEntitiesEnabled) {
+            // update the user and propagate the changes to the alias, if present
+            scimUserService.updateUser(id, newScimUser);
+        } else {
+            // update only the original user, even if it has an alias (the alias properties remain unchanged)
+            scimUserProvisioning.update(id, newScimUser, IdentityZoneHolder.get().getId());
+        }
 
         if (OriginKeys.UAA.equals(newScimUser.getOrigin()) && hasText(updatedUser.getPassword())) { //password is not relevant for non UAA users
             scimUserProvisioning.changePassword(id, null, updatedUser.getPassword(), IdentityZoneHolder.get().getId());
