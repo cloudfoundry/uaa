@@ -694,7 +694,10 @@ public class IntegrationTestUtils {
         identityZone.setConfig(config);
         identityZone.setActive(active);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
-        return zone.getBody();
+        assertStatusCode(zone, HttpStatus.CREATED);
+        final IdentityZone responseBody = zone.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     public static IdentityZone createInactiveIdentityZone(RestTemplate client, String url) {
