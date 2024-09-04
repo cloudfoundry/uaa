@@ -726,8 +726,17 @@ public class IntegrationTestUtils {
                 getHeaders,
                 UaaClientDetails.class
         );
+        assertStatusCode(response, HttpStatus.OK);
 
         return response.getBody();
+    }
+
+    private static void assertStatusCode(final ResponseEntity<?> response, final HttpStatus expectedStatusCode) {
+        if (response.getStatusCode() != expectedStatusCode) {
+            throw new RuntimeException(
+                    "Invalid return code: expected %d, got %d".formatted(expectedStatusCode.value(), response.getStatusCode().value())
+            );
+        }
     }
 
     public static UaaClientDetails createClientAsZoneAdmin(String zoneAdminToken,
