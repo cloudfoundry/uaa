@@ -1167,8 +1167,9 @@ public class IntegrationTestUtils {
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
         Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
 
-        @SuppressWarnings("unchecked")
-        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
+        final Map responseBody = response.getBody();
+        assertNotNull(responseBody);
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(responseBody);
         return accessToken.getValue();
     }
 
