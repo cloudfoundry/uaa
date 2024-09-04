@@ -905,12 +905,13 @@ public class IntegrationTestUtils {
         headers.add("Authorization", "bearer " + zoneAdminToken);
         headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         HttpEntity getHeaders = new HttpEntity<>(headers);
-        client.exchange(
+        final ResponseEntity<String> response = client.exchange(
                 url + "/identity-providers/" + provider.getId(),
                 HttpMethod.DELETE,
                 getHeaders,
                 String.class
         );
+        assertStatusCode(response, HttpStatus.OK);
     }
 
     /**
