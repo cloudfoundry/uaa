@@ -159,19 +159,19 @@ public class SamlLoginIT {
         String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
         ScimGroup group = new ScimGroup(null, "zones.uaa.admin", null);
-        IntegrationTestUtils.createGroupAndIgnoreStatusCode(token, "", baseUrl, group);
+        IntegrationTestUtils.createGroupAndIgnoreConflict(token, "", baseUrl, group);
 
         group = new ScimGroup(null, "zones.testzone1.admin", null);
-        IntegrationTestUtils.createGroupAndIgnoreStatusCode(token, "", baseUrl, group);
+        IntegrationTestUtils.createGroupAndIgnoreConflict(token, "", baseUrl, group);
 
         group = new ScimGroup(null, "zones.testzone2.admin", null);
-        IntegrationTestUtils.createGroupAndIgnoreStatusCode(token, "", baseUrl, group);
+        IntegrationTestUtils.createGroupAndIgnoreConflict(token, "", baseUrl, group);
 
         group = new ScimGroup(null, "zones.testzone3.admin", null);
-        IntegrationTestUtils.createGroupAndIgnoreStatusCode(token, "", baseUrl, group);
+        IntegrationTestUtils.createGroupAndIgnoreConflict(token, "", baseUrl, group);
 
         group = new ScimGroup(null, "zones.testzone4.admin", null);
-        IntegrationTestUtils.createGroupAndIgnoreStatusCode(token, "", baseUrl, group);
+        IntegrationTestUtils.createGroupAndIgnoreConflict(token, "", baseUrl, group);
     }
 
     @After

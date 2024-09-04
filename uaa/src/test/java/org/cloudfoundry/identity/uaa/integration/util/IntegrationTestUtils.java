@@ -91,7 +91,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.joining;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
@@ -557,12 +559,13 @@ public class IntegrationTestUtils {
         }
     }
 
-    public static ScimGroup createGroupAndIgnoreStatusCode(String token,
-                                        String zoneId,
-                                        String url,
-                                        ScimGroup group) {
-        final ResponseEntity<ScimGroup> response = createGroupAndReturnResponse(token, zoneId, url, group);
-        return response.getBody();
+    public static ScimGroup createGroupAndIgnoreConflict(
+            final String token,
+            final String zoneId,
+            final String url,
+            final ScimGroup group
+    ) {
+        return createGroup(token, zoneId, url, group, HttpStatus.CREATED, HttpStatus.CONFLICT);
     }
 
     public static ScimGroup createGroup(
@@ -571,18 +574,15 @@ public class IntegrationTestUtils {
             final String url,
             final ScimGroup group
     ) {
-        final ResponseEntity<ScimGroup> response = createGroupAndReturnResponse(token, zoneId, url, group);
-        assertStatusCode(response, HttpStatus.CREATED);
-        final ScimGroup responseBody = response.getBody();
-        assertNotNull(responseBody);
-        return responseBody;
+        return createGroup(token, zoneId, url, group, HttpStatus.CREATED);
     }
 
-    private static ResponseEntity<ScimGroup> createGroupAndReturnResponse(
+    private static ScimGroup createGroup(
             final String token,
             final String zoneId,
             final String url,
-            final ScimGroup group
+            final ScimGroup group,
+            final HttpStatus ...expectedStatusCodes
     ) {
         final RestTemplate template = new RestTemplate();
         template.setErrorHandler(fiveHundredErrorHandler);
@@ -593,12 +593,16 @@ public class IntegrationTestUtils {
         if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
-        return template.exchange(
+        final ResponseEntity<ScimGroup> response = template.exchange(
                 url + "/Groups",
                 HttpMethod.POST,
                 new HttpEntity<>(JsonUtils.writeValueAsBytes(group), headers),
                 ScimGroup.class
         );
+        assertStatusCode(response, expectedStatusCodes);
+        final ScimGroup responseBody = response.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     private static ScimGroup updateGroup(String token,
@@ -768,10 +772,17 @@ public class IntegrationTestUtils {
         return response.getBody();
     }
 
-    private static void assertStatusCode(final ResponseEntity<?> response, final HttpStatus expectedStatusCode) {
-        if (response.getStatusCode() != expectedStatusCode) {
+    private static void assertStatusCode(final ResponseEntity<?> response, final HttpStatus... expectedStatusCodes) {
+        final boolean matchesAnyExpectedStatusCode = Stream.of(expectedStatusCodes)
+                .anyMatch(it -> it.equals(response.getStatusCode()));
+        if (!matchesAnyExpectedStatusCode) {
+            final String expectedStatusCodesString = Arrays.stream(expectedStatusCodes)
+                    .map(HttpStatus::value)
+                    .map(Object::toString)
+                    .collect(joining(" or "));
             throw new RuntimeException(
-                    "Invalid return code: expected %d, got %d".formatted(expectedStatusCode.value(), response.getStatusCode().value())
+                    "Invalid return code: expected %s, got %d".formatted(expectedStatusCodesString,
+                            response.getStatusCode().value())
             );
         }
     }
@@ -1002,7 +1013,7 @@ public class IntegrationTestUtils {
 
         String groupName = "zones." + zoneId + ".admin";
         ScimGroup group = new ScimGroup(null, groupName, null);
-        createGroupAndIgnoreStatusCode(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, group);
+        createGroupAndIgnoreConflict(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, group);
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
         assertThat("Couldn't find group : " + groupId, groupId, is(CoreMatchers.notNullValue()));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);

@@ -58,7 +58,7 @@ public class LdapIntegrationTests {
         String token = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
 
         ScimGroup group = new ScimGroup(null, "zones.testzone1.admin", null);
-        IntegrationTestUtils.createGroupAndIgnoreStatusCode(token, "", serverRunning.getBaseUrl(), group);
+        IntegrationTestUtils.createGroupAndIgnoreConflict(token, "", serverRunning.getBaseUrl(), group);
     }
 
     @After
