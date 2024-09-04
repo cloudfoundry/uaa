@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
@@ -129,7 +128,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private final PasswordEncoder passwordEncoder;
 
-    private boolean deactivateOnDelete;
+    private final boolean deactivateOnDelete;
 
     private static final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
@@ -502,11 +501,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", userId, zoneId, version);
         }
         return updated;
-    }
-
-    @VisibleForTesting
-    public void setDeactivateOnDelete(boolean deactivateOnDelete) {
-        this.deactivateOnDelete = deactivateOnDelete;
     }
 
     @Override

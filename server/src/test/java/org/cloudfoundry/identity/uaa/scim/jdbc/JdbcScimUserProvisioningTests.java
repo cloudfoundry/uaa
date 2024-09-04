@@ -110,6 +110,9 @@ class JdbcScimUserProvisioningTests {
     private String joeEmail;
     private final String JOE_NAME = "joe";
 
+    private SimpleSearchQueryConverter joinConverter;
+    private SimpleSearchQueryConverter filterConverter;
+
     @BeforeEach
     void setUp(@Autowired LimitSqlAdapter limitSqlAdapter) {
         generator = new RandomValueStringGenerator();
@@ -124,17 +127,27 @@ class JdbcScimUserProvisioningTests {
         idzManager = new IdentityZoneManagerImpl();
         idzManager.setCurrentIdentityZone(idz);
 
-        SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
+        joinConverter = new SimpleSearchQueryConverter();
         joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, new SimpleSearchQueryConverter(), joinConverter, new TimeServiceImpl(), true);
 
-        SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
+        filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
         replaceWith.put("emails\\.value", "email");
         replaceWith.put("groups\\.display", "authorities");
         replaceWith.put("phoneNumbers\\.value", "phoneNumber");
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
-        jdbcScimUserProvisioning.setQueryConverter(filterConverter);
+
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
+                namedJdbcTemplate,
+                pagingListFactory,
+                passwordEncoder,
+                idzManager,
+                jdbcIdentityZoneProvisioning,
+                filterConverter,
+                joinConverter,
+                new TimeServiceImpl(),
+                true
+        );
 
         addUser(jdbcTemplate, joeId,
                 JOE_NAME, passwordEncoder.encode("joespassword"), joeEmail, "Joe", "User", "+1-222-1234567", currentIdentityZoneId);
@@ -990,38 +1003,68 @@ class JdbcScimUserProvisioningTests {
                 () -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId));
     }
 
-    @Test
-    void canDeleteExistingUserThroughEvent() {
-        String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
-        ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserId, currentIdentityZoneId);
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<Object>(user, mock(Authentication.class), currentIdentityZoneId));
-        assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
-        assertEquals(0, jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
-    }
+    @Nested
+    class DeactivateOnDeleteDisabled {
+        @BeforeEach
+        void setUp() {
+            jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
+                    namedJdbcTemplate,
+                    pagingListFactory,
+                    passwordEncoder,
+                    idzManager,
+                    jdbcIdentityZoneProvisioning,
+                    filterConverter,
+                    joinConverter,
+                    new TimeServiceImpl(),
+                    false
+            );
+        }
 
-    @Test
-    void canDeleteExistingUser() {
-        String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
-        assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
-        assertEquals(0, jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
-    }
+        @Test
+        void canDeleteExistingUserThroughEvent() {
+            String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
+            ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserId, currentIdentityZoneId);
+            jdbcScimUserProvisioning.onApplicationEvent(
+                    new EntityDeletedEvent<Object>(user, mock(Authentication.class), currentIdentityZoneId));
+            assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+            assertEquals(0,
+                    jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
+        }
 
-    @Test
-    void canDeleteExistingUserAndThenCreateHimAgain() {
-        String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        ScimUser deletedUser = jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
-        assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+        @Test
+        void canDeleteExistingUser() {
+            String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
+            jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
+            assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+            assertEquals(0,
+                    jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
+        }
 
-        deletedUser.setActive(true);
-        ScimUser user = jdbcScimUserProvisioning.createUser(deletedUser, "foobarspam1234", currentIdentityZoneId);
-        assertNotNull(user);
-        assertNotNull(user.getId());
-        assertNotSame(tmpUserId, user.getId());
-        assertEquals(1, jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
+        @Test
+        void canDeleteExistingUserAndThenCreateHimAgain() {
+            String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
+            ScimUser deletedUser = jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
+            assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+
+            deletedUser.setActive(true);
+            ScimUser user = jdbcScimUserProvisioning.createUser(deletedUser, "foobarspam1234", currentIdentityZoneId);
+            assertNotNull(user);
+            assertNotNull(user.getId());
+            assertNotSame(tmpUserId, user.getId());
+            assertEquals(1,
+                    jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
+        }
+
+        @Test
+        void cannotDeleteNonexistentUser() {
+            assertThrows(ScimResourceNotFoundException.class,
+                    () -> jdbcScimUserProvisioning.delete("9999", 0, currentIdentityZoneId));
+        }
+
+        @Test
+        void deleteWithWrongVersionIsError() {
+            assertThrows(OptimisticLockingFailureException.class, () -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId));
+        }
     }
 
     @Test
@@ -1178,19 +1221,6 @@ class JdbcScimUserProvisioningTests {
         ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserIdString, currentIdentityZoneId);
         assertFalse(user.isVerified());
         assertThrows(OptimisticLockingFailureException.class, () -> jdbcScimUserProvisioning.verifyUser(tmpUserIdString, user.getVersion() + 50, currentIdentityZoneId));
-    }
-
-    @Test
-    void cannotDeleteNonexistentUser() {
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        assertThrows(ScimResourceNotFoundException.class,
-                () -> jdbcScimUserProvisioning.delete("9999", 0, currentIdentityZoneId));
-    }
-
-    @Test
-    void deleteWithWrongVersionIsError() {
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        assertThrows(OptimisticLockingFailureException.class, () -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId));
     }
 
     @Test
