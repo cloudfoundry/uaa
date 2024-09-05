@@ -531,6 +531,23 @@ public class IntegrationTestUtils {
         return null;
     }
 
+    public static ScimGroup ensureGroupExists(
+            final String token,
+            final String zoneId,
+            final String url,
+            final String displayName
+    ) {
+        final ScimGroup existingGroup = getGroup(token, zoneId, url, displayName);
+        if (existingGroup != null) {
+            return existingGroup;
+        }
+        final ScimGroup group = new ScimGroup(null, displayName, zoneId);
+        return createGroup(token, zoneId, url, group);
+    }
+
+    /**
+     * @return the group or {@code null} if it does not exist
+     */
     public static ScimGroup getGroup(String token,
                                      String zoneId,
                                      String url,
@@ -559,30 +576,11 @@ public class IntegrationTestUtils {
         }
     }
 
-    public static ScimGroup createGroupAndIgnoreConflict(
-            final String token,
-            final String zoneId,
-            final String url,
-            final ScimGroup group
-    ) {
-        return createGroup(token, zoneId, url, group, HttpStatus.CREATED, HttpStatus.CONFLICT);
-    }
-
     public static ScimGroup createGroup(
             final String token,
             final String zoneId,
             final String url,
             final ScimGroup group
-    ) {
-        return createGroup(token, zoneId, url, group, HttpStatus.CREATED);
-    }
-
-    private static ScimGroup createGroup(
-            final String token,
-            final String zoneId,
-            final String url,
-            final ScimGroup group,
-            final HttpStatus ...expectedStatusCodes
     ) {
         final RestTemplate template = new RestTemplate();
         template.setErrorHandler(fiveHundredErrorHandler);
@@ -599,7 +597,7 @@ public class IntegrationTestUtils {
                 new HttpEntity<>(JsonUtils.writeValueAsBytes(group), headers),
                 ScimGroup.class
         );
-        assertStatusCode(response, expectedStatusCodes);
+        assertStatusCode(response, HttpStatus.CREATED);
         final ScimGroup responseBody = response.getBody();
         assertNotNull(responseBody);
         return responseBody;
@@ -1012,8 +1010,7 @@ public class IntegrationTestUtils {
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
 
         String groupName = "zones." + zoneId + ".admin";
-        ScimGroup group = new ScimGroup(null, groupName, null);
-        createGroupAndIgnoreConflict(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, group);
+        ensureGroupExists(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, groupName);
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
         assertThat("Couldn't find group : " + groupId, groupId, is(CoreMatchers.notNullValue()));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
