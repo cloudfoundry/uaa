@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -338,6 +339,9 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
             ps.setString(1, groupId);
             ps.setString(2, zoneId);
         });
+        if (deleted > 0) {
+            throw new CannotGetJdbcConnectionException("CannotGetJdbcConnectionException", new SQLException("sql exception"));
+        }
         if (deleted != members.size()) {
             throw new IncorrectResultSizeDataAccessException("unexpected number of members removed", members.size(),
                     deleted);
