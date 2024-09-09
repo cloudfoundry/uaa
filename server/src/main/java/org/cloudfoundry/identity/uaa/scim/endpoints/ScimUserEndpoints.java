@@ -398,7 +398,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                             SecurityContextHolder.getContext().getAuthentication(),
                             identityZoneManager.getCurrentIdentityZoneId())
             );
-            logger.debug("User delete event sent[{}]", userId);
+            logger.debug("User delete event sent[{}]", user.getId());
         }
 
         if (!userHasAlias) {
@@ -424,7 +424,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                             aliasUser.getZoneId()
                     )
             );
-            logger.debug("User delete event sent[{}]", userId);
+            logger.debug("User delete event sent[{}]", aliasUser.getId());
         }
 
         return user;
