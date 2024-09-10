@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -116,7 +117,7 @@ class ScimUserBootstrapTests {
         identityZoneManager = new IdentityZoneManagerImpl();
         identityZoneProvisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         jdbcScimUserProvisioning = spy(new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder,
-                identityZoneManager, identityZoneProvisioning));
+                identityZoneManager, identityZoneProvisioning, new SimpleSearchQueryConverter(), new SimpleSearchQueryConverter(), new TimeServiceImpl(), true));
         DbUtils dbUtils = new DbUtils();
         jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(

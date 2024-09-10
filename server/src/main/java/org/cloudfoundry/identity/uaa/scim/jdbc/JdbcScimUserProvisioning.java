@@ -28,7 +28,6 @@ import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -37,7 +36,6 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
@@ -50,7 +48,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -59,6 +56,8 @@ import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -68,8 +67,10 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
+@Component("scimUserProvisioning")
 public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     implements ScimUserProvisioning, ResourceMonitor<ScimUser>, SystemDeletable {
 
@@ -127,41 +128,37 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private final PasswordEncoder passwordEncoder;
 
-    private boolean deactivateOnDelete = true;
+    private final boolean deactivateOnDelete;
 
     private static final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
-    private Pattern usernamePattern = Pattern.compile("[\\p{L}+0-9+\\-_.@'!]+");
-
-    private TimeService timeService = new TimeServiceImpl();
+    private final TimeService timeService;
 
     private final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
     private final IdentityZoneManager identityZoneManager;
-
-    private SearchQueryConverter joinConverter;
+    private final SearchQueryConverter joinConverter;
 
     public JdbcScimUserProvisioning(
             final NamedParameterJdbcTemplate namedJdbcTemplate,
-            final JdbcPagingListFactory pagingListFactory,
-            final PasswordEncoder passwordEncoder,
+            @Qualifier("jdbcPagingListFactory") final JdbcPagingListFactory pagingListFactory,
+            @Qualifier("nonCachingPasswordEncoder") final PasswordEncoder passwordEncoder,
             final IdentityZoneManager identityZoneManager,
-            final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning
+            final JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning,
+            @Qualifier("scimUserQueryConverter") final SearchQueryConverter queryConverter,
+            @Qualifier("scimJoinQueryConverter") final SearchQueryConverter joinConverter,
+            final TimeService timeService,
+            @Value("${scim.delete.deactivate:false}") final boolean deactivateOnDelete
     ) {
         super(namedJdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(namedJdbcTemplate, "JdbcTemplate required");
         this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
-        setQueryConverter(new SimpleSearchQueryConverter());
+        setQueryConverter(queryConverter);
         this.passwordEncoder = passwordEncoder;
         this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
         this.identityZoneManager = identityZoneManager;
-    }
-
-    public void setTimeService(TimeService timeService) {
-        this.timeService = timeService;
-    }
-
-    public void setJoinConverter(SearchQueryConverter joinConverter) {
         this.joinConverter = joinConverter;
+        this.timeService = timeService;
+        this.deactivateOnDelete = deactivateOnDelete;
     }
 
     @Override
@@ -504,18 +501,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             updated = jdbcTemplate.update(DELETE_USER_SQL + " and version=?", userId, zoneId, version);
         }
         return updated;
-    }
-
-    public void setDeactivateOnDelete(boolean deactivateOnDelete) {
-        this.deactivateOnDelete = deactivateOnDelete;
-    }
-
-    /**
-     * Sets the regular expression which will be used to validate the username.
-     */
-    public void setUsernamePattern(String usernamePattern) {
-        Assert.hasText(usernamePattern, "Username pattern must not be empty");
-        this.usernamePattern = Pattern.compile(usernamePattern);
     }
 
     @Override
