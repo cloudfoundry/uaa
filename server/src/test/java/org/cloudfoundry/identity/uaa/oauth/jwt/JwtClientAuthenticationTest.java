@@ -178,7 +178,7 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientAssertionUsingCustomSingingKeyFromEnivoronment() throws ParseException, JOSEException {
+  void testGetClientAssertionUsingCustomSingingKeyFromEnvironment() throws ParseException, JOSEException {
     // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
@@ -201,7 +201,7 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientAssertionUsingCustomSingingKeyFromEnivoronmentNoDefault() throws ParseException, JOSEException {
+  void testGetClientAssertionUsingCustomSingingKeyFromEnvironmentNoDefault() throws ParseException, JOSEException {
     // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
@@ -222,7 +222,7 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientAssertionUsingCustomSingingKeyFromEnivoronmentUseDefault() throws ParseException, JOSEException {
+  void testGetClientAssertionUsingCustomSingingKeyFromEnvironmentButEntryIsMissing() throws ParseException, JOSEException {
     // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
@@ -231,20 +231,14 @@ class JwtClientAuthenticationTest {
     config.setJwtClientAuthentication(customClaims);
     // empty application context
     mockApplicationContext(Map.of());
-    // When
-    MultiValueMap<String, String> params = jwtClientAuthentication.getClientAuthenticationParameters(new LinkedMultiValueMap<>(), config);
     // Then
-    assertTrue(params.containsKey("client_assertion"));
-    assertTrue(params.containsKey("client_assertion_type"));
-    String clientAssertion = (String) params.get("client_assertion").get(0);
-    validateClientAssertionOidcComplaint(clientAssertion);
-    JWSHeader header = getJwtHeader(clientAssertion);
-    assertEquals(KEY_ID, header.getKeyID());
-    assertNull(header.getJWKURL());
+    Exception exception = assertThrows(BadCredentialsException.class, () ->
+        jwtClientAuthentication.getClientAuthenticationParameters(new LinkedMultiValueMap<>(), config));
+    assertEquals("Missing referenced signing entry", exception.getMessage());
   }
 
   @Test
-  void testGetClientAssertionUsingCustomSingingKeyFromEnivoronmentButNotInDefaultZone() throws JOSEException {
+  void testGetClientAssertionUsingCustomSingingKeyFromEnvironmentButNotInDefaultZone() throws JOSEException {
     // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     HashMap customClaims = new HashMap<>();
@@ -285,7 +279,7 @@ class JwtClientAuthenticationTest {
   }
 
   @Test
-  void testGetClientAssertionUsingCustomSingingPrivateKeyFromEnivoronment() throws ParseException, JOSEException {
+  void testGetClientAssertionUsingCustomSingingPrivateKeyFromEnvironment() throws ParseException, JOSEException {
     // Given: register 2 keys
     mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
     // add reference in jwtClientAuthentication to customer one key-id-321

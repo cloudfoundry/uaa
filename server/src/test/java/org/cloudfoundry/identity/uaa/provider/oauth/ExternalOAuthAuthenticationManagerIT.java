@@ -7,6 +7,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
@@ -43,7 +44,10 @@ import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -141,6 +145,8 @@ class ExternalOAuthAuthenticationManagerIT {
     private InMemoryUaaUserDatabase userDatabase;
     private ExternalOAuthCodeToken xCodeToken;
     private ApplicationEventPublisher publisher;
+    private IdentityZoneProvisioning identityZoneProvisioning;
+    private IdentityZoneManager identityZoneManager;
     private static final String CODE = "the_code";
 
     private static final String ORIGIN = "the_origin";
@@ -195,6 +201,8 @@ class ExternalOAuthAuthenticationManagerIT {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap(keyName, PRIVATE_KEY));
 
         provisioning = mock(IdentityProviderProvisioning.class);
+        identityZoneProvisioning = mock(IdentityZoneProvisioning.class);
+        identityZoneManager = new IdentityZoneManagerImpl();
         ScimGroupExternalMembershipManager externalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
 
         for (String scope : SCOPES_LIST) {
@@ -218,7 +226,9 @@ class ExternalOAuthAuthenticationManagerIT {
                 new ExternalOAuthProviderConfigurator(
                         provisioning,
                         oidcMetadataFetcher,
-                        mock(UaaRandomStringUtil.class))
+                        mock(UaaRandomStringUtil.class),
+                        identityZoneProvisioning,
+                        identityZoneManager)
         );
         externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
@@ -906,6 +916,37 @@ class ExternalOAuthAuthenticationManagerIT {
         assertEquals("1234567890", uaaUser.getPhoneNumber());
         assertEquals("12345", uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
+    }
+
+    @Test
+    void publishExternalGroupAuthorizationEvent_skippedIf_notIsRegisteredIdpAuthentication() {
+        claims.put("user_name", "12345");
+        claims.put("origin", "the_origin");
+        claims.put("iss", UAA_ISSUER_URL);
+
+        UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
+                .withUsername("12345")
+                .withPassword("")
+                .withEmail("marissa_old@bloggs.com")
+                .withGivenName("Marissa_Old")
+                .withFamilyName("Bloggs_Old")
+                .withId("user-id")
+                .withOrigin("the_origin")
+                .withZoneId("uaa")
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES));
+
+        userDatabase.addUser(existingShadowUser);
+
+        CompositeToken token = getCompositeAccessToken();
+        String idToken = token.getIdTokenValue();
+        xCodeToken = new ExternalOAuthCodeToken(null, null, null, idToken, null, null);
+
+        externalOAuthAuthenticationManager.authenticate(xCodeToken);
+
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher, times(1)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(1, userArgumentCaptor.getAllValues().size());
+        assertTrue(userArgumentCaptor.getAllValues().get(0) instanceof IdentityProviderAuthenticationSuccessEvent);
     }
 
     @Test

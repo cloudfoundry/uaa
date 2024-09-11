@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Answers;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.MalformedURLException;
@@ -127,6 +129,49 @@ class OidcMetadataFetcherTest {
                 .getUrlContent(
                     any(), any(), any(), any()
                 );
+        }
+
+        @Test
+        void shouldPerformTokenKeyUrlNoCacheUsed() throws OidcMetadataFetchingException, MalformedURLException {
+            definition.setTokenKeyUrl(new URL("http://should.be.updated"));
+            definition.setSkipSslValidation(false);
+            definition.setCacheJwks(false);
+
+            ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
+            when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
+                .thenReturn(responseEntity);
+            when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
+            when(responseEntity.getBody()).thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
+
+            metadataDiscoverer.fetchWebKeySet(definition);
+            definition.setSkipSslValidation(true);
+            metadataDiscoverer.fetchWebKeySet(definition);
+
+            verify(urlContentCache, times(0))
+                .getUrlContent(
+                    any(), any(), any(), any()
+                );
+            verify(restTemplate, times(2)).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class));
+        }
+
+        @Test
+        void shouldPerformTokenKeyUrlNoCacheUsedError() throws MalformedURLException {
+            definition.setTokenKeyUrl(new URL("http://should.be.updated"));
+            definition.setSkipSslValidation(false);
+            definition.setCacheJwks(false);
+
+            ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
+            when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
+                .thenReturn(responseEntity);
+            when(responseEntity.getStatusCode()).thenReturn(HttpStatus.FORBIDDEN);
+
+            assertThrows(IllegalArgumentException.class, () -> metadataDiscoverer.fetchWebKeySet(definition));
+
+            verify(urlContentCache, times(0))
+                .getUrlContent(
+                    any(), any(), any(), any()
+                );
+            verify(restTemplate, times(1)).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class));
         }
     }
 

@@ -186,6 +186,13 @@ public class SamlIdentityProviderDefinitionTests {
     }
 
     @Test
+    public void testSetIdpEntityId() {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setIdpEntityId("testalias");
+        assertEquals("testalias", def.getIdpEntityId());
+    }
+
+    @Test
     public void testSetEmailDomain() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setEmailDomain(Collections.singletonList("test.com"));

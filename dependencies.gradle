@@ -6,26 +6,26 @@ ext {
 // Versions shared between multiple dependencies
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM27"
-versions.bouncyCastleVersion = "1.0.2.5"
-versions.hamcrestVersion = "2.2"
+versions.bouncyCastleVersion = "2.0.0"
+versions.hamcrestVersion = "3.0"
 versions.springBootVersion = "2.7.18"
-versions.springFrameworkVersion = "5.3.34"
-versions.springSecurityVersion = "5.8.12"
+versions.springFrameworkVersion = "5.3.39"
+versions.springSecurityVersion = "5.8.14"
 versions.springSecuritySamlVersion = "1.0.10.RELEASE"
-versions.tomcatCargoVersion = "9.0.89"
-versions.guavaVersion = "33.2.0-jre"
+versions.tomcatCargoVersion = "9.0.94"
+versions.guavaVersion = "33.3.0-jre"
 versions.seleniumVersion = "4.18.1"
 versions.braveVersion = "6.0.3"
-versions.jacksonVersion = "2.17.1"
+versions.jacksonVersion = "2.17.2"
 versions.jsonPathVersion = "2.9.0"
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
 ext["mariadb.version"] = "2.7.12" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
-ext["snakeyaml.version"] = "2.2" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
+ext["snakeyaml.version"] = "2.3" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
 ext["jackson-bom.version"] = "${versions.jacksonVersion}" // Bumping to latest version because of compatiblity to snakeyaml 2.0
 ext["json-path.version"] = "${versions.jsonPathVersion}" // CVE, https://github.com/advisories/GHSA-pfh2-hfmq-phg5
-ext["hsqldb.version"] = "2.7.2" // HSQL-DB used for tests but not supported for productive usage
+ext["hsqldb.version"] = "2.7.3" // HSQL-DB used for tests but not supported for productive usage
 ext["selenium.version"] = "${versions.seleniumVersion}" // Selenium for integration tests only
 ext["spring-framework.version"] = "${versions.springFrameworkVersion}" // Maintain spring until upgrade to spring boot 3.x, https://github.com/cloudfoundry/uaa/issues/2115
 ext["spring-security.version"] = "${versions.springSecurityVersion}" // Maintain spring until upgrade to spring boot 3.x, https://github.com/cloudfoundry/uaa/issues/2115
@@ -36,21 +36,21 @@ ext {
 }
 
 // Dependencies (some rely on shared versions, some are shared between projects)
-libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.5"
-libraries.apacheCommonsRngSimple = "org.apache.commons:commons-rng-simple:1.5"
+libraries.apacheCommonsRngCore = "org.apache.commons:commons-rng-core:1.6"
+libraries.apacheCommonsRngSimple = "org.apache.commons:commons-rng-simple:1.6"
 libraries.apacheCommonsText = "org.apache.commons:commons-text:1.12.0"
 libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-ldap:${versions.apacheDsVersion}"
-libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.6"
+libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.7"
 libraries.aspectJRt = "org.aspectj:aspectjrt"
 libraries.aspectJWeaver = "org.aspectj:aspectjweaver"
-libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-fips:1.0.7"
+libraries.bouncyCastlePkix = "org.bouncycastle:bcpkix-fips:2.0.7"
 libraries.bouncyCastleProv = "org.bouncycastle:bc-fips:${versions.bouncyCastleVersion}"
 libraries.braveInstrumentationSpringWebmvc = "io.zipkin.brave:brave-instrumentation-spring-webmvc:${versions.braveVersion}"
 libraries.braveContextSlf4j = "io.zipkin.brave:brave-context-slf4j:${versions.braveVersion}"
-libraries.commonsCodec = "commons-codec:commons-codec:1.17.0"
+libraries.commonsCodec = "commons-codec:commons-codec:1.17.1"
 libraries.commonsIo = "commons-io:commons-io:2.16.1"
 libraries.dumbster = "dumbster:dumbster:1.6"
-libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:6.9.0.202403050737-r"
+libraries.eclipseJgit = "org.eclipse.jgit:org.eclipse.jgit:7.0.0.202409031743-r"
 libraries.flywayCore = "org.flywaydb:flyway-core"
 libraries.greenmail = "com.icegreen:greenmail:1.6.15"
 libraries.guava = "com.google.guava:guava:${versions.guavaVersion}"
@@ -78,8 +78,8 @@ libraries.lombok = "org.projectlombok:lombok"
 libraries.mariaJdbcDriver = "org.mariadb.jdbc:mariadb-java-client"
 libraries.mockito = "org.mockito:mockito-core"
 libraries.mockitoJunit5 = "org.mockito:mockito-junit-jupiter"
-libraries.passay = "org.passay:passay:1.6.4"
-libraries.postgresql = "org.postgresql:postgresql:42.7.3"
+libraries.passay = "org.passay:passay:1.6.5"
+libraries.postgresql = "org.postgresql:postgresql:42.7.4"
 libraries.selenium = "org.seleniumhq.selenium:selenium-java:${versions.seleniumVersion}"
 libraries.seleniumHttp = "org.seleniumhq.selenium:selenium-http-jdk-client:4.13.0"
 libraries.slf4jApi = "org.slf4j:slf4j-api"
@@ -125,17 +125,17 @@ libraries.unboundIdLdapSdk = "com.unboundid:unboundid-ldapsdk"
 libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.26"
 libraries.velocity = "org.apache.velocity:velocity-engine-core:2.3"
 libraries.xerces = "xerces:xercesImpl:2.12.2"
-libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.39"
+libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.41"
 libraries.xmlSecurity = "org.apache.santuario:xmlsec:4.0.2"
 libraries.orgJson = "org.json:json:20240303"
-libraries.owaspEsapi = "org.owasp.esapi:esapi:2.5.3.1"
+libraries.owaspEsapi = "org.owasp.esapi:esapi:2.5.4.0"
 libraries.jodaTime = "joda-time:joda-time:2.12.7"
 libraries.apacheHttpClient = "org.apache.httpcomponents:httpclient:4.5.14"
 
 // gradle plugins
-libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.9"
+libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.10"
 libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.9.0"
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
 libraries.gradleJcocoPlugin = "org.barfuin.gradle.jacocolog:gradle-jacoco-log:3.1.0"
-libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:5.0.0.4638"
+libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:5.1.0.4882"

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
@@ -87,7 +88,7 @@ public class OauthIDPWrapperFactoryBean {
         oidcIdentityProviderDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
         oidcIdentityProviderDefinition.setPasswordGrantEnabled(
             idpDefinitionMap.get("passwordGrantEnabled") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
-        oidcIdentityProviderDefinition.setSetForwardHeader(idpDefinitionMap.get("setForwardHeader") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
+        oidcIdentityProviderDefinition.setSetForwardHeader(idpDefinitionMap.get("setForwardHeader") == null ? false : (boolean) idpDefinitionMap.get("setForwardHeader"));
         oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
         setJwtClientAuthentication(idpDefinitionMap, oidcIdentityProviderDefinition);
         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
@@ -173,6 +174,16 @@ public class OauthIDPWrapperFactoryBean {
         }
         if (idpDefinitionMap.get("performRpInitiatedLogout") instanceof Boolean) {
             idpDefinition.setPerformRpInitiatedLogout((boolean)idpDefinitionMap.get("performRpInitiatedLogout"));
+        }
+        if (idpDefinitionMap.get("cacheJwks") instanceof Boolean) {
+            idpDefinition.setCacheJwks((boolean)idpDefinitionMap.get("cacheJwks"));
+        }
+        if (idpDefinitionMap.get("authMethod") instanceof String definedAuthMethod) {
+            if (ClientAuthentication.isMethodSupported(definedAuthMethod)) {
+                idpDefinition.setAuthMethod(definedAuthMethod);
+            } else {
+                throw new IllegalArgumentException("Invalid IdP authentication method");
+            }
         }
     }
 

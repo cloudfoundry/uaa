@@ -52,6 +52,8 @@ public class PrivateKeyJwtClientAuthIT {
   //jwt.token.signing-key from uaa.yml
   @Value("${integration.test.signing-key}")
   private String jwtTokenSigningKey;
+  @Value("${integration.test.signing-keyid}")
+  private String jwtTokenSigningKeyId;
 
   @Autowired
   @Rule
@@ -225,7 +227,7 @@ public class PrivateKeyJwtClientAuthIT {
       String accessToken = IntegrationTestUtils.getAuthorizationCodeToken(
           serverRunning,
           usedClientId,
-          testClient.createClientJwt(usedClientId, jwtTokenSigningKey),
+          testClient.createClientJwt(usedClientId, jwtTokenSigningKeyId, jwtTokenSigningKey),
           testAccounts.getUserName(),
           testAccounts.getPassword(),
           null,
@@ -300,7 +302,7 @@ public class PrivateKeyJwtClientAuthIT {
       postBody.add(extraKey, extraValue);
     }
     postBody.add("token_format", "jwt");
-    postBody.add(JwtClientAuthentication.CLIENT_ASSERTION, testClient.createClientJwt(clientId, jwtTokenSigningKey));
+    postBody.add(JwtClientAuthentication.CLIENT_ASSERTION, testClient.createClientJwt(clientId, jwtTokenSigningKeyId, jwtTokenSigningKey));
     postBody.add(JwtClientAuthentication.CLIENT_ASSERTION_TYPE, JwtClientAuthentication.GRANT_TYPE);
 
     ResponseEntity<Map> responseEntity;

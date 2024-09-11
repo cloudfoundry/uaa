@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.util.List;
@@ -59,5 +60,20 @@ public class UserConfigTest {
       UserConfig userConfig = new UserConfig();
       userConfig.setMaxUsers(100);
       assertEquals(100, userConfig.getMaxUsers());
+    }
+
+    @Test
+    public void testDefaultOrigin() {
+        UserConfig userConfig = new UserConfig();
+        assertTrue(userConfig.isAllowOriginLoop());
+        assertFalse(userConfig.isCheckOriginEnabled());
+    }
+
+    @Test
+    public void testOriginLoop() {
+        UserConfig userConfig = new UserConfig();
+        assertTrue(userConfig.isAllowOriginLoop());
+        userConfig.setAllowOriginLoop(false);
+        assertFalse(userConfig.isCheckOriginEnabled());
     }
 }

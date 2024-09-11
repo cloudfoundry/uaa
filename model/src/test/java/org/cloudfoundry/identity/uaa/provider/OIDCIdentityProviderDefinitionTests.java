@@ -80,5 +80,6 @@ public class OIDCIdentityProviderDefinitionTests {
         String json = JsonUtils.writeValueAsString(def);
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
         assertEquals(settings, def.getJwtClientAuthentication());
+        assertNull(def.getAuthMethod());
     }
 }

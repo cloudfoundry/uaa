@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.AccessTokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.DefaultAccessTokenRequest;
+import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.hamcrest.CoreMatchers;
 import org.junit.Assert;
 import org.junit.internal.AssumptionViolatedException;
@@ -64,6 +65,7 @@ public class OAuth2ContextSetup extends TestWatchman {
 	private final RestTemplateHolder clientHolder;
 
 	private final TestAccounts testAccounts;
+	private final TestAccountSetup testAccountSetup;
 
 	private OAuth2AccessToken accessToken;
 
@@ -102,8 +104,8 @@ public class OAuth2ContextSetup extends TestWatchman {
 	 * @return a rule that wraps test methods in an OAuth2 context
 	 */
 	public static OAuth2ContextSetup withTestAccounts(RestTemplateHolder clientHolder,
-			TestAccounts testAccounts) {
-		return new OAuth2ContextSetup(clientHolder, testAccounts, null);
+			TestAccountSetup testAccountSetup) {
+		return new OAuth2ContextSetup(clientHolder, testAccountSetup, null);
 	}
 
 	/**
@@ -130,9 +132,10 @@ public class OAuth2ContextSetup extends TestWatchman {
 	}
 
 	private OAuth2ContextSetup(RestTemplateHolder clientHolder,
-			TestAccounts testAccounts, Environment environment) {
+			TestAccountSetup testAccountSetup, Environment environment) {
 		this.clientHolder = clientHolder;
-		this.testAccounts = testAccounts;
+		this.testAccountSetup = testAccountSetup;
+		this.testAccounts = testAccountSetup.getTestAccounts();
 		this.environment = environment;
 	}
 
@@ -237,6 +240,8 @@ public class OAuth2ContextSetup extends TestWatchman {
 	}
 
 	private void initializeIfNecessary(FrameworkMethod method, final Object target) {
+
+		testAccountSetup.apply(null, method, target);
 
 		final TestClass testClass = new TestClass(target.getClass());
 		OAuth2ContextConfiguration contextConfiguration = findOAuthContextConfiguration(

@@ -23,12 +23,8 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 
 public class GroupModifiedEvent extends AbstractUaaEvent {
 
@@ -144,48 +140,5 @@ public class GroupModifiedEvent extends AbstractUaaEvent {
                 ", members=" + Arrays.toString(members) +
                 '}';
         }
-    }
-
-    protected static Authentication getContextAuthentication() {
-        Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        if (a==null) {
-            a = new Authentication() {
-                ArrayList<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
-                @Override
-                public Collection<? extends GrantedAuthority> getAuthorities() {
-                    return authorities;
-                }
-
-                @Override
-                public Object getCredentials() {
-                    return null;
-                }
-
-                @Override
-                public Object getDetails() {
-                    return null;
-                }
-
-                @Override
-                public Object getPrincipal() {
-                    return "null";
-                }
-
-                @Override
-                public boolean isAuthenticated() {
-                    return false;
-                }
-
-                @Override
-                public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-                }
-
-                @Override
-                public String getName() {
-                    return "null";
-                }
-            };
-        }
-        return a;
     }
 }

@@ -27,9 +27,12 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.Ext
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
@@ -50,8 +53,12 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
     private boolean legacyShowSamlLink = true;
     private List<IdentityProviderWrapper<SamlIdentityProviderDefinition>> samlProviders = new LinkedList<>();
     private Map<String, Map<String, Object>> providers = null;
+    private final SamlIdentityProviderConfigurator samlConfigurator;
 
-    public BootstrapSamlIdentityProviderData() {
+    public BootstrapSamlIdentityProviderData(
+        final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator samlConfigurator
+    ) {
+        this.samlConfigurator = samlConfigurator;
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
@@ -161,6 +168,14 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
 
 
             IdentityProvider provider = parseSamlProvider(def);
+            try {
+                if (def.getType() == SamlIdentityProviderDefinition.MetadataLocation.DATA) {
+                    ExtendedMetadataDelegate metadataDelegate = samlConfigurator.getExtendedMetadataDelegate(def);
+                    def.setIdpEntityId(((ConfigMetadataProvider) metadataDelegate.getDelegate()).getEntityID());
+                }
+            } catch (MetadataProviderException e) {
+                throw new IllegalArgumentException(e.getMessage(), e);
+            }
             IdentityProviderWrapper wrapper = new IdentityProviderWrapper(provider);
             wrapper.setOverride(override == null ? true : override);
             samlProviders.add(wrapper);

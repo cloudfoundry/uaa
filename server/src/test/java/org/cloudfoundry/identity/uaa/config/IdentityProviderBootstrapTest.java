@@ -48,6 +48,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
 import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.PROVIDER_DESCRIPTION;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
@@ -96,9 +97,11 @@ class IdentityProviderBootstrapTest {
         samlIdentityProviderDefinition.setNameID("nameId");
         samlIdentityProviderDefinition.setShowSamlLink(true);
         samlIdentityProviderDefinition.setMetadataTrustCheck(true);
+        samlIdentityProviderDefinition.setIdpEntityId("alias");
 
         samlIdentityProviderDefinition1 = samlIdentityProviderDefinition.clone();
         samlIdentityProviderDefinition1.setIdpEntityAlias("alias2");
+        samlIdentityProviderDefinition1.setIdpEntityId("alias2");
         samlIdentityProviderDefinition1.setMetaDataLocation("http://location2");
 
         oauthProvider = new RawExternalOAuthIdentityProviderDefinition();
@@ -438,7 +441,7 @@ class IdentityProviderBootstrapTest {
 
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
+        IdentityProvider samlProvider = provisioning.retrieveByExternId(samlIdentityProviderDefinition.getIdpEntityAlias(), SAML, IdentityZone.getUaaZoneId());
         assertNotNull(samlProvider);
         samlIdentityProviderDefinition.setZoneId(IdentityZone.getUaaZoneId());
         assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());

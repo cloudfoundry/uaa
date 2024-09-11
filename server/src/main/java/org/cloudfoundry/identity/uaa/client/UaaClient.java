@@ -48,7 +48,7 @@ public class UaaClient extends User {
     }
   }
 
-  private Map<String, Object> getAdditionalInformation() {
+  public Map<String, Object> getAdditionalInformation() {
     return this.additionalInformation;
   }
 

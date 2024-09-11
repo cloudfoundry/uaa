@@ -25,6 +25,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
@@ -1434,6 +1435,7 @@ class IdentityProviderEndpointsAliasMockMvcTests {
         switch (type) {
             case OIDC10:
                 final OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
+                definition.setAuthMethod(ClientAuthentication.CLIENT_SECRET_BASIC);
                 try {
                     return definition
                             .setAuthUrl(new URL("https://www.example.com/oauth/authorize"))

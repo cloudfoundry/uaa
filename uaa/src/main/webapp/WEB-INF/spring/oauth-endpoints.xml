@@ -543,8 +543,6 @@
         <constructor-arg name="timeService" ref="timeService"/>
     </bean>
 
-    <bean id="timeService" class="org.cloudfoundry.identity.uaa.util.TimeServiceImpl"/>
-
     <bean id="oauthAccessDeniedHandler"
           class="org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler"/>
 
@@ -696,7 +694,6 @@
         <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
         <constructor-arg name="restTemplateConfig" ref="restTemplateConfig"/>
         <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <constructor-arg name="externalOAuthProviderProvisioning" ref="externalOAuthProviderConfigurator"/>
     </bean>
 

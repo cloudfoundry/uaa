@@ -158,20 +158,11 @@ public class SamlLoginIT {
     public void setup() {
         String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
 
-        ScimGroup group = new ScimGroup(null, "zones.uaa.admin", null);
-        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
-
-        group = new ScimGroup(null, "zones.testzone1.admin", null);
-        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
-
-        group = new ScimGroup(null, "zones.testzone2.admin", null);
-        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
-
-        group = new ScimGroup(null, "zones.testzone3.admin", null);
-        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
-
-        group = new ScimGroup(null, "zones.testzone4.admin", null);
-        IntegrationTestUtils.createGroup(token, "", baseUrl, group);
+        IntegrationTestUtils.ensureGroupExists(token, null, baseUrl, "zones.uaa.admin");
+        IntegrationTestUtils.ensureGroupExists(token, null, baseUrl, "zones.testzone1.admin");
+        IntegrationTestUtils.ensureGroupExists(token, null, baseUrl, "zones.testzone2.admin");
+        IntegrationTestUtils.ensureGroupExists(token, null, baseUrl, "zones.testzone3.admin");
+        IntegrationTestUtils.ensureGroupExists(token, null, baseUrl, "zones.testzone4.admin");
     }
 
     @After
@@ -865,8 +856,11 @@ public class SamlLoginIT {
         String samlUserId = IntegrationTestUtils.getUserId(adminTokenInZone, zoneUrl, provider.getOriginKey(), MARISSA4_EMAIL);
         uaaSamlUserGroup = IntegrationTestUtils.getGroup(adminTokenInZone, null, zoneUrl, "uaa.saml.user");
         uaaSamlAdminGroup = IntegrationTestUtils.getGroup(adminTokenInZone, null, zoneUrl, "uaa.saml.admin");
+        IdentityProvider<SamlIdentityProviderDefinition> finalProvider = provider;
         assertTrue(isMember(samlUserId, uaaSamlUserGroup));
+        assertTrue("Expect saml user members to have origin: " + finalProvider.getOriginKey(), uaaSamlUserGroup.getMembers().stream().allMatch(p -> finalProvider.getOriginKey().equals(p.getOrigin())));
         assertTrue(isMember(samlUserId, uaaSamlAdminGroup));
+        assertTrue("Expect admin members to have origin: " + finalProvider.getOriginKey(), uaaSamlAdminGroup.getMembers().stream().allMatch(p -> finalProvider.getOriginKey().equals(p.getOrigin())));
 
     }
 
@@ -1174,6 +1168,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition1 = samlIdentityProviderDefinition.clone();
         samlIdentityProviderDefinition1.setIdpEntityAlias(samlIdentityProviderDefinition.getIdpEntityAlias()+"-1");
         samlIdentityProviderDefinition1.setMetaDataLocation(getValidRandomIDPMetaData());
+        samlIdentityProviderDefinition1.setLinkText("Dummy SAML provider");
         IdentityProvider provider1 = new IdentityProvider();
         provider1.setIdentityZoneId(zoneId);
         provider1.setType(OriginKeys.SAML);
@@ -1191,13 +1186,17 @@ public class SamlLoginIT {
         webDriver.get(testZone1Url + "/login");
         Assert.assertEquals(zone.getName(), webDriver.getTitle());
 
+        // the first provider is shown
         List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
         assertNotNull(elements);
-        assertEquals(2, elements.size());
+        assertEquals(1, elements.size());
+        // the dummy provider is shown
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
+        assertNotNull(elements);
+        assertEquals(1, elements.size());
 
-        WebElement element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition1.getLinkText() + "']"));
-        assertNotNull(element);
-        element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
+        // click on the first provider to login
+        WebElement element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         element.click();
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
@@ -1206,27 +1205,35 @@ public class SamlLoginIT {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(testZone1Url + "/logout.do");
 
-        //disable the provider
+        //disable the first provider
         SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         provider.setActive(false);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
         webDriver.get(testZone1Url + "/login");
         Assert.assertEquals(zone.getName(), webDriver.getTitle());
+        // the first provider is not shown
         elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
+        Assert.assertTrue(elements.isEmpty());
+        // the dummy provider is shown
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
         assertNotNull(elements);
         assertEquals(1, elements.size());
 
-        //enable the provider
+        //enable the first provider
         provider.setActive(true);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
         webDriver.get(testZone1Url + "/login");
         Assert.assertEquals(zone.getName(), webDriver.getTitle());
+        // the first provider is shown
         elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
         assertNotNull(elements);
-        assertEquals(2, elements.size());
-
+        assertEquals(1, elements.size());
+        // the dummy provider is shown
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition1.getLinkText()+"']"));
+        assertNotNull(elements);
+        assertEquals(1, elements.size());
     }
 
     @Test

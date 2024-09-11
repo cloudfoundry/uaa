@@ -15,6 +15,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -62,9 +64,9 @@ public class TokenConstants {
     public static final String GRANT_TYPE_AUTHORIZATION_CODE = "authorization_code";
     public static final String GRANT_TYPE_IMPLICIT = "implicit";
 
-    public static final String CLIENT_AUTH_NONE = "none";
+    public static final String CLIENT_AUTH_NONE = ClientAuthentication.NONE;
     public static final String CLIENT_AUTH_EMPTY = "empty";
-    public static final String CLIENT_AUTH_PRIVATE_KEY_JWT = "private_key_jwt";
+    public static final String CLIENT_AUTH_PRIVATE_KEY_JWT = ClientAuthentication.PRIVATE_KEY_JWT;
 
     public static final String ID_TOKEN_HINT_PROMPT = "prompt";
     public static final String ID_TOKEN_HINT_PROMPT_NONE = "none";

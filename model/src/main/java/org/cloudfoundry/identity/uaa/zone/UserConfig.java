@@ -7,6 +7,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.springframework.lang.Nullable;
+
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class UserConfig {
@@ -29,6 +31,8 @@ public class UserConfig {
 
     private boolean checkOriginEnabled;
 
+    private boolean allowOriginLoop = true;
+
     public List<String> getDefaultGroups() {
         return defaultGroups;
     }
@@ -50,6 +54,7 @@ public class UserConfig {
     }
 
     // return defaultGroups plus allowedGroups
+    @Nullable
     public Set<String> resultingAllowedGroups() {
         if (allGroupsAllowed()) {
             return null; // null = all groups allowed
@@ -74,5 +79,13 @@ public class UserConfig {
 
     public void setCheckOriginEnabled(boolean checkOriginEnabled) {
         this.checkOriginEnabled = checkOriginEnabled;
+    }
+
+    public boolean isAllowOriginLoop() {
+        return this.allowOriginLoop;
+    }
+
+    public void setAllowOriginLoop(final boolean allowAllOrigins) {
+        this.allowOriginLoop = allowAllOrigins;
     }
 }

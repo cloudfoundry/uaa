@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
@@ -380,8 +381,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             Object verifiedObj = claims.get(emailVerifiedClaim == null ? "email_verified" : emailVerifiedClaim);
             boolean verified =  verifiedObj instanceof Boolean ? (Boolean)verifiedObj: false;
 
-            if (email == null) {
-                email = generateEmailIfNull(username);
+            if (!StringUtils.hasText(email)) {
+                email = generateEmailIfNullOrEmpty(username);
             }
 
             logger.debug(String.format("Returning user data for username:%s, email:%s", username, email));
@@ -479,8 +480,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             userFromDb = new UaaUser(getUserDatabase().retrieveUserPrototypeById(invitedUserId));
         }
 
+        boolean isRegisteredIdpAuthentication = isRegisteredIdpAuthentication(request);
+
         //we must check and see if the email address has changed between authentications
-        if (haveUserAttributesChanged(userFromDb, userFromRequest) && isRegisteredIdpAuthentication(request)) {
+        if (haveUserAttributesChanged(userFromDb, userFromRequest) && isRegisteredIdpAuthentication) {
             logger.debug("User attributed have changed, updating them.");
             userFromDb = userFromDb.modifyAttributes(email,
                                                      userFromRequest.getGivenName(),
@@ -492,8 +495,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             userModified = true;
         }
 
-        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
-        publish(event);
+        if (isRegisteredIdpAuthentication) {
+            ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
+            publish(event);
+        }
         return getUserDatabase().retrieveUserById(userFromDb.getId());
     }
 
@@ -597,7 +602,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             RawExternalOAuthIdentityProviderDefinition narrowedConfig = (RawExternalOAuthIdentityProviderDefinition) config;
 
             HttpHeaders headers = new HttpHeaders();
-            headers.add("Authorization", "token " + idToken);
+            headers.add("Authorization", "Bearer " + idToken);
             headers.add("Accept", "application/json");
 
             URI requestUri;
@@ -712,7 +717,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         // https://docs.spring.io/spring-security/site/docs/5.3.1.RELEASE/reference/html5/#initiating-the-authorization-request
         if (config.getRelyingPartySecret() == null) {
             // no secret but jwtClientAuthentication
-            if (config instanceof OIDCIdentityProviderDefinition && ((OIDCIdentityProviderDefinition) config).getJwtClientAuthentication() != null) {
+            if (config instanceof OIDCIdentityProviderDefinition oidcDefinition && ClientAuthentication.PRIVATE_KEY_JWT.equals(
+                ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), false, oidcDefinition.getJwtClientAuthentication() != null))) {
                 body = new JwtClientAuthentication(keyInfoService)
                     .getClientAuthenticationParameters(body, (OIDCIdentityProviderDefinition) config);
             }

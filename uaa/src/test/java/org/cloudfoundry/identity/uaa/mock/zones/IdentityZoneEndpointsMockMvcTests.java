@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
@@ -18,6 +19,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationService;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
@@ -33,6 +36,7 @@ import org.cloudfoundry.identity.uaa.zone.*;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation.Banner;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
@@ -61,6 +65,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat.OPAQUE;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.EMPTY_STRING;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
@@ -494,6 +499,64 @@ class IdentityZoneEndpointsMockMvcTests {
     }
 
     @Test
+    void createZone_ShouldOnlyCreateGroupsForSystemScopesThatAreInAllowList() throws Exception {
+        final String idzId = generator.generate();
+
+        final IdentityZone idz = createSimpleIdentityZone(idzId);
+        idz.getConfig().getUserConfig().setAllowedGroups(List.of("scim.write", "scim.read"));
+        idz.getConfig().getUserConfig().setDefaultGroups(Collections.emptyList());
+
+        // create the zone
+        mockMvc.perform(
+                post("/identity-zones")
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(idz))
+        ).andExpect(status().isCreated());
+
+        final String zoneAdminUserToken = createZoneAdminAndGetToken(idzId);
+
+        final SearchResults<ScimGroup> groupsResult = MockMvcUtils.getGroups(mockMvc, zoneAdminUserToken, idzId);
+        Assertions.assertNotNull(groupsResult);
+        Assertions.assertEquals(2, groupsResult.getTotalResults());
+
+        final Set<String> groupNamesInZone = groupsResult.getResources().stream()
+                .map(ScimGroup::getDisplayName)
+                .collect(Collectors.toSet());
+        Assertions.assertEquals(2, groupNamesInZone.size());
+        Assertions.assertTrue(groupNamesInZone.contains("scim.read"));
+        Assertions.assertTrue(groupNamesInZone.contains("scim.write"));
+    }
+
+    private String createZoneAdminAndGetToken(final String idzId) throws Exception {
+        final String adminToken = MockMvcUtils.getClientOAuthAccessToken(
+                mockMvc,
+                "admin",
+                "adminsecret",
+                EMPTY_STRING
+        );
+
+        final String zoneAdminScope = "zones.%s.admin".formatted(idzId);
+        final ScimUser zoneAdminUser = MockMvcUtils.createAdminForZone(
+                mockMvc,
+                adminToken,
+                zoneAdminScope,
+                IdentityZone.getUaaZoneId()
+        );
+
+        return MockMvcUtils.getUserOAuthAccessToken(
+                mockMvc,
+                "identity",
+                "identitysecret",
+                zoneAdminUser.getUserName(),
+                "secr3T",
+                zoneAdminScope,
+                IdentityZone.getUaa()
+        );
+    }
+
+
+    @Test
     void testCreateZoneInsufficientScope() throws Exception {
         String id = new AlphanumericRandomValueStringGenerator().generate();
         createZone(id, HttpStatus.FORBIDDEN, lowPriviledgeToken, new IdentityZoneConfiguration());
@@ -711,16 +774,12 @@ class IdentityZoneEndpointsMockMvcTests {
 
         SamlConfig samlConfig = created.getConfig().getSamlConfig();
 
-
-        samlConfig.setAssertionTimeToLiveSeconds(77);
-
         samlConfig.setPrivateKey(null);
         samlConfig.setPrivateKeyPassword(null);
         updateZone(created, HttpStatus.OK, identityClientToken);
 
         IdentityZone updated = provisioning.retrieve(created.getId());
         SamlConfig updatedSamlConfig = updated.getConfig().getSamlConfig();
-        assertEquals(77, samlConfig.getAssertionTimeToLiveSeconds());
         assertEquals(serviceProviderCertificate, updatedSamlConfig.getCertificate());
         assertEquals(serviceProviderKey, updatedSamlConfig.getPrivateKey());
         assertEquals(serviceProviderKeyPassword, updatedSamlConfig.getPrivateKeyPassword());
@@ -733,8 +792,6 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
 
         SamlConfig samlConfig = created.getConfig().getSamlConfig();
-
-        samlConfig.setAssertionTimeToLiveSeconds(77);
 
         samlConfig.setCertificate(KeyWithCertTest.invalidCert);
         samlConfig.setPrivateKey(null);
@@ -749,8 +806,6 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
 
         SamlConfig samlConfig = created.getConfig().getSamlConfig();
-
-        samlConfig.setAssertionTimeToLiveSeconds(77);
 
         samlConfig.setCertificate(null);
         samlConfig.setPrivateKey(serviceProviderKey);
@@ -1695,6 +1750,33 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(deletedEvent.getIdentityZoneId(), is(id));
         String auditedIdentityZone = deletedEvent.getAuditEvent().getData();
         assertThat(auditedIdentityZone, containsString(id));
+    }
+
+    @Test
+    void testDeleteZone_ShouldFail_WhenIdpWithAliasExistsInZone() throws Exception {
+        // create zone
+        final String idzId = generator.generate();
+        createZone(idzId, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
+
+        // create IdP with alias (via DB, since alias feature is disabled by default)
+        final JdbcIdentityProviderProvisioning idpProvisioning = webApplicationContext
+                .getBean(JdbcIdentityProviderProvisioning.class);
+        final IdentityProvider<OIDCIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setName("some-idp");
+        idp.setId(UUID.randomUUID().toString());
+        idp.setIdentityZoneId(idzId);
+        idp.setOriginKey("some-origin-key");
+        idp.setAliasZid(IdentityZone.getUaaZoneId());
+        idp.setAliasId(UUID.randomUUID().toString());
+        idp.setType(OriginKeys.OIDC10);
+        idpProvisioning.create(idp, idzId);
+
+        // deleting zone should fail
+        mockMvc.perform(
+                delete("/identity-zones/" + idzId)
+                        .header("Authorization", "Bearer " + identityClientToken)
+                        .accept(APPLICATION_JSON)
+        ).andExpect(status().isUnprocessableEntity());
     }
 
     @Test
