@@ -40,6 +40,7 @@ class JdbcPagingListTests {
         jdbcTemplate.execute("insert into foo (id, name) values (2, 'baz')");
         jdbcTemplate.execute("insert into foo (id, name) values (3, 'zab')");
         jdbcTemplate.execute("insert into foo (id, name) values (4, 'rab')");
+        jdbcTemplate.execute("insert into foo (id, name) values (5, 'FoO')");
 
     }
 
@@ -112,6 +113,17 @@ class JdbcPagingListTests {
         Map<String, Object> map = list.get(3);
         assertNotNull(map.get("name"));
         assertEquals("zab", map.get("name"));
+    }
+
+    @Test
+    void selectMoreColumnsWithOrderBy() {
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT Foo.id, FOO.NAME FrOm foo wHere foo.name = 'FoO' OR foo.name = 'foo' OrDeR By foo.name", new ColumnMapRowMapper(), 3);
+        Map<String, Object> map = list.get(0);
+        assertNotNull(map.get("name"));
+        assertEquals("FoO", map.get("name"));
+        map = list.get(1);
+        assertNotNull(map.get("name"));
+        assertEquals("foo", map.get("name"));
     }
 
     @Test
