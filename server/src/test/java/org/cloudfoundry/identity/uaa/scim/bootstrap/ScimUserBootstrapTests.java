@@ -695,7 +695,7 @@ class ScimUserBootstrapTests {
         String userId = new RandomValueStringGenerator().generate();
         String username = new RandomValueStringGenerator().generate();
         UaaUser user = getUaaUser(externalAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
-        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(user), false, Collections.emptyList());
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(user), false, Collections.emptyList(), false);
         bootstrap.afterPropertiesSet();
 
         List<ScimUser> users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
