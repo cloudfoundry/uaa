@@ -136,6 +136,7 @@
         <entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException" value="CONFLICT"/>
         <entry key="org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException" value="CONFLICT"/>
         <entry key="org.springframework.jdbc.BadSqlGrammarException" value="BAD_REQUEST"/>
+        <entry key="org.springframework.dao.DataAccessException" value="UNPROCESSABLE_ENTITY"/>
     </util:map>
 
     <http name="groupEndpointSecurity" pattern="/Groups/**" create-session="stateless"
