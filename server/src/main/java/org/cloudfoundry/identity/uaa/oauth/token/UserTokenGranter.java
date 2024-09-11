@@ -15,28 +15,28 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AbstractTokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.token.AbstractTokenGranter;
-import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 
-public class UserTokenGranter  extends AbstractTokenGranter {
+public class UserTokenGranter extends AbstractTokenGranter {
 
     private MultitenantClientServices clientDetailsService;
     private RevocableTokenProvisioning tokenStore;

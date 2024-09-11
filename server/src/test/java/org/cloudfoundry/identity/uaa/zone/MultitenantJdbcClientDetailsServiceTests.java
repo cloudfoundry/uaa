@@ -9,6 +9,9 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -17,14 +20,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
@@ -76,6 +77,7 @@ class MultitenantJdbcClientDetailsServiceTests {
     private String dbRequestedUserGroups = "uaa.user,uaa.something";
     private UaaClientDetails baseClientDetails;
     private JdbcTemplate spyJdbcTemplate;
+    private NamedParameterJdbcTemplate spyNamedJdbcTemplate;
     private IdentityZoneManager mockIdentityZoneManager;
     private String currentZoneId;
 
@@ -85,16 +87,21 @@ class MultitenantJdbcClientDetailsServiceTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
+
     @BeforeEach
     void setup() {
         randomValueStringGenerator = new AlphanumericRandomValueStringGenerator();
         jdbcTemplate.update("DELETE FROM oauth_client_details");
         SecurityContextHolder.getContext().setAuthentication(mock(Authentication.class));
+        spyNamedJdbcTemplate = spy(namedJdbcTemplate);
         spyJdbcTemplate = spy(jdbcTemplate);
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         currentZoneId = "currentZoneId-" + randomValueStringGenerator.generate();
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(currentZoneId);
-        service = spy(new MultitenantJdbcClientDetailsService(spyJdbcTemplate, mockIdentityZoneManager, passwordEncoder));
+        when(spyNamedJdbcTemplate.getJdbcTemplate()).thenReturn(spyJdbcTemplate);
+        service = spy(new MultitenantJdbcClientDetailsService(spyNamedJdbcTemplate, mockIdentityZoneManager, passwordEncoder));
 
         baseClientDetails = new UaaClientDetails();
         String clientId = "client-with-id-" + new AlphanumericRandomValueStringGenerator(36).generate();

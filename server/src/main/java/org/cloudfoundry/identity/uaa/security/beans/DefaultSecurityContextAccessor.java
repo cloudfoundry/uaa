@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.security.beans;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.expression.OAuth2ExpressionUtils;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -9,8 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;

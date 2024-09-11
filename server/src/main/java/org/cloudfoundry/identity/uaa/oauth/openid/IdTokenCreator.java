@@ -11,7 +11,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.Date;
 import java.util.List;

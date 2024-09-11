@@ -20,10 +20,6 @@ public interface AttributeNameMapper {
 
     String mapToInternal(String attr);
 
-    String[] mapToInternal(String[] attr);
-
     String mapFromInternal(String attr);
-
-    String[] mapFromInternal(String[] attr);
 
 }

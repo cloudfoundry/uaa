@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
@@ -22,7 +23,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
@@ -52,6 +52,8 @@ public class PrivateKeyJwtClientAuthIT {
   //jwt.token.signing-key from uaa.yml
   @Value("${integration.test.signing-key}")
   private String jwtTokenSigningKey;
+  @Value("${integration.test.signing-keyid}")
+  private String jwtTokenSigningKeyId;
 
   @Autowired
   @Rule
@@ -225,7 +227,7 @@ public class PrivateKeyJwtClientAuthIT {
       String accessToken = IntegrationTestUtils.getAuthorizationCodeToken(
           serverRunning,
           usedClientId,
-          testClient.createClientJwt(usedClientId, jwtTokenSigningKey),
+          testClient.createClientJwt(usedClientId, jwtTokenSigningKeyId, jwtTokenSigningKey),
           testAccounts.getUserName(),
           testAccounts.getPassword(),
           null,
@@ -300,7 +302,7 @@ public class PrivateKeyJwtClientAuthIT {
       postBody.add(extraKey, extraValue);
     }
     postBody.add("token_format", "jwt");
-    postBody.add(JwtClientAuthentication.CLIENT_ASSERTION, testClient.createClientJwt(clientId, jwtTokenSigningKey));
+    postBody.add(JwtClientAuthentication.CLIENT_ASSERTION, testClient.createClientJwt(clientId, jwtTokenSigningKeyId, jwtTokenSigningKey));
     postBody.add(JwtClientAuthentication.CLIENT_ASSERTION_TYPE, JwtClientAuthentication.GRANT_TYPE);
 
     ResponseEntity<Map> responseEntity;

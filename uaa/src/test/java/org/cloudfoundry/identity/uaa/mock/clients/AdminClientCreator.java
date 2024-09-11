@@ -9,8 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 

@@ -6,6 +6,8 @@ import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.common.util.DefaultJdbcListFactory;
+import org.cloudfoundry.identity.uaa.oauth.common.util.JdbcListFactory;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
@@ -25,10 +27,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.common.util.DefaultJdbcListFactory;
-import org.springframework.security.oauth2.common.util.JdbcListFactory;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -116,13 +116,13 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     private JdbcListFactory listFactory;
 
     public MultitenantJdbcClientDetailsService(
-            final JdbcTemplate jdbcTemplate,
+            final NamedParameterJdbcTemplate jdbcTemplate,
             final IdentityZoneManager identityZoneManager,
             final @Qualifier("cachingPasswordEncoder") PasswordEncoder passwordEncoder) {
         super(identityZoneManager);
         Assert.notNull(jdbcTemplate, "JDbcTemplate required");
-        this.jdbcTemplate = jdbcTemplate;
-        this.listFactory = new DefaultJdbcListFactory(new NamedParameterJdbcTemplate(jdbcTemplate));
+        this.jdbcTemplate = jdbcTemplate.getJdbcTemplate();
+        this.listFactory = new DefaultJdbcListFactory(jdbcTemplate);
         this.passwordEncoder = passwordEncoder;
     }
 

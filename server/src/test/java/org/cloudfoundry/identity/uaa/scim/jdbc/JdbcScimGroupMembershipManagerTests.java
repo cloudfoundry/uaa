@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -29,9 +30,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -87,6 +89,9 @@ class JdbcScimGroupMembershipManagerTests {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     private LimitSqlAdapter limitSqlAdapter;
 
     @Autowired
@@ -100,9 +105,9 @@ class JdbcScimGroupMembershipManagerTests {
 
         dbUtils = new DbUtils();
 
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
-        JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate));
-        jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory, dbUtils);
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter);
+        JdbcScimUserProvisioning jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new SimpleSearchQueryConverter(), new TimeServiceImpl(), true);
+        jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
 
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
                 jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null, dbUtils);

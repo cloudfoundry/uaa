@@ -3,12 +3,14 @@ package org.cloudfoundry.identity.uaa.account;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapterFactory;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -18,9 +20,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.is;
@@ -44,12 +47,13 @@ class PasswordChangeEndpointTests {
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void setup(@Autowired JdbcTemplate jdbcTemplate) {
+    void setup(@Autowired JdbcTemplate jdbcTemplate, @Autowired NamedParameterJdbcTemplate namedJdbcTemplate) {
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
-                jdbcTemplate,
-                new JdbcPagingListFactory(jdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
-                passwordEncoder, mockIdentityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate));
+                namedJdbcTemplate,
+                new JdbcPagingListFactory(namedJdbcTemplate, LimitSqlAdapterFactory.getLimitSqlAdapter()),
+                passwordEncoder, mockIdentityZoneManager, new JdbcIdentityZoneProvisioning(jdbcTemplate),
+                new SimpleSearchQueryConverter(), new SimpleSearchQueryConverter(), new TimeServiceImpl(), true);
 
         final RandomValueStringGenerator generator = new RandomValueStringGenerator();
 

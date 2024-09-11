@@ -19,15 +19,16 @@ import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationDetails;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
 
+import java.io.Serial;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -46,14 +47,14 @@ import static org.springframework.util.StringUtils.hasText;
 public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = -7639844193401892160L;
-    private transient final String zoneId;
+    private final transient String zoneId;
 
     private Authentication authentication;
 
     protected AbstractUaaEvent(Object source, String zoneId) {
         super(source);
-        if (source instanceof Authentication) {
-            this.authentication = (Authentication)source;
+        if (source instanceof Authentication authenticationSource) {
+            this.authentication = authenticationSource;
         }
         this.zoneId = zoneId;
     }
@@ -89,53 +90,52 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
     // due to some OAuth authentication scenarios which don't set it.
     protected String getOrigin(Principal principal) {
 
-        if (principal instanceof Authentication) {
-
-            Authentication caller = (Authentication) principal;
-            StringBuilder builder = new StringBuilder();
-            if (caller instanceof OAuth2Authentication) {
-                OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) caller;
-                builder.append("client=").append(oAuth2Authentication.getOAuth2Request().getClientId());
-                if (!oAuth2Authentication.isClientOnly()) {
-                    builder.append(", ").append("user=").append(oAuth2Authentication.getName());
-                }
-            }
-            else {
-                builder.append("caller=").append(caller.getName());
-            }
-
-
-            if (caller.getDetails() != null) {
-                builder.append(", details=(");
-                try {
-                    @SuppressWarnings("unchecked")
-                    Map<String, Object> map =
-                        JsonUtils.readValue((String)caller.getDetails(), new TypeReference<Map<String,Object>>(){});
-                    if (map.containsKey("remoteAddress")) {
-                        builder.append("remoteAddress=").append(map.get("remoteAddress")).append(", ");
-                    }
-                    builder.append("type=").append(caller.getDetails().getClass().getSimpleName());
-                } catch (Exception e) {
-                    // ignore
-                    builder.append(caller.getDetails());
-                }
-                appendTokenDetails(caller, builder);
-                builder.append(")");
-            }
-            return builder.toString();
-
+        if (principal instanceof Authentication caller) {
+            return getAuthenticationString(caller);
         }
 
         return principal == null ? null : principal.getName();
 
     }
 
+    private String getAuthenticationString(Authentication caller) {
+        StringBuilder builder = new StringBuilder();
+        if (caller instanceof OAuth2Authentication oAuth2Authentication) {
+            builder.append("client=").append(oAuth2Authentication.getOAuth2Request().getClientId());
+            if (!oAuth2Authentication.isClientOnly()) {
+                builder.append(", ").append("user=").append(oAuth2Authentication.getName());
+            }
+        }
+        else {
+            builder.append("caller=").append(caller.getName());
+        }
+
+        if (caller.getDetails() != null) {
+            builder.append(", details=(");
+            try {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map =
+                    JsonUtils.readValue((String) caller.getDetails(), new TypeReference<Map<String,Object>>(){});
+                if (map.containsKey("remoteAddress")) {
+                    builder.append("remoteAddress=").append(map.get("remoteAddress")).append(", ");
+                }
+                builder.append("type=").append(caller.getDetails().getClass().getSimpleName());
+            } catch (Exception e) {
+                // ignore
+                builder.append(caller.getDetails());
+            }
+            appendTokenDetails(caller, builder);
+            builder.append(")");
+        }
+        return builder.toString();
+    }
+
     protected void appendTokenDetails(Authentication caller, StringBuilder builder) {
         String tokenValue = null;
-        if (caller instanceof UaaOauth2Authentication) {
-            tokenValue = ((UaaOauth2Authentication)caller).getTokenValue();
-        } else if (caller.getDetails() instanceof OAuth2AuthenticationDetails) {
-            tokenValue = ((OAuth2AuthenticationDetails)authentication.getDetails()).getTokenValue();
+        if (caller instanceof UaaOauth2Authentication uaaOauth2Authentication) {
+            tokenValue = uaaOauth2Authentication.getTokenValue();
+        } else if (caller.getDetails() instanceof OAuth2AuthenticationDetails oAuth2AuthenticationDetails) {
+            tokenValue = oAuth2AuthenticationDetails.getTokenValue();
         }
         if (hasText(tokenValue)) {
             if (isJwtToken(tokenValue)) {
@@ -161,9 +161,10 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
         if (a==null) {
             a = new Authentication() {
-                private static final long serialVersionUID = 1748694836774597624L;
 
-                ArrayList<GrantedAuthority> authorities = new ArrayList<GrantedAuthority>();
+                @Serial
+                private static final long serialVersionUID = -6219210214210936383L;
+                ArrayList<GrantedAuthority> authorities = new ArrayList<>(0);
                 @Override
                 public Collection<? extends GrantedAuthority> getAuthorities() {
                     return authorities;
@@ -191,6 +192,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
 
                 @Override
                 public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
+                // ignore
                 }
 
                 @Override

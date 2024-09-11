@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.account;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 
 @Data
 @NoArgsConstructor
@@ -18,7 +19,7 @@ public class OpenIdConfiguration {
     private String tokenUrl;
 
     @JsonProperty("token_endpoint_auth_methods_supported")
-    private String[] tokenAMR = new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt"};
+    private String[] tokenAMR = new String[]{ClientAuthentication.CLIENT_SECRET_BASIC, ClientAuthentication.CLIENT_SECRET_POST, ClientAuthentication.PRIVATE_KEY_JWT};
 
     @JsonProperty("token_endpoint_auth_signing_alg_values_supported")
     private String[] tokenEndpointAuthSigningValues = new String[]{"RS256", "HS256"};

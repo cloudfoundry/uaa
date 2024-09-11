@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator;
 import org.cloudfoundry.identity.uaa.client.ClientDetailsValidator.Mode;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Component;
 
 @Component("zoneEndpointsClientRegistrationService")

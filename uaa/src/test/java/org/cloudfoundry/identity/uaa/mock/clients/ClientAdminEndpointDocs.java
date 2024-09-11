@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -14,7 +15,7 @@ import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.util.*;
@@ -79,9 +80,10 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
 
     private static final FieldDescriptor[] clientJwtChangeFields = new FieldDescriptor[]{
         fieldWithPath("client_id").required().description(clientIdDescription),
-        fieldWithPath("kid").optional(UPDATE).type(STRING).description("If change mode is set to `"+DELETE+"`, the `id of the key` that will be deleted. The kid parameter is only possible if jwks configuration is used."),
-        fieldWithPath("jwks").constrained("Optional if jwks_uri is used. Required otherwise.").type(STRING).description("A valid JSON string according JSON Web Key Set standard, see [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517), e.g. content of /token_keys endpoint from UAA"),
-        fieldWithPath("jwks_uri").constrained("Optional if jwks is used. Required otherwise.").type(STRING).description("A valid URI to token keys endpoint. Must be compliant to jwks_uri from [OpenID Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html).")
+        fieldWithPath("jwks").constrained("Optional only, if jwks_uri is used. Required otherwise.").type(STRING).description("A valid JSON string according JSON Web Key Set standard, see [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517), e.g. content of /token_keys endpoint from UAA"),
+        fieldWithPath("jwks_uri").constrained("Optional only, if jwks is used. Required otherwise.").type(STRING).description("A valid URI to token keys endpoint. Must be compliant to jwks_uri from [OpenID Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html)."),
+        fieldWithPath("kid").constrained("Optional only, if a single JWK should be deleted, else ignored.").type(STRING).description("If change mode is set to `"+ClientJwtChangeRequest.ChangeMode.DELETE+"`, it specifies `the id of the key` that will be deleted. The kid parameter is only applicable when jwks configuration is used."),
+        fieldWithPath("changeMode").optional(ClientJwtChangeRequest.ChangeMode.ADD).type(STRING).description("If change mode is set to `"+ClientJwtChangeRequest.ChangeMode.ADD+"`, the new `JWKS` will be added to the existing configuration and if the change mode is set to `"+ClientJwtChangeRequest.ChangeMode.DELETE+"`, the old `JWKS` will be deleted. The option `"+ClientJwtChangeRequest.ChangeMode.UPDATE+"` enables changes to the complete trust setting and allows switching between `JWKS` and `JWKS_URI`.")
     };
 
     @BeforeEach

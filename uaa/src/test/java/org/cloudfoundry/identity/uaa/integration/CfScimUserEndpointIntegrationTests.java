@@ -15,6 +15,9 @@ package org.cloudfoundry.identity.uaa.integration;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2ErrorHandler;
+import org.cloudfoundry.identity.uaa.oauth.client.test.BeforeOAuth2Context;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextConfiguration;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextSetup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -26,10 +29,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.BeforeOAuth2Context;
-import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
-import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
@@ -64,7 +64,7 @@ public class CfScimUserEndpointIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Rule
-    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccountSetup);
 
     @BeforeOAuth2Context
     @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)

@@ -1,10 +1,10 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 

@@ -27,7 +27,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.sql.Timestamp;
 import java.util.Collections;

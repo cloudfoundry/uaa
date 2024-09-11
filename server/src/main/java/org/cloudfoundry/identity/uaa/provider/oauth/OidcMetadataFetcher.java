@@ -13,6 +13,8 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -47,13 +49,13 @@ public class OidcMetadataFetcher {
         }
     }
 
-    public JsonWebKeySet<JsonWebKey> fetchWebKeySet(AbstractExternalOAuthIdentityProviderDefinition config)
+    public JsonWebKeySet<JsonWebKey> fetchWebKeySet(AbstractExternalOAuthIdentityProviderDefinition<?> config)
         throws OidcMetadataFetchingException {
         URL tokenKeyUrl = config.getTokenKeyUrl();
         if (tokenKeyUrl == null || !org.springframework.util.StringUtils.hasText(tokenKeyUrl.toString())) {
             return new JsonWebKeySet<>(Collections.emptyList());
         }
-        byte[] rawContents = getJsonBody(tokenKeyUrl.toString(), config.isSkipSslValidation(), getClientAuthHeader(config));
+        byte[] rawContents = getJsonBody(tokenKeyUrl.toString(), config.isSkipSslValidation(), config.isCacheJwks(), getClientAuthHeader(config));
         if (rawContents == null || rawContents.length == 0) {
             throw new OidcMetadataFetchingException("Unable to fetch verification keys");
         }
@@ -68,7 +70,7 @@ public class OidcMetadataFetcher {
         if (clientJwtConfiguration.getJwkSet() != null) {
             return clientJwtConfiguration.getJwkSet();
         } else if (clientJwtConfiguration.getJwksUri() != null) {
-            byte[] rawContents = getJsonBody(clientJwtConfiguration.getJwksUri(), false, null);
+            byte[] rawContents = getJsonBody(clientJwtConfiguration.getJwksUri(), false, true, null);
             if (rawContents != null && rawContents.length > 0) {
                 ClientJwtConfiguration clientKeys = ClientJwtConfiguration.parse(null, new String(rawContents, StandardCharsets.UTF_8));
                 if (clientKeys != null && clientKeys.getJwkSet() != null) {
@@ -79,21 +81,44 @@ public class OidcMetadataFetcher {
         throw new OidcMetadataFetchingException("Unable to fetch verification keys");
     }
 
-    private byte[] getJsonBody(String uri, boolean isSkipSslValidation, String authorizationValue) {
+    private byte[] getJsonBody(String uri, boolean isSkipSslValidation, boolean isCached, String authorizationValue) {
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         if (authorizationValue != null) {
             headers.add("Authorization", authorizationValue);
         }
         headers.add("Accept", "application/json");
-        HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
-        if (isSkipSslValidation) {
-            return contentCache.getUrlContent(uri, trustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
+        HttpEntity<Object> tokenKeyRequest = new HttpEntity<>(null, headers);
+        if (isCached) {
+            return getCachedResponse(uri, isSkipSslValidation, HttpMethod.GET, tokenKeyRequest);
         } else {
-            return contentCache.getUrlContent(uri, nonTrustingRestTemplate, HttpMethod.GET, tokenKeyRequest);
+            return getResponse(uri, isSkipSslValidation, HttpMethod.GET, tokenKeyRequest);
         }
     }
 
-    private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition config) {
+    private byte[] getResponse(String uri, boolean isSkipSslValidation, HttpMethod method, HttpEntity<Object> header) {
+        ResponseEntity<byte[]> responseEntity;
+        if (isSkipSslValidation) {
+            responseEntity = trustingRestTemplate.exchange(uri, method, header, byte[].class);
+        } else {
+            responseEntity = nonTrustingRestTemplate.exchange(uri, method, header, byte[].class);
+        }
+        if (responseEntity.getStatusCode() == HttpStatus.OK) {
+            return responseEntity.getBody();
+        } else {
+            throw new IllegalArgumentException(
+                "Unable to fetch content, status:" + responseEntity.getStatusCode().getReasonPhrase());
+        }
+    }
+
+    private byte[] getCachedResponse(String uri, boolean isSkipSslValidation, HttpMethod method, HttpEntity<Object> header) {
+        if (isSkipSslValidation) {
+            return contentCache.getUrlContent(uri, trustingRestTemplate, method, header);
+        } else {
+            return contentCache.getUrlContent(uri, nonTrustingRestTemplate, method, header);
+        }
+    }
+
+    private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition<?> config) {
         if (config.getRelyingPartySecret() == null) {
             return null;
         }

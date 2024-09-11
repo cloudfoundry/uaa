@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.logging.SanitizedLogFactory;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -14,8 +15,6 @@ import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -26,7 +25,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
@@ -64,7 +63,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 @RequestMapping("/identity-zones")
 public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
-    private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
+    private static final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(IdentityZoneEndpoints.class);
     private static final String ID_SUBDOMAIN_LOGGING = "[{}] subdomain [{}]";
 
     private final IdentityZoneProvisioning zoneDao;
@@ -336,7 +335,15 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             IdentityZone zone = zoneDao.retrieveIgnoreActiveFlag(id);
             // ignore the id in the body, the id in the path is the only one that matters
             IdentityZoneHolder.set(zone);
-            if (publisher != null && zone != null) {
+
+            /* reject deletion if an IdP with alias exists in the zone - checking for users with alias is not required
+             * here, since they can only exist if their origin IdP has an alias as well */
+            final boolean idpWithAliasExists = idpDao.idpWithAliasExistsInZone(zone.getId());
+            if (idpWithAliasExists) {
+                return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+            }
+
+            if (publisher != null) {
                 publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return new ResponseEntity<>(removeKeys(zone), OK);

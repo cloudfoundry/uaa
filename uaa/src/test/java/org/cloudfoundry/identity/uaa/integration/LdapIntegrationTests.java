@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -32,7 +31,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
@@ -57,8 +56,7 @@ public class LdapIntegrationTests {
     public void setup() {
         String token = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
 
-        ScimGroup group = new ScimGroup(null, "zones.testzone1.admin", null);
-        IntegrationTestUtils.createGroup(token, "", serverRunning.getBaseUrl(), group);
+        IntegrationTestUtils.ensureGroupExists(token, "", serverRunning.getBaseUrl(), "zones.testzone1.admin");
     }
 
     @After

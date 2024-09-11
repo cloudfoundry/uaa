@@ -828,6 +828,14 @@ public class ScimUserTests {
     }
 
     @Test
+    public void testScimUserAliasDeserialization() {
+        user.setAliasId("aliasId");
+        user.setAliasZid("custom");
+        String staticJson = "{\"id\":\"id\",\"externalId\":\"\",\"meta\":{\"version\":0},\"userName\":\"uname\",\"name\":{\"formatted\":\"gname fname\",\"familyName\":\"fname\",\"givenName\":\"gname\"},\"emails\":[{\"value\":\"test@example.org\",\"primary\":false}],\"phoneNumbers\":[{\"value\":\"0123456789\"}],\"displayName\":\"display\",\"title\":\"title\",\"locale\":\"en.UTF-8\",\"active\":true,\"verified\":true,\"origin\":\"\",\"aliasZid\":\"custom\",\"aliasId\":\"aliasId\",\"password\":\"password\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+        assertEquals(user, JsonUtils.readValue(staticJson, ScimUser.class));
+    }
+
+    @Test
     public void testPatchVerified() {
         user.setVerified(false);
         patch.setVerified(true);

@@ -80,9 +80,9 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
@@ -802,6 +802,24 @@ public final class MockMvcUtils {
         } else {
             return results.getResources().iterator().next();
         }
+    }
+
+    public static SearchResults<ScimGroup> getGroups(final MockMvc mockMvc, final String accessToken, final String idzId) throws Exception {
+        final MockHttpServletRequestBuilder builder = get("/Groups");
+        if (hasText(idzId)) {
+            builder.header("X-Identity-Zone-Id", idzId);
+        }
+        final SearchResults<ScimGroup> results = JsonUtils.readValue(
+                mockMvc.perform(builder
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(APPLICATION_JSON))
+                        .andReturn().getResponse().getContentAsString(),
+                new TypeReference<SearchResults<ScimGroup>>() {
+                });
+        if (results == null || results.getResources() == null || results.getResources().isEmpty()) {
+            return null;
+        }
+        return results;
     }
 
     public static ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {

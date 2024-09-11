@@ -25,9 +25,12 @@ import org.cloudfoundry.identity.uaa.util.UaaRandomStringUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -104,6 +107,8 @@ class LoginInfoEndpointTests {
     private IdentityProviderProvisioning mockIdentityProviderProvisioning;
     private IdentityProvider uaaIdentityProvider;
     private IdentityZoneConfiguration originalConfiguration;
+    private IdentityZoneProvisioning identityZoneProvisioning;
+    private IdentityZoneManager identityZoneManager;
     private ExternalOAuthProviderConfigurator configurator;
 
     @BeforeEach
@@ -119,6 +124,8 @@ class LoginInfoEndpointTests {
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitionsForZone(any())).thenReturn(emptyList());
         mockIdentityProviderProvisioning = mock(IdentityProviderProvisioning.class);
         uaaIdentityProvider = new IdentityProvider();
+        identityZoneProvisioning = mock(IdentityZoneProvisioning.class);
+        identityZoneManager = new IdentityZoneManagerImpl();
         when(mockIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(eq(OriginKeys.UAA), anyString())).thenReturn(uaaIdentityProvider);
         when(mockIdentityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.LDAP), anyString())).thenReturn(new IdentityProvider());
         idps = getIdps();
@@ -127,7 +134,7 @@ class LoginInfoEndpointTests {
         IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
         UaaRandomStringUtil randomStringUtil = mock(UaaRandomStringUtil.class);
         when(randomStringUtil.getSecureRandom(anyInt())).thenReturn("01234567890123456789012345678901234567890123456789");
-        configurator = new ExternalOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher, randomStringUtil);
+        configurator = new ExternalOAuthProviderConfigurator(mockIdentityProviderProvisioning, mockOidcMetadataFetcher, randomStringUtil, identityZoneProvisioning, identityZoneManager);
         extendedModelMap = new ExtendedModelMap();
     }
 
@@ -820,9 +827,9 @@ class LoginInfoEndpointTests {
         when(clientDetailsService.loadClientByClientId("client-id", "uaa")).thenReturn(clientDetails);
 
         List<IdentityProvider> clientAllowedIdps = new LinkedList<>();
-        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
-        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
         clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp3"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
 
         when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(clientAllowedIdps);
 
@@ -830,8 +837,10 @@ class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));
 
-        Map<String, AbstractExternalOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractExternalOAuthIdentityProviderDefinition>) extendedModelMap.asMap().get("oauthLinks");
+        Collection<Map<String, String>> idpDefinitions = (Collection<Map<String, String>>) extendedModelMap.asMap().get("oauthLinks");
         assertEquals(2, idpDefinitions.size());
+        // Expect this always on top of list because of sorting
+        assertEquals("my-OIDC-idp1", ((Map.Entry<String, String>) idpDefinitions.iterator().next()).getValue());
     }
 
     @Test
@@ -1236,7 +1245,7 @@ class LoginInfoEndpointTests {
 
         endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, Collections.singletonList(MediaType.TEXT_HTML));
 
-        assertFalse(((Map)extendedModelMap.get("oauthLinks")).isEmpty());
+        assertFalse(((Collection<Map<String, String>>)extendedModelMap.get("oauthLinks")).isEmpty());
     }
 
     @Test
@@ -1694,7 +1703,7 @@ class LoginInfoEndpointTests {
         assertEquals("{\"origin\":\"uaa\"}", extendedModelMap.get("login_hint"));
         assertEquals("login", redirect);
 
-        Map<String, String> oauthLinks = (Map<String, String>) extendedModelMap.get("oauthLinks");
+        Collection<Map<String, String>> oauthLinks = (Collection<Map<String, String>>) extendedModelMap.get("oauthLinks");
         assertEquals(1, oauthLinks.size());
     }
 
@@ -1805,6 +1814,7 @@ class LoginInfoEndpointTests {
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setAuthUrl(new URL("https://" + originKey + ".com"));
         definition.setRelyingPartySecret("client-secret");
+        definition.setLinkText(originKey);
         oidcIdentityProvider.setConfig(definition);
 
         return oidcIdentityProvider;

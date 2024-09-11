@@ -1,46 +1,28 @@
-/*
- * ****************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- * ****************************************************************************
- */
-
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AbstractTokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.token.AbstractTokenGranter;
-import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 
 public class JwtTokenGranter extends AbstractTokenGranter {
-
-    // TODO: Determine why this needs to be org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor
-    // instead of org.cloudfoundry.identity.uaa.security.beans.DefaultSecurityContextAccessor
-    // The tests fail with the UAA version!
-    final org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor defaultSecurityContextAccessor;
+    final DefaultSecurityContextAccessor defaultSecurityContextAccessor;
 
     protected JwtTokenGranter(AuthorizationServerTokenServices tokenServices,
                               MultitenantClientServices clientDetailsService,
                               OAuth2RequestFactory requestFactory) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_JWT_BEARER);
-        defaultSecurityContextAccessor = new org.springframework.security.oauth2.provider.DefaultSecurityContextAccessor();
+        defaultSecurityContextAccessor = new DefaultSecurityContextAccessor();
     }
 
     protected Authentication validateRequest(TokenRequest request) {

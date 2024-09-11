@@ -2,13 +2,13 @@ package org.cloudfoundry.identity.uaa.login.util;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate;
+import org.cloudfoundry.identity.uaa.oauth.client.DefaultOAuth2ClientContext;
+import org.cloudfoundry.identity.uaa.oauth.client.OAuth2RestTemplate;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.client.ClientHttpRequest;
-import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
-import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;

@@ -11,8 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.util.StringUtils;
 
@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildIdTokenValidator;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 
 public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     final String OPEN_ID_TOKEN_HINT = "id_token_hint";

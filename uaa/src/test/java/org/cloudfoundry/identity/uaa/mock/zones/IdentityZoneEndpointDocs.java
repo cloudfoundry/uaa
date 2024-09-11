@@ -71,12 +71,9 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String REFRESH_TOKEN_ROTATE = "If true, uaa will issue a new refresh token value in grant type refresh_token. Defaults to `false`.";
     private static final String JWT_REVOCABLE_DESC = "Set to true if JWT tokens should be stored in the token store, and thus made individually revocable. Opaque tokens are always stored and revocable.";
     private static final String ENTITY_ID_DESC = "Unique ID of the SAML2 entity";
-    private static final String ASSERTION_SIGNED_DESC = "If `true`, the SAML provider will sign all assertions";
     private static final String WANT_ASSERTION_SIGNED_DESC = "Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.";
     private static final String REQUEST_SIGNED_DESC = "Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.";
-    private static final String WANT_AUTHN_REQUEST_SIGNED_DESC = "If `true`, the authentication request from the partner service provider must be signed.";
     private static final String SAML_DISABLE_IN_RESPONSE_TO_DESC = "If `true`, this zone will not validate the `InResponseToField` part of an incoming IDP assertion. Please see https://docs.spring.io/spring-security-saml/docs/current/reference/html/chapter-troubleshooting.html";
-    private static final String ASSERTION_TIME_TO_LIVE_SECONDS_DESC = "The lifetime of a SAML assertion in seconds. Defaults to 600.";
     private static final String CERTIFICATE_DESC = "Exposed SAML metadata property. The certificate used to verify the authenticity all communications.";
     private static final String PRIVATE_KEY_DESC = "Exposed SAML metadata property. The SAML provider's private key.";
     private static final String PRIVATE_KEY_PASSWORD_DESC = "Exposed SAML metadata property. The SAML provider's private key password. Reserved for future use.";
@@ -127,6 +124,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String USER_CONFIG_USER_LIMIT_DESCRIPTION = "Number of users in the zone. If more than 0, it limits the amount of users in the zone. (defaults to -1, no limit).";
     private static final String USER_CONFIG_USER_LIMIT_CONSTRAINT = "Optional number, default -1, no limit.";
     private static final String USER_CONFIG_CHECK_ORIGIN_ENABLED = "Flag for switching on the check if origin is valid when creating or updating users (defaults to false)";
+    private static final String USER_CONFIG_ALLOW_ORIGIN_LOOP = "Flag for switching off the loop over all origins in a zone (defaults to true)";
 
     private static final String SERVICE_PROVIDER_KEY =
             "-----BEGIN RSA PRIVATE KEY-----\n" +
@@ -240,11 +238,8 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.tokenPolicy.refreshTokenFormat").type(STRING).description(REFRESH_TOKEN_FORMAT).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
                 fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Deprecated")),
@@ -311,6 +306,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
+                fieldWithPath("config.userConfig.allowOriginLoop").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
 
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()
@@ -398,11 +394,8 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
 
                 fieldWithPath("[].config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
-                fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
-                fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
                 fieldWithPath("[].config.samlConfig.entityID").optional().type(STRING).description(ENTITY_ID_DESC),
                 fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
 
@@ -473,6 +466,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
                 fieldWithPath("[].config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("[].config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("optional")).optional().type(BOOLEAN),
+                fieldWithPath("[].config.userConfig.allowOriginLoop").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
 
                 fieldWithPath("[].created").ignored(),
                 fieldWithPath("[].last_modified").ignored()
@@ -549,11 +543,8 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
 
                 fieldWithPath("config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
-                fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
 
                 fieldWithPath("config.samlConfig.entityID").description(ENTITY_ID_DESC).attributes(key("constraints").value("Optional")),
                 fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
@@ -619,6 +610,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).attributes(key("constraints").value("Optional")).optional().type(ARRAY),
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION).attributes(key("constraints").value(USER_CONFIG_USER_LIMIT_CONSTRAINT)).optional().type(NUMBER),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
+                fieldWithPath("config.userConfig.allowOriginLoop").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
 
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()
@@ -736,11 +728,8 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.clientSecretPolicy.requireSpecialCharacter").type(NUMBER).description(SECRET_POLICY_SPECIAL_CHAR).attributes(key("constraints").value("Required when `clientSecretPolicy` in the config is not null")),
 
                 fieldWithPath("config.samlConfig.disableInResponseToCheck").description(SAML_DISABLE_IN_RESPONSE_TO_DESC),
-                fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
                 fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
                 fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
-                fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
-                fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
 
                 fieldWithPath("config.samlConfig.entityID").type(STRING).description(ENTITY_ID_DESC),
                 fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
@@ -802,6 +791,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.userConfig.allowedGroups").description(ALLOWED_ZONE_GROUPS_DESC).optional().type(ARRAY),
                 fieldWithPath("config.userConfig.maxUsers").description(USER_CONFIG_USER_LIMIT_DESCRIPTION),
                 fieldWithPath("config.userConfig.checkOriginEnabled").description(USER_CONFIG_CHECK_ORIGIN_ENABLED).optional().type(BOOLEAN),
+                fieldWithPath("config.userConfig.allowOriginLoop").description(USER_CONFIG_ALLOW_ORIGIN_LOOP).attributes(key("constraints").value("Optional")).optional().type(BOOLEAN),
 
                 fieldWithPath("created").ignored(),
                 fieldWithPath("last_modified").ignored()

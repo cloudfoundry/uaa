@@ -9,10 +9,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -28,6 +29,8 @@ public class ClientAdminBootstrapMultipleSecretsUpdateTests {
 
   @Autowired
   private JdbcTemplate jdbcTemplate;
+  @Autowired
+  private NamedParameterJdbcTemplate namedJdbcTemplate;
   private RandomValueStringGenerator randomValueStringGenerator;
   private String autoApproveId;
   private String allowPublicId;
@@ -47,7 +50,7 @@ public class ClientAdminBootstrapMultipleSecretsUpdateTests {
     PasswordEncoder encoder = new BackwardsCompatibleDelegatingPasswordEncoder(new BCryptPasswordEncoder(10));
     IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
     when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
-    MultitenantJdbcClientDetailsService localJdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, encoder);
+    MultitenantJdbcClientDetailsService localJdbcClientDetailsService = new MultitenantJdbcClientDetailsService(namedJdbcTemplate, mockIdentityZoneManager, encoder);
     ClientMetadataProvisioning localMetadataProvisioning = new JdbcClientMetadataProvisioning(localJdbcClientDetailsService, jdbcTemplate);
     ClientAdminBootstrap localAdminBootstrap = new ClientAdminBootstrap(
         encoder,

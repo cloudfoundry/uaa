@@ -57,6 +57,9 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private boolean skipSslValidation = false;
     private List<String> authnContext;
 
+    @JsonIgnore
+    private String idpEntityId;
+
     public SamlIdentityProviderDefinition() {}
 
     public SamlIdentityProviderDefinition clone() {
@@ -67,6 +70,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation(metaDataLocation);
         def.setIdpEntityAlias(idpEntityAlias);
+        def.setIdpEntityId(idpEntityId);
         def.setZoneId(zoneId);
         def.setNameID(nameID);
         def.setAssertionConsumerIndex(assertionConsumerIndex);
@@ -106,6 +110,16 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
             }
         }
         return MetadataLocation.UNKNOWN;
+    }
+
+    @JsonIgnore
+    public String getIdpEntityId() {
+        return this.idpEntityId;
+    }
+
+    @JsonIgnore
+    public void setIdpEntityId(final String idpEntityId) {
+        this.idpEntityId = idpEntityId;
     }
 
     private boolean validateXml(String xml) {

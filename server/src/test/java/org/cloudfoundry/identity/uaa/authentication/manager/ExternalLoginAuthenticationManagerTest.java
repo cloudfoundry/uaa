@@ -269,6 +269,38 @@ public class ExternalLoginAuthenticationManagerTest  {
 
     }
 
+    @Test
+    public void testEmptyEmail() {
+        String name = "filip";
+        String actual = name +  "@user.from."+origin+".cf";
+        String email = "";
+        userDetails = mock(UserDetails.class, withSettings().extraInterfaces(Mailable.class));
+        when(((Mailable)userDetails).getEmailAddress()).thenReturn(email);
+        mockUserDetails(userDetails);
+        mockUaaWithUser();
+
+        when(userDetails.getUsername()).thenReturn(name);
+        when(user.getUsername()).thenReturn(name);
+        when(uaaUserDatabase.retrieveUserByName(eq(name),eq(origin)))
+            .thenReturn(null)
+            .thenReturn(user);
+
+        Authentication result = manager.authenticate(inputAuth);
+        assertNotNull(result);
+        assertEquals(UaaAuthentication.class, result.getClass());
+        UaaAuthentication uaaAuthentication = (UaaAuthentication)result;
+        assertEquals(name,uaaAuthentication.getPrincipal().getName());
+        assertEquals(origin, uaaAuthentication.getPrincipal().getOrigin());
+        assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+
+        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(applicationEventPublisher,times(2)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(2,userArgumentCaptor.getAllValues().size());
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
+        assertEquals(origin, event.getUser().getOrigin());
+        assertEquals(actual, event.getUser().getEmail());
+    }
+
     @Test(expected = BadCredentialsException.class)
     public void testAuthenticateUserInsertFails() {
         when(uaaUserDatabase.retrieveUserByName(anyString(),anyString())).thenThrow(new UsernameNotFoundException(""));

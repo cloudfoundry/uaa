@@ -17,6 +17,12 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.http.OAuth2ErrorHandler;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.ImplicitResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.test.BeforeOAuth2Context;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextConfiguration;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextSetup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -31,13 +37,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
-import org.springframework.security.oauth2.client.test.BeforeOAuth2Context;
-import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
-import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitResourceDetails;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -55,6 +55,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * Integration test to verify that the Login Server authentication channel is
@@ -80,7 +81,7 @@ public class LoginServerSecurityIntegrationTests {
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Rule
-    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccountSetup);
 
     private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
 
@@ -229,11 +230,15 @@ public class LoginServerSecurityIntegrationTests {
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> results = response.getBody();
-        // The approval page messaging response
-        assertNotNull("There should be scopes: " + results, results.get("scopes"));
+        if (response.getStatusCode().is4xxClientError()) {
+            fail(response.getBody().toString());
+        } else {
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> results = response.getBody();
+            // The approval page messaging response
+            assertNotNull("There should be scopes: " + results, results.get("scopes"));
+        }
     }
     @Test
     @OAuth2ContextConfiguration(LoginClient.class)
@@ -244,11 +249,15 @@ public class LoginServerSecurityIntegrationTests {
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> results = response.getBody();
-        // The approval page messaging response
-        assertNotNull("There should be scopes: " + results, results.get("scopes"));
+        if (response.getStatusCode().is4xxClientError()) {
+            fail(response.getBody().toString());
+        } else {
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> results = response.getBody();
+            // The approval page messaging response
+            assertNotNull("There should be scopes: " + results, results.get("scopes"));
+        }
     }
 
 

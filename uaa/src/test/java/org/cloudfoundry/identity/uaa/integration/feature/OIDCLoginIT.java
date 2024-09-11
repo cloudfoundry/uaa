@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.endpoints.SamlLogoutAuthSourceEndpoint;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -52,9 +54,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -355,6 +355,7 @@ public class OIDCLoginIT {
 
         ScimGroup updatedCreatedGroup = IntegrationTestUtils.getGroup(adminToken, subdomain, baseUrl, createdGroup.getDisplayName());
         assertTrue(isMember(user.getId(), updatedCreatedGroup));
+        assertTrue("Expect group members to have origin: " + user.getOrigin(), updatedCreatedGroup.getMembers().stream().allMatch(p -> user.getOrigin().equals(p.getOrigin())));
     }
 
     @Test

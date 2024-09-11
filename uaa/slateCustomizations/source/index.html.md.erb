@@ -294,7 +294,7 @@ _Response Fields_
 
 The SAML 2.0 bearer grant allows to request an OAuth 2.0 access token with a SAML 2.0 bearer assertion. The flow is defined in
 [RFC 7522](https://tools.ietf.org/html/rfc7522). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer`.
-In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
+In addition, the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
 The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
 
 This grant enables an App2App mechanism with SSO. Typical scenarios are applications outside of CF, which consume a service within the CF world.
@@ -322,7 +322,7 @@ _Response Fields_
 The _JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants_
 allows to request an OAuth 2.0 access token with a JWT id_token bearer assertion. The flow is defined in
 [RFC 7523](https://tools.ietf.org/html/rfc7523). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`.
-In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
+In addition, the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
 The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the
 UAA database. If multiple providers exists that have the same issuer, the grant will fail.
 
@@ -871,6 +871,7 @@ _Error Codes_
 | 401        | Unauthorized - Invalid token                                                |
 | 403        | Forbidden - Insufficient scope (zone admins can only delete their own zone) |
 | 404        | Not Found - Zone does not exist                                             |
+| 422        | Unprocessable Entity - at least one IdP with alias exists in the zone       |
 
 
 # Identity Providers
@@ -1115,6 +1116,31 @@ _Error Codes_
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
 
+## Retrieve with Filtering
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/http-response.md') %>
+
+_Request Headers_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/request-parameters.md') %>
+
+_Response Fields_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/response-fields.md') %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+
+
 ## Retrieve
 
 <%= render('IdentityProviderEndpointDocs/getIdentityProvider/curl-request.md') %>
@@ -1277,7 +1303,7 @@ uaac user get testuser
 ## List
 
 Listing users supports <a href="http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources">SCIM filtering</a> on the available attributes.
-By default users are returned with their group memberships and approvals, a rather expensive operation.
+By default, users are returned with their group memberships and approvals, a rather expensive operation.
 To avoid this, perform the search by including the `attributes` parameter to reduce the results.
 
 <%= render('ScimUserEndpointDocs/test_Find_Users/curl-request.md') %>
@@ -1357,12 +1383,13 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)                             |
-| 409        | Conflict - Username already exists                                                                     |
+| Error Code | Description                                                                         |
+|------------|-------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields                                 |
+| 401        | Unauthorized - Invalid token                                                        |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)          |
+| 409        | Conflict - Username already exists                                                  |
+| 422        | Unprocessable Entity - `alias_zid` set, but error occurred during creation of alias |
 
 >Example using uaac to view users:
 
@@ -1398,12 +1425,13 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to update user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
+| 422        | Unprocessable Entity - error occurred during creation or update of alias                                                  |
 
 >Example using uaac to view users:
 
@@ -1439,12 +1467,12 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to update user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
 
 >Example using uaac to patch users:
 
@@ -1472,12 +1500,12 @@ _Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to delete user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
 
 >Example using uaac to delete users:
 
@@ -2184,10 +2212,14 @@ _Request Fields_
 
 ## Change Client JWT
 This configuration can be done if client authentication is performed with method private_key_jwt
-instead of secret based client authentication. See details for client authentiction with [OAuth2](https://oauth.net/2/client-authentication/) and/or
+instead of secret based client authentication. See details for client authentication with [OAuth2](https://oauth.net/2/client-authentication/).
+The authentication with a client JWT (parameter client_assertion) is similar to the user authentication with a user JWT (JWT bearer, e.g. [RFC 7522](https://tools.ietf.org/html/rfc7522)).
+Client JWT is available and specified from either the OAuth2 standard, defined in [RFC 7523](https://tools.ietf.org/html/rfc7523), and from
 [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication).
+UAA supports currently only OpenID Connect standard.
 
-The client can send a client_assertion for authentication. The signature of the assertion is validated either with the jwks_uri or the internal jwks public keys.
+The client can send a client_assertion for authentication instead of client_secret or Authorization header.
+The signature of the JWT from client_assertion is validated according to OpenID Connect standard either with the jwks_uri or the internal jwks public keys.
 
 <%= render('ClientAdminEndpointDocs/changeClientJwt/curl-request.md') %>
 <%= render('ClientAdminEndpointDocs/changeClientJwt/http-request.md') %>

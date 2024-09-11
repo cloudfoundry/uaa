@@ -13,14 +13,14 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextConfiguration;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextSetup;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
-import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 
 import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
 import static org.hamcrest.CoreMatchers.is;
@@ -40,10 +40,10 @@ public class UserInfoEndpointIntegrationTests {
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Rule
-    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
     @Rule
-    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccountSetup);
 
     /**
      * tests a happy-day flow of the <code>/userinfo</code> endpoint

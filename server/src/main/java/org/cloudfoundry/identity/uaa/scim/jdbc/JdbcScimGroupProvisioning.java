@@ -13,8 +13,10 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailed
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.slf4j.Logger;
@@ -23,11 +25,14 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 
@@ -73,12 +78,12 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
 
     public JdbcScimGroupProvisioning(
-            final JdbcTemplate jdbcTemplate,
+            final NamedParameterJdbcTemplate namedJdbcTemplate,
             final JdbcPagingListFactory pagingListFactory,
             final DbUtils dbUtils) throws SQLException {
-        super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
+        super(namedJdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
 
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
 
         final String quotedGroupsTableName = dbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
         updateGroupSql = String.format(
@@ -196,12 +201,31 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public void onApplicationEvent(AbstractUaaEvent event) {
         if (event instanceof IdentityZoneModifiedEvent zevent && zevent.getEventType() == AuditEventType.IdentityZoneCreatedEvent) {
-            final String zoneId = ((IdentityZone) event.getSource()).getId();
-            getSystemScopes().forEach(
+            final IdentityZone zone = (IdentityZone) event.getSource();
+            final String zoneId = zone.getId();
+            getEffectiveSystemScopes(zone).forEach(
                     scope -> createAndIgnoreDuplicate(scope, zoneId)
             );
         }
         SystemDeletable.super.onApplicationEvent(event);
+    }
+
+    /**
+     * Determine the system scopes and remove those that are not part in the groups allow list for the given zone. If no
+     * such allow list is defined, all system scopes are returned.
+     */
+    private List<String> getEffectiveSystemScopes(final IdentityZone zone) {
+        final List<String> systemScopes = new ArrayList<>(getSystemScopes());
+
+        final Optional<Set<String>> allowedGroupsForZoneOpt = Optional.ofNullable(zone.getConfig())
+                .map(IdentityZoneConfiguration::getUserConfig)
+                .map(UserConfig::resultingAllowedGroups);
+        if (allowedGroupsForZoneOpt.isEmpty()) {
+            return systemScopes;
+        }
+
+        final Set<String> allowedGroupsForZone = allowedGroupsForZoneOpt.get();
+        return systemScopes.stream().filter(allowedGroupsForZone::contains).toList();
     }
 
     @Override

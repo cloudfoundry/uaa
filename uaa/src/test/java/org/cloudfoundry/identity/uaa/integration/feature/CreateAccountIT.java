@@ -16,6 +16,7 @@ import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.junit.After;
@@ -27,8 +28,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -183,7 +183,7 @@ public class CreateAccountIT {
     public void testEmailDomainRegisteredWithIDPDoesNotAllowAccountCreation() throws Exception {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider().setName("oidc_provider").setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
-        oidcProvider.getConfig().setAuthUrl(new URL("http://example.com"));
+        oidcProvider.getConfig().setAuthUrl(new URL("https://example.com"));
         oidcProvider.getConfig().setShowLinkText(false);
         oidcProvider.getConfig().setTokenUrl(new URL("http://localhost:8080/uaa/idp_login"));
         oidcProvider.getConfig().setTokenKeyUrl(new URL("http://localhost:8080/uaa/idp_login"));

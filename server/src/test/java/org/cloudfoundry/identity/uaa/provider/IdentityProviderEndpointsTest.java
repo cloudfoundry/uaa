@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -17,6 +18,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -24,6 +26,7 @@ import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -40,11 +43,15 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.alias.EntityAliasFailedException;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -53,7 +60,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -81,18 +87,28 @@ class IdentityProviderEndpointsTest {
     private PlatformTransactionManager mockPlatformTransactionManager;
 
     @Mock
-    private IdentityZoneProvisioning mockIdentityZoneProvisioning;
-
-    @Mock
     private IdentityProviderAliasHandler mockIdpAliasHandler;
 
-    @InjectMocks
+    @Mock
+    SamlIdentityProviderConfigurator samlConfigurator;
+
     private IdentityProviderEndpoints identityProviderEndpoints;
 
     @BeforeEach
     void setup() {
+        identityProviderEndpoints = new IdentityProviderEndpoints(
+                mockIdentityProviderProvisioning,
+                mock(ScimGroupExternalMembershipManager.class),
+                mock(ScimGroupProvisioning.class),
+                samlConfigurator,
+                mockIdentityProviderConfigValidationDelegator,
+                mockIdentityZoneManager,
+                mockPlatformTransactionManager,
+                mockIdpAliasHandler,
+                false
+        );
+
         lenient().when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
-        arrangeAliasEntitiesEnabled(true);
 
         lenient().when(mockIdpAliasHandler.aliasPropertiesAreValid(any(), any()))
                 .thenReturn(true);
@@ -161,7 +177,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void retrieve_oauth_provider_by_id_redacts_password() throws Exception {
+    void retrieve_oauth_provider_by_id_redacts_password() {
         retrieve_oauth_provider_by_id("", OriginKeys.OAUTH20);
         retrieve_oauth_provider_by_id("", OriginKeys.OIDC10);
     }
@@ -181,7 +197,7 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
-    void retrieve_ldap_provider_by_id_redacts_password() throws Exception {
+    void retrieve_ldap_provider_by_id_redacts_password() {
         retrieve_ldap_provider_by_id("");
     }
 
@@ -201,7 +217,7 @@ class IdentityProviderEndpointsTest {
     void remove_bind_password() {
         remove_sensitive_data(() -> getLdapDefinition(),
                 LDAP,
-                (spy) -> verify((LdapIdentityProviderDefinition) spy, times(1)).setBindPassword(isNull()));
+                spy -> verify((LdapIdentityProviderDefinition) spy, times(1)).setBindPassword(isNull()));
     }
 
     @Test
@@ -209,7 +225,7 @@ class IdentityProviderEndpointsTest {
         for (String type : Arrays.asList(OIDC10, OAUTH20)) {
             remove_sensitive_data(() -> getExternalOAuthProvider(),
                     type,
-                    (spy) -> verify((AbstractExternalOAuthIdentityProviderDefinition) spy, times(1)).setRelyingPartySecret(isNull()));
+                    spy -> verify((AbstractExternalOAuthIdentityProviderDefinition) spy, times(1)).setRelyingPartySecret(isNull()));
         }
     }
 
@@ -288,7 +304,7 @@ class IdentityProviderEndpointsTest {
     void retrieve_all_providers_redacts_data() {
         when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString()))
                 .thenReturn(Arrays.asList(getLdapDefinition(), getExternalOAuthProvider()));
-        ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true);
+        ResponseEntity<List<IdentityProvider>> ldapList = identityProviderEndpoints.retrieveIdentityProviders("false", true, "");
         assertNotNull(ldapList);
         assertNotNull(ldapList.getBody());
         assertEquals(2, ldapList.getBody().size());
@@ -303,6 +319,22 @@ class IdentityProviderEndpointsTest {
         assertNotNull(oauth.getConfig());
         assertTrue(oauth.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
         assertNull(oauth.getConfig().getRelyingPartySecret());
+    }
+
+    @Test
+    void retrieve_by_origin_providers_redacts_data() {
+        when(mockIdentityProviderProvisioning.retrieveByOrigin(anyString(), anyString()))
+            .thenReturn(getExternalOAuthProvider());
+        ResponseEntity<List<IdentityProvider>> puppyList = identityProviderEndpoints.retrieveIdentityProviders("false", true, "puppy");
+        assertNotNull(puppyList);
+        assertNotNull(puppyList.getBody());
+        assertEquals(1, puppyList.getBody().size());
+        IdentityProvider<OIDCIdentityProviderDefinition> oidc = puppyList.getBody().get(0);
+        assertNotNull(oidc);
+        assertNotNull(oidc.getConfig());
+        assertTrue(oidc.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
+        assertNull(oidc.getConfig().getRelyingPartySecret());
+        assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC, oidc.getConfig().getAuthMethod());
     }
 
     @Test
@@ -357,6 +389,77 @@ class IdentityProviderEndpointsTest {
     }
 
     @Test
+    void update_saml_provider_validator_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        doThrow(new IllegalArgumentException("error")).when(mockIdentityProviderConfigValidationDelegator).validate(any());
+        when(mockIdentityProviderProvisioning.retrieve(any(), eq(zoneId))).thenReturn(provider);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(provider.getId(), provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager, never()).getTransaction(any());
+        verify(mockIdpAliasHandler, never()).ensureConsistencyOfAliasEntity(any(), any());
+    }
+
+    @Test
+    void update_saml_provider_alias_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        when(mockIdentityProviderProvisioning.retrieve(any(), eq(zoneId))).thenReturn(provider);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.updateIdentityProvider(provider.getId(), provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager).getTransaction(any());
+        verify(mockIdpAliasHandler, times(1)).ensureConsistencyOfAliasEntity(any(), any());
+    }
+
+    @Test
+    void create_saml_provider_validator_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        doThrow(new IllegalArgumentException("error")).when(mockIdentityProviderConfigValidationDelegator).validate(any());
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockIdpAliasHandler, never()).aliasPropertiesAreValid(provider, null);
+    }
+
+    @Test
+    void create_saml_provider_alias_failed() throws Exception {
+        IdentityProvider provider = new IdentityProvider<>();
+        String zoneId = IdentityZone.getUaaZoneId();
+        provider.setId("id");
+        provider.setType(SAML);
+        provider.setIdentityZoneId(zoneId);
+        provider.setOriginKey("originKey");
+        SamlIdentityProviderDefinition samlConfig = new SamlIdentityProviderDefinition();
+        provider.setConfig(samlConfig);
+        ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(provider, true);
+        assertNotNull(response);
+        assertEquals(UNPROCESSABLE_ENTITY, response.getStatusCode());
+        verify(mockPlatformTransactionManager).getTransaction(any());
+        verify(mockIdpAliasHandler, times(1)).ensureConsistencyOfAliasEntity(any(), any());
+    }
+
+    @Test
     void create_ldap_provider_removes_password() throws Exception {
         String zoneId = IdentityZone.getUaaZoneId();
         IdentityProvider<LdapIdentityProviderDefinition> ldapDefinition = getLdapDefinition();
@@ -373,10 +476,24 @@ class IdentityProviderEndpointsTest {
 
     @Nested
     class Alias {
+        @BeforeEach
+        void setUp() {
+            arrangeAliasEntitiesEnabled(true);
+        }
+
+        @AfterEach
+        void tearDown() {
+            arrangeAliasEntitiesEnabled(false);
+        }
+
         private final String customZoneId = UUID.randomUUID().toString();
 
         private void arrangeCurrentIdentityZone(final String zoneId) {
             when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(zoneId);
+        }
+
+        private void arrangeAliasEntitiesEnabled(final boolean enabled) {
+            ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
         }
 
         @Nested
@@ -434,7 +551,7 @@ class IdentityProviderEndpointsTest {
                         true
                 );
 
-                Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+                Assertions.assertThat(response.getStatusCode()).isEqualTo(UNPROCESSABLE_ENTITY);
             }
 
             @ParameterizedTest
@@ -550,7 +667,7 @@ class IdentityProviderEndpointsTest {
                         true
                 );
 
-                Assertions.assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+                Assertions.assertThat(response.getStatusCode()).isEqualTo(UNPROCESSABLE_ENTITY);
             }
 
             @ParameterizedTest
@@ -638,7 +755,6 @@ class IdentityProviderEndpointsTest {
             void testDeleteIdpWithAlias_DanglingReference() {
                 final String idpId = UUID.randomUUID().toString();
                 final String aliasIdpId = UUID.randomUUID().toString();
-                final String customZoneId = UUID.randomUUID().toString();
 
                 final IdentityProvider<?> idp = new IdentityProvider<>();
                 idp.setType(OIDC10);
@@ -675,7 +791,6 @@ class IdentityProviderEndpointsTest {
                 identityProviderEndpoints.setApplicationEventPublisher(mockEventPublisher);
 
                 // arrange IdP with alias exists
-                final String customZoneId = UUID.randomUUID().toString();
                 final Pair<IdentityProvider<?>, IdentityProvider<?>> idpAndAlias = arrangeIdpWithAliasExists(UAA, customZoneId);
                 final IdentityProvider<?> idp = idpAndAlias.getLeft();
 
@@ -685,7 +800,7 @@ class IdentityProviderEndpointsTest {
                 );
 
                 // deletion should be rejected
-                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+                assertThat(response.getStatusCode()).isEqualTo(UNPROCESSABLE_ENTITY);
             }
 
             private Pair<IdentityProvider<?>, IdentityProvider<?>> arrangeIdpWithAliasExists(final String zone1Id, final String zone2Id) {
@@ -752,6 +867,37 @@ class IdentityProviderEndpointsTest {
             assertNotNull(created.getConfig());
             assertTrue(created.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
             assertNull(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret());
+            assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC,((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getAuthMethod());
+        }
+    }
+
+    @Test
+    void create_oauth_provider_set_auth_method_none() throws Exception {
+        String zoneId = IdentityZone.getUaaZoneId();
+        for (String type : Arrays.asList(OIDC10, OAUTH20)) {
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> externalOAuthDefinition = getExternalOAuthProvider();
+            assertNotNull(externalOAuthDefinition.getConfig().getRelyingPartySecret());
+            externalOAuthDefinition.setType(type);
+            when(mockIdentityProviderProvisioning.create(any(), eq(zoneId))).thenReturn(externalOAuthDefinition);
+            ResponseEntity<IdentityProvider> response = identityProviderEndpoints.createIdentityProvider(externalOAuthDefinition, true);
+            IdentityProvider created = response.getBody();
+            assertNotNull(created);
+            assertEquals(type, created.getType());
+            assertNotNull(created.getConfig());
+            assertTrue(created.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition);
+            assertNull(((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getRelyingPartySecret());
+            assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC,((AbstractExternalOAuthIdentityProviderDefinition) created.getConfig()).getAuthMethod());
+            externalOAuthDefinition.getConfig().setRelyingPartySecret(null);
+            externalOAuthDefinition.getConfig().setAuthMethod("none");
+            AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(externalOAuthDefinition.getConfig());
+            when(mockIdentityProviderProvisioning.retrieve(eq(externalOAuthDefinition.getId()), eq(zoneId))).thenReturn(getExternalOAuthProvider());
+            response = identityProviderEndpoints.updateIdentityProvider(created.getId(), externalOAuthDefinition, true);
+            IdentityProvider upated = response.getBody();
+            assertNotNull(upated);
+            assertEquals(type, upated.getType());
+            assertNotNull(upated.getConfig());
+            verify(spy, never()).setRelyingPartySecret(eq(getExternalOAuthProvider().getConfig().getRelyingPartySecret()));
+            assertEquals(ClientAuthentication.NONE,((AbstractExternalOAuthIdentityProviderDefinition) upated.getConfig()).getAuthMethod());
         }
     }
 
@@ -759,7 +905,7 @@ class IdentityProviderEndpointsTest {
     void testPatchIdentityProviderStatusInvalidPayload() {
         IdentityProviderStatus identityProviderStatus = new IdentityProviderStatus();
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
+        assertEquals(UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test
@@ -772,7 +918,7 @@ class IdentityProviderEndpointsTest {
         notUAAIDP.setConfig(new SamlIdentityProviderDefinition());
         when(mockIdentityProviderProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(notUAAIDP);
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
+        assertEquals(UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test
@@ -785,7 +931,7 @@ class IdentityProviderEndpointsTest {
         invalidIDP.setType(OriginKeys.UAA);
         when(mockIdentityProviderProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(invalidIDP);
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
+        assertEquals(UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test
@@ -798,7 +944,7 @@ class IdentityProviderEndpointsTest {
         invalidIDP.setConfig(new UaaIdentityProviderDefinition(null, null));
         when(mockIdentityProviderProvisioning.retrieve(anyString(), eq(zoneId))).thenReturn(invalidIDP);
         ResponseEntity responseEntity = identityProviderEndpoints.updateIdentityProviderStatus("123", identityProviderStatus);
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
+        assertEquals(UNPROCESSABLE_ENTITY, responseEntity.getStatusCode());
     }
 
     @Test
@@ -845,7 +991,7 @@ class IdentityProviderEndpointsTest {
         ResponseEntity<IdentityProvider> deleteResponse =
                 identityProviderEndpoints.deleteIdentityProvider(
                         identityProviderIdentifier, false);
-        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY,
+        assertEquals(UNPROCESSABLE_ENTITY,
                 deleteResponse.getStatusCode());
     }
 
@@ -891,7 +1037,33 @@ class IdentityProviderEndpointsTest {
                 .getBody().getConfig()).getBindPassword());
     }
 
-    private void arrangeAliasEntitiesEnabled(final boolean enabled) {
-        ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
+    @Test
+    void set_auth_client_secret() {
+        for (String type : Arrays.asList(OIDC10, OAUTH20)) {
+            IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getExternalOAuthProvider();
+            AbstractExternalOAuthIdentityProviderDefinition def = provider.getConfig();
+            AbstractExternalOAuthIdentityProviderDefinition spy = Mockito.spy(def);
+            provider.setConfig(spy);
+            provider.setType(type);
+            // standard secret usage
+            when(spy.getRelyingPartySecret()).thenReturn("secret");
+            identityProviderEndpoints.setAuthMethod(provider);
+            assertEquals(ClientAuthentication.CLIENT_SECRET_BASIC, provider.getConfig().getAuthMethod());
+            // use secrets in body
+            when(spy.isClientAuthInBody()).thenReturn(true);
+            identityProviderEndpoints.setAuthMethod(provider);
+            assertEquals(ClientAuthentication.CLIENT_SECRET_POST, provider.getConfig().getAuthMethod());
+            // no secret usage but treat it as public client
+            when(spy.getRelyingPartySecret()).thenReturn(null);
+            identityProviderEndpoints.setAuthMethod(provider);
+            assertEquals(ClientAuthentication.NONE, provider.getConfig().getAuthMethod());
+            // private_key_jwt in OIDC case
+            if (OIDC10.equals(type)) {
+                OIDCIdentityProviderDefinition oidcSpy = (OIDCIdentityProviderDefinition) spy;
+                when(oidcSpy.getJwtClientAuthentication()).thenReturn(Boolean.TRUE);
+                identityProviderEndpoints.setAuthMethod(provider);
+                assertEquals(ClientAuthentication.PRIVATE_KEY_JWT, provider.getConfig().getAuthMethod());
+            }
+        }
     }
 }

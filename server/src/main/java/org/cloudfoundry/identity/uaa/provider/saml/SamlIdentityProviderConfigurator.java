@@ -4,13 +4,13 @@ import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.stereotype.Component;
@@ -71,9 +71,10 @@ public class SamlIdentityProviderConfigurator {
      * adds or replaces a SAML identity proviider
      *
      * @param providerDefinition - the provider to be added
+     * @param creation - check new created config
      * @throws MetadataProviderException if the system fails to fetch meta data for this provider
      */
-    public synchronized void validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws MetadataProviderException {
+    public synchronized String validateSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition, boolean creation) throws MetadataProviderException {
         ExtendedMetadataDelegate added, deleted = null;
         if (providerDefinition == null) {
             throw new NullPointerException();
@@ -91,24 +92,34 @@ public class SamlIdentityProviderConfigurator {
             throw new MetadataProviderException("Emtpy entityID for SAML provider with zoneId:" + providerDefinition.getZoneId() + " and origin:" + providerDefinition.getIdpEntityAlias());
         }
 
-        boolean entityIDexists = false;
+        boolean entityIDexists = creation && entityIdExists(entityIDToBeAdded, providerDefinition.getZoneId());
 
-        for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
-            ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
-            if (entityIDToBeAdded.equals(existingProvider.getEntityID()) &&
-                    !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
-                entityIDexists = true;
-                break;
+        if (!entityIDexists) {
+            for (SamlIdentityProviderDefinition existing : getIdentityProviderDefinitions()) {
+                ConfigMetadataProvider existingProvider = (ConfigMetadataProvider) getExtendedMetadataDelegate(existing).getDelegate();
+                if (entityIDToBeAdded.equals(existingProvider.getEntityID()) && !(existing.getUniqueAlias().equals(clone.getUniqueAlias()))) {
+                    entityIDexists = true;
+                    break;
+                }
             }
         }
 
         if (entityIDexists) {
             throw new MetadataProviderException("Duplicate entity ID:" + entityIDToBeAdded);
         }
+        return entityIDToBeAdded;
     }
 
     public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws MetadataProviderException {
         return getExtendedMetadataDelegate(def);
+    }
+
+    private boolean entityIdExists(String entityId, String zoneId) {
+        try {
+            return providerProvisioning.retrieveByExternId(entityId, OriginKeys.SAML, zoneId) != null;
+        } catch (EmptyResultDataAccessException e) {
+            return false;
+        }
     }
 
     public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlIdentityProviderDefinition def) throws MetadataProviderException {

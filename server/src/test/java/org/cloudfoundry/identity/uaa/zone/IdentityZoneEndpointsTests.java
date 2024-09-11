@@ -1,11 +1,14 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -13,6 +16,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 
 import java.util.List;
@@ -49,13 +55,21 @@ class IdentityZoneEndpointsTests {
     private IdentityZoneValidator mockIdentityZoneValidator;
 
     @Mock
-    private IdentityProviderProvisioning mockIdentityProviderProvisioning;
+    private JdbcIdentityProviderProvisioning mockIdentityProviderProvisioning;
 
     @Mock
     private IdentityZoneEndpointClientRegistrationService mockIdentityZoneEndpointClientRegistrationService;
 
+    @Mock
+    private ApplicationEventPublisher mockApplicationEventPublisher;
+
     @InjectMocks
     private IdentityZoneEndpoints endpoints;
+
+    @BeforeEach
+    void setUp() {
+        endpoints.setApplicationEventPublisher(mockApplicationEventPublisher);
+    }
 
     @Test
     void create_zone() throws InvalidIdentityZoneDetailsException {
@@ -167,6 +181,45 @@ class IdentityZoneEndpointsTests {
         when(mockScimGroupProvisioning.retrieveAll(identityZone.getId())).thenReturn(existingScimGroups);
         assertThrowsWithMessageThat(UaaException.class, () -> endpoints.updateIdentityZone(identityZone, identityZone.getId()),
             is("The identity zone user configuration contains not-allowed groups."));
+    }
+
+    @Test
+    void deleteIdentityZone_ShouldReject_IfIdpWithAliasExists() {
+        final IdentityZone idz = new IdentityZone();
+        final String idzId = new AlphanumericRandomValueStringGenerator(5).generate();
+        idz.setName(idzId);
+        idz.setId(idzId);
+        idz.setSubdomain(idzId);
+        when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(idzId)).thenReturn(idz);
+
+        // arrange IdP with alias exists in zone
+        when(mockIdentityProviderProvisioning.idpWithAliasExistsInZone(idzId)).thenReturn(true);
+
+        final ResponseEntity<IdentityZone> response = endpoints.deleteIdentityZone(idzId);
+        assertNotNull(response);
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
+    }
+
+    @Test
+    void deleteIdentityZone_ShouldEmitEntityDeletedEvent_WhenNoAliasIdpExists() {
+        final IdentityZone idz = new IdentityZone();
+        final String idzId = new AlphanumericRandomValueStringGenerator(5).generate();
+        idz.setName(idzId);
+        idz.setId(idzId);
+        idz.setSubdomain(idzId);
+        when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(idzId)).thenReturn(idz);
+
+        // arrange no IdP with alias exists in zone
+        when(mockIdentityProviderProvisioning.idpWithAliasExistsInZone(idzId)).thenReturn(false);
+
+        final ResponseEntity<IdentityZone> response = endpoints.deleteIdentityZone(idzId);
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        final ArgumentCaptor<EntityDeletedEvent<IdentityZone>> eventArgument = ArgumentCaptor.forClass(EntityDeletedEvent.class);
+        verify(mockApplicationEventPublisher).publishEvent(eventArgument.capture());
+        final var capturedEvent = eventArgument.getValue();
+        assertEquals(idz, capturedEvent.getDeleted());
     }
 
     private static IdentityZone createZone() {

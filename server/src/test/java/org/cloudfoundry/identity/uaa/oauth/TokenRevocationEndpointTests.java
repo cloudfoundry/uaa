@@ -6,10 +6,12 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
@@ -26,10 +28,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.Collections;
 
@@ -51,6 +53,9 @@ public class TokenRevocationEndpointTests {
     JdbcTemplate jdbcTemplate;
 
     @Autowired
+    NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     LimitSqlAdapter limitSqlAdapter;
 
     @Autowired
@@ -67,13 +72,13 @@ public class TokenRevocationEndpointTests {
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
-        clientService = spy(new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder));
+        clientService = spy(new MultitenantJdbcClientDetailsService(namedJdbcTemplate, mockIdentityZoneManager, passwordEncoder));
         clientService.addClientDetails(client, zoneId);
 
         ScimUserProvisioning userProvisioning = new JdbcScimUserProvisioning(
-                jdbcTemplate,
-                new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
-                passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate));
+                namedJdbcTemplate,
+                new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter),
+                passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new SimpleSearchQueryConverter(), new TimeServiceImpl(), true);
         JdbcRevocableTokenProvisioning provisioning = spy(new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter, new TimeServiceImpl()));
         endpoint = spy(new TokenRevocationEndpoint(clientService, userProvisioning, provisioning));
         ApplicationEventPublisher publisher = mock(ApplicationEventPublisher.class);

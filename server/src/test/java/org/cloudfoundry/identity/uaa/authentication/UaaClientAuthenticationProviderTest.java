@@ -16,7 +16,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -24,7 +24,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Collections;
@@ -50,7 +50,7 @@ class UaaClientAuthenticationProviderTest {
     private JwtClientAuthentication jwtClientAuthentication;
 
     @Autowired
-    JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -61,7 +61,7 @@ class UaaClientAuthenticationProviderTest {
         jwtClientAuthentication = mock(JwtClientAuthentication.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
 
-        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(jdbcTemplate, mockIdentityZoneManager, passwordEncoder);
+        jdbcClientDetailsService = new MultitenantJdbcClientDetailsService(namedJdbcTemplate, mockIdentityZoneManager, passwordEncoder);
         UaaClientDetailsUserDetailsService clientDetailsService = new UaaClientDetailsUserDetailsService(jdbcClientDetailsService);
         client = createClient();
         authenticationProvider = new ClientDetailsAuthenticationProvider(clientDetailsService, passwordEncoder, jwtClientAuthentication);

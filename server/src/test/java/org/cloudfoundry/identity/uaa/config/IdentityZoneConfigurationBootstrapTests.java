@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -167,8 +168,10 @@ public class IdentityZoneConfigurationBootstrapTests {
 
     @Test
     void testDefaultGroups() throws Exception {
+        UserConfig defaultUserConfig = new UserConfig();
         String[] groups = {"group1", "group2", "group3"};
-        bootstrap.setDefaultUserGroups(Arrays.asList(groups));
+        defaultUserConfig.setDefaultGroups(Arrays.asList(groups));
+        bootstrap.setDefaultUserConfig(defaultUserConfig);
         bootstrap.afterPropertiesSet();
         IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertThat(uaa.getConfig().getUserConfig().getDefaultGroups(), containsInAnyOrder(groups));
@@ -176,9 +179,11 @@ public class IdentityZoneConfigurationBootstrapTests {
 
     @Test
     void testAllowedGroups() throws Exception {
+        UserConfig defaultUserConfig = new UserConfig();
         String[] groups = {"group1", "group2", "group3"};
-        bootstrap.setDefaultUserGroups(Arrays.asList(groups));
-        bootstrap.setAllowedUserGroups(Arrays.asList(groups));
+        defaultUserConfig.setDefaultGroups(Arrays.asList(groups));
+        defaultUserConfig.setAllowedGroups(Arrays.asList(groups));
+        bootstrap.setDefaultUserConfig(defaultUserConfig);
         bootstrap.afterPropertiesSet();
         IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaaZoneId());
         assertThat(uaa.getConfig().getUserConfig().resultingAllowedGroups(), containsInAnyOrder(groups));

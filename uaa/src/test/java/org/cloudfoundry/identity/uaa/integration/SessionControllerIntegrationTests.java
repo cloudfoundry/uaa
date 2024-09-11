@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -10,7 +11,6 @@ import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 

@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.error;
 
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -84,5 +86,15 @@ public class UaaExceptionTests {
         assertNotNull(x.toString());
     }
 
+    @Test
+    public void testSerialize() {
+        Map<String, String> params = Map.of("error", "invalid_request", "error_description", "error_description");
+        UaaException x = UaaException.valueOf(params);
+        String uaaExceptionString = JsonUtils.writeValueAsString(x);
+        OAuth2Exception deserialized = JsonUtils.readValue(uaaExceptionString, UaaException.class);
+        assertEquals(uaaExceptionString, JsonUtils.writeValueAsString(deserialized));
+        UaaException newException = new UaaException(deserialized, deserialized.getOAuth2ErrorCode(), "error_description", 400);
+        assertEquals(newException.toString(), x.toString());
+    }
 
 }

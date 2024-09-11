@@ -10,7 +10,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.security.saml.metadata.MetadataMemoryProvider;
 import org.springframework.web.context.WebApplicationContext;

@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.lang.NonNull;
@@ -33,7 +32,7 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
     public IdentityProviderAliasHandler(
             @Qualifier("identityZoneProvisioning") final IdentityZoneProvisioning identityZoneProvisioning,
             final IdentityProviderProvisioning identityProviderProvisioning,
-            @Value("${login.aliasEntitiesEnabled:false}") final boolean aliasEntitiesEnabled
+            @Qualifier("aliasEntitiesEnabled") final boolean aliasEntitiesEnabled
     ) {
         super(identityZoneProvisioning, aliasEntitiesEnabled);
         this.identityProviderProvisioning = identityProviderProvisioning;
@@ -43,6 +42,14 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
     protected boolean additionalValidationChecksForNewAlias(@NonNull final IdentityProvider<?> requestBody) {
         // check if aliases are supported for this IdP type
         return IDP_TYPES_ALIAS_SUPPORTED.contains(requestBody.getType());
+    }
+
+    @Override
+    protected void setPropertiesFromExistingAliasEntity(
+            final IdentityProvider<?> newAliasEntity,
+            final IdentityProvider<?> existingAliasEntity
+    ) {
+        // not required for identity providers
     }
 
     @Override

@@ -27,7 +27,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
@@ -195,7 +195,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("new_password");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
-        assertThat(webDriver.getCurrentUrl(), startsWith("http://example.redirect.com/?code="));
+        assertThat(webDriver.getCurrentUrl(), startsWith("https://example.redirect.com/?code="));
     }
 
     @Test

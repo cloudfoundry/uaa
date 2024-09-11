@@ -6,8 +6,22 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestValidator;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.approval.UserApprovalHandler;
+import org.cloudfoundry.identity.uaa.oauth.provider.code.AuthorizationCodeServices;
+import org.cloudfoundry.identity.uaa.oauth.provider.implicit.ImplicitGrantService;
+import org.cloudfoundry.identity.uaa.oauth.provider.implicit.ImplicitTokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.AbstractEndpoint;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -19,32 +33,19 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.BadClientCredentialsException;
-import org.springframework.security.oauth2.common.exceptions.ClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
-import org.springframework.security.oauth2.common.exceptions.UnapprovedClientAuthenticationException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
-import org.springframework.security.oauth2.common.exceptions.UnsupportedResponseTypeException;
-import org.springframework.security.oauth2.common.exceptions.UserDeniedAuthorizationException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
-import org.springframework.security.oauth2.provider.TokenGranter;
-import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
-import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
-import org.springframework.security.oauth2.provider.endpoint.AbstractEndpoint;
-import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
-import org.springframework.security.oauth2.provider.implicit.ImplicitTokenRequest;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.BadClientCredentialsException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.ClientAuthenticationException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidRequestException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UnapprovedClientAuthenticationException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UnauthorizedClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UnsupportedResponseTypeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UserDeniedAuthorizationException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.RedirectResolver;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.util.UrlUtils;
 import org.springframework.stereotype.Controller;
@@ -88,7 +89,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.hasText;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addFragmentComponent;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addQueryParameter;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE_PREFIX;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.SCOPE_PREFIX;
 
 /**
  * Authorization endpoint that returns id_token's if requested.
@@ -112,8 +113,8 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
 
     private final RedirectResolver redirectResolver;
-    private final UserApprovalHandler userApprovalHandler;
-    private final OAuth2RequestValidator oauth2RequestValidator;
+    private UserApprovalHandler userApprovalHandler;
+    private OAuth2RequestValidator oauth2RequestValidator;
     private final AuthorizationCodeServices authorizationCodeServices;
     private final HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
     private final OpenIdSessionStateCalculator openIdSessionStateCalculator;
@@ -751,7 +752,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     }
 
     @SuppressWarnings("deprecation")
-    public void setImplicitGrantService(org.springframework.security.oauth2.provider.implicit.ImplicitGrantService implicitGrantService) {
+    public void setImplicitGrantService(ImplicitGrantService implicitGrantService) {
     }
 
     @ExceptionHandler(ClientRegistrationException.class)
@@ -839,5 +840,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private ClientDetails loadClientByClientId(String clientId) {
         return ((MultitenantClientServices) super.getClientDetailsService())
                 .loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+    }
+
+    public void setOAuth2RequestValidator(OAuth2RequestValidator oauth2RequestValidator) {
+        this.oauth2RequestValidator = oauth2RequestValidator;
+    }
+
+    public void setUserApprovalHandler(UserApprovalHandler userApprovalHandler) {
+        this.userApprovalHandler = userApprovalHandler;
     }
 }

@@ -17,8 +17,14 @@ import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
@@ -37,6 +43,7 @@ import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.resources.JoinAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
@@ -48,6 +55,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
@@ -67,10 +75,12 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 
 @WithDatabaseContext
@@ -94,8 +104,14 @@ class JdbcScimUserProvisioningTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    NamedParameterJdbcTemplate namedJdbcTemplate;
     private String joeEmail;
     private final String JOE_NAME = "joe";
+
+    private SimpleSearchQueryConverter joinConverter;
+    private SimpleSearchQueryConverter filterConverter;
 
     @BeforeEach
     void setUp(@Autowired LimitSqlAdapter limitSqlAdapter) {
@@ -103,7 +119,7 @@ class JdbcScimUserProvisioningTests {
         joeId = "joeId-" + UUID.randomUUID().toString().substring("joeId-".length());
         joeEmail = "joe@joe.com";
         String mabelId = "mabelId-" + UUID.randomUUID().toString().substring("mabelId-".length());
-        pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter);
 
         currentIdentityZoneId = "currentIdentityZoneId-" + randomString();
         IdentityZone idz = new IdentityZone();
@@ -111,15 +127,27 @@ class JdbcScimUserProvisioningTests {
         idzManager = new IdentityZoneManagerImpl();
         idzManager.setCurrentIdentityZone(idz);
 
-        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning);
+        joinConverter = new SimpleSearchQueryConverter();
+        joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
 
-        SimpleSearchQueryConverter filterConverter = new SimpleSearchQueryConverter();
+        filterConverter = new SimpleSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<>();
         replaceWith.put("emails\\.value", "email");
         replaceWith.put("groups\\.display", "authorities");
         replaceWith.put("phoneNumbers\\.value", "phoneNumber");
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
-        jdbcScimUserProvisioning.setQueryConverter(filterConverter);
+
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
+                namedJdbcTemplate,
+                pagingListFactory,
+                passwordEncoder,
+                idzManager,
+                jdbcIdentityZoneProvisioning,
+                filterConverter,
+                joinConverter,
+                new TimeServiceImpl(),
+                true
+        );
 
         addUser(jdbcTemplate, joeId,
                 JOE_NAME, passwordEncoder.encode("joespassword"), joeEmail, "Joe", "User", "+1-222-1234567", currentIdentityZoneId);
@@ -295,6 +323,96 @@ class JdbcScimUserProvisioningTests {
         filter = String.format("origin eq '%s' and id eq '%s'", created2.getOrigin(), created2.getId());
         usernames = retrieveByScimFilter.apply(filter);
         Assertions.assertThat(usernames).isEmpty();
+    }
+
+    @Test
+    void retrieveByScimFilterNoPaging() {
+        JdbcPagingListFactory notInUse = mock(JdbcPagingListFactory.class);
+        SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
+        joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, notInUse, passwordEncoder, new IdentityZoneManagerImpl(),
+            new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), joinConverter, new TimeServiceImpl(), true);
+        String originActive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originActive, true);
+
+        String originInactive = randomString();
+        addIdentityProvider(jdbcTemplate, currentIdentityZoneId, originInactive, false);
+
+        ScimUser user1 = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user1.addEmail("jo@blah.com");
+        user1.setOrigin(originActive);
+        ScimUser created1 = jdbcScimUserProvisioning.createUser(user1, "j8hyqpassX", currentIdentityZoneId);
+
+        ScimUser user2 = new ScimUser(null, "jo2@foo.com", "Jo", "User");
+        user2.addEmail("jo2@blah.com");
+        user2.setOrigin(originInactive);
+        ScimUser created2 = jdbcScimUserProvisioning.createUser(user2, "j8hyqpassX", currentIdentityZoneId);
+
+        String scimFilter = String.format("id eq '%s' or username eq '%s' or origin eq '%s'", created1.getId(), created2.getUserName(), created2.getOrigin());
+        jdbcScimUserProvisioning.setPageSize(0);
+        List<ScimUser> result = jdbcScimUserProvisioning.retrieveByScimFilterOnlyActive(
+            scimFilter,
+            null,
+            false,
+            currentIdentityZoneId
+        );
+        Assertions.assertThat(result).isNotNull();
+        List<String> usernames = result.stream().map(ScimUser::getUserName).collect(toList());
+        Assertions.assertThat(usernames).isSorted();
+        verify(notInUse, never()).createJdbcPagingList(anyString(), any(Map.class), any(RowMapper.class), any(Integer.class));
+        // another option to query without paging
+        jdbcScimUserProvisioning.setPageSize(Integer.MAX_VALUE);
+        jdbcScimUserProvisioning.setPageSize(0);
+        jdbcScimUserProvisioning.retrieveByScimFilterOnlyActive(
+            scimFilter,
+            null,
+            false,
+            currentIdentityZoneId
+        );
+        verify(notInUse, never()).createJdbcPagingList(anyString(), any(Map.class), any(RowMapper.class), any(Integer.class));
+        // positive check, now with paging
+        jdbcScimUserProvisioning.setPageSize(1);
+        jdbcScimUserProvisioning.retrieveByScimFilterOnlyActive(
+            scimFilter,
+            null,
+            false,
+            currentIdentityZoneId
+        );
+        verify(notInUse, times(1)).createJdbcPagingList(anyString(), any(Map.class), any(RowMapper.class), any(Integer.class));
+    }
+
+    @Test
+    void retrieveByScimFilterUsingLower() {
+        JdbcPagingListFactory notInUse = mock(JdbcPagingListFactory.class);
+        NamedParameterJdbcTemplate mockedJdbcTemplate = mock(NamedParameterJdbcTemplate.class);
+        SimpleSearchQueryConverter joinConverter = new SimpleSearchQueryConverter();
+        joinConverter.setAttributeNameMapper(new JoinAttributeNameMapper("u"));
+        jdbcScimUserProvisioning = new JdbcScimUserProvisioning(mockedJdbcTemplate, pagingListFactory, passwordEncoder, idzManager, jdbcIdentityZoneProvisioning, new SimpleSearchQueryConverter(), joinConverter, new TimeServiceImpl(), true);
+
+        String scimFilter = "id eq '1111' or username eq 'j4hyqpassX' or origin eq 'uaa'";
+        jdbcScimUserProvisioning.setPageSize(0);
+        // MYSQL default, no LOWER statement in query
+        joinConverter.setDbCaseInsensitive(true);
+        List<ScimUser>  result = jdbcScimUserProvisioning.retrieveByScimFilterOnlyActive(
+            scimFilter,
+            null,
+            false,
+            currentIdentityZoneId
+        );
+        Assertions.assertThat(result).isNotNull();
+        verify(mockedJdbcTemplate).query(contains("u.id = "), any(Map.class), any(RowMapper.class));
+        verify(mockedJdbcTemplate, never()).query(contains("LOWER(u.id) = LOWER("), any(Map.class), any(RowMapper.class));
+        // POSTGRESQL and HSQL default
+        joinConverter.setDbCaseInsensitive(false);
+        result = jdbcScimUserProvisioning.retrieveByScimFilterOnlyActive(
+            scimFilter,
+            null,
+            false,
+            currentIdentityZoneId
+        );
+        Assertions.assertThat(result).isNotNull();
+        verify(notInUse, never()).createJdbcPagingList(anyString(), any(Map.class), any(RowMapper.class), any(Integer.class));
+        verify(mockedJdbcTemplate).query(contains("LOWER(u.id) = LOWER("), any(Map.class), any(RowMapper.class));
     }
 
     @Test
@@ -671,7 +789,7 @@ class JdbcScimUserProvisioningTests {
     void canReadScimUserWithMissingEmail() {
         // Create a user with no email address, reflecting previous behavior
 
-        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate)) {
+        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new SimpleSearchQueryConverter(), new TimeServiceImpl(), true) {
             @Override
             public ScimUser retrieve(String id, String zoneId) {
                 ScimUser createdUserId = new ScimUser();
@@ -885,38 +1003,68 @@ class JdbcScimUserProvisioningTests {
                 () -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId));
     }
 
-    @Test
-    void canDeleteExistingUserThroughEvent() {
-        String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
-        ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserId, currentIdentityZoneId);
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<Object>(user, mock(Authentication.class), currentIdentityZoneId));
-        assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
-        assertEquals(0, jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
-    }
+    @Nested
+    class DeactivateOnDeleteDisabled {
+        @BeforeEach
+        void setUp() {
+            jdbcScimUserProvisioning = new JdbcScimUserProvisioning(
+                    namedJdbcTemplate,
+                    pagingListFactory,
+                    passwordEncoder,
+                    idzManager,
+                    jdbcIdentityZoneProvisioning,
+                    filterConverter,
+                    joinConverter,
+                    new TimeServiceImpl(),
+                    false
+            );
+        }
 
-    @Test
-    void canDeleteExistingUser() {
-        String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
-        assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
-        assertEquals(0, jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
-    }
+        @Test
+        void canDeleteExistingUserThroughEvent() {
+            String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
+            ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserId, currentIdentityZoneId);
+            jdbcScimUserProvisioning.onApplicationEvent(
+                    new EntityDeletedEvent<Object>(user, mock(Authentication.class), currentIdentityZoneId));
+            assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+            assertEquals(0,
+                    jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
+        }
 
-    @Test
-    void canDeleteExistingUserAndThenCreateHimAgain() {
-        String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        ScimUser deletedUser = jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
-        assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+        @Test
+        void canDeleteExistingUser() {
+            String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
+            jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
+            assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+            assertEquals(0,
+                    jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
+        }
 
-        deletedUser.setActive(true);
-        ScimUser user = jdbcScimUserProvisioning.createUser(deletedUser, "foobarspam1234", currentIdentityZoneId);
-        assertNotNull(user);
-        assertNotNull(user.getId());
-        assertNotSame(tmpUserId, user.getId());
-        assertEquals(1, jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
+        @Test
+        void canDeleteExistingUserAndThenCreateHimAgain() {
+            String tmpUserId = createUserForDelete(jdbcTemplate, currentIdentityZoneId);
+            ScimUser deletedUser = jdbcScimUserProvisioning.delete(tmpUserId, 0, currentIdentityZoneId);
+            assertEquals(0, jdbcTemplate.queryForList("select * from users where id=?", tmpUserId).size());
+
+            deletedUser.setActive(true);
+            ScimUser user = jdbcScimUserProvisioning.createUser(deletedUser, "foobarspam1234", currentIdentityZoneId);
+            assertNotNull(user);
+            assertNotNull(user.getId());
+            assertNotSame(tmpUserId, user.getId());
+            assertEquals(1,
+                    jdbcScimUserProvisioning.query("username eq \"" + tmpUserId + "\"", currentIdentityZoneId).size());
+        }
+
+        @Test
+        void cannotDeleteNonexistentUser() {
+            assertThrows(ScimResourceNotFoundException.class,
+                    () -> jdbcScimUserProvisioning.delete("9999", 0, currentIdentityZoneId));
+        }
+
+        @Test
+        void deleteWithWrongVersionIsError() {
+            assertThrows(OptimisticLockingFailureException.class, () -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId));
+        }
     }
 
     @Test
@@ -942,9 +1090,7 @@ class JdbcScimUserProvisioningTests {
                 () -> jdbcScimUserProvisioning.create(scimUser, currentIdentityZoneId));
 
         Map<String, Object> userDetails = new HashMap<>();
-        userDetails.put("active", true);
-        userDetails.put("verified", false);
-        userDetails.put("user_id", "cba09242-aa43-4247-9aa0-b5c75c281f94");
+        userDetails.put("origin", UAA);
         assertEquals(HttpStatus.CONFLICT, e.getStatus());
         assertEquals("Username already in use: user@example.com", e.getMessage());
         assertEquals(userDetails, e.getExtraInfo());
@@ -1075,19 +1221,6 @@ class JdbcScimUserProvisioningTests {
         ScimUser user = jdbcScimUserProvisioning.retrieve(tmpUserIdString, currentIdentityZoneId);
         assertFalse(user.isVerified());
         assertThrows(OptimisticLockingFailureException.class, () -> jdbcScimUserProvisioning.verifyUser(tmpUserIdString, user.getVersion() + 50, currentIdentityZoneId));
-    }
-
-    @Test
-    void cannotDeleteNonexistentUser() {
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        assertThrows(ScimResourceNotFoundException.class,
-                () -> jdbcScimUserProvisioning.delete("9999", 0, currentIdentityZoneId));
-    }
-
-    @Test
-    void deleteWithWrongVersionIsError() {
-        jdbcScimUserProvisioning.setDeactivateOnDelete(false);
-        assertThrows(OptimisticLockingFailureException.class, () -> jdbcScimUserProvisioning.delete(joeId, 1, currentIdentityZoneId));
     }
 
     @Test

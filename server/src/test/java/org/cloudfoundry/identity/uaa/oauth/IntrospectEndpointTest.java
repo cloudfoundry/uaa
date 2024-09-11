@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.ResourceServerTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.IntrospectionClaims;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.BeforeEach;
@@ -7,9 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;

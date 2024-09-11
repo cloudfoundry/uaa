@@ -15,14 +15,14 @@ package org.cloudfoundry.identity.uaa.client;
 
 import static org.junit.Assert.assertTrue;
 
+import org.cloudfoundry.identity.uaa.oauth.client.DefaultOAuth2ClientContext;
+import org.cloudfoundry.identity.uaa.oauth.client.OAuth2ClientContext;
+import org.cloudfoundry.identity.uaa.oauth.client.OAuth2RestTemplate;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.AuthenticationScheme;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
 import org.junit.Assume;
 import org.junit.Test;
-import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
-import org.springframework.security.oauth2.client.OAuth2ClientContext;
-import org.springframework.security.oauth2.client.OAuth2RestTemplate;
-import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
-import org.springframework.security.oauth2.common.AuthenticationScheme;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 
 /**
  * Tests some real internet-based OAuth2 user info providers. To run these tests

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
@@ -27,7 +28,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import java.security.SecureRandom;
 import java.sql.SQLException;
@@ -57,6 +59,8 @@ class JdbcScimGroupProvisioningTests {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
     @Autowired
     private LimitSqlAdapter limitSqlAdapter;
 
@@ -94,8 +98,8 @@ class JdbcScimGroupProvisioningTests {
         validateGroupCountInZone(0, zoneId);
 
         DbUtils dbUtils = new DbUtils();
-        dao = spy(new JdbcScimGroupProvisioning(jdbcTemplate,
-                new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter),
+        dao = spy(new JdbcScimGroupProvisioning(namedJdbcTemplate,
+                new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter),
                 dbUtils));
 
         users = mock(ScimUserProvisioning.class);
@@ -379,6 +383,23 @@ class JdbcScimGroupProvisioningTests {
                 .forEach(scope ->
                         assertTrue(groups.contains(scope), "Scope:" + scope + " should have been bootstrapped into the new zone")
                 );
+    }
+
+    @Test
+    void testOnApplicationEvent_ShouldOnlyCreateSystemScopesInAllowList() {
+        final String id = generator.generate();
+        final IdentityZone zone = MultitenancyFixture.identityZone(id, "subdomain-" + id);
+        zone.getConfig().getUserConfig().setDefaultGroups(List.of("password.write"));
+        zone.getConfig().getUserConfig().setAllowedGroups(List.of("scim.read", "scim.write"));
+
+        final IdentityZoneModifiedEvent event = IdentityZoneModifiedEvent.identityZoneCreated(zone);
+        dao.onApplicationEvent(event);
+
+        final List<String> groupNames = dao.retrieveAll(id).stream().map(ScimGroup::getDisplayName).toList();
+        Assertions.assertThat(groupNames).hasSize(3).contains(
+                "scim.read", "scim.write", // part of allowed groups
+                "password.write" // part of default groups
+        );
     }
 
     @Nested
