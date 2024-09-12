@@ -12,6 +12,7 @@ services:
       - LDAP_ADMIN_PASSWORD=password
       - LDAP_USERS=user01,user02
       - LDAP_PASSWORDS=password1,password2
+      - LDAP_GROUP=some-ldap-group
     volumes:
       - 'openldap_data:/bitnami/openldap'
 
