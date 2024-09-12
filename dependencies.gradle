@@ -133,7 +133,7 @@ libraries.jodaTime = "joda-time:joda-time:2.12.7"
 libraries.apacheHttpClient = "org.apache.httpcomponents:httpclient:4.5.14"
 
 // gradle plugins
-libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.5.10"
+libraries.testRetryPlugin = "org.gradle:test-retry-gradle-plugin:1.6.0"
 libraries.cargoGradlePlugin = "com.bmuschko:gradle-cargo-plugin:2.9.0"
 libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-plugin:${versions.springBootVersion}"
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
