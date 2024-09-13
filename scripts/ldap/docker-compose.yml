@@ -6,6 +6,7 @@ services:
     ports:
       - '389:1389'
       - '636:1636'
+    # docs of these env vars: https://github.com/bitnami/containers/tree/2724f9cd02b3b4e7986a1e2a0b0b30af3737bbd2/bitnami/openldap#configuration
     environment:
       - LDAP_ROOT=dc=test,dc=com
       - LDAP_ADMIN_USERNAME=admin
