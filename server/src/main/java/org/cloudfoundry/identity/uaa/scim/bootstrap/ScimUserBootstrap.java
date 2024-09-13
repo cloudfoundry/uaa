@@ -193,19 +193,19 @@ public class ScimUserBootstrap implements
         if (updateGroups) {
             Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
             logger.debug("Adding new groups " + newGroups);
-            addGroups(id, newGroups);
+            addGroups(id, newGroups, newScimUser.getOrigin());
         }
     }
 
     private void createNewUser(UaaUser user) {
         logger.debug("Registering new user account: " + user);
         ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword(), IdentityZoneHolder.get().getId());
-        addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()));
+        addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()), newScimUser.getOrigin());
     }
 
-    private void addGroups(String scimUserid, Collection<String> groups) {
+    private void addGroups(String scimUserid, Collection<String> groups, String origin) {
         for (String group : groups) {
-            addToGroup(scimUserid, group);
+            addToGroup(scimUserid, group, origin, true);
         }
     }
 
@@ -274,10 +274,6 @@ public class ScimUserBootstrap implements
         }
     }
 
-    private void addToGroup(String scimUserId, String gName) {
-        addToGroup(scimUserId, gName, OriginKeys.UAA, true);
-    }
-
     private void addToGroup(String scimUserId, String gName, String origin, boolean addGroup) {
         if (!StringUtils.hasText(gName)) {
             return;
@@ -296,7 +292,7 @@ public class ScimUserBootstrap implements
         }
         try {
             ScimGroupMember groupMember = new ScimGroupMember(scimUserId);
-            groupMember.setOrigin(origin);
+            groupMember.setOrigin(ofNullable(origin).orElse(OriginKeys.UAA));
             membershipManager.addMember(group.getId(), groupMember, IdentityZoneHolder.get().getId());
         } catch (MemberAlreadyExistsException ex) {
             // do nothing
