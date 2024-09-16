@@ -353,6 +353,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             authentication.setAuthenticationMethods(new HashSet<>());
         }
         authentication.getAuthenticationMethods().add("oauth");
+        ExternalOAuthCodeToken externalOAuthCodeToken = (ExternalOAuthCodeToken) request;
+        if (externalOAuthCodeToken.getIdToken() != null) {
+        	authentication.setIdpIdToken(externalOAuthCodeToken.getIdToken());
+        }
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
     }
 
@@ -557,6 +561,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     protected Map<String, Object> getClaimsFromToken(ExternalOAuthCodeToken codeToken,
                                                      AbstractExternalOAuthIdentityProviderDefinition config) {
         String idToken = getTokenFromCode(codeToken, config);
+        codeToken.setIdToken(idToken);
         return getClaimsFromToken(idToken, config);
     }
 
@@ -821,7 +826,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         public String getUsername() {
             return username;
         }
-
 
         public List<? extends GrantedAuthority> getAuthorities() {
             return authorities;

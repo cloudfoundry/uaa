@@ -48,6 +48,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     private Set<String> authenticationMethods;
     private Set<String> authContextClassRef;
     private Long lastLoginSuccessTime;
+    private String idpIdToken;
 
     private Map userAttributes;
 
@@ -182,6 +183,14 @@ public class UaaAuthentication implements Authentication, Serializable {
         }
 
         return true;
+    }
+
+    public String getIdpIdToken() {
+        return this.idpIdToken;
+    }
+
+    public void setIdpIdToken(final String idpIdToken) {
+        this.idpIdToken = idpIdToken;
     }
 
     @Override
