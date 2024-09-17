@@ -227,12 +227,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             AuthenticationData authenticationData = new AuthenticationData();
 
             AbstractExternalOAuthIdentityProviderDefinition config = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
-            Map<String, Object> claims = getClaimsFromToken(codeToken, config);
+            String idToken = getTokenFromCode(codeToken, config);
+            Map<String, Object> claims = getClaimsFromToken(idToken, config);
 
             if (claims == null) {
                 return null;
             }
             authenticationData.setClaims(claims);
+            authenticationData.setIdToken(idToken);
 
             Map<String, Object> attributeMappings = config.getAttributeMappings();
 
@@ -791,10 +793,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return keyInfoService;
     }
 
-    protected static class AuthenticationData {
+    public static class AuthenticationData {
 
         private Map<String, Object> claims;
         private String username;
+        private String idToken;
         private List<? extends GrantedAuthority> authorities;
         private Map<String, Object> attributeMappings;
 
@@ -830,5 +833,9 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         public void setAuthorities(List<? extends GrantedAuthority> authorities) {
             this.authorities = authorities;
         }
+
+        public String getIdToken() { return this.idToken; }
+
+        public void setIdToken(final String idToken) { this.idToken = idToken;  }
     }
 }

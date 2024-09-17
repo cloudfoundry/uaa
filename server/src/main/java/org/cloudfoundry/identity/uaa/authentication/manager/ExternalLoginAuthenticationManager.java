@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthen
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.DialableByPhone;
@@ -39,6 +40,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -155,6 +157,11 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             uaaAuthenticationDetails = UaaAuthenticationDetails.UNKNOWN;
         }
         UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
+        success.setSamlMessageContext(new SAMLMessageContext());
+        if (authenticationData instanceof ExternalOAuthAuthenticationManager.AuthenticationData authenticationInternal) {
+            success.setIdpIdToken(authenticationInternal.getIdToken());
+        }
+        //ExternalOAuthAuthenticationManager.AuthenticationData xxx =
         populateAuthenticationAttributes(success, request, authenticationData);
         publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), IdentityZoneHolder.getCurrentZoneId()));
         return success;
