@@ -15,9 +15,9 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.openqa.selenium.Dimension;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.remote.CapabilityType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
@@ -27,7 +27,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 @PropertySource("classpath:integration.test.properties")
 public class DefaultIntegrationTestConfig {
@@ -63,6 +63,7 @@ public class DefaultIntegrationTestConfig {
           "--verbose",
           "--headless=old",
           "--window-position=-2400,-2400",
+          "--window-size=1024,768",
           "--disable-web-security",
           "--ignore-certificate-errors",
           "--allow-running-insecure-content",
@@ -73,15 +74,12 @@ public class DefaultIntegrationTestConfig {
         );
 
         options.setAcceptInsecureCerts(true);
+        options.setCapability(CapabilityType.ACCEPT_INSECURE_CERTS, true);
+        options.setImplicitWaitTimeout(Duration.ofSeconds(IMPLICIT_WAIT_TIME * timeoutMultiplier));
+        options.setPageLoadTimeout(Duration.ofSeconds(PAGE_LOAD_TIMEOUT * timeoutMultiplier));
+        options.setScriptTimeout(Duration.ofSeconds(SCRIPT_TIMEOUT * timeoutMultiplier));
 
-        ChromeDriver driver = new ChromeDriver(options);
-
-        driver.manage().timeouts()
-                .implicitlyWait(IMPLICIT_WAIT_TIME * timeoutMultiplier, TimeUnit.SECONDS)
-                .pageLoadTimeout(PAGE_LOAD_TIMEOUT * timeoutMultiplier, TimeUnit.SECONDS)
-                .setScriptTimeout(SCRIPT_TIMEOUT * timeoutMultiplier, TimeUnit.SECONDS);
-        driver.manage().window().setSize(new Dimension(1024, 768));
-        return driver;
+        return new ChromeDriver(options);
     }
 
     @Bean(destroyMethod = "stop")
