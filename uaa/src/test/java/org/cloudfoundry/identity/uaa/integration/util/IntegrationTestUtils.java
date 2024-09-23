@@ -63,7 +63,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.StringHttpMessageConverter;
-import java.util.Base64;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -84,6 +83,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -93,7 +93,9 @@ import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.joining;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -174,7 +176,8 @@ public class IntegrationTestUtils {
         }
         UserAccountStatus userAccountStatus = new UserAccountStatus();
         userAccountStatus.setPasswordChangeRequired(true);
-        restTemplate.exchange(baseUrl + "/Users/{user-id}/status", HttpMethod.PATCH, new HttpEntity<>(userAccountStatus, headers), UserAccountStatus.class, userId);
+        final ResponseEntity<UserAccountStatus> response = restTemplate.exchange(baseUrl + "/Users/{user-id}/status", HttpMethod.PATCH, new HttpEntity<>(userAccountStatus, headers), UserAccountStatus.class, userId);
+        assertStatusCode(response, HttpStatus.OK);
     }
 
     public static ScimUser createUnapprovedUser(ServerRunning serverRunning) {
@@ -211,7 +214,11 @@ public class IntegrationTestUtils {
         headers.add(AUTHORIZATION, "Bearer " + token);
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
         RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.GET, new URI(url + "/userinfo"));
-        return rest.exchange(request, UserInfoResponse.class).getBody();
+        final ResponseEntity<UserInfoResponse> response = rest.exchange(request, UserInfoResponse.class);
+        assertStatusCode(response, HttpStatus.OK);
+        final UserInfoResponse responseBody = response.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     public static void deleteZone(String baseUrl, String id, String adminToken) throws URISyntaxException {
@@ -220,7 +227,8 @@ public class IntegrationTestUtils {
         headers.add(AUTHORIZATION, "Bearer " + adminToken);
         headers.add(ACCEPT, APPLICATION_JSON_VALUE);
         RequestEntity<Void> request = new RequestEntity<>(headers, HttpMethod.DELETE, new URI(baseUrl + "/identity-zones/" + id));
-        rest.exchange(request, Void.class);
+        final ResponseEntity<Void> response = rest.exchange(request, Void.class);
+        assertStatusCode(response, HttpStatus.OK);
     }
 
     public static boolean zoneExists(final String baseUrl, final String id, final String adminToken) throws URISyntaxException {
@@ -318,7 +326,11 @@ public class IntegrationTestUtils {
         user.setActive(true);
         user.setPassword("secr3T");
         user.setPhoneNumbers(Collections.singletonList(new PhoneNumber(phoneNumber)));
-        return client.postForEntity(url + "/Users", user, ScimUser.class).getBody();
+        final ResponseEntity<ScimUser> response = client.postForEntity(url + "/Users", user, ScimUser.class);
+        assertStatusCode(response, HttpStatus.CREATED);
+        final ScimUser responseBody = response.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     public static ScimUser createUser(String token, String url, ScimUser user, String zoneSwitchId) {
@@ -500,6 +512,23 @@ public class IntegrationTestUtils {
         return null;
     }
 
+    public static ScimGroup ensureGroupExists(
+            final String token,
+            final String zoneId,
+            final String url,
+            final String displayName
+    ) {
+        final ScimGroup existingGroup = getGroup(token, zoneId, url, displayName);
+        if (existingGroup != null) {
+            return existingGroup;
+        }
+        final ScimGroup group = new ScimGroup(null, displayName, zoneId);
+        return createGroup(token, zoneId, url, group);
+    }
+
+    /**
+     * @return the group or {@code null} if it does not exist
+     */
     public static ScimGroup getGroup(String token,
                                      String zoneId,
                                      String url,
@@ -520,6 +549,7 @@ public class IntegrationTestUtils {
                 },
                 displayName
         );
+        assertStatusCode(findGroup, HttpStatus.OK);
         if (findGroup.getBody().getTotalResults() == 0) {
             return null;
         } else {
@@ -527,26 +557,31 @@ public class IntegrationTestUtils {
         }
     }
 
-    public static ScimGroup createGroup(String token,
-                                        String zoneId,
-                                        String url,
-                                        ScimGroup group) {
-        RestTemplate template = new RestTemplate();
+    public static ScimGroup createGroup(
+            final String token,
+            final String zoneId,
+            final String url,
+            final ScimGroup group
+    ) {
+        final RestTemplate template = new RestTemplate();
         template.setErrorHandler(fiveHundredErrorHandler);
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", APPLICATION_JSON_VALUE);
         headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
         if (hasText(zoneId)) {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
-        ResponseEntity<ScimGroup> createGroup = template.exchange(
+        final ResponseEntity<ScimGroup> response = template.exchange(
                 url + "/Groups",
                 HttpMethod.POST,
                 new HttpEntity<>(JsonUtils.writeValueAsBytes(group), headers),
                 ScimGroup.class
         );
-        return createGroup.getBody();
+        assertStatusCode(response, HttpStatus.CREATED);
+        final ScimGroup responseBody = response.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     private static ScimGroup updateGroup(String token,
@@ -628,8 +663,9 @@ public class IntegrationTestUtils {
             headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
 
-
-        template.exchange(url + "/Groups/{groupId}", HttpMethod.DELETE, new HttpEntity<>(headers), ScimGroup.class, groupId);
+        final ResponseEntity<ScimGroup> response = template.exchange(url + "/Groups/{groupId}", HttpMethod.DELETE,
+                new HttpEntity<>(headers), ScimGroup.class, groupId);
+        assertStatusCode(response, HttpStatus.OK);
     }
 
     private static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
@@ -660,13 +696,16 @@ public class IntegrationTestUtils {
         identityZone.setConfig(config);
         identityZone.setActive(active);
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
-        return zone.getBody();
+        assertStatusCode(zone, HttpStatus.CREATED);
+        final IdentityZone responseBody = zone.getBody();
+        assertNotNull(responseBody);
+        return responseBody;
     }
 
     public static IdentityZone createInactiveIdentityZone(RestTemplate client, String url) {
         createZoneOrUpdateSubdomain(client, url, "testzoneinactive", "testzoneinactive", new IdentityZoneConfiguration(), false);
         ResponseEntity<IdentityZone> zoneGet = client.getForEntity(url + "/identity-zones/{id}", IdentityZone.class, "testzoneinactive");
-        if (!(zoneGet.getStatusCode() == HttpStatus.OK)) {
+        if (zoneGet.getStatusCode() != HttpStatus.OK) {
             throw new RuntimeException("Could not create inactive zone.");
         }
         return zoneGet.getBody();
@@ -707,8 +746,24 @@ public class IntegrationTestUtils {
                 getHeaders,
                 UaaClientDetails.class
         );
+        assertStatusCode(response, HttpStatus.OK);
 
         return response.getBody();
+    }
+
+    private static void assertStatusCode(final ResponseEntity<?> response, final HttpStatus... expectedStatusCodes) {
+        final boolean matchesAnyExpectedStatusCode = Stream.of(expectedStatusCodes)
+                .anyMatch(it -> it.equals(response.getStatusCode()));
+        if (!matchesAnyExpectedStatusCode) {
+            final String expectedStatusCodesString = Arrays.stream(expectedStatusCodes)
+                    .map(HttpStatus::value)
+                    .map(Object::toString)
+                    .collect(joining(" or "));
+            throw new RuntimeException(
+                    "Invalid return code: expected %s, got %d".formatted(expectedStatusCodesString,
+                            response.getStatusCode().value())
+            );
+        }
     }
 
     public static UaaClientDetails createClientAsZoneAdmin(String zoneAdminToken,
@@ -804,8 +859,8 @@ public class IntegrationTestUtils {
                 getHeaders,
                 UaaClientDetails.class
         );
-
-        response.getBody();
+        assertStatusCode(response, HttpStatus.OK);
+        assertNotNull(response.getBody());
     }
 
     public static IdentityProvider<? extends AbstractIdentityProviderDefinition> getProvider(String zoneAdminToken,
@@ -823,6 +878,9 @@ public class IntegrationTestUtils {
         return null;
     }
 
+    /**
+     * @return the list of identity providers or {@code null} if the request was not successful
+     */
     private static List<IdentityProvider<? extends AbstractIdentityProviderDefinition>> getProviders(String zoneAdminToken,
                                                                                                      String url,
                                                                                                      String zoneId) {
@@ -856,12 +914,13 @@ public class IntegrationTestUtils {
         headers.add("Authorization", "bearer " + zoneAdminToken);
         headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         HttpEntity getHeaders = new HttpEntity<>(headers);
-        client.exchange(
+        final ResponseEntity<String> response = client.exchange(
                 url + "/identity-providers/" + provider.getId(),
                 HttpMethod.DELETE,
                 getHeaders,
                 String.class
         );
+        assertStatusCode(response, HttpStatus.OK);
     }
 
     /**
@@ -932,8 +991,7 @@ public class IntegrationTestUtils {
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
 
         String groupName = "zones." + zoneId + ".admin";
-        ScimGroup group = new ScimGroup(null, groupName, null);
-        createGroup(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, group);
+        ensureGroupExists(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, groupName);
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
         assertThat("Couldn't find group : " + groupId, groupId, is(CoreMatchers.notNullValue()));
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
@@ -1064,8 +1122,10 @@ public class IntegrationTestUtils {
 
         Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
 
+        final Map responseBody = response.getBody();
+        assertNotNull(responseBody);
         @SuppressWarnings("unchecked")
-        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(responseBody);
         return accessToken.getValue();
     }
 
@@ -1118,8 +1178,10 @@ public class IntegrationTestUtils {
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
         Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
 
+        final Map responseBody = response.getBody();
+        assertNotNull(responseBody);
         @SuppressWarnings("unchecked")
-        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(responseBody);
         return accessToken.getValue();
     }
 
@@ -1293,7 +1355,9 @@ public class IntegrationTestUtils {
         formData.add("token", accessToken);
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        assertNotNull(tokenResponse.getBody().get("iss"));
+        final Map tokenResponseBody = tokenResponse.getBody();
+        assertNotNull(tokenResponseBody);
+        assertNotNull(tokenResponseBody.get("iss"));
     }
 
     public static String getAuthorizationCodeToken(

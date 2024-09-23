@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -55,6 +56,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
     private IdentityProviderEndpoints identityProviderEndpoints;
     private ScimUserAliasHandler scimUserAliasHandler;
     private ScimUserEndpoints scimUserEndpoints;
+    private ScimUserService scimUserService;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -64,6 +66,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         identityProviderEndpoints = requireNonNull(webApplicationContext.getBean(IdentityProviderEndpoints.class));
         scimUserAliasHandler = requireNonNull(webApplicationContext.getBean(ScimUserAliasHandler.class));
         scimUserEndpoints = requireNonNull(webApplicationContext.getBean(ScimUserEndpoints.class));
+        scimUserService = requireNonNull(webApplicationContext.getBean(ScimUserService.class));
     }
 
     @Nested
@@ -1707,5 +1710,6 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
         ReflectionTestUtils.setField(identityProviderEndpoints, "aliasEntitiesEnabled", enabled);
         ReflectionTestUtils.setField(scimUserAliasHandler, "aliasEntitiesEnabled", enabled);
         ReflectionTestUtils.setField(scimUserEndpoints, "aliasEntitiesEnabled", enabled);
+        ReflectionTestUtils.setField(scimUserService, "aliasEntitiesEnabled", enabled);
     }
 }

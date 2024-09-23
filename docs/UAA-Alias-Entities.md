@@ -115,9 +115,17 @@ Please note that disabling the flag does not lead to existing entities with alia
 In addition to enabling the alias feature, one must ensure that no groups can be created that would give users inside a 
 custom zone any authorizations in other zones (e.g., `zones.<zone ID>.admin`).
 This can be achieved by using the allow list for groups (`userConfig.allowedGroups`) in the configuration of the 
-identity zone. 
+identity zone.
 
+## User Logon
 
+During logon, the information of the matching shadow user is updated with the information from the identity provider 
+(e.g., the ID token in the OpenID Connect flow).
+
+If this shadow user has an alias, ...
+- *alias entities enabled:* the updated properties are propagated to the alias.
+- *alias entities disabled:* only the user itself is updated, the alias user is left unchanged.
+  - the alias properties are not changed - original and alias user still reference each other
 
 
 

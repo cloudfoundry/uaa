@@ -176,6 +176,7 @@ scim:
 
 oauth:
   user:
+    # list of default groups to which a new user will be added
     authorities:
       - openid
       - scim.me
@@ -574,3 +575,13 @@ ldap:
     password: 'password'
     searchBase: 'dc=test,dc=com'
     searchFilter: 'cn={0}'
+  groups:
+    file: ldap/ldap-groups-as-scopes.xml
+    searchBase: 'dc=test,dc=com'
+    groupRoleAttribute: 'cn'
+    groupSearchFilter: 'member={0}'
+    searchSubtree: true
+    maxSearchDepth: 10
+    autoAdd: true
+  externalGroupsWhitelist:
+    - '*'

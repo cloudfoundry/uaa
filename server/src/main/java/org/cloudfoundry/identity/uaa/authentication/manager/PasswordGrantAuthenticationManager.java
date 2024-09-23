@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationExcepti
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
@@ -18,13 +19,13 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -35,7 +36,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -46,7 +46,6 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URL;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -57,16 +56,14 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private IdentityProviderProvisioning identityProviderProvisioning;
     private RestTemplateConfig restTemplateConfig;
     private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
-    private MultitenantClientServices clientDetailsService;
     private ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning;
     private ApplicationEventPublisher eventPublisher;
 
-    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager, MultitenantClientServices clientDetailsService, ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning) {
+    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager, ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.restTemplateConfig = restTemplateConfig;
         this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
-        this.clientDetailsService = clientDetailsService;
         this.externalOAuthProviderProvisioning = externalOAuthProviderProvisioning;
     }
 
@@ -76,18 +73,22 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         List<String> allowedProviders = getAllowedProviders();
         String defaultProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
         UaaLoginHint loginHintToUse;
-        List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).map(IdentityProvider::getOriginKey).collect(Collectors.toList());
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = retrieveOidcPasswordIdp(uaaLoginHint, defaultProvider, allowedProviders);
         List<String> possibleProviders;
-        if (allowedProviders == null) {
-            possibleProviders = identityProviders;
+        if (identityProvider != null) {
+            possibleProviders = List.of(identityProvider.getOriginKey());
         } else {
-            possibleProviders = allowedProviders.stream().filter(identityProviders::contains).collect(Collectors.toList());
+            List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).map(IdentityProvider::getOriginKey).toList();
+            possibleProviders = Optional.ofNullable(allowedProviders).orElse(identityProviders).stream().filter(identityProviders::contains).toList();
         }
         if (uaaLoginHint == null) {
             if (defaultProvider != null && possibleProviders.contains(defaultProvider)) {
                 loginHintToUse = new UaaLoginHint(defaultProvider);
             } else {
                 loginHintToUse = getUaaLoginHintForChainedAuth(possibleProviders);
+                if (identityProvider == null) {
+                    identityProvider = retrieveOidcPasswordIdp(loginHintToUse, null, null);
+                }
             }
         } else {
             if (possibleProviders.contains(uaaLoginHint.getOrigin())) {
@@ -101,11 +102,29 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (loginHintToUse != null) {
             zoneAwareAuthzAuthenticationManager.setLoginHint(authentication, loginHintToUse);
         }
-        if (loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
+        if (identityProvider == null || loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
-            return oidcPasswordGrant(authentication, (OIDCIdentityProviderDefinition)externalOAuthProviderProvisioning.retrieveByOrigin(loginHintToUse.getOrigin(), IdentityZoneHolder.get().getId()).getConfig());
+            return oidcPasswordGrant(authentication, identityProvider.getConfig());
         }
+    }
+
+    private IdentityProvider<OIDCIdentityProviderDefinition> retrieveOidcPasswordIdp(UaaLoginHint loginHint, String defaultOrigin, List<String> allowedProviders) {
+        IdentityProvider<OIDCIdentityProviderDefinition> idp = null;
+        String useOrigin = loginHint != null && loginHint.getOrigin() != null ? loginHint.getOrigin() : defaultOrigin;
+        if (useOrigin != null && !useOrigin.equalsIgnoreCase(OriginKeys.UAA) && !useOrigin.equalsIgnoreCase(OriginKeys.LDAP)) {
+            try {
+                IdentityProvider<OIDCIdentityProviderDefinition> retrievedByOrigin = externalOAuthProviderProvisioning.retrieveByOrigin(useOrigin,
+                    IdentityZoneHolder.get().getId());
+                if (retrievedByOrigin != null && retrievedByOrigin.isActive() && retrievedByOrigin.getOriginKey().equals(useOrigin)
+                    && providerSupportsPasswordGrant(retrievedByOrigin) && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
+                    idp = retrievedByOrigin;
+                }
+            } catch (EmptyResultDataAccessException e) {
+                // ignore
+            }
+        }
+        return idp;
     }
 
     private UaaLoginHint getUaaLoginHintForChainedAuth(List<String> allowedProviders) {
@@ -239,9 +258,11 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (clientAuth == null) {
             throw new BadCredentialsException("No client authentication found.");
         }
-        String clientId = clientAuth.getName();
-        ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-        return (List<String>)clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+        List<String> allowedProviders = null;
+        if (clientAuth.getPrincipal() instanceof UaaClient uaaClient && uaaClient.getAdditionalInformation() != null) {
+            allowedProviders = (List<String>) uaaClient.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+        }
+        return allowedProviders;
     }
 
     @Override

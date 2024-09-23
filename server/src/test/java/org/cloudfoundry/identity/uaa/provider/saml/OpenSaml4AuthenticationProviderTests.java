@@ -13,15 +13,18 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -100,6 +103,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -196,7 +200,9 @@ class OpenSaml4AuthenticationProviderTests {
 
         userProvisioning = new JdbcScimUserProvisioning(namedJdbcTemplate,
                 new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter), passwordEncoder,
-                new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate));
+                new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate),
+                new SimpleSearchQueryConverter(), new SimpleSearchQueryConverter(), new TimeServiceImpl(),
+                true);
 
         uaaSamlUser = groupProvisioning.create(
                 new ScimGroup(null, UAA_SAML_USER, IdentityZone.getUaaZoneId()),
@@ -211,8 +217,27 @@ class OpenSaml4AuthenticationProviderTests {
         JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(
                 jdbcTemplate, new TimeServiceImpl(), userProvisioning, null, dbUtils);
         membershipManager.setScimGroupProvisioning(groupProvisioning);
-        ScimUserBootstrap bootstrap = new ScimUserBootstrap(userProvisioning, groupProvisioning,
-                membershipManager, Collections.emptyList(), false, Collections.emptyList());
+
+        final ScimUserAliasHandler aliasHandler = mock(ScimUserAliasHandler.class);
+        when(aliasHandler.aliasPropertiesAreValid(any(), any())).thenReturn(true);
+
+        final ScimUserService scimUserService = new ScimUserService(
+                aliasHandler,
+                userProvisioning,
+                identityZoneManager,
+                null, // not required since alias is disabled
+                false
+        );
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(
+                userProvisioning,
+                scimUserService,
+                groupProvisioning,
+                membershipManager,
+                Collections.emptyList(),
+                false,
+                Collections.emptyList(),
+                false
+        );
 
         externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         externalManager.setScimGroupProvisioning(groupProvisioning);

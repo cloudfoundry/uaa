@@ -694,7 +694,6 @@
         <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
         <constructor-arg name="restTemplateConfig" ref="restTemplateConfig"/>
         <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <constructor-arg name="externalOAuthProviderProvisioning" ref="externalOAuthProviderConfigurator"/>
     </bean>
 

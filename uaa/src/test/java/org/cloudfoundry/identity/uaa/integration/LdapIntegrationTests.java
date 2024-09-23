@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -51,8 +52,7 @@ class LdapIntegrationTests {
     void setup() {
         String token = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
 
-        ScimGroup group = new ScimGroup(null, "zones.testzone1.admin", null);
-        IntegrationTestUtils.createGroup(token, "", serverRunning.getBaseUrl(), group);
+        IntegrationTestUtils.ensureGroupExists(token, "", serverRunning.getBaseUrl(), "zones.testzone1.admin");
     }
 
     @AfterEach

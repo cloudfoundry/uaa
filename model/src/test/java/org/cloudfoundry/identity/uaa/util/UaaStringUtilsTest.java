@@ -22,6 +22,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class UaaStringUtilsTest {
 
@@ -406,6 +407,18 @@ class UaaStringUtilsTest {
         assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1").stream().sorted().collect(Collectors.toList())).isEqualTo(List.of("1", "2").stream().sorted().collect(Collectors.toList()));
         assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of(), "1")).isEqualTo(List.of("1"));
         assertThat(UaaStringUtils.getValuesOrDefaultValue(null, "1")).isEqualTo(List.of("1"));
+    }
+
+    @Test
+    void validateInput() {
+        assertThat(UaaStringUtils.getValidatedString("foo")).isEqualTo("foo");
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { "\0", "", "\t", "\n", "\r" })
+    void alertOnInvlidInput(String input) {
+        assertThatThrownBy(() -> UaaStringUtils.getValidatedString(input))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     private static void replaceZoneVariables(IdentityZone zone) {
