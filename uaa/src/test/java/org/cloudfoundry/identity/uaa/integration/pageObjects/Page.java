@@ -6,6 +6,7 @@ import org.hamcrest.Matcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
 public class Page {
@@ -48,5 +49,12 @@ public class Page {
 
     public void clearCookies() {
         driver.manage().deleteAllCookies();
+    }
+
+    public static void validateUrlStartsWithWait(WebDriver driver, String currentUrlStart) throws InterruptedException {
+        if (!driver.getCurrentUrl().startsWith("https://www.google.com")) {
+            Thread.sleep(5000);
+        }
+        assertThat(driver.getCurrentUrl(), startsWith(currentUrlStart));
     }
 }

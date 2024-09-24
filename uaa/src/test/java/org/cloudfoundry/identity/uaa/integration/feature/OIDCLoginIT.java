@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.endpoints.SamlLogoutAuthSourceEndpoint;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.Page;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
@@ -486,9 +487,7 @@ public class OIDCLoginIT {
             webDriver.findElement(By.name("password")).sendKeys("saml6");
             webDriver.findElement(By.id("submit_button")).click();
 
-            if (!webDriver.getCurrentUrl().contains(zoneUrl)) {
-                Thread.sleep(5000);
-            }
+            Page.validateUrlStartsWithWait(webDriver, zoneUrl);
             assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 

@@ -99,7 +99,6 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -692,10 +691,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         sendCredentials(testAccounts.getUserName(), "koala");
 
-        if (!webDriver.getCurrentUrl().startsWith("https://www.google.com")) {
-            Thread.sleep(5000);
-        }
-        assertThat(webDriver.getCurrentUrl(), startsWith("https://www.google.com"));
+        Page.validateUrlStartsWithWait(webDriver, "https://www.google.com");
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(zoneUrl + "/logout.do");
     }
