@@ -688,11 +688,10 @@ public class SamlLoginIT {
         String samlUrl = IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php?"+
             "spentityid=testzone1.cloudfoundry-saml-login&" +
             "RelayState=https://www.google.com";
+        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
         webDriver.get(samlUrl);
         //we should now be in the Simple SAML PHP site
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-
-        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
         sendCredentials(testAccounts.getUserName(), "koala");
 
         assertThat(webDriver.getCurrentUrl(), startsWith("https://www.google.com"));
