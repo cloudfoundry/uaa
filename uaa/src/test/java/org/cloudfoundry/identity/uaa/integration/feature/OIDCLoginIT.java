@@ -70,7 +70,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -476,7 +475,6 @@ public class OIDCLoginIT {
           This test creates an OIDC provider. That provider in turn has a SAML provider.
           The end user is authenticated using OIDC federating to SAML
          */
-            webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
             webDriver.get(zoneUrl + "/login");
             webDriver.findElement(By.linkText("My OIDC Provider")).click();
             Assert.assertThat(webDriver.getCurrentUrl(), containsString(baseUrl));
@@ -488,6 +486,9 @@ public class OIDCLoginIT {
             webDriver.findElement(By.name("password")).sendKeys("saml6");
             webDriver.findElement(By.id("submit_button")).click();
 
+            if (!webDriver.getCurrentUrl().contains(zoneUrl)) {
+                Thread.sleep(5000);
+            }
             assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 

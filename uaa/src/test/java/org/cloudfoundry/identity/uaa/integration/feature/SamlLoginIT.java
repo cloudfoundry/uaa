@@ -16,7 +16,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -688,7 +687,6 @@ public class SamlLoginIT {
         String samlUrl = IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php?"+
             "spentityid=testzone1.cloudfoundry-saml-login&" +
             "RelayState=https://www.google.com";
-        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
         webDriver.get(samlUrl);
         //we should now be in the Simple SAML PHP site
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
