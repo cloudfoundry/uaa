@@ -13,7 +13,7 @@ public class Page {
 
     public Page(WebDriver driver) {
         this.driver = driver;
-        //driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
     }
 
     protected static void validateUrl(WebDriver driver, Matcher urlMatcher) {

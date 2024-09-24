@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -690,6 +691,8 @@ public class SamlLoginIT {
         webDriver.get(samlUrl);
         //we should now be in the Simple SAML PHP site
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+
+        webDriver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
         sendCredentials(testAccounts.getUserName(), "koala");
 
         assertThat(webDriver.getCurrentUrl(), startsWith("https://www.google.com"));
