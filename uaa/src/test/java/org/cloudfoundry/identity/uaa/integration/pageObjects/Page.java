@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.Matcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
 public class Page {
@@ -48,5 +50,12 @@ public class Page {
 
     public void clearCookies() {
         driver.manage().deleteAllCookies();
+    }
+
+    public static void validateUrlStartsWithWait(WebDriver driver, String currentUrlStart) throws InterruptedException {
+        if (!driver.getCurrentUrl().startsWith(currentUrlStart)) {
+            TimeUnit.SECONDS.sleep(5);
+        }
+        assertThat(driver.getCurrentUrl(), startsWith(currentUrlStart));
     }
 }
