@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.Matcher;
 import org.openqa.selenium.By;
@@ -52,8 +53,8 @@ public class Page {
     }
 
     public static void validateUrlStartsWithWait(WebDriver driver, String currentUrlStart) throws InterruptedException {
-        if (!driver.getCurrentUrl().startsWith("https://www.google.com")) {
-            Thread.sleep(5000);
+        if (!driver.getCurrentUrl().startsWith(currentUrlStart)) {
+            TimeUnit.SECONDS.sleep(5);
         }
         assertThat(driver.getCurrentUrl(), startsWith(currentUrlStart));
     }
