@@ -637,7 +637,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    public void test_RelayState_redirect_from_idp() {
+    public void test_RelayState_redirect_from_idp() throws InterruptedException {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
 
@@ -694,6 +694,9 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         sendCredentials(testAccounts.getUserName(), "koala");
 
+        if (!webDriver.getCurrentUrl().startsWith("https://www.google.com")) {
+            Thread.sleep(5000);
+        }
         assertThat(webDriver.getCurrentUrl(), startsWith("https://www.google.com"));
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(zoneUrl + "/logout.do");

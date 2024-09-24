@@ -488,7 +488,7 @@ public class OIDCLoginIT {
             webDriver.findElement(By.name("password")).sendKeys("saml6");
             webDriver.findElement(By.id("submit_button")).click();
 
-
+            assertThat(webDriver.getCurrentUrl(), containsString(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 
             Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
