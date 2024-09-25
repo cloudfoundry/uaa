@@ -18,7 +18,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 public class JwtTokenGranter extends AbstractTokenGranter {
     final DefaultSecurityContextAccessor defaultSecurityContextAccessor;
 
-    protected JwtTokenGranter(AuthorizationServerTokenServices tokenServices,
+    public JwtTokenGranter(AuthorizationServerTokenServices tokenServices,
                               MultitenantClientServices clientDetailsService,
                               OAuth2RequestFactory requestFactory) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_JWT_BEARER);

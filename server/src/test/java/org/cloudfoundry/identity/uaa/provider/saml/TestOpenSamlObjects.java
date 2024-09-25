@@ -58,6 +58,7 @@ import org.opensaml.xmlsec.SignatureSigningParameters;
 import org.opensaml.xmlsec.encryption.support.DataEncryptionParameters;
 import org.opensaml.xmlsec.encryption.support.EncryptionException;
 import org.opensaml.xmlsec.encryption.support.KeyEncryptionParameters;
+import org.opensaml.xmlsec.keyinfo.impl.X509KeyInfoGeneratorFactory;
 import org.opensaml.xmlsec.signature.support.SignatureConstants;
 import org.opensaml.xmlsec.signature.support.SignatureException;
 import org.opensaml.xmlsec.signature.support.SignatureSupport;
@@ -136,7 +137,7 @@ public final class TestOpenSamlObjects {
         return assertion(USERNAME, ASSERTING_PARTY_ENTITY_ID, RELYING_PARTY_ENTITY_ID, DESTINATION);
     }
 
-    static Assertion assertion(String username, String issuerEntityId, String recipientEntityId, String recipientUri) {
+    public static Assertion assertion(String username, String issuerEntityId, String recipientEntityId, String recipientUri) {
         Assertion assertion = build(Assertion.DEFAULT_ELEMENT_NAME);
         assertion.setID("A" + UUID.randomUUID());
         assertion.setVersion(SAMLVersion.VERSION_20);
@@ -218,6 +219,10 @@ public final class TestOpenSamlObjects {
         parameters.setSignatureAlgorithm(signAlgorithmUri);
         parameters.setSignatureReferenceDigestMethod(SignatureConstants.ALGO_ID_DIGEST_SHA256);
         parameters.setSignatureCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+
+        X509KeyInfoGeneratorFactory x509KeyInfoGeneratorFactory = new X509KeyInfoGeneratorFactory();
+        x509KeyInfoGeneratorFactory.setEmitEntityCertificate(true);
+        parameters.setKeyInfoGenerator(x509KeyInfoGeneratorFactory.newInstance());
         try {
             SignatureSupport.signObject(signable, parameters);
         } catch (MarshallingException | SignatureException | SecurityException ex) {
@@ -541,4 +546,48 @@ public final class TestOpenSamlObjects {
         return (T) XMLObjectProviderRegistrySupport.getBuilderFactory().getBuilder(qName).buildObject(qName);
     }
 
+    public static String getEncodedAssertion(String issuerEntityId,
+                                             String format, String username,
+                                             String spEndpoint, String audienceEntityID, boolean sign) {
+        final Instant now = Instant.now();
+        final Instant until = now.plus(1, java.time.temporal.ChronoUnit.HOURS);
+
+        Assertion assertion = assertion(username, issuerEntityId, audienceEntityID, spEndpoint);
+        assertion.setIssueInstant(now);
+
+        // update subject
+        assertion.getSubject().getNameID().setNameQualifier(NameID.UNSPECIFIED);
+        assertion.getSubject().getNameID().setFormat(format);
+        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
+
+        // update conditions
+        final Audience audience = build(Audience.DEFAULT_ELEMENT_NAME);
+        audience.setURI(audienceEntityID);
+        final AudienceRestriction audienceRestriction = build(AudienceRestriction.DEFAULT_ELEMENT_NAME);
+        audienceRestriction.getAudiences().add(audience);
+
+        assertion.getConditions().setNotBefore(now.minusSeconds(2));
+        assertion.getConditions().setNotOnOrAfter(until);
+        assertion.getConditions().getAudienceRestrictions().add(audienceRestriction);
+
+        // update authn statement
+        final AuthnContextClassRef authnContextClassRef = build(AuthnContextClassRef.DEFAULT_ELEMENT_NAME);
+        authnContextClassRef.setURI("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
+        final AuthnContext authnContext = build(AuthnContext.DEFAULT_ELEMENT_NAME);
+        authnContext.setAuthnContextClassRef(authnContextClassRef);
+
+        final AuthnStatement authnStatement = assertion.getAuthnStatements().get(0);
+        authnStatement.setAuthnInstant(now);
+        authnStatement.setSessionIndex("a358a06c15ja8d7a1idjaj07jb52gdi");
+        authnStatement.setSessionNotOnOrAfter(until);
+        authnStatement.setAuthnContext(authnContext);
+
+        // sign, serialize and encode
+        if (sign) {
+            Saml2X509Credential signingCredential = Saml2X509Credential.signing(TestCredentialObjects.legacyPrivateKey(), TestCredentialObjects.legacyX509Certificate());
+            assertion = signed(assertion, signingCredential, issuerEntityId);
+        }
+        String serialized = Saml2TestUtils.serialize(assertion);
+        return Saml2Utils.samlEncode(serialized);
+    }
 }

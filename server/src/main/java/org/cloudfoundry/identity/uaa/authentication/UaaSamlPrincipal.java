@@ -30,8 +30,7 @@ import java.io.Serializable;
  * The SAML Logout Handlers check if the Principal is an instance of Saml2AuthenticatedPrincipal to handle SAML Logout.
  */
 @ToString(callSuper = true)
-@JsonIgnoreProperties({"relyingPartyRegistrationId", "sessionIndexes",
-        "attributes"})
+@JsonIgnoreProperties({"relyingPartyRegistrationId", "sessionIndexes", "attributes"})
 public class UaaSamlPrincipal extends UaaPrincipal implements Saml2AuthenticatedPrincipal, Serializable {
     public UaaSamlPrincipal(UaaUser user) {
         super(user);

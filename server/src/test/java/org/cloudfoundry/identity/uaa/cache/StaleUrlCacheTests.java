@@ -43,7 +43,7 @@ import static org.mockito.Mockito.when;
 class StaleUrlCacheTests {
 
     private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
-    private static final Duration CACHE_EXPIRED = CACHE_EXPIRATION.plusMinutes(1);
+    private static final Duration CACHE_EXPIRED = CACHE_EXPIRATION.multipliedBy(2).plusMinutes(1);
     private static final String URI = "http://localhost:8080/uaa/.well-known/openid-configuration";
     private static final byte[] content1;
     private static final byte[] content2;

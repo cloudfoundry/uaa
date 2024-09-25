@@ -46,7 +46,6 @@ public class UaaAuthentication extends AbstractAuthenticationToken
 
     private final Object credentials;
     private final UaaPrincipal principal;
-    private boolean authenticated;
     private long authenticatedTime = -1L;
     private long expiresAt = -1L;
     private Set<String> externalGroups;
@@ -89,9 +88,9 @@ public class UaaAuthentication extends AbstractAuthenticationToken
             throw new IllegalArgumentException("principal and authorities must not be null");
         }
         setDetails(details);
+        setAuthenticated(authenticated);
         this.principal = principal;
         this.credentials = credentials;
-        this.authenticated = authenticated;
         this.authenticatedTime = authenticatedTime <= 0 ? -1 : authenticatedTime;
         this.expiresAt = expiresAt <= 0 ? -1 : expiresAt;
     }
@@ -123,12 +122,7 @@ public class UaaAuthentication extends AbstractAuthenticationToken
 
     @Override
     public boolean isAuthenticated() {
-        return authenticated && (expiresAt <= 0 || expiresAt > System.currentTimeMillis());
-    }
-
-    @Override
-    public void setAuthenticated(boolean isAuthenticated) {
-        authenticated = isAuthenticated;
+        return super.isAuthenticated() && (expiresAt <= 0 || expiresAt > System.currentTimeMillis());
     }
 
     @Override

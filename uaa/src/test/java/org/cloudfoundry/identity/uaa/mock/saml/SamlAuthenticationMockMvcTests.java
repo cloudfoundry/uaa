@@ -7,8 +7,6 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
-import org.cloudfoundry.identity.uaa.authentication.MalformedSamlResponseLogger;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -25,7 +23,6 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.opensaml.saml.saml2.core.Response;
@@ -50,7 +47,6 @@ import java.util.function.Consumer;
 import static org.apache.logging.log4j.Level.DEBUG;
 import static org.apache.logging.log4j.Level.WARN;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.tuple;
 import static org.cloudfoundry.identity.uaa.authentication.MalformedSamlResponseLogger.X_VCAP_REQUEST_ID_HEADER;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.responseWithAssertions;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.serializedResponse;
@@ -76,6 +72,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DefaultTestContext
 class SamlAuthenticationMockMvcTests {
+    private static final String SAML_REQUEST = "SAMLRequest";
+    private static final String SAML_RESPONSE = "SAMLResponse";
+    private static final String RELAY_STATE = "RelayState";
+    private static final String SIG_ALG = "SigAlg";
+    private static final String SIGNATURE = "Signature";
 
     private RandomValueStringGenerator generator;
     private IdentityZone spZone;
@@ -162,14 +163,14 @@ class SamlAuthenticationMockMvcTests {
         Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
         // In the redirect binding, the encoded SAMLRequest, RelayState,
         // SigAlg, Signature are all passed as query parameters
-        MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get("SAMLRequest"), notNullValue());
-        assertThat("SigAlg is missing", parameterMap.get("SigAlg")[0], containsString(ALGO_ID_SIGNATURE_RSA_SHA256));
-        assertThat("Signature is missing", parameterMap.get("Signature"), notNullValue());
-        assertThat("RelayState is missing", parameterMap.get("RelayState"), notNullValue());
-        assertThat(parameterMap.get("RelayState")[0], equalTo("testsaml-redirect-binding"));
+        MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get(SAML_REQUEST), notNullValue());
+        assertThat("SigAlg is missing", parameterMap.get(SIG_ALG)[0], containsString(ALGO_ID_SIGNATURE_RSA_SHA256));
+        assertThat("Signature is missing", parameterMap.get(SIGNATURE), notNullValue());
+        assertThat("RelayState is missing", parameterMap.get(RELAY_STATE), notNullValue());
+        assertThat(parameterMap.get(RELAY_STATE)[0], equalTo("testsaml-redirect-binding"));
 
         // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
-        String samlRequestXml = samlDecodeAndInflate(parameterMap.get("SAMLRequest")[0]);
+        String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
         assertThat(samlRequestXml)
                 .contains("<saml2p:AuthnRequest");
 
@@ -243,14 +244,14 @@ class SamlAuthenticationMockMvcTests {
 
         String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
         Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
-        MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get("SAMLRequest"), notNullValue());
-        assertThat("SigAlg is missing", parameterMap.get("SigAlg"), notNullValue());
-        assertThat("Signature is missing", parameterMap.get("Signature"), notNullValue());
-        assertThat("RelayState is missing", parameterMap.get("RelayState"), notNullValue());
-        assertThat(parameterMap.get("RelayState")[0], equalTo("testsaml-redirect-binding"));
+        MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get(SAML_REQUEST), notNullValue());
+        assertThat("SigAlg is missing", parameterMap.get(SIG_ALG), notNullValue());
+        assertThat("Signature is missing", parameterMap.get(SIGNATURE), notNullValue());
+        assertThat("RelayState is missing", parameterMap.get(RELAY_STATE), notNullValue());
+        assertThat(parameterMap.get(RELAY_STATE)[0], equalTo("testsaml-redirect-binding"));
 
         // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
-        String samlRequestXml = samlDecodeAndInflate(parameterMap.get("SAMLRequest")[0]);
+        String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
         XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml).withNamespaceContext(xmlNamespaces());
         xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
                 .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
@@ -283,14 +284,14 @@ class SamlAuthenticationMockMvcTests {
 
         String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
         Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
-        MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get("SAMLRequest"), notNullValue());
-        assertThat("SigAlg is missing", parameterMap.get("SigAlg"), notNullValue());
-        assertThat("Signature is missing", parameterMap.get("Signature"), notNullValue());
-        assertThat("RelayState is missing", parameterMap.get("RelayState"), notNullValue());
-        assertThat(parameterMap.get("RelayState")[0], equalTo("testsaml-redirect-binding"));
+        MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get(SAML_REQUEST), notNullValue());
+        assertThat("SigAlg is missing", parameterMap.get(SIG_ALG), notNullValue());
+        assertThat("Signature is missing", parameterMap.get(SIGNATURE), notNullValue());
+        assertThat("RelayState is missing", parameterMap.get(RELAY_STATE), notNullValue());
+        assertThat(parameterMap.get(RELAY_STATE)[0], equalTo("testsaml-redirect-binding"));
 
         // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
-        String samlRequestXml = samlDecodeAndInflate(parameterMap.get("SAMLRequest")[0]);
+        String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
         XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml).withNamespaceContext(xmlNamespaces());
         xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
                 .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
@@ -344,8 +345,8 @@ class SamlAuthenticationMockMvcTests {
                         post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
                                 .contextPath("/uaa")
                                 .header(HOST, "localhost:8080")
-                                .param("SAMLResponse", encodedSamlResponse)
-                                .param("RelayState", "testsaml-post-binding")
+                                .param(SAML_RESPONSE, encodedSamlResponse)
+                                .param(RELAY_STATE, "testsaml-post-binding")
                 )
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
@@ -367,7 +368,7 @@ class SamlAuthenticationMockMvcTests {
                         .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                         .header(X_VCAP_REQUEST_ID_HEADER, xVcapRequestId)
                         .content(content)
-                        .param("SAMLResponse", xml)
+                        .param(SAML_RESPONSE, xml)
         );
     }
 
@@ -451,9 +452,9 @@ class SamlAuthenticationMockMvcTests {
             Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
             // In the redirect binding, the encoded SAMLRequest, RelayState,
             // SigAlg, Signature are all passed as query parameters
-            MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get("SAMLRequest"), notNullValue());
-            assertThat("SigAlg exists, but SAMLRequest should not be signed", parameterMap.get("SigAlg"), nullValue());
-            assertThat("Signature exists, but SAMLRequest should not be signed", parameterMap.get("Signature"), nullValue());
+            MatcherAssert.assertThat("SAMLRequest is missing", parameterMap.get(SAML_REQUEST), notNullValue());
+            assertThat("SigAlg exists, but SAMLRequest should not be signed", parameterMap.get(SIG_ALG), nullValue());
+            assertThat("Signature exists, but SAMLRequest should not be signed", parameterMap.get(SIGNATURE), nullValue());
         }
 
         @Test
@@ -500,8 +501,8 @@ class SamlAuthenticationMockMvcTests {
                         post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
                                 .contextPath("/uaa")
                                 .header(HOST, "localhost:8080")
-                                .param("SAMLResponse", encodedSamlResponse)
-                                .param("RelayState", "testsaml-post-binding")
+                                .param(SAML_RESPONSE, encodedSamlResponse)
+                                .param(RELAY_STATE, "testsaml-post-binding")
                 )
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
@@ -527,8 +528,8 @@ class SamlAuthenticationMockMvcTests {
                             post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
                                     .contextPath("/uaa")
                                     .header(HOST, "localhost:8080")
-                                    .param("SAMLResponse", encodedSamlResponse)
-                                    .param("RelayState", "testsaml-post-binding")
+                                    .param(SAML_RESPONSE, encodedSamlResponse)
+                                    .param(RELAY_STATE, "testsaml-post-binding")
                     )
                     .andDo(print())
                     .andExpect(status().is3xxRedirection())
@@ -560,7 +561,7 @@ class SamlAuthenticationMockMvcTests {
             Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
 
             // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
-            String samlRequestXml = samlDecodeAndInflate(parameterMap.get("SAMLRequest")[0]);
+            String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
             assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
 
             XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)

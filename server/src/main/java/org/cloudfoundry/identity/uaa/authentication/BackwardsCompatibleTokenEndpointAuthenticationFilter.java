@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEn
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.provider.saml.Saml2BearerGrantAuthenticationConverter;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -39,6 +40,9 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.util.Assert;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -63,6 +67,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  */
 @Slf4j
 public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Filter {
+    public static final String DEFAULT_FILTER_PROCESSES_URI = "/oauth/token/alias/{{registrationId}}";
 
     /**
      * A source of authentication details for requests that result in authentication.
@@ -81,26 +86,37 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
     private final OAuth2RequestFactory oAuth2RequestFactory;
 
-//    private final SAMLProcessingFilter samlAuthenticationFilter;
+    private final Saml2BearerGrantAuthenticationConverter saml2BearerGrantAuthenticationConverter;
 
     private final ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
 
+    private final AntPathRequestMatcher requestMatcher;
+
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory) {
-        this(authenticationManager, oAuth2RequestFactory, null);
+        this(DEFAULT_FILTER_PROCESSES_URI, authenticationManager, oAuth2RequestFactory, null, null);
     }
 
-    /**
-     * @param authenticationManager an AuthenticationManager for the incoming request
-     */
     public BackwardsCompatibleTokenEndpointAuthenticationFilter(AuthenticationManager authenticationManager,
                                                                 OAuth2RequestFactory oAuth2RequestFactory,
-//                                                                SAMLProcessingFilter samlAuthenticationFilter,
+                                                                Saml2BearerGrantAuthenticationConverter saml2BearerGrantAuthenticationConverter,
+                                                                ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager) {
+        this(DEFAULT_FILTER_PROCESSES_URI, authenticationManager, oAuth2RequestFactory, saml2BearerGrantAuthenticationConverter, externalOAuthAuthenticationManager);
+    }
+
+    public BackwardsCompatibleTokenEndpointAuthenticationFilter(String requestMatcherUrl,
+                                                                AuthenticationManager authenticationManager,
+                                                                OAuth2RequestFactory oAuth2RequestFactory,
+                                                                Saml2BearerGrantAuthenticationConverter saml2BearerGrantAuthenticationConverter,
                                                                 ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager) {
         super();
+        Assert.isTrue(requestMatcherUrl.contains("{registrationId}"),
+                "filterProcessesUrl must contain a {registrationId} match variable");
+        requestMatcher = new AntPathRequestMatcher(requestMatcherUrl);
+
         this.authenticationManager = authenticationManager;
         this.oAuth2RequestFactory = oAuth2RequestFactory;
-//        this.samlAuthenticationFilter = samlAuthenticationFilter;
+        this.saml2BearerGrantAuthenticationConverter = saml2BearerGrantAuthenticationConverter;
         this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
     }
 
@@ -121,6 +137,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 Map<String, String> map = getSingleValueMap(request);
                 map.put(OAuth2Utils.CLIENT_ID, clientAuth.getName());
 
+                // seems to be overwritten with new OAuth2Authentication below
                 SecurityContextHolder.getContext().setAuthentication(userAuthentication);
                 AuthorizationRequest authorizationRequest = oAuth2RequestFactory.createAuthorizationRequest(map);
 
@@ -161,9 +178,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
     private Map<String, String> getSingleValueMap(HttpServletRequest request) {
         Map<String, String> map = new HashMap<>();
         Map<String, String[]> parameters = request.getParameterMap();
-        for (String key : parameters.keySet()) {
-            String[] values = parameters.get(key);
-            map.put(key, values != null && values.length > 0 ? values[0] : null);
+        for (Map.Entry<String, String[]> entry : parameters.entrySet()) {
+            String[] values = entry.getValue();
+            map.put(entry.getKey(), values != null && values.length > 0 ? values[0] : null);
         }
         return map;
     }
@@ -212,15 +229,22 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
 
             return authResult;
         } else if (GRANT_TYPE_SAML2_BEARER.equals(grantType)) {
-//            logger.debug(GRANT_TYPE_SAML2_BEARER +" found. Attempting authentication with assertion");
-//            String assertion = request.getParameter("assertion");
-//            if (assertion != null && samlAuthenticationFilter != null) {
-//                logger.debug("Attempting SAML authentication for token endpoint.");
-//                authResult = samlAuthenticationFilter.attemptAuthentication(request, response);
-//            } else {
-//                logger.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
-//                throw new InsufficientAuthenticationException("SAML Assertion is missing");
-//            }
+            log.debug("{} found. Attempting authentication with assertion", GRANT_TYPE_SAML2_BEARER);
+            String assertion = request.getParameter("assertion");
+            if (assertion != null && saml2BearerGrantAuthenticationConverter != null) {
+                resolveRegistrationId(request);
+
+                log.debug("Attempting SAML authentication for token endpoint.");
+                try {
+                    authResult = saml2BearerGrantAuthenticationConverter.convert(request);
+                } catch (Exception e) {
+                    log.error("Error setting assertion in SAML filter", e);
+                    throw new InsufficientAuthenticationException("Error setting assertion in SAML filter");
+                }
+            } else {
+                log.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");
+                throw new InsufficientAuthenticationException("SAML Assertion is missing");
+            }
         } else if (GRANT_TYPE_JWT_BEARER.equals(grantType)) {
             log.debug(GRANT_TYPE_JWT_BEARER + " found. Attempting authentication with assertion");
             String assertion = request.getParameter("assertion");
@@ -234,11 +258,25 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 throw new InsufficientAuthenticationException("Assertion is missing");
             }
         }
+
         if (authResult != null && authResult.isAuthenticated()) {
             log.debug("Authentication success: " + authResult.getName());
             return authResult;
         }
         return null;
+    }
+
+    private void resolveRegistrationId(HttpServletRequest request) {
+        RequestMatcher.MatchResult result = this.requestMatcher.matcher(request);
+        if (!result.isMatch()) {
+            return;
+        }
+        String registrationId = result.getVariables().get("registrationId");
+        if (registrationId == null) {
+            return;
+        }
+        request.setAttribute("registrationId", registrationId);
+
     }
 
     private String getContextPath(HttpServletRequest request) {

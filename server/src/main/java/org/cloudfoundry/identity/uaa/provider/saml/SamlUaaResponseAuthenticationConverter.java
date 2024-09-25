@@ -85,12 +85,12 @@ public class SamlUaaResponseAuthenticationConverter
 
         RelyingPartyRegistration relyingPartyRegistration = authenticationToken.getRelyingPartyRegistration();
         String subjectName = assertions.get(0).getSubject().getNameID().getValue();
-        UaaPrincipal initialPrincipal = new UaaPrincipal(NotANumber, subjectName, authenticationToken.getName(),
-                relyingPartyRegistration.getRegistrationId(), authenticationToken.getName(), zone.getId());
-        log.debug("Mapped SAML authentication to IDP with origin '{}' and username '{}'",
-                relyingPartyRegistration.getRegistrationId(), initialPrincipal.getName());
-
         String alias = relyingPartyRegistration.getRegistrationId();
+        UaaPrincipal initialPrincipal = new UaaPrincipal(NotANumber, subjectName, authenticationToken.getName(),
+                alias, authenticationToken.getName(), zone.getId());
+        log.debug("Mapped SAML authentication to IDP with origin '{}' and username '{}'",
+                alias, initialPrincipal.getName());
+
         boolean addNew;
         IdentityProvider<SamlIdentityProviderDefinition> idp;
         SamlIdentityProviderDefinition samlConfig;

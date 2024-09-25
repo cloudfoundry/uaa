@@ -754,7 +754,6 @@ public class SamlLoginIT {
         assertThat(provider.getConfig().getIdpEntityAlias()).isEqualTo(provider.getOriginKey());
 
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
-
         webDriver.get("%s/logout.do".formatted(zoneUrl));
 
         String samlUrl = SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php?"

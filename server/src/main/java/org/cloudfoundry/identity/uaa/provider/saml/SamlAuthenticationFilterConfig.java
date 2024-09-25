@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.authentication.SamlLogoutRequestValidator;
 import org.cloudfoundry.identity.uaa.authentication.SamlLogoutResponseValidator;
 import org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutSuccessHandler;
 import org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutSuccessHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -235,6 +236,22 @@ public class SamlAuthenticationFilterConfig {
                 cookieClearingLogoutHandlerWithHandler);
         saml2LogoutRequestFilter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/{registrationId}"));
         return saml2LogoutRequestFilter;
+    }
+
+    /**
+     * Handles Authentication for the Saml2 Bearer Grant.
+     */
+    @Autowired
+    @Bean
+    Saml2BearerGrantAuthenticationConverter samlBearerGrantAuthenticationProvider(IdentityZoneManager identityZoneManager,
+                                                                                  final JdbcIdentityProviderProvisioning identityProviderProvisioning,
+                                                                                  SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager,
+                                                                                  ApplicationEventPublisher applicationEventPublisher,
+                                                                                  RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
+
+        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
+        return new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
+                identityProviderProvisioning, samlUaaAuthenticationUserManager, applicationEventPublisher);
     }
 }
 

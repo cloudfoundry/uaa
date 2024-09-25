@@ -443,5 +443,4 @@ class UaaStringUtilsTest {
         Matcher m = p.matcher(value);
         return m.matches();
     }
-
 }

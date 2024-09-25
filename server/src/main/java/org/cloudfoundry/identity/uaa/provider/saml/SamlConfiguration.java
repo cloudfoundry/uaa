@@ -9,8 +9,14 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.TrustStrategy;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
+import org.cloudfoundry.identity.uaa.oauth.provider.CompositeTokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.token.Saml2TokenGranter;
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -211,19 +217,6 @@ public class SamlConfiguration {
     <bean id="basicLogoutProfile" class="org.springframework.security.saml.websso.SingleLogoutProfileImpl">
         <property name="metadata" ref="metadata"/>
         <property name="processor" ref="processor"/>
-    </bean>
-
-    <!-- SAML 2.0 Bearer Grant Type -->
-    <bean id="samlTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.Saml2TokenGranter">
-        <constructor-arg name="tokenServices" ref="tokenServices"/>
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
-    </bean>
-
-    <bean id="addSamlTokenGranter"
-          class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
-        <constructor-arg name="userTokenGranter" ref="samlTokenGranter"/>
-        <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
     </bean>
 
     <!-- Initialization of OpenSAML library -->

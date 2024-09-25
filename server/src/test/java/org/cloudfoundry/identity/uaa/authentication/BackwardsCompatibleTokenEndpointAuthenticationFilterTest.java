@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
+import org.cloudfoundry.identity.uaa.provider.saml.Saml2BearerGrantAuthenticationConverter;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
@@ -67,30 +68,32 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
 
+    @Mock
     private AuthenticationManager passwordAuthManager;
+    @Mock
     private OAuth2RequestFactory requestFactory;
+    @Mock
+    private Saml2BearerGrantAuthenticationConverter saml2BearerGrantAuthenticationConverter;
+    @Mock
     private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
-    private BackwardsCompatibleTokenEndpointAuthenticationFilter filter;
-    private MockHttpServletRequest request;
-    private MockHttpServletResponse response;
-    private TokenTestSupport support;
 
     @Mock
     private FilterChain chain;
     @Mock
     private AuthenticationEntryPoint entryPoint;
 
+    private BackwardsCompatibleTokenEndpointAuthenticationFilter filter;
+    private MockHttpServletRequest request;
+    private MockHttpServletResponse response;
+    private TokenTestSupport support;
+
     @BeforeEach
     public void setUp() {
-
-        passwordAuthManager = mock(AuthenticationManager.class);
-        requestFactory = mock(OAuth2RequestFactory.class);
-        externalOAuthAuthenticationManager = mock(ExternalOAuthAuthenticationManager.class);
-
         filter = spy(
                 new BackwardsCompatibleTokenEndpointAuthenticationFilter(
                         passwordAuthManager,
                         requestFactory,
+                        saml2BearerGrantAuthenticationConverter,
                         externalOAuthAuthenticationManager
                 )
         );
@@ -120,7 +123,6 @@ class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter("password", "koala");
         filter.doFilter(request, response, chain);
         verify(entryPoint, times(1)).commence(same(request), same(response), any(PasswordChangeRequiredException.class));
-
     }
 
     @Test
@@ -172,25 +174,30 @@ class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         request.addParameter("assertion", "saml-assertion-value-here");
         filter.doFilter(request, response, chain);
+
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+        verify(saml2BearerGrantAuthenticationConverter, times(1)).convert(same(request));
         verifyNoInteractions(passwordAuthManager);
         verifyNoInteractions(externalOAuthAuthenticationManager);
+        verify(saml2BearerGrantAuthenticationConverter, times(1)).convert(same(request));
     }
 
     @Test
     void samlAssertionMissing() throws Exception {
         request.addParameter(GRANT_TYPE, GRANT_TYPE_SAML2_BEARER);
         filter.doFilter(request, response, chain);
+
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         verifyNoInteractions(externalOAuthAuthenticationManager);
         verifyNoInteractions(passwordAuthManager);
         verifyNoInteractions(externalOAuthAuthenticationManager);
-        // TODO: fix this test
-        //ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
-        //verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
-        //assertNotNull(exceptionArgumentCaptor.getValue());
-        //        assertEquals("SAML Assertion is missing", exceptionArgumentCaptor.getValue().getMessage());
-        //        assertTrue(exceptionArgumentCaptor.getValue() instanceof InsufficientAuthenticationException);
+        verifyNoInteractions(saml2BearerGrantAuthenticationConverter);
+
+        ArgumentCaptor<AuthenticationException> exceptionArgumentCaptor = ArgumentCaptor.forClass(AuthenticationException.class);
+        verify(entryPoint, times(1)).commence(same(request), same(response), exceptionArgumentCaptor.capture());
+        assertThat(exceptionArgumentCaptor.getValue())
+                .hasMessage("SAML Assertion is missing")
+                .isInstanceOf(InsufficientAuthenticationException.class);
     }
 
     @Test
