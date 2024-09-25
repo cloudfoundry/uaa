@@ -47,6 +47,7 @@ public final class UaaStringUtils {
 
     private static final Pattern CAML_PATTERN = Pattern.compile("([a-z])([A-Z])");
     private static final Pattern CTRL_PATTERN = Pattern.compile("[\n\r\t]");
+    private static final Pattern ALL_CTRL_PATTERN = Pattern.compile("\\p{C}");
 
     public static final String EMPTY_STRING = "";
 
@@ -313,6 +314,13 @@ public final class UaaStringUtils {
             return null;
         }
         return CTRL_PATTERN.matcher(input).replaceAll("_");
+    }
+
+    public static String getValidatedString(String input) {
+        if (!isNullOrEmpty(input) && !ALL_CTRL_PATTERN.matcher(input).find()) {
+            return input;
+        }
+        throw new IllegalArgumentException("Invalid input");
     }
 
     public static String getSafeParameterValue(String[] value) {

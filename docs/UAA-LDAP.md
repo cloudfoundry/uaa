@@ -377,12 +377,12 @@ ldap:
 ### Ldap Groups as Scopes Configuration
 
 * `ldap.groups.file` - set to `ldap/ldap-groups-as-scopes.xml` to create scopes out of LDAP groups
-* `ldap.group.searchBase` - the search base for the group search
-* `ldap.group.groupRoleAttribute` - the name of the attribute in the LDAP record
+* `ldap.groups.searchBase` - the search base for the group search
+* `ldap.groups.groupRoleAttribute` - the name of the attribute in the LDAP record
   that contains the scope name(s)
-* `ldap.group.searchSubtree` - boolean value, true indicates that we search the sub tree of the LDAP base
-* `ldap.group.groupSearchFilter` - similar to a user filter, most common is `member={0}`
-* `ldap.group.maxSearchDepth` - how many levels deep do we search for nested groups
+* `ldap.groups.searchSubtree` - boolean value, true indicates that we search the sub tree of the LDAP base
+* `ldap.groups.groupSearchFilter` - similar to a user filter, most common is `member={0}`
+* `ldap.groups.maxSearchDepth` - how many levels deep do we search for nested groups
   Set this value to 1 to disable nested groups. The default is 10
 * `ldap.groups.autoAdd` - boolean value, true indicates that groups(scopes) will be added automatically if 
   they don't exist
@@ -410,11 +410,11 @@ ldap:
 
 ### Ldap Groups to Scopes Configuration 
 * `ldap.groups.file` - set to `ldap/ldap-groups-map-to-scopes.xml` to map scopes to LDAP groups
-* `ldap.group.searchBase` - the search base for the group search
-* `ldap.group.groupRoleAttribute` - ignored by this implementation
-* `ldap.group.searchSubtree` - boolean value, true indicates that we search the sub tree of the LDAP base
-* `ldap.group.groupSearchFilter` - similar to a user filter, most common is `member={0}`
-* `ldap.group.maxSearchDepth` - how many levels deep do we search for nested groups
+* `ldap.groups.searchBase` - the search base for the group search
+* `ldap.groups.groupRoleAttribute` - ignored by this implementation
+* `ldap.groups.searchSubtree` - boolean value, true indicates that we search the sub tree of the LDAP base
+* `ldap.groups.groupSearchFilter` - similar to a user filter, most common is `member={0}`
+* `ldap.groups.maxSearchDepth` - how many levels deep do we search for nested groups
   Set this value to 1 to disable nested groups. The default is 10
 * `ldap.groups.autoAdd` - has no effect in this configuration, as if the mapping doesn't exist
   and is valid, there will not be authorities assigned to the user
@@ -634,26 +634,26 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
     Default is `true`. User searches are always ignoring partial results, and always expect 1 result back from the query.
 
 
-* <a name="ldap.group.searchBase">`ldap.group.searchBase`</a>
+* <a name="ldap.groups.searchBase">`ldap.groups.searchBase`</a>
   the search base for the group search. This references the 
   [group-search-base](http://docs.spring.io/spring-security/site/docs/3.0.x/reference/ldap.html)
   property in Spring Security LDAP
   <br/>This property is always used, but may be omitted when no group integration is desired.
 
 
-* <a name="ldap.group.groupRoleAttribute">`ldap.group.groupRoleAttribute`</a>
+* <a name="ldap.groups.groupRoleAttribute">`ldap.groups.groupRoleAttribute`</a>
   the name of the attribute in the LDAP record that contains the scope name(s).
   In case of multiple scopes, they must be delimited by a comma `,`
   <br/>This property is used by the LDAP Groups as Scopes mapping
 
 
-* <a name="ldap.group.searchSubtree">`ldap.group.searchSubtree`</a>
+* <a name="ldap.groups.searchSubtree">`ldap.groups.searchSubtree`</a>
   boolean value, true indicates that we search the sub tree of the LDAP base.
   The default value is true.
   <br/>This property is used when group integration enabled
 
 
-* <a name="ldap.group.groupSearchFilter">`ldap.group.groupSearchFilter`</a>
+* <a name="ldap.groups.groupSearchFilter">`ldap.groups.groupSearchFilter`</a>
   similar to a user filter, most common is `member={0}`.
   This is the search filter used when user group memberships are retrieved.
   For nested Active Directory groups, this string can be modified.
@@ -663,11 +663,11 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   <br/>This property is used when group integration enabled
 
 
-* <a name="ldap.group.maxSearchDepth">`ldap.group.maxSearchDepth`</a>
+* <a name="ldap.groups.maxSearchDepth">`ldap.groups.maxSearchDepth`</a>
   how many levels deep do we search for nested groups
   Set this value to 1 to disable nested groups. The default is 10
   <br/>This property is used when group integration enabled, but does not apply
-  when the [group search filter](#ldap.group.groupSearchFilter)
+  when the [group search filter](#ldap.groups.groupSearchFilter)
   contains an Active Directory command to retrieve nested groups and should then be set to 1
   to avoid unnecessary queries.
 
@@ -689,7 +689,7 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   List<String> value,
   Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
   The list should contain `DN` values for the groups that are associated with the user.
-  The display name of the group in the ID token will be the taken from the `ldap.group.groupRoleAttribute` attribute
+  The display name of the group in the ID token will be the taken from the `ldap.groups.groupRoleAttribute` attribute
 
 
 * <a name="ldap.attributeMappings">`ldap.attributeMappings`</a>

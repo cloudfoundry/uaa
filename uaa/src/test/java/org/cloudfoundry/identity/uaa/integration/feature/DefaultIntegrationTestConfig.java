@@ -61,7 +61,9 @@ public class DefaultIntegrationTestConfig {
         ChromeOptions options = new ChromeOptions();
         options.addArguments(
           "--verbose",
-          "--headless",
+          "--headless=old",
+          "--window-position=-2400,-2400",
+          "--window-size=1024,768",
           "--disable-web-security",
           "--ignore-certificate-errors",
           "--allow-running-insecure-content",
