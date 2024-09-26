@@ -116,6 +116,7 @@ class OpenSaml4AuthenticationProviderTests {
     private static final String SAML_ADMIN = "saml.admin";
     private static final String SAML_TEST = "saml.test";
     private static final String SAML_NOT_MAPPED = "saml.unmapped";
+    private static final String SAML_NOT_ASSERTED = "saml.unasserted";
     private static final String UAA_USER = "uaa.user";
     private static final String UAA_SAML_USER = "uaa.saml.user";
     private static final String UAA_SAML_ADMIN = "uaa.saml.admin";
@@ -439,13 +440,23 @@ class OpenSaml4AuthenticationProviderTests {
     }
 
     @Test
-    void dontAddExternalGroupsToAuthenticationWithoutWhitelist() {
+    void dontAddExternalGroupsToAuthenticationWithoutMatchingWhitelist() {
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        providerDefinition.addWhiteListedGroup(SAML_NOT_ASSERTED);
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
 
         UaaAuthentication authentication = authenticate();
         assertThat(authentication.getExternalGroups()).isEmpty();
+    }
+
+    @Test
+    void add_external_groups_to_authentication_with_empty_whitelist() {
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
+        UaaAuthentication authentication = authenticate();
+        assertThat(authentication.getExternalGroups()).contains(SAML_USER, SAML_ADMIN, SAML_NOT_MAPPED);
     }
 
     @Test
