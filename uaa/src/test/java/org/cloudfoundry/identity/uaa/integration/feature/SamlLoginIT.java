@@ -707,7 +707,7 @@ public class SamlLoginIT {
 
     @Test
     @Disabled("SAML test fails: Requires processing of RelayState")
-    void relayStateRedirectFromIdp() {
+    void relayStateRedirectFromIdp() throws InterruptedException {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         String zoneId = "testzone1";
 
@@ -765,7 +765,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         sendCredentials(testAccounts.getUserName(), "koala");
 
-        assertThat(webDriver.getCurrentUrl()).startsWith("https://www.google.com");
+        Page.validateUrlStartsWithWait(webDriver, "https://www.google.com");
         webDriver.get("%s/logout.do".formatted(baseUrl));
         webDriver.get("%s/logout.do".formatted(zoneUrl));
     }

@@ -73,7 +73,9 @@ public class DefaultIntegrationTestConfig {
         options.addArguments(
                 "--verbose",
                 // Comment the following line to run selenium test browser in Headed Mode
-                "--headless",
+                "--headless=old",
+                "--window-position=-2400,-2400",
+                "--window-size=1024,768",
                 "--disable-web-security",
                 "--ignore-certificate-errors",
                 "--allow-running-insecure-content",

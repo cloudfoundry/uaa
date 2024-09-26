@@ -6,6 +6,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
 import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -57,5 +58,12 @@ public class Page {
 
     public void clearCookies() {
         driver.manage().deleteAllCookies();
+    }
+
+    public static void validateUrlStartsWithWait(WebDriver driver, String currentUrlStart) throws InterruptedException {
+        if (!driver.getCurrentUrl().startsWith(currentUrlStart)) {
+            TimeUnit.SECONDS.sleep(5);
+        }
+        assertThat(driver.getCurrentUrl()).startsWith(currentUrlStart);
     }
 }
