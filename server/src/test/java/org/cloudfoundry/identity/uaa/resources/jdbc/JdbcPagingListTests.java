@@ -5,6 +5,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 
@@ -39,6 +40,7 @@ class JdbcPagingListTests {
         jdbcTemplate.execute("insert into foo (id, name) values (2, 'baz')");
         jdbcTemplate.execute("insert into foo (id, name) values (3, 'zab')");
         jdbcTemplate.execute("insert into foo (id, name) values (4, 'rab')");
+        jdbcTemplate.execute("insert into foo (id, name) values (5, 'FoO')");
 
     }
 
@@ -51,21 +53,21 @@ class JdbcPagingListTests {
     void iterationOverPages() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
                 Collections.<String, Object>singletonMap("id", 0), new ColumnMapRowMapper(), 3);
-        assertEquals(5, list.size());
+        assertEquals(6, list.size());
         Set<String> names = new HashSet<String>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
             names.add(name);
         }
-        assertEquals(5, names.size());
+        assertEquals(6, names.size());
         names = new HashSet<String>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
             names.add(name);
         }
-        assertEquals(5, names.size());
+        assertEquals(6, names.size());
     }
 
     @Test
@@ -73,7 +75,7 @@ class JdbcPagingListTests {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
                 Collections.<String, Object>singletonMap("id", 0), new ColumnMapRowMapper(), 3);
         jdbcTemplate.update("DELETE from foo where id>3");
-        assertEquals(5, list.size());
+        assertEquals(6, list.size());
         Set<String> names = new HashSet<String>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
@@ -87,14 +89,14 @@ class JdbcPagingListTests {
     void orderBy() {
         list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo order by id asc",
                 Collections.<String, Object>singletonMap("id", 0), new ColumnMapRowMapper(), 3);
-        assertEquals(5, list.size());
+        assertEquals(6, list.size());
         Set<String> names = new HashSet<String>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
             names.add(name);
         }
-        assertEquals(5, names.size());
+        assertEquals(6, names.size());
     }
 
     @Test
@@ -103,6 +105,34 @@ class JdbcPagingListTests {
                 new ColumnMapRowMapper(), 3);
         Map<String, Object> map = list.get(3);
         assertNotNull(map.get("name"));
+    }
+
+    @Test
+    void selectColumnsFull() {
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT Foo.id, FOO.NAME from foo", new ColumnMapRowMapper(), 3);
+        Map<String, Object> map = list.get(3);
+        assertNotNull(map.get("name"));
+        assertEquals("zab", map.get("name"));
+    }
+
+    @Test
+    void selectMoreColumnsWithOrderBy() {
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT Foo.id, FOO.NAME FrOm foo wHere foo.name = 'FoO' OR foo.name = 'foo' OrDeR By foo.name", new ColumnMapRowMapper(), 3);
+        Map<String, Object> map = list.get(0);
+        assertNotNull(map.get("name"));
+        assertEquals("FoO", map.get("name"));
+        map = list.get(1);
+        assertNotNull(map.get("name"));
+        assertEquals("foo", map.get("name"));
+    }
+
+    @Test
+    void testWrongStatement() {
+        assertThrows(BadSqlGrammarException.class,
+            () -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "Insert ('6', 'sab') from foo", new ColumnMapRowMapper(), 3));
+
+        assertThrows(BadSqlGrammarException.class,
+            () -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * ", new ColumnMapRowMapper(), 3));
     }
 
     @Test
@@ -146,7 +176,7 @@ class JdbcPagingListTests {
                 new ColumnMapRowMapper(), 3);
         jdbcTemplate.update("DELETE from foo where id>3");
         list = list.subList(1, list.size());
-        assertEquals(4, list.size());
+        assertEquals(5, list.size());
         int count = 0;
         for (Map<String, Object> map : list) {
             count++;

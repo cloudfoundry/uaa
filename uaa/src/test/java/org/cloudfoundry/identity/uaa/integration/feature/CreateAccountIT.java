@@ -183,7 +183,7 @@ public class CreateAccountIT {
     public void testEmailDomainRegisteredWithIDPDoesNotAllowAccountCreation() throws Exception {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider().setName("oidc_provider").setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
-        oidcProvider.getConfig().setAuthUrl(new URL("https://example.com"));
+        oidcProvider.getConfig().setAuthUrl(new URL("http://example.com"));
         oidcProvider.getConfig().setShowLinkText(false);
         oidcProvider.getConfig().setTokenUrl(new URL("http://localhost:8080/uaa/idp_login"));
         oidcProvider.getConfig().setTokenKeyUrl(new URL("http://localhost:8080/uaa/idp_login"));

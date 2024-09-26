@@ -215,6 +215,9 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     protected Set<String> filterSamlAuthorities(SamlIdentityProviderDefinition definition, Collection<? extends GrantedAuthority> samlAuthorities) {
         List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(Collections.EMPTY_LIST);
         Set<String> authorities = samlAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
+        if (whiteList.isEmpty()) {
+            return authorities;
+        }
         Set<String> result = retainAllMatches(authorities, whiteList);
         logger.debug(String.format("White listed external SAML groups:'%s'", result));
         return result;
