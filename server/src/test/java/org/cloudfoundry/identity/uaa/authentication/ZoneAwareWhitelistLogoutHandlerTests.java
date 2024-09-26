@@ -27,12 +27,14 @@ import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.servlet.ServletException;
 import java.io.IOException;
 import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.when;
@@ -69,6 +71,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     public void tearDown() {
         IdentityZoneHolder.clear();
         IdentityZone.getUaa().setConfig(original);
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -124,6 +127,17 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @Test
+    public void test_id_token_hint() {
+        UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
+        SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
+        doReturn("eyToken").when(uaaAuthentication).getIdpIdToken();
+        configuration.getLinks().getLogout().setDisableRedirectParameter(false);
+        when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn("");
+        when(oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", "eyToken", null)).thenReturn("http://testing.com");
+        assertEquals("http://testing.com", handler.determineTargetUrl(request, response));
+    }
+
+    @Test
     public void test_client_redirect() {
         configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://somethingelse.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
@@ -156,7 +170,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
         configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://somethingelse.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn("");
-        when(oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", null, null)).thenReturn("/login");
+            when(oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", null, null)).thenReturn("/login");
         request.setParameter("redirect", "http://testing.com");
         request.setParameter(CLIENT_ID, CLIENT_ID);
         assertEquals("/login", handler.determineTargetUrl(request, response));

@@ -104,7 +104,7 @@ class ExternalOAuthLogoutHandlerTest {
 
   @Test
   void constructOAuthProviderLogoutUrl() {
-    oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", null, oAuthIdentityProviderDefinition);
+    oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", "", oAuthIdentityProviderDefinition);
   }
 
   @Test
