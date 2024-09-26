@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -204,6 +205,13 @@ public class SessionResetFilterTests {
         verify(request, times(2)).getSession(false);
         //session was invalidated
         verify(session, times(1)).invalidate();
+    }
+
+    @Test
+    public void testIdTokenSetAndGet() {
+        Assert.assertNull(authentication.getIdpIdToken());
+        authentication.setIdpIdToken("token");
+        Assert.assertEquals("token", authentication.getIdpIdToken());
     }
 
     protected long dropMilliSeconds(long time) {
