@@ -836,6 +836,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         public String getIdToken() { return this.idToken; }
 
-        public void setIdToken(final String idToken) { this.idToken = idToken;  }
+        public void setIdToken(String idToken) { this.idToken = idToken;  }
     }
 }

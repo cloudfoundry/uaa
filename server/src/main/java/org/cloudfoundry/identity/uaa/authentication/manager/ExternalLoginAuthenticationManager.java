@@ -161,7 +161,6 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         if (authenticationData instanceof ExternalOAuthAuthenticationManager.AuthenticationData authenticationInternal) {
             success.setIdpIdToken(authenticationInternal.getIdToken());
         }
-        //ExternalOAuthAuthenticationManager.AuthenticationData xxx =
         populateAuthenticationAttributes(success, request, authenticationData);
         publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), IdentityZoneHolder.getCurrentZoneId()));
         return success;

@@ -688,7 +688,7 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
 
-        verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(same(xCodeToken), any());
+        verify(externalOAuthAuthenticationManager, times(0)).getClaimsFromToken(same(xCodeToken), any());
         verify(externalOAuthAuthenticationManager, times(1)).getClaimsFromToken(eq(idToken), any());
         verify(externalOAuthAuthenticationManager, never()).getRestTemplate(any());
 
