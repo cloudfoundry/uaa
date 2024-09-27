@@ -21,6 +21,7 @@ public class UaaAuthenticationSerializerDeserializerTest {
         auth.setAuthContextClassRef(Collections.singleton("test:uri"));
         auth.setAuthenticatedTime(1485314434675L);
         auth.setLastLoginSuccessTime(1485305759366L);
+        auth.setIdpIdToken("idtoken");
 
         UaaAuthentication deserializedUaaAuthentication = JsonUtils.readValue(JsonUtils.writeValueAsString(auth), UaaAuthentication.class);
 
@@ -35,5 +36,6 @@ public class UaaAuthenticationSerializerDeserializerTest {
         assertEquals(auth.getAuthenticationMethods(), deserializedUaaAuthentication.getAuthenticationMethods());
         assertEquals(auth.getAuthContextClassRef(), deserializedUaaAuthentication.getAuthContextClassRef());
         assertEquals(auth.getLastLoginSuccessTime(), deserializedUaaAuthentication.getLastLoginSuccessTime());
+        assertEquals(auth.getIdpIdToken(), deserializedUaaAuthentication.getIdpIdToken());
     }
 }

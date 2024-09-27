@@ -43,6 +43,7 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
         long authenticatedTime = -1;
         boolean authenticated = false;
         long previousLoginSuccessTime = -1;
+        String idpIdToken = null;
         Map<String,List<String>> userAttributes = EMPTY_MAP;
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
@@ -72,6 +73,8 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
                     authNContextClassRef = jp.readValueAs(new TypeReference<Set<String>>() {});
                 } else if (PREVIOIUS_LOGIN_SUCCESS_TIME.equals(fieldName)){
                     previousLoginSuccessTime = jp.getLongValue();
+                } else if (IDP_ID_TOKEN.equals(fieldName)){
+                    idpIdToken = jp.readValueAs(new TypeReference<String>() {});
                 }
             }
         }
@@ -90,6 +93,7 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
         uaaAuthentication.setAuthenticationMethods(authenticationMethods);
         uaaAuthentication.setAuthContextClassRef(authNContextClassRef);
         uaaAuthentication.setLastLoginSuccessTime(previousLoginSuccessTime);
+        uaaAuthentication.setIdpIdToken(idpIdToken);
         return uaaAuthentication;
     }
 }

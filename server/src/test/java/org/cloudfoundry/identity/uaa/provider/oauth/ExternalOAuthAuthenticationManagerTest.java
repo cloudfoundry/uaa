@@ -5,6 +5,9 @@ import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSSigner;
+
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
@@ -14,6 +17,7 @@ import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager.AuthenticationData;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -436,5 +440,36 @@ public class ExternalOAuthAuthenticationManagerTest {
         expectedException.expectMessage("External token attribute external_family_name cannot be mapped to user attribute family_name");
         ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
+    }
+
+    @Test
+    public void populateAuthenticationAttributes_setsIdpIdToken() {
+        UaaAuthentication authentication = new UaaAuthentication(new UaaPrincipal("user-guid", "marissa", "marissa@test.org", "uaa", "", ""), Collections.emptyList(), null);
+        Map<String, Object> header = map(
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
+            entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
+        );
+        JWSSigner signer = new KeyInfo("uaa-key", oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
+        Map<String, Object> entryMap = map(
+            entry("external_map_name", Arrays.asList("bar", "baz"))
+        );
+        Map<String, Object> claims = map(
+            entry("external_family_name", entryMap),
+            entry(ISS, oidcConfig.getIssuer()),
+            entry(AUD, "uaa-relying-party"),
+            entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+            entry(SUB, "abc-def-asdf")
+        );
+        Map<String, Object> externalGroupMapping = map(
+            entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name")
+        );
+        oidcConfig.setAttributeMappings(externalGroupMapping);
+        provider.setConfig(oidcConfig);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
+        authManager.populateAuthenticationAttributes(authentication, oidcAuthentication, authenticationData);
+        assertEquals(idTokenJwt, authentication.getIdpIdToken());
     }
 }
