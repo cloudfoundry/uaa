@@ -73,7 +73,11 @@ public final class Saml2TestUtils {
     }
 
     public static Saml2AuthenticationToken authenticationToken() {
-        Response response = responseWithAssertions();
+        return authenticationToken(null, attributeStatements(TestOpenSamlObjects.attributeStatements()));
+    }
+
+    public static Saml2AuthenticationToken authenticationToken(String username, List<AttributeStatement> attributeStatements) {
+        Response response = responseWithAssertions(username, attributeStatements);
 
         AbstractSaml2AuthenticationRequest mockAuthenticationRequest = mockedStoredAuthenticationRequest("SAML2",
                 Saml2MessageBinding.POST, false);
@@ -81,9 +85,12 @@ public final class Saml2TestUtils {
     }
 
     public static Response responseWithAssertions() {
+        return responseWithAssertions(null, TestOpenSamlObjects.attributeStatements());
+    }
+
+    public static Response responseWithAssertions(String username, List<AttributeStatement> attributeStatements) {
         Response response = response();
-        Assertion assertion = assertion();
-        List<AttributeStatement> attributeStatements = attributeStatements();
+        Assertion assertion = assertion(username, null);
         assertion.getAttributeStatements().addAll(attributeStatements);
 
         Assertion signedAssertion = TestOpenSamlObjects.signed(assertion,
@@ -111,12 +118,6 @@ public final class Saml2TestUtils {
         return response;
     }
 
-    private static Response response(String destination, String issuerEntityId) {
-        Response response = TestOpenSamlObjects.response(destination, issuerEntityId);
-        response.setIssueInstant(Instant.now());
-        return response;
-    }
-
     private static AuthnRequest request() {
         return TestOpenSamlObjects.authnRequest();
     }
@@ -132,8 +133,8 @@ public final class Saml2TestUtils {
         return Saml2Utils.samlEncode(xml.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static Assertion assertion(String inResponseTo) {
-        Assertion assertion = TestOpenSamlObjects.assertion();
+    private static Assertion assertion(String username, String inResponseTo) {
+        Assertion assertion = TestOpenSamlObjects.assertion(username);
         assertion.setIssueInstant(Instant.now());
         for (SubjectConfirmation confirmation : assertion.getSubject().getSubjectConfirmations()) {
             SubjectConfirmationData data = confirmation.getSubjectConfirmationData();
@@ -149,17 +150,7 @@ public final class Saml2TestUtils {
         return assertion;
     }
 
-    private static Assertion assertion() {
-        return assertion(null);
-    }
-
-    private static <T extends SignableSAMLObject> T signed(T toSign) {
-        TestOpenSamlObjects.signed(toSign, TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID);
-        return toSign;
-    }
-
-    private static List<AttributeStatement> attributeStatements() {
-        List<AttributeStatement> attributeStatements = TestOpenSamlObjects.attributeStatements();
+    private static List<AttributeStatement> attributeStatements(List<AttributeStatement> attributeStatements) {
         AttributeBuilder attributeBuilder = new AttributeBuilder();
         Attribute registeredDateAttr = attributeBuilder.buildObject();
         registeredDateAttr.setName("registeredDate");
@@ -171,23 +162,13 @@ public final class Saml2TestUtils {
         return attributeStatements;
     }
 
-    private static Saml2AuthenticationToken token() {
-        Response response = response();
-        RelyingPartyRegistration registration = verifying(registration()).build();
-        return new Saml2AuthenticationToken(registration, serialize(response));
-    }
-
-    private static Saml2AuthenticationToken token(Response response, RelyingPartyRegistration.Builder registration) {
-        return new Saml2AuthenticationToken(registration.build(), serialize(response));
-    }
-
     public static Saml2AuthenticationToken token(Response response, RelyingPartyRegistration.Builder registration,
-                                                  AbstractSaml2AuthenticationRequest authenticationRequest) {
+                                                 AbstractSaml2AuthenticationRequest authenticationRequest) {
         return new Saml2AuthenticationToken(registration.build(), serialize(response), authenticationRequest);
     }
 
     public static AbstractSaml2AuthenticationRequest mockedStoredAuthenticationRequest(String requestId,
-                                                                                        Saml2MessageBinding binding, boolean corruptRequestString) {
+                                                                                       Saml2MessageBinding binding, boolean corruptRequestString) {
         AuthnRequest request = request();
         if (requestId != null) {
             request.setID(requestId);
@@ -232,5 +213,4 @@ public final class Saml2TestUtils {
                 "saml", "urn:oasis:names:tc:SAML:2.0:assertion"
         );
     }
-
 }

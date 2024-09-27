@@ -32,7 +32,6 @@ import org.cloudfoundry.identity.uaa.util.RetryRule;
 import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.openqa.selenium.By;
@@ -212,7 +211,6 @@ public class InvitationsIT {
     }
 
     @Test
-    @Disabled("SAML test fails: requires invitations")
     void acceptInvitation_for_samlUser() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
 

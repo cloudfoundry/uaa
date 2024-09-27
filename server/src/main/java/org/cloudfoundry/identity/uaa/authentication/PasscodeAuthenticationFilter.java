@@ -61,7 +61,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private List<String> parameterNames = Collections.emptyList();
+    private List<String> parameterNames = List.of();
 
     public PasscodeAuthenticationFilter(UaaUserDatabase uaaUserDatabase, AuthenticationManager authenticationManager, OAuth2RequestFactory oAuth2RequestFactory, ExpiringCodeStore expiringCodeStore) {
         super(

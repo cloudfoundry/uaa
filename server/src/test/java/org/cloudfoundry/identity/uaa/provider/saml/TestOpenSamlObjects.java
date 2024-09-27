@@ -76,6 +76,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -135,6 +136,13 @@ public final class TestOpenSamlObjects {
 
     public static Assertion assertion() {
         return assertion(USERNAME, ASSERTING_PARTY_ENTITY_ID, RELYING_PARTY_ENTITY_ID, DESTINATION);
+    }
+
+    public static Assertion assertion(String username) {
+        if (username == null) {
+            username = USERNAME;
+        }
+        return assertion(username, ASSERTING_PARTY_ENTITY_ID, RELYING_PARTY_ENTITY_ID, DESTINATION);
     }
 
     public static Assertion assertion(String username, String issuerEntityId, String recipientEntityId, String recipientUri) {
@@ -301,6 +309,14 @@ public final class TestOpenSamlObjects {
         AttributeStatement attributeStatement = attributeStatementBuilder.buildObject();
         attributeStatement.getAttributes().add(attribute);
         return attributeStatement;
+    }
+
+    public static List<AttributeStatement> attributeStatements(Map<String, String> attributeMap) {
+        Attribute[] attributes = attributeMap.entrySet().stream()
+                .map(entry -> attributeWithStringValue(entry.getKey(), entry.getValue()))
+                .toArray(Attribute[]::new);
+
+        return List.of(attributeStatement(attributes));
     }
 
     public static List<AttributeStatement> attributeStatements() {

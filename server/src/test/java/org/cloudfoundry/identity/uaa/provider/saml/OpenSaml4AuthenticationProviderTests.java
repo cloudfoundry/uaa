@@ -40,7 +40,6 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
@@ -98,9 +97,9 @@ import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.registr
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.responseWithAssertions;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.token;
 import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.verifying;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestOpenSamlObjects.attributeStatements;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
@@ -481,24 +480,20 @@ class OpenSaml4AuthenticationProviderTests {
     }
 
     @Test
-    @Disabled("SAML test doesn't compile: Invitations. Requires different response data")
     void updateInvitedUserWhoseUsernameIsNotEmail() {
         ScimUser scimUser = getInvitedUser();
-
-//        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "marissa.invited@test.org", null);
-//        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
-//        getAuthentication(authprovider);
+        Map<String, String> userAttributes = getUserAttributes("Marissa-invited", null, "marissa.invited@test.org", null, null);
+        authenticate(authenticationToken("marissa-invited", attributeStatements(userAttributes)));
 
         UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
-        assertFalse(user.isVerified());
-        assertEquals("marissa-invited", user.getUsername());
-        assertEquals("marissa.invited@test.org", user.getEmail());
+        assertThat(user.isVerified()).isFalse();
+        assertThat(user.getUsername()).isEqualTo("marissa-invited");
+        assertThat(user.getEmail()).isEqualTo("marissa.invited@test.org");
 
         RequestContextHolder.resetRequestAttributes();
     }
 
     @Test
-    @Disabled("SAML test doesn't compile: Invitations. Requires different response data")
     void invitedUserAuthenticationWhenAuthenticatedEmailDoesNotMatchInvitedEmail() {
         Map<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put("email", "emailAddress");
@@ -506,18 +501,16 @@ class OpenSaml4AuthenticationProviderTests {
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
 
-//        ScimUser scimUser = getInvitedUser();
+        ScimUser scimUser = getInvitedUser();
+        Map<String, String> userAttributes = getUserAttributes("Marissa-invited", null, "different@test.org", null, null);
+        Saml2AuthenticationToken authenticationToken = authenticationToken("marissa-invited", attributeStatements(userAttributes));
 
-//        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "different@test.org", null);
-//        when(consumer.processAuthenticationResponse(any())).thenReturn(credential);
-//        try {
-//            getAuthentication(authprovider);
-//            fail();
-//        } catch (BadCredentialsException e) {
-//            UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
-//            assertFalse(user.isVerified());
-//        }
-        RequestContextHolder.resetRequestAttributes();
+        assertThatThrownBy(() -> authenticate(authenticationToken))
+                .isInstanceOf(Saml2AuthenticationException.class)
+                .hasMessageContaining("Authenticated email doesn't match invited email");
+
+        UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
+        assertThat(user.isVerified()).isFalse();
     }
 
     private ScimUser getInvitedUser() {
@@ -534,6 +527,23 @@ class OpenSaml4AuthenticationProviderTests {
         RequestContextHolder.setRequestAttributes(attributes);
 
         return scimUser;
+    }
+
+    private Map<String, String> getUserAttributes(String firstName,
+                                                  String lastName,
+                                                  String emailAddress,
+                                                  String phoneNumber,
+                                                  Boolean emailVerified) {
+        Map<String, String> attributes = new HashMap<>();
+        attributes.put("firstName", firstName);
+        attributes.put("lastName", lastName);
+        attributes.put("emailAddress", emailAddress);
+        attributes.put("phone", phoneNumber);
+        if (emailVerified != null) {
+            attributes.put("emailVerified", emailVerified.toString());
+        }
+
+        return attributes;
     }
 
     @Test
