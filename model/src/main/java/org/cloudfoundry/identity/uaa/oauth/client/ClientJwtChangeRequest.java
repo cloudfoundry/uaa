@@ -13,6 +13,7 @@ public class ClientJwtChangeRequest {
 
     public static final String JWKS_URI = "jwks_uri";
     public static final String JWKS = "jwks";
+    public static final String FED_CREDS = "fed_creds";
 
     public enum ChangeMode {
         UPDATE,
@@ -27,6 +28,8 @@ public class ClientJwtChangeRequest {
     private String jsonWebKeySet;
     @JsonProperty("client_id")
     private String clientId;
+    @JsonProperty("fed_creds")
+    private String federatedCredentialSet;
     private ChangeMode changeMode = ADD;
 
     public ClientJwtChangeRequest() {
@@ -74,6 +77,14 @@ public class ClientJwtChangeRequest {
 
     public void setKeyId(String keyId) {
         this.keyId = keyId;
+    }
+
+    public String getFederatedCredentialSet() {
+        return this.federatedCredentialSet;
+    }
+
+    public void setFederatedCredentialSet(final String federatedCredentialSet) {
+        this.federatedCredentialSet = federatedCredentialSet;
     }
 
     public String getChangeValue() {

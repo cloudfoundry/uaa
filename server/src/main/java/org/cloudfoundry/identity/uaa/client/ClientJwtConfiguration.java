@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtFederation;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -32,6 +33,7 @@ public class ClientJwtConfiguration implements Cloneable{
 
   public static final String JWKS_URI = ClientJwtChangeRequest.JWKS_URI;
   public static final String JWKS = ClientJwtChangeRequest.JWKS;
+  public static final String FED_CREDS = ClientJwtChangeRequest.FED_CREDS;
 
   @JsonIgnore
   private static final int MAX_KEY_SIZE = 10;
@@ -42,6 +44,9 @@ public class ClientJwtConfiguration implements Cloneable{
   @JsonProperty(JWKS)
   private JsonWebKeySet<JsonWebKey> jwkSet;
 
+  @JsonProperty(FED_CREDS)
+  private List<ClientJwtFederation> federatedCredentialSet;
+
   public ClientJwtConfiguration() {
   }
 
@@ -50,6 +55,13 @@ public class ClientJwtConfiguration implements Cloneable{
     jwkSet = webKeySet;
     if (jwkSet != null) {
       validateJwkSet();
+    }
+  }
+
+  public ClientJwtConfiguration(final String jwksUri, final JsonWebKeySet<JsonWebKey> webKeySet, final List<ClientJwtFederation> federatedCredentialSet) {
+    this(jwksUri, webKeySet);
+    if (!ObjectUtils.isEmpty(federatedCredentialSet)) {
+      this.federatedCredentialSet = federatedCredentialSet;
     }
   }
 
@@ -69,6 +81,14 @@ public class ClientJwtConfiguration implements Cloneable{
     this.jwkSet = jwkSet;
   }
 
+  public List<ClientJwtFederation> getFederatedCredentialSet() {
+    return this.federatedCredentialSet;
+  }
+
+  public void setFederatedCredentialSet(final List<ClientJwtFederation> federatedCredentialSet) {
+    this.federatedCredentialSet = federatedCredentialSet;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -77,6 +97,7 @@ public class ClientJwtConfiguration implements Cloneable{
     if (o instanceof ClientJwtConfiguration) {
       ClientJwtConfiguration that = (ClientJwtConfiguration) o;
       if (!Objects.equals(jwksUri, that.jwksUri)) return false;
+      if (!Objects.equals(federatedCredentialSet, that.federatedCredentialSet)) return false;
       if (jwkSet != null && that.jwkSet != null) {
         return jwkSet.getKeys().equals(that.jwkSet.getKeys());
       } else {
@@ -92,6 +113,7 @@ public class ClientJwtConfiguration implements Cloneable{
 
     result = 31 * result + (jwksUri != null ? jwksUri.hashCode() : 0);
     result = 31 * result + (jwkSet != null ? jwkSet.hashCode() : 0);
+    result = 31 * result + (federatedCredentialSet != null ? federatedCredentialSet.hashCode() : 0);
     return result;
   }
 
@@ -107,6 +129,9 @@ public class ClientJwtConfiguration implements Cloneable{
         return this.jwksUri;
       } else if (this.jwkSet != null && !ObjectUtils.isEmpty(this.jwkSet.getKeySetMap())) {
         return JWKSet.parse(this.jwkSet.getKeySetMap()).toString(true);
+      }
+      if (federatedCredentialSet != null && !ObjectUtils.isEmpty(this.federatedCredentialSet)) {
+        return JsonUtils.writeValueAsString(this.federatedCredentialSet);
       }
     } catch (IllegalStateException | JsonUtils.JsonUtilException | ParseException e) {
       throw new InvalidClientDetailsException("Client jwt configuration configuration fails ", e);
