@@ -472,4 +472,38 @@ public class ExternalOAuthAuthenticationManagerTest {
         authManager.populateAuthenticationAttributes(authentication, oidcAuthentication, authenticationData);
         assertEquals(idTokenJwt, authentication.getIdpIdToken());
     }
+
+    @Test
+    public void getClaimsFromToken_setsIdToken() {
+        Map<String, Object> header = map(
+            entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
+            entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
+        );
+        JWSSigner signer = new KeyInfo("uaa-key", oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
+        Map<String, Object> entryMap = map(
+            entry("external_map_name", Arrays.asList("bar", "baz"))
+        );
+        Map<String, Object> claims = map(
+            entry("external_family_name", entryMap),
+            entry(ISS, oidcConfig.getIssuer()),
+            entry(AUD, "uaa-relying-party"),
+            entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+            entry(SUB, "abc-def-asdf")
+        );
+        Map<String, Object> externalGroupMapping = map(
+            entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name")
+        );
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+        ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", null, "accesstoken", "signedrequest");
+
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), null) {
+            @Override
+            protected String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
+                return idTokenJwt;
+            }
+        };
+
+        authManager.getClaimsFromToken(codeToken, oidcConfig);
+        assertEquals(idTokenJwt, codeToken.getIdToken());
+    }
 }

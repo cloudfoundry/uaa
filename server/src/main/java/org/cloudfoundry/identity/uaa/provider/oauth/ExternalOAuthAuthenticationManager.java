@@ -686,7 +686,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    private String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
+    protected String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
         if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
             logger.debug("ExternalOAuthCodeToken contains id_token, not exchanging code.");
             return codeToken.getIdToken();
