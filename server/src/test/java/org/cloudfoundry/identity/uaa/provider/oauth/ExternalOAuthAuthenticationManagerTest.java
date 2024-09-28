@@ -5,7 +5,6 @@ import com.nimbusds.jose.HeaderParameterNames;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSSigner;
-
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
@@ -17,7 +16,6 @@ import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager.AuthenticationData;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
@@ -460,15 +458,10 @@ public class ExternalOAuthAuthenticationManagerTest {
             entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
             entry(SUB, "abc-def-asdf")
         );
-        Map<String, Object> externalGroupMapping = map(
-            entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name")
-        );
-        oidcConfig.setAttributeMappings(externalGroupMapping);
-        provider.setConfig(oidcConfig);
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
-        AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
+        ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
         authManager.populateAuthenticationAttributes(authentication, oidcAuthentication, authenticationData);
         assertEquals(idTokenJwt, authentication.getIdpIdToken());
     }
@@ -490,9 +483,6 @@ public class ExternalOAuthAuthenticationManagerTest {
             entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
             entry(SUB, "abc-def-asdf")
         );
-        Map<String, Object> externalGroupMapping = map(
-            entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name")
-        );
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", null, "accesstoken", "signedrequest");
 
@@ -502,7 +492,6 @@ public class ExternalOAuthAuthenticationManagerTest {
                 return idTokenJwt;
             }
         };
-
         authManager.getClaimsFromToken(codeToken, oidcConfig);
         assertEquals(idTokenJwt, codeToken.getIdToken());
     }

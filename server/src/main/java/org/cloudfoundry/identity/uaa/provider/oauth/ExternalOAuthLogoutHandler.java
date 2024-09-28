@@ -1,8 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
@@ -72,11 +70,9 @@ public class ExternalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     sb.append("&client_id=");
     sb.append(oauthConfig.getRelyingPartyId());
 
-    if (authentication instanceof UaaAuthentication uaaAuthentication) {
-        if (uaaAuthentication.getIdpIdToken() != null) {
-            sb.append("&id_token_hint=");
-            sb.append(uaaAuthentication.getIdpIdToken());
-        }
+    if (authentication instanceof UaaAuthentication uaaAuthentication && uaaAuthentication.getIdpIdToken() != null) {
+        sb.append("&id_token_hint=");
+        sb.append(uaaAuthentication.getIdpIdToken());
     }
     return sb.toString();
   }
