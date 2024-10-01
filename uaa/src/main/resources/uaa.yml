@@ -367,6 +367,12 @@ login:
 #            text: MyTemporary Authentication Code (Get on at /passcode)
   #base URL that the login server can be reached at
   url: http://localhost:8080/uaa
+#  #the help texts for the UAA login page input fields
+#  prompt:
+#    username:
+#      text: Email
+#    password:
+#      text: Password
 #  defaultIdentityProvider: uaa
 #  idpDiscoveryEnabled: true
 #  accountChooserEnabled: true
