@@ -316,7 +316,6 @@ issuer:
 login:
   # Enable create account and forgot password links on the Login Server (enabled by default)
   #selfServiceLinksEnabled: true
-  #base URL that the login server can be reached at
 #  oauth:
 #    providers:
 #      my-oauth-provider:
@@ -366,6 +365,7 @@ login:
 #          - name: passcode
 #            type: password
 #            text: MyTemporary Authentication Code (Get on at /passcode)
+  #base URL that the login server can be reached at
   url: http://localhost:8080/uaa
 #  defaultIdentityProvider: uaa
 #  idpDiscoveryEnabled: true
