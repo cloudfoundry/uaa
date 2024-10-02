@@ -92,7 +92,7 @@ public class ScimUserBootstrap implements
         users.removeIf(u -> deleteMe.contains(u.getUsername()));
         for (UaaUser u : users) {
             u.setVerified(true);
-            addUser(u);
+            addUser(u, true);
         }
     }
 
@@ -135,14 +135,14 @@ public class ScimUserBootstrap implements
      *
      * @param user a UaaUser
      */
-    private void addUser(UaaUser user) {
+    private void addUser(UaaUser user, boolean propertiesSetup) {
         ScimUser scimUser = getScimUser(user);
         if (scimUser == null) {
             if (isEmpty(user.getPassword()) && user.getOrigin().equals(OriginKeys.UAA)) {
                 logger.debug("User's password cannot be empty");
                 throw new InvalidPasswordException("Password cannot be empty", BAD_REQUEST);
             }
-            createNewUser(user);
+            createNewUser(user, propertiesSetup);
         } else {
             if (override) {
                 updateUser(scimUser, user);
@@ -197,10 +197,10 @@ public class ScimUserBootstrap implements
         }
     }
 
-    private void createNewUser(UaaUser user) {
+    private void createNewUser(UaaUser user, boolean propertiesSetup) {
         logger.debug("Registering new user account: " + user);
         ScimUser newScimUser = scimUserProvisioning.createUser(convertToScimUser(user), user.getPassword(), IdentityZoneHolder.get().getId());
-        addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()), newScimUser.getOrigin());
+        addGroups(newScimUser.getId(), convertToGroups(user.getAuthorities()), propertiesSetup && OriginKeys.LDAP.equalsIgnoreCase(newScimUser.getOrigin()) ? OriginKeys.UAA : newScimUser.getOrigin());
     }
 
     private void addGroups(String scimUserid, Collection<String> groups, String origin) {
@@ -270,7 +270,7 @@ public class ScimUserBootstrap implements
         }
 
         if (event instanceof NewUserAuthenticatedEvent) {
-            addUser(uaaUser);
+            addUser(uaaUser, false);
         }
     }
 
