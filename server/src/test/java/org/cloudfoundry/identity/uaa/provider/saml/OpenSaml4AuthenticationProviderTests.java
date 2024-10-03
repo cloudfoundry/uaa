@@ -552,6 +552,7 @@ class OpenSaml4AuthenticationProviderTests {
             userDatabase.retrieveUserByName(TEST_USERNAME, OriginKeys.SAML);
             fail("user should not exist");
         } catch (UsernameNotFoundException ignored) {
+            // expected
         }
         authenticate();
 
@@ -787,12 +788,12 @@ class OpenSaml4AuthenticationProviderTests {
 
     @Test
     void user_authentication_contains_custom_attributes() {
-        String COST_CENTERS = COST_CENTER + "s";
-        String MANAGERS = MANAGER + "s";
+        String costCenters = COST_CENTER + "s";
+        String managers = MANAGER + "s";
 
         Map<String, Object> attributeMappings = new HashMap<>();
-        attributeMappings.put(USER_ATTRIBUTE_PREFIX + COST_CENTERS, COST_CENTER);
-        attributeMappings.put(USER_ATTRIBUTE_PREFIX + MANAGERS, MANAGER);
+        attributeMappings.put(USER_ATTRIBUTE_PREFIX + costCenters, COST_CENTER);
+        attributeMappings.put(USER_ATTRIBUTE_PREFIX + managers, MANAGER);
         providerDefinition.setAttributeMappings(attributeMappings);
         provider.setConfig(providerDefinition);
         providerProvisioning.update(provider, identityZoneManager.getCurrentIdentityZone().getId());
@@ -800,8 +801,8 @@ class OpenSaml4AuthenticationProviderTests {
         UaaAuthentication authentication = authenticate();
         assertThat(authentication.getUserAttributes())
                 .hasSize(2)
-                .containsEntry(COST_CENTERS, List.of(DENVER_CO))
-                .containsEntry(MANAGERS, List.of(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+                .containsEntry(costCenters, List.of(DENVER_CO))
+                .containsEntry(managers, List.of(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
     }
 
     @Test

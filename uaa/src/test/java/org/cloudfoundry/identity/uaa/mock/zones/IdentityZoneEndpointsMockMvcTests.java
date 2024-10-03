@@ -151,11 +151,12 @@ class IdentityZoneEndpointsMockMvcTests {
             RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
             -----END CERTIFICATE-----""";
 
+    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
+
     private String identityClientToken = null;
     private String identityClientZonesReadToken = null;
     private String identityClientZonesWriteToken = null;
     private String adminToken = null;
-    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private TestApplicationEventListener<IdentityZoneModifiedEvent> zoneModifiedEventListener;
     private TestApplicationEventListener<ClientCreateEvent> clientCreateEventListener;
     private TestApplicationEventListener<ClientDeleteEvent> clientDeleteEventListener;
@@ -398,12 +399,7 @@ class IdentityZoneEndpointsMockMvcTests {
         List<String> groups = webApplicationContext.getBean(JdbcScimGroupProvisioning.class)
                 .retrieveAll(id).stream().map(ScimGroup::getDisplayName).toList();
 
-        ZoneManagementScopes.getSystemScopes()
-                .forEach(
-                        scope ->
-                                assertThat(groups.contains(scope)).as("Scope:" + scope + " should have been bootstrapped into the new zone").isTrue()
-                );
-
+        assertThat(groups).as("Scopes should have been bootstrapped into the new zone").containsAll(ZoneManagementScopes.getSystemScopes());
     }
 
     @Test
@@ -1668,7 +1664,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(idpp.retrieveByOrigin(UAA, zone.getId()).getOriginKey()).isEqualTo(UAA);
 
         //create login-server provider
-        IdentityProvider provider = new IdentityProvider()
+        IdentityProvider provider = new IdentityProvider<>()
                 .setOriginKey(LOGIN_SERVER)
                 .setActive(true)
                 .setIdentityZoneId(zone.getId())
@@ -1694,7 +1690,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(group.getZoneId()).isEqualTo(zone.getId());
         assertThat(groupProvisioning.retrieve(group.getId(), IdentityZoneHolder.get().getId())).isNotNull();
         assertThat(groupProvisioning.retrieve(group.getId(), IdentityZoneHolder.get().getId()).getDisplayName()).isEqualTo("Delete Test Group");
-        assertThat(membershipManager.getMembers(group.getId(), false, IdentityZoneHolder.get().getId()).size()).isEqualTo(1);
+        assertThat(membershipManager.getMembers(group.getId(), false, IdentityZoneHolder.get().getId())).hasSize(1);
 
         //failed authenticated user
         mockMvc.perform(
@@ -2296,17 +2292,6 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(zone.getConfig().getDefaultIdentityProvider()).isEqualTo("originkey");
     }
 
-    private static class IdentityZonesBaseUrlsArgumentsSource implements ArgumentsProvider {
-
-        @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-            return Stream.of(
-                    Arguments.of("/identity-zones"),
-                    Arguments.of("/identity-zones/")
-            );
-        }
-    }
-
     private IdentityZone createZoneReturn() throws Exception {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken, new IdentityZoneConfiguration());
@@ -2473,5 +2458,16 @@ class IdentityZoneEndpointsMockMvcTests {
         JsonNode root = JsonUtils.readTree(mvcResult.getResponse().getContentAsString());
         return JsonUtils.readValue(root.get("resources").toString(), new TypeReference<List<ScimUser>>() {
         });
+    }
+
+    private static class IdentityZonesBaseUrlsArgumentsSource implements ArgumentsProvider {
+
+        @Override
+        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
+            return Stream.of(
+                    Arguments.of("/identity-zones"),
+                    Arguments.of("/identity-zones/")
+            );
+        }
     }
 }

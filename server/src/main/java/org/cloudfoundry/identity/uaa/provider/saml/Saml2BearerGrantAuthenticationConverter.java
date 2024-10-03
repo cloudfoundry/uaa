@@ -16,6 +16,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import net.shibboleth.utilities.java.support.xml.ParserPool;
 import org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter;
@@ -144,9 +145,9 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
 
     private final Converter<AssertionToken, Saml2ResponseValidatorResult> assertionSignatureValidator = createDefaultAssertionSignatureValidator();
 
-    private Consumer<AssertionToken> assertionElementsDecrypter = createDefaultAssertionElementsDecrypter();
+    private final Consumer<AssertionToken> assertionElementsDecrypter = createDefaultAssertionElementsDecrypter();
 
-    private Converter<AssertionToken, Saml2ResponseValidatorResult> assertionValidator = createDefaultAssertionValidator();
+    private final Converter<AssertionToken, Saml2ResponseValidatorResult> assertionValidator = createDefaultAssertionValidator();
 
     private final Converter<AssertionToken, ? extends AbstractAuthenticationToken> assertionTokenAuthenticationConverter = createDefaultAssertionAuthenticationConverter();
 
@@ -256,7 +257,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
             throw new ProviderNotFoundException("No SAML identity provider found in zone for alias:" + alias);
         }
 
-        MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap();
+        MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
 
         log.debug("Mapped SAML authentication to IDP with origin '{}' and username '{}'",
                 idp.getOriginKey(), initialPrincipal.getName());
@@ -312,7 +313,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         this.eventPublisher = applicationEventPublisher;
     }
 
-    protected void publish(ApplicationEvent event) {
+    private void publish(ApplicationEvent event) {
         if (eventPublisher != null) {
             eventPublisher.publishEvent(event);
         }
@@ -381,9 +382,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
             Saml2Error first = errors.iterator().next();
             throw createAuthenticationException(first.getErrorCode(), first.getDescription(), null);
         } else {
-            if (log.isDebugEnabled()) {
-                log.debug("Successfully processed SAML Assertion [" + assertion.getID() + "]");
-            }
+            log.debug("Successfully processed SAML Assertion [{}]", assertion.getID());
         }
     }
 
@@ -615,6 +614,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
      *
      * @since 5.4
      */
+    @Getter
     public static class AssertionToken {
 
         private final Saml2AuthenticationToken token;
@@ -626,16 +626,8 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
             this.assertion = assertion;
         }
 
-        public Assertion getAssertion() {
-            return this.assertion;
-        }
-
         public String getAssertionId() {
             return this.assertion.getID();
-        }
-
-        public Saml2AuthenticationToken getToken() {
-            return this.token;
         }
     }
 }

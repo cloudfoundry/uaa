@@ -98,6 +98,7 @@ dependencies {
     testImplementation(libraries.apacheHttpClient)
     testImplementation(libraries.openSamlApi)
     testImplementation(libraries.xmlUnit)
+    testImplementation(libraries.awaitility)
 }
 
 ext {

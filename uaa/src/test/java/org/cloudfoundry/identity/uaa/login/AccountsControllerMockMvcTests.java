@@ -2,9 +2,9 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
@@ -66,18 +66,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+import static org.springframework.util.StringUtils.hasLength;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
 
 @DefaultTestContext
 class AccountsControllerMockMvcTests {
 
-    private final String LOGIN_REDIRECT = "/login?success=verify_success";
-    private final String USER_PASSWORD = "secr3T";
+    private static final String LOGIN_REDIRECT = "/login?success=verify_success";
+    private static final String USER_PASSWORD = "secr3T";
+    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String userEmail;
     private MockMvcTestClient mockMvcTestClient;
-    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
-
     @Autowired
     private WebApplicationContext webApplicationContext;
     @Autowired
@@ -128,7 +127,7 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(content().string(containsString("Create your account")));
     }
 
@@ -146,7 +145,7 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/accounts/email_sent")
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Create your account")))
                 .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
@@ -165,7 +164,7 @@ class AccountsControllerMockMvcTests {
         IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(content().string(containsString("<title>" + zone.getName() + "</title>")));
     }
 
@@ -178,7 +177,7 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getUaaBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(model().attribute("error_message_code", "self_service_disabled"))
                 .andExpect(view().name("error"))
                 .andExpect(status().isNotFound());
@@ -193,11 +192,11 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, getUaaBaseClientDetails(), zone, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-                .param("email", userEmail)
-                .param("password", "secr3T")
-                .param("password_confirmation", "secr3T"))
+                        .with(cookieCsrf())
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T"))
                 .andExpect(model().attribute("error_message_code", "self_service_disabled"))
                 .andExpect(view().name("error"))
                 .andExpect(status().isNotFound());
@@ -215,7 +214,7 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(get("/create_account")
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(content().string(not(containsString("background-image: url(/resources/oss/images/product-logo.png);"))));
     }
 
@@ -226,10 +225,10 @@ class AccountsControllerMockMvcTests {
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .param("email", userEmail)
-                .param("password", "secr3T")
-                .param("password_confirmation", "secr3T"))
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
@@ -238,7 +237,7 @@ class AccountsControllerMockMvcTests {
         assertFalse(scimUser.isVerified());
 
         mockMvc.perform(get("/verify_user")
-                .param("code", "test" + generator.counter.get()))
+                        .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
                 .andReturn();
@@ -262,16 +261,16 @@ class AccountsControllerMockMvcTests {
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .param("email", userEmail)
-                .param("password", "secr3T")
-                .param("password_confirmation", "secr3T")
-                .param("client_id", ""))
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T")
+                        .param("client_id", ""))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
         mockMvc.perform(get("/verify_user")
-                .param("code", "test" + generator.counter.get()))
+                        .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
                 .andReturn();
@@ -305,10 +304,10 @@ class AccountsControllerMockMvcTests {
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .param("email", userEmail)
-                .param("password", "secr3T")
-                .param("password_confirmation", "secr3T"))
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
@@ -317,7 +316,7 @@ class AccountsControllerMockMvcTests {
         assertThat(message.getMessage().getHeader("From"), hasItemInArray("Cloud Foundry <admin@localhost>"));
 
         mockMvc.perform(get("/verify_user")
-                .param("code", "test" + generator.counter.get()))
+                        .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
                 .andReturn();
@@ -348,17 +347,17 @@ class AccountsControllerMockMvcTests {
 
         String zonesCreateToken = mockMvcTestClient.getOAuthAccessToken("identity", "identitysecret", "client_credentials", "zones.write");
         mockMvc.perform(post("/identity-zones")
-                .header("Authorization", "Bearer " + zonesCreateToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(identityZone)))
+                        .header("Authorization", "Bearer " + zonesCreateToken)
+                        .contentType(APPLICATION_JSON)
+                        .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-                .param("email", userEmail)
-                .param("password", USER_PASSWORD)
-                .param("password_confirmation", USER_PASSWORD))
+                        .with(cookieCsrf())
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                        .param("email", userEmail)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
@@ -368,12 +367,12 @@ class AccountsControllerMockMvcTests {
         assertThat(message.getMessage().getHeader("From"), hasItemInArray(subdomain + "zone <admin@localhost>"));
         assertFalse(message.getContentString().contains("Cloud Foundry"));
         assertFalse(message.getContentString().contains("Pivotal"));
-        assertFalse(isEmpty(link));
+        assertTrue(hasLength(link));
         assertTrue(link.contains(subdomain + ".localhost"));
 
         mockMvc.perform(get("/verify_user")
-                .param("code", "test" + generator.counter.get())
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                        .param("code", "test" + generator.counter.get())
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
                 .andReturn();
@@ -406,24 +405,24 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, getUaaBaseClientDetails(), IdentityZoneHolder.getCurrentZoneId());
 
         mockMvc.perform(post("/create_account.do")
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-                .with(cookieCsrf())
-                .param("email", userEmail)
-                .param("password", "secr3T")
-                .param("password_confirmation", "secr3T")
-                .param("client_id", "myzoneclient")
-                .param("redirect_uri", "http://myzoneclient.example.com"))
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", "secr3T")
+                        .param("password_confirmation", "secr3T")
+                        .param("client_id", "myzoneclient")
+                        .param("redirect_uri", "http://myzoneclient.example.com"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
         FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
         String link = mockMvcTestClient.extractLink(message.getContentString());
-        assertFalse(isEmpty(link));
+        assertTrue(hasLength(link));
         assertTrue(link.contains(subdomain + ".localhost"));
 
         mockMvc.perform(get("/verify_user")
-                .param("code", "test" + generator.counter.get())
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+                        .param("code", "test" + generator.counter.get())
+                        .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
                 .andExpect(redirectedUrl(LOGIN_REDIRECT + "&form_redirect_uri=http://myzoneclient.example.com"))
                 .andReturn();
 
@@ -457,16 +456,16 @@ class AccountsControllerMockMvcTests {
         store.setGenerator(generator);
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .session(session)
-                .param("email", "testuser@test.org")
-                .param("password", "test-password")
-                .param("password_confirmation", "test-password"))
+                        .with(cookieCsrf())
+                        .session(session)
+                        .param("email", "testuser@test.org")
+                        .param("password", "test-password")
+                        .param("password_confirmation", "test-password"))
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
         mockMvc.perform(get("/verify_user")
-                .session(session)
-                .param("code", "test" + generator.counter.get()))
+                        .session(session)
+                        .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT))
                 .andReturn();
@@ -477,7 +476,7 @@ class AccountsControllerMockMvcTests {
     @Test
     void ifInvalidOrExpiredCode_goTo_createAccountDefaultPage() throws Exception {
         mockMvc.perform(get("/verify_user")
-                .param("code", "expired-code"))
+                        .param("code", "expired-code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(model().attribute("error_message_code", "code_expired"))
                 .andExpect(view().name("accounts/link_prompt"))
@@ -491,7 +490,7 @@ class AccountsControllerMockMvcTests {
         setProperty("links.signup", signUpLink);
 
         mockMvc.perform(get("/verify_user")
-                .param("code", "expired-code"))
+                        .param("code", "expired-code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(model().attribute("error_message_code", "code_expired"))
                 .andExpect(view().name("accounts/link_prompt"))
@@ -513,7 +512,7 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.updateZone(mockMvc, zone);
 
         mockMvc.perform(get("/create_account")
-                .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost")))
+                        .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost")))
                 .andExpect(content().string(containsString(consentText)))
                 .andExpect(content().string(containsString(consentLink)));
     }
@@ -531,7 +530,7 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.updateZone(mockMvc, zone);
 
         mockMvc.perform(get("/create_account")
-                .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost")))
+                        .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost")))
                 .andExpect(content().string(containsString(consentText)));
     }
 
@@ -548,12 +547,12 @@ class AccountsControllerMockMvcTests {
         MockMvcUtils.updateZone(mockMvc, zone);
 
         mockMvc.perform(post("/create_account.do")
-                .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost"))
-                .with(cookieCsrf())
-                .param("email", userEmail)
-                .param("password", USER_PASSWORD)
-                .param("password_confirmation", USER_PASSWORD)
-                .param("does_user_consent", "false"))
+                        .with(new SetServerNameRequestPostProcessor(randomZoneSubdomain + ".localhost"))
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD)
+                        .param("does_user_consent", "false"))
                 .andExpect(content().string(containsString("Please agree before continuing.")));
     }
 
@@ -580,12 +579,12 @@ class AccountsControllerMockMvcTests {
 
 
         mockMvc.perform(post("/create_account.do")
-                .with(cookieCsrf())
-                .param("email", userEmail)
-                .param("password", USER_PASSWORD)
-                .param("password_confirmation", USER_PASSWORD)
-                .param("client_id", clientDetails.getClientId())
-                .param("redirect_uri", redirectUri))
+                        .with(cookieCsrf())
+                        .param("email", userEmail)
+                        .param("password", USER_PASSWORD)
+                        .param("password_confirmation", USER_PASSWORD)
+                        .param("client_id", clientDetails.getClientId())
+                        .param("redirect_uri", redirectUri))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
@@ -594,7 +593,7 @@ class AccountsControllerMockMvcTests {
         assertThat(message.getMessage().getHeader("From"), hasItemInArray("Cloud Foundry <admin@localhost>"));
 
         mockMvc.perform(get("/verify_user")
-                .param("code", "test" + generator.counter.get()))
+                        .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(LOGIN_REDIRECT + "&form_redirect_uri=" + expectedRedirectUri))
                 .andReturn();

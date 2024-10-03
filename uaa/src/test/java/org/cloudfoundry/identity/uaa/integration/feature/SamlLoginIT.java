@@ -125,13 +125,13 @@ import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 public class SamlLoginIT {
 
-    public static final String MARISSA4_USERNAME = "marissa4";
-    private static final String MARISSA4_PASSWORD = "saml2";
-    public static final String MARISSA4_EMAIL = "marissa4@test.org";
-    public static final String MARISSA2_USERNAME = "marissa2";
+    private static final String MARISSA2_USERNAME = "marissa2";
     private static final String MARISSA2_PASSWORD = "saml2";
-    public static final String MARISSA3_USERNAME = "marissa3";
+    private static final String MARISSA3_USERNAME = "marissa3";
     private static final String MARISSA3_PASSWORD = "saml2";
+    private static final String MARISSA4_USERNAME = "marissa4";
+    private static final String MARISSA4_EMAIL = "marissa4@test.org";
+    private static final String MARISSA4_PASSWORD = "saml2";
     private static final String SAML_ORIGIN = "simplesamlphp";
     private static final By byUsername = By.name("username");
     private static final By byPassword = By.name("password");
@@ -174,6 +174,17 @@ public class SamlLoginIT {
         return MockMvcUtils.IDP_META_DATA.formatted(new RandomValueStringGenerator().generate());
     }
 
+    private static String loadResouceAsString(String resourceLocation) {
+        ResourceLoader resourceLoader = new DefaultResourceLoader();
+        Resource resource = resourceLoader.getResource(resourceLocation);
+
+        try (Reader reader = new InputStreamReader(resource.getInputStream(), UTF_8)) {
+            return FileCopyUtils.copyToString(reader);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     @BeforeEach
     void setup() {
         String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
@@ -196,6 +207,7 @@ public class SamlLoginIT {
                 IntegrationTestUtils.deleteZone(baseUrl, zoneId, token);
                 IntegrationTestUtils.deleteProvider(token, baseUrl, "uaa", zoneId + ".cloudfoundry-saml-login");
             } catch (Exception ignored) {
+                // ignored
             }
         }
     }
@@ -1038,8 +1050,7 @@ public class SamlLoginIT {
 
         Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
 
-        //do an auth code grant
-        //pass up the jsessionid
+        // do an auth code grant, passing the jsessionid
         System.out.printf("Cookie: %s=%s%n", cookie.getName(), cookie.getValue());
 
         serverRunning.setHostName("testzone1.localhost");
@@ -1173,8 +1184,7 @@ public class SamlLoginIT {
 
         Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
 
-        //do an auth code grant
-        //pass up the jsessionid
+        // do an auth code grant, passing the jsessionid
         System.out.println("cookie = " + "%s=%s".formatted(cookie.getName(), cookie.getValue()));
 
         serverRunning.setHostName(zoneId + ".localhost");
@@ -1431,17 +1441,6 @@ public class SamlLoginIT {
 
     public SamlIdentityProviderDefinition createTestZoneIDP(String alias, String zoneSubdomain) {
         return createSimplePHPSamlIDP(alias, zoneSubdomain);
-    }
-
-    private static String loadResouceAsString(String resourceLocation) {
-        ResourceLoader resourceLoader = new DefaultResourceLoader();
-        Resource resource = resourceLoader.getResource(resourceLocation);
-
-        try (Reader reader = new InputStreamReader(resource.getInputStream(), UTF_8)) {
-            return FileCopyUtils.copyToString(reader);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 
     private SamlIdentityProviderDefinition createIDPWithNoSLOSConfigured() {

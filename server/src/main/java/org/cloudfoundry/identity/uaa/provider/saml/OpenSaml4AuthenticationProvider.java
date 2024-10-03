@@ -16,6 +16,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import lombok.Getter;
 import net.shibboleth.utilities.java.support.xml.ParserPool;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,7 +47,6 @@ import org.opensaml.saml.saml2.core.AttributeStatement;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.AuthnStatement;
 import org.opensaml.saml.saml2.core.Condition;
-import org.opensaml.saml.saml2.core.EncryptedAssertion;
 import org.opensaml.saml.saml2.core.OneTimeUse;
 import org.opensaml.saml.saml2.core.Response;
 import org.opensaml.saml.saml2.core.StatusCode;
@@ -54,7 +54,6 @@ import org.opensaml.saml.saml2.core.SubjectConfirmation;
 import org.opensaml.saml.saml2.core.SubjectConfirmationData;
 import org.opensaml.saml.saml2.core.impl.AuthnRequestUnmarshaller;
 import org.opensaml.saml.saml2.core.impl.ResponseUnmarshaller;
-import org.opensaml.saml.saml2.encryption.Decrypter;
 import org.opensaml.saml.security.impl.SAMLSignatureProfileValidator;
 import org.opensaml.xmlsec.signature.support.SignaturePrevalidator;
 import org.opensaml.xmlsec.signature.support.SignatureTrustEngine;
@@ -128,15 +127,15 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
 
     private final Converter<ResponseToken, Saml2ResponseValidatorResult> responseSignatureValidator = createDefaultResponseSignatureValidator();
 
-    private Consumer<ResponseToken> responseElementsDecrypter = createDefaultResponseElementsDecrypter();
+    private final Consumer<ResponseToken> responseElementsDecrypter = createDefaultResponseElementsDecrypter();
 
     private Converter<ResponseToken, Saml2ResponseValidatorResult> responseValidator = createDefaultResponseValidator();
 
     private final Converter<AssertionToken, Saml2ResponseValidatorResult> assertionSignatureValidator = createDefaultAssertionSignatureValidator();
 
-    private Consumer<AssertionToken> assertionElementsDecrypter = createDefaultAssertionElementsDecrypter();
+    private final Consumer<AssertionToken> assertionElementsDecrypter = createDefaultAssertionElementsDecrypter();
 
-    private Converter<AssertionToken, Saml2ResponseValidatorResult> assertionValidator = createDefaultAssertionValidator();
+    private final Converter<AssertionToken, Saml2ResponseValidatorResult> assertionValidator = createDefaultAssertionValidator();
 
     private Converter<ResponseToken, ? extends AbstractAuthenticationToken> responseAuthenticationConverter = createDefaultResponseAuthenticationConverter();
 
@@ -148,55 +147,6 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         this.responseUnmarshaller = (ResponseUnmarshaller) registry.getUnmarshallerFactory()
                 .getUnmarshaller(Response.DEFAULT_ELEMENT_NAME);
         this.parserPool = registry.getParserPool();
-    }
-
-    /**
-     * Set the {@link Consumer} strategy to use for decrypting elements of a validated
-     * {@link Response}. The default strategy decrypts all {@link EncryptedAssertion}s
-     * using OpenSAML's {@link Decrypter}, adding the results to
-     * {@link Response#getAssertions()}.
-     * <p>
-     * You can use this method to configure the {@link Decrypter} instance like so:
-     *
-     * <pre>
-     * 	OpenSamlAuthenticationProvider provider = new OpenSamlAuthenticationProvider();
-     * 	provider.setResponseElementsDecrypter((responseToken) -&gt; {
-     * 	    DecrypterParameters parameters = new DecrypterParameters();
-     * 	    // ... set parameters as needed
-     * 	    Decrypter decrypter = new Decrypter(parameters);
-     * 		Response response = responseToken.getResponse();
-     *  	EncryptedAssertion encrypted = response.getEncryptedAssertions().get(0);
-     *  	try {
-     *  		Assertion assertion = decrypter.decrypt(encrypted);
-     *  		response.getAssertions().add(assertion);
-     *    } catch (Exception e) {
-     *  	 	throw new Saml2AuthenticationException(...);
-     *    }
-     *    });
-     * </pre>
-     * <p>
-     * Or, in the event that you have your own custom decryption interface, the same
-     * pattern applies:
-     *
-     * <pre>
-     * 	OpenSamlAuthenticationProvider provider = new OpenSamlAuthenticationProvider();
-     * 	Converter&lt;EncryptedAssertion, Assertion&gt; myService = ...
-     * 	provider.setResponseDecrypter((responseToken) -&gt; {
-     * 	   Response response = responseToken.getResponse();
-     * 	   response.getEncryptedAssertions().stream()
-     * 	   		.map(service::decrypt).forEach(response.getAssertions()::add);
-     *    });
-     * </pre>
-     * <p>
-     * This is valuable when using an external service to perform the decryption.
-     *
-     * @param responseElementsDecrypter the {@link Consumer} for decrypting response
-     *                                  elements
-     * @since 5.5
-     */
-    public void setResponseElementsDecrypter(Consumer<ResponseToken> responseElementsDecrypter) {
-        Assert.notNull(responseElementsDecrypter, "responseElementsDecrypter cannot be null");
-        this.responseElementsDecrypter = responseElementsDecrypter;
     }
 
     /**
@@ -220,95 +170,6 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     public void setResponseValidator(Converter<ResponseToken, Saml2ResponseValidatorResult> responseValidator) {
         Assert.notNull(responseValidator, "responseValidator cannot be null");
         this.responseValidator = responseValidator;
-    }
-
-    /**
-     * Set the {@link Converter} to use for validating each {@link Assertion} in the SAML
-     * 2.0 Response.
-     * <p>
-     * You can still invoke the default validator by delgating to
-     * {@link #createAssertionValidator}, like so:
-     *
-     * <pre>
-     * 	OpenSamlAuthenticationProvider provider = new OpenSamlAuthenticationProvider();
-     *  provider.setAssertionValidator(assertionToken -&gt; {
-     * 		Saml2ResponseValidatorResult result = createDefaultAssertionValidator()
-     * 			.convert(assertionToken)
-     * 		return result.concat(myCustomValidator.convert(assertionToken));
-     *  });
-     * </pre>
-     * <p>
-     * You can also use this method to configure the provider to use a different
-     * {@link ValidationContext} from the default, like so:
-     *
-     * <pre>
-     * 	OpenSamlAuthenticationProvider provider = new OpenSamlAuthenticationProvider();
-     * 	provider.setAssertionValidator(
-     * 		createDefaultAssertionValidator(assertionToken -&gt; {
-     * 			Map&lt;String, Object&gt; params = new HashMap&lt;&gt;();
-     * 			params.put(CLOCK_SKEW, 2 * 60 * 1000);
-     * 			// other parameters
-     * 			return new ValidationContext(params);
-     *        }));
-     * </pre>
-     * <p>
-     * Consider taking a look at {@link #createValidationContext} to see how it constructs
-     * a {@link ValidationContext}.
-     * <p>
-     * It is not necessary to delegate to the default validator. You can safely replace it
-     * entirely with your own. Note that signature verification is performed as a separate
-     * step from this validator.
-     *
-     * @param assertionValidator the validator to use
-     * @since 5.4
-     */
-    public void setAssertionValidator(Converter<AssertionToken, Saml2ResponseValidatorResult> assertionValidator) {
-        Assert.notNull(assertionValidator, "assertionValidator cannot be null");
-        this.assertionValidator = assertionValidator;
-    }
-
-    /**
-     * Set the {@link Consumer} strategy to use for decrypting elements of a validated
-     * {@link Assertion}.
-     * <p>
-     * You can use this method to configure the {@link Decrypter} used like so:
-     *
-     * <pre>
-     * 	OpenSamlAuthenticationProvider provider = new OpenSamlAuthenticationProvider();
-     * 	provider.setResponseDecrypter((assertionToken) -&gt; {
-     * 	    DecrypterParameters parameters = new DecrypterParameters();
-     * 	    // ... set parameters as needed
-     * 	    Decrypter decrypter = new Decrypter(parameters);
-     * 		Assertion assertion = assertionToken.getAssertion();
-     *  	EncryptedID encrypted = assertion.getSubject().getEncryptedID();
-     *  	try {
-     *  		NameID name = decrypter.decrypt(encrypted);
-     *  		assertion.getSubject().setNameID(name);
-     *    } catch (Exception e) {
-     *  	 	throw new Saml2AuthenticationException(...);
-     *    }
-     *    });
-     * </pre>
-     * <p>
-     * Or, in the event that you have your own custom interface, the same pattern applies:
-     *
-     * <pre>
-     * 	OpenSamlAuthenticationProvider provider = new OpenSamlAuthenticationProvider();
-     * 	MyDecryptionService myService = ...
-     * 	provider.setResponseDecrypter((responseToken) -&gt; {
-     * 	   	Assertion assertion = assertionToken.getAssertion();
-     * 	   	EncryptedID encrypted = assertion.getSubject().getEncryptedID();
-     * 		NameID name = myService.decrypt(encrypted);
-     * 		assertion.getSubject().setNameID(name);
-     *    });
-     * </pre>
-     *
-     * @param assertionDecrypter the {@link Consumer} for decrypting assertion elements
-     * @since 5.5
-     */
-    public void setAssertionElementsDecrypter(Consumer<AssertionToken> assertionDecrypter) {
-        Assert.notNull(assertionDecrypter, "assertionDecrypter cannot be null");
-        this.assertionElementsDecrypter = assertionDecrypter;
     }
 
     /**
@@ -568,7 +429,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     }
 
     private Converter<ResponseToken, Saml2ResponseValidatorResult> createDefaultResponseSignatureValidator() {
-        return (responseToken) -> {
+        return responseToken -> {
             Response response = responseToken.getResponse();
             RelyingPartyRegistration registration = responseToken.getToken().getRelyingPartyRegistration();
             if (response.isSigned()) {
@@ -579,7 +440,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     }
 
     private Consumer<ResponseToken> createDefaultResponseElementsDecrypter() {
-        return (responseToken) -> {
+        return responseToken -> {
             Response response = responseToken.getResponse();
             RelyingPartyRegistration registration = responseToken.getToken().getRelyingPartyRegistration();
             try {
@@ -601,16 +462,16 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     }
 
     private Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionSignatureValidator() {
-        return createAssertionValidator(Saml2ErrorCodes.INVALID_SIGNATURE, (assertionToken) -> {
+        return createAssertionValidator(Saml2ErrorCodes.INVALID_SIGNATURE, assertionToken -> {
             RelyingPartyRegistration registration = assertionToken.getToken().getRelyingPartyRegistration();
             SignatureTrustEngine engine = OpenSamlVerificationUtils.trustEngine(registration);
             return SAML20AssertionValidators.createSignatureValidator(engine);
-        }, (assertionToken) -> new ValidationContext(
+        }, assertionToken -> new ValidationContext(
                 Collections.singletonMap(SAML2AssertionValidationParameters.SIGNATURE_REQUIRED, false)));
     }
 
     private Consumer<AssertionToken> createDefaultAssertionElementsDecrypter() {
-        return (assertionToken) -> {
+        return assertionToken -> {
             Assertion assertion = assertionToken.getAssertion();
             RelyingPartyRegistration registration = assertionToken.getToken().getRelyingPartyRegistration();
             try {
@@ -862,6 +723,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
      *
      * @since 5.4
      */
+    @Getter
     public static class ResponseToken {
 
         private final Saml2AuthenticationToken token;
@@ -872,15 +734,6 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             this.token = token;
             this.response = response;
         }
-
-        public Response getResponse() {
-            return this.response;
-        }
-
-        public Saml2AuthenticationToken getToken() {
-            return this.token;
-        }
-
     }
 
     /**
@@ -889,6 +742,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
      *
      * @since 5.4
      */
+    @Getter
     public static class AssertionToken {
 
         private final Saml2AuthenticationToken token;
@@ -899,15 +753,5 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             this.token = token;
             this.assertion = assertion;
         }
-
-        public Assertion getAssertion() {
-            return this.assertion;
-        }
-
-        public Saml2AuthenticationToken getToken() {
-            return this.token;
-        }
-
     }
-
 }

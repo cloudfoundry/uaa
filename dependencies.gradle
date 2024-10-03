@@ -20,6 +20,7 @@ versions.seleniumVersion = "4.25.0"
 versions.braveVersion = "6.0.3"
 versions.jacksonVersion = "2.17.2"
 versions.jsonPathVersion = "2.9.0"
+versions.awaitilityVersion = "4.2.2"
 versions.opensaml = "4.0.1" // Spring Security 5.8.x allows OpenSAML 3 or 4. OpenSAML 3 has reached its end-of-life. Spring Security 6 drops support for 3, using 4.
 
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
@@ -46,6 +47,7 @@ libraries.apacheDsProtocolLdap = "org.apache.directory.server:apacheds-protocol-
 libraries.apacheLdapApi = "org.apache.directory.api:api-ldap-model:2.1.7"
 libraries.aspectJRt = "org.aspectj:aspectjrt"
 libraries.aspectJWeaver = "org.aspectj:aspectjweaver"
+libraries.awaitility = "org.awaitility:awaitility:${versions.awaitilityVersion}"
 libraries.bouncyCastlePkixFips = "org.bouncycastle:bcpkix-fips:${versions.bouncyCastlePkixFipsVersion}"
 libraries.bouncyCastleFipsProv = "org.bouncycastle:bc-fips:${versions.bouncyCastleFipsVersion}"
 libraries.bouncyCastleTlsFips = "org.bouncycastle:bctls-fips:${versions.bouncyCastleTlsFipsVersion}"
