@@ -43,7 +43,9 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -127,7 +129,6 @@ class PasscodeMockMvcTests {
                 .param("passcode", passcode)
                 .param("response_type", "token");
 
-
         Map<String, Object> accessToken =
                 JsonUtils.readValueAsMap(
                         mockMvc.perform(post)
@@ -150,7 +151,6 @@ class PasscodeMockMvcTests {
     void testLoginUsingPasscodeWithUaaToken() throws Exception {
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
         UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), details);
-
         final MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
 
         SecurityContextHolder.setContext(mockSecurityContext);
@@ -235,7 +235,6 @@ class PasscodeMockMvcTests {
     void testLoginUsingOldPasscode() throws Exception {
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
         UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), details);
-
         final MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
 
         SecurityContextHolder.setContext(mockSecurityContext);
@@ -315,34 +314,32 @@ class PasscodeMockMvcTests {
         assertThat(content).contains("Passcode information is missing.");
     }
 
-    // NOTE: This test is flaky but passes on retry
     @Test
     void testPasscodeReturnSpecialCharacters() throws Exception {
+        // NOTE: This test is flaky but passes on retry
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
         UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), details);
-
         MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
 
         SecurityContextHolder.setContext(mockSecurityContext);
         MockHttpSession session = new MockHttpSession();
-
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, mockSecurityContext);
-        String passcode = "";
-        // try up to 30 times to get a passcode
-        for (int i = 0; i < 30; i++) {
+
+        // try for up to 15 seconds to get a passcode with - or _
+        await().atMost(15, SECONDS).untilAsserted(() -> {
             MockHttpServletRequestBuilder get = get("/passcode").accept(APPLICATION_JSON).session(session);
 
-            passcode = JsonUtils.readValue(mockMvc.perform(get)
+            String passcode = JsonUtils.readValue(mockMvc.perform(get)
                             .andExpect(status().isOk())
                             .andReturn()
                             .getResponse()
                             .getContentAsString(),
                     String.class);
-            if (passcode != null && (passcode.contains("-") || passcode.contains("_"))) {
-                break;
-            }
-        }
-        assertThat(passcode).as("Passcode information is missing - or _").matches("[1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\\-_]*");
+
+            assertThat(passcode).as("Passcode information is missing - or _")
+                    .containsAnyOf("-", "_")
+                    .matches("[1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\\-_]*");
+        });
     }
 
     public static class MockSecurityContext implements SecurityContext {
