@@ -156,7 +156,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
         configuration.getLinks().getLogout().setWhitelist(Collections.singletonList("http://somethingelse.com"));
         configuration.getLinks().getLogout().setDisableRedirectParameter(false);
         when(oAuthLogoutHandler.getLogoutUrl(null)).thenReturn("");
-        when(oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", null)).thenReturn("/login");
+        when(oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", null, null)).thenReturn("/login");
         request.setParameter("redirect", "http://testing.com");
         request.setParameter(CLIENT_ID, CLIENT_ID);
         assertEquals("/login", handler.determineTargetUrl(request, response));

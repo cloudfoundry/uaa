@@ -52,11 +52,12 @@ public class ExternalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
       return defaultUrl;
     }
 
-    return this.constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig);
+    return this.constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig, authentication);
   }
 
   public String constructOAuthProviderLogoutUrl(final HttpServletRequest request, final String logoutUrl,
-      final AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oauthConfig) {
+      final AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oauthConfig,
+      final Authentication authentication) {
     final StringBuilder oauthLogoutUriBuilder = new StringBuilder(request.getRequestURL());
     if (StringUtils.hasText(request.getQueryString())) {
       oauthLogoutUriBuilder.append("?");
@@ -68,6 +69,11 @@ public class ExternalOAuthLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     sb.append(oauthLogoutUri);
     sb.append("&client_id=");
     sb.append(oauthConfig.getRelyingPartyId());
+
+    if (authentication instanceof UaaAuthentication uaaAuthentication && uaaAuthentication.getIdpIdToken() != null) {
+        sb.append("&id_token_hint=");
+        sb.append(uaaAuthentication.getIdpIdToken());
+    }
     return sb.toString();
   }
 
