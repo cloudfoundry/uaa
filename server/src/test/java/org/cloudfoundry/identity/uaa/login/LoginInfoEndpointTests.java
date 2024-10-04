@@ -60,6 +60,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyList;
@@ -432,7 +433,7 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
-        String redirect = endpoint.loginUsingOrigin("providedOrigin", extendedModelMap, session, request);
+        String redirect = endpoint.loginUsingOrigin("providedOrigin");
 
         assertThat(redirect).startsWith("redirect:/login?discoveryPerformed=true")
                 .contains("login_hint")
@@ -444,7 +445,7 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();
-        String redirect = endpoint.loginUsingOrigin(null, extendedModelMap, session, request);
+        String redirect = endpoint.loginUsingOrigin(null);
 
         assertThat(redirect).isEqualTo("redirect:/login?discoveryPerformed=true");
     }
@@ -522,12 +523,10 @@ class LoginInfoEndpointTests {
         assertThat(links).containsEntry("login", "http://someurl");
         assertThat(extendedModelMap.get("idpDefinitions")).isInstanceOf(Map.class);
         Map<String, String> idpDefinitions = (Map<String, String>) extendedModelMap.get("idpDefinitions");
-        for (SamlIdentityProviderDefinition def : idps) {
-            assertThat(idpDefinitions)
-                    .containsEntry(def.getIdpEntityAlias(),
-                            "http://someurl/saml/discovery?returnIDParam=idp&entityID=%s&idp=%s&isPassive=true"
-                                    .formatted(endpoint.getZonifiedEntityId(), def.getIdpEntityAlias()));
-        }
+
+        var defs = idps.stream().collect(Collectors.toMap(SamlIdentityProviderDefinition::getIdpEntityAlias,
+                def -> "http://someurl/saml2/authenticate/%s".formatted(def.getIdpEntityAlias())));
+        assertThat(idpDefinitions).containsAllEntriesOf(defs);
     }
 
     @Test

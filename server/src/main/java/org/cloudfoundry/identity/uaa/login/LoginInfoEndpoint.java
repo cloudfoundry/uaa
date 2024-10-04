@@ -122,7 +122,17 @@ public class LoginInfoEndpoint {
     private static final String USERNAME_PARAMETER = "username";
     private static final String CLIENT_ID_PARAMETER = "client_id";
     private static final String LOGIN = "login";
-
+    private static final String REDIRECT = "redirect:";
+    private static final MapCollector<IdentityProvider, String, AbstractExternalOAuthIdentityProviderDefinition> idpsMapCollector =
+            new MapCollector<>(
+                    IdentityProvider::getOriginKey,
+                    idp -> (AbstractExternalOAuthIdentityProviderDefinition) idp.getConfig()
+            );
+    //http://stackoverflow.com/questions/5713558/detect-and-extract-url-from-a-string
+    // Pattern for recognizing a URL, based off RFC 3986
+    private static final Pattern urlPattern = Pattern.compile(
+            "((https?|ftp|gopher|telnet|file):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)",
+            Pattern.CASE_INSENSITIVE);
     private final Properties gitProperties;
     private final Properties buildProperties;
     private final String baseUrl;
@@ -135,12 +145,6 @@ public class LoginInfoEndpoint {
     private final ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
     private final Links globalLinks;
     private final String entityID;
-
-    private static final MapCollector<IdentityProvider, String, AbstractExternalOAuthIdentityProviderDefinition> idpsMapCollector =
-            new MapCollector<>(
-                    IdentityProvider::getOriginKey,
-                    idp -> (AbstractExternalOAuthIdentityProviderDefinition) idp.getConfig()
-            );
 
     public LoginInfoEndpoint(
             final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
@@ -175,6 +179,35 @@ public class LoginInfoEndpoint {
         }
     }
 
+    private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
+        return Arrays.stream(ofNullable(cookies).orElse(new Cookie[]{}))
+                .filter(c -> c.getName().startsWith("Saved-Account"))
+                .map(c -> {
+                    try {
+                        return JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz);
+                    } catch (JsonUtilException e) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    private static String decodeCookieValue(String inValue) {
+        try {
+            return URLDecoder.decode(inValue, UTF_8);
+        } catch (Exception e) {
+            log.debug("URLDecoder.decode failed for {}", inValue, e);
+            return "";
+        }
+    }
+
+    private static Map<String, AbstractIdentityProviderDefinition> concatenateMaps(Map<String, SamlIdentityProviderDefinition> samlIdentityProviders, Map<String, ? extends AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders) {
+        Map<String, AbstractIdentityProviderDefinition> allIdentityProviders = new HashMap<>(samlIdentityProviders);
+        allIdentityProviders.putAll(oauthIdentityProviders);
+        return allIdentityProviders;
+    }
+
     @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
     public String infoForLoginJson(Model model, Principal principal, HttpServletRequest request) {
         return login(model, principal, Collections.emptyList(), true, request);
@@ -183,21 +216,6 @@ public class LoginInfoEndpoint {
     @RequestMapping(value = {"/info"}, headers = "Accept=application/json")
     public String infoForJson(Model model, Principal principal, HttpServletRequest request) {
         return login(model, principal, Collections.emptyList(), true, request);
-    }
-
-    static class SavedAccountOptionModel extends SavedAccountOption {
-        /**
-         * These must be public. They are accessed in templates.
-         */
-        public int red;
-        public int green;
-        public int blue;
-
-        void assignColors(Color color) {
-            red = color.getRed();
-            blue = color.getBlue();
-            green = color.getGreen();
-        }
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
@@ -223,29 +241,6 @@ public class LoginInfoEndpoint {
         model.addAttribute("savedAccounts", savedAccounts);
 
         return login(model, principal, List.of(PASSCODE), false, request);
-    }
-
-    private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
-        return Arrays.stream(ofNullable(cookies).orElse(new Cookie[]{}))
-                .filter(c -> c.getName().startsWith("Saved-Account"))
-                .map(c -> {
-                    try {
-                        return JsonUtils.readValue(decodeCookieValue(c.getValue()), clazz);
-                    } catch (JsonUtilException e) {
-                        return null;
-                    }
-                })
-                .filter(Objects::nonNull)
-                .toList();
-    }
-
-    private static String decodeCookieValue(String inValue) {
-        try {
-            return URLDecoder.decode(inValue, UTF_8);
-        } catch (Exception e) {
-            log.debug("URLDecoder.decode failed for {}", inValue, e);
-            return "";
-        }
     }
 
     @RequestMapping(value = {"/invalid_request"})
@@ -388,7 +383,7 @@ public class LoginInfoEndpoint {
         String zonifiedEntityID = getZonifiedEntityId();
         Map<String, ?> links = getLinksInfo();
         if (jsonResponse) {
-            setJsonInfo(model, samlIdentityProviders, zonifiedEntityID, links);
+            setJsonInfo(model, samlIdentityProviders, links);
         } else {
             updateLoginPageModel(model, request, clientName, samlIdentityProviders, oauthIdentityProviders,
                     fieldUsernameShow, linkCreateAccountShow);
@@ -401,7 +396,7 @@ public class LoginInfoEndpoint {
         model.addAttribute(ENTITY_ID, zonifiedEntityID);
 
         excludedPrompts = new LinkedList<>(excludedPrompts);
-        String origin = request != null ? request.getParameter("origin") : null;
+        String origin = request.getParameter("origin");
         populatePrompts(model, excludedPrompts, origin, samlIdentityProviders, oauthIdentityProviders,
                 excludedPrompts, returnLoginPrompts);
 
@@ -409,12 +404,6 @@ public class LoginInfoEndpoint {
             return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed, accountChooserNeeded, accountChooserEnabled);
         }
         return "home";
-    }
-
-    private static Map<String, AbstractIdentityProviderDefinition> concatenateMaps(Map<String, SamlIdentityProviderDefinition> samlIdentityProviders, Map<String, ? extends AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders) {
-        Map<String, AbstractIdentityProviderDefinition> allIdentityProviders = new HashMap<>(samlIdentityProviders);
-        allIdentityProviders.putAll(oauthIdentityProviders);
-        return allIdentityProviders;
     }
 
     private String getUnauthenticatedRedirect(
@@ -485,8 +474,7 @@ public class LoginInfoEndpoint {
     private void setJsonInfo(
             Model model,
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
-            String zonifiedEntityID,
-            Map links
+            Map<String, ?> links
     ) {
         for (String attribute : UI_ONLY_ATTRIBUTES) {
             links.remove(attribute);
@@ -494,11 +482,7 @@ public class LoginInfoEndpoint {
         Map<String, String> idpDefinitionsForJson = new HashMap<>();
         if (samlIdentityProviders != null) {
             for (SamlIdentityProviderDefinition def : samlIdentityProviders.values()) {
-                // TODO: This is used in invitation flow
-                //  we have removed discovery elsewhere
-                // String idpUrl = "%s/saml2/authenticate/%s".formatted(links.get(LOGIN), def.getIdpEntityAlias())
-                String idpUrl = "%s/saml/discovery?returnIDParam=idp&entityID=%s&idp=%s&isPassive=true"
-                        .formatted(links.get(LOGIN), zonifiedEntityID, def.getIdpEntityAlias());
+                 String idpUrl = "%s/saml2/authenticate/%s".formatted(links.get(LOGIN), def.getIdpEntityAlias());
                 idpDefinitionsForJson.put(def.getIdpEntityAlias(), idpUrl);
             }
             model.addAttribute(IDP_DEFINITIONS, idpDefinitionsForJson);
@@ -618,7 +602,7 @@ public class LoginInfoEndpoint {
                 return "redirect:/" + url;
             } else if (idpForRedirect instanceof AbstractExternalOAuthIdentityProviderDefinition providerDefinition) {
                 String redirectUrl = getRedirectUrlForExternalOAuthIDP(request, idpOriginKey, providerDefinition);
-                return "redirect:" + redirectUrl;
+                return REDIRECT + redirectUrl;
             }
         }
         return null;
@@ -726,12 +710,10 @@ public class LoginInfoEndpoint {
             } catch (DataAccessException ignored) {
                 // ignore
             }
-            if (providerForOrigin != null) {
-                if (providerForOrigin.getConfig() instanceof OIDCIdentityProviderDefinition oidcConfig) {
-                    List<Prompt> providerPrompts = oidcConfig.getPrompts();
-                    if (providerPrompts != null) {
-                        prompts = providerPrompts;
-                    }
+            if (providerForOrigin != null && providerForOrigin.getConfig() instanceof OIDCIdentityProviderDefinition oidcConfig) {
+                List<Prompt> providerPrompts = oidcConfig.getPrompts();
+                if (providerPrompts != null) {
+                    prompts = providerPrompts;
                 }
             }
         }
@@ -755,12 +737,6 @@ public class LoginInfoEndpoint {
         model.addAttribute("prompts", map);
     }
 
-    //http://stackoverflow.com/questions/5713558/detect-and-extract-url-from-a-string
-    // Pattern for recognizing a URL, based off RFC 3986
-    private static final Pattern urlPattern = Pattern.compile(
-            "((https?|ftp|gopher|telnet|file):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)",
-            Pattern.CASE_INSENSITIVE);
-
     private String extractUrlFromString(String s) {
         Matcher matcher = urlPattern.matcher(s);
         if (matcher.find()) {
@@ -773,7 +749,7 @@ public class LoginInfoEndpoint {
     }
 
     @PostMapping(value = "/origin-chooser")
-    public String loginUsingOrigin(@RequestParam(required = false, name = LOGIN_HINT_ATTRIBUTE) String loginHint, Model model, HttpSession session, HttpServletRequest request) {
+    public String loginUsingOrigin(@RequestParam(required = false, name = LOGIN_HINT_ATTRIBUTE) String loginHint) {
         if (!StringUtils.hasText(loginHint)) {
             return "redirect:/login?discoveryPerformed=true";
         }
@@ -832,7 +808,7 @@ public class LoginInfoEndpoint {
     @PostMapping(value = "/autologin")
     @ResponseBody
     public AutologinResponse generateAutologinCode(@RequestBody AutologinRequest request,
-                                                   @RequestHeader(value = "Authorization", required = false) String auth) throws Exception {
+                                                   @RequestHeader(value = "Authorization", required = false) String auth) {
 
         if (auth == null || (!auth.startsWith("Basic"))) {
             throw new BadCredentialsException("No basic authorization client information in request");
@@ -855,7 +831,7 @@ public class LoginInfoEndpoint {
         String credentials = new String(getDecoder().decode(base64Credentials.getBytes()), UTF_8);
         // credentials = username:password
         final String[] values = credentials.split(":", 2);
-        if (values == null || values.length == 0) {
+        if (values.length == 0) {
             throw new BadCredentialsException("Invalid authorization header.");
         }
         String clientId = values[0];
@@ -863,10 +839,8 @@ public class LoginInfoEndpoint {
         codeData.put(CLIENT_ID_PARAMETER, clientId);
         codeData.put(USERNAME_PARAMETER, username);
         if (userAuthentication != null && userAuthentication.getPrincipal() instanceof UaaPrincipal p) {
-            if (p != null) {
-                codeData.put("user_id", p.getId());
-                codeData.put(OriginKeys.ORIGIN, p.getOrigin());
-            }
+            codeData.put("user_id", p.getId());
+            codeData.put(OriginKeys.ORIGIN, p.getOrigin());
         }
         ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name(), IdentityZoneHolder.get().getId());
 
@@ -881,7 +855,7 @@ public class LoginInfoEndpoint {
             redirectLocation = savedRequest.getRedirectUrl();
         }
 
-        return "redirect:" + redirectLocation;
+        return REDIRECT + redirectLocation;
     }
 
     @GetMapping(value = "/login_implicit")
@@ -897,7 +871,7 @@ public class LoginInfoEndpoint {
             redirectLocation = savedRequest.getRedirectUrl();
         }
 
-        return "redirect:" + redirectLocation;
+        return REDIRECT + redirectLocation;
     }
 
     private Map<String, ?> getLinksInfo() {
@@ -949,5 +923,20 @@ public class LoginInfoEndpoint {
             }
         }
         return selfServiceLinks;
+    }
+
+    static class SavedAccountOptionModel extends SavedAccountOption {
+        /**
+         * These must be public. They are accessed in templates.
+         */
+        public int red;
+        public int green;
+        public int blue;
+
+        void assignColors(Color color) {
+            red = color.getRed();
+            blue = color.getBlue();
+            green = color.getGreen();
+        }
     }
 }
