@@ -1289,11 +1289,11 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
             assertThat(userId).isNotBlank();
 
             MockHttpServletRequestBuilder updateRequestBuilder;
-            switch (method) {
-                case PUT:
+            switch (method.name()) {
+                case "PUT":
                     updateRequestBuilder = put("/Users/" + userId);
                     break;
-                case PATCH:
+                case "PATCH":
                     updateRequestBuilder = patch("/Users/" + userId);
                     break;
                 default:

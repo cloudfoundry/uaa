@@ -48,9 +48,9 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -72,7 +72,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller
-@RequestMapping("/invitations")
+@RequestMapping({"/invitations", "/invitations/"})
 public class InvitationsController {
 
     private static Logger logger = LoggerFactory.getLogger(InvitationsController.class);
@@ -113,7 +113,7 @@ public class InvitationsController {
         response.setStatus(404);
     }
 
-    @RequestMapping(value = "/accept", method = GET, params = {"code"})
+    @RequestMapping(value = {"/accept", "/accept/"}, method = GET, params = {"code"})
     public String acceptInvitePage(@RequestParam String code, Model model, HttpServletRequest request, HttpServletResponse response) {
 
         ExpiringCode expiringCode = expiringCodeStore.peekCode(code, IdentityZoneHolder.get().getId());
@@ -237,7 +237,7 @@ public class InvitationsController {
         };
     }
 
-    @RequestMapping(value = "/accept.do", method = POST)
+    @RequestMapping(value = {"/accept.do", "/accept.do/"}, method = POST)
     public String acceptInvitation(@RequestParam("password") String password,
                                    @RequestParam("password_confirmation") String passwordConfirmation,
                                    @RequestParam("code") String code,
@@ -306,7 +306,7 @@ public class InvitationsController {
         }
     }
 
-    @RequestMapping(value = "/accept_enterprise.do", method = POST)
+    @RequestMapping(value = {"/accept_enterprise.do", "/accept_enterprise.do/"}, method = POST)
     public String acceptLdapInvitation(@RequestParam("enterprise_username") String username,
                                        @RequestParam("enterprise_password") String password,
                                        @RequestParam("enterprise_email") String email,

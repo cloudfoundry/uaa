@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal.common;
 import java.time.Instant;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicInteger;
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 

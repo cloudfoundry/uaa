@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import java.util.Arrays;
 import java.util.List;
@@ -63,7 +63,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         this.enabled = enabled;
     }
 
-    @RequestMapping(value = "/ids/Users")
+    @RequestMapping(value = {"/ids/Users", "/ids/Users/"})
     @ResponseBody
     public ResponseEntity<Object> findUsers(
             @RequestParam(defaultValue = "") String filter,

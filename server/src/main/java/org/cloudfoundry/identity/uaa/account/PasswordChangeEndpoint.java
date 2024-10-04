@@ -49,7 +49,7 @@ public class PasswordChangeEndpoint {
         this.securityContextAccessor = securityContextAccessor;
     }
 
-    @RequestMapping(value = "/Users/{userId}/password", method = RequestMethod.PUT)
+    @RequestMapping(value = {"/Users/{userId}/password", "/Users/{userId}/password/"}, method = RequestMethod.PUT)
     @ResponseBody
     public ActionResult changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
         String zoneId = identityZoneManager.getCurrentIdentityZoneId();

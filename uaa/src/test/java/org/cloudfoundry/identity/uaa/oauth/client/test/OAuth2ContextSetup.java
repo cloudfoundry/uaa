@@ -2,11 +2,11 @@ package org.cloudfoundry.identity.uaa.oauth.client.test;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.config.CookieSpecs;
-import org.apache.http.client.config.RequestConfig;
-import org.apache.http.client.config.RequestConfig.Builder;
-import org.apache.http.client.protocol.HttpClientContext;
-import org.apache.http.protocol.HttpContext;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.config.RequestConfig.Builder;
+import org.apache.hc.client5.http.cookie.StandardCookieSpec;
+import org.apache.hc.client5.http.protocol.HttpClientContext;
+import org.apache.hc.core5.http.protocol.HttpContext;
 import org.cloudfoundry.identity.uaa.oauth.client.DefaultOAuth2ClientContext;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2ClientContext;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2RestTemplate;
@@ -344,7 +344,7 @@ public class OAuth2ContextSetup extends TestWatchman {
 
 				protected RequestConfig getRequestConfig() {
 					Builder builder = RequestConfig.custom()
-							.setCookieSpec(CookieSpecs.IGNORE_COOKIES)
+							.setCookieSpec(StandardCookieSpec.IGNORE)
 							.setAuthenticationEnabled(false).setRedirectsEnabled(false);
 					return builder.build();
 				}

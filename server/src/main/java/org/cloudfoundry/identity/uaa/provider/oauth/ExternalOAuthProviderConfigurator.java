@@ -21,7 +21,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerato
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;

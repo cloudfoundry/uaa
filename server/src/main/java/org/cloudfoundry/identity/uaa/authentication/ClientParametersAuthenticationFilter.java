@@ -17,8 +17,8 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.http.MediaType;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 
 /**

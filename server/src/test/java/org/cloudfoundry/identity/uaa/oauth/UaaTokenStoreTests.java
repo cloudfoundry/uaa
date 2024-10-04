@@ -17,7 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -460,7 +460,7 @@ class UaaTokenStoreTests {
             @Override
             public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
                 if (UPDATE_VAL.equals(method.getName())) {
-                    throw new DeadlockLoserDataAccessException("Deadlock in update (emulated)", null);
+                    throw new PessimisticLockingFailureException("Deadlock in update (emulated)", null);
                 }
                 return method.invoke(stmt, args);
             }

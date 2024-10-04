@@ -20,7 +20,7 @@ import org.springframework.security.saml.storage.HttpSessionStorage;
 import org.springframework.security.saml.storage.SAMLMessageStorage;
 import org.springframework.security.saml.storage.SAMLMessageStorageFactory;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 public class SamlSessionStorageFactory implements SAMLMessageStorageFactory {
 

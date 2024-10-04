@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking;
 
 import java.time.Instant;
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 import lombok.Builder;
 import lombok.Getter;

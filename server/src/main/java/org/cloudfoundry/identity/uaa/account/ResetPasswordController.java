@@ -29,9 +29,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import java.sql.Timestamp;
 import java.util.Map;
 
@@ -65,7 +65,7 @@ public class ResetPasswordController {
         this.externalLoginUrl = externalLoginUrl;
     }
 
-    @RequestMapping(value = "/forgot_password", method = RequestMethod.GET)
+    @RequestMapping(value = {"/forgot_password", "/forgot_password/"}, method = RequestMethod.GET)
     public String forgotPasswordPage(Model model,
                                      @RequestParam(required = false, value = "client_id") String clientId,
                                      @RequestParam(required = false, value = "redirect_uri") String redirectUri,
@@ -78,7 +78,7 @@ public class ResetPasswordController {
         return "forgot_password";
     }
 
-    @RequestMapping(value = "/forgot_password.do", method = RequestMethod.POST)
+    @RequestMapping(value = {"/forgot_password.do", "/forgot_password.do/"}, method = RequestMethod.POST)
     public String forgotPassword(Model model, @RequestParam("username") String username, @RequestParam(value = "client_id", defaultValue = "") String clientId,
                                  @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
         if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
@@ -154,19 +154,19 @@ public class ResetPasswordController {
         }
     }
 
-    @RequestMapping(value = "/email_sent", method = RequestMethod.GET)
+    @RequestMapping(value = {"/email_sent", "/email_sent/"}, method = RequestMethod.GET)
     public String emailSentPage(@ModelAttribute("code") String code,
                                 HttpServletResponse response) {
         response.addHeader("Content-Security-Policy", "frame-ancestors 'none'");
         return "email_sent";
     }
 
-    @RequestMapping(value = "/reset_password", method = RequestMethod.HEAD)
+    @RequestMapping(value = {"/reset_password", "/reset_password/"}, method = RequestMethod.HEAD)
     public void resetPassword() {
         // Some mail providers initially send a HEAD request to check the validity of the link before redirecting users.
     }
 
-    @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = {"code"})
+    @RequestMapping(value = {"/reset_password", "/reset_password/"}, method = RequestMethod.GET, params = {"code"})
     public String resetPasswordPage(Model model,
                                     HttpServletResponse response,
                                     @RequestParam("code") String code) {
@@ -211,7 +211,7 @@ public class ResetPasswordController {
         return code;
     }
 
-    @RequestMapping(value = "/reset_password.do", method = RequestMethod.POST)
+    @RequestMapping(value = {"/reset_password.do", "/reset_password.do/"}, method = RequestMethod.POST)
     public void resetPassword(Model model,
                               @RequestParam("code") String code,
                               @RequestParam("email") String email,
