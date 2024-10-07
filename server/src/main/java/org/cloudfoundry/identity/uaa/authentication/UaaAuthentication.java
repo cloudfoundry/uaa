@@ -52,6 +52,8 @@ public class UaaAuthentication extends AbstractAuthenticationToken
     private Set<String> authenticationMethods;
     private Set<String> authContextClassRef;
     private Long lastLoginSuccessTime;
+    private String idpIdToken;
+
     private Map<String, List<String>> userAttributes;
 
     /**

@@ -354,6 +354,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             authentication.setAuthenticationMethods(new HashSet<>());
         }
         authentication.getAuthenticationMethods().add("oauth");
+        ExternalOAuthCodeToken externalOAuthCodeToken = (ExternalOAuthCodeToken) request;
+        if (externalOAuthCodeToken.getIdToken() != null) {
+        	authentication.setIdpIdToken(externalOAuthCodeToken.getIdToken());
+        }
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
     }
 
@@ -558,6 +562,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     protected Map<String, Object> getClaimsFromToken(ExternalOAuthCodeToken codeToken,
                                                      AbstractExternalOAuthIdentityProviderDefinition config) {
         String idToken = getTokenFromCode(codeToken, config);
+        codeToken.setIdToken(idToken);
         return getClaimsFromToken(idToken, config);
     }
 
@@ -682,7 +687,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    private String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
+    protected String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
         if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
             logger.debug("ExternalOAuthCodeToken contains id_token, not exchanging code.");
             return codeToken.getIdToken();
@@ -822,7 +827,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         public String getUsername() {
             return username;
         }
-
 
         public List<? extends GrantedAuthority> getAuthorities() {
             return authorities;

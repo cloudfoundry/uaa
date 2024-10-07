@@ -52,11 +52,12 @@ public class ExternalOAuthLogoutSuccessHandler extends SimpleUrlLogoutSuccessHan
             return defaultUrl;
         }
 
-        return this.constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig);
+        return this.constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig, authentication);
     }
 
     public String constructOAuthProviderLogoutUrl(final HttpServletRequest request, final String logoutUrl,
-                                                  final AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oauthConfig) {
+                                                  final AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oauthConfig,
+                                                  final Authentication authentication) {
         final StringBuilder oauthLogoutUriBuilder = new StringBuilder(request.getRequestURL());
         if (StringUtils.hasText(request.getQueryString())) {
             oauthLogoutUriBuilder.append("?");
@@ -64,7 +65,12 @@ public class ExternalOAuthLogoutSuccessHandler extends SimpleUrlLogoutSuccessHan
         }
         final String oauthLogoutUri = URLEncoder.encode(oauthLogoutUriBuilder.toString(), StandardCharsets.UTF_8);
 
-        return "%s?post_logout_redirect_uri=%s&client_id=%s".formatted(logoutUrl, oauthLogoutUri, oauthConfig.getRelyingPartyId());
+        String idTokenHint = "";
+        if (authentication instanceof UaaAuthentication uaaAuthentication && uaaAuthentication.getIdpIdToken() != null) {
+            idTokenHint = "&id_token_hint=%s".formatted(uaaAuthentication.getIdpIdToken());
+        }
+
+        return "%s?post_logout_redirect_uri=%s&client_id=%s%s".formatted(logoutUrl, oauthLogoutUri, oauthConfig.getRelyingPartyId(), idTokenHint);
     }
 
     public String getLogoutUrl(final AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition> oAuthIdentityProviderDefinition) {

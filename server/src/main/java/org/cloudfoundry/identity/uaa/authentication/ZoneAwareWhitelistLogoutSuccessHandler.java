@@ -64,7 +64,7 @@ public class ZoneAwareWhitelistLogoutSuccessHandler implements LogoutSuccessHand
         if (logoutUrl == null) {
             return getZoneHandler().determineTargetUrl(request, response);
         } else {
-            return externalOAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig);
+            return externalOAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, logoutUrl, oauthConfig, authentication);
         }
     }
 

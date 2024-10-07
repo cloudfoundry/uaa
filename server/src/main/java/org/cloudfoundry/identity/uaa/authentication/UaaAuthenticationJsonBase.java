@@ -32,6 +32,7 @@ public interface UaaAuthenticationJsonBase {
     String AUTHENTICATION_METHODS = "authenticationMethods";
     String AUTHN_CONTEXT_CLASS_REF = "authContextClassRef";
     String PREVIOIUS_LOGIN_SUCCESS_TIME = "previousLoginSuccessTime";
+    String IDP_ID_TOKEN = "idpIdToken";
     String NULL_STRING = "null";
 
     default Set<String> serializeAuthorites(Collection<? extends GrantedAuthority> authorities) {
