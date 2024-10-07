@@ -488,7 +488,10 @@ public class ExternalOAuthAuthenticationManagerTest {
 
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), null) {
             @Override
-            protected String getTokenFromCode(ExternalOAuthCodeToken codeToken, IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> config) {
+            protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> String getTokenFromCode(
+                    ExternalOAuthCodeToken codeToken,
+                    IdentityProvider<T> config
+            ) {
                 return idTokenJwt;
             }
         };

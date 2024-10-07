@@ -558,17 +558,18 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    protected Map<String, Object> getClaimsFromToken(ExternalOAuthCodeToken codeToken,
-            final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider
+    protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> Map<String, Object> getClaimsFromToken(
+            ExternalOAuthCodeToken codeToken,
+            final IdentityProvider<T> identityProvider
     ){
         String idToken = getTokenFromCode(codeToken, identityProvider);
         codeToken.setIdToken(idToken);
         return getClaimsFromToken(idToken, identityProvider);
     }
 
-    protected Map<String, Object> getClaimsFromToken(
+    protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> Map<String, Object> getClaimsFromToken(
             String idToken,
-            final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider
+            final IdentityProvider<T> identityProvider
     ) {
         logger.debug("Extracting claims from id_token");
         if (idToken == null) {
@@ -576,7 +577,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             return null;
         }
 
-        final AbstractExternalOAuthIdentityProviderDefinition config = identityProvider.getConfig();
+        final T config = identityProvider.getConfig();
 
         if ("signed_request".equals(config.getResponseType())) {
             String secret = config.getRelyingPartySecret();
@@ -691,11 +692,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    protected String getTokenFromCode(
+    protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> String getTokenFromCode(
             ExternalOAuthCodeToken codeToken,
-            final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider
+            final IdentityProvider<T> provider
     ) {
-        final AbstractExternalOAuthIdentityProviderDefinition config = provider.getConfig();
+        final T config = provider.getConfig();
 
         if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
             logger.debug("ExternalOAuthCodeToken contains id_token, not exchanging code.");
