@@ -931,11 +931,11 @@ class PasswordGrantAuthenticationManagerTest {
 
         final IdentityProvider<OIDCIdentityProviderDefinition> localIdp = new IdentityProvider<>();
         localIdp.setOriginKey(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
-        final OIDCIdentityProviderDefinition idpConfig = new OIDCIdentityProviderDefinition()
+        final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
                 .setRelyingPartyId("client-id")
                 .setTokenUrl(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
-        idpConfig.setAuthMethod("none");
-        final OIDCIdentityProviderDefinition spyConfig = spy(idpConfig);
+        config.setAuthMethod("none");
+        final OIDCIdentityProviderDefinition spyConfig = spy(config);
         localIdp.setConfig(spyConfig);
 
         assertNull(instance.oidcPasswordGrant(authentication, localIdp));
@@ -948,9 +948,9 @@ class PasswordGrantAuthenticationManagerTest {
 
         final IdentityProvider<OIDCIdentityProviderDefinition> localIdp = new IdentityProvider<>();
         localIdp.setOriginKey(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
-        final OIDCIdentityProviderDefinition idpConfig = new OIDCIdentityProviderDefinition()
+        final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
                 .setRelyingPartyId("client-id");
-        localIdp.setConfig(idpConfig);
+        localIdp.setConfig(config);
 
         Exception exception = assertThrows(ProviderConfigurationException.class, () -> instance.oidcPasswordGrant(authentication, localIdp));
         assertEquals("External OpenID Connect provider configuration is missing relyingPartySecret, jwtClientAuthentication or authMethod.", exception.getMessage());
