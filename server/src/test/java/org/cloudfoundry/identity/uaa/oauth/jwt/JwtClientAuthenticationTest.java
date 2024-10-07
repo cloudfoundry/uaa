@@ -39,6 +39,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -303,6 +304,74 @@ class JwtClientAuthenticationTest {
     JWSHeader header = getJwtHeader(clientAssertion);
     assertEquals("key-id-321", header.getKeyID());
     assertNull(header.getJWKURL());
+  }
+
+  @Test
+  void testGetClientAssertionUsingCustomSingingPrivateKeyFromEnvironment_DisabledForCustomZone() throws JOSEException {
+    arrangeCustomIdz();
+
+    // Given: register 2 keys
+    mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
+
+    // add reference in jwtClientAuthentication to customer one key-id-321
+    final Map<String, String> customClaims = new HashMap<>();
+    customClaims.put("kid", "${jwt.client.kid}");
+    customClaims.put("key", "${jwt.client.key}");
+    customClaims.put("cert", "${jwt.client.cert}");
+    config.setJwtClientAuthentication(customClaims);
+
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    final Map<String, Object> keyMap = Map.of(
+            "jwt.client.kid", "key-id-321",
+            "jwt.client.key", JwtHelperX5tTest.SIGNING_KEY_1,
+            "jwt.client.cert", JwtHelperX5tTest.CERTIFICATE_1
+    );
+    mockApplicationContext(keyMap);
+
+    assertThatExceptionOfType(BadCredentialsException.class).isThrownBy(() ->
+            jwtClientAuthentication.getClientAuthenticationParameters(params, config, false)
+    ).withMessage("Missing requested signing key");
+  }
+
+  @Test
+  void testGetClientAssertionUsingCustomSingingPrivateKeyFromEnvironment_EnabledForCustomZone() throws ParseException, JOSEException {
+    arrangeCustomIdz();
+
+    // Given: register 2 keys
+    mockKeyInfoService("key-id-321", JwtHelperX5tTest.CERTIFICATE_1);
+
+    // add reference in jwtClientAuthentication to customer one key-id-321
+    final Map<String, String> customClaims = new HashMap<>();
+    customClaims.put("kid", "${jwt.client.kid}");
+    customClaims.put("key", "${jwt.client.key}");
+    customClaims.put("cert", "${jwt.client.cert}");
+    config.setJwtClientAuthentication(customClaims);
+
+    MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+    final Map<String, Object> keyMap = Map.of(
+            "jwt.client.kid", "key-id-321",
+            "jwt.client.key", JwtHelperX5tTest.SIGNING_KEY_1,
+            "jwt.client.cert", JwtHelperX5tTest.CERTIFICATE_1
+    );
+    mockApplicationContext(keyMap);
+
+    // When
+    params = jwtClientAuthentication.getClientAuthenticationParameters(params, config, true);
+
+    // Then
+    assertTrue(params.containsKey("client_assertion"));
+    assertTrue(params.containsKey("client_assertion_type"));
+    final String clientAssertion = params.get("client_assertion").get(0);
+    validateClientAssertionOidcComplaint(clientAssertion);
+    final JWSHeader header = getJwtHeader(clientAssertion);
+    assertEquals("key-id-321", header.getKeyID());
+    assertNull(header.getJWKURL());
+  }
+
+  private static void arrangeCustomIdz() {
+    final IdentityZone customZone = new IdentityZone();
+    customZone.setId(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
+    IdentityZoneHolder.set(customZone);
   }
 
   @Test
