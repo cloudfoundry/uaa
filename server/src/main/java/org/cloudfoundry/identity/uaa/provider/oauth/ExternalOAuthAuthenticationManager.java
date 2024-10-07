@@ -226,14 +226,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (provider != null && provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
             AuthenticationData authenticationData = new AuthenticationData();
 
-            AbstractExternalOAuthIdentityProviderDefinition config = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
-            Map<String, Object> claims = getClaimsFromToken(codeToken, config);
+            Map<String, Object> claims = getClaimsFromToken(codeToken, provider);
 
             if (claims == null) {
                 return null;
             }
             authenticationData.setClaims(claims);
 
+            AbstractExternalOAuthIdentityProviderDefinition config = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
             Map<String, Object> attributeMappings = config.getAttributeMappings();
 
             String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
@@ -559,19 +559,24 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     protected Map<String, Object> getClaimsFromToken(ExternalOAuthCodeToken codeToken,
-                                                     AbstractExternalOAuthIdentityProviderDefinition config) {
-        String idToken = getTokenFromCode(codeToken, config);
+            final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider
+    ){
+        String idToken = getTokenFromCode(codeToken, identityProvider);
         codeToken.setIdToken(idToken);
-        return getClaimsFromToken(idToken, config);
+        return getClaimsFromToken(idToken, identityProvider);
     }
 
-    protected Map<String, Object> getClaimsFromToken(String idToken,
-                                                     AbstractExternalOAuthIdentityProviderDefinition config) {
+    protected Map<String, Object> getClaimsFromToken(
+            String idToken,
+            final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider
+    ) {
         logger.debug("Extracting claims from id_token");
         if (idToken == null) {
             logger.debug("id_token is null, no claims returned.");
             return null;
         }
+
+        final AbstractExternalOAuthIdentityProviderDefinition config = identityProvider.getConfig();
 
         if ("signed_request".equals(config.getResponseType())) {
             String secret = config.getRelyingPartySecret();
@@ -686,7 +691,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    protected String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
+    protected String getTokenFromCode(
+            ExternalOAuthCodeToken codeToken,
+            final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider
+    ) {
+        final AbstractExternalOAuthIdentityProviderDefinition config = provider.getConfig();
+
         if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
             logger.debug("ExternalOAuthCodeToken contains id_token, not exchanging code.");
             return codeToken.getIdToken();
@@ -724,8 +734,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             // no secret but jwtClientAuthentication
             if (config instanceof OIDCIdentityProviderDefinition oidcDefinition && ClientAuthentication.PRIVATE_KEY_JWT.equals(
                 ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), false, oidcDefinition.getJwtClientAuthentication() != null))) {
-                body = new JwtClientAuthentication(keyInfoService)
-                    .getClientAuthenticationParameters(body, (OIDCIdentityProviderDefinition) config);
+
+                /* ensure that the dynamic lookup of the cert and/or key for private key JWT works for an alias IdP in a
+                 * custom IdZ */
+                final boolean allowDynamicValueLookupInCustomZone = hasText(provider.getAliasZid()) && hasText(provider.getAliasId());
+                body = new JwtClientAuthentication(keyInfoService).getClientAuthenticationParameters(
+                        body,
+                        (OIDCIdentityProviderDefinition) config,
+                        allowDynamicValueLookupInCustomZone
+                );
             }
         } else {
             if (config.isClientAuthInBody()) {
