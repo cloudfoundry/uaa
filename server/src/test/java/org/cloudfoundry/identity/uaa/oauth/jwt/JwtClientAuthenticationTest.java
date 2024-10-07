@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetchingExceptio
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -371,7 +372,7 @@ class JwtClientAuthenticationTest {
   private static void arrangeCustomIdz() {
     final IdentityZone customZone = new IdentityZone();
     customZone.setId(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
-    IdentityZoneHolder.set(customZone);
+    new IdentityZoneManagerImpl().setCurrentIdentityZone(customZone);
   }
 
   @Test
