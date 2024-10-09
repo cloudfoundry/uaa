@@ -93,7 +93,7 @@ import java.util.UUID;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SAML_AUTH_SOURCE;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE;
@@ -338,7 +338,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails")
+    @Disabled("SAML test fails: goes to error page instead of redirectUrl")
     void simpleSamlLoginWithAddShadowUserOnLoginFalse() throws Exception {
         // Deleting marissa@test.org from simplesamlphp because previous SAML authentications automatically
         // create a UAA user with the email address as the username.
@@ -768,9 +768,8 @@ public class SamlLoginIT {
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
         webDriver.get("%s/logout.do".formatted(zoneUrl));
 
-        String samlUrl = SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/SSOService.php?"
-                + "spentityid=testzone1.cloudfoundry-saml-login&"
-                + "RelayState=https://www.google.com";
+        String samlUrl = "%s/saml2/idp/SSOService.php?spentityid=testzone1.cloudfoundry-saml-login&RelayState=https://www.google.com"
+                .formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE );
         webDriver.get(samlUrl);
 
         //we should now be in the Simple SAML PHP site
@@ -1360,18 +1359,11 @@ public class SamlLoginIT {
         testClient.createClient(adminAccessToken, clientDetails);
         webDriver.get("%s/oauth/authorize?client_id=%s&redirect_uri=http%%3A%%2F%%2Flocalhost%%3A8080%%2Fuaa%%3Alogin&response_type=code&state=8tp0tR".formatted(baseUrl, clientId));
 
-        try {
-            webDriver.findElement(byUsername);
-            fail("Element username should not be present");
-        } catch (NoSuchElementException ignored) {
-            // expected
-        }
-        try {
-            webDriver.findElement(byPassword);
-            fail("Element username should not be present");
-        } catch (NoSuchElementException ignored) {
-            // expected
-        }
+        assertThatThrownBy(() -> webDriver.findElement(byUsername))
+                .isInstanceOf(NoSuchElementException.class);
+        assertThatThrownBy(() -> webDriver.findElement(byPassword))
+                .isInstanceOf(NoSuchElementException.class);
+
         webDriver.get("%s/logout.do".formatted(baseUrl));
     }
 

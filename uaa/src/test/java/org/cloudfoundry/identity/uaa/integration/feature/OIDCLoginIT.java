@@ -61,7 +61,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.Inet4Address;
@@ -97,22 +96,13 @@ public class OIDCLoginIT {
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
     @Autowired
-    RestOperations restOperations;
-
-    @Autowired
     WebDriver webDriver;
 
     @Value("${integration.test.base_url}")
     String baseUrl;
 
-    @Value("${integration.test.app_url}")
-    String appUrl;
-
     @Autowired
     TestAccounts testAccounts;
-
-    @Autowired
-    TestClient testClient;
 
     private static final String PASSWORD_AUTHN_CTX = "urn:oasis:names:tc:SAML:2.0:ac:classes:Password";
 
@@ -178,10 +168,7 @@ public class OIDCLoginIT {
         config.setSkipSslValidation(true);
         config.setRelyingPartyId("identity");
         config.setRelyingPartySecret("identitysecret");
-        List<String> requestedScopes = new ArrayList<>();
-        requestedScopes.add("openid");
-        requestedScopes.add("cloud_controller.read");
-        config.setScopes(requestedScopes);
+        config.setScopes(List.of("openid", "cloud_controller.read"));
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
         identityProvider.setIdentityZoneId(zone.getId());
@@ -193,7 +180,6 @@ public class OIDCLoginIT {
         ScimGroupExternalMember createdGroupExternalMapping = new ScimGroupExternalMember(createdGroup.getId(), "openid");
         createdGroupExternalMapping.setOrigin(identityProvider.getOriginKey());
         IntegrationTestUtils.mapExternalGroup(adminToken, subdomain, baseUrl, createdGroupExternalMapping);
-
 
         zoneClient = new UaaClientDetails(new RandomValueStringGenerator().generate(), null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         zoneClient.setClientSecret("secret");
@@ -296,7 +282,7 @@ public class OIDCLoginIT {
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
         assertThat(user.getExternalId()).isEqualTo(origUserId);
         assertThat(user.getUserName()).isEqualTo(user.getGivenName());
-        assertThat(StringUtils.hasText(user.getExternalId())).isTrue();
+        assertThat(user.getExternalId()).isNotEmpty().doesNotContainOnlyWhitespaces();
     }
 
     @Test
@@ -445,7 +431,7 @@ public class OIDCLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: requires zones")
+    @Disabled("SAML test fails: acr value is not set in the id_token")
     void successfulLoginWithOIDC_and_SAML_Provider_PlusRefreshRotation() throws Exception {
         SamlIdentityProviderDefinition saml = IntegrationTestUtils.createSimplePHPSamlIDP("simplesamlphp", OriginKeys.UAA);
         saml.setLinkText("SAML Login");
@@ -459,11 +445,8 @@ public class OIDCLoginIT {
                 .setIdentityZoneId(saml.getZoneId());
         samlProvider = IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, samlProvider);
         try {
-
-        /*
-          This test creates an OIDC provider. That provider in turn has a SAML provider.
-          The end user is authenticated using OIDC federating to SAML
-         */
+            // This test creates an OIDC provider. That provider in turn has a SAML provider.
+            // The end user is authenticated using OIDC federating to SAML
             webDriver.get(zoneUrl + "/login");
             webDriver.findElement(By.linkText("My OIDC Provider")).click();
             assertThat(webDriver.getCurrentUrl()).contains(baseUrl);
