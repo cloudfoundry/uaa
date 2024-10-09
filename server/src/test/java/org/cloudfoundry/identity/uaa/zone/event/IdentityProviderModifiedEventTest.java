@@ -26,7 +26,7 @@ class IdentityProviderModifiedEventTest {
         currentIdentityZoneId = "currentIdentityZoneId-" + randomValueStringGenerator.generate();
 
         String origin = "idp-mock-saml-" + randomValueStringGenerator.generate();
-        String metadata = String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://localhost:9999/metadata/" + origin);
+        String metadata = String.format(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID, "http://localhost:9999/metadata/" + origin);
         provider = new IdentityProvider<>();
         provider.setId("id");
         provider.setActive(true);

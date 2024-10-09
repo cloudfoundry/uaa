@@ -1,46 +1,38 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManager;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
-import org.springframework.security.saml.key.KeyManager;
+
+import java.util.Optional;
 
 /**
- * @Deprecated Use {@link org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager} instead
+ * Handles getting and caching of the current IdentityZone and its SamlKeyManager within ThreadLocal storage.
+ *
+ * @deprecated Use {@link org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager} instead, which still uses this class as a utility.
  */
-@Deprecated
+@Deprecated(since = "4.29.0")
 public class IdentityZoneHolder {
 
+    private IdentityZoneHolder() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
+
     private static IdentityZoneProvisioning provisioning;
+    private static SamlKeyManagerFactory samlKeyManagerFactory;
 
     public static void setProvisioning(IdentityZoneProvisioning provisioning) {
         IdentityZoneHolder.provisioning = provisioning;
     }
 
-    private static SamlKeyManagerFactory samlKeyManagerFactory = new SamlKeyManagerFactory();
+    public static void setSamlKeyManagerFactory(SamlKeyManagerFactory samlKeyManagerFactory) {
+        IdentityZoneHolder.samlKeyManagerFactory = samlKeyManagerFactory;
+    }
 
-    private static final ThreadLocal<IdentityZone> IDENTITY_ZONE_THREAD_LOCAL = InheritableThreadLocal
-            .withInitial(() -> getUaaZone(provisioning));
+    private static final ThreadLocal<IdentityZone> IDENTITY_ZONE_THREAD_LOCAL =
+            ThreadLocal.withInitial(() -> getUaaZone(provisioning));
 
     public static IdentityZone get() {
         return IDENTITY_ZONE_THREAD_LOCAL.get();
-    }
-
-    private static final ThreadLocal<KeyManager> KEY_MANAGER_THREAD_LOCAL = InheritableThreadLocal.withInitial(() -> null);
-
-    public static KeyManager getSamlSPKeyManager() {
-        KeyManager keyManager = KEY_MANAGER_THREAD_LOCAL.get();
-        if (keyManager != null) {
-            return keyManager;
-        }
-
-        keyManager = samlKeyManagerFactory.getKeyManager(IDENTITY_ZONE_THREAD_LOCAL.get().getConfig().getSamlConfig());
-        if (keyManager != null) {
-            KEY_MANAGER_THREAD_LOCAL.set(keyManager);
-            return keyManager;
-        }
-
-        keyManager = samlKeyManagerFactory.getKeyManager(getUaaZone(provisioning).getConfig().getSamlConfig());
-        KEY_MANAGER_THREAD_LOCAL.set(keyManager);
-        return keyManager;
     }
 
     public static IdentityZone getUaaZone() {
@@ -56,7 +48,7 @@ public class IdentityZoneHolder {
 
     public static void set(IdentityZone zone) {
         IDENTITY_ZONE_THREAD_LOCAL.set(zone);
-        KEY_MANAGER_THREAD_LOCAL.set(null);
+        KEY_MANAGER_THREAD_LOCAL.remove();
     }
 
     public static void clear() {
@@ -72,13 +64,55 @@ public class IdentityZoneHolder {
         return IDENTITY_ZONE_THREAD_LOCAL.get().getId();
     }
 
+    private static final ThreadLocal<SamlKeyManager> KEY_MANAGER_THREAD_LOCAL =
+            ThreadLocal.withInitial(() -> null);
+
+    public static SamlKeyManager getSamlKeyManager() {
+        SamlKeyManager keyManager = KEY_MANAGER_THREAD_LOCAL.get();
+        if (keyManager != null) {
+            return keyManager;
+        }
+
+        var optionalZoneSamlConfig = Optional.ofNullable(get())
+                .map(IdentityZone::getConfig)
+                .map(IdentityZoneConfiguration::getSamlConfig);
+        boolean zoneHasKeys = optionalZoneSamlConfig.map(SamlConfig::getKeys)
+                .map(k -> !k.isEmpty())
+                .orElse(false);
+
+        if (zoneHasKeys) {
+            keyManager = samlKeyManagerFactory.getKeyManager(optionalZoneSamlConfig.orElse(null));
+            setSamlKeyManager(keyManager);
+            return keyManager;
+        }
+
+        var optionalUaaSamlConfig = Optional.ofNullable(getUaaZone(provisioning))
+                .map(IdentityZone::getConfig)
+                .map(IdentityZoneConfiguration::getSamlConfig)
+                .orElse(null);
+
+        keyManager = samlKeyManagerFactory.getKeyManager(optionalUaaSamlConfig);
+        setSamlKeyManager(keyManager);
+        return keyManager;
+    }
+
+    private static void setSamlKeyManager(SamlKeyManager keyManager) {
+        KEY_MANAGER_THREAD_LOCAL.set(keyManager);
+    }
+
+    /**
+     * Utility class to initialize the IdentityZoneHolder with the necessary dependencies.
+     * Work around for the fact that IdentityZoneHolder is a static utility class and cannot be instantiated.
+     */
     public static class Initializer {
-        public Initializer(IdentityZoneProvisioning provisioning) {
+        public Initializer(IdentityZoneProvisioning provisioning, SamlKeyManagerFactory samlKeyManagerFactory) {
             IdentityZoneHolder.setProvisioning(provisioning);
+            IdentityZoneHolder.setSamlKeyManagerFactory(samlKeyManagerFactory);
         }
 
         public void reset() {
             IdentityZoneHolder.setProvisioning(null);
+            IdentityZoneHolder.setSamlKeyManagerFactory(null);
         }
     }
 }

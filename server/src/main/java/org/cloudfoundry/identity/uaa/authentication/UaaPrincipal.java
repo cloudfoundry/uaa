@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,22 +13,26 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.springframework.security.core.AuthenticatedPrincipal;
+
 import java.io.Serializable;
 import java.security.Principal;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-
 /**
- * The principal object which should end up as the representation of an
+ * The {@link Principal} object which should end up as the representation of an
  * authenticated user.
  * <p>
  * Contains the data required for an authenticated user within the UAA
  * application itself.
+ * Note: For SAML, the {@code UaaSamlPrincipal} subclass should be used.
  */
-public class UaaPrincipal implements Principal, Serializable {
+@Data
+public class UaaPrincipal implements AuthenticatedPrincipal, Principal, Serializable {
     private final String id;
     private final String name;
     private final String email;
@@ -37,33 +42,34 @@ public class UaaPrincipal implements Principal, Serializable {
 
     public UaaPrincipal(UaaUser user) {
         this(
-            user.getId(),
-            user.getUsername(),
-            user.getEmail(),
-            user.getOrigin(),
-            user.getExternalId(),
-            user.getZoneId()
+                user.getId(),
+                user.getUsername(),
+                user.getEmail(),
+                user.getOrigin(),
+                user.getExternalId(),
+                user.getZoneId()
         );
     }
 
     public UaaPrincipal(UaaUserPrototype userPrototype) {
         this(
-            userPrototype.getId(),
-            userPrototype.getUsername(),
-            userPrototype.getEmail(),
-            userPrototype.getOrigin(),
-            userPrototype.getExternalId(),
-            userPrototype.getZoneId()
+                userPrototype.getId(),
+                userPrototype.getUsername(),
+                userPrototype.getEmail(),
+                userPrototype.getOrigin(),
+                userPrototype.getExternalId(),
+                userPrototype.getZoneId()
         );
     }
+
     @JsonCreator
     public UaaPrincipal(
-        @JsonProperty("id") String id,
-        @JsonProperty("name") String username,
-        @JsonProperty("email") String email,
-        @JsonProperty("origin") String origin,
-        @JsonProperty("externalId") String externalId,
-        @JsonProperty("zoneId") String zoneId) {
+            @JsonProperty("id") String id,
+            @JsonProperty("name") String username,
+            @JsonProperty("email") String email,
+            @JsonProperty("origin") String origin,
+            @JsonProperty("externalId") String externalId,
+            @JsonProperty("zoneId") String zoneId) {
         this.id = id;
         this.name = username;
         this.email = email;
@@ -71,25 +77,6 @@ public class UaaPrincipal implements Principal, Serializable {
         this.externalId = externalId;
         this.zoneId = zoneId;
     }
-
-    public String getId() {
-        return id;
-    }
-
-    @Override
-    public String getName() {
-        return name;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public String getOrigin() { return origin; }
-
-    public String getExternalId() { return externalId; }
-
-    public String getZoneId() { return zoneId; }
 
     /**
      * Returns {@code true} if the supplied object is a {@code UAAPrincipal}
@@ -101,8 +88,8 @@ public class UaaPrincipal implements Principal, Serializable {
      */
     @Override
     public boolean equals(Object rhs) {
-        if (rhs instanceof UaaPrincipal) {
-            return id.equals(((UaaPrincipal) rhs).id);
+        if (rhs instanceof UaaPrincipal uaaPrincipal) {
+            return id.equals(uaaPrincipal.id);
         }
         return false;
     }
@@ -114,5 +101,4 @@ public class UaaPrincipal implements Principal, Serializable {
     public int hashCode() {
         return id.hashCode();
     }
-
 }

@@ -21,6 +21,7 @@ buildscript {
         classpath(libraries.testRetryPlugin)
         classpath(libraries.gradleJcocoPlugin)
         classpath(libraries.sonarqubePlugin)
+        //classpath(libraries.shadowPlugin)
     }
 }
 
@@ -54,6 +55,10 @@ allprojects {
 
 subprojects {
     apply(plugin: "java")
+    java {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
 
     configurations.all {
         exclude(group: "org.hamcrest", module: "hamcrest-all")
@@ -64,6 +69,24 @@ subprojects {
         exclude(group: "org.apache.directory.server", module: "apacheds-protocol-ldap")
         exclude(group: "org.skyscreamer", module: "jsonassert")
         exclude(group: "com.vaadin.external.google", module: "android-json")
+        exclude(group: "com.unboundid.components", module: "json")
+
+        // Exclude opensaml-security-api and non-FIPS bouncycastle libs, and use Shadow library for FIPS compliance
+        exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
+        exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
+        exclude(group: "org.bouncycastle", module: "bcutil-jdk15on")
+        exclude(group: "org.bouncycastle", module: "bcprov-jdk18on")
+        exclude(group: "org.bouncycastle", module: "bcpkix-jdk18on")
+        exclude(group: "org.bouncycastle", module: "bcutil-jdk18on")
+
+        resolutionStrategy {
+            resolutionStrategy.eachDependency { DependencyResolveDetails details ->
+                if (details.requested.group == 'org.opensaml' && details.requested.name.startsWith("opensaml-")) {
+                    details.useVersion "${versions.opensaml}"
+                    details.because 'Spring Security 5.8.x allows OpenSAML 3 or 4. OpenSAML 3 has reached its end-of-life. Spring Security 6 drops support for 3, using 4.'
+                }
+            }
+        }
     }
 
     dependencies {
@@ -80,9 +103,6 @@ subprojects {
     }
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
-
-    java.sourceCompatibility = JavaVersion.VERSION_17
-    java.targetCompatibility = JavaVersion.VERSION_17
 
     test {
         maxParallelForks = 1
@@ -105,9 +125,8 @@ subprojects {
         }
 
         testLogging {
-            events("skipped", "failed", "passed")
+            events("failed")
             exceptionFormat("full")
-
             // Uncomment the following line to see all standard output from tests (there's a ton of it!)
             //showStandardStreams = true
         }
@@ -118,9 +137,8 @@ subprojects {
         useJUnitPlatform()
 
         testLogging {
-            events("skipped", "failed", "passed")
+            events("failed")
             exceptionFormat("full")
-
             // Uncomment the following line to see all standard output from tests (there's a ton of it!)
             //showStandardStreams = true
         }

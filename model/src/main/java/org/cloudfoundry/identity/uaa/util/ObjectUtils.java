@@ -20,12 +20,14 @@ import javax.xml.parsers.ParserConfigurationException;
 
 public class ObjectUtils {
 
-    private ObjectUtils(){}
+    private ObjectUtils() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
+    }
 
     public static <T> T castInstance(Object o, Class<T> clazz) {
         try {
             return clazz.cast(o);
-        } catch(ClassCastException e) {
+        } catch (ClassCastException e) {
             throw new IllegalArgumentException(e);
         }
     }
@@ -43,11 +45,11 @@ public class ObjectUtils {
         return factory.newDocumentBuilder();
     }
 
-    public static int countNonNull( Object... objects ) {
+    public static int countNonNull(Object... objects) {
         int count = 0;
-        if ( objects != null ) {
-            for ( Object o : objects ) {
-                if ( o != null ) {
+        if (objects != null) {
+            for (Object o : objects) {
+                if (o != null) {
                     count++;
                 }
             }

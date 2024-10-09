@@ -7,21 +7,6 @@
        http://www.springframework.org/schema/aop https://www.springframework.org/schema/aop/spring-aop.xsd
        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
-    <bean id="setUpBouncyCastle" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
-        <property name="targetClass" value="java.security.Security"/>
-        <property name="targetMethod" value="addProvider"/>
-        <property name="arguments">
-            <bean class="org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider"/>
-        </property>
-    </bean>
-
-    <bean id="identityZoneHolderInitializer"
-          class="org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.Initializer"
-          depends-on="identityZoneConfigurationBootstrap, setUpBouncyCastle"
-          lazy-init="false"
-          destroy-method="reset">
-    </bean>
-
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"

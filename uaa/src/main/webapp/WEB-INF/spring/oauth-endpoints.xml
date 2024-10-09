@@ -19,42 +19,16 @@
     <oauth:authorization-server
             client-details-service-ref="jdbcClientDetailsService"
             token-services-ref="tokenServices" user-approval-handler-ref="userManagedApprovalHandler"
-            authorization-request-manager-ref="authorizationRequestManager" request-validator-ref="oauth2RequestValidator">
+            authorization-request-manager-ref="authorizationRequestManager"
+            request-validator-ref="oauth2RequestValidator">
         <!-- Removed default AuthorizationCodeTokenGranter to be able to introduce the PkceEnhancedAuthorizationCodeTokenGranter see below -->
         <!-- <oauth:authorization-code authorization-code-services-ref="authorizationCodeServices"/> -->
-        <oauth:authorization-code disabled="true" />
-        <oauth:implicit />
-        <oauth:refresh-token />
-        <oauth:client-credentials />
-        <oauth:password authentication-manager-ref="compositeAuthenticationManager" />
+        <oauth:authorization-code disabled="true"/>
+        <oauth:implicit/>
+        <oauth:refresh-token/>
+        <oauth:client-credentials/>
+        <oauth:password authentication-manager-ref="compositeAuthenticationManager"/>
     </oauth:authorization-server>
-
-	<bean id="pkceEnhancedAuthorizationCodeTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.PkceEnhancedAuthorizationCodeTokenGranter">
-        <constructor-arg name="tokenServices" ref="tokenServices"/>
-        <constructor-arg name="authorizationCodeServices" ref="authorizationCodeServices"/>
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
-        <property name="pkceValidationService" ref="pkceValidationServices"/>
-    </bean>
-    
-    <bean id="addExtendedAuthorizationCodeTokenGranter"
-          class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
-        <constructor-arg name="userTokenGranter" ref="pkceEnhancedAuthorizationCodeTokenGranter"/>
-        <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
-    </bean>
-
-    <bean id="userTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.UserTokenGranter">
-        <constructor-arg name="tokenServices" ref="tokenServices"/>
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
-        <constructor-arg name="tokenStore" ref="revocableTokenProvisioning"/>
-    </bean>
-
-    <bean id="addUserTokenGranter"
-          class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
-        <constructor-arg name="userTokenGranter" ref="userTokenGranter"/>
-        <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
-    </bean>
 
     <http name="tokenRevocationFilter"
           pattern="/oauth/token/revoke/**"
@@ -164,7 +138,6 @@
         </property>
     </bean>
 
-
     <!-- Version of the /oauth/token endpoint for stateless clients
          /oauth/token Authorization: Bearer <access_token> grant_type=user_token&client_id=<value>
     -->
@@ -246,29 +219,8 @@
     <bean id="compositeAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager"/>
 
-    <bean id="tokenEndpointAuthenticationFilter"
-          class="org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter">
-        <constructor-arg ref="passwordGrantAuthenticationManager"/>
-        <constructor-arg ref="authorizationRequestManager"/>
-        <constructor-arg ref="samlWebSSOProcessingFilter"/>
-        <constructor-arg ref="externalOAuthAuthenticationManager"/>
-        <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>
-        <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint"/>
-    </bean>
-
-    <bean id="jwtTokenGranter" class="org.cloudfoundry.identity.uaa.oauth.token.JwtTokenGranter">
-        <constructor-arg name="tokenServices" ref="tokenServices"/>
-        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
-    </bean>
-
-    <bean id="addJwtTokenGranter"
-          class="org.cloudfoundry.identity.uaa.oauth.token.AddTokenGranter">
-        <constructor-arg name="userTokenGranter" ref="jwtTokenGranter"/>
-        <constructor-arg name="compositeTokenGranter" ref="oauth2TokenGranter"/>
-    </bean>
-
-    <authentication-manager alias="clientAuthenticationManager" id="clientAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+    <authentication-manager alias="clientAuthenticationManager" id="clientAuthenticationManager"
+                            xmlns="http://www.springframework.org/schema/security">
         <authentication-provider ref="clientAuthenticationProvider"/>
     </authentication-manager>
 
@@ -298,7 +250,6 @@
                                 throwing="ex"/>
         </aop:aspect>
     </aop:config>
-
 
     <bean id="clientDetailsUserService"
           class="org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService">
@@ -335,7 +286,6 @@
             </map>
         </property>
     </bean>
-
 
     <bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
         <constructor-arg ref="zoneAwareAuthzAuthenticationManager"/>
@@ -444,20 +394,19 @@
             </map>
         </property>
     </bean>
-
     <!-- End -->
-    
+
     <!-- PKCE -->
     <bean id="s256PkceVerifier" class="org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier"/>
     <bean id="plainPkceVerifier" class="org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier"/>
-    
+
     <util:map id="codeChallengeMethods" map-class="java.util.HashMap">
         <entry key="S256" value-ref="s256PkceVerifier"/>
         <entry key="plain" value-ref="plainPkceVerifier"/>
     </util:map>
-    
+
     <bean id="pkceValidationServices" class="org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService">
-        <constructor-arg ref="codeChallengeMethods" />
+        <constructor-arg ref="codeChallengeMethods"/>
     </bean>
     <!-- End of PKCE -->
 
