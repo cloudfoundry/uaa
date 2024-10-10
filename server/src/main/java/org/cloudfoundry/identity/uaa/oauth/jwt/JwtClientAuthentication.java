@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.nimbusds.jose.Algorithm;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
@@ -75,13 +74,11 @@ public class JwtClientAuthentication {
     this.oidcMetadataFetcher = oidcMetadataFetcher;
   }
 
-  @VisibleForTesting
   public String getClientAssertion(final OIDCIdentityProviderDefinition config) {
     return getClientAssertion(config, false);
   }
 
-  @VisibleForTesting
-  String getClientAssertion(
+  public String getClientAssertion(
           OIDCIdentityProviderDefinition config,
           final boolean allowDynamicValueLookupInCustomZone
   ) {
