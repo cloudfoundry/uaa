@@ -238,11 +238,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
             String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
             String username;
-            if (StringUtils.hasText(userNameAttributePrefix)) {
-                username = (String) claims.get(userNameAttributePrefix);
+            if (hasText(userNameAttributePrefix)) {
+                username = getMappedClaim(userNameAttributePrefix, USER_NAME_ATTRIBUTE_NAME, claims);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", userNameAttributePrefix, username));
             } else {
-                username = (String) claims.get(SUB);
+                username = getMappedClaim(null, SUB, claims);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", SUB, username));
             }
             if (!hasText(username)) {
@@ -424,7 +424,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             return (String) claimObject;
         }
         if (claimObject instanceof Collection) {
-            Set<String> entry = ((Collection<?>) claimObject).stream().map(String.class::cast).collect(Collectors.toSet());
+            Set<String> entry = ((Collection<?>) claimObject).stream().filter(String.class::isInstance).map(String.class::cast).collect(Collectors.toSet());
             if (entry.size() == 1 ) {
                 return entry.stream().collect(Collectors.toList()).get(0);
             } else if (entry.isEmpty()) {

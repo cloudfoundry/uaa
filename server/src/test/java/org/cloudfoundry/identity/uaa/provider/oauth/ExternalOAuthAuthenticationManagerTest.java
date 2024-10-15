@@ -44,6 +44,7 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
@@ -355,14 +356,15 @@ public class ExternalOAuthAuthenticationManagerTest {
     JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
     Map<String, Object> claims = map(
         entry("external_family_name", Collections.emptyList()),
-        entry("external_given_name", Arrays.asList("bar", "bar")),
-        entry("external_email", "foo@bar.org"),
+        entry("external_given_name", List.of("bar", "bar")),
+        entry("external_email", List.of("foo@bar.org", "foo@bar.org")),
         entry(ISS, oidcConfig.getIssuer()),
         entry(AUD, "uaa-relying-party"),
         entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
         entry(SUB, "abc-def-asdf")
     );
     Map<String, Object> externalGroupMapping = map(
+        entry(USER_NAME_ATTRIBUTE_NAME, "external_email"),
         entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name"),
         entry(ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME, "external_given_name"),
         entry(ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME, "external_email"),
@@ -379,6 +381,7 @@ public class ExternalOAuthAuthenticationManagerTest {
     assertNull(uaaUser.getFamilyName());
     assertEquals("bar", uaaUser.getGivenName());
     assertEquals("foo@bar.org", uaaUser.getEmail());
+    assertEquals("foo@bar.org", uaaUser.getUsername());
   }
 
     @Test
