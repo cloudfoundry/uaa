@@ -47,8 +47,8 @@ import org.springframework.ui.ExtendedModelMap;
 import org.springframework.ui.Model;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpSession;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
 import java.net.URL;

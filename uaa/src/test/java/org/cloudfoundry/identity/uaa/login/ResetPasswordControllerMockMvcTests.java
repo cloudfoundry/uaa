@@ -36,7 +36,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 
-import javax.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie;
 import java.sql.Timestamp;
 import java.util.Collection;
 import java.util.List;

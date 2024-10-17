@@ -1,5 +1,5 @@
 package org.cloudfoundry.identity.uaa.web;
-
+import jakarta.servlet.http.HttpServletResponse;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.junit.jupiter.api.AfterEach;
@@ -8,14 +8,14 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import javax.servlet.FilterChain;
+import jakarta.servlet.FilterChain;
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static javax.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+import static jakarta.servlet.http.HttpServletResponse.SC_SERVICE_UNAVAILABLE;
 import static org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter.STATUS_INTERVAL_MS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;

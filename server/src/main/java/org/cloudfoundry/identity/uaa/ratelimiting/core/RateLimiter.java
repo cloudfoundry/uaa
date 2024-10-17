@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.config.InitialConfig;
 

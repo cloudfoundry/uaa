@@ -41,6 +41,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
@@ -154,7 +155,7 @@ public class InvitationsIT {
         RestTemplate uaaTemplate = new RestTemplate();
         uaaTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
-            protected boolean hasError(HttpStatus statusCode) {
+            protected boolean hasError(HttpStatusCode statusCode) {
                 return statusCode.is5xxServerError();
             }
         });

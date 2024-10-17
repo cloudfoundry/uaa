@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.Limiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LimiterManager;

@@ -82,8 +82,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -219,7 +219,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return errorCounts;
     }
 
-    @RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
+    @RequestMapping(value = {"/Users/{userId}", "/Users/{userId}/"}, method = RequestMethod.GET)
     @ResponseBody
     public ScimUser getUser(@PathVariable String userId, HttpServletResponse response) {
         ScimUser scimUser = syncApprovals(syncGroups(scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId())));
@@ -227,7 +227,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return scimUser;
     }
 
-    @RequestMapping(value = "/Users", method = RequestMethod.POST)
+    @RequestMapping(value = {"/Users", "/Users/"}, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimUser createUser(@RequestBody ScimUser user, HttpServletRequest request, HttpServletResponse response) {
@@ -305,7 +305,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return OriginKeys.UAA.equals(user.getOrigin());
     }
 
-    @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PUT)
+    @RequestMapping(value = {"/Users/{userId}", "/Users/{userId}/"}, method = RequestMethod.PUT)
     @ResponseBody
     public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
                                @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
@@ -341,7 +341,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return scimUserWithApprovalsAndGroups;
     }
 
-    @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PATCH)
+    @RequestMapping(value = {"/Users/{userId}", "/Users/{userId}/"}, method = RequestMethod.PATCH)
     @ResponseBody
     public ScimUser patchUser(@RequestBody ScimUser patch, @PathVariable String userId,
                               @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
@@ -369,7 +369,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
     }
 
-    @RequestMapping(value = "/Users/{userId}", method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Users/{userId}", "/Users/{userId}/"}, method = RequestMethod.DELETE)
     @ResponseBody
     @Transactional
     public ScimUser deleteUser(@PathVariable String userId,
@@ -430,7 +430,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return user;
     }
 
-    @RequestMapping(value = "/Users/{userId}/verify-link", method = RequestMethod.GET)
+    @RequestMapping(value = {"/Users/{userId}/verify-link", "/Users/{userId}/verify-link/"}, method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<VerificationResponse> getUserVerificationLink(@PathVariable String userId,
                                                                         @RequestParam(value = "client_id", required = false) String clientId,
@@ -458,7 +458,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/Users/{userId}/verify", method = RequestMethod.GET)
+    @RequestMapping(value = {"/Users/{userId}/verify", "/Users/{userId}/verify/"}, method = RequestMethod.GET)
     @ResponseBody
     public ScimUser verifyUser(@PathVariable String userId,
                                @RequestHeader(value = "If-Match", required = false) String etag,
@@ -489,7 +489,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
     }
 
-    @RequestMapping(value = "/Users", method = RequestMethod.GET)
+    @RequestMapping(value = {"/Users", "/Users/"}, method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> findUsers(
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
@@ -554,7 +554,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
     }
 
-    @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PATCH)
+    @RequestMapping(value = {"/Users/{userId}/status", "/Users/{userId}/status/"}, method = RequestMethod.PATCH)
     public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
         ScimUser user = scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId());
 

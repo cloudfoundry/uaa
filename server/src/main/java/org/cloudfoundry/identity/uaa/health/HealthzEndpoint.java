@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.health;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import javax.sql.DataSource;
 
 import java.sql.Connection;
@@ -46,7 +46,7 @@ public class HealthzEndpoint {
         this.dataSource = dataSource;
     }
 
-    @GetMapping("/healthz")
+    @GetMapping({"/healthz", "/healthz/"})
     @ResponseBody
     public String getHealthz(HttpServletResponse response) {
         if (stopping) {

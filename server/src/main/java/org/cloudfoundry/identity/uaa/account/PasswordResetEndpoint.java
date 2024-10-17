@@ -64,7 +64,7 @@ public class PasswordResetEndpoint {
         this.identityZoneManager = identityZoneManager;
     }
 
-    @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
+    @RequestMapping(value = {"/password_resets", "/password_resets/"}, method = RequestMethod.POST)
     public ResponseEntity<PasswordResetResponse> resetPassword(@RequestBody String email,
                                                                @RequestParam(required = false, value = "client_id") String clientId,
                                                                @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
@@ -97,7 +97,7 @@ public class PasswordResetEndpoint {
         return expiringCode;
     }
 
-    @RequestMapping(value = "/password_change", method = RequestMethod.POST)
+    @RequestMapping(value = {"/password_change", "/password_change/"}, method = RequestMethod.POST)
     public ResponseEntity<LostPasswordChangeResponse> changePassword(@RequestBody LostPasswordChangeRequest passwordChangeRequest) {
         ResponseEntity<LostPasswordChangeResponse> responseEntity;
         if (passwordChangeRequest.getChangeCode() != null) {

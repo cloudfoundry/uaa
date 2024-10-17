@@ -45,8 +45,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.util.HtmlUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -535,7 +535,7 @@ public class ScimGroupEndpoints {
         return updateGroup(group, group.getId(), String.valueOf(group.getVersion()), httpServletResponse);
     }
 
-    @RequestMapping("/Groups/{groupId}/members/{memberId}")
+    @RequestMapping({"/Groups/{groupId}/members/{memberId}", "/Groups/{groupId}/members/{memberId}/"})
     public ResponseEntity<ScimGroupMember> getGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
         ScimGroupMember membership = membershipManager.getMemberById(groupId,
                 memberId,
@@ -543,7 +543,7 @@ public class ScimGroupEndpoints {
         return new ResponseEntity<>(membership, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.GET)
+    @RequestMapping(value = {"/Groups/{groupId}/members", "/Groups/{groupId}/members/"}, method = RequestMethod.GET)
     public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId,
                                                                       @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
                                                                       @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
@@ -554,7 +554,7 @@ public class ScimGroupEndpoints {
         return new ResponseEntity<>(members, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.POST)
+    @RequestMapping(value = {"/Groups/{groupId}/members", "/Groups/{groupId}/members/"}, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimGroupMember addMemberToGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
@@ -562,7 +562,7 @@ public class ScimGroupEndpoints {
         return membershipManager.addMember(groupId, member, identityZoneManager.getCurrentIdentityZoneId());
     }
 
-    @RequestMapping(value = "/Groups/{groupId}/members/{memberId}", method = RequestMethod.DELETE)
+    @RequestMapping(value = {"/Groups/{groupId}/members/{memberId}", "/Groups/{groupId}/members/{memberId}/"}, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupMember deleteGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {

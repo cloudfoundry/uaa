@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.login.util;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.junit.Test;
 
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMessage;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;

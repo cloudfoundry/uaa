@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -29,7 +29,7 @@ public class IntrospectEndpoint {
         this.resourceServerTokenServices = resourceServerTokenServices;
     }
 
-    @RequestMapping(value = "/introspect", method = POST)
+    @RequestMapping(value = {"/introspect", "/introspect/"}, method = POST)
     @ResponseBody
     public IntrospectionClaims introspect(@RequestParam("token") String token) {
         IntrospectionClaims introspectionClaims = new IntrospectionClaims();
@@ -51,7 +51,7 @@ public class IntrospectEndpoint {
         return introspectionClaims;
     }
 
-    @RequestMapping(value = "/introspect")
+    @RequestMapping(value = {"/introspect", "/introspect/"})
     @ResponseBody
     public IntrospectionClaims methodNotSupported(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
         throw new HttpRequestMethodNotSupportedException(request.getMethod());

@@ -13,8 +13,8 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -28,12 +28,12 @@ public class ChangePasswordController {
         this.changePasswordService = changePasswordService;
     }
 
-    @RequestMapping(value = "/change_password", method = GET)
+    @RequestMapping(value = {"/change_password", "/change_password/"}, method = GET)
     public String changePasswordPage() {
         return "change_password";
     }
 
-    @RequestMapping(value = "/change_password.do", method = POST)
+    @RequestMapping(value = {"/change_password.do", "/change_password.do/"}, method = POST)
     public String changePassword(
             Model model,
             @RequestParam("current_password") String currentPassword,

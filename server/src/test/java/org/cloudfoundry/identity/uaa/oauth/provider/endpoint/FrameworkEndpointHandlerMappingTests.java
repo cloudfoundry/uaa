@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
 import org.junit.Test;
 import org.springframework.web.bind.support.SessionStatus;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
 import java.security.Principal;
 import java.util.Collections;

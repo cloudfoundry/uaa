@@ -18,7 +18,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 import java.net.URL;
 import java.util.Map;
 

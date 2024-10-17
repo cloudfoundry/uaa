@@ -25,6 +25,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -161,7 +162,7 @@ public class RemoteAuthenticationEndpointTests {
         } else {
             restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
                 @Override
-                protected boolean hasError(HttpStatus statusCode) {
+                protected boolean hasError(HttpStatusCode statusCode) {
                     return statusCode.series() == HttpStatus.Series.SERVER_ERROR;
                 }
             });

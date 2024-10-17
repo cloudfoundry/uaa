@@ -39,7 +39,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.AbstractRefreshableWebApplicationContext;
 import org.springframework.web.servlet.ViewResolver;
 
-import javax.servlet.RequestDispatcher;
+import jakarta.servlet.RequestDispatcher;
 import java.io.File;
 import java.util.Arrays;
 import java.util.EventListener;

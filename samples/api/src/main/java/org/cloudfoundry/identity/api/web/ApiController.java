@@ -12,8 +12,8 @@ import org.springframework.util.PropertyPlaceholderHelper.PlaceholderResolver;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.servlet.View;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.security.Principal;
@@ -52,7 +52,7 @@ public class ApiController {
         }
     }
 
-    @RequestMapping("/info")
+    @RequestMapping({"/info", "/info/"})
     public View info(Map<String, Object> model, Principal principal) {
         model.put("loginUrl", loginUrl);
         model.put("uaaUrl", uaaUrl);

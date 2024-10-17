@@ -42,7 +42,7 @@ public class TokenKeyEndpoint {
         this.keyInfoService = keyInfoService;
     }
 
-    @RequestMapping(value = "/token_key", method = RequestMethod.GET)
+    @RequestMapping(value = {"/token_key", "/token_key/"}, method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<VerificationKeyResponse> getKey(Principal principal,
                                                           @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
@@ -57,7 +57,7 @@ public class TokenKeyEndpoint {
     }
 
 
-    @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
+    @RequestMapping(value = {"/token_keys", "/token_keys/"}, method = RequestMethod.GET)
     @ResponseBody
     public ResponseEntity<VerificationKeysListResponse> getKeys(Principal principal,
                                                                 @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {

@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.util;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,7 +44,7 @@ public class DecodePathInfoPostProcessor  implements RequestPostProcessor {
      * falling back to {@code WebUtils.DEFAULT_CHARACTER_ENCODING}
      * @param request current HTTP request
      * @return the encoding for the request (never {@code null})
-     * @see javax.servlet.ServletRequest#getCharacterEncoding()
+     * @see jakarta.servlet.ServletRequest#getCharacterEncoding()
      */
     private String determineEncoding(HttpServletRequest request) {
         String enc = request.getCharacterEncoding();

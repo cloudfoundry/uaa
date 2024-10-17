@@ -20,8 +20,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.List;
 

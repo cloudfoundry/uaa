@@ -29,8 +29,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.PessimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.support.SqlLobValue;
@@ -240,7 +240,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             logger.debug("[oauth_code] Removed "+expired+" expired entries.");
             expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(now.minus(LEGACY_CODE_EXPIRATION_TIME)));
             logger.debug("[oauth_code] Removed "+expired+" old entries.");
-        } catch (DeadlockLoserDataAccessException e) {
+        } catch (PessimisticLockingFailureException e) {
             logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
         }
     }

@@ -8,8 +8,8 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.web.RedirectStrategy;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedHashMap;

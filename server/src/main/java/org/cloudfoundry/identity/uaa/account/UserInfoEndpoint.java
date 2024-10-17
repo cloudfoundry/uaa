@@ -34,7 +34,7 @@ public class UserInfoEndpoint implements InitializingBean {
         Assert.state(userDatabase != null, "A user database must be provided");
     }
 
-    @RequestMapping(value = "/userinfo")
+    @RequestMapping(value = {"/userinfo", "/userinfo/"})
     @ResponseBody
     public UserInfoResponse loginInfo(Principal principal) {
         OAuth2Authentication authentication = (OAuth2Authentication) principal;

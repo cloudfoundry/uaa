@@ -23,8 +23,7 @@ public class OAuth2AuthenticationDetailsTests {
 		request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_VALUE, "FOO");
 		request.setAttribute(OAuth2AuthenticationDetails.ACCESS_TOKEN_TYPE, "bearer");
 		OAuth2AuthenticationDetails holder = new OAuth2AuthenticationDetails(request);
-		OAuth2AuthenticationDetails other = (OAuth2AuthenticationDetails) SerializationUtils.deserialize(SerializationUtils
-				.serialize(holder));
+		OAuth2AuthenticationDetails other = (OAuth2AuthenticationDetails) SerializationUtils.clone(holder);
 		assertEquals(holder, other);
 		assertEquals(holder.hashCode(), other.hashCode());
 		assertEquals(holder.toString(), other.toString());

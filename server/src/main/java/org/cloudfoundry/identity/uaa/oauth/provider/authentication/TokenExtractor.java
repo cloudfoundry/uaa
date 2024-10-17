@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.provider.authentication;
 
 import org.springframework.security.core.Authentication;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Moved class implementation of from spring-security-oauth2 into UAA

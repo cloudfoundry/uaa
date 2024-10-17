@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import javax.servlet.FilterChain;
+import jakarta.servlet.FilterChain;
 import java.util.HashSet;
 
 import org.cloudfoundry.identity.uaa.oauth.InteractionRequiredException;

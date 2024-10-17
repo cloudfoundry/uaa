@@ -61,7 +61,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpSession;
 import java.io.File;
 import java.net.URL;
 import java.net.URLEncoder;

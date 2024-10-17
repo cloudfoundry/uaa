@@ -27,9 +27,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import javax.mail.internet.AddressException;
-import javax.mail.internet.InternetAddress;
-import javax.servlet.http.HttpServletRequest;
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Timestamp;
@@ -68,7 +68,7 @@ public class InvitationsEndpoint {
         this.expiringCodeStore = expiringCodeStore;
     }
 
-    @RequestMapping(value = "/invite_users", method = RequestMethod.POST, consumes = "application/json")
+    @RequestMapping(value = {"/invite_users", "/invite_users/"}, method = RequestMethod.POST, consumes = "application/json")
     public ResponseEntity<InvitationsResponse> inviteUsers(@RequestBody InvitationsRequest invitations,
                                                            @RequestParam(value = "client_id", required = false) String clientId,
                                                            @RequestParam(value = "redirect_uri") String redirectUri) {

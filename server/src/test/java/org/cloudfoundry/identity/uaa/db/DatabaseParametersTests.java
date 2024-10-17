@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.hc.core5.net.URLEncodedUtils;
+import org.apache.hc.core5.http.NameValuePair;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.junit.jupiter.api.BeforeEach;

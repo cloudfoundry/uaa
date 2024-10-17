@@ -17,8 +17,8 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.authentication.BadCredentialsException;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 
 /**

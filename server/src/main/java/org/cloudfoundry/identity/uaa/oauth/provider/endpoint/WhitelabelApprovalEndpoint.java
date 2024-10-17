@@ -9,8 +9,8 @@ import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.HtmlUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Iterator;
 import java.util.Map;
 
@@ -29,7 +29,7 @@ public class WhitelabelApprovalEndpoint {
 	private static final String CSRF = "_csrf";
 	private static final String SCOPES = "scopes";
 
-	@GetMapping(value = "/oauth/confirm_access")
+	@GetMapping(value = {"/oauth/confirm_access", "/oauth/confirm_access/"})
 	public ModelAndView getAccessConfirmation(Map<String, Object> model, HttpServletRequest request) {
 		final String approvalContent = createTemplate(model, request);
 		if (request.getAttribute(CSRF) != null) {

@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.core.http;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 import org.hamcrest.core.IsIterableContaining;
 import org.junit.jupiter.api.Test;

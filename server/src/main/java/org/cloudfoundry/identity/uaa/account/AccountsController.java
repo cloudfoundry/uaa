@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.HttpClientErrorException;
 
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.validation.Valid;
-import javax.validation.constraints.Email;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -41,7 +41,7 @@ public class AccountsController {
         this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
-    @RequestMapping(value = "/create_account", method = GET)
+    @RequestMapping(value = {"/create_account", "/create_account/"}, method = GET)
     public String activationEmail(Model model,
                                   @RequestParam(value = "client_id", required = false) String clientId,
                                   @RequestParam(value = "redirect_uri", required = false) String redirectUri,
@@ -56,7 +56,7 @@ public class AccountsController {
         return "accounts/new_activation_email";
     }
 
-    @RequestMapping(value = "/create_account.do", method = POST)
+    @RequestMapping(value = {"/create_account.do", "/create_account.do/"}, method = POST)
     public String sendActivationEmail(Model model, HttpServletResponse response,
                                       @RequestParam(value = "client_id", required = false) String clientId,
                                       @RequestParam(value = "redirect_uri", required = false) String redirectUri,
@@ -96,18 +96,18 @@ public class AccountsController {
         return "redirect:accounts/email_sent";
     }
 
-    @RequestMapping(value = "/accounts/email_sent", method = RequestMethod.GET)
+    @RequestMapping(value = {"/accounts/email_sent", "/accounts/email_sent/"}, method = RequestMethod.GET)
     public String emailSent() {
         return "accounts/email_sent";
     }
 
-    @RequestMapping(value = "/verify_user", method = RequestMethod.HEAD)
+    @RequestMapping(value = {"/verify_user", "/verify_user/"}, method = RequestMethod.HEAD)
     public String verifyUser() {
         // Some mail providers initially send a HEAD request to check the validity of the link before redirecting users.
         return "redirect:/login";
     }
 
-    @RequestMapping(value = "/verify_user", method = GET)
+    @RequestMapping(value = {"/verify_user", "/verify_user/"}, method = GET)
     public String verifyUser(Model model,
                              @RequestParam("code") String code,
                              HttpServletResponse response, HttpSession session) {

@@ -19,9 +19,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -40,14 +40,14 @@ public class ForcePasswordChangeController {
         this.resetPasswordService = resetPasswordService;
     }
 
-    @RequestMapping(value = "/force_password_change", method = GET)
+    @RequestMapping(value = {"/force_password_change", "/force_password_change/"}, method = GET)
     public String forcePasswordChangePage(Model model) {
         String email = ((UaaAuthentication) SecurityContextHolder.getContext().getAuthentication()).getPrincipal().getEmail();
         model.addAttribute("email", email);
         return "force_password_change";
     }
 
-    @RequestMapping(value = "/force_password_change", method = POST)
+    @RequestMapping(value = {"/force_password_change", "/force_password_change/"}, method = POST)
     public String handleForcePasswordChange(Model model,
                                             @RequestParam("password") String password,
                                             @RequestParam("password_confirmation") String passwordConfirmation,

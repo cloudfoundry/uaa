@@ -8,7 +8,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;

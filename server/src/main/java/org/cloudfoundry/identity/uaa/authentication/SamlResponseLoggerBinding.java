@@ -12,7 +12,7 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.processor.SAMLBinding;
 import org.springframework.stereotype.Component;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
