@@ -17,7 +17,7 @@ under the License.
 <% page_content = yield %>
 <%
   def self.get_version
-    version = File.exists?('source/versionfile') ? File.read('source/versionfile') : 'local'
+    version = File.exist?('source/versionfile') ? File.read('source/versionfile') : 'local'
     if version =~ /release-candidate/
       "Release Candidate"
     else
