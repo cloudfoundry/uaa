@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -46,6 +47,11 @@ public interface UrlContentCache {
      * Clears the cache unconditionally
      */
     void clear();
+
+    /**
+     * Performs any pending maintenance operations needed by the cache.
+     */
+    void cleanUp();
 
     /**
      * Returns the current number of entries in the cache

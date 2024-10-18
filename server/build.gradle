@@ -5,6 +5,8 @@ description = "CloudFoundry Identity Server JAR"
 dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
     implementation(project(":cloudfoundry-identity-model"))
+    // Shadow library is needed for FIPS compliance, as opensaml-security-api relies on non-FIPS compliant libraries
+    //implementation(project(path: ':cloudfoundry-identity-shadow-opensaml-security-api', configuration: 'shadow'))
 
     implementation(libraries.tomcatJdbc)
     providedCompile(libraries.tomcatEmbed)
@@ -26,16 +28,14 @@ dependencies {
     implementation(libraries.owaspEsapi) {
         transitive = false
     }
-    implementation(libraries.springSecuritySaml) {
-        exclude(module: "bcprov-ext-jdk15on")
-        exclude(module: "xalan")
-    }
+    implementation(libraries.springSecuritySamlServiceProvider)
     implementation(libraries.jodaTime)
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 
-    implementation(libraries.bouncyCastleProv)
-    implementation(libraries.bouncyCastlePkix)
+    implementation(libraries.bouncyCastleFipsProv)
+    implementation(libraries.bouncyCastleTlsFips)
+    implementation(libraries.bouncyCastlePkixFips)
 
     implementation(libraries.guava)
 
@@ -112,6 +112,8 @@ dependencies {
 
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.guavaTestLib)
+    testImplementation(libraries.xmlUnit)
+    testImplementation(libraries.awaitility)
 
     implementation(libraries.commonsIo)
 }
@@ -119,11 +121,18 @@ dependencies {
 configurations.all {
     exclude(group: "org.beanshell", module: "bsh-core")
     exclude(group: "org.apache-extras.beanshell", module: "bsh")
-    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
-    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
     exclude(group: "com.fasterxml.woodstox", module: "woodstox-core")
     exclude(group: "commons-beanutils", module: "commons-beanutils")
     exclude(group: "commons-collections", module: "commons-collections")
+
+    // Exclude opensaml-security-api and non-FIPS bouncycastle libs, and use Shadow library for FIPS compliance
+    //exclude(group: "org.opensaml", module: "opensaml-security-api")
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcutil-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk18on")
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk18on")
+    exclude(group: "org.bouncycastle", module: "bcutil-jdk18on")
 }
 
 jar {

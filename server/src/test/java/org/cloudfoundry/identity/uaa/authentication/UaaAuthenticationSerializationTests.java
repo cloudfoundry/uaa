@@ -16,8 +16,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.hamcrest.Matchers;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.util.LinkedMultiValueMap;
@@ -32,29 +31,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.everyItem;
-import static org.hamcrest.Matchers.isIn;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class UaaAuthenticationSerializationTests {
+class UaaAuthenticationSerializationTests {
 
-    public static final String COST_CENTER = "costCenter";
-    public static final String DENVER_CO = "Denver,CO";
-    public static final String MANAGER = "manager";
-    public static final String JOHN_THE_SLOTH = "John the Sloth";
-    public static final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
+    private static final String COST_CENTER = "costCenter";
+    private static final String DENVER_CO = "Denver,CO";
+    private static final String MANAGER = "manager";
+    private static final String JOHN_THE_SLOTH = "John the Sloth";
+    private static final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
 
     @Test
-    public void test_serialization() {
-        UaaPrincipal principal = new UaaPrincipal("id","username","email","origin","externalId","zoneId");
+    void test_serialization() {
+        UaaPrincipal principal = new UaaPrincipal("id", "username", "email", "origin", "externalId", "zoneId");
         HttpSession session = mock(HttpSession.class);
         when(session.getId()).thenReturn("id");
         HttpServletRequest request = mock(HttpServletRequest.class);
@@ -67,121 +58,121 @@ public class UaaAuthenticationSerializationTests {
 
         List<? extends GrantedAuthority> authorities = Arrays.asList(new SimpleGrantedAuthority("role1"), new SimpleGrantedAuthority("role2"));
         String credentials = "credentials";
-        Map<String,List<String>> userAttributes = new HashMap<>();
-        userAttributes.put("atest", Arrays.asList("test1","test2","test3"));
+        Map<String, List<String>> userAttributes = new HashMap<>();
+        userAttributes.put("atest", Arrays.asList("test1", "test2", "test3"));
         userAttributes.put("btest", Arrays.asList("test1", "test2", "test3"));
-        Set<String> externalGroups = new HashSet<>(Arrays.asList("group1","group2","group3"));
+        Set<String> externalGroups = new HashSet<>(Arrays.asList("group1", "group2", "group3"));
 
         boolean authenticated = true;
         long authenticatedTime = System.currentTimeMillis();
         long expiresAt = Long.MAX_VALUE;
 
-        UaaAuthentication expected = new UaaAuthentication(principal,credentials, authorities, externalGroups,userAttributes, details, authenticated, authenticatedTime, expiresAt);
+        UaaAuthentication expected = new UaaAuthentication(principal, credentials, authorities, externalGroups, userAttributes, details, authenticated, authenticatedTime, expiresAt);
         String authenticationAsJson = JsonUtils.writeValueAsString(expected);
         UaaAuthentication actual = JsonUtils.readValue(authenticationAsJson, UaaAuthentication.class);
 
         //validate authentication details
-        UaaAuthenticationDetails actualDetails = (UaaAuthenticationDetails)actual.getDetails();
-        assertNotNull(actualDetails);
-        assertEquals("remoteAddr", actualDetails.getOrigin());
-        assertEquals("id", actualDetails.getSessionId());
-        assertEquals("clientId", actualDetails.getClientId());
-        assertTrue(actualDetails.isAddNew());
+        UaaAuthenticationDetails actualDetails = actual.getUaaAuthenticationDetails();
+        assertThat(actualDetails).isNotNull().isSameAs(actual.getDetails());
+        assertThat(actualDetails.getOrigin()).isEqualTo("remoteAddr");
+        assertThat(actualDetails.getSessionId()).isEqualTo("id");
+        assertThat(actualDetails.getClientId()).isEqualTo("clientId");
+        assertThat(actualDetails.isAddNew()).isTrue();
 
         //validate principal
         UaaPrincipal actualPrincipal = actual.getPrincipal();
-        assertEquals("id",actualPrincipal.getId());
-        assertEquals("username",actualPrincipal.getName());
-        assertEquals("email",actualPrincipal.getEmail());
-        assertEquals("origin",actualPrincipal.getOrigin());
-        assertEquals("externalId",actualPrincipal.getExternalId());
-        assertEquals("zoneId", actualPrincipal.getZoneId());
+        assertThat(actualPrincipal.getId()).isEqualTo("id");
+        assertThat(actualPrincipal.getName()).isEqualTo("username");
+        assertThat(actualPrincipal.getEmail()).isEqualTo("email");
+        assertThat(actualPrincipal.getOrigin()).isEqualTo("origin");
+        assertThat(actualPrincipal.getExternalId()).isEqualTo("externalId");
+        assertThat(actualPrincipal.getZoneId()).isEqualTo("zoneId");
 
         //validate authorities
-        assertThat(actual.getAuthorities(), containsInAnyOrder(new SimpleGrantedAuthority("role1"), new SimpleGrantedAuthority("role2")));
+        assertThat(actual.getAuthorities()).contains(new SimpleGrantedAuthority("role1"), new SimpleGrantedAuthority("role2"));
 
         //validate external groups
-        assertThat(actual.getExternalGroups(), containsInAnyOrder("group1","group2","group3"));
+        assertThat(actual.getExternalGroups()).contains("group1", "group2", "group3");
 
         //validate user attributes
-        assertEquals(2, actual.getUserAttributes().size());
-        assertThat(actual.getUserAttributes().get("atest"),containsInAnyOrder("test1","test2","test3"));
-        assertThat(actual.getUserAttributes().get("btest"),containsInAnyOrder("test1","test2","test3"));
+        assertThat(actual.getUserAttributes()).hasSize(2);
+        assertThat(actual.getUserAttributes().get("atest")).contains("test1", "test2", "test3");
+        assertThat(actual.getUserAttributes().get("btest")).contains("test1", "test2", "test3");
 
         //validate authenticated
-        assertEquals(authenticated, actual.isAuthenticated());
+        assertThat(actual.isAuthenticated()).isEqualTo(authenticated);
 
         //validate authenticated time
-        assertEquals(authenticatedTime, actual.getAuthenticatedTime());
+        assertThat(actual.getAuthenticatedTime()).isEqualTo(authenticatedTime);
 
         //validate expires at time
-        assertEquals(expiresAt, actual.getExpiresAt());
-
+        assertThat(actual.getExpiresAt()).isEqualTo(expiresAt);
     }
 
     @Test
-    public void testDeserializationWithoutAuthenticatedTime() {
-        String data ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"authenticatedTime\":1438649464353,\"name\":\"username\"}";
+    void testDeserializationWithoutAuthenticatedTime() {
+        String data = "{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"authenticatedTime\":1438649464353,\"name\":\"username\"}";
         UaaAuthentication authentication1 = JsonUtils.readValue(data, UaaAuthentication.class);
-        assertEquals(1438649464353l, authentication1.getAuthenticatedTime());
-        assertEquals(-1l, authentication1.getExpiresAt());
-        assertTrue(authentication1.isAuthenticated());
-        assertNull(authentication1.getAuthContextClassRef());
-        String dataWithoutTime ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"name\":\"username\"}";
+        assertThat(authentication1.getAuthenticatedTime()).isEqualTo(1438649464353L);
+        assertThat(authentication1.getExpiresAt()).isEqualTo(-1);
+        assertThat(authentication1.isAuthenticated()).isTrue();
+        assertThat(authentication1.getAuthContextClassRef()).isNull();
+        String dataWithoutTime = "{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"name\":\"username\"}";
         UaaAuthentication authentication2 = JsonUtils.readValue(dataWithoutTime, UaaAuthentication.class);
-        assertEquals(-1, authentication2.getAuthenticatedTime());
+        assertThat(authentication2.getAuthenticatedTime()).isEqualTo(-1);
 
-
-        long inThePast = System.currentTimeMillis() - 1000l * 60l;
-        data ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"authenticatedTime\":1438649464353,\"name\":\"username\", \"expiresAt\":"+inThePast+"}";
+        long inThePast = System.currentTimeMillis() - 1000L * 60L;
+        data = "{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"authenticatedTime\":1438649464353,\"name\":\"username\", \"expiresAt\":" + inThePast + "}";
         UaaAuthentication authentication3 = JsonUtils.readValue(data, UaaAuthentication.class);
-        assertEquals(1438649464353l, authentication3.getAuthenticatedTime());
-        assertEquals(inThePast, authentication3.getExpiresAt());
-        assertFalse(authentication3.isAuthenticated());
+        assertThat(authentication3.getAuthenticatedTime()).isEqualTo(1438649464353L);
+        assertThat(authentication3.getExpiresAt()).isEqualTo(inThePast);
+        assertThat(authentication3.isAuthenticated()).isFalse();
 
-        long inTheFuture = System.currentTimeMillis() + 1000l * 60l;
-        data ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"authenticatedTime\":1438649464353,\"name\":\"username\", \"expiresAt\":"+inTheFuture+"}";
+        long inTheFuture = System.currentTimeMillis() + 1000L * 60L;
+        data = "{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"details\":null,\"authenticated\":true,\"authenticatedTime\":1438649464353,\"name\":\"username\", \"expiresAt\":" + inTheFuture + "}";
         UaaAuthentication authentication4 = JsonUtils.readValue(data, UaaAuthentication.class);
-        assertEquals(1438649464353l, authentication4.getAuthenticatedTime());
-        assertEquals(inTheFuture, authentication4.getExpiresAt());
-        assertTrue(authentication4.isAuthenticated());
+        assertThat(authentication4.getAuthenticatedTime()).isEqualTo(1438649464353L);
+        assertThat(authentication4.getExpiresAt()).isEqualTo(inTheFuture);
+        assertThat(authentication4.isAuthenticated()).isTrue();
     }
 
     @Test
-    public void deserialization_with_external_groups() {
-        String dataWithExternalGroups ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\"}";
+    void deserialization_with_external_groups() {
+        String dataWithExternalGroups = "{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\"}";
         UaaAuthentication authentication = JsonUtils.readValue(dataWithExternalGroups, UaaAuthentication.class);
-        assertEquals(3, authentication.getExternalGroups().size());
-        assertThat(authentication.getExternalGroups(), Matchers.containsInAnyOrder("something", "or", "other"));
-        assertTrue(authentication.isAuthenticated());
+        assertThat(authentication.getExternalGroups())
+                .hasSize(3)
+                .contains("something", "or", "other");
+        assertThat(authentication.isAuthenticated()).isTrue();
     }
 
     @Test
-    public void deserialization_with_user_attributes() {
-        String dataWithoutUserAttributes ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\", \"previousLoginSuccessTime\":1485305759347}";
+    void deserialization_with_user_attributes() {
+        String dataWithoutUserAttributes = "{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\", \"previousLoginSuccessTime\":1485305759347}";
         UaaAuthentication authentication = JsonUtils.readValue(dataWithoutUserAttributes, UaaAuthentication.class);
-        assertEquals(3, authentication.getExternalGroups().size());
-        assertThat(authentication.getExternalGroups(), Matchers.containsInAnyOrder("something", "or", "other"));
-        assertTrue(authentication.isAuthenticated());
+        assertThat(authentication.getExternalGroups())
+                .hasSize(3)
+                .contains("something", "or", "other");
+        assertThat(authentication.isAuthenticated()).isTrue();
 
-        MultiValueMap<String,String> userAttributes = new LinkedMultiValueMap<>();
+        MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
         userAttributes.add(COST_CENTER, DENVER_CO);
         userAttributes.add(MANAGER, JOHN_THE_SLOTH);
         userAttributes.add(MANAGER, KARI_THE_ANT_EATER);
         authentication.setUserAttributes(userAttributes);
 
         String dataWithUserAttributes = JsonUtils.writeValueAsString(authentication);
-        assertTrue("userAttributes should be part of the JSON", dataWithUserAttributes.contains("userAttributes"));
+        assertThat(dataWithUserAttributes).as("userAttributes should be part of the JSON").contains("userAttributes");
 
         UaaAuthentication authWithUserData = JsonUtils.readValue(dataWithUserAttributes, UaaAuthentication.class);
-        assertNotNull(authWithUserData.getUserAttributes());
-        assertThat(authWithUserData.getUserAttributes().entrySet(), everyItem(isIn(userAttributes.entrySet())));
-        assertThat(userAttributes.entrySet(), everyItem(isIn(authWithUserData.getUserAttributes().entrySet())));
+        assertThat(authWithUserData.getUserAttributes()).isNotNull();
+        assertThat(authWithUserData.getUserAttributes().entrySet()).containsExactlyInAnyOrderElementsOf(userAttributes.entrySet());
+        assertThat(userAttributes.entrySet()).containsExactlyInAnyOrderElementsOf(authWithUserData.getUserAttributes().entrySet());
 
-        assertEquals(3, authentication.getExternalGroups().size());
-        assertThat(authentication.getExternalGroups(), Matchers.containsInAnyOrder("something", "or", "other"));
-        assertTrue(authentication.isAuthenticated());
-        assertEquals((Long) 1485305759347L, authentication.getLastLoginSuccessTime());
+        assertThat(authentication.getExternalGroups())
+                .hasSize(3)
+                .contains("something", "or", "other");
+        assertThat(authentication.isAuthenticated()).isTrue();
+        assertThat(authentication.getLastLoginSuccessTime()).isEqualTo((Long) 1485305759347L);
     }
-
 }

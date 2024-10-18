@@ -1,0 +1,23 @@
+apply plugin: 'com.github.johnrengelman.shadow'
+
+dependencies {
+    implementation "org.opensaml:opensaml-security-api:${versions.opensaml}"
+    compileOnly "org.opensaml:opensaml-core:${versions.opensaml}"
+}
+
+configurations {
+    configureEach {
+        exclude(group: "org.bouncycastle", module: "bcprov-jdk18on")
+        exclude(group: "org.bouncycastle", module: "bcpkix-jdk18on")
+        exclude(group: "org.bouncycastle", module: "bcutil-jdk18on")
+    }
+}
+
+tasks.named("shadowJar").configure {
+    archiveBaseName = "cloudfoundry-identity-shadow-opensaml-security-api"
+
+    manifest {
+        attributes 'Automatic-Module-Name': 'org.opensaml.security'
+    }
+    exclude 'META-INF/services/org.opensaml.security.crypto.ec.NamedCurve'
+}

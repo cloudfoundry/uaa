@@ -120,40 +120,43 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
     private static final String SECRET_POLICY_LOWERCASE = "Minimum number of lowercase characters required for secret to be considered valid (defaults to 0).";
     private static final String SECRET_POLICY_DIGIT = "Minimum number of digits required for secret to be considered valid (defaults to 0).";
     private static final String SECRET_POLICY_SPECIAL_CHAR = "Minimum number of special characters required for secret to be considered valid (defaults to 0).";
-    private static final String SECRET_POLICY_EXPIRE_MONTHS = "Number of months after which current secret expires (defaults to 0).";
     private static final String USER_CONFIG_USER_LIMIT_DESCRIPTION = "Number of users in the zone. If more than 0, it limits the amount of users in the zone. (defaults to -1, no limit).";
     private static final String USER_CONFIG_USER_LIMIT_CONSTRAINT = "Optional number, default -1, no limit.";
     private static final String USER_CONFIG_CHECK_ORIGIN_ENABLED = "Flag for switching on the check if origin is valid when creating or updating users (defaults to false)";
     private static final String USER_CONFIG_ALLOW_ORIGIN_LOOP = "Flag for switching off the loop over all origins in a zone (defaults to true)";
 
     private static final String SERVICE_PROVIDER_KEY =
-            "-----BEGIN RSA PRIVATE KEY-----\n" +
-                    "MIIBOwIBAAJBAJv8ZpB5hEK7qxP9K3v43hUS5fGT4waKe7ix4Z4mu5UBv+cw7WSF\n" +
-                    "At0Vaag0sAbsPzU8Hhsrj/qPABvfB8asUwcCAwEAAQJAG0r3ezH35WFG1tGGaUOr\n" +
-                    "QA61cyaII53ZdgCR1IU8bx7AUevmkFtBf+aqMWusWVOWJvGu2r5VpHVAIl8nF6DS\n" +
-                    "kQIhAMjEJ3zVYa2/Mo4ey+iU9J9Vd+WoyXDQD4EEtwmyG1PpAiEAxuZlvhDIbbce\n" +
-                    "7o5BvOhnCZ2N7kYb1ZC57g3F+cbJyW8CIQCbsDGHBto2qJyFxbAO7uQ8Y0UVHa0J\n" +
-                    "BO/g900SAcJbcQIgRtEljIShOB8pDjrsQPxmI1BLhnjD1EhRSubwhDw5AFUCIQCN\n" +
-                    "A24pDtdOHydwtSB5+zFqFLfmVZplQM/g5kb4so70Yw==\n" +
-                    "-----END RSA PRIVATE KEY-----\n";
+            """
+                    -----BEGIN RSA PRIVATE KEY-----
+                    MIIBOwIBAAJBAJv8ZpB5hEK7qxP9K3v43hUS5fGT4waKe7ix4Z4mu5UBv+cw7WSF
+                    At0Vaag0sAbsPzU8Hhsrj/qPABvfB8asUwcCAwEAAQJAG0r3ezH35WFG1tGGaUOr
+                    QA61cyaII53ZdgCR1IU8bx7AUevmkFtBf+aqMWusWVOWJvGu2r5VpHVAIl8nF6DS
+                    kQIhAMjEJ3zVYa2/Mo4ey+iU9J9Vd+WoyXDQD4EEtwmyG1PpAiEAxuZlvhDIbbce
+                    7o5BvOhnCZ2N7kYb1ZC57g3F+cbJyW8CIQCbsDGHBto2qJyFxbAO7uQ8Y0UVHa0J
+                    BO/g900SAcJbcQIgRtEljIShOB8pDjrsQPxmI1BLhnjD1EhRSubwhDw5AFUCIQCN
+                    A24pDtdOHydwtSB5+zFqFLfmVZplQM/g5kb4so70Yw==
+                    -----END RSA PRIVATE KEY-----
+                    """;
 
     private static final String SERVICE_PROVIDER_KEY_PASSWORD = "password";
 
     private static final String SERVICE_PROVIDER_CERTIFICATE =
-            "-----BEGIN CERTIFICATE-----\n" +
-                    "MIICEjCCAXsCAg36MA0GCSqGSIb3DQEBBQUAMIGbMQswCQYDVQQGEwJKUDEOMAwG\n" +
-                    "A1UECBMFVG9reW8xEDAOBgNVBAcTB0NodW8ta3UxETAPBgNVBAoTCEZyYW5rNERE\n" +
-                    "MRgwFgYDVQQLEw9XZWJDZXJ0IFN1cHBvcnQxGDAWBgNVBAMTD0ZyYW5rNEREIFdl\n" +
-                    "YiBDQTEjMCEGCSqGSIb3DQEJARYUc3VwcG9ydEBmcmFuazRkZC5jb20wHhcNMTIw\n" +
-                    "ODIyMDUyNjU0WhcNMTcwODIxMDUyNjU0WjBKMQswCQYDVQQGEwJKUDEOMAwGA1UE\n" +
-                    "CAwFVG9reW8xETAPBgNVBAoMCEZyYW5rNEREMRgwFgYDVQQDDA93d3cuZXhhbXBs\n" +
-                    "ZS5jb20wXDANBgkqhkiG9w0BAQEFAANLADBIAkEAm/xmkHmEQrurE/0re/jeFRLl\n" +
-                    "8ZPjBop7uLHhnia7lQG/5zDtZIUC3RVpqDSwBuw/NTweGyuP+o8AG98HxqxTBwID\n" +
-                    "AQABMA0GCSqGSIb3DQEBBQUAA4GBABS2TLuBeTPmcaTaUW/LCB2NYOy8GMdzR1mx\n" +
-                    "8iBIu2H6/E2tiY3RIevV2OW61qY2/XRQg7YPxx3ffeUugX9F4J/iPnnu1zAxxyBy\n" +
-                    "2VguKv4SWjRFoRkIfIlHX0qVviMhSlNy2ioFLy7JcPZb+v3ftDGywUqcBiVDoea0\n" +
-                    "Hn+GmxZA\n" +
-                    "-----END CERTIFICATE-----\n";
+            """
+                    -----BEGIN CERTIFICATE-----
+                    MIICEjCCAXsCAg36MA0GCSqGSIb3DQEBBQUAMIGbMQswCQYDVQQGEwJKUDEOMAwG
+                    A1UECBMFVG9reW8xEDAOBgNVBAcTB0NodW8ta3UxETAPBgNVBAoTCEZyYW5rNERE
+                    MRgwFgYDVQQLEw9XZWJDZXJ0IFN1cHBvcnQxGDAWBgNVBAMTD0ZyYW5rNEREIFdl
+                    YiBDQTEjMCEGCSqGSIb3DQEJARYUc3VwcG9ydEBmcmFuazRkZC5jb20wHhcNMTIw
+                    ODIyMDUyNjU0WhcNMTcwODIxMDUyNjU0WjBKMQswCQYDVQQGEwJKUDEOMAwGA1UE
+                    CAwFVG9reW8xETAPBgNVBAoMCEZyYW5rNEREMRgwFgYDVQQDDA93d3cuZXhhbXBs
+                    ZS5jb20wXDANBgkqhkiG9w0BAQEFAANLADBIAkEAm/xmkHmEQrurE/0re/jeFRLl
+                    8ZPjBop7uLHhnia7lQG/5zDtZIUC3RVpqDSwBuw/NTweGyuP+o8AG98HxqxTBwID
+                    AQABMA0GCSqGSIb3DQEBBQUAA4GBABS2TLuBeTPmcaTaUW/LCB2NYOy8GMdzR1mx
+                    8iBIu2H6/E2tiY3RIevV2OW61qY2/XRQg7YPxx3ffeUugX9F4J/iPnnu1zAxxyBy
+                    2VguKv4SWjRFoRkIfIlHX0qVviMhSlNy2ioFLy7JcPZb+v3ftDGywUqcBiVDoea0
+                    Hn+GmxZA
+                    -----END CERTIFICATE-----
+                    """;
 
     private static final String SAML_ACTIVE_KEY_ID_DESC = "The ID of the key that should be used for signing metadata and assertions.";
     private static final String DEFAULT_ZONE_GROUPS_DESC = "Default groups each user in the zone inherits.";
@@ -397,7 +400,7 @@ class IdentityZoneEndpointDocs extends EndpointDocs {
                 fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
                 fieldWithPath("[].config.samlConfig.entityID").optional().type(STRING).description(ENTITY_ID_DESC),
-                fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
+                fieldWithPath("[].config.samlConfig.certificate").optional().type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Deprecated")),
 
                 fieldWithPath("[].config.samlConfig.activeKeyId").type(STRING).description(SAML_ACTIVE_KEY_ID_DESC),
                 fieldWithPath("[].config.samlConfig.keys").ignored().type(OBJECT).description(CERTIFICATE_DESC),

@@ -1,5 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry 
+/*
+ * *****************************************************************************
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,11 +14,6 @@
 
 package org.cloudfoundry.identity.api.web;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.HashMap;
-
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -26,24 +22,27 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.servlet.View;
 
+import java.util.HashMap;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * @author Dave Syer
- * 
  */
 public class ApiControllerTests {
 
-    private ApiController controller = new ApiController();
+    private final ApiController controller = new ApiController();
     UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
     @Test
     public void testNoUser() throws Exception {
         controller.setInfo(new ClassPathResource("info.tmpl"));
-        HashMap<String, Object> model = new HashMap<String, Object>();
+        HashMap<String, Object> model = new HashMap<>();
         View view = controller.info(model, null);
         MockHttpServletResponse response = new MockHttpServletResponse();
         view.render(model, new MockHttpServletRequest(), response);
         String content = response.getContentAsString();
-        assertFalse("Wrong content: " + content, content.contains("\"user\""));
+        assertThat(content).as("Wrong content: " + content).doesNotContain("\"user\"");
     }
 
     @Test
@@ -54,7 +53,7 @@ public class ApiControllerTests {
         MockHttpServletResponse response = new MockHttpServletResponse();
         view.render(model, new MockHttpServletRequest(), response);
         String content = response.getContentAsString();
-        assertTrue("Wrong content: " + content, content.contains("\n  \"user\": \""+testAccounts.getUserName()+"\""));
+        assertThat(content).as("Wrong content: " + content).contains("\n  \"user\": \"" + testAccounts.getUserName() + "\"");
     }
 
 }

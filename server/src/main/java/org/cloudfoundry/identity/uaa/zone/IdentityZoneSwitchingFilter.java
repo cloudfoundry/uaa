@@ -30,7 +30,6 @@ import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.getZoneSwi
  * If the X-Identity-Zone-Id header is set and the user has a scope
  * of zones.&lt;id&gt;.admin, this filter switches the IdentityZone in the IdentityZoneHolder
  * to the one in the header.
- *
  */
 public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
 
@@ -47,10 +46,9 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
 
     protected OAuth2Authentication getAuthenticationForZone(String identityZoneId, HttpServletRequest servletRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if(!(authentication instanceof OAuth2Authentication)) {
+        if (!(authentication instanceof OAuth2Authentication oa)) {
             return null;
         }
-        OAuth2Authentication oa = (OAuth2Authentication) authentication;
 
         Object oaDetails = oa.getDetails();
 
@@ -69,28 +67,27 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
             }
         }
         request = new OAuth2Request(
-            request.getRequestParameters(),
-            request.getClientId(),
-            UaaStringUtils.getAuthoritiesFromStrings(clientAuthorities),
-            request.isApproved(),
-            clientScopes,
-            request.getResourceIds(),
-            request.getRedirectUri(),
-            request.getResponseTypes(),
-            request.getExtensions()
-            );
+                request.getRequestParameters(),
+                request.getClientId(),
+                UaaStringUtils.getAuthoritiesFromStrings(clientAuthorities),
+                request.isApproved(),
+                clientScopes,
+                request.getResourceIds(),
+                request.getRedirectUri(),
+                request.getResponseTypes(),
+                request.getExtensions()
+        );
 
-
-        UaaAuthentication userAuthentication = (UaaAuthentication)oa.getUserAuthentication();
-        if (userAuthentication!=null) {
+        UaaAuthentication userAuthentication = (UaaAuthentication) oa.getUserAuthentication();
+        if (userAuthentication != null) {
             userAuthentication = new UaaAuthentication(
-                userAuthentication.getPrincipal(),
-                null,
-                UaaStringUtils.getAuthoritiesFromStrings(clientScopes),
-                new UaaAuthenticationDetails(servletRequest),
-                true, userAuthentication.getAuthenticatedTime());
+                    userAuthentication.getPrincipal(),
+                    null,
+                    UaaStringUtils.getAuthoritiesFromStrings(clientScopes),
+                    new UaaAuthenticationDetails(servletRequest),
+                    true, userAuthentication.getAuthenticatedTime());
         }
-        oa = new UaaOauth2Authentication(((UaaOauth2Authentication)oa).getTokenValue(), IdentityZoneHolder.get().getId(), request, userAuthentication);
+        oa = new UaaOauth2Authentication(((UaaOauth2Authentication) oa).getTokenValue(), IdentityZoneHolder.get().getId(), request, userAuthentication);
         oa.setDetails(oaDetails);
         return oa;
     }
@@ -100,7 +97,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
             return s;
         }
         //dont touch the zones.{zone.id}.admin scope
-        String replace = ZONES_ZONE_ID_PREFIX+identityZoneId+".";
+        String replace = ZONES_ZONE_ID_PREFIX + identityZoneId + ".";
         for (String scope : zoneScopestoNotStripPrefix) {
             if (s.equals(replace + scope)) {
                 return s;
@@ -108,19 +105,15 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
 
         //replace zones.<id>.
-
         if (s.startsWith(replace)) {
             return s.substring(replace.length());
         }
         return s;
     }
 
-
-
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-
 
         String identityZoneIdFromHeader = request.getHeader(HEADER);
         String identityZoneSubDomainFromHeader = request.getHeader(SUBDOMAIN_HEADER);
@@ -141,7 +134,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         if (IdentityZoneHolder.isUaa() && oAuth2Authentication != null && !oAuth2Authentication.getOAuth2Request().getScope().isEmpty()) {
             SecurityContextHolder.getContext().setAuthentication(oAuth2Authentication);
         } else {
-            response.sendError(HttpServletResponse.SC_FORBIDDEN, "User is not authorized to switch to IdentityZone with id "+identityZoneId);
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "User is not authorized to switch to IdentityZone with id " + identityZoneId);
             return;
         }
 
@@ -167,5 +160,4 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
         return identityZone;
     }
-
 }

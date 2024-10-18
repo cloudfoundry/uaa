@@ -15,26 +15,26 @@
 package org.cloudfoundry.identity.uaa;
 
 import org.cloudfoundry.identity.uaa.util.NullifyFields;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 public class TestClassNullifier {
 
     private volatile static Class<?> clazz;
 
-    @Before
+    @BeforeEach
     public void trackClass() {
         clazz = this.getClass();
     }
 
-    @After
+    @AfterEach
     public void nullifyInstanceFields() throws Exception {
         NullifyFields.nullifyFields(this.getClass(), this, false);
     }
 
-    @AfterClass
+    @AfterAll
     public static void nullifyClassFields() throws Exception {
         NullifyFields.nullifyFields(clazz, null, true);
         clazz = null;

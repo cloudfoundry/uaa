@@ -1,22 +1,19 @@
 package org.cloudfoundry.identity.uaa.passcode;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
-
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
-
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -38,11 +35,11 @@ class PasscodeInformationTest {
     @Test
     void buildPasscodeInformationForUserAttributes() {
         final PasscodeInformation passcodeInformation =
-            new PasscodeInformation(uaaPrincipal.getId(),
-                uaaPrincipal.getName(),
-                null,
-                uaaPrincipal.getOrigin(),
-                Collections.emptyList());
+                new PasscodeInformation(uaaPrincipal.getId(),
+                        uaaPrincipal.getName(),
+                        null,
+                        uaaPrincipal.getOrigin(),
+                        Collections.emptyList());
 
         assertNull(passcodeInformation.getPasscode());
         assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());
@@ -72,39 +69,6 @@ class PasscodeInformationTest {
 
         final PasscodeInformation passcodeInformation =
                 new PasscodeInformation(uaaAuthentication, authorizationParameters);
-
-        assertNull(passcodeInformation.getPasscode());
-        assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());
-        assertEquals(uaaPrincipal.getOrigin(), passcodeInformation.getOrigin());
-        assertEquals(uaaPrincipal.getId(), passcodeInformation.getUserId());
-    }
-
-    @Test
-    void buildPasscodeFromExpiringToken() {
-        ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken =
-                new ExpiringUsernameAuthenticationToken(uaaPrincipal, "");
-
-        final PasscodeInformation passcodeInformation =
-                new PasscodeInformation(expiringUsernameAuthenticationToken, authorizationParameters);
-
-        assertNull(passcodeInformation.getPasscode());
-        assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());
-        assertEquals(uaaPrincipal.getOrigin(), passcodeInformation.getOrigin());
-        assertEquals(uaaPrincipal.getId(), passcodeInformation.getUserId());
-    }
-
-    @Test
-    void buildPasscodeInformationFromSamlToken() {
-        Principal principal = mock(Principal.class);
-        ExpiringUsernameAuthenticationToken expiringUsernameAuthenticationToken =
-                new ExpiringUsernameAuthenticationToken(principal, "");
-        LoginSamlAuthenticationToken samlAuthenticationToken = new LoginSamlAuthenticationToken(
-                uaaPrincipal,
-                expiringUsernameAuthenticationToken
-        );
-
-        final PasscodeInformation passcodeInformation =
-                new PasscodeInformation(samlAuthenticationToken, authorizationParameters);
 
         assertNull(passcodeInformation.getPasscode());
         assertEquals(uaaPrincipal.getName(), passcodeInformation.getUsername());

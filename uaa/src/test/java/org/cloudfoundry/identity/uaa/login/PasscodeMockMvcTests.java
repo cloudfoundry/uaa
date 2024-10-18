@@ -8,12 +8,11 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.RemoteUserAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
-import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,18 +21,14 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.DefaultSecurityFilterChain;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.filter.GenericFilterBean;
 
@@ -42,17 +37,15 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import java.io.IOException;
+import java.io.Serial;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -61,7 +54,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @DefaultTestContext
 class PasscodeMockMvcTests {
-    private static String USERNAME = "marissa";
 
     private CaptureSecurityContextFilter captureSecurityContextFilter;
     private UaaPrincipal marissa;
@@ -78,19 +70,17 @@ class PasscodeMockMvcTests {
             List<SecurityFilterChain> chains = filterChainProxy.getFilterChains();
             for (SecurityFilterChain chain : chains) {
 
-                if (chain instanceof DefaultSecurityFilterChain) {
-                    DefaultSecurityFilterChain dfc = (DefaultSecurityFilterChain) chain;
-                    if (dfc.getRequestMatcher() instanceof UaaRequestMatcher) {
-                        UaaRequestMatcher matcher = (UaaRequestMatcher) dfc.getRequestMatcher();
-                        if (matcher.toString().contains("passcodeTokenMatcher")) {
-                            dfc.getFilters().add(captureSecurityContextFilter);
-                            break;
-                        }
-                    }
+                if (chain instanceof DefaultSecurityFilterChain dfc
+                        && dfc.getRequestMatcher() instanceof UaaRequestMatcher matcher
+                        && matcher.toString().contains("passcodeTokenMatcher")) {
+                    dfc.getFilters().add(captureSecurityContextFilter);
+                    break;
                 }
+
+
             }
             UaaUserDatabase db = webApplicationContext.getBean(UaaUserDatabase.class);
-            marissa = new UaaPrincipal(db.retrieveUserByName(USERNAME, OriginKeys.UAA));
+            marissa = new UaaPrincipal(db.retrieveUserByName("marissa", OriginKeys.UAA));
             webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(32));
         }
     }
@@ -102,22 +92,16 @@ class PasscodeMockMvcTests {
 
     @Test
     void testLoginUsingPasscodeWithSamlToken() throws Exception {
-        ExpiringUsernameAuthenticationToken et = new ExpiringUsernameAuthenticationToken(USERNAME, null);
-        UaaAuthentication auth = new LoginSamlAuthenticationToken(marissa, et).getUaaAuthentication(
-                Collections.emptyList(),
-                Collections.emptySet(),
-                new LinkedMultiValueMap<>()
-        );
-        final MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), details);
+        final MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
 
         SecurityContextHolder.setContext(mockSecurityContext);
         MockHttpSession session = new MockHttpSession();
-
         session.setAttribute(
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 mockSecurityContext
         );
-
 
         MockHttpServletRequestBuilder get = get("/passcode")
                 .accept(APPLICATION_JSON)
@@ -145,32 +129,28 @@ class PasscodeMockMvcTests {
                 .param("passcode", passcode)
                 .param("response_type", "token");
 
-
-        Map accessToken =
-                JsonUtils.readValue(
+        Map<String, Object> accessToken =
+                JsonUtils.readValueAsMap(
                         mockMvc.perform(post)
                                 .andExpect(status().isOk())
-                                .andReturn().getResponse().getContentAsString(),
-                        Map.class);
-        assertEquals("bearer", accessToken.get("token_type"));
-        assertNotNull(accessToken.get("access_token"));
-        assertNotNull(accessToken.get("refresh_token"));
+                                .andReturn().getResponse().getContentAsString());
+        assertThat(accessToken).containsEntry("token_type", "bearer")
+                .containsKey("access_token")
+                .containsKey("refresh_token");
         String[] scopes = ((String) accessToken.get("scope")).split(" ");
-        assertThat(Arrays.asList(scopes), containsInAnyOrder("uaa.user", "scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read"));
+        assertThat(Arrays.asList(scopes)).contains("uaa.user", "scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read");
 
         Authentication authentication = captureSecurityContextFilter.getAuthentication();
-        assertNotNull(authentication);
-        assertTrue(authentication instanceof OAuth2Authentication);
-        assertTrue(((OAuth2Authentication) authentication).getUserAuthentication() instanceof UsernamePasswordAuthenticationToken);
-        assertTrue(authentication.getPrincipal() instanceof UaaPrincipal);
-        assertEquals(marissa.getOrigin(), ((UaaPrincipal) authentication.getPrincipal()).getOrigin());
+        assertThat(authentication).isInstanceOf(OAuth2Authentication.class);
+        assertThat(((OAuth2Authentication) authentication).getUserAuthentication()).isInstanceOf(UsernamePasswordAuthenticationToken.class);
+        assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
+        assertThat(((UaaPrincipal) authentication.getPrincipal()).getOrigin()).isEqualTo(marissa.getOrigin());
     }
 
     @Test
     void testLoginUsingPasscodeWithUaaToken() throws Exception {
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
-        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(), details);
-
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), details);
         final MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
 
         SecurityContextHolder.setContext(mockSecurityContext);
@@ -181,7 +161,6 @@ class PasscodeMockMvcTests {
                 mockSecurityContext
         );
 
-
         MockHttpServletRequestBuilder get = get("/passcode")
                 .accept(APPLICATION_JSON)
                 .session(session);
@@ -208,25 +187,22 @@ class PasscodeMockMvcTests {
                 .param("passcode", passcode)
                 .param("response_type", "token");
 
-
-        Map accessToken =
-                JsonUtils.readValue(
+        Map<String, Object> accessToken =
+                JsonUtils.readValueAsMap(
                         mockMvc.perform(post)
                                 .andExpect(status().isOk())
-                                .andReturn().getResponse().getContentAsString(),
-                        Map.class);
-        assertEquals("bearer", accessToken.get("token_type"));
-        assertNotNull(accessToken.get("access_token"));
-        assertNotNull(accessToken.get("refresh_token"));
+                                .andReturn().getResponse().getContentAsString());
+        assertThat(accessToken).containsEntry("token_type", "bearer")
+                .containsKey("access_token")
+                .containsKey("refresh_token");
         String[] scopes = ((String) accessToken.get("scope")).split(" ");
-        assertThat(Arrays.asList(scopes), containsInAnyOrder("uaa.user", "scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read"));
+        assertThat(Arrays.asList(scopes)).contains("uaa.user", "scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read");
 
         Authentication authentication = captureSecurityContextFilter.getAuthentication();
-        assertNotNull(authentication);
-        assertTrue(authentication instanceof OAuth2Authentication);
-        assertTrue(((OAuth2Authentication) authentication).getUserAuthentication() instanceof UsernamePasswordAuthenticationToken);
-        assertTrue(authentication.getPrincipal() instanceof UaaPrincipal);
-        assertEquals(marissa.getOrigin(), ((UaaPrincipal) authentication.getPrincipal()).getOrigin());
+        assertThat(authentication).isInstanceOf(OAuth2Authentication.class);
+        assertThat(((OAuth2Authentication) authentication).getUserAuthentication()).isInstanceOf(UsernamePasswordAuthenticationToken.class);
+        assertThat(authentication.getPrincipal()).isInstanceOf(UaaPrincipal.class);
+        assertThat(((UaaPrincipal) authentication.getPrincipal()).getOrigin()).isEqualTo(marissa.getOrigin());
     }
 
     @Test
@@ -235,7 +211,7 @@ class PasscodeMockMvcTests {
                 marissa.getId(),
                 marissa.getName(),
                 marissa.getEmail(),
-                new ArrayList<GrantedAuthority>()
+                new ArrayList<>()
         );
         final MockSecurityContext mockSecurityContext = new MockSecurityContext(userAuthentication);
 
@@ -246,7 +222,6 @@ class PasscodeMockMvcTests {
                 HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
                 mockSecurityContext
         );
-
 
         MockHttpServletRequestBuilder get = get("/passcode")
                 .accept(APPLICATION_JSON)
@@ -259,8 +234,7 @@ class PasscodeMockMvcTests {
     @Test
     void testLoginUsingOldPasscode() throws Exception {
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
-        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(), details);
-
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), details);
         final MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
 
         SecurityContextHolder.setContext(mockSecurityContext);
@@ -320,7 +294,7 @@ class PasscodeMockMvcTests {
         String content = mockMvc.perform(post)
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse().getContentAsString();
-        assertThat(content, Matchers.containsString("Invalid passcode"));
+        assertThat(content).contains("Invalid passcode");
     }
 
     @Test
@@ -337,38 +311,40 @@ class PasscodeMockMvcTests {
         String content = mockMvc.perform(post)
                 .andExpect(status().isUnauthorized())
                 .andReturn().getResponse().getContentAsString();
-        assertThat(content, Matchers.containsString("Passcode information is missing."));
+        assertThat(content).contains("Passcode information is missing.");
     }
 
-    // NOTE: This test is flaky but passes on retry
     @Test
-    void testPasscodeReturnSpecialCharaters() throws Exception {
+    void testPasscodeReturnSpecialCharacters() throws Exception {
+        // NOTE: This test is flaky but passes on retry
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
-        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(), details);
-
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), details);
         MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
 
         SecurityContextHolder.setContext(mockSecurityContext);
         MockHttpSession session = new MockHttpSession();
-
         session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, mockSecurityContext);
-        int MAX_TRAILS = 30;
-        String passcode = "";
-        for(int i = 0; i < MAX_TRAILS; i++) {
+
+        // try for up to 15 seconds to get a passcode with - or _
+        await().atMost(15, SECONDS).untilAsserted(() -> {
             MockHttpServletRequestBuilder get = get("/passcode").accept(APPLICATION_JSON).session(session);
 
-            passcode = JsonUtils.readValue(mockMvc.perform(get).andExpect(status().isOk()).andReturn().getResponse().getContentAsString(),
-                String.class);
-            if (passcode.contains("-") || passcode.contains("_")) {
-                return;
-            }
-        }
-        assertThat("Passcode information is missing - or _", passcode,
-            Matchers.containsString("1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz-_"));
+            String passcode = JsonUtils.readValue(mockMvc.perform(get)
+                            .andExpect(status().isOk())
+                            .andReturn()
+                            .getResponse()
+                            .getContentAsString(),
+                    String.class);
+
+            assertThat(passcode).as("Passcode information is missing - or _")
+                    .containsAnyOf("-", "_")
+                    .matches("[1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz\\-_]*");
+        });
     }
 
     public static class MockSecurityContext implements SecurityContext {
 
+        @Serial
         private static final long serialVersionUID = -1386535243513362694L;
 
         private Authentication authentication;
@@ -402,5 +378,4 @@ class PasscodeMockMvcTests {
             chain.doFilter(request, response);
         }
     }
-
 }

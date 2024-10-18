@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -23,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
+import lombok.Getter;
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;
@@ -44,6 +45,7 @@ import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsDate;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsInt;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsString;
 
+@Getter
 @JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)
 public class IdentityProvider<T extends AbstractIdentityProviderDefinition> implements EntityWithAlias {
@@ -78,45 +80,32 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     private String identityZoneId;
     private String aliasId;
     private String aliasZid;
-    public Date getCreated() {
-        return created;
-    }
+    @JsonIgnore
+    private boolean serializeConfigRaw;
 
-    public IdentityProvider setCreated(Date created) {
+    public IdentityProvider<T> setCreated(Date created) {
         this.created = created;
         return this;
     }
 
-    public Date getLastModified() {
-        return lastModified;
-    }
-
-    public IdentityProvider setLastModified(Date lastModified) {
+    public IdentityProvider<T> setLastModified(Date lastModified) {
         this.lastModified = lastModified;
         return this;
     }
 
-    public IdentityProvider setVersion(int version) {
+    public IdentityProvider<T> setVersion(int version) {
         this.version = version;
         return this;
     }
 
-    public int getVersion() {
-        return version;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public IdentityProvider setName(String name) {
+    public IdentityProvider<T> setName(String name) {
         this.name = name;
         return this;
     }
 
-    @Override
-    public String getId() {
-        return id;
+    public IdentityProvider<T> setId(String id) {
+        this.id = id;
+        return this;
     }
 
     @Override
@@ -124,53 +113,44 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return getIdentityZoneId();
     }
 
-    public IdentityProvider setId(String id) {
-        this.id = id;
-        return this;
-    }
-
-    public T getConfig() {
-        return config;
-    }
-
-    public IdentityProvider setConfig(T config) {
-        if (config == null) {
-            this.type = UNKNOWN;
-        } else {
-            Class clazz = config.getClass();
-            if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = SAML;
+    public IdentityProvider<T> setConfig(T config) {
+        this.type = UNKNOWN;
+        if (config != null) {
+            this.type = determineType(config.getClass());
+            if (SAML.equals(this.type)) {
                 if (StringUtils.hasText(getOriginKey())) {
                     ((SamlIdentityProviderDefinition) config).setIdpEntityAlias(getOriginKey());
                 }
                 if (StringUtils.hasText(getIdentityZoneId())) {
                     ((SamlIdentityProviderDefinition) config).setZoneId(getIdentityZoneId());
                 }
-            } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = UAA;
-            } else if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = OAUTH20;
-            } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = OIDC10;
-            } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = LDAP;
-            } else if (KeystoneIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = KEYSTONE;
-            } else if (AbstractIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = UNKNOWN;
-            } else {
-                throw new IllegalArgumentException("Unknown identity provider configuration type:" + clazz.getName());
             }
         }
         this.config = config;
         return this;
     }
 
-    public String getOriginKey() {
-        return originKey;
+    private static String determineType(Class<? extends AbstractIdentityProviderDefinition> clazz) {
+        if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return SAML;
+        } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return UAA;
+        } else if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return OAUTH20;
+        } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return OIDC10;
+        } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return LDAP;
+        } else if (KeystoneIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return KEYSTONE;
+        } else if (AbstractIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return UNKNOWN;
+        } else {
+            throw new IllegalArgumentException("Unknown identity provider configuration type:" + clazz.getName());
+        }
     }
 
-    public IdentityProvider setOriginKey(String originKey) {
+    public IdentityProvider<T> setOriginKey(String originKey) {
         this.originKey = originKey;
         if (config != null && config instanceof SamlIdentityProviderDefinition) {
             ((SamlIdentityProviderDefinition) config).setIdpEntityAlias(originKey);
@@ -179,29 +159,17 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return this;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public IdentityProvider setType(String type) {
+    public IdentityProvider<T> setType(String type) {
         this.type = type;
         return this;
     }
 
-    public boolean isActive() {
-        return active;
-    }
-
-    public IdentityProvider setActive(boolean active) {
+    public IdentityProvider<T> setActive(boolean active) {
         this.active = active;
         return this;
     }
 
-    public String getIdentityZoneId() {
-        return identityZoneId;
-    }
-
-    public IdentityProvider setIdentityZoneId(String identityZoneId) {
+    public IdentityProvider<T> setIdentityZoneId(String identityZoneId) {
         this.identityZoneId = identityZoneId;
         if (config != null && config instanceof SamlIdentityProviderDefinition) {
             ((SamlIdentityProviderDefinition) config).setZoneId(identityZoneId);
@@ -210,18 +178,8 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     }
 
     @Override
-    public String getAliasId() {
-        return aliasId;
-    }
-
-    @Override
     public void setAliasId(String aliasId) {
         this.aliasId = aliasId;
-    }
-
-    @Override
-    public String getAliasZid() {
-        return aliasZid;
     }
 
     @Override
@@ -304,9 +262,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         } else if (!aliasZid.equals(other.aliasZid)) {
             return false;
         }
-        if (version != other.version)
-            return false;
-        return true;
+        return version == other.version;
     }
 
     @Override
@@ -342,13 +298,6 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
 
         sb.append('}');
         return sb.toString();
-    }
-
-    private boolean serializeConfigRaw;
-
-    @JsonIgnore
-    public boolean isSerializeConfigRaw() {
-        return serializeConfigRaw;
     }
 
     @JsonIgnore
@@ -446,8 +395,5 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
             result.setAliasZid(getNodeAsString(node, FIELD_ALIAS_ZID, null));
             return result;
         }
-
-
     }
-
 }

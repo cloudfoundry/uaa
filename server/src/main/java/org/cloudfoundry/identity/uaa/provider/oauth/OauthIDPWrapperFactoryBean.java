@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -16,6 +17,7 @@ import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderWrapper;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;

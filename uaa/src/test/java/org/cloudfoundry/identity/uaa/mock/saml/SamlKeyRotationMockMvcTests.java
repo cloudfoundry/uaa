@@ -14,148 +14,153 @@
 package org.cloudfoundry.identity.uaa.mock.saml;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
-import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.WebApplicationContext;
-import org.w3c.dom.NodeList;
+import org.xmlunit.assertj.XmlAssert;
 
+import java.util.Arrays;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactoryTests.*;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.getCertificates;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.*;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.certificate2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.formatCert;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName2;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyCertificate;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyKey;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.legacyPassphrase;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey1;
+import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.samlKey2;
 import static org.springframework.http.MediaType.APPLICATION_XML;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
 class SamlKeyRotationMockMvcTests {
+    private static final String METADATA_URL = "/saml/metadata";
+    private static final String SIGNATURE_CERTIFICATE_XPATH_FORMAT = "//ds:Signature//ds:X509Certificate";
+    public static final String KEY_DESCRIPTOR_CERTIFICATE_XPATH_FORMAT = "//md:SPSSODescriptor/md:KeyDescriptor[@use='%s']//ds:X509Certificate";
 
     private IdentityZone zone;
-    private SamlKey samlKey2;
 
+    @Autowired
     private MockMvc mockMvc;
 
-    @BeforeEach
-    void createZone(
-            @Autowired WebApplicationContext webApplicationContext,
-            @Autowired MockMvc mockMvc
-    ) throws Exception {
-        this.mockMvc = mockMvc;
+    @Autowired
+    WebApplicationContext webApplicationContext;
 
+    @BeforeEach
+    void createZone() throws Exception {
         String id = new RandomValueStringGenerator().generate().toLowerCase();
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
         identityZone.setSubdomain(id);
         identityZone.setName("Test Saml Key Zone");
         identityZone.setDescription("Testing SAML Key Rotation");
-        Map<String, String> keys = new HashMap<>();
-        keys.put("exampleKeyId", "s1gNiNg.K3y/t3XT");
+        Map<String, String> keys = Map.of("exampleKeyId", "s1gNiNg.K3y/t3XT");
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
         SamlConfig samlConfig = new SamlConfig();
-        samlConfig.setCertificate(legacyCertificate);
-        samlConfig.setPrivateKey(legacyKey);
-        samlConfig.setPrivateKeyPassword(legacyPassphrase);
-        SamlKey samlKey1 = new SamlKey(key1, passphrase1, certificate1);
-        samlConfig.addKey("key1", samlKey1);
-        samlKey2 = new SamlKey(key2, passphrase2, certificate2);
-        samlConfig.addKey("key2", samlKey2);
+        samlConfig.setCertificate(legacyCertificate());
+        samlConfig.setPrivateKey(legacyKey());
+        samlConfig.setPrivateKeyPassword(legacyPassphrase());
+        samlConfig.addKey(keyName1(), samlKey1());
+        samlConfig.addKey(keyName2(), samlKey2());
         identityZone.getConfig().setSamlConfig(samlConfig);
 
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null,
-            "openid",
-            "client_credentials,authorization_code",
-            "clients.admin,scim.read,scim.write",
-            "http://test.redirect.com");
+                "openid",
+                "client_credentials,authorization_code",
+                "clients.admin,scim.read,scim.write",
+                "http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
         MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils
-            .createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, zoneAdminClient, identityZone, false, id);
+                .createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, zoneAdminClient, identityZone, false, id);
         zone = identityZoneCreationResult.getIdentityZone();
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"/saml/metadata"})
-    void key_rotation(String url) throws Exception {
+    @Test
+    void key_rotation() throws Exception {
         //default with three keys
-        String metadata = getMetadata(url);
-        List<String> signatureVerificationKeys = getCertificates(metadata, "signing");
-        assertThat(signatureVerificationKeys, containsInAnyOrder(clean(legacyCertificate), clean(certificate1), clean(certificate2)));
-        List<String> encryptionKeys = getCertificates(metadata, "encryption");
-        assertThat(encryptionKeys, containsInAnyOrder(clean(legacyCertificate)));
-        evaluateSignatureKey(metadata, legacyCertificate);
+        XmlAssert metadataAssert = getMetadataAssert();
+        assertThatSigningKeyHasValues(metadataAssert, legacyCertificate(), certificate1(), certificate2());
+        assertThatEncryptionKeyHasValues(metadataAssert, legacyCertificate());
+        assertSignatureKeyHasValue(metadataAssert, legacyCertificate());
 
         //activate key1
-        zone.getConfig().getSamlConfig().setActiveKeyId("key1");
+        zone.getConfig().getSamlConfig().setActiveKeyId(keyName1());
         zone = MockMvcUtils.updateZone(mockMvc, zone);
-        metadata = getMetadata(url);
-        signatureVerificationKeys = getCertificates(metadata, "signing");
-        assertThat(signatureVerificationKeys, containsInAnyOrder(clean(legacyCertificate), clean(certificate1), clean(certificate2)));
-        encryptionKeys = getCertificates(metadata, "encryption");
-        evaluateSignatureKey(metadata, certificate1);
-        assertThat(encryptionKeys, containsInAnyOrder(clean(certificate1)));
+        metadataAssert = getMetadataAssert();
+        assertThatSigningKeyHasValues(metadataAssert, legacyCertificate(), certificate1(), certificate2());
+        assertThatEncryptionKeyHasValues(metadataAssert, certificate1());
+        assertSignatureKeyHasValue(metadataAssert, certificate1());
 
         //remove all but key2
         zone.getConfig().getSamlConfig().setKeys(new HashMap<>());
-        zone.getConfig().getSamlConfig().addAndActivateKey("key2", samlKey2);
+        zone.getConfig().getSamlConfig().addAndActivateKey(keyName2(), samlKey2());
         zone = MockMvcUtils.updateZone(mockMvc, zone);
-        metadata = getMetadata(url);
-        signatureVerificationKeys = getCertificates(metadata, "signing");
-        assertThat(signatureVerificationKeys, containsInAnyOrder(clean(certificate2)));
-        evaluateSignatureKey(metadata, certificate2);
-        encryptionKeys = getCertificates(metadata, "encryption");
-        assertThat(encryptionKeys, containsInAnyOrder(clean(certificate2)));
+        metadataAssert = getMetadataAssert();
+        assertThatSigningKeyHasValues(metadataAssert, certificate2());
+        assertThatEncryptionKeyHasValues(metadataAssert, certificate2());
+        assertSignatureKeyHasValue(metadataAssert, certificate2());
     }
 
-    @ParameterizedTest
-    @ValueSource(strings = {"/saml/metadata"})
-    void check_metadata_signature_key(String url) throws Exception {
-        String metadata = getMetadata(url);
+    @Test
+    void check_metadata_signature_key() throws Exception {
+        XmlAssert metadataAssert = getMetadataAssert();
+        assertSignatureKeyHasValue(metadataAssert, legacyCertificate());
 
-        evaluateSignatureKey(metadata, legacyCertificate);
-
-        zone.getConfig().getSamlConfig().setActiveKeyId("key1");
+        zone.getConfig().getSamlConfig().setActiveKeyId(keyName1());
         zone = MockMvcUtils.updateZone(mockMvc, zone);
 
-        metadata = getMetadata(url);
-
-        evaluateSignatureKey(metadata, certificate1);
+        metadataAssert = getMetadataAssert();
+        assertSignatureKeyHasValue(metadataAssert, certificate1());
     }
 
-    private String getMetadata(String uri) throws Exception {
-        return mockMvc.perform(
-                get(uri)
-                        .header("Host", zone.getSubdomain() + ".localhost")
-                        .accept(APPLICATION_XML)
-        )
+    private XmlAssert getMetadataAssert() throws Exception {
+        String metadata = mockMvc.perform(
+                        get(METADATA_URL)
+                                .header("Host", zone.getSubdomain() + ".localhost")
+                                .accept(APPLICATION_XML)
+                )
+                .andDo(print())
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
+
+        return XmlAssert.assertThat(metadata).withNamespaceContext(xmlNamespaces());
     }
 
-    private String clean(String cert) {
-        return cert.replace("-----BEGIN CERTIFICATE-----", "")
-                .replace("-----END CERTIFICATE-----", "")
-                .replace("\n", "");
+    private void assertSignatureKeyHasValue(XmlAssert metadata, String expectedKey) {
+        metadata.hasXPath(SIGNATURE_CERTIFICATE_XPATH_FORMAT)
+                .isNotEmpty()
+                .extractingText()
+                .containsOnly(formatCert(expectedKey));
     }
 
-    private void evaluateSignatureKey(String metadata, String expectedKey) throws Exception {
-        String xpath = "//*[local-name() = 'Signature']//*[local-name() = 'X509Certificate']/text()";
-        NodeList nodeList = SamlTestUtils.evaluateXPathExpression(SamlTestUtils.getMetadataDoc(metadata), xpath);
-        assertNotNull(nodeList);
-        assertEquals(1, nodeList.getLength());
-        assertEquals(clean(expectedKey), clean(nodeList.item(0).getNodeValue()));
+    private void assertThatSigningKeyHasValues(XmlAssert xmlAssert, String... certificates) {
+        assertThatXmlKeysOfTypeHasValues(xmlAssert, "signing", certificates);
     }
 
+    private void assertThatEncryptionKeyHasValues(XmlAssert xmlAssert, String... certificates) {
+        assertThatXmlKeysOfTypeHasValues(xmlAssert, "encryption", certificates);
+    }
+
+    private void assertThatXmlKeysOfTypeHasValues(XmlAssert xmlAssert, String type, String... certificates) {
+        String[] cleanCerts = Arrays.stream(certificates).map(TestCredentialObjects::bare).toArray(String[]::new);
+        xmlAssert.hasXPath(KEY_DESCRIPTOR_CERTIFICATE_XPATH_FORMAT.formatted(type))
+                .isNotEmpty()
+                .extractingText()
+                .containsExactlyInAnyOrder(cleanCerts);
+    }
 }
