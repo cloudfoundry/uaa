@@ -4,18 +4,17 @@ import org.cloudfoundry.identity.uaa.authentication.SamlLogoutRequestValidator;
 import org.cloudfoundry.identity.uaa.authentication.SamlLogoutResponseValidator;
 import org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutSuccessHandler;
 import org.cloudfoundry.identity.uaa.login.UaaAuthenticationFailureHandler;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutSuccessHandler;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequestValidator;
@@ -41,10 +40,8 @@ import org.springframework.security.web.context.HttpSessionSecurityContextReposi
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfLogoutHandler;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
-import org.springframework.security.web.util.matcher.RequestMatcher;
 
 import javax.servlet.Filter;
-import javax.servlet.http.HttpServletRequest;
 
 /**
  * Configuration for SAML Filters and Authentication Providers for SAML Authentication.
@@ -60,10 +57,7 @@ public class SamlAuthenticationFilterConfig {
     @Autowired
     @Bean
     Filter saml2WebSsoAuthenticationRequestFilter(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
-        SamlRelayStateResolver relayStateResolver = new SamlRelayStateResolver();
-
         OpenSaml4AuthenticationRequestResolver openSaml4AuthenticationRequestResolver = new OpenSaml4AuthenticationRequestResolver(relyingPartyRegistrationResolver);
-        openSaml4AuthenticationRequestResolver.setRelayStateResolver(relayStateResolver);
 
         return new Saml2WebSsoAuthenticationRequestFilter(openSaml4AuthenticationRequestResolver);
     }
@@ -120,9 +114,10 @@ public class SamlAuthenticationFilterConfig {
     Filter saml2WebSsoAuthenticationFilter(AuthenticationProvider samlAuthenticationProvider,
                                            RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
                                            SecurityContextRepository securityContextRepository,
-                                           SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler) {
+                                           SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler,
+                                           UaaSavedRequestAwareAuthenticationSuccessHandler samlLoginAuthenticationSuccessHandler) {
 
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new RelayStateRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
+        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
         Saml2AuthenticationTokenConverter saml2AuthenticationTokenConverter = new Saml2AuthenticationTokenConverter(relyingPartyRegistrationResolver);
         Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter = new Saml2WebSsoAuthenticationFilter(saml2AuthenticationTokenConverter, BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
 
@@ -131,16 +126,27 @@ public class SamlAuthenticationFilterConfig {
         saml2WebSsoAuthenticationFilter.setSecurityContextRepository(securityContextRepository);
         saml2WebSsoAuthenticationFilter.setFilterProcessesUrl(BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
         saml2WebSsoAuthenticationFilter.setAuthenticationFailureHandler(samlLoginAuthenticationFailureHandler);
+        saml2WebSsoAuthenticationFilter.setAuthenticationSuccessHandler(samlLoginAuthenticationSuccessHandler);
 
         return saml2WebSsoAuthenticationFilter;
     }
 
+    /**
+     * Handler deciding where to redirect user after unsuccessful login
+     */
     @Bean
-    public SamlLoginAuthenticationFailureHandler getSamlLoginAuthenticationFailureHandler() {
-        SamlLoginAuthenticationFailureHandler handler =
-                new SamlLoginAuthenticationFailureHandler();
+    public SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler() {
+        SamlLoginAuthenticationFailureHandler handler = new SamlLoginAuthenticationFailureHandler();
         handler.setDefaultFailureUrl("/saml_error");
         return handler;
+    }
+
+    /**
+     * Handler deciding where to redirect user after successful login
+     */
+    @Bean
+    public UaaSavedRequestAwareAuthenticationSuccessHandler successRedirectHandler() {
+        return new UaaSavedRequestAwareAuthenticationSuccessHandler();
     }
 
     @Autowired
@@ -252,19 +258,5 @@ public class SamlAuthenticationFilterConfig {
         RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
         return new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
                 identityProviderProvisioning, samlUaaAuthenticationUserManager, applicationEventPublisher);
-    }
-}
-
-class SamlRelayStateResolver implements Converter<HttpServletRequest, String> {
-    RequestMatcher requestMatcher = new AntPathRequestMatcher("/saml2/authenticate/{registrationId}");
-
-    @Override
-    public String convert(HttpServletRequest request) {
-        RequestMatcher.MatchResult result = this.requestMatcher.matcher(request);
-        if (!result.isMatch()) {
-            return null;
-        }
-
-        return result.getVariables().get("registrationId");
     }
 }

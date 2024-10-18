@@ -2,7 +2,9 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.Builder;
 import lombok.Value;
+import lombok.With;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.springframework.security.saml2.Saml2Exception;
@@ -21,6 +23,7 @@ import java.util.function.UnaryOperator;
  */
 @Slf4j
 public class RelyingPartyRegistrationBuilder {
+    public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
     private static final UnaryOperator<String> assertionConsumerServiceLocationFunction = "{baseUrl}/saml/SSO/alias/%s"::formatted;
     private static final UnaryOperator<String> singleLogoutServiceResponseLocationFunction = "{baseUrl}/saml/SingleLogout/alias/%s"::formatted;
@@ -36,7 +39,13 @@ public class RelyingPartyRegistrationBuilder {
      * @param params the params object used to build the RelyingPartyRegistration object
      * @return a RelyingPartyRegistration object
      */
-    public static RelyingPartyRegistration buildRelyingPartyRegistration(Params params) {
+    public static RelyingPartyRegistration buildRelyingPartyRegistration(Params builderParams) {
+        final Params params;
+        if (StringUtils.isEmpty(builderParams.getMetadataLocation())) {
+            params = builderParams.withMetadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML);
+        } else {
+            params = builderParams;
+        }
 
         SamlIdentityProviderDefinition.MetadataLocation type = SamlIdentityProviderDefinition.getType(params.metadataLocation);
         RelyingPartyRegistration.Builder builder;
@@ -84,6 +93,7 @@ public class RelyingPartyRegistrationBuilder {
      */
     @Value
     @Builder
+    @With
     public static class Params {
         /**
          * the entityId of the relying party

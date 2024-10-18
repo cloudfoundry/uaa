@@ -39,30 +39,40 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
         IdentityZone currentZone = retrieveZone();
         List<SamlIdentityProviderDefinition> identityProviderDefinitions = configurator.getIdentityProviderDefinitionsForZone(currentZone);
+
         for (SamlIdentityProviderDefinition identityProviderDefinition : identityProviderDefinitions) {
             if (identityProviderDefinition.getIdpEntityAlias().equals(registrationId)) {
-
-                SamlKeyManager samlKeyManager = retrieveKeyManager();
-                List<KeyWithCert> keyWithCerts = samlKeyManager.getAvailableCredentials();
-
-                String zonedSamlEntityID = getZoneEntityId(currentZone);
-                String zonedSamlEntityIDAlias = getZoneEntityIdAlias(currentZone);
-                boolean requestSigned = currentZone.getConfig().getSamlConfig().isRequestSigned();
-                String nameID = Optional.ofNullable(identityProviderDefinition.getNameID()).orElse(uaaWideSamlNameId);
-
-                RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
-                        .samlEntityID(zonedSamlEntityID)
-                        .samlSpNameId(nameID)
-                        .keys(keyWithCerts)
-                        .metadataLocation(identityProviderDefinition.getMetaDataLocation())
-                        .rpRegistrationId(registrationId)
-                        .samlSpAlias(zonedSamlEntityIDAlias)
-                        .requestSigned(requestSigned)
-                        .signatureAlgorithms(signatureAlgorithms)
-                        .build();
-                return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params);
+                return createRelyingPartyRegistration(registrationId, identityProviderDefinition, currentZone);
             }
         }
+
+        if (!identityProviderDefinitions.isEmpty()) {
+            SamlIdentityProviderDefinition identityProviderDefinition = identityProviderDefinitions.get(0);
+            return createRelyingPartyRegistration(identityProviderDefinition.getIdpEntityAlias(), identityProviderDefinition, currentZone);
+        }
+
         return null;
+    }
+
+    private RelyingPartyRegistration createRelyingPartyRegistration(String registrationId, SamlIdentityProviderDefinition identityProviderDefinition, IdentityZone currentZone) {
+        SamlKeyManager samlKeyManager = retrieveKeyManager();
+        List<KeyWithCert> keyWithCerts = samlKeyManager.getAvailableCredentials();
+
+        String zonedSamlEntityID = getZoneEntityId(currentZone);
+        String zonedSamlEntityIDAlias = getZoneEntityIdAlias(currentZone);
+        boolean requestSigned = currentZone.getConfig().getSamlConfig().isRequestSigned();
+        String nameID = Optional.ofNullable(identityProviderDefinition.getNameID()).orElse(uaaWideSamlNameId);
+
+        RelyingPartyRegistrationBuilder.Params params = RelyingPartyRegistrationBuilder.Params.builder()
+                .samlEntityID(zonedSamlEntityID)
+                .samlSpNameId(nameID)
+                .keys(keyWithCerts)
+                .metadataLocation(identityProviderDefinition.getMetaDataLocation())
+                .rpRegistrationId(registrationId)
+                .samlSpAlias(zonedSamlEntityIDAlias)
+                .requestSigned(requestSigned)
+                .signatureAlgorithms(signatureAlgorithms)
+                .build();
+        return RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params);
     }
 }

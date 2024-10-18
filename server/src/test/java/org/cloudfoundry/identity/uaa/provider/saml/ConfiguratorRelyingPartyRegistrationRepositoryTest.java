@@ -126,10 +126,23 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
     @Test
     void findByRegistrationIdWhenNoneFound() {
         when(repository.retrieveZone()).thenReturn(identityZone);
+        assertThat(repository.findByRegistrationId("registrationIdNotFound")).isNull();
+    }
+
+    @Test
+    void getsDefaultOnNoExactMatch() {
+        String metadata = loadResouceAsString("saml-sample-metadata.xml");
+        when(repository.retrieveZone()).thenReturn(identityZone);
+        when(identityZone.isUaa()).thenReturn(true);
+        when(identityZone.getConfig()).thenReturn(identityZoneConfiguration);
+        when(identityZoneConfiguration.getSamlConfig()).thenReturn(samlConfig);
         when(definition.getIdpEntityAlias()).thenReturn(REGISTRATION_ID);
+        when(definition.getNameID()).thenReturn(NAME_ID);
+        when(definition.getMetaDataLocation()).thenReturn(metadata);
         when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
 
-        assertThat(repository.findByRegistrationId("registrationIdNotFound")).isNull();
+        assertThat(repository.findByRegistrationId("defaultRegistrationId"))
+                .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId);
     }
 
     @Test

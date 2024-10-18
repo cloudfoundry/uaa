@@ -909,11 +909,14 @@ public class IntegrationTestUtils {
                                       String zoneId,
                                       String originKey) {
         IdentityProvider<? extends AbstractIdentityProviderDefinition> provider = getProvider(zoneAdminToken, url, zoneId, originKey);
+        if (provider == null) {
+            return;
+        }
         RestTemplate client = new RestTemplate();
         MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         headers.add("Authorization", "bearer " + zoneAdminToken);
         headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
-        HttpEntity getHeaders = new HttpEntity<>(headers);
+        HttpEntity<?> getHeaders = new HttpEntity<>(headers);
         final ResponseEntity<String> response = client.exchange(
                 url + "/identity-providers/" + provider.getId(),
                 HttpMethod.DELETE,

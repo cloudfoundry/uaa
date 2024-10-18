@@ -56,7 +56,6 @@ import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlDecodeA
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_DIGEST_SHA256;
@@ -92,11 +91,6 @@ class SamlAuthenticationMockMvcTests {
 
     private JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
 
-    //    @Autowired
-    //    private LoggingAuditService loggingAuditService;
-    //    private InterceptingLogger testLogger;
-    //    private Logger originalAuditServiceLogger;
-
     private static void createUser(
             JdbcScimUserProvisioning jdbcScimUserProvisioning,
             IdentityZone identityZone
@@ -126,16 +120,8 @@ class SamlAuthenticationMockMvcTests {
         createUser(jdbcScimUserProvisioning, idpZone);
     }
 
-    //    @AfterEach
-    //    void putBackOriginalLogger() {
-    //        loggingAuditService.setLogger(originalAuditServiceLogger);
-    //    }
-
     @BeforeEach
-    void installTestLogger() {
-        //        testLogger = new InterceptingLogger();
-        //        originalAuditServiceLogger = loggingAuditService.getLogger();
-        //        loggingAuditService.setLogger(testLogger);
+    void setupEsapiProps() {
         Properties esapiProps = new Properties();
         esapiProps.put("ESAPI.Logger", "org.owasp.esapi.logging.slf4j.Slf4JLogFactory");
         esapiProps.put("ESAPI.Encoder", "org.owasp.esapi.reference.DefaultEncoder");
@@ -167,7 +153,6 @@ class SamlAuthenticationMockMvcTests {
         assertThat("SigAlg is missing", parameterMap.get(SIG_ALG)[0], containsString(ALGO_ID_SIGNATURE_RSA_SHA256));
         assertThat("Signature is missing", parameterMap.get(SIGNATURE), notNullValue());
         assertThat("RelayState is missing", parameterMap.get(RELAY_STATE), notNullValue());
-        assertThat(parameterMap.get(RELAY_STATE)[0], equalTo("testsaml-redirect-binding"));
 
         // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
         String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
@@ -188,16 +173,14 @@ class SamlAuthenticationMockMvcTests {
     void sendAuthnRequestToIdpPostBindingMode() throws Exception {
         final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
 
-        MvcResult mvcResult = mockMvc.perform(
-                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
-                                .contextPath("/uaa")
-                                .header(HOST, "localhost:8080")
+        MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
                 )
                 .andDo(print())
                 .andExpectAll(
                         status().isOk(),
-                        content().string(containsString("name=\"SAMLRequest\"")),
-                        content().string(containsString("name=\"RelayState\" value=\"testsaml-post-binding\"")))
+                        content().string(containsString("name=\"SAMLRequest\"")))
                 .andReturn();
 
         // Decode the SAMLRequest and check the AssertionConsumerServiceURL
@@ -233,10 +216,9 @@ class SamlAuthenticationMockMvcTests {
         createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-redirect-binding.xml", "testsaml-redirect-binding");
 
         // trigger saml login in the non-default zone
-        MvcResult mvcResult = mockMvc.perform(
-                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
-                                .contextPath("/uaa")
-                                .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
+        MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                        .contextPath("/uaa")
+                        .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
                 )
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
@@ -248,7 +230,6 @@ class SamlAuthenticationMockMvcTests {
         assertThat("SigAlg is missing", parameterMap.get(SIG_ALG), notNullValue());
         assertThat("Signature is missing", parameterMap.get(SIGNATURE), notNullValue());
         assertThat("RelayState is missing", parameterMap.get(RELAY_STATE), notNullValue());
-        assertThat(parameterMap.get(RELAY_STATE)[0], equalTo("testsaml-redirect-binding"));
 
         // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
         String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
@@ -273,10 +254,9 @@ class SamlAuthenticationMockMvcTests {
         createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-redirect-binding.xml", "testsaml-redirect-binding");
 
         // trigger saml login in the non-default zone
-        MvcResult mvcResult = mockMvc.perform(
-                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
-                                .contextPath("/uaa")
-                                .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
+        MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                        .contextPath("/uaa")
+                        .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
                 )
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
@@ -288,7 +268,6 @@ class SamlAuthenticationMockMvcTests {
         assertThat("SigAlg is missing", parameterMap.get(SIG_ALG), notNullValue());
         assertThat("Signature is missing", parameterMap.get(SIGNATURE), notNullValue());
         assertThat("RelayState is missing", parameterMap.get(RELAY_STATE), notNullValue());
-        assertThat(parameterMap.get(RELAY_STATE)[0], equalTo("testsaml-redirect-binding"));
 
         // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
         String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
@@ -308,16 +287,14 @@ class SamlAuthenticationMockMvcTests {
 
         final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
 
-        MvcResult mvcResult = mockMvc.perform(
-                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
-                                .contextPath("/uaa")
-                                .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
+        MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
+                        .contextPath("/uaa")
+                        .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
                 )
                 .andDo(print())
                 .andExpectAll(
                         status().isOk(),
-                        content().string(containsString("name=\"SAMLRequest\"")),
-                        content().string(containsString("name=\"RelayState\" value=\"testsaml-post-binding\"")))
+                        content().string(containsString("name=\"SAMLRequest\"")))
                 .andReturn();
 
         // Decode the SAMLRequest and check the AssertionConsumerServiceURL
@@ -341,12 +318,10 @@ class SamlAuthenticationMockMvcTests {
     void receiveAuthnResponseFromIdpToLegacyAliasUrl() throws Exception {
 
         String encodedSamlResponse = serializedResponse(responseWithAssertions());
-        mockMvc.perform(
-                        post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
-                                .contextPath("/uaa")
-                                .header(HOST, "localhost:8080")
-                                .param(SAML_RESPONSE, encodedSamlResponse)
-                                .param(RELAY_STATE, "testsaml-post-binding")
+        mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
+                        .param(SAML_RESPONSE, encodedSamlResponse)
                 )
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
@@ -359,16 +334,15 @@ class SamlAuthenticationMockMvcTests {
             final String xml,
             final String queryString,
             final String content,
-            final String xVcapRequestId
-    ) throws Exception {
-        return mockMvc.perform(
-                post("/uaa/saml/SSO/alias/%s%s".formatted(spZoneEntityId, queryString))
-                        .contextPath("/uaa")
-                        .header(HOST, spZone.getSubdomain() + ".localhost:8080")
-                        .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .header(X_VCAP_REQUEST_ID_HEADER, xVcapRequestId)
-                        .content(content)
-                        .param(SAML_RESPONSE, xml)
+            final String xVcapRequestId) throws Exception {
+
+        return mockMvc.perform(post("/uaa/saml/SSO/alias/%s%s".formatted(spZoneEntityId, queryString))
+                .contextPath("/uaa")
+                .header(HOST, spZone.getSubdomain() + ".localhost:8080")
+                .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header(X_VCAP_REQUEST_ID_HEADER, xVcapRequestId)
+                .content(content)
+                .param(SAML_RESPONSE, xml)
         );
     }
 
@@ -439,10 +413,9 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void unsignedAuthnRequestViaIdpRedirectBindingMode() throws Exception {
-            MvcResult mvcResult = mockMvc.perform(
-                            get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
-                                    .contextPath("/uaa")
-                                    .header(HOST, "localhost:8080")
+            MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
                     )
                     .andDo(print())
                     .andExpect(status().is3xxRedirection())
@@ -461,16 +434,14 @@ class SamlAuthenticationMockMvcTests {
         void unsignedAuthnRequestViaIdpPostBindingMode() throws Exception {
             final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
 
-            MvcResult mvcResult = mockMvc.perform(
-                            get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
-                                    .contextPath("/uaa")
-                                    .header(HOST, "localhost:8080")
+            MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
                     )
                     .andDo(print())
                     .andExpectAll(
                             status().isOk(),
-                            content().string(containsString("name=\"SAMLRequest\"")),
-                            content().string(containsString("name=\"RelayState\" value=\"testsaml-post-binding\"")))
+                            content().string(containsString("name=\"SAMLRequest\"")))
                     .andReturn();
 
             // Decode the SAMLRequest and check the AssertionConsumerServiceURL
@@ -497,12 +468,11 @@ class SamlAuthenticationMockMvcTests {
         Response response = responseWithAssertions();
         response.setInResponseTo("incorrect");
         String encodedSamlResponse = serializedResponse(response);
-        mockMvc.perform(
-                        post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
-                                .contextPath("/uaa")
-                                .header(HOST, "localhost:8080")
-                                .param(SAML_RESPONSE, encodedSamlResponse)
-                                .param(RELAY_STATE, "testsaml-post-binding")
+        mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
+                        .param(SAML_RESPONSE, encodedSamlResponse)
+                        .param(RELAY_STATE, "testsaml-post-binding")
                 )
                 .andDo(print())
                 .andExpect(status().is3xxRedirection())
@@ -524,12 +494,10 @@ class SamlAuthenticationMockMvcTests {
             Response response = responseWithAssertions();
             response.setInResponseTo("incorrect");
             String encodedSamlResponse = serializedResponse(response);
-            mockMvc.perform(
-                            post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
-                                    .contextPath("/uaa")
-                                    .header(HOST, "localhost:8080")
-                                    .param(SAML_RESPONSE, encodedSamlResponse)
-                                    .param(RELAY_STATE, "testsaml-post-binding")
+            mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
+                            .param(SAML_RESPONSE, encodedSamlResponse)
                     )
                     .andDo(print())
                     .andExpect(status().is3xxRedirection())
@@ -548,10 +516,9 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void sendAuthnRequestToIdpRedirectBindingMode() throws Exception {
-            MvcResult mvcResult = mockMvc.perform(
-                            get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
-                                    .contextPath("/uaa")
-                                    .header(HOST, "localhost:8080")
+            MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
                     )
                     .andDo(print())
                     .andExpect(status().is3xxRedirection())
@@ -644,6 +611,7 @@ class SamlAuthenticationMockMvcTests {
                 final String expectedMessage) {
 
             assertThat(logEvents).filteredOn(l -> l.getLevel().equals(expectedLevel))
+                    .isNotEmpty()
                     .first()
                     .returns(expectedMessage, l -> l.getMessage().getFormattedMessage());
         }

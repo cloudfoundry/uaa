@@ -289,13 +289,14 @@
           class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutSuccessHandler">
         <constructor-arg name="providerProvisioning" ref="externalOAuthProviderConfigurator"/>
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
+        <constructor-arg name="identityZoneManager" ref="identityZoneManager"/>
     </bean>
 
     <bean id="logoutHandler"
           class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutSuccessHandler">
-        <constructor-arg ref="jdbcClientDetailsService"/>
-        <constructor-arg ref="externalOAuthLogoutHandler"/>
-        <constructor-arg ref="keyInfoService"/>
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="externalOAuthLogoutHandler" ref="externalOAuthLogoutHandler"/>
+        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
     </bean>
 
     <!--<mvc:resources location="/" mapping="/**" />-->
@@ -384,10 +385,6 @@
             </map>
         </property>
     </bean>
-
-    <!-- Handler deciding where to redirect user after successful login -->
-    <bean id="successRedirectHandler"
-          class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler"/>
 
     <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
 

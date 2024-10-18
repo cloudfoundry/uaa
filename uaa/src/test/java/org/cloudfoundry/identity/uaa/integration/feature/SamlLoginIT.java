@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.integration.pageObjects.HomePage;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.Page;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.PasscodePage;
+import org.cloudfoundry.identity.uaa.integration.pageObjects.SamlLoginPage;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.SamlWelcomePage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
@@ -186,9 +187,8 @@ public class SamlLoginIT {
     }
 
     @BeforeEach
-    void setup() {
+    void setupZones() {
         String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
-
         IntegrationTestUtils.ensureGroupExists(token, null, baseUrl, "zones.uaa.admin");
         IntegrationTestUtils.ensureGroupExists(token, null, baseUrl, "zones.testzone1.admin");
         IntegrationTestUtils.ensureGroupExists(token, null, baseUrl, "zones.testzone2.admin");
@@ -197,7 +197,7 @@ public class SamlLoginIT {
     }
 
     @AfterEach
-    void cleanup() {
+    void afterEach() {
         String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         for (String zoneId : Arrays.asList("testzone1", "testzone2", "testzone3", "testzone4", "uaa")) {
             String groupId = IntegrationTestUtils.getGroup(token, "", baseUrl, "zones.%s.admin".formatted(zoneId)).getId();
@@ -210,6 +210,8 @@ public class SamlLoginIT {
                 // ignored
             }
         }
+        IntegrationTestUtils.deleteProvider(token, baseUrl, "uaa", SAML_ORIGIN);
+        IntegrationTestUtils.deleteProvider(token, baseUrl, "uaa", "simplesamlphp2");
     }
 
     @BeforeEach
@@ -420,6 +422,14 @@ public class SamlLoginIT {
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimUser user = IntegrationTestUtils.getUser(zoneAdminToken, baseUrl, SAML_ORIGIN, testAccounts.getEmail());
         IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+    }
+
+    @Test
+    void idpInitiatedLogin() throws Exception {
+        createIdentityProvider(SAML_ORIGIN);
+        webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
+        new SamlLoginPage(webDriver)
+                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     @Test
@@ -718,67 +728,18 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: Requires processing of RelayState")
-    void relayStateRedirectFromIdp() throws InterruptedException {
-        //ensure we are able to resolve DNS for hostname testzone1.localhost
-        String zoneId = "testzone1";
+    void relayStateRedirectFromIdpInitiatedLogin() throws Exception {
+        createIdentityProvider(SAML_ORIGIN);
 
-        //identity client token
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
-        );
+        webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login&RelayState=https://www.google.com".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
 
-        //admin client token - to create users
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
-        );
-
-        //create the zone
-        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
-        config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(List.of(GET.toString(), POST.toString()));
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
-
-        //create a zone admin user
-        String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
-        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, "zones.%s.admin".formatted(zoneId));
-        IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
-
-        //get the zone admin token
-        String zoneAdminToken =
-                IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
-                        UaaTestAccounts.standard(serverRunning),
-                        "identity",
-                        "identitysecret",
-                        email,
-                        "secr3T");
-
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP(SAML_ORIGIN);
-        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
-        provider.setIdentityZoneId(zoneId);
-        provider.setType(OriginKeys.SAML);
-        provider.setActive(true);
-        provider.setConfig(samlIdentityProviderDefinition);
-        provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
-        provider.setName("simplesamlphp for testzone1");
-
-        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
-        assertThat(provider.getConfig().getIdpEntityAlias()).isEqualTo(provider.getOriginKey());
-
-        String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
-        webDriver.get("%s/logout.do".formatted(zoneUrl));
-
-        String samlUrl = "%s/saml2/idp/SSOService.php?spentityid=testzone1.cloudfoundry-saml-login&RelayState=https://www.google.com"
-                .formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE );
-        webDriver.get(samlUrl);
-
-        //we should now be in the Simple SAML PHP site
+        // we should now be in the Simple SAML PHP site
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
-        sendCredentials(testAccounts.getUserName(), "koala");
+        sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
 
         Page.validateUrlStartsWithWait(webDriver, "https://www.google.com");
+
         webDriver.get("%s/logout.do".formatted(baseUrl));
-        webDriver.get("%s/logout.do".formatted(zoneUrl));
     }
 
     @Test

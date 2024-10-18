@@ -25,6 +25,7 @@ import java.net.URI;
  */
 @Slf4j
 public class SamlLoginAuthenticationFailureHandler extends SimpleUrlAuthenticationFailureHandler {
+    MalformedSamlResponseLogger malformedLogger = new MalformedSamlResponseLogger();
 
     @Override
     public void onAuthenticationFailure(final HttpServletRequest request, final HttpServletResponse response,
@@ -34,8 +35,7 @@ public class SamlLoginAuthenticationFailureHandler extends SimpleUrlAuthenticati
         if (exception instanceof SamlLoginException) {
             redirectTo = handleSamlLoginException(request, response, exception);
         } else if (exception instanceof Saml2AuthenticationException) {
-            MalformedSamlResponseLogger logger = new MalformedSamlResponseLogger();
-            logger.logMalformedResponse(request);
+            malformedLogger.logMalformedResponse(request);
         }
 
         if (redirectTo == null) {
