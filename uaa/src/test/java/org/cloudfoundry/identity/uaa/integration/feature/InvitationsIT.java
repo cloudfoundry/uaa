@@ -65,17 +65,12 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 public class InvitationsIT {
 
     @Autowired
-    TestAccounts testAccounts;
-
-    @Autowired
     @Rule
     public IntegrationTestRule integrationTestRule;
-
     @Rule
     public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
     @Rule
     public RetryRule retryRule = new RetryRule(3);
-
     @Autowired
     WebDriver webDriver;
 
@@ -96,6 +91,47 @@ public class InvitationsIT {
     private String scimToken;
     private String loginToken;
     private String testInviteEmail;
+
+    public static String createInvitation(String baseUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + scimToken);
+        RestTemplate uaaTemplate = new RestTemplate();
+        ScimUser scimUser = new ScimUser();
+        scimUser.setPassword("password");
+        scimUser.setUserName(username);
+        scimUser.setPrimaryEmail(userEmail);
+        scimUser.setOrigin(origin);
+        scimUser.setVerified(false);
+
+        String userId = null;
+        try {
+            userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
+            scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
+        } catch (RuntimeException ignored) {
+            // ignored
+        }
+        if (userId == null) {
+            HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
+            ResponseEntity<ScimUser> response = uaaTemplate.exchange(baseUrl + "/Users", POST, request, ScimUser.class);
+            if (response.getStatusCode().value() != HttpStatus.CREATED.value()) {
+                throw new IllegalStateException("Unable to create test user:" + scimUser);
+            }
+            userId = response.getBody().getId();
+        } else {
+            scimUser.setVerified(false);
+            IntegrationTestUtils.updateUser(scimToken, baseUrl, scimUser);
+        }
+
+        HttpHeaders invitationHeaders = new HttpHeaders();
+        invitationHeaders.add("Authorization", "Bearer " + loginToken);
+
+        Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
+        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}", null);
+        HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, invitationHeaders);
+        ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(baseUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
+        expiringCode = expiringCodeResponse.getBody();
+        return expiringCode.getCode();
+    }
 
     @BeforeEach
     public void setup() {
@@ -134,7 +170,7 @@ public class InvitationsIT {
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.get(appUrl + "/j_spring_security_logout");
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         webDriver.manage().deleteAllCookies();
 
         webDriver.get("http://localhost:8080/app/");
@@ -302,46 +338,5 @@ public class InvitationsIT {
 
     private String createInvitation(String username, String userEmail, String redirectUri, String origin) {
         return createInvitation(baseUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
-    }
-
-    public static String createInvitation(String baseUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer " + scimToken);
-        RestTemplate uaaTemplate = new RestTemplate();
-        ScimUser scimUser = new ScimUser();
-        scimUser.setPassword("password");
-        scimUser.setUserName(username);
-        scimUser.setPrimaryEmail(userEmail);
-        scimUser.setOrigin(origin);
-        scimUser.setVerified(false);
-
-        String userId = null;
-        try {
-            userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
-            scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
-        } catch (RuntimeException ignored) {
-            // ignored
-        }
-        if (userId == null) {
-            HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
-            ResponseEntity<ScimUser> response = uaaTemplate.exchange(baseUrl + "/Users", POST, request, ScimUser.class);
-            if (response.getStatusCode().value() != HttpStatus.CREATED.value()) {
-                throw new IllegalStateException("Unable to create test user:" + scimUser);
-            }
-            userId = response.getBody().getId();
-        } else {
-            scimUser.setVerified(false);
-            IntegrationTestUtils.updateUser(scimToken, baseUrl, scimUser);
-        }
-
-        HttpHeaders invitationHeaders = new HttpHeaders();
-        invitationHeaders.add("Authorization", "Bearer " + loginToken);
-
-        Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
-        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}", null);
-        HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, invitationHeaders);
-        ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(baseUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
-        expiringCode = expiringCodeResponse.getBody();
-        return expiringCode.getCode();
     }
 }

@@ -69,7 +69,6 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,6 +87,8 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class OIDCLoginIT {
 
+    private static final String PASSWORD_AUTHN_CTX = "urn:oasis:names:tc:SAML:2.0:ac:classes:Password";
+
     @Autowired
     @Rule
     public IntegrationTestRule integrationTestRule;
@@ -104,8 +105,6 @@ public class OIDCLoginIT {
     @Autowired
     TestAccounts testAccounts;
 
-    private static final String PASSWORD_AUTHN_CTX = "urn:oasis:names:tc:SAML:2.0:ac:classes:Password";
-
     private ServerRunning serverRunning = ServerRunning.isRunning();
 
     private IdentityZone zone;
@@ -117,6 +116,14 @@ public class OIDCLoginIT {
     private UaaClientDetails zoneClient;
     private ScimGroup createdGroup;
     private RestTemplate identityClient;
+
+    public static boolean doesSupportZoneDNS() {
+        try {
+            return Arrays.equals(Inet4Address.getByName("oidcloginit.localhost").getAddress(), new byte[]{127, 0, 0, 1});
+        } catch (UnknownHostException e) {
+            return false;
+        }
+    }
 
     @BeforeEach
     void setUp() throws Exception {
@@ -195,14 +202,6 @@ public class OIDCLoginIT {
         assertThat(identityProvider.getConfig().getRelyingPartySecret()).isNull();
     }
 
-    public static boolean doesSupportZoneDNS() {
-        try {
-            return Arrays.equals(Inet4Address.getByName("oidcloginit.localhost").getAddress(), new byte[]{127, 0, 0, 1});
-        } catch (UnknownHostException e) {
-            return false;
-        }
-    }
-
     @AfterEach
     void tearDown() throws URISyntaxException {
         doLogout(zoneUrl);
@@ -210,7 +209,7 @@ public class OIDCLoginIT {
     }
 
     private void doLogout(String zoneUrl) {
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         webDriver.manage().deleteAllCookies();
 
         for (String url : Arrays.asList(baseUrl + "/logout.do", zoneUrl + "/logout.do")) {
@@ -298,14 +297,16 @@ public class OIDCLoginIT {
         updateProvider();
 
         webDriver.get(linkLocation);
-        assertThat(webDriver.getCurrentUrl()).contains(baseUrl);
+        Page.assertThatUrlEventuallySatisfies(webDriver, asa -> asa.contains(baseUrl));
 
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.getCurrentUrl()).contains(zoneUrl);
+        Page.assertThatUrlEventuallySatisfies(webDriver, asa -> asa.contains(zoneUrl));
+
         assertThat(webDriver.getPageSource()).contains("Could not resolve identity provider with given origin.");
         webDriver.get(zoneUrl + "/");
+        Page.assertThatUrlEventuallySatisfies(webDriver, urlAssert -> urlAssert.endsWith("/login"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Welcome to");
     }
 
@@ -315,7 +316,6 @@ public class OIDCLoginIT {
         String loginHint = URLEncoder.encode("{\"origin\":\"puppy\"}", StandardCharsets.UTF_8);
 
         webDriver.get(zoneUrl + "/login?login_hint=" + loginHint);
-
         assertThat(webDriver.getCurrentUrl()).startsWith(baseUrl);
     }
 
@@ -458,8 +458,7 @@ public class OIDCLoginIT {
             webDriver.findElement(By.name("password")).sendKeys("saml6");
             webDriver.findElement(By.id("submit_button")).click();
 
-            Page.validateUrlStartsWithWait(webDriver, zoneUrl);
-            assertThat(webDriver.getCurrentUrl()).contains(zoneUrl);
+            Page.assertThatUrlEventuallySatisfies(webDriver, assertUrl -> assertUrl.startsWith(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
 
             Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");

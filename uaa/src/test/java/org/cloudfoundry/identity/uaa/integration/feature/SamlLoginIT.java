@@ -114,8 +114,6 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAME
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_TRANSIENT;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_UNSPECIFIED;
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlNameIdFormats.NAMEID_FORMAT_X509SUBJECT;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_DIGEST_SHA256;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
 import static org.springframework.http.HttpMethod.GET;
@@ -200,8 +198,10 @@ public class SamlLoginIT {
     void afterEach() {
         String token = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         for (String zoneId : Arrays.asList("testzone1", "testzone2", "testzone3", "testzone4", "uaa")) {
-            String groupId = IntegrationTestUtils.getGroup(token, "", baseUrl, "zones.%s.admin".formatted(zoneId)).getId();
-            IntegrationTestUtils.deleteGroup(token, "", baseUrl, groupId);
+            ScimGroup group = IntegrationTestUtils.getGroup(token, "", baseUrl, "zones.%s.admin".formatted(zoneId));
+            if (group != null) {
+                IntegrationTestUtils.deleteGroup(token, "", baseUrl, group.getId());
+            }
 
             try {
                 IntegrationTestUtils.deleteZone(baseUrl, zoneId, token);
@@ -221,7 +221,7 @@ public class SamlLoginIT {
             LogoutDoEndpoint.logout(webDriver, baseUrl.replace("localhost", domain));
             new Page(webDriver).clearCookies();
         }
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
     }
 
     @Test
@@ -334,9 +334,9 @@ public class SamlLoginIT {
     void simpleSamlPhpPasscodeRedirect() throws Exception {
         createIdentityProvider(SAML_ORIGIN);
 
-        PasscodePage.requestPasscode_goesToLoginPage(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToPasscodePage(testAccounts.getUserName(), testAccounts.getPassword());
+        PasscodePage.assertThatRequestPasscode_goesToLoginPage(webDriver, baseUrl)
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToPasscodePage(testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     @Test
@@ -353,10 +353,10 @@ public class SamlLoginIT {
 
         OauthAuthorizeEndpoint
                 .authorize_goesToSamlLoginPage(webDriver, baseUrl, redirectUri, clientId, "code")
-                .login_goesToCustomErrorPage(
+                .assertThatLogin_goesToCustomErrorPage(
                         testAccounts.getUserName(),
                         testAccounts.getPassword(),
-                        containsString("%s?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user.".formatted(redirectUri)));
+                        "%s?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user.".formatted(redirectUri));
     }
 
     @Test
@@ -403,10 +403,10 @@ public class SamlLoginIT {
 
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
-        HomePage.tryToGoHome_redirectsToLoginPage(webDriver, zoneUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToSamlErrorPage(testAccounts.getUserName(), testAccounts.getPassword())
-                .validatePageSource(containsString("Invalid destination"));
+        HomePage.assertThatGoHome_redirectsToLoginPage(webDriver, zoneUrl)
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToSamlErrorPage(testAccounts.getUserName(), testAccounts.getPassword())
+                .assertThatPageSource().contains("Invalid destination");
     }
 
     @Test
@@ -415,8 +415,8 @@ public class SamlLoginIT {
 
         Long beforeTest = System.currentTimeMillis();
         LoginPage.go(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
         Long afterTest = System.currentTimeMillis();
 
         String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
@@ -429,7 +429,7 @@ public class SamlLoginIT {
         createIdentityProvider(SAML_ORIGIN);
         webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
         new SamlLoginPage(webDriver)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
     }
 
     @Test
@@ -438,11 +438,11 @@ public class SamlLoginIT {
 
         Long beforeTest = System.currentTimeMillis();
         HomePage homePage = LoginPage.go(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
-                .logout_goesToLoginPage()
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .assertThatLogout_goesToLoginPage()
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(homePage.hasLastLoginTime()).isTrue();
 
         Long afterTest = System.currentTimeMillis();
@@ -456,10 +456,10 @@ public class SamlLoginIT {
         createIdentityProvider(SAML_ORIGIN);
 
         LoginPage.go(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
-                .logout_goesToLoginPage()
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN);
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .assertThatLogout_goesToLoginPage()
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN);
     }
 
     @Test
@@ -467,8 +467,8 @@ public class SamlLoginIT {
         createIdentityProvider(SAML_ORIGIN);
 
         LoginPage.go(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
         // Logout via IDP
         webDriver.get("%s/saml2/idp/SingleLogoutService.php?ReturnTo=%1$s/module.php/core/welcome".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
@@ -476,7 +476,7 @@ public class SamlLoginIT {
         new SamlWelcomePage(webDriver);
 
         // UAA Should no longer be logged in
-        HomePage.tryToGoHome_redirectsToLoginPage(webDriver, baseUrl);
+        HomePage.assertThatGoHome_redirectsToLoginPage(webDriver, baseUrl);
     }
 
     @Test
@@ -527,9 +527,9 @@ public class SamlLoginIT {
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         LoginPage loginPage = LoginPage.go(webDriver, zoneUrl);
-        loginPage.validateTitle(containsString("testzone2"));
-        loginPage.clickSamlLink_goesToSamlLoginPage("simplesamlphp")
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
+        loginPage.assertThatTitle().contains("testzone2");
+        loginPage.assertThatSamlLink_goesToSamlLoginPage("simplesamlphp")
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
         String redirectUrl = "%s/login?test=test".formatted(zoneUrl);
         UaaClientDetails clientDetails = new UaaClientDetails("test-logout-redirect", null, null, GRANT_TYPE_AUTHORIZATION_CODE, null);
@@ -538,7 +538,7 @@ public class SamlLoginIT {
         IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, clientDetails);
 
         LogoutDoEndpoint.logout_goesToLoginPage(webDriver, zoneUrl, redirectUrl, "test-logout-redirect")
-                .validateUrl(equalTo(redirectUrl));
+                .assertThatUrl().isEqualTo(redirectUrl);
     }
 
     @Test
@@ -556,19 +556,19 @@ public class SamlLoginIT {
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         LoginPage.go(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
-                .logout_goesToLoginPage()
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
+                .assertThatLogout_goesToLoginPage()
                 // Local Logout, but not logged out of IDP, login should skip U/P prompt
-                .clickSamlLink_goesToHomePage(SAML_ORIGIN);
+                .assertThatSamlLink_goesToHomePage(SAML_ORIGIN);
     }
 
     @Test
     void groupIntegration() throws Exception {
         createIdentityProvider(SAML_ORIGIN);
         LoginPage.go(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
     @Test
@@ -576,8 +576,8 @@ public class SamlLoginIT {
         createIdentityProvider(SAML_ORIGIN);
         FaviconElement.getDefaultIcon(webDriver, baseUrl);
         LoginPage.go(webDriver, baseUrl)
-                .clickSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
-                .login_goesToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatLogin_goesToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) throws Exception {
@@ -724,7 +724,7 @@ public class SamlLoginIT {
 
         webDriver.get("%s/logout.do".formatted(baseUrl));
         webDriver.get("%s/logout.do".formatted(zoneUrl));
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
     }
 
     @Test
@@ -736,8 +736,8 @@ public class SamlLoginIT {
         // we should now be in the Simple SAML PHP site
         webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
-
-        Page.validateUrlStartsWithWait(webDriver, "https://www.google.com");
+        Page.assertThatUrlEventuallySatisfies(webDriver,
+                assertUrl -> assertUrl.startsWith("https://www.google.com"));
 
         webDriver.get("%s/logout.do".formatted(baseUrl));
     }
@@ -1255,7 +1255,7 @@ public class SamlLoginIT {
         webDriver.get("%s/logout.do".formatted(testZone1Url));
 
         //disable the first provider
-        SamlLogoutAuthSourceEndpoint.logoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
         provider.setActive(false);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
         assertThat(provider.getId()).isNotNull();
@@ -1283,7 +1283,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void loginPageShowsIDPsForAuthcodeClient() throws Exception {
+    void loginPageShowsIDPsForAuthCodeClient() throws Exception {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(
@@ -1301,8 +1301,8 @@ public class SamlLoginIT {
         testClient.createClient(adminAccessToken, clientDetails);
 
         webDriver.get("%s/oauth/authorize?client_id=%s&redirect_uri=http%%3A%%2F%%2Flocalhost%%3A8888%%2Flogin&response_type=code&state=8tp0tR".formatted(baseUrl, clientId));
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']"));
-        webDriver.findElement(By.xpath("//a[text()='" + provider2.getConfig().getLinkText() + "']"));
+        assertThat(webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']"))).isNotNull();
+        assertThat(webDriver.findElement(By.xpath("//a[text()='" + provider2.getConfig().getLinkText() + "']"))).isNotNull();
     }
 
     @Test

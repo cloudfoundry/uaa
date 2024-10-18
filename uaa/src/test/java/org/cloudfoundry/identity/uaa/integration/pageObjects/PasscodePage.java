@@ -2,9 +2,6 @@ package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import org.openqa.selenium.WebDriver;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-
 /**
  * The PasscodePage class represents the passcode page on the UAA server.
  * Which displays the temporary authentication code.
@@ -15,11 +12,11 @@ public class PasscodePage extends Page {
 
     public PasscodePage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, endsWith(URL_PATH));
-        validatePageSource(driver, containsString("Temporary Authentication Code"));
+        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith(URL_PATH));
+        assertThatPageSource().contains("Temporary Authentication Code");
     }
 
-    public static LoginPage requestPasscode_goesToLoginPage(WebDriver driver, String baseUrl) {
+    public static LoginPage assertThatRequestPasscode_goesToLoginPage(WebDriver driver, String baseUrl) {
         driver.get(baseUrl + URL_PATH);
         return new LoginPage(driver);
     }

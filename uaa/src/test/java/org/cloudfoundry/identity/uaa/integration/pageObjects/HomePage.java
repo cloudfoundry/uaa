@@ -7,10 +7,9 @@ import org.openqa.selenium.WebElement;
 import org.springframework.ui.Model;
 
 import java.security.Principal;
+import java.util.function.Consumer;
 
-import static org.hamcrest.Matchers.anyOf;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * The HomePage class represents the home page on the UAA server.
@@ -23,11 +22,13 @@ public class HomePage extends Page {
 
     public HomePage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, anyOf(endsWith(SLASH_URL_PATH), endsWith(HOME_URL_PATH)));
-        validatePageSource(driver, containsString("Where to?"));
+        Consumer<String> endsWithSlash = url -> assertThat(url).endsWith(SLASH_URL_PATH);
+        Consumer<String> endsWithHome = url -> assertThat(url).endsWith(HOME_URL_PATH);
+        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.satisfiesAnyOf(endsWithSlash, endsWithHome));
+        assertThatPageSource().contains("Where to?");
     }
 
-    public static LoginPage tryToGoHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
+    public static LoginPage assertThatGoHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
         driver.get(baseUrl + SLASH_URL_PATH);
         return new LoginPage(driver);
     }

@@ -6,8 +6,6 @@ import org.openqa.selenium.WebElement;
 
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.hamcrest.Matchers.matchesPattern;
-
 /**
  * The LoginPage class represents the login page on the UAA server.
  * It has url matching: `/login`.
@@ -18,7 +16,7 @@ public class LoginPage extends Page {
 
     public LoginPage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, matchesPattern(".*" + URL_PATH + "(\\?.*)?$"));
+        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.matches(".*" + URL_PATH + "(\\?.*)?$"));
     }
 
     public static LoginPage go(WebDriver driver, String baseUrl) {
@@ -30,7 +28,7 @@ public class LoginPage extends Page {
      * When there is a SAML integration, there is a link to go to a SAML login page.
      * Clicking the link will go to the SAML login page.
      */
-    public SamlLoginPage clickSamlLink_goesToSamlLoginPage(String matchText) {
+    public SamlLoginPage assertThatSamlLink_goesToSamlLoginPage(String matchText) {
         clickSamlLoginLinkWithText(matchText);
         return new SamlLoginPage(driver);
     }
@@ -41,7 +39,7 @@ public class LoginPage extends Page {
      * When going back to the SAML login page, it will log
      * the app back in automatically and immediately redirect to the post-login page.
      */
-    public HomePage clickSamlLink_goesToHomePage(String matchText) {
+    public HomePage assertThatSamlLink_goesToHomePage(String matchText) {
         clickSamlLoginLinkWithText(matchText);
         return new HomePage(driver);
     }
