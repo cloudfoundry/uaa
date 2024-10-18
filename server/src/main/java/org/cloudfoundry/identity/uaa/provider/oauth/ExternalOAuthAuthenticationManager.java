@@ -227,23 +227,23 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (provider != null && provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition) {
             AuthenticationData authenticationData = new AuthenticationData();
 
-            AbstractExternalOAuthIdentityProviderDefinition config = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
-            Map<String, Object> claims = getClaimsFromToken(codeToken, config);
+            Map<String, Object> claims = getClaimsFromToken(codeToken, provider);
 
             if (claims == null) {
                 return null;
             }
             authenticationData.setClaims(claims);
 
+            AbstractExternalOAuthIdentityProviderDefinition config = (AbstractExternalOAuthIdentityProviderDefinition) provider.getConfig();
             Map<String, Object> attributeMappings = config.getAttributeMappings();
 
             String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
             String username;
-            if (StringUtils.hasText(userNameAttributePrefix)) {
-                username = (String) claims.get(userNameAttributePrefix);
+            if (hasText(userNameAttributePrefix)) {
+                username = getMappedClaim(userNameAttributePrefix, USER_NAME_ATTRIBUTE_NAME, claims);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", userNameAttributePrefix, username));
             } else {
-                username = (String) claims.get(SUB);
+                username = getMappedClaim(null, SUB, claims);
                 logger.debug(String.format("Extracted username for claim: %s and username is: %s", SUB, username));
             }
             if (!hasText(username)) {
@@ -425,7 +425,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             return (String) claimObject;
         }
         if (claimObject instanceof Collection) {
-            Set<String> entry = ((Collection<?>) claimObject).stream().map(String.class::cast).collect(Collectors.toSet());
+            Set<String> entry = ((Collection<?>) claimObject).stream().filter(String.class::isInstance).map(String.class::cast).collect(Collectors.toSet());
             if (entry.size() == 1 ) {
                 return entry.stream().collect(Collectors.toList()).get(0);
             } else if (entry.isEmpty()) {
@@ -559,20 +559,26 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    protected Map<String, Object> getClaimsFromToken(ExternalOAuthCodeToken codeToken,
-                                                     AbstractExternalOAuthIdentityProviderDefinition config) {
-        String idToken = getTokenFromCode(codeToken, config);
+    protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> Map<String, Object> getClaimsFromToken(
+            ExternalOAuthCodeToken codeToken,
+            final IdentityProvider<T> identityProvider
+    ){
+        String idToken = getTokenFromCode(codeToken, identityProvider);
         codeToken.setIdToken(idToken);
-        return getClaimsFromToken(idToken, config);
+        return getClaimsFromToken(idToken, identityProvider);
     }
 
-    protected Map<String, Object> getClaimsFromToken(String idToken,
-                                                     AbstractExternalOAuthIdentityProviderDefinition config) {
+    protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> Map<String, Object> getClaimsFromToken(
+            String idToken,
+            final IdentityProvider<T> identityProvider
+    ) {
         logger.debug("Extracting claims from id_token");
         if (idToken == null) {
             logger.debug("id_token is null, no claims returned.");
             return null;
         }
+
+        final T config = identityProvider.getConfig();
 
         if ("signed_request".equals(config.getResponseType())) {
             String secret = config.getRelyingPartySecret();
@@ -687,7 +693,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    protected String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
+    protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> String getTokenFromCode(
+            ExternalOAuthCodeToken codeToken,
+            final IdentityProvider<T> provider
+    ) {
+        final T config = provider.getConfig();
+
         if (StringUtils.hasText(codeToken.getIdToken()) && "id_token".equals(getResponseType(config))) {
             logger.debug("ExternalOAuthCodeToken contains id_token, not exchanging code.");
             return codeToken.getIdToken();
@@ -725,8 +736,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             // no secret but jwtClientAuthentication
             if (config instanceof OIDCIdentityProviderDefinition oidcDefinition && ClientAuthentication.PRIVATE_KEY_JWT.equals(
                 ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), false, oidcDefinition.getJwtClientAuthentication() != null))) {
-                body = new JwtClientAuthentication(keyInfoService)
-                    .getClientAuthenticationParameters(body, (OIDCIdentityProviderDefinition) config);
+
+                /* ensure that the dynamic lookup of the cert and/or key for private key JWT works for an alias IdP in a
+                 * custom IdZ */
+                final boolean allowDynamicValueLookupInCustomZone = hasText(provider.getAliasZid()) && hasText(provider.getAliasId());
+                body = new JwtClientAuthentication(keyInfoService).getClientAuthenticationParameters(
+                        body,
+                        (OIDCIdentityProviderDefinition) config,
+                        allowDynamicValueLookupInCustomZone
+                );
             }
         } else {
             if (config.isClientAuthInBody()) {

@@ -74,11 +74,18 @@ public class JwtClientAuthentication {
     this.oidcMetadataFetcher = oidcMetadataFetcher;
   }
 
-  public String getClientAssertion(OIDCIdentityProviderDefinition config) {
+  public String getClientAssertion(final OIDCIdentityProviderDefinition config) {
+    return getClientAssertion(config, false);
+  }
+
+  public String getClientAssertion(
+          OIDCIdentityProviderDefinition config,
+          final boolean allowDynamicValueLookupInCustomZone
+  ) {
     HashMap<String, String> jwtClientConfiguration = Optional.ofNullable(getJwtClientConfigurationElements(config.getJwtClientAuthentication())).orElse(new HashMap<>());
-    String issuer = readJwtClientOption(jwtClientConfiguration.get("iss"), config.getRelyingPartyId());
-    String audience = readJwtClientOption(jwtClientConfiguration.get("aud"), config.getTokenUrl().toString());
-    String kid = readJwtClientOption(jwtClientConfiguration.get("kid"), keyInfoService.getActiveKey().keyId());
+    String issuer = readJwtClientOption(jwtClientConfiguration.get("iss"), config.getRelyingPartyId(), allowDynamicValueLookupInCustomZone);
+    String audience = readJwtClientOption(jwtClientConfiguration.get("aud"), config.getTokenUrl().toString(), allowDynamicValueLookupInCustomZone);
+    String kid = readJwtClientOption(jwtClientConfiguration.get("kid"), keyInfoService.getActiveKey().keyId(), allowDynamicValueLookupInCustomZone);
     Claims claims = new Claims();
     claims.setAud(Arrays.asList(audience));
     claims.setSub(config.getRelyingPartyId());
@@ -86,13 +93,24 @@ public class JwtClientAuthentication {
     claims.setJti(UUID.randomUUID().toString().replace("-", ""));
     claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
     claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
-    KeyInfo signingKeyInfo = loadKeyInfo(keyInfoService, jwtClientConfiguration, kid);
+    KeyInfo signingKeyInfo = loadKeyInfo(keyInfoService, jwtClientConfiguration, kid, allowDynamicValueLookupInCustomZone);
     return signingKeyInfo.verifierCertificate().isPresent() ?
         JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
         JwtHelper.encode(claims.getClaimMap(), signingKeyInfo).getEncoded();
   }
 
-  public MultiValueMap<String, String> getClientAuthenticationParameters(MultiValueMap<String, String> params, OIDCIdentityProviderDefinition config) {
+  public MultiValueMap<String, String> getClientAuthenticationParameters(
+          final MultiValueMap<String, String> params,
+          final OIDCIdentityProviderDefinition config
+  ) {
+    return getClientAuthenticationParameters(params, config, false);
+  }
+
+  public MultiValueMap<String, String> getClientAuthenticationParameters(
+          MultiValueMap<String, String> params,
+          OIDCIdentityProviderDefinition config,
+          final boolean allowDynamicValueLookupInCustomZone
+  ) {
     if (Objects.isNull(config) || Objects.isNull(getJwtClientConfigurationElements(config.getJwtClientAuthentication()))) {
       return params;
     }
@@ -100,7 +118,7 @@ public class JwtClientAuthentication {
       params.add("client_id", config.getRelyingPartyId());
     }
     params.add(CLIENT_ASSERTION_TYPE, GRANT_TYPE);
-    params.add(CLIENT_ASSERTION, getClientAssertion(config));
+    params.add(CLIENT_ASSERTION, getClientAssertion(config, allowDynamicValueLookupInCustomZone));
     return params;
   }
 
@@ -168,26 +186,35 @@ public class JwtClientAuthentication {
     }
   }
 
-  private static KeyInfo loadKeyInfo(KeyInfoService keyInfoService, HashMap<String, String> jwtClientConfiguration, String kid) {
+  private static KeyInfo loadKeyInfo(
+          KeyInfoService keyInfoService,
+          HashMap<String, String> jwtClientConfiguration,
+          String kid,
+          final boolean allowDynamicValueLookupInCustomZone
+  ) {
     KeyInfo keyInfo;
-    String signingKey = readJwtClientOption(jwtClientConfiguration.get("key"), null);
+    String signingKey = readJwtClientOption(jwtClientConfiguration.get("key"), null, allowDynamicValueLookupInCustomZone);
     if (signingKey == null) {
       keyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
     } else {
-      String signingAlg = readJwtClientOption(jwtClientConfiguration.get("alg"), JWSAlgorithm.RS256.getName());
-      String signingCert = readJwtClientOption(jwtClientConfiguration.get("cert"), null);
+      String signingAlg = readJwtClientOption(jwtClientConfiguration.get("alg"), JWSAlgorithm.RS256.getName(), allowDynamicValueLookupInCustomZone);
+      String signingCert = readJwtClientOption(jwtClientConfiguration.get("cert"), null, allowDynamicValueLookupInCustomZone);
       keyInfo = KeyInfoBuilder.build(kid, signingKey, UaaStringUtils.DEFAULT_UAA_URL, signingAlg, signingCert);
     }
     return keyInfo;
   }
 
-  private static String readJwtClientOption(String jwtClientOption, String defaultOption) {
+  private static String readJwtClientOption(
+          String jwtClientOption,
+          String defaultOption,
+          final boolean allowDynamicValueLookupInCustomZone
+  ) {
     String value;
     if (isNotEmpty(jwtClientOption)) {
       // check if dynamic value means, a reference to another section in uaa yaml is defined
       Matcher matcher = getDynamicValueMatcher(jwtClientOption);
       if (matcher.find()) {
-        value = Optional.ofNullable(getDynamicValue(matcher)).orElse(getDefaultValue(matcher));
+        value = Optional.ofNullable(getDynamicValue(matcher, allowDynamicValueLookupInCustomZone)).orElse(getDefaultValue(matcher));
       } else {
         value = jwtClientOption;
       }
@@ -201,10 +228,11 @@ public class JwtClientAuthentication {
     return DYNAMIC_VALUE_PARAMETER_PATTERN.matcher(value);
   }
 
-  private static String getDynamicValue(Matcher m) {
+  private static String getDynamicValue(Matcher m, final boolean allowLookupInCustomZone) {
     ApplicationContext applicationContext = ApplicationContextProvider.getApplicationContext();
     /* return a reference from application environment only if in default zone */
-    if (applicationContext == null || !(new IdentityZoneManagerImpl().isCurrentZoneUaa())) {
+    final boolean isLookupAllowedInCurrentZone = new IdentityZoneManagerImpl().isCurrentZoneUaa() || allowLookupInCustomZone;
+    if (applicationContext == null || !isLookupAllowedInCurrentZone) {
       return null;
     }
     return Optional.ofNullable(applicationContext.getEnvironment().getProperty(m.group("name"))).orElseThrow( () -> new BadCredentialsException("Missing referenced signing entry"));

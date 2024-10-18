@@ -594,7 +594,7 @@ class ExternalOAuthAuthenticationManagerIT {
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
-        externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+        externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, identityProvider);
 
         mockUaaServer.verify();
     }
@@ -614,7 +614,7 @@ class ExternalOAuthAuthenticationManagerIT {
         attributes.setAttribute(SessionUtils.codeVerifierParameterAttributeKeyForIdp("uaa"), "code_verifier", RequestAttributes.SCOPE_SESSION);
         RequestContextHolder.setRequestAttributes(attributes);
 
-        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, identityProvider);
         assertThat(idToken).isNotNull();
 
         mockUaaServer.verify();
@@ -636,7 +636,7 @@ class ExternalOAuthAuthenticationManagerIT {
         attributes.setAttribute(SessionUtils.codeVerifierParameterAttributeKeyForIdp("uaa"), "code_verifier", RequestAttributes.SCOPE_SESSION);
         RequestContextHolder.setRequestAttributes(attributes);
 
-        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, identityProvider);
         assertThat(idToken).isNotNull();
 
         mockUaaServer.verify();
@@ -653,7 +653,7 @@ class ExternalOAuthAuthenticationManagerIT {
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(getIdTokenResponse()));
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
-        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, config);
+        Map<String, Object> idToken = externalOAuthAuthenticationManager.getClaimsFromToken(xCodeToken, identityProvider);
         assertThat(idToken).isNotNull();
 
         mockUaaServer.verify();

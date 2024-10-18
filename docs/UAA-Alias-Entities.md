@@ -127,11 +127,20 @@ If this shadow user has an alias, ...
 - *alias entities disabled:* only the user itself is updated, the alias user is left unchanged.
   - the alias properties are not changed - original and alias user still reference each other
 
+### OpenID Connect: Communication to the IdP via Private Key JWT
 
+UAA supports private key JWT as a client authentication method for the calls to the external IdP during OpenID Connect
+flows with user involvement (i.e., password grant and authorization code flow).
+The identity provider can be configured to use a key and certificate injected into the UAA environment for building the
+client assertion.
+This is done by referencing the path of the key and/or certificate (defined in `uaa.yml`) in the
+`jwtClientAuthentication` property of its config.
+For example, the IdP config field `jwtClientAuthentication.key` can be set to `${jwt.client.key}` to use the private key
+defined in the `uaa.yml` in the property `jwt.client.key`.
 
+Such dynamic lookups were only allowed **in the "uaa" zone**.
+With the alias feature, dynamic lookups are also allowed in custom zones (i.e., any other zone than "uaa") **if the
+identity provider has an alias**.
 
-
-
-
-
-
+This is necessary to ensure that the OIDC flows also work for aliases (in a custom zone) of IdPs (in the "uaa" zone) 
+that make use of the dynamic lookup functionality, since the configuration of the IdPs is identical.

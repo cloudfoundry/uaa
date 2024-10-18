@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -903,7 +904,8 @@ class PasswordGrantAuthenticationManagerTest {
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
                 .setRelyingPartyId("client-id")
                 .setRelyingPartySecret("client-secret");
-        assertThrows(BadCredentialsException.class, () -> instance.oidcPasswordGrant(authentication, config));
+        idp.setConfig(config);
+        assertThrows(BadCredentialsException.class, () -> instance.oidcPasswordGrant(authentication, idp));
     }
 
     @Test
@@ -912,7 +914,8 @@ class PasswordGrantAuthenticationManagerTest {
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
                 .setRelyingPartyId("client-id")
                 .setRelyingPartySecret("client-secret");
-        assertThrows(BadCredentialsException.class, () -> instance.oidcPasswordGrant(authentication, config));
+        idp.setConfig(config);
+        assertThrows(BadCredentialsException.class, () -> instance.oidcPasswordGrant(authentication, idp));
     }
 
     @Test
@@ -920,24 +923,36 @@ class PasswordGrantAuthenticationManagerTest {
         RestTemplate restTemplate = mock(RestTemplate.class);
         ResponseEntity responseEntity = mock(ResponseEntity.class);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("user", "");
-        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
-            .setRelyingPartyId("client-id").setTokenUrl(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
-        config.setAuthMethod("none");
-        OIDCIdentityProviderDefinition spyConfig = spy(config);
+
         when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(restTemplate);
         when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
         when(responseEntity.hasBody()).thenReturn(true);
         when(responseEntity.getBody()).thenReturn(Map.of("id_token", "dummy"));
-        assertNull(instance.oidcPasswordGrant(authentication, spyConfig));
+
+        final IdentityProvider<OIDCIdentityProviderDefinition> localIdp = new IdentityProvider<>();
+        localIdp.setOriginKey(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
+        final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
+                .setRelyingPartyId("client-id")
+                .setTokenUrl(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
+        config.setAuthMethod("none");
+        final OIDCIdentityProviderDefinition spyConfig = spy(config);
+        localIdp.setConfig(spyConfig);
+
+        assertNull(instance.oidcPasswordGrant(authentication, localIdp));
         verify(spyConfig, atLeast(2)).getAuthMethod();
     }
 
     @Test
     void oidcPasswordGrant_requireAuthenticationStatement() {
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken("user", new Object());
-        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
-            .setRelyingPartyId("client-id");
-        Exception exception = assertThrows(ProviderConfigurationException.class, () -> instance.oidcPasswordGrant(authentication, config));
+
+        final IdentityProvider<OIDCIdentityProviderDefinition> localIdp = new IdentityProvider<>();
+        localIdp.setOriginKey(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
+        final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
+                .setRelyingPartyId("client-id");
+        localIdp.setConfig(config);
+
+        Exception exception = assertThrows(ProviderConfigurationException.class, () -> instance.oidcPasswordGrant(authentication, localIdp));
         assertEquals("External OpenID Connect provider configuration is missing relyingPartySecret, jwtClientAuthentication or authMethod.", exception.getMessage());
     }
 

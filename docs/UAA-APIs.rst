@@ -1344,7 +1344,7 @@ Fields            *Available Fields* ::
                     zoneId                   String                  Required Must match ``identityZoneId`` in the provider definition
                     metaDataLocation         String                  Required SAML Metadata - either an XML string or a URL that will deliver XML content
                     nameID                   String                  Optional The name ID to use for the username, default is "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified". Currently the UAA expects the username to be a valid email address.
-                    assertionConsumerIndex   int                     Optional SAML assertion consumer index, default is 0
+                    assertionConsumerIndex   int                     Optional SAML assertion consumer index, default is 0. (Deprecated. Does not work if set to anything but 0.)
                     metadataTrustCheck       boolean                 Optional Should metadata be validated, defaults to false
                     showSamlLink             boolean                 Optional Should the SAML login link be displayed on the login page, defaults to false
                     linkText                 String                  Optional Required if the ``showSamlLink`` is set to true.

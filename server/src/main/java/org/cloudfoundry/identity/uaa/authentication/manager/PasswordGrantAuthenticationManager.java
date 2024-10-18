@@ -39,7 +39,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.util.Base64Utils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
@@ -49,6 +48,7 @@ import java.util.function.Supplier;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.util.StringUtils.hasText;
 
 public class PasswordGrantAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
 
@@ -105,7 +105,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (identityProvider == null || loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
-            return oidcPasswordGrant(authentication, identityProvider.getConfig());
+            return oidcPasswordGrant(authentication, identityProvider);
         }
     }
 
@@ -145,7 +145,9 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return loginHintToUse;
     }
 
-    Authentication oidcPasswordGrant(Authentication authentication, OIDCIdentityProviderDefinition config) {
+    Authentication oidcPasswordGrant(Authentication authentication, final IdentityProvider<OIDCIdentityProviderDefinition> identityProvider) {
+        final OIDCIdentityProviderDefinition config = identityProvider.getConfig();
+
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();
         String clientId = config.getRelyingPartyId();
@@ -175,8 +177,11 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
 
         if (ClientAuthentication.PRIVATE_KEY_JWT.equals(calcAuthMethod)) {
+            /* ensure that the dynamic lookup of the cert and/or key for private key JWT works for an alias IdP in a
+             * custom IdZ */
+            final boolean allowDynamicValueLookupInCustomZone = hasText(identityProvider.getAliasZid()) && hasText(identityProvider.getAliasId());
             params = new JwtClientAuthentication(externalOAuthAuthenticationManager.getKeyInfoService())
-                .getClientAuthenticationParameters(params, config);
+                    .getClientAuthenticationParameters(params, config, allowDynamicValueLookupInCustomZone);
         } else if (ClientAuthentication.secretNeeded(calcAuthMethod)){
             String auth = clientId + ":" + clientSecret;
             headers.add("Authorization", "Basic " + Base64Utils.encodeToString(auth.getBytes()));
@@ -210,7 +215,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             UaaAuthenticationDetails details = (UaaAuthenticationDetails)authentication.getDetails();
             for (String prompt : promptsToInclude) {
                 String[] values = details.getParameterMap().get(prompt);
-                if (values == null || values.length != 1 || !StringUtils.hasText(values[0])) {
+                if (values == null || values.length != 1 || !hasText(values[0])) {
                     continue; //No single value given, skip this parameter
                 }
                 params.add(prompt, values[0]);

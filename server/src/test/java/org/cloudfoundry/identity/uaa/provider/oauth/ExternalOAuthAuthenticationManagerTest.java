@@ -48,6 +48,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
@@ -320,33 +321,33 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThat(Set.of("manager.us", "manager.eu").toArray()).contains(authicatedAuthorities.toArray());
         // no exception expected, but same array content in authority list
     }
-
-    @Test
-    void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
-        Map<String, Object> header = map(
-                entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
-                entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
-        );
-        JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
-        Map<String, Object> claims = map(
-                entry("external_family_name", Collections.emptyList()),
-                entry("external_given_name", Arrays.asList("bar", "bar")),
-                entry("external_email", "foo@bar.org"),
-                entry(ISS, oidcConfig.getIssuer()),
-                entry(AUD, "uaa-relying-party"),
-                entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis() / 1000L)) + 60),
-                entry(SUB, "abc-def-asdf")
-        );
-        Map<String, Object> externalGroupMapping = map(
-                entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name"),
-                entry(ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME, "external_given_name"),
-                entry(ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME, "external_email"),
-                entry(ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME, "external_phone")
-        );
-        oidcConfig.setAttributeMappings(externalGroupMapping);
-        provider.setConfig(oidcConfig);
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
-        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
+  @Test
+  public void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
+    Map<String, Object> header = map(
+        entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
+        entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
+    );
+    JWSSigner signer = new KeyInfo(OIDC_PROVIDER_KEY, oidcProviderTokenSigningKey, DEFAULT_UAA_URL).getSigner();
+    Map<String, Object> claims = map(
+        entry("external_family_name", Collections.emptyList()),
+        entry("external_given_name", List.of("bar", "bar")),
+        entry("external_email", List.of("foo@bar.org", "foo@bar.org")),
+        entry(ISS, oidcConfig.getIssuer()),
+        entry(AUD, "uaa-relying-party"),
+        entry(EXPIRY_IN_SECONDS, ((int) (System.currentTimeMillis()/1000L)) + 60),
+        entry(SUB, "abc-def-asdf")
+    );
+    Map<String, Object> externalGroupMapping = map(
+        entry(USER_NAME_ATTRIBUTE_NAME, "external_email"),
+        entry(FAMILY_NAME_ATTRIBUTE_NAME, "external_family_name"),
+        entry(ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME, "external_given_name"),
+        entry(ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME, "external_email"),
+        entry(ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME, "external_phone")
+    );
+    oidcConfig.setAttributeMappings(externalGroupMapping);
+    provider.setConfig(oidcConfig);
+    IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
+    String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
         ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         UaaUser uaaUser = authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
@@ -354,6 +355,7 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThat(uaaUser.getFamilyName()).isNull();
         assertThat(uaaUser.getGivenName()).isEqualTo("bar");
         assertThat(uaaUser.getEmail()).isEqualTo("foo@bar.org");
+        assertThat(uaaUser.getUsername()).isEqualTo("foo@bar.org");
     }
 
     @Test
@@ -465,11 +467,18 @@ class ExternalOAuthAuthenticationManagerTest {
 
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), null) {
             @Override
-            protected String getTokenFromCode(ExternalOAuthCodeToken codeToken, AbstractExternalOAuthIdentityProviderDefinition config) {
+            protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> String getTokenFromCode(
+                    ExternalOAuthCodeToken codeToken,
+                    IdentityProvider<T> config
+            ) {
                 return idTokenJwt;
             }
         };
-        authManager.getClaimsFromToken(codeToken, oidcConfig);
+
+        final IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> idp = new IdentityProvider<>();
+        idp.setConfig(oidcConfig);
+
+        authManager.getClaimsFromToken(codeToken, idp);
         assertThat(codeToken.getIdToken()).isEqualTo(idTokenJwt);
     }
 }
