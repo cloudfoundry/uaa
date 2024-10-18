@@ -86,7 +86,7 @@ import java.util.stream.Stream;
 
 import static java.util.Collections.emptyMap;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
@@ -718,7 +718,7 @@ class IdentityZoneEndpointsMockMvcTests {
                 -----BEGIN RSA PRIVATE KEY-----
                 Proc-Type: 4,ENCRYPTED
                 DEK-Info: DES-EDE3-CBC,5771044F3450A262
-
+                
                 VfRgIdzq/TUFdIwTOxochDs02sSQXA/Z6mRnffYTQMwXpQ5f5nRuqcY8zECGMaDe
                 aLrndpWzGbxiePKgN5AxuIDYNnKMrDRgyCzaaPx66rb87oMwtuq1HM18qqs+yN5v
                 CdsoS2uz57fCDI24BuJkIDSIeumLXc5MdN0HUeaxOVzmpbpsbBXjRYa24gW38mUh
@@ -1548,7 +1548,7 @@ class IdentityZoneEndpointsMockMvcTests {
                 -----BEGIN RSA PRIVATE KEY-----
                 Proc-Type: 4,ENCRYPTED
                 DEK-Info: DES-EDE3-CBC,5771044F3450A262
-
+                
                 VfRgIdzq/TUFdIwTOxochDs02sSQXA/Z6mRnffYTQMwXpQ5f5nRuqcY8zECGMaDe
                 aLrndpWzGbxiePKgN5AxuIDYNnKMrDRgyCzaaPx66rb87oMwtuq1HM18qqs+yN5v
                 CdsoS2uz57fCDI24BuJkIDSIeumLXc5MdN0HUeaxOVzmpbpsbBXjRYa24gW38mUh
@@ -1705,12 +1705,12 @@ class IdentityZoneEndpointsMockMvcTests {
 
         //ensure we have some audit records
         //this doesn't work yet
-        //assertThat(template.queryForObject("select count(*) from sec_audit where identity_zone_id=?", new Object[] {user.getZoneId()}, Integer.class), greaterThan(0));
+        // assertThat(template.queryForObject("select count(*) from sec_audit where identity_zone_id=?", new Object[] {user.getZoneId()}, Integer.class), greaterThan(0))
         //create an external group map
         IdentityZoneHolder.set(zone);
         externalMembershipManager.mapExternalGroup(group.getId(), "externalDeleteGroup", LOGIN_SERVER, IdentityZoneHolder.get().getId());
-        assertThat(externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId()).size()).isEqualTo(1);
-        assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", new Object[]{LOGIN_SERVER}, Integer.class)).isEqualTo(1);
+        assertThat(externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId())).hasSize(1);
+        assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", new Object[]{LOGIN_SERVER}, Integer.class)).isOne();
 
         //add user approvals
         approvalStore.addApproval(
@@ -1720,7 +1720,7 @@ class IdentityZoneEndpointsMockMvcTests {
                         .setStatus(Approval.ApprovalStatus.APPROVED)
                         .setUserId(user.getId()), IdentityZoneHolder.get().getId()
         );
-        assertThat(approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId()).size()).isEqualTo(1);
+        assertThat(approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId())).hasSize(1);
 
         //perform zone delete
         mockMvc.perform(
@@ -1742,14 +1742,14 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(template.queryForObject("select count(*) from users where identity_zone_id=?", new Object[]{zone.getId()}, Integer.class)).isZero();
         assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", new Object[]{LOGIN_SERVER}, Integer.class)).isZero();
 
-        try {
-            externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId());
-            fail("no external groups should be found");
-        } catch (ScimResourceNotFoundException ignored) {
-        }
+        final String groupId = group.getId();
+        String zoneId = IdentityZoneHolder.get().getId();
+        assertThatThrownBy(() -> externalMembershipManager.getExternalGroupMapsByGroupId(groupId, LOGIN_SERVER, zoneId))
+                .isInstanceOf(ScimResourceNotFoundException.class)
+                .hasMessageContainingAll("Group", " does not exist");
 
         assertThat(template.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[]{user.getId()}, Integer.class)).isZero();
-        assertThat(approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId()).size()).isZero();
+        assertThat(approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId())).isEmpty();
     }
 
     @Test
@@ -2029,7 +2029,7 @@ class IdentityZoneEndpointsMockMvcTests {
 
         checkAuditEventListener(3, AuditEventType.UserDeletedEvent, userModifiedEventListener, identityZone.getId(), "http://" + subdomain + ".localhost:8080/uaa/oauth/token", "admin");
         users = getUsersInZone(subdomain, scimAdminToken);
-        assertThat(users.size()).isZero();
+        assertThat(users).isEmpty();
     }
 
     @Test

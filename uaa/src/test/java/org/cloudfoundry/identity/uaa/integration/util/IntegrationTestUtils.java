@@ -92,7 +92,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
@@ -982,7 +981,7 @@ public class IntegrationTestUtils {
         IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
     }
 
-    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning) throws Exception {
+    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning) {
         return getZoneAdminToken(baseUrl, serverRunning, OriginKeys.UAA);
     }
 
@@ -1542,7 +1541,6 @@ public class IntegrationTestUtils {
         if (callCheckToken) {
             tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
             assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-            //System.err.println(tokenResponse.getBody());
             assertNotNull(tokenResponse.getBody().get("iss"));
         }
         return body;
@@ -1590,7 +1588,7 @@ public class IntegrationTestUtils {
     public static List<String> getAccountChooserCookies(String baseUrl, WebDriver webDriver) {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
-        return webDriver.manage().getCookies().stream().map(Cookie::getName).collect(Collectors.toList());
+        return webDriver.manage().getCookies().stream().map(Cookie::getName).toList();
     }
 
     public static String createAnotherUser(WebDriver webDriver, String password, SimpleSmtpServer simpleSmtpServer, String url, TestClient testClient) {

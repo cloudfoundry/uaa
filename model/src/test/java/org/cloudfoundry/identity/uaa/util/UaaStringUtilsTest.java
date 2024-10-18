@@ -19,7 +19,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -133,7 +133,7 @@ class UaaStringUtilsTest {
     @Test
     void constructWildcards() {
         assertThat(UaaStringUtils.constructWildcards(List.of())).isEmpty();
-        assertThat(UaaStringUtils.constructWildcards(List.of("any")).contains("any")).isFalse();
+        assertThat(UaaStringUtils.constructWildcards(List.of("any"))).doesNotContain(Pattern.compile("any"));
     }
 
     @Test
@@ -387,9 +387,9 @@ class UaaStringUtilsTest {
 
     @Test
     void getMapFromProperties() {
-        Properties properties = new Properties();
-        properties.put("pre.key", "value");
-        Map<String, Object> objectMap = (Map<String, Object>) UaaStringUtils.getMapFromProperties(properties, "pre.");
+        Properties props = new Properties();
+        props.put("pre.key", "value");
+        Map<String, Object> objectMap = UaaStringUtils.getMapFromProperties(props, "pre.");
         assertThat(objectMap).containsEntry("key", "value")
                 .doesNotContainKey("pre.key");
     }
@@ -404,7 +404,8 @@ class UaaStringUtilsTest {
 
     @Test
     void getArrayDefaultValue() {
-        assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1").stream().sorted().collect(Collectors.toList())).isEqualTo(List.of("1", "2").stream().sorted().collect(Collectors.toList()));
+        assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of("1", "2"), "1").stream().sorted().toList())
+                .isEqualTo(Stream.of("1", "2").sorted().toList());
         assertThat(UaaStringUtils.getValuesOrDefaultValue(Set.of(), "1")).isEqualTo(List.of("1"));
         assertThat(UaaStringUtils.getValuesOrDefaultValue(null, "1")).isEqualTo(List.of("1"));
     }
@@ -415,7 +416,7 @@ class UaaStringUtilsTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "\0", "", "\t", "\n", "\r" })
+    @ValueSource(strings = {"\0", "", "\t", "\n", "\r"})
     void alertOnInvlidInput(String input) {
         assertThatThrownBy(() -> UaaStringUtils.getValidatedString(input))
                 .isInstanceOf(IllegalArgumentException.class);

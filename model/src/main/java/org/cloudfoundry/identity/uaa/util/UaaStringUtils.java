@@ -228,7 +228,7 @@ public final class UaaStringUtils {
      * @param prefix     the prefix to strip from key names
      * @return a map of String values
      */
-    public static Map<String, ?> getMapFromProperties(Properties properties, String prefix) {
+    public static Map<String, Object> getMapFromProperties(Properties properties, String prefix) {
         Map<String, Object> result = new HashMap<>();
         for (String key : properties.stringPropertyNames()) {
             if (key.startsWith(prefix)) {

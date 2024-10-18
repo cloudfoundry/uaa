@@ -130,7 +130,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return this;
     }
 
-    private static String determineType(Class clazz) {
+    private static String determineType(Class<? extends AbstractIdentityProviderDefinition> clazz) {
         if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
             return SAML;
         } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {

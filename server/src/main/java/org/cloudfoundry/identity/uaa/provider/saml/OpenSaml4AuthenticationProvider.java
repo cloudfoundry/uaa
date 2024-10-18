@@ -206,7 +206,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
      * @since 5.6
      */
     public static Converter<ResponseToken, Saml2ResponseValidatorResult> createDefaultResponseValidator() {
-        return (responseToken) -> {
+        return responseToken -> {
             Response response = responseToken.getResponse();
             Saml2AuthenticationToken token = responseToken.getToken();
             Saml2ResponseValidatorResult result = Saml2ResponseValidatorResult.success();
@@ -273,7 +273,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidator() {
 
         return createDefaultAssertionValidatorWithParameters(
-                (params) -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)));
+                params -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)));
     }
 
     /**
@@ -290,7 +290,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             Converter<AssertionToken, ValidationContext> contextConverter) {
 
         return createAssertionValidator(Saml2ErrorCodes.INVALID_ASSERTION,
-                (assertionToken) -> SAML20AssertionValidators.attributeValidator, contextConverter);
+                assertionToken -> SAML20AssertionValidators.attributeValidator, contextConverter);
     }
 
     /**
@@ -305,8 +305,8 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidatorWithParameters(
             Consumer<Map<String, Object>> validationContextParameters) {
         return createAssertionValidator(Saml2ErrorCodes.INVALID_ASSERTION,
-                (assertionToken) -> SAML20AssertionValidators.attributeValidator,
-                (assertionToken) -> createValidationContext(assertionToken, validationContextParameters));
+                assertionToken -> SAML20AssertionValidators.attributeValidator,
+                assertionToken -> createValidationContext(assertionToken, validationContextParameters));
     }
 
     /**
@@ -316,7 +316,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
      * @return the default response authentication converter strategy
      */
     public static Converter<ResponseToken, Saml2Authentication> createDefaultResponseAuthenticationConverter() {
-        return (responseToken) -> {
+        return responseToken -> {
             Response response = responseToken.response;
             Saml2AuthenticationToken token = responseToken.token;
             Assertion assertion = CollectionUtils.firstElement(response.getAssertions());
@@ -521,24 +521,24 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     }
 
     private static Object getXmlObjectValue(XMLObject xmlObject) {
-        if (xmlObject instanceof XSAny) {
-            return ((XSAny) xmlObject).getTextContent();
+        if (xmlObject instanceof XSAny xsAny) {
+            return xsAny.getTextContent();
         }
-        if (xmlObject instanceof XSString) {
-            return ((XSString) xmlObject).getValue();
+        if (xmlObject instanceof XSString xsString) {
+            return xsString.getValue();
         }
-        if (xmlObject instanceof XSInteger) {
-            return ((XSInteger) xmlObject).getValue();
+        if (xmlObject instanceof XSInteger xsInteger) {
+            return xsInteger.getValue();
         }
-        if (xmlObject instanceof XSURI) {
-            return ((XSURI) xmlObject).getURI();
+        if (xmlObject instanceof XSURI xsUri) {
+            return xsUri.getURI();
         }
-        if (xmlObject instanceof XSBoolean) {
-            XSBooleanValue xsBooleanValue = ((XSBoolean) xmlObject).getValue();
+        if (xmlObject instanceof XSBoolean xsBoolean) {
+            XSBooleanValue xsBooleanValue = xsBoolean.getValue();
             return (xsBooleanValue != null) ? xsBooleanValue.getValue() : null;
         }
-        if (xmlObject instanceof XSDateTime) {
-            return ((XSDateTime) xmlObject).getValue();
+        if (xmlObject instanceof XSDateTime xsDateTime) {
+            return xsDateTime.getValue();
         }
         return xmlObject;
     }
@@ -552,7 +552,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
                                                                                                     Converter<AssertionToken, SAML20AssertionValidator> validatorConverter,
                                                                                                     Converter<AssertionToken, ValidationContext> contextConverter) {
 
-        return (assertionToken) -> {
+        return assertionToken -> {
             Assertion assertion = assertionToken.assertion;
             SAML20AssertionValidator validator = validatorConverter.convert(assertionToken);
             ValidationContext context = contextConverter.convert(assertionToken);

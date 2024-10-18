@@ -291,7 +291,7 @@ public class LoginInfoEndpoint {
         Map<String, AbstractIdentityProviderDefinition> loginHintProviders = Map.of();
 
         if (uaaLoginHint != null && (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(uaaLoginHint.getOrigin()))) {
-            // Login hint: Only try to read the hinted IdP from database
+            // Login hint: Only try to read the hinted IdP from the database
             if (!(OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin()))) {
                 try {
                     IdentityProvider loginHintProvider = externalOAuthProviderConfigurator
@@ -336,11 +336,9 @@ public class LoginInfoEndpoint {
         IdentityProvider uaaIdentityProvider =
                 providerProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         // ldap and uaa disabled removes username/password input boxes
-        if (!uaaIdentityProvider.isActive()) {
-            if (ldapIdentityProvider == null || !ldapIdentityProvider.isActive()) {
-                fieldUsernameShow = false;
-                returnLoginPrompts = false;
-            }
+        if (!uaaIdentityProvider.isActive() && (ldapIdentityProvider == null || !ldapIdentityProvider.isActive())) {
+            fieldUsernameShow = false;
+            returnLoginPrompts = false;
         }
 
         // ldap or uaa not part of allowedIdentityProviderKeys
@@ -482,7 +480,7 @@ public class LoginInfoEndpoint {
         Map<String, String> idpDefinitionsForJson = new HashMap<>();
         if (samlIdentityProviders != null) {
             for (SamlIdentityProviderDefinition def : samlIdentityProviders.values()) {
-                 String idpUrl = "%s/saml2/authenticate/%s".formatted(links.get(LOGIN), def.getIdpEntityAlias());
+                String idpUrl = "%s/saml2/authenticate/%s".formatted(links.get(LOGIN), def.getIdpEntityAlias());
                 idpDefinitionsForJson.put(def.getIdpEntityAlias(), idpUrl);
             }
             model.addAttribute(IDP_DEFINITIONS, idpDefinitionsForJson);
@@ -766,6 +764,7 @@ public class LoginInfoEndpoint {
             try {
                 clientDetails = clientDetailsService.loadClientByClientId(clientIds[0], IdentityZoneHolder.get().getId());
             } catch (NoSuchClientException ignored) {
+                // ignore
             }
         }
         if (StringUtils.hasText(loginHint)) {

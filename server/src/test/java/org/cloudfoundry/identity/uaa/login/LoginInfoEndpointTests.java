@@ -431,8 +431,6 @@ class LoginInfoEndpointTests {
     @Test
     void originChooserCarriesLoginHint() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpSession session = new MockHttpSession();
         String redirect = endpoint.loginUsingOrigin("providedOrigin");
 
         assertThat(redirect).startsWith("redirect:/login?discoveryPerformed=true")
@@ -443,8 +441,6 @@ class LoginInfoEndpointTests {
     @Test
     void originChooserDefaultsToNoLoginHint() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        MockHttpSession session = new MockHttpSession();
         String redirect = endpoint.loginUsingOrigin(null);
 
         assertThat(redirect).isEqualTo("redirect:/login?discoveryPerformed=true");
@@ -566,10 +562,9 @@ class LoginInfoEndpointTests {
         ldapIdentityProvider.setActive(false);
         when(mockIdentityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, "uaa")).thenReturn(ldapIdentityProvider);
 
-        IdentityProvider uaaIdentityProvider = new IdentityProvider();
-        uaaIdentityProvider.setActive(false);
-        when(mockIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
-
+        IdentityProvider idp = new IdentityProvider();
+        idp.setActive(false);
+        when(mockIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(idp);
 
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"), null);
         assertThat((Boolean) extendedModelMap.get("fieldUsernameShow")).isFalse();
@@ -616,9 +611,9 @@ class LoginInfoEndpointTests {
         ldapIdentityProvider.setActive(false);
         when(mockIdentityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, "uaa")).thenReturn(ldapIdentityProvider);
 
-        IdentityProvider uaaIdentityProvider = new IdentityProvider();
-        uaaIdentityProvider.setActive(false);
-        when(mockIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
+        IdentityProvider idp = new IdentityProvider();
+        idp.setActive(false);
+        when(mockIdentityProviderProvisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, "uaa")).thenReturn(idp);
 
         extendedModelMap.clear();
         endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
@@ -701,7 +696,7 @@ class LoginInfoEndpointTests {
         List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "uaa"));
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", "uaa"));
-        when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(IdentityZone.getUaa()))).thenReturn(clientIDPs);
+        when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(allowedProviders, IdentityZone.getUaa())).thenReturn(clientIDPs);
 
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
         endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));
@@ -736,7 +731,7 @@ class LoginInfoEndpointTests {
         List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "uaa"));
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", "uaa"));
-        when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(zone))).thenReturn(clientIDPs);
+        when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(allowedProviders, zone)).thenReturn(clientIDPs);
 
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
         endpoint.loginForHtml(extendedModelMap, null, request, singletonList(MediaType.TEXT_HTML));

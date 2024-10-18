@@ -183,7 +183,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidator() {
 
         return createDefaultAssertionValidatorWithParameters(
-                (params) -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)));
+                params -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)));
     }
 
     /**
@@ -193,7 +193,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
      * @return the default response authentication converter strategy
      */
     private Converter<AssertionToken, ? extends AbstractAuthenticationToken> createDefaultAssertionAuthenticationConverter() {
-        return (assertionToken) -> {
+        return assertionToken -> {
             Assertion assertion = assertionToken.assertion;
             Saml2AuthenticationToken token = assertionToken.token;
             String username = assertion.getSubject().getNameID().getValue();
@@ -220,8 +220,8 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidatorWithParameters(
             Consumer<Map<String, Object>> validationContextParameters) {
         return createAssertionValidator(Saml2ErrorCodes.INVALID_ASSERTION,
-                (assertionToken) -> SAML20AssertionValidators.attributeValidator,
-                (assertionToken) -> createValidationContext(assertionToken, validationContextParameters));
+                assertionToken -> SAML20AssertionValidators.attributeValidator,
+                assertionToken -> createValidationContext(assertionToken, validationContextParameters));
     }
 
     @Override
@@ -387,16 +387,16 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
     }
 
     private Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionSignatureValidator() {
-        return createAssertionValidator(Saml2ErrorCodes.INVALID_SIGNATURE, (assertionToken) -> {
+        return createAssertionValidator(Saml2ErrorCodes.INVALID_SIGNATURE, assertionToken -> {
             RelyingPartyRegistration registration = assertionToken.getToken().getRelyingPartyRegistration();
             SignatureTrustEngine engine = OpenSamlVerificationUtils.trustEngine(registration);
             return SAML20AssertionValidators.createSignatureValidator(engine);
-        }, (assertionToken) -> new ValidationContext(
+        }, assertionToken -> new ValidationContext(
                 Collections.singletonMap(SAML2AssertionValidationParameters.SIGNATURE_REQUIRED, false)));
     }
 
     private Consumer<AssertionToken> createDefaultAssertionElementsDecrypter() {
-        return (assertionToken) -> {
+        return assertionToken -> {
             Assertion assertion = assertionToken.getAssertion();
             RelyingPartyRegistration registration = assertionToken.getToken().getRelyingPartyRegistration();
             try {
@@ -477,7 +477,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
                                                                                                     Converter<AssertionToken, SAML20AssertionValidator> validatorConverter,
                                                                                                     Converter<AssertionToken, ValidationContext> contextConverter) {
 
-        return (assertionToken) -> {
+        return assertionToken -> {
             Assertion assertion = assertionToken.assertion;
             SAML20AssertionValidator validator = validatorConverter.convert(assertionToken);
             ValidationContext context = contextConverter.convert(assertionToken);

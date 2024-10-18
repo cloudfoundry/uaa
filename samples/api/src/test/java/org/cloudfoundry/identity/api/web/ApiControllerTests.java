@@ -1,6 +1,6 @@
 /*
  * *****************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,12 +14,6 @@
 
 package org.cloudfoundry.identity.api.web;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.util.HashMap;
-
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Test;
 import org.springframework.core.io.ClassPathResource;
@@ -28,9 +22,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.web.servlet.View;
 
+import java.util.HashMap;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * @author Dave Syer
- * 
  */
 public class ApiControllerTests {
 
