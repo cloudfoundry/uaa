@@ -20,6 +20,7 @@ import org.springframework.security.saml2.provider.service.registration.Saml2Mes
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.xmlunit.assertj.XmlAssert;
 
+import javax.servlet.http.HttpServletRequest;
 import java.security.Security;
 import java.security.cert.CertificateEncodingException;
 import java.util.List;
@@ -35,6 +36,8 @@ import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.formatCert;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestSaml2X509Credentials.relyingPartySigningCredential;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestSaml2X509Credentials.relyingPartyVerifyingCredential;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS;
@@ -54,6 +57,7 @@ class SamlMetadataEndpointTest {
     private static final String REGISTRATION_ID = "regId";
     private static final String ENTITY_ID = "entityId";
     private static final String TEST_ZONE = "testzone1";
+    private static final String ENTITY_BASE_URL = "http://localhost:8080/uaa";
 
     SamlMetadataEndpoint endpoint;
 
@@ -82,7 +86,7 @@ class SamlMetadataEndpointTest {
     @BeforeEach
     void beforeEach() {
         request = new MockHttpServletRequest();
-        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA256, true));
+        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA256, true, ENTITY_BASE_URL));
         when(registration.getEntityId()).thenReturn(ENTITY_ID);
         when(registration.getSigningX509Credentials()).thenReturn(List.of(relyingPartySigningCredential()));
         when(registration.getDecryptionX509Credentials()).thenReturn(List.of(relyingPartyVerifyingCredential()));
@@ -96,7 +100,7 @@ class SamlMetadataEndpointTest {
 
     @Test
     void defaultZoneFileName() {
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
@@ -105,7 +109,7 @@ class SamlMetadataEndpointTest {
 
     @Test
     void nonDefaultZoneFileName() {
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
         when(identityZone.isUaa()).thenReturn(false);
         when(identityZone.getSubdomain()).thenReturn(TEST_ZONE);
         when(endpoint.retrieveZone()).thenReturn(identityZone);
@@ -117,7 +121,7 @@ class SamlMetadataEndpointTest {
 
     @Test
     void defaultMetadataXml() {
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
         when(samlConfig.isWantAssertionSigned()).thenReturn(true);
         when(samlConfig.isRequestSigned()).thenReturn(true);
 
@@ -141,7 +145,7 @@ class SamlMetadataEndpointTest {
 
     @Test
     void defaultMetadataXml_alternateValues() {
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
         when(samlConfig.isWantAssertionSigned()).thenReturn(false);
         when(samlConfig.isRequestSigned()).thenReturn(false);
 
@@ -153,8 +157,8 @@ class SamlMetadataEndpointTest {
 
     @Test
     void unsigned() {
-        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA1, false));
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA1, false, ENTITY_BASE_URL));
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces())
@@ -163,8 +167,8 @@ class SamlMetadataEndpointTest {
 
     @Test
     void unsignedIfNoAlgorithm() {
-        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, null, true));
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, null, true, ENTITY_BASE_URL));
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces())
@@ -173,7 +177,7 @@ class SamlMetadataEndpointTest {
 
     @Test
     void sha256Signature() throws CertificateEncodingException {
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         System.out.println(response.getBody());
@@ -194,8 +198,8 @@ class SamlMetadataEndpointTest {
 
     @Test
     void sha512Signature() {
-        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA512, true));
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA512, true, ENTITY_BASE_URL));
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
@@ -205,8 +209,8 @@ class SamlMetadataEndpointTest {
 
     @Test
     void sha1Signature() {
-        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA1, true));
-        when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
+        endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA1, true, ENTITY_BASE_URL));
+        when(resolver.resolve(any(HttpServletRequest.class), eq(REGISTRATION_ID))).thenReturn(registration);
 
         ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());

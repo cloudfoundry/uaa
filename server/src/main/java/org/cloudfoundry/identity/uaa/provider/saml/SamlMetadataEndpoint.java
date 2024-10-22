@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.saml2.provider.service.metadata.OpenSamlMetadataResolver;
@@ -14,8 +16,11 @@ import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.util.UriComponents;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -26,18 +31,20 @@ public class SamlMetadataEndpoint implements ZoneAware {
     private static final String APPLICATION_XML_CHARSET_UTF_8 = "application/xml; charset=UTF-8";
 
     private final Saml2MetadataResolver saml2MetadataResolver;
-
     private final RelyingPartyRegistrationResolver relyingPartyRegistrationResolver;
+    private final String baseUrl;
 
     public SamlMetadataEndpoint(RelyingPartyRegistrationResolver registrationResolver,
                                 IdentityZoneManager identityZoneManager, SignatureAlgorithm signatureAlgorithms,
-                                @Qualifier("signSamlMetaData") boolean signMetaData) {
+                                @Qualifier("signSamlMetaData") boolean signMetaData,
+                                @Value("${login.entityBaseURL:http://localhost:8080/uaa}") String entityBaseUrl) {
         Assert.notNull(registrationResolver, "registrationResolver cannot be null");
         relyingPartyRegistrationResolver = registrationResolver;
         OpenSamlMetadataResolver metadataResolver = new OpenSamlMetadataResolver();
         saml2MetadataResolver = metadataResolver;
         metadataResolver.setEntityDescriptorCustomizer(
                 new SamlMetadataEntityDescriptorCustomizer(identityZoneManager, signatureAlgorithms, signMetaData));
+        baseUrl = entityBaseUrl;
     }
 
     @GetMapping(value = "/saml/metadata", produces = APPLICATION_XML_CHARSET_UTF_8)
@@ -47,16 +54,45 @@ public class SamlMetadataEndpoint implements ZoneAware {
 
     @GetMapping(value = "/saml/metadata/{registrationId}", produces = APPLICATION_XML_CHARSET_UTF_8)
     public ResponseEntity<String> metadataEndpoint(HttpServletRequest request, @PathVariable String registrationId) {
-        RelyingPartyRegistration relyingPartyRegistration = relyingPartyRegistrationResolver.resolve(request, registrationId);
+        IdentityZone zone = retrieveZone();
+        RelyingPartyRegistration relyingPartyRegistration =
+                relyingPartyRegistrationResolver.resolve(adaptRequest(request, zone), registrationId);
         if (relyingPartyRegistration == null) {
             return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).build();
         }
         String metadata = saml2MetadataResolver.resolve(relyingPartyRegistration);
 
-        String contentDisposition = ContentDispositionFilename.getContentDisposition(retrieveZone());
+        String contentDisposition = ContentDispositionFilename.getContentDisposition(zone);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition)
                 .body(metadata);
+    }
+
+    private HttpServletRequest adaptRequest(HttpServletRequest request,
+                                            IdentityZone zone) {
+        String url = zone.isUaa()? baseUrl :
+                UaaUrlUtils.addSubdomainToUrl(baseUrl, zone.getSubdomain());
+        UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(url)
+                .build();
+        HttpServletRequestWrapper r = new HttpServletRequestWrapper(request) {
+            public String getScheme() {
+                return uriComponents.getScheme();
+            }
+            public String getServerName() {
+                return uriComponents.getHost();
+            }
+            public int getServerPort() {
+                return uriComponents.getPort();
+            }
+            public String getRequestURI() {
+                return uriComponents.getPath() + "/saml/metadata";
+            }
+            public String getContextPath() {
+                return uriComponents.getPath();
+            }
+        };
+
+        return r;
     }
 }
 
