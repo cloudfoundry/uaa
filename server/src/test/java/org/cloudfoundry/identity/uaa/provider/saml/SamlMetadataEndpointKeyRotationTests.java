@@ -86,7 +86,9 @@ public class SamlMetadataEndpointKeyRotationTests {
         RelyingPartyRegistrationRepository registrationRepository =
                 new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias", List.of(), NAME_ID_FORMAT);
         RelyingPartyRegistrationResolver registrationResolver = new DefaultRelyingPartyRegistrationResolver(registrationRepository);
-        endpoint = spy(new SamlMetadataEndpoint(registrationResolver, identityZoneManager, SignatureAlgorithm.SHA256, true));
+        endpoint = spy(new SamlMetadataEndpoint(registrationResolver,
+                identityZoneManager, SignatureAlgorithm.SHA256, true,
+                "http://localhost:8080/uaa"));
         IdentityZoneHolder.set(otherZone);
 
         request = new MockHttpServletRequest();
