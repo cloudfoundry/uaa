@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -44,7 +45,7 @@ import java.util.Map.Entry;
 /**
  * Post processor which injects an additional filter at the head
  * of each security filter chain.
- *
+ * <p/>
  * If the requireHttps property is set, and a non HTTP request is received (as
  * determined by the absence of the <tt>httpsHeader</tt>) the filter will either
  * redirect with a 301 or send an error code to the client.
@@ -53,13 +54,12 @@ import java.util.Map.Entry;
  * those serving browser clients). Clients in this list will also receive an
  * HSTS response header, as defined in
  * http://tools.ietf.org/html/draft-ietf-websec-strict-transport-sec-14.
- *
+ * <p/>
  * HTTP requests from any other clients will receive a JSON error message.
- *
+ * <p/>
  * The filter also wraps calls to the <tt>getRemoteAddr</tt> to give a more
  * accurate value for the remote client IP,
  * making use of the <tt>clientAddrHeader</tt> if available in the request.
- *
  *
  * @author Luke Taylor
  */
@@ -106,13 +106,9 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        if (bean instanceof SecurityFilterChain && !ignore.contains(beanName)) {
+        if (bean instanceof SecurityFilterChain fc && !ignore.contains(beanName)) {
             logger.info("Processing security filter chain " + beanName);
 
-            SecurityFilterChain fc = (SecurityFilterChain) bean;
-
-            Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
-            fc.getFilters().add(0, uaaFilter);
             if (additionalFilters != null) {
                 for (Entry<FilterPosition, Filter> entry : additionalFilters.entrySet()) {
                     int position = entry.getKey().getPosition(fc);
@@ -123,6 +119,9 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                     }
                 }
             }
+
+            Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
+            fc.getFilters().add(0, uaaFilter);
         }
 
         return bean;

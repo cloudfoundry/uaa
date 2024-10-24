@@ -1,35 +1,39 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
-import org.hamcrest.Matcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
-import static org.hamcrest.Matchers.containsString;
-
+/**
+ * The SamlLoginPage class represents the login page on the SimpleSAML server.
+ * This class provides methods to interact with the SAML login page and perform login actions.
+ * It has url matching: `/module.php/core/loginuserpass`.
+ */
 public class SamlLoginPage extends Page {
     // This is on the saml server, not the UAA server
-    static final private String urlPath = "/module.php/core/loginuserpass";
+    private static final String URL_PATH = "/module.php/core/loginuserpass";
 
     public SamlLoginPage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, containsString(urlPath));
+        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.contains(URL_PATH));
     }
 
-    public HomePage login_goesToHomePage(String username, String password) {
+    public HomePage assertThatLogin_goesToHomePage(String username, String password) {
         sendLoginCredentials(username, password);
         return new HomePage(driver);
     }
 
-    public PasscodePage login_goesToPasscodePage(String username, String password) {
+    public PasscodePage assertThatLogin_goesToPasscodePage(String username, String password) {
         sendLoginCredentials(username, password);
         return new PasscodePage(driver);
     }
-    public CustomErrorPage login_goesToCustomErrorPage(String username, String password, Matcher urlMatcher) {
+
+    public CustomErrorPage assertThatLogin_goesToCustomErrorPage(String username, String password, String urlContent) {
         sendLoginCredentials(username, password);
-        return new CustomErrorPage(driver, urlMatcher);
+        return new CustomErrorPage(driver, urlContent);
     }
-    public SamlErrorPage login_goesToSamlErrorPage(String username, String password) {
+
+    public SamlErrorPage assertThatLogin_goesToSamlErrorPage(String username, String password) {
         sendLoginCredentials(username, password);
         return new SamlErrorPage(driver);
     }

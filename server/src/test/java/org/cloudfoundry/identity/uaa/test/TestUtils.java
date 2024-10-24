@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
@@ -131,11 +132,13 @@ public class TestUtils {
 
         if (applicationContext == null) {
             IdentityZoneHolder.setProvisioning(null);
+            IdentityZoneHolder.setSamlKeyManagerFactory(null);
             return;
         }
 
         try {
             IdentityZoneHolder.setProvisioning(applicationContext.getBean(JdbcIdentityZoneProvisioning.class));
+            IdentityZoneHolder.setSamlKeyManagerFactory(applicationContext.getBean(SamlKeyManagerFactory.class));
         } catch (NoSuchBeanDefinitionException ignored) {
             try {
                 IdentityZoneHolder.setProvisioning(new JdbcIdentityZoneProvisioning(applicationContext.getBean(JdbcTemplate.class)));

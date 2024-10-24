@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -54,6 +55,7 @@ public final class UaaStringUtils {
     public static final String DEFAULT_UAA_URL = "http://localhost:8080/uaa";
 
     private UaaStringUtils() {
+        throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
     public static String replaceZoneVariables(String s, IdentityZone zone) {
@@ -147,13 +149,14 @@ public final class UaaStringUtils {
             return !escapeRegExCharacters(s).equals(constructSimpleWildcardPattern(s));
         }
         return false;
-     }
+    }
 
     /**
      * Escapes all regular expression patterns in a string so that when
      * using the string itself in a regular expression, only an exact literal match will
      * return true. For example, the string ".*" will not match any string, it will only
      * match ".*". The value ".*" when escaped will be "\.\*"
+     *
      * @param s - the string for which we need to escape regular expression constructs
      * @return a regular expression string that will only match exact literals
      */
@@ -165,7 +168,8 @@ public final class UaaStringUtils {
      * Escapes all regular expression patterns in a string so that when
      * using the string itself in a regular expression, only an exact literal match will
      * return true.
-     * @param s - the string for which we need to escape regular expression constructs
+     *
+     * @param s       - the string for which we need to escape regular expression constructs
      * @param pattern - the pattern containing the characters we wish to remain string literals
      * @return a regular expression string that will only match exact literals
      */
@@ -176,6 +180,7 @@ public final class UaaStringUtils {
     /**
      * Returns a pattern that does a single level regular expression match where
      * the * character is a wildcard until it encounters the next literal
+     *
      * @param s
      * @return the wildcard pattern
      */
@@ -192,7 +197,6 @@ public final class UaaStringUtils {
         String result = escapeRegExCharacters(s);
         return result.replace("\\*", ".*");
     }
-
 
     public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings) {
         return constructWildcards(wildcardStrings, UaaStringUtils::constructSimpleWildcardPattern);
@@ -221,10 +225,10 @@ public final class UaaStringUtils {
      * names.
      *
      * @param properties the properties to use
-     * @param prefix the prefix to strip from key names
+     * @param prefix     the prefix to strip from key names
      * @return a map of String values
      */
-    public static Map<String, ?> getMapFromProperties(Properties properties, String prefix) {
+    public static Map<String, Object> getMapFromProperties(Properties properties, String prefix) {
         Map<String, Object> result = new HashMap<>();
         for (String key : properties.stringPropertyNames()) {
             if (key.startsWith(prefix)) {
@@ -248,15 +252,14 @@ public final class UaaStringUtils {
     private static boolean isPassword(String key) {
         key = key.toLowerCase(Locale.US);
         return
-            key.endsWith("password") ||
-            key.endsWith("secret") ||
-            key.endsWith("signing-key") ||
-            key.contains("serviceproviderkey")
-            ;
+                key.endsWith("password") ||
+                        key.endsWith("secret") ||
+                        key.endsWith("signing-key") ||
+                        key.contains("serviceproviderkey");
     }
 
     public static Set<String> getStringsFromAuthorities(Collection<? extends GrantedAuthority> authorities) {
-        if (authorities==null) {
+        if (authorities == null) {
             return Collections.emptySet();
         }
         Set<String> result = new HashSet<>();
@@ -267,7 +270,7 @@ public final class UaaStringUtils {
     }
 
     public static List<? extends GrantedAuthority> getAuthoritiesFromStrings(Collection<String> authorities) {
-        if (authorities==null) {
+        if (authorities == null) {
             return Collections.emptyList();
         }
 
@@ -291,10 +294,12 @@ public final class UaaStringUtils {
         return input == null || input.length() == 0;
     }
 
-    public static boolean isNotEmpty(final String input) { return !isNullOrEmpty(input); }
+    public static boolean isNotEmpty(final String input) {
+        return !isNullOrEmpty(input);
+    }
 
     public static String convertISO8859_1_to_UTF_8(String s) {
-        if (s==null) {
+        if (s == null) {
             return null;
         } else {
             return new String(s.getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8);
@@ -306,7 +311,7 @@ public final class UaaStringUtils {
             return null;
         }
         String result = JsonUtils.writeValueAsString(s);
-        return result.substring(1, result.length()-1);
+        return result.substring(1, result.length() - 1);
     }
 
     public static String getCleanedUserControlString(String input) {

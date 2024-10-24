@@ -65,7 +65,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 	public ResponseEntity<OAuth2AccessToken> postAccessToken(
 			Principal principal, @RequestParam Map<String, String> parameters) {
 
-		if (!(principal instanceof Authentication)) {
+        if (!(principal instanceof Authentication)) {
 			throw new InsufficientAuthenticationException(
 					"There is no client authentication. Try adding an appropriate authentication filter.");
 		}

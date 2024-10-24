@@ -131,21 +131,8 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
-    <bean id="uiLogoutRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-        <constructor-arg value="/logout.do"/>
-    </bean>
-
     <bean id="uiAuthorizeRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
         <constructor-arg value="/oauth/authorize**"/>
-    </bean>
-
-    <bean id="samlLogoutHandlers" class="java.util.ArrayList">
-        <constructor-arg>
-            <util:list>
-                <ref bean="uaaAuthenticationFailureHandler"/>
-                <ref bean="samlLogoutHandler"/>
-            </util:list>
-        </constructor-arg>
     </bean>
 
     <bean id="loginCookieCsrfRepository"
@@ -162,27 +149,6 @@
     <bean id="currentUserCookieFactory" class="org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory">
         <constructor-arg name="sessionTimeout" value="${servlet.session-cookie.max-age:1800}"/>
         <constructor-arg name="secure" value="${require_https:false}"/>
-    </bean>
-
-    <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
-        <constructor-arg index="0" ref="logoutHandler"/>
-        <constructor-arg index="1">
-            <util:list>
-                <ref bean="uaaAuthenticationFailureHandler"/>
-                <bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler"/>
-                <bean class="org.springframework.security.web.csrf.CsrfLogoutHandler">
-                    <constructor-arg ref="loginCookieCsrfRepository"/>
-                </bean>
-                <bean class="org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler">
-                    <constructor-arg index="0">
-                        <util:list>
-                            <value>JSESSIONID</value>
-                        </util:list>
-                    </constructor-arg>
-                </bean>
-            </util:list>
-        </constructor-arg>
-        <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
 
     <bean name="clientRedirectStateCache" class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache">
@@ -224,14 +190,16 @@
         <constructor-arg>
             <util:list>
                 <security:filter-chain pattern="/**" filters="
-                    httpsHeaderFilter,
-                    metadataGeneratorFilter,
-                    samlFilter"/>
+                    httpsHeaderFilter"/>
+                <!--                    httpsHeaderFilter,-->
+                <!--                    metadataGeneratorFilter,-->
+                <!--                    samlFilter"/>-->
             </util:list>
         </constructor-arg>
     </bean>
 
-    <bean id="passwordChangeUiRequiredFilter" class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter" />
+    <bean id="passwordChangeUiRequiredFilter"
+          class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter"/>
 
     <bean id="reAuthenticationRequiredFilter"
           class="org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter">
@@ -255,12 +223,13 @@
         <intercept-url pattern="/reset_password**" access="isAnonymous()"/>
         <intercept-url pattern="/create_account*" access="isAnonymous()"/>
         <intercept-url pattern="/login/idp_discovery/**" access="isAnonymous()"/>
+        <intercept-url pattern="/saml/metadata/**" access="isAnonymous()"/>
         <intercept-url pattern="/origin-chooser" access="isAnonymous()"/>
         <intercept-url pattern="/login**" access="isAnonymous() or isFullyAuthenticated()"/>
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
-        <security:custom-filter before="FIRST" ref="metadataGeneratorFilter"/>
+        <!--        <security:custom-filter before="FIRST" ref="aggregateSpringSecurityFilterChain"/>-->
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter"/>
-        <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>
+        <!--        <security:custom-filter after="CHANNEL_FILTER" ref="samlFilter"/>-->
         <security:custom-filter after="SECURITY_CONTEXT_FILTER" ref="reAuthenticationRequiredFilter"/>
         <form-login login-page="/login"
                     username-parameter="username"
@@ -273,7 +242,7 @@
         <custom-filter ref="clientRedirectStateCache" before="CSRF_FILTER"/>
         <custom-filter ref="passwordChangeUiRequiredFilter" before="FORM_LOGIN_FILTER"/>
         <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
-        <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
+        <!--        <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>-->
         <csrf disabled="false"
               token-repository-ref="loginCookieCsrfRepository"/>
         <access-denied-handler ref="loginEntryPoint"/>
@@ -305,7 +274,6 @@
         <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory"/>
     </bean>
 
-
     <bean id="httpsHeaderFilter" class="org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter"/>
 
     <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">
@@ -318,15 +286,17 @@
     </bean>
 
     <bean id="externalOAuthLogoutHandler"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutHandler">
+          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthLogoutSuccessHandler">
         <constructor-arg name="providerProvisioning" ref="externalOAuthProviderConfigurator"/>
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
+        <constructor-arg name="identityZoneManager" ref="identityZoneManager"/>
     </bean>
 
-    <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutHandler">
-        <constructor-arg ref="jdbcClientDetailsService"/>
-        <constructor-arg ref="externalOAuthLogoutHandler"/>
-        <constructor-arg ref="keyInfoService"/>
+    <bean id="logoutHandler"
+          class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutSuccessHandler">
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="externalOAuthLogoutHandler" ref="externalOAuthLogoutHandler"/>
+        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
     </bean>
 
     <!--<mvc:resources location="/" mapping="/**" />-->
@@ -416,10 +386,6 @@
         </property>
     </bean>
 
-    <!-- Handler deciding where to redirect user after successful login -->
-    <bean id="successRedirectHandler"
-          class="org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler"/>
-
     <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig"/>
 
     <mvc:resources mapping="/resources/**" location="/resources/"/>
@@ -497,7 +463,7 @@
         <constructor-arg ref="codeStore"/>
     </bean>
 
-    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService" />
+    <bean id="activeKeyService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionKeyService"/>
 
     <bean id="encryptionService" class="org.cloudfoundry.identity.uaa.cypto.EncryptionService">
         <constructor-arg index="0" ref="activeKeyService"/>

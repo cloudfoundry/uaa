@@ -398,23 +398,27 @@ login:
   # SAML - The entity base url is the location of this application
   # (The host and port of the application that will accept assertions)
   entityBaseURL: http://localhost:8080/uaa
-  # The entityID of this SP
+  # The entityID of this SP (SAML SP metadata will declare this as "entityID"); SAML Authn Request will use this as the "Issuer" of the request
   entityID: cloudfoundry-saml-login
   saml:
-    #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
+    # Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias};
+    # both SAML SP metadata and SAML Authn Request will include this as part of various SAML URLs (such as the AssertionConsumerService URL);
+    # if not set, UAA will fall back to login.entityID
     #entityIDAlias: cloudfoundry-saml-login
-    #Default nameID if IDP nameID is not set
+    # Default nameID if IDP nameID is not set
     nameID: 'urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified'
-    #Default assertionConsumerIndex if IDP value is not set
+    # Default assertionConsumerIndex if IDP value is not set
     assertionConsumerIndex: 0
-    #Local/SP metadata - sign metadata
+    # Local/SP metadata - sign metadata
     signMetaData: true
-    #Local/SP metadata - requests signed
+    # Local/SP metadata - requests signed
     signRequest: true
-    #Local/SP metadata - want incoming assertions signed
+    # Local/SP metadata - want incoming assertions signed
     wantAssertionSigned: true
-    #Algorithm for SAML signatures. Defaults to SHA1.  Accepts SHA1, SHA256, SHA512
+    # Algorithm for SAML signatures. Defaults to SHA256. Accepts SHA1, SHA256, SHA512
     signatureAlgorithm: SHA256
+    # If true, do not validate the InResponseToField part of an incoming IDP assertion (default: false)
+    disableInResponseToCheck: false
     socket:
       # URL metadata fetch - pool timeout
       connectionManagerTimeout: 10000

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -20,6 +21,7 @@ public class UaaIdentityProviderDefinition extends AbstractIdentityProviderDefin
     private PasswordPolicy passwordPolicy;
     private LockoutPolicy lockoutPolicy;
     private boolean disableInternalUserManagement = false;
+
     public UaaIdentityProviderDefinition() {
     }
 
@@ -56,5 +58,4 @@ public class UaaIdentityProviderDefinition extends AbstractIdentityProviderDefin
     public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
-
 }

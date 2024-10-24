@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
-import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -43,7 +42,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -54,15 +55,6 @@ import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.STORE_CUSTOM_ATTRIBUTES_NAME;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
@@ -79,8 +71,8 @@ class IdentityProviderBootstrapTest {
     private IdentityProviderProvisioning provisioning;
     private IdentityProviderBootstrap bootstrap;
     private MockEnvironment environment;
-    private AbstractExternalOAuthIdentityProviderDefinition oauthProvider;
-    private AbstractExternalOAuthIdentityProviderDefinition oidcProvider;
+    private RawExternalOAuthIdentityProviderDefinition oauthProvider;
+    private OIDCIdentityProviderDefinition oidcProvider;
     private HashMap<String, AbstractExternalOAuthIdentityProviderDefinition> oauthProviderConfig;
 
     @Autowired
@@ -136,18 +128,17 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
-        assertNotNull(ldapProvider);
-        assertNotNull(ldapProvider.getCreated());
-        assertNotNull(ldapProvider.getLastModified());
-        assertEquals(LDAP, ldapProvider.getType());
+        assertThat(ldapProvider).isNotNull();
+        assertThat(ldapProvider.getCreated()).isNotNull();
+        assertThat(ldapProvider.getLastModified()).isNotNull();
+        assertThat(ldapProvider.getType()).isEqualTo(LDAP);
         LdapIdentityProviderDefinition definition = ldapProvider.getConfig();
-        assertNotNull(definition);
-        assertFalse(definition.isConfigured());
+        assertThat(definition).isNotNull();
+        assertThat(definition.isConfigured()).isFalse();
     }
 
     @Test
     void ldapBootstrap() throws Exception {
-        final String idpDescription = "Test LDAP Provider Description";
         HashMap<String, Object> ldapConfig = getGenericLdapConfig();
 
         bootstrap.setLdapConfig(ldapConfig);
@@ -159,15 +150,15 @@ class IdentityProviderBootstrapTest {
 
     private static void validateGenericLdapProvider(
             IdentityProvider<LdapIdentityProviderDefinition> ldapProvider) {
-        assertNotNull(ldapProvider);
-        assertNotNull(ldapProvider.getCreated());
-        assertNotNull(ldapProvider.getLastModified());
-        assertEquals(LDAP, ldapProvider.getType());
-        assertThat(ldapProvider.getConfig().getEmailDomain(), containsInAnyOrder("test.domain"));
-        assertEquals(Collections.singletonList("value"), ldapProvider.getConfig().getExternalGroupsWhitelist());
-        assertEquals("first_name", ldapProvider.getConfig().getAttributeMappings().get("given_name"));
-        assertEquals("Test LDAP Provider Description", ldapProvider.getConfig().getProviderDescription());
-        assertFalse(ldapProvider.getConfig().isStoreCustomAttributes());
+        assertThat(ldapProvider).isNotNull();
+        assertThat(ldapProvider.getCreated()).isNotNull();
+        assertThat(ldapProvider.getLastModified()).isNotNull();
+        assertThat(ldapProvider.getType()).isEqualTo(LDAP);
+        assertThat(ldapProvider.getConfig().getEmailDomain()).contains("test.domain");
+        assertThat(ldapProvider.getConfig().getExternalGroupsWhitelist()).isEqualTo(Collections.singletonList("value"));
+        assertThat(ldapProvider.getConfig().getAttributeMappings()).containsEntry("given_name", "first_name");
+        assertThat(ldapProvider.getConfig().getProviderDescription()).isEqualTo("Test LDAP Provider Description");
+        assertThat(ldapProvider.getConfig().isStoreCustomAttributes()).isFalse();
     }
 
     private static HashMap<String, Object> getGenericLdapConfig() {
@@ -216,38 +207,38 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
-        assertNotNull(ldapProvider);
-        assertNotNull(ldapProvider.getCreated());
-        assertNotNull(ldapProvider.getLastModified());
-        assertEquals(LDAP, ldapProvider.getType());
-        assertTrue(ldapProvider.isActive());
+        assertThat(ldapProvider).isNotNull();
+        assertThat(ldapProvider.getCreated()).isNotNull();
+        assertThat(ldapProvider.getLastModified()).isNotNull();
+        assertThat(ldapProvider.getType()).isEqualTo(LDAP);
+        assertThat(ldapProvider.isActive()).isTrue();
 
         bootstrap.setLdapConfig(null);
         bootstrap.afterPropertiesSet();
         ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
-        assertNotNull(ldapProvider);
-        assertNotNull(ldapProvider.getCreated());
-        assertNotNull(ldapProvider.getLastModified());
-        assertEquals(LDAP, ldapProvider.getType());
-        assertFalse(ldapProvider.isActive());
+        assertThat(ldapProvider).isNotNull();
+        assertThat(ldapProvider.getCreated()).isNotNull();
+        assertThat(ldapProvider.getLastModified()).isNotNull();
+        assertThat(ldapProvider.getType()).isEqualTo(LDAP);
+        assertThat(ldapProvider.isActive()).isFalse();
 
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
         ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
-        assertNotNull(ldapProvider);
-        assertNotNull(ldapProvider.getCreated());
-        assertNotNull(ldapProvider.getLastModified());
-        assertEquals(LDAP, ldapProvider.getType());
-        assertTrue(ldapProvider.isActive());
+        assertThat(ldapProvider).isNotNull();
+        assertThat(ldapProvider.getCreated()).isNotNull();
+        assertThat(ldapProvider.getLastModified()).isNotNull();
+        assertThat(ldapProvider.getType()).isEqualTo(LDAP);
+        assertThat(ldapProvider.isActive()).isTrue();
 
         environment.setActiveProfiles("default");
         bootstrap.afterPropertiesSet();
         ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
-        assertNotNull(ldapProvider);
-        assertNotNull(ldapProvider.getCreated());
-        assertNotNull(ldapProvider.getLastModified());
-        assertEquals(LDAP, ldapProvider.getType());
-        assertFalse(ldapProvider.isActive());
+        assertThat(ldapProvider).isNotNull();
+        assertThat(ldapProvider.getCreated()).isNotNull();
+        assertThat(ldapProvider.getLastModified()).isNotNull();
+        assertThat(ldapProvider.getType()).isEqualTo(LDAP);
+        assertThat(ldapProvider.isActive()).isFalse();
     }
 
     @Test
@@ -256,13 +247,13 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
-        assertNotNull(keystoneProvider);
-        assertEquals(new KeystoneIdentityProviderDefinition(), keystoneProvider.getConfig());
-        assertNotNull(keystoneProvider.getCreated());
-        assertNotNull(keystoneProvider.getLastModified());
-        assertEquals(KEYSTONE, keystoneProvider.getType());
-        assertNotNull(keystoneProvider.getConfig());
-        assertNull(keystoneProvider.getConfig().getAdditionalConfiguration());
+        assertThat(keystoneProvider).isNotNull();
+        assertThat(keystoneProvider.getConfig()).isEqualTo(new KeystoneIdentityProviderDefinition());
+        assertThat(keystoneProvider.getCreated()).isNotNull();
+        assertThat(keystoneProvider.getLastModified()).isNotNull();
+        assertThat(keystoneProvider.getType()).isEqualTo(KEYSTONE);
+        assertThat(keystoneProvider.getConfig()).isNotNull();
+        assertThat(keystoneProvider.getConfig().getAdditionalConfiguration()).isNull();
     }
 
     @Test
@@ -273,11 +264,11 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
-        assertNotNull(keystoneProvider);
-        assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
-        assertNotNull(keystoneProvider.getCreated());
-        assertNotNull(keystoneProvider.getLastModified());
-        assertEquals(KEYSTONE, keystoneProvider.getType());
+        assertThat(keystoneProvider).isNotNull();
+        assertThat(keystoneProvider.getConfig()).isEqualTo(new KeystoneIdentityProviderDefinition(keystoneConfig));
+        assertThat(keystoneProvider.getCreated()).isNotNull();
+        assertThat(keystoneProvider.getLastModified()).isNotNull();
+        assertThat(keystoneProvider.getType()).isEqualTo(KEYSTONE);
     }
 
     @Test
@@ -289,38 +280,38 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
-        assertNotNull(keystoneProvider);
-        assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
-        assertNotNull(keystoneProvider.getCreated());
-        assertNotNull(keystoneProvider.getLastModified());
-        assertEquals(KEYSTONE, keystoneProvider.getType());
-        assertTrue(keystoneProvider.isActive());
+        assertThat(keystoneProvider).isNotNull();
+        assertThat(keystoneProvider.getConfig()).isEqualTo(new KeystoneIdentityProviderDefinition(keystoneConfig));
+        assertThat(keystoneProvider.getCreated()).isNotNull();
+        assertThat(keystoneProvider.getLastModified()).isNotNull();
+        assertThat(keystoneProvider.getType()).isEqualTo(KEYSTONE);
+        assertThat(keystoneProvider.isActive()).isTrue();
 
         bootstrap.setKeystoneConfig(null);
         bootstrap.afterPropertiesSet();
         keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
-        assertNotNull(keystoneProvider);
-        assertNotNull(keystoneProvider.getCreated());
-        assertNotNull(keystoneProvider.getLastModified());
-        assertEquals(KEYSTONE, keystoneProvider.getType());
-        assertFalse(keystoneProvider.isActive());
+        assertThat(keystoneProvider).isNotNull();
+        assertThat(keystoneProvider.getCreated()).isNotNull();
+        assertThat(keystoneProvider.getLastModified()).isNotNull();
+        assertThat(keystoneProvider.getType()).isEqualTo(KEYSTONE);
+        assertThat(keystoneProvider.isActive()).isFalse();
 
         bootstrap.setKeystoneConfig(keystoneConfig);
         bootstrap.afterPropertiesSet();
         keystoneProvider = provisioning.retrieveByOriginIgnoreActiveFlag(KEYSTONE, IdentityZone.getUaaZoneId());
-        assertNotNull(keystoneProvider);
-        assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
-        assertNotNull(keystoneProvider.getCreated());
-        assertNotNull(keystoneProvider.getLastModified());
-        assertEquals(KEYSTONE, keystoneProvider.getType());
-        assertTrue(keystoneProvider.isActive());
+        assertThat(keystoneProvider).isNotNull();
+        assertThat(keystoneProvider.getConfig()).isEqualTo(new KeystoneIdentityProviderDefinition(keystoneConfig));
+        assertThat(keystoneProvider.getCreated()).isNotNull();
+        assertThat(keystoneProvider.getLastModified()).isNotNull();
+        assertThat(keystoneProvider.getType()).isEqualTo(KEYSTONE);
+        assertThat(keystoneProvider.isActive()).isTrue();
     }
 
     @Test
     void oauthAndOidcProviderDeletion() throws Exception {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
         setOauthIDPWrappers();
-        bootstrap.setOriginsToDelete(new LinkedList(oauthProviderConfig.keySet()));
+        bootstrap.setOriginsToDelete(new LinkedList<>(oauthProviderConfig.keySet()));
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
             try {
@@ -333,27 +324,22 @@ class IdentityProviderBootstrapTest {
     }
 
     private void setOauthIDPWrappers() {
-        List<IdentityProviderWrapper> wrappers = new LinkedList<>();
-        oauthProviderConfig
-                .entrySet()
-                .forEach(
-                        p -> {
-                            IdentityProvider provider = new IdentityProvider();
-                            if (p.getValue() instanceof OIDCIdentityProviderDefinition) {
-                                provider.setType(OIDC10);
-                            } else if (p.getValue() instanceof RawExternalOAuthIdentityProviderDefinition) {
-                                provider.setType(OAUTH20);
-                            }
-                            wrappers.add(
-                                    OauthIDPWrapperFactoryBean.getIdentityProviderWrapper(
-                                            p.getKey(),
-                                            p.getValue(),
-                                            provider,
-                                            true
-                                    )
+        List<IdentityProviderWrapper> wrappers = oauthProviderConfig.entrySet().stream()
+                .map(e -> {
+                    IdentityProvider provider = new IdentityProvider<>();
+                    if (e.getValue() instanceof OIDCIdentityProviderDefinition) {
+                        provider.setType(OIDC10);
+                    } else if (e.getValue() instanceof RawExternalOAuthIdentityProviderDefinition) {
+                        provider.setType(OAUTH20);
+                    }
+                    return
+                            OauthIDPWrapperFactoryBean.getIdentityProviderWrapper(
+                                    e.getKey(),
+                                    e.getValue(),
+                                    provider,
+                                    true
                             );
-                        }
-                );
+                }).toList();
         bootstrap.setOauthIdpDefinitions(wrappers);
     }
 
@@ -372,28 +358,27 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
         for (Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
             IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOriginIgnoreActiveFlag(provider.getKey(), IdentityZone.getUaaZoneId());
-            assertNotNull(bootstrapOauthProvider);
-            assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
-            assertNotNull(bootstrapOauthProvider.getCreated());
-            assertNotNull(bootstrapOauthProvider.getLastModified());
-            assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
-            assertTrue(bootstrapOauthProvider.isActive());
+            assertThat(bootstrapOauthProvider).isNotNull();
+            assertThat(oauthProviderConfig).containsValue(bootstrapOauthProvider.getConfig());
+            assertThat(bootstrapOauthProvider.getCreated()).isNotNull();
+            assertThat(bootstrapOauthProvider.getLastModified()).isNotNull();
+            assertThat(bootstrapOauthProvider.getType()).isEqualTo(provider.getKey());
+            assertThat(bootstrapOauthProvider.isActive()).isTrue();
         }
-
     }
 
     private void validateOauthOidcProvider(Map.Entry<String, AbstractExternalOAuthIdentityProviderDefinition> provider, IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> bootstrapOauthProvider) {
-        assertNotNull(bootstrapOauthProvider);
-        assertThat(oauthProviderConfig.values(), PredicateMatcher.has(c -> c.equals(bootstrapOauthProvider.getConfig())));
-        assertNotNull(bootstrapOauthProvider.getCreated());
-        assertNotNull(bootstrapOauthProvider.getLastModified());
-        assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
-        assertTrue(bootstrapOauthProvider.isActive());
-        assertTrue(bootstrapOauthProvider.getConfig().isStoreCustomAttributes()); //default
+        assertThat(bootstrapOauthProvider).isNotNull();
+        assertThat(oauthProviderConfig).containsValue(bootstrapOauthProvider.getConfig());
+        assertThat(bootstrapOauthProvider.getCreated()).isNotNull();
+        assertThat(bootstrapOauthProvider.getLastModified()).isNotNull();
+        assertThat(bootstrapOauthProvider.getType()).isEqualTo(provider.getKey());
+        assertThat(bootstrapOauthProvider.isActive()).isTrue();
+        assertThat(bootstrapOauthProvider.getConfig().isStoreCustomAttributes()).isTrue(); //default
         if (OIDC10.equals(provider.getKey())) {
-            assertEquals("code id_token", bootstrapOauthProvider.getConfig().getResponseType());
+            assertThat(bootstrapOauthProvider.getConfig().getResponseType()).isEqualTo("code id_token");
         } else {
-            assertEquals("code", bootstrapOauthProvider.getConfig().getResponseType());
+            assertThat(bootstrapOauthProvider.getConfig().getResponseType()).isEqualTo("code");
         }
     }
 
@@ -419,7 +404,7 @@ class IdentityProviderBootstrapTest {
 
         setOauthIDPWrappers();
         bootstrap.setSamlProviders(configurator);
-        assertThrows(IllegalArgumentException.class, () -> bootstrap.afterPropertiesSet());
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> bootstrap.afterPropertiesSet());
     }
 
     private AbstractExternalOAuthIdentityProviderDefinition setCommonProperties(AbstractExternalOAuthIdentityProviderDefinition definition) throws MalformedURLException {
@@ -442,12 +427,12 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider samlProvider = provisioning.retrieveByExternId(samlIdentityProviderDefinition.getIdpEntityAlias(), SAML, IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
+        assertThat(samlProvider).isNotNull();
         samlIdentityProviderDefinition.setZoneId(IdentityZone.getUaaZoneId());
-        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
-        assertNotNull(samlProvider.getCreated());
-        assertNotNull(samlProvider.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider.getType());
+        assertThat(samlProvider.getConfig()).isEqualTo(samlIdentityProviderDefinition);
+        assertThat(samlProvider.getCreated()).isNotNull();
+        assertThat(samlProvider.getLastModified()).isNotNull();
+        assertThat(samlProvider.getType()).isEqualTo(OriginKeys.SAML);
     }
 
     @Test
@@ -469,16 +454,13 @@ class IdentityProviderBootstrapTest {
 
         ArgumentCaptor<EntityDeletedEvent<IdentityProvider>> captor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
         verify(publisher, times(2)).publishEvent(captor.capture());
-        assertThat(
-                captor
-                        .getAllValues()
-                        .stream()
-                        .map(
-                                p -> p.getDeleted().getOriginKey()
-                        ).collect(toList()
-                ),
-                containsInAnyOrder(originsToDelete.toArray())
-        );
+        assertThat(captor
+                .getAllValues()
+                .stream()
+                .map(
+                        p -> p.getDeleted().getOriginKey()
+                ).toList())
+                .containsAll(originsToDelete);
     }
 
     private void configureSamlProviders(boolean override, SamlIdentityProviderDefinition... definitions) {
@@ -504,10 +486,10 @@ class IdentityProviderBootstrapTest {
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
-        assertNotNull(samlProvider2);
-        assertEquals("http://location", samlProvider.getConfig().getMetaDataLocation());
-        assertEquals("http://location2", samlProvider2.getConfig().getMetaDataLocation());
+        assertThat(samlProvider).isNotNull();
+        assertThat(samlProvider2).isNotNull();
+        assertThat(samlProvider.getConfig().getMetaDataLocation()).isEqualTo("http://location");
+        assertThat(samlProvider2.getConfig().getMetaDataLocation()).isEqualTo("http://location2");
 
         samlIdentityProviderDefinition.setMetaDataLocation("http://some.other.location");
         samlIdentityProviderDefinition1.setMetaDataLocation("http://some.other.location");
@@ -517,10 +499,10 @@ class IdentityProviderBootstrapTest {
 
         samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
         samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
-        assertNotNull(samlProvider2);
-        assertEquals("http://location", samlProvider.getConfig().getMetaDataLocation());
-        assertEquals("http://location2", samlProvider2.getConfig().getMetaDataLocation());
+        assertThat(samlProvider).isNotNull();
+        assertThat(samlProvider.getConfig().getMetaDataLocation()).isEqualTo("http://location");
+        assertThat(samlProvider2).isNotNull();
+        assertThat(samlProvider2.getConfig().getMetaDataLocation()).isEqualTo("http://location2");
 
 
     }
@@ -532,62 +514,62 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
+        assertThat(samlProvider).isNotNull();
         samlIdentityProviderDefinition.setZoneId(IdentityZone.getUaaZoneId());
-        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
-        assertNotNull(samlProvider.getCreated());
-        assertNotNull(samlProvider.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertTrue(samlProvider.isActive());
+        assertThat(samlProvider.getConfig()).isEqualTo(samlIdentityProviderDefinition);
+        assertThat(samlProvider.getCreated()).isNotNull();
+        assertThat(samlProvider.getLastModified()).isNotNull();
+        assertThat(samlProvider.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider.isActive()).isTrue();
 
         IdentityProvider samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider2);
+        assertThat(samlProvider2).isNotNull();
         samlIdentityProviderDefinition1.setZoneId(IdentityZone.getUaaZoneId());
-        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
-        assertNotNull(samlProvider2.getCreated());
-        assertNotNull(samlProvider2.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertTrue(samlProvider2.isActive());
+        assertThat(samlProvider2.getConfig()).isEqualTo(samlIdentityProviderDefinition1);
+        assertThat(samlProvider2.getCreated()).isNotNull();
+        assertThat(samlProvider2.getLastModified()).isNotNull();
+        assertThat(samlProvider2.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider2.isActive()).isTrue();
 
         configureSamlProviders(true, samlIdentityProviderDefinition);
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
         samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
-        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
-        assertNotNull(samlProvider.getCreated());
-        assertNotNull(samlProvider.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertTrue(samlProvider.isActive());
+        assertThat(samlProvider).isNotNull();
+        assertThat(samlProvider.getConfig()).isEqualTo(samlIdentityProviderDefinition);
+        assertThat(samlProvider.getCreated()).isNotNull();
+        assertThat(samlProvider.getLastModified()).isNotNull();
+        assertThat(samlProvider.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider.isActive()).isTrue();
 
         samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider2);
-        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
-        assertNotNull(samlProvider2.getCreated());
-        assertNotNull(samlProvider2.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertTrue(samlProvider2.isActive());
+        assertThat(samlProvider2).isNotNull();
+        assertThat(samlProvider2.getConfig()).isEqualTo(samlIdentityProviderDefinition1);
+        assertThat(samlProvider2.getCreated()).isNotNull();
+        assertThat(samlProvider2.getLastModified()).isNotNull();
+        assertThat(samlProvider2.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider2.isActive()).isTrue();
 
         configureSamlProviders(true, samlIdentityProviderDefinition1);
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
         samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
-        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
-        assertNotNull(samlProvider.getCreated());
-        assertNotNull(samlProvider.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertTrue(samlProvider.isActive());
+        assertThat(samlProvider).isNotNull();
+        assertThat(samlProvider.getConfig()).isEqualTo(samlIdentityProviderDefinition);
+        assertThat(samlProvider.getCreated()).isNotNull();
+        assertThat(samlProvider.getLastModified()).isNotNull();
+        assertThat(samlProvider.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider.isActive()).isTrue();
 
         samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider2);
-        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
-        assertNotNull(samlProvider2.getCreated());
-        assertNotNull(samlProvider2.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertTrue(samlProvider2.isActive());
+        assertThat(samlProvider2).isNotNull();
+        assertThat(samlProvider2.getConfig()).isEqualTo(samlIdentityProviderDefinition1);
+        assertThat(samlProvider2.getCreated()).isNotNull();
+        assertThat(samlProvider2.getLastModified()).isNotNull();
+        assertThat(samlProvider2.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider2.isActive()).isTrue();
 
         configurator = mock(BootstrapSamlIdentityProviderData.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(new LinkedList<>());
@@ -595,20 +577,20 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
-        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
-        assertNotNull(samlProvider.getCreated());
-        assertNotNull(samlProvider.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertTrue(samlProvider.isActive());
+        assertThat(samlProvider).isNotNull();
+        assertThat(samlProvider.getConfig()).isEqualTo(samlIdentityProviderDefinition);
+        assertThat(samlProvider.getCreated()).isNotNull();
+        assertThat(samlProvider.getLastModified()).isNotNull();
+        assertThat(samlProvider.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider.isActive()).isTrue();
 
         samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider2);
-        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
-        assertNotNull(samlProvider2.getCreated());
-        assertNotNull(samlProvider2.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertTrue(samlProvider2.isActive());
+        assertThat(samlProvider2).isNotNull();
+        assertThat(samlProvider2.getConfig()).isEqualTo(samlIdentityProviderDefinition1);
+        assertThat(samlProvider2.getCreated()).isNotNull();
+        assertThat(samlProvider2.getLastModified()).isNotNull();
+        assertThat(samlProvider2.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider2.isActive()).isTrue();
 
         configurator = mock(BootstrapSamlIdentityProviderData.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(samlIdentityProviderDefinition1, samlIdentityProviderDefinition));
@@ -616,20 +598,20 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         samlProvider = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider);
-        assertEquals(samlIdentityProviderDefinition, samlProvider.getConfig());
-        assertNotNull(samlProvider.getCreated());
-        assertNotNull(samlProvider.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider.getType());
-        assertTrue(samlProvider.isActive());
+        assertThat(samlProvider).isNotNull();
+        assertThat(samlProvider.getConfig()).isEqualTo(samlIdentityProviderDefinition);
+        assertThat(samlProvider.getCreated()).isNotNull();
+        assertThat(samlProvider.getLastModified()).isNotNull();
+        assertThat(samlProvider.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider.isActive()).isTrue();
 
         samlProvider2 = provisioning.retrieveByOriginIgnoreActiveFlag(samlIdentityProviderDefinition1.getIdpEntityAlias(), IdentityZone.getUaaZoneId());
-        assertNotNull(samlProvider2);
-        assertEquals(samlIdentityProviderDefinition1, samlProvider2.getConfig());
-        assertNotNull(samlProvider2.getCreated());
-        assertNotNull(samlProvider2.getLastModified());
-        assertEquals(OriginKeys.SAML, samlProvider2.getType());
-        assertTrue(samlProvider2.isActive());
+        assertThat(samlProvider2).isNotNull();
+        assertThat(samlProvider2.getConfig()).isEqualTo(samlIdentityProviderDefinition1);
+        assertThat(samlProvider2.getCreated()).isNotNull();
+        assertThat(samlProvider2.getLastModified()).isNotNull();
+        assertThat(samlProvider2.getType()).isEqualTo(OriginKeys.SAML);
+        assertThat(samlProvider2.isActive()).isTrue();
     }
 
     @Test
@@ -655,7 +637,7 @@ class IdentityProviderBootstrapTest {
         if (expectedValue == null) {
             expectedValue = "false";
         }
-        assertEquals(Boolean.valueOf(expectedValue), internalIDP.getConfig().isDisableInternalUserManagement());
+        assertThat(internalIDP.getConfig().isDisableInternalUserManagement()).isEqualTo(Boolean.valueOf(expectedValue));
     }
 
     @Test
@@ -665,13 +647,13 @@ class IdentityProviderBootstrapTest {
 
         IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         PasswordPolicy passwordPolicy = internalIDP.getConfig().getPasswordPolicy();
-        assertEquals(123, passwordPolicy.getMinLength());
-        assertEquals(4567, passwordPolicy.getMaxLength());
-        assertEquals(1, passwordPolicy.getRequireUpperCaseCharacter());
-        assertEquals(0, passwordPolicy.getRequireLowerCaseCharacter());
-        assertEquals(1, passwordPolicy.getRequireDigit());
-        assertEquals(0, passwordPolicy.getRequireSpecialCharacter());
-        assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+        assertThat(passwordPolicy.getMinLength()).isEqualTo(123);
+        assertThat(passwordPolicy.getMaxLength()).isEqualTo(4567);
+        assertThat(passwordPolicy.getRequireUpperCaseCharacter()).isOne();
+        assertThat(passwordPolicy.getRequireLowerCaseCharacter()).isZero();
+        assertThat(passwordPolicy.getRequireDigit()).isOne();
+        assertThat(passwordPolicy.getRequireSpecialCharacter()).isZero();
+        assertThat(passwordPolicy.getExpirePasswordInMonths()).isEqualTo(6);
     }
 
     @Test
@@ -686,9 +668,9 @@ class IdentityProviderBootstrapTest {
         IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
         lockoutPolicy = internalIDP.getConfig().getLockoutPolicy();
 
-        assertEquals(123, lockoutPolicy.getLockoutPeriodSeconds());
-        assertEquals(3, lockoutPolicy.getLockoutAfterFailures());
-        assertEquals(343, lockoutPolicy.getCountFailuresWithin());
+        assertThat(lockoutPolicy.getLockoutPeriodSeconds()).isEqualTo(123);
+        assertThat(lockoutPolicy.getLockoutAfterFailures()).isEqualTo(3);
+        assertThat(lockoutPolicy.getCountFailuresWithin()).isEqualTo(343);
     }
 
     @Test
@@ -697,19 +679,19 @@ class IdentityProviderBootstrapTest {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider internalIdp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        assertFalse(internalIdp.isActive());
+        assertThat(internalIdp.isActive()).isFalse();
 
         environment.setProperty("disableInternalAuth", "false");
         bootstrap.afterPropertiesSet();
 
         internalIdp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        assertTrue(internalIdp.isActive());
+        assertThat(internalIdp.isActive()).isTrue();
     }
 
     @Test
     void defaultActiveFlagOnInternalIDP() throws Exception {
         bootstrap.afterPropertiesSet();
         IdentityProvider internalIdp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZone.getUaaZoneId());
-        assertTrue(internalIdp.isActive());
+        assertThat(internalIdp.isActive()).isTrue();
     }
 }
