@@ -39,7 +39,7 @@ public class TreeController {
         this.treeUrlPattern = treeUrlPattern;
     }
 
-    @RequestMapping("/apps")
+    @RequestMapping({"/apps", "/apps/"})
     public String apps(Model model, Principal principal) throws Exception {
         loadItems(model, "apps");
         addUserInfo(model, principal);

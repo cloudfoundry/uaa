@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa;
 
-import javax.servlet.Filter;
+import jakarta.servlet.Filter;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
