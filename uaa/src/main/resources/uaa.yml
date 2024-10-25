@@ -395,8 +395,8 @@ login:
 #    RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
 #    -----END CERTIFICATE-----
 
-  # SAML - The entity base url is the location of this application
-  # (The host and port of the application that will accept assertions)
+  # The entity base url is the location of this application
+  # (No longer used for SAML SP metadata generation)
   entityBaseURL: http://localhost:8080/uaa
   # The entityID of this SP (SAML SP metadata will declare this as "entityID"); SAML Authn Request will use this as the "Issuer" of the request
   entityID: cloudfoundry-saml-login
