@@ -280,23 +280,6 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
      * Construct a default strategy for validating each SAML 2.0 Assertion and associated
      * {@link Authentication} token
      *
-     * @param contextConverter the conversion strategy to use to generate a
-     *                         {@link ValidationContext} for each assertion being validated
-     * @return the default assertion validator strategy
-     * @deprecated Use {@link #createDefaultAssertionValidatorWithParameters} instead
-     */
-    @Deprecated
-    public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidator(
-            Converter<AssertionToken, ValidationContext> contextConverter) {
-
-        return createAssertionValidator(Saml2ErrorCodes.INVALID_ASSERTION,
-                assertionToken -> SAML20AssertionValidators.attributeValidator, contextConverter);
-    }
-
-    /**
-     * Construct a default strategy for validating each SAML 2.0 Assertion and associated
-     * {@link Authentication} token
-     *
      * @param validationContextParameters a consumer for editing the values passed to the
      *                                    {@link ValidationContext} for each assertion being validated
      * @return the default assertion validator strategy

@@ -405,7 +405,6 @@ public class OIDCLoginIT {
         IntegrationTestUtils.createClient(adminToken, baseUrl, client);
 
         Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
-                UaaTestAccounts.standard(serverRunning),
                 clientId,
                 "clientsecret",
                 null,
@@ -467,7 +466,6 @@ public class OIDCLoginIT {
             serverRunning.setHostName(zone.getSubdomain() + ".localhost");
 
             Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
-                    UaaTestAccounts.standard(serverRunning),
                     zoneClient.getClientId(),
                     "secret",
                     null,

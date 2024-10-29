@@ -542,7 +542,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void singleLogoutWithNoLogoutUrlOnIDP() throws Exception {
+    void singleLogoutWithNoLogoutUrlOnIDP() {
         SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured();
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(OriginKeys.UAA);
@@ -1015,7 +1015,6 @@ public class SamlLoginIT {
 
         serverRunning.setHostName("testzone1.localhost");
         Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
-                UaaTestAccounts.standard(serverRunning),
                 clientDetails.getClientId(),
                 clientDetails.getClientSecret(),
                 null,
@@ -1149,7 +1148,6 @@ public class SamlLoginIT {
 
         serverRunning.setHostName(zoneId + ".localhost");
         Map<String, String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
-                UaaTestAccounts.standard(serverRunning),
                 clientDetails.getClientId(),
                 clientDetails.getClientSecret(),
                 null,

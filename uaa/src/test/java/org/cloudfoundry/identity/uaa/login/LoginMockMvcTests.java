@@ -150,6 +150,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DirtiesContext
 public class LoginMockMvcTests {
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
+    private static final String DEFAULT_COPYRIGHT_TEMPLATE = "Copyright © %s";
+    private static final String CF_COPYRIGHT_TEXT = String.format(DEFAULT_COPYRIGHT_TEMPLATE, "CloudFoundry.org Foundation, Inc.");
+    private static final String CF_LAST_LOGIN = "Last Login";
 
     private WebApplicationContext webApplicationContext;
 
@@ -672,7 +675,7 @@ public class LoginMockMvcTests {
     @Test
     void testDefaultFooter() throws Exception {
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(containsString(cfCopyrightText)))
+                .andExpect(content().string(containsString(CF_COPYRIGHT_TEXT)))
                 .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
     }
 
@@ -685,7 +688,7 @@ public class LoginMockMvcTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
         mockMvc.perform(get("/login"))
-                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))))
+                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(CF_COPYRIGHT_TEXT)))))
                 .andExpect(content().string(not(containsString(CF_LAST_LOGIN))));
     }
 
@@ -697,7 +700,7 @@ public class LoginMockMvcTests {
         identityZoneConfiguration.setBranding(branding);
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
 
-        String expectedFooterText = String.format(defaultCopyrightTemplate, companyName);
+        String expectedFooterText = String.format(DEFAULT_COPYRIGHT_TEMPLATE, companyName);
         mockMvc.perform(get("/login"))
                 .andExpect(content().string(allOf(containsString(expectedFooterText))));
     }
@@ -720,7 +723,7 @@ public class LoginMockMvcTests {
 
         IdentityZone identityZone = setupZone(webApplicationContext, mockMvc, identityZoneProvisioning, generator, config);
 
-        String expectedFooterText = String.format(defaultCopyrightTemplate, zoneCompanyName);
+        String expectedFooterText = String.format(DEFAULT_COPYRIGHT_TEMPLATE, zoneCompanyName);
 
         mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
@@ -2438,8 +2441,8 @@ public class LoginMockMvcTests {
                 UriComponentsBuilder.fromUriString(location).build().getQueryParams().toSingleValueMap();
 
         assertThat(location).startsWith("/login");
-        assertThat(queryParams).containsEntry("login_hint", loginHint);
-        assertThat(queryParams).containsEntry("discoveryPerformed", "true");
+        assertThat(queryParams).containsEntry("login_hint", loginHint)
+                .containsEntry("discoveryPerformed", "true");
     }
 
     @Test
@@ -3030,13 +3033,8 @@ public class LoginMockMvcTests {
         MockMvcUtils.setZoneConfiguration(webApplicationContext, IdentityZone.getUaaZoneId(), identityZoneConfiguration);
     }
 
-    private static final String defaultCopyrightTemplate = "Copyright © %s";
-    private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
-    private static final String CF_LAST_LOGIN = "Last Login";
-
     private static IdentityProvider createIdentityProvider(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, IdentityZone identityZone, IdentityProvider activeIdentityProvider) {
         activeIdentityProvider.setIdentityZoneId(identityZone.getId());
         return jdbcIdentityProviderProvisioning.create(activeIdentityProvider, identityZone.getId());
     }
-
 }

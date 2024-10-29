@@ -119,7 +119,8 @@ class ExternalOAuthLogoutSuccessHandlerTest {
 
     @Test
     void constructOAuthProviderLogoutUrl() {
-        oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", oAuthIdentityProviderDefinition, uaaAuthentication);
+        String url = oAuthLogoutHandler.constructOAuthProviderLogoutUrl(request, "", oAuthIdentityProviderDefinition, uaaAuthentication);
+        assertThat(url).isEqualTo("?post_logout_redirect_uri=http%3A%2F%2Flocalhost&client_id=id");
     }
 
     @Test

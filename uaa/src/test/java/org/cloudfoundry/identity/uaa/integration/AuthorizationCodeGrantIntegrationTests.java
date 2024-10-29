@@ -33,11 +33,11 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URI;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.hamcrest.CoreMatchers.containsString;
 
 /**
  * @author Dave Syer
@@ -61,97 +61,96 @@ public class AuthorizationCodeGrantIntegrationTests {
 
     @Test
     public void testSuccessfulAuthorizationCodeFlowWithPkceS256() throws Exception {
-        testAuthorizationCodeFlowWithPkce_Internal(UaaTestAccounts.CODE_CHALLENGE, 
-        		UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, UaaTestAccounts.CODE_VERIFIER);
-        testAuthorizationCodeFlowWithPkce_Internal(UaaTestAccounts.CODE_CHALLENGE, 
-        		UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, UaaTestAccounts.CODE_VERIFIER);
+        testAuthorizationCodeFlowWithPkce_Internal(UaaTestAccounts.CODE_CHALLENGE,
+                UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, UaaTestAccounts.CODE_VERIFIER);
+        testAuthorizationCodeFlowWithPkce_Internal(UaaTestAccounts.CODE_CHALLENGE,
+                UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, UaaTestAccounts.CODE_VERIFIER);
     }
-    
+
     @Test
     public void testSuccessfulAuthorizationCodeFlowWithPkcePlain() throws Exception {
         testAuthorizationCodeFlowWithPkce_Internal(UaaTestAccounts.CODE_CHALLENGE, "plain", UaaTestAccounts.CODE_CHALLENGE);
         testAuthorizationCodeFlowWithPkce_Internal(UaaTestAccounts.CODE_CHALLENGE, "plain", UaaTestAccounts.CODE_CHALLENGE);
     }
-    
+
     @Test
     public void testPkcePlainWithWrongCodeVerifier() throws Exception {
         ResponseEntity<Map> tokenResponse = doAuthorizeAndTokenRequest(UaaTestAccounts.CODE_CHALLENGE, "plain", UaaTestAccounts.CODE_VERIFIER);
         assertEquals(HttpStatus.BAD_REQUEST, tokenResponse.getStatusCode());
-        Map<String,String> body = tokenResponse.getBody();
+        Map<String, String> body = tokenResponse.getBody();
         assertThat(body.get("error"), containsString("invalid_grant"));
         assertThat(body.get("error_description"), containsString("Invalid code verifier"));
     }
-    
+
     @Test
     public void testPkceS256WithWrongCodeVerifier() throws Exception {
         ResponseEntity<Map> tokenResponse = doAuthorizeAndTokenRequest(UaaTestAccounts.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, UaaTestAccounts.CODE_CHALLENGE);
         assertEquals(HttpStatus.BAD_REQUEST, tokenResponse.getStatusCode());
-        Map<String,String> body = tokenResponse.getBody();
+        Map<String, String> body = tokenResponse.getBody();
         assertThat(body.get("error"), containsString("invalid_grant"));
         assertThat(body.get("error_description"), containsString("Invalid code verifier"));
     }
-    
+
     @Test
     public void testMissingCodeChallenge() throws Exception {
-    	ResponseEntity<Map> tokenResponse = doAuthorizeAndTokenRequest("", UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, UaaTestAccounts.CODE_VERIFIER);
+        ResponseEntity<Map> tokenResponse = doAuthorizeAndTokenRequest("", UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, UaaTestAccounts.CODE_VERIFIER);
         assertEquals(HttpStatus.BAD_REQUEST, tokenResponse.getStatusCode());
-        Map<String,String> body = tokenResponse.getBody();
+        Map<String, String> body = tokenResponse.getBody();
         assertThat(body.get("error"), containsString("invalid_grant"));
         assertThat(body.get("error_description"), containsString("PKCE error: Code verifier not required for this authorization code."));
     }
-    
+
     @Test
     public void testMissingCodeVerifier() throws Exception {
-    	ResponseEntity<Map> tokenResponse = doAuthorizeAndTokenRequest(UaaTestAccounts.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, "");
+        ResponseEntity<Map> tokenResponse = doAuthorizeAndTokenRequest(UaaTestAccounts.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256, "");
         assertEquals(HttpStatus.BAD_REQUEST, tokenResponse.getStatusCode());
-        Map<String,String> body = tokenResponse.getBody();
+        Map<String, String> body = tokenResponse.getBody();
         assertThat(body.get("error"), containsString("invalid_grant"));
         assertThat(body.get("error_description"), containsString("PKCE error: Code verifier must be provided for this authorization code."));
     }
-    
+
     @Test
     public void testInvalidCodeChallenge() throws Exception {
-    	AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
-    	String responseLocation = IntegrationTestUtils.getAuthorizationResponse(serverRunning,
-        		resource.getClientId(),
-        		testAccounts.getUserName(),
-        		testAccounts.getPassword(),
-        		resource.getPreEstablishedRedirectUri(),
-        		"ShortCodeChallenge",
-        		UaaTestAccounts.CODE_CHALLENGE_METHOD_S256); 
-    	assertThat(responseLocation, containsString("Code challenge length must between 43 and 128 and use only [A-Z],[a-z],[0-9],_,.,-,~ characters."));
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+        String responseLocation = IntegrationTestUtils.getAuthorizationResponse(serverRunning,
+                resource.getClientId(),
+                testAccounts.getUserName(),
+                testAccounts.getPassword(),
+                resource.getPreEstablishedRedirectUri(),
+                "ShortCodeChallenge",
+                UaaTestAccounts.CODE_CHALLENGE_METHOD_S256);
+        assertThat(responseLocation, containsString("Code challenge length must between 43 and 128 and use only [A-Z],[a-z],[0-9],_,.,-,~ characters."));
     }
-    
+
     @Test
     public void testInvalidCodeVerifier() throws Exception {
-    	AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
-    	ResponseEntity<Map> tokenResponse = IntegrationTestUtils.getTokens(serverRunning,
-        		testAccounts, 
-        		resource.getClientId(), 
-        		resource.getClientSecret(), 
-        		resource.getPreEstablishedRedirectUri(), 
-        		"invalidCodeVerifier",
-        		"authorizationCode");
-    	assertEquals(HttpStatus.BAD_REQUEST, tokenResponse.getStatusCode());
-    	Map<String,String> body = tokenResponse.getBody();
-    	assertThat(body.get("error"), containsString("invalid_request"));
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+        ResponseEntity<Map> tokenResponse = IntegrationTestUtils.getTokens(serverRunning,
+                resource.getClientId(),
+                resource.getClientSecret(),
+                resource.getPreEstablishedRedirectUri(),
+                "invalidCodeVerifier",
+                "authorizationCode");
+        assertEquals(HttpStatus.BAD_REQUEST, tokenResponse.getStatusCode());
+        Map<String, String> body = tokenResponse.getBody();
+        assertThat(body.get("error"), containsString("invalid_request"));
         assertThat(body.get("error_description"), containsString("Code verifier length must"));
     }
-    
+
     @Test
     public void testUnsupportedCodeChallengeMethod() throws Exception {
-    	AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
-    	String responseLocation = IntegrationTestUtils.getAuthorizationResponse(serverRunning,
-        		resource.getClientId(),
-        		testAccounts.getUserName(),
-        		testAccounts.getPassword(),
-        		resource.getPreEstablishedRedirectUri(),
-        		UaaTestAccounts.CODE_CHALLENGE,
-        		"UnsupportedCodeChallengeMethod"); 
-    	assertThat(responseLocation, containsString("Unsupported code challenge method."));
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+        String responseLocation = IntegrationTestUtils.getAuthorizationResponse(serverRunning,
+                resource.getClientId(),
+                testAccounts.getUserName(),
+                testAccounts.getPassword(),
+                resource.getPreEstablishedRedirectUri(),
+                UaaTestAccounts.CODE_CHALLENGE,
+                "UnsupportedCodeChallengeMethod");
+        assertThat(responseLocation, containsString("Unsupported code challenge method."));
     }
-    
-	@Test
+
+    @Test
     public void testZoneDoesNotExist() {
         ServerRunning.UriBuilder builder = serverRunning.buildUri(serverRunning.getAuthorizationUri().replace("localhost", "testzonedoesnotexist.localhost"))
                 .queryParam("response_type", "code")
@@ -198,76 +197,73 @@ public class AuthorizationCodeGrantIntegrationTests {
     @Test
     public void testAuthorizationRequestWithoutRedirectUri() {
 
-      Map<String, String> body = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
-          testAccounts,
-          "login",
-          "loginsecret",
-          testAccounts.getUserName(),
-          testAccounts.getPassword(),
-          null,
-          null,
-          null,
-          null,
-          false);
+        Map<String, String> body = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
+                "login",
+                "loginsecret",
+                testAccounts.getUserName(),
+                testAccounts.getPassword(),
+                null,
+                null,
+                null,
+                null,
+                false);
 
-      assertNotNull("Token not received", body.get("access_token"));
+        assertNotNull("Token not received", body.get("access_token"));
 
-      try {
-        IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning, testAccounts, "app", "appclientsecret",
-            testAccounts.getUserName(), testAccounts.getPassword(),
-            null, null, null, null, false);
-      } catch (AssertionError error) {
-        // expected
-        return;
-      }
-      Assert.fail("Token retrival not allowed");
+        try {
+            IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning, "app", "appclientsecret",
+                    testAccounts.getUserName(), testAccounts.getPassword(),
+                    null, null, null, null, false);
+        } catch (AssertionError error) {
+            // expected
+            return;
+        }
+        Assert.fail("Token retrival not allowed");
     }
 
     public void testSuccessfulAuthorizationCodeFlow_Internal() {
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 
         Map<String, String> body = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
-                                                                                     testAccounts,
-                                                                                     resource.getClientId(),
-                                                                                     resource.getClientSecret(),
-                                                                                     testAccounts.getUserName(),
-                                                                                     testAccounts.getPassword());
+                testAccounts,
+                resource.getClientId(),
+                resource.getClientSecret(),
+                testAccounts.getUserName(),
+                testAccounts.getPassword());
         Jwt token = JwtHelper.decode(body.get("access_token"));
         assertTrue("Wrong claims: " + token.getClaims(), token.getClaims().contains("\"aud\""));
         assertTrue("Wrong claims: " + token.getClaims(), token.getClaims().contains("\"user_id\""));
     }
-    
+
     private void testAuthorizationCodeFlowWithPkce_Internal(String codeChallenge, String codeChallengeMethod, String codeVerifier) throws Exception {
-        
+
         ResponseEntity<Map> tokenResponse = doAuthorizeAndTokenRequest(codeChallenge, codeChallengeMethod, codeVerifier);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        Map<String,String> body = tokenResponse.getBody();
+        Map<String, String> body = tokenResponse.getBody();
         Jwt token = JwtHelper.decode(body.get("access_token"));
         assertTrue("Wrong claims: " + token.getClaims(), token.getClaims().contains("\"aud\""));
         assertTrue("Wrong claims: " + token.getClaims(), token.getClaims().contains("\"user_id\""));
         IntegrationTestUtils.callCheckToken(serverRunning,
-        		testAccounts, 
-        		body.get("access_token"),
-        		testAccounts.getDefaultAuthorizationCodeResource().getClientId(),
-        		testAccounts.getDefaultAuthorizationCodeResource().getClientSecret());
+                body.get("access_token"),
+                testAccounts.getDefaultAuthorizationCodeResource().getClientId(),
+                testAccounts.getDefaultAuthorizationCodeResource().getClientSecret());
     }
-    
+
     private ResponseEntity<Map> doAuthorizeAndTokenRequest(String codeChallenge, String codeChallengeMethod, String codeVerifier) throws Exception {
-    	AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
-    	String authorizationResponse = IntegrationTestUtils.getAuthorizationResponse(serverRunning,
-        		resource.getClientId(),
-        		testAccounts.getUserName(),
-        		testAccounts.getPassword(),
-        		resource.getPreEstablishedRedirectUri(),
-        		codeChallenge,
-        		codeChallengeMethod);
-    	String authorizationCode = authorizationResponse.split("code=")[1].split("&")[0];
+        AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
+        String authorizationResponse = IntegrationTestUtils.getAuthorizationResponse(serverRunning,
+                resource.getClientId(),
+                testAccounts.getUserName(),
+                testAccounts.getPassword(),
+                resource.getPreEstablishedRedirectUri(),
+                codeChallenge,
+                codeChallengeMethod);
+        String authorizationCode = authorizationResponse.split("code=")[1].split("&")[0];
         return IntegrationTestUtils.getTokens(serverRunning,
-        		testAccounts, 
-        		resource.getClientId(), 
-        		resource.getClientSecret(), 
-        		resource.getPreEstablishedRedirectUri(), 
-        		codeVerifier,
-        		authorizationCode);
-	}
+                resource.getClientId(),
+                resource.getClientSecret(),
+                resource.getPreEstablishedRedirectUri(),
+                codeVerifier,
+                authorizationCode);
+    }
 }

@@ -42,11 +42,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.hamcrest.CoreMatchers;
 import org.hamcrest.Description;
-import org.hamcrest.Matchers;
 import org.hamcrest.TypeSafeMatcher;
-import org.junit.Assert;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.OutputType;
@@ -95,17 +92,12 @@ import java.util.regex.Pattern;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.joining;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.core.StringStartsWith.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -216,7 +208,7 @@ public class IntegrationTestUtils {
         final ResponseEntity<UserInfoResponse> response = rest.exchange(request, UserInfoResponse.class);
         assertStatusCode(response, HttpStatus.OK);
         final UserInfoResponse responseBody = response.getBody();
-        assertNotNull(responseBody);
+        assertThat(responseBody).isNotNull();
         return responseBody;
     }
 
@@ -294,6 +286,7 @@ public class IntegrationTestUtils {
 
             @Override
             public void handleError(ClientHttpResponse response) {
+                // ignore
             }
         });
         return client;
@@ -328,7 +321,7 @@ public class IntegrationTestUtils {
         final ResponseEntity<ScimUser> response = client.postForEntity(url + "/Users", user, ScimUser.class);
         assertStatusCode(response, HttpStatus.CREATED);
         final ScimUser responseBody = response.getBody();
-        assertNotNull(responseBody);
+        assertThat(responseBody).isNotNull();
         return responseBody;
     }
 
@@ -400,7 +393,7 @@ public class IntegrationTestUtils {
         if (userInfoGet.getStatusCode() == HttpStatus.OK) {
 
             SearchResults<ScimUser> results = JsonUtils.readValue(userInfoGet.getBody(), SearchResults.class);
-            assertNotNull(results);
+            assertThat(results).isNotNull();
             List<ScimUser> resources = results.getResources();
             if (resources.isEmpty()) {
                 return null;
@@ -451,7 +444,7 @@ public class IntegrationTestUtils {
         if (userInfoGet.getStatusCode() == HttpStatus.OK) {
 
             HashMap results = JsonUtils.readValue(userInfoGet.getBody(), HashMap.class);
-            assertNotNull(results);
+            assertThat(results).isNotNull();
             List resources = (List) results.get("resources");
             if (resources.isEmpty()) {
                 return null;
@@ -492,8 +485,8 @@ public class IntegrationTestUtils {
 
         @SuppressWarnings("rawtypes")
         Map results = response.getBody();
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue("There should be more than zero groups", (Integer) results.get("totalResults") > 0);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat((Integer) results.get("totalResults")).as("There should be more than zero groups").isGreaterThan(0);
         return results;
     }
 
@@ -502,8 +495,8 @@ public class IntegrationTestUtils {
                                      String groupName) {
         Map map = findAllGroups(client, url);
         for (Map group : (List<Map>) map.get("resources")) {
-            assertTrue(group.containsKey("displayName"));
-            assertTrue(group.containsKey("id"));
+            assertThat(group).containsKey("displayName")
+                    .containsKey("id");
             if (groupName.equals(group.get("displayName"))) {
                 return (String) group.get("id");
             }
@@ -579,7 +572,7 @@ public class IntegrationTestUtils {
         );
         assertStatusCode(response, HttpStatus.CREATED);
         final ScimGroup responseBody = response.getBody();
-        assertNotNull(responseBody);
+        assertThat(responseBody).isNotNull();
         return responseBody;
     }
 
@@ -603,7 +596,7 @@ public class IntegrationTestUtils {
                 ScimGroup.class,
                 group.getId()
         );
-        assertEquals(HttpStatus.OK, updateGroup.getStatusCode());
+        assertThat(updateGroup.getStatusCode()).isEqualTo(HttpStatus.OK);
         return updateGroup.getBody();
     }
 
@@ -678,7 +671,7 @@ public class IntegrationTestUtils {
 
         if (zoneGet.getStatusCode() == HttpStatus.OK) {
             IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
-            assertNotNull(existing);
+            assertThat(existing).isNotNull();
             existing.setSubdomain(subdomain);
             existing.setConfig(config);
             existing.setActive(active);
@@ -697,7 +690,7 @@ public class IntegrationTestUtils {
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
         assertStatusCode(zone, HttpStatus.CREATED);
         final IdentityZone responseBody = zone.getBody();
-        assertNotNull(responseBody);
+        assertThat(responseBody).isNotNull();
         return responseBody;
     }
 
@@ -725,7 +718,7 @@ public class IntegrationTestUtils {
     ) {
         ScimGroupMember groupMember = new ScimGroupMember(userId);
         ResponseEntity<String> response = client.postForEntity(url + "/Groups/{groupId}/members", groupMember, String.class, groupId);
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     public static UaaClientDetails getClient(String token,
@@ -859,7 +852,7 @@ public class IntegrationTestUtils {
                 UaaClientDetails.class
         );
         assertStatusCode(response, HttpStatus.OK);
-        assertNotNull(response.getBody());
+        assertThat(response.getBody()).isNotNull();
     }
 
     public static IdentityProvider<? extends AbstractIdentityProviderDefinition> getProvider(String zoneAdminToken,
@@ -931,7 +924,7 @@ public class IntegrationTestUtils {
      * @return An object representation of an identity provider.
      * @throws Exception on error
      */
-    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning) throws Exception {
+    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning) {
         getZoneAdminToken(baseUrl, serverRunning);
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, OriginKeys.UAA);
         return createIdentityProvider("simplesamlphp for uaa", addShadowUserOnLogin, baseUrl, serverRunning, samlIdentityProviderDefinition);
@@ -942,7 +935,7 @@ public class IntegrationTestUtils {
      * @return An object representation of an identity provider.
      * @throws Exception on error
      */
-    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String name, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning, SamlIdentityProviderDefinition samlIdentityProviderDefinition) throws Exception {
+    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String name, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning, SamlIdentityProviderDefinition samlIdentityProviderDefinition) {
         String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
 
         samlIdentityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
@@ -956,7 +949,7 @@ public class IntegrationTestUtils {
         provider.setName(name);
 
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
-        assertNotNull(provider.getId());
+        assertThat(provider.getId()).isNotNull();
         return provider;
     }
 
@@ -995,7 +988,7 @@ public class IntegrationTestUtils {
         String groupName = "zones." + zoneId + ".admin";
         ensureGroupExists(getClientCredentialsToken(baseUrl, "admin", "adminsecret"), "", baseUrl, groupName);
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
-        assertThat("Couldn't find group : " + groupId, groupId, is(CoreMatchers.notNullValue()));
+        assertThat(groupId).as("Couldn't find group : " + groupId).isNotNull();
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 
         return IntegrationTestUtils.getAccessTokenByAuthCode(serverRunning,
@@ -1035,7 +1028,7 @@ public class IntegrationTestUtils {
                         "secr3T");
 
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
-        assertNotNull(provider.getId());
+        assertThat(provider.getId()).isNotNull();
     }
 
     public static SamlIdentityProviderDefinition createSimplePHPSamlIDP(String alias, String zoneId) {
@@ -1122,10 +1115,10 @@ public class IntegrationTestUtils {
                 new HttpEntity<>(formData, headers),
                 Map.class);
 
-        Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         final Map responseBody = response.getBody();
-        assertNotNull(responseBody);
+        assertThat(responseBody).isNotNull();
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(responseBody);
         return accessToken.getValue();
@@ -1161,7 +1154,7 @@ public class IntegrationTestUtils {
                 new HttpEntity<>(formData, headers),
                 Map.class);
 
-        Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         return response.getBody();
     }
 
@@ -1178,10 +1171,10 @@ public class IntegrationTestUtils {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-        Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         final Map responseBody = response.getBody();
-        assertNotNull(responseBody);
+        assertThat(responseBody).isNotNull();
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(responseBody);
         return accessToken.getValue();
@@ -1209,7 +1202,6 @@ public class IntegrationTestUtils {
         resource.setClientSecret(clientSecret);
 
         return getAuthorizationCodeTokenMap(serverRunning,
-                testAccounts,
                 clientId,
                 clientSecret,
                 username,
@@ -1262,7 +1254,7 @@ public class IntegrationTestUtils {
                         new HttpEntity<>(null, getHeaders(cookies)),
                         Void.class
                 );
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         String location = result.getHeaders().getLocation().toString();
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String header : result.getHeaders().get("Set-Cookie")) {
@@ -1278,16 +1270,16 @@ public class IntegrationTestUtils {
             }
         }
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        assertTrue(response.getBody().contains("/login.do"));
-        assertTrue(response.getBody().contains("username"));
-        assertTrue(response.getBody().contains("password"));
+        assertThat(response.getBody()).contains("/login.do")
+                .contains("username")
+                .contains("password");
         String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
         formData.add("username", username);
         formData.add("password", password);
         formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
         // Should be redirected to the original URL, but now authenticated
         result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         cookies.clear();
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
@@ -1306,25 +1298,24 @@ public class IntegrationTestUtils {
         }
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
-            assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
+            assertThat(response.getBody()).contains("<h1>Application Authorization</h1>");
             formData.clear();
             formData.add(USER_OAUTH_APPROVAL, "true");
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
-            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = result.getHeaders().getLocation().toString();
         } else if (response.getStatusCode() == HttpStatus.BAD_REQUEST) {
             return response.getBody();
         } else {
             // Token cached so no need for second approval
-            assertEquals(HttpStatus.FOUND, response.getStatusCode());
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = response.getHeaders().getLocation().toString();
         }
         return location;
     }
 
     public static ResponseEntity<Map> getTokens(ServerRunning serverRunning,
-                                                UaaTestAccounts testAccounts,
                                                 String clientId,
                                                 String clientSecret,
                                                 String redirectUri,
@@ -1347,7 +1338,6 @@ public class IntegrationTestUtils {
     }
 
     public static void callCheckToken(ServerRunning serverRunning,
-                                      UaaTestAccounts testAccounts,
                                       String accessToken,
                                       String clientId,
                                       String clientSecret) {
@@ -1356,10 +1346,10 @@ public class IntegrationTestUtils {
         headers.set("Authorization", UaaTestAccounts.getAuthorizationHeader(clientId, clientSecret));
         formData.add("token", accessToken);
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
-        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
         final Map tokenResponseBody = tokenResponse.getBody();
-        assertNotNull(tokenResponseBody);
-        assertNotNull(tokenResponseBody.get("iss"));
+        assertThat(tokenResponseBody).isNotNull()
+                .containsKey("iss");
     }
 
     public static String getAuthorizationCodeToken(
@@ -1372,13 +1362,12 @@ public class IntegrationTestUtils {
             String redirectUri,
             String loginHint,
             boolean callCheckToken) {
-        return getAuthorizationCodeTokenMap(serverRunning, UaaTestAccounts.standard(serverRunning), clientId, null, clientAssertion,
+        return getAuthorizationCodeTokenMap(serverRunning, clientId, null, clientAssertion,
                 username, password, tokenResponseType, null, redirectUri, loginHint, callCheckToken).get("access_token");
     }
 
     public static Map<String, String> getAuthorizationCodeTokenMap(
             ServerRunning serverRunning,
-            UaaTestAccounts testAccounts,
             String clientId,
             String clientSecret,
             String username,
@@ -1388,12 +1377,11 @@ public class IntegrationTestUtils {
             String redirectUri,
             String loginHint,
             boolean callCheckToken) {
-        return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, null, username, password,
+        return getAuthorizationCodeTokenMap(serverRunning, clientId, clientSecret, null, username, password,
                 tokenResponseType, jSessionId, redirectUri, loginHint, callCheckToken);
     }
 
     public static Map<String, String> getAuthorizationCodeTokenMap(ServerRunning serverRunning,
-                                                                   UaaTestAccounts testAccounts,
                                                                    String clientId,
                                                                    String clientSecret,
                                                                    String clientAssertion,
@@ -1430,7 +1418,7 @@ public class IntegrationTestUtils {
                         Void.class
                 );
 
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         String location = result.getHeaders().getLocation().toString();
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
@@ -1452,9 +1440,9 @@ public class IntegrationTestUtils {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         if (!hasText(jSessionId)) {
             // should be directed to the login screen...
-            assertTrue(response.getBody().contains("/login.do"));
-            assertTrue(response.getBody().contains("username"));
-            assertTrue(response.getBody().contains("password"));
+            assertThat(response.getBody()).contains("/login.do")
+                    .contains("username")
+                    .contains("password");
             String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
 
             formData.add("username", username);
@@ -1463,7 +1451,7 @@ public class IntegrationTestUtils {
 
             // Should be redirected to the original URL, but now authenticated
             result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
-            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
             cookies.clear();
             if (result.getHeaders().containsKey("Set-Cookie")) {
@@ -1486,21 +1474,21 @@ public class IntegrationTestUtils {
         }
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
-            assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
+            assertThat(response.getBody()).contains("<h1>Application Authorization</h1>");
 
             formData.clear();
             formData.add(USER_OAUTH_APPROVAL, "true");
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
-            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = result.getHeaders().getLocation().toString();
         } else {
             // Token cached so no need for second approval
-            assertEquals(HttpStatus.FOUND, response.getStatusCode());
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = response.getHeaders().getLocation().toString();
         }
         if (hasText(redirectUri)) {
-            assertTrue("Wrong location: " + location, location.matches(redirectUri + ".*code=.+"));
+            assertThat(location).as("Wrong location: " + location).matches(redirectUri + ".*code=.+");
         }
 
         formData.clear();
@@ -1522,7 +1510,7 @@ public class IntegrationTestUtils {
         }
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
@@ -1540,8 +1528,8 @@ public class IntegrationTestUtils {
 
         if (callCheckToken) {
             tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
-            assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-            assertNotNull(tokenResponse.getBody().get("iss"));
+            assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(tokenResponse.getBody().get("iss")).isNotNull();
         }
         return body;
     }
@@ -1575,14 +1563,14 @@ public class IntegrationTestUtils {
     public static void validateAccountChooserCookie(String baseUrl, WebDriver webDriver, IdentityZone identityZone) {
         if (identityZone.getConfig().isAccountChooserEnabled()) {
             List<String> cookies = getAccountChooserCookies(baseUrl, webDriver);
-            assertThat(cookies, Matchers.hasItem(startsWith("Saved-Account-")));
+            assertThat(cookies).anySatisfy(cookie -> assertThat(cookie).startsWith("Saved-Account-"));
         }
     }
 
     public static void validateUserLastLogon(ScimUser user, Long beforeTestTime, Long afterTestTime) {
         Long userLastLogon = user.getLastLogonTime();
-        assertNotNull(userLastLogon);
-        assertTrue((userLastLogon > beforeTestTime) && (userLastLogon < afterTestTime));
+        assertThat(userLastLogon).isNotNull();
+        assertThat((userLastLogon > beforeTestTime) && (userLastLogon < afterTestTime)).isTrue();
     }
 
     public static List<String> getAccountChooserCookies(String baseUrl, WebDriver webDriver) {
