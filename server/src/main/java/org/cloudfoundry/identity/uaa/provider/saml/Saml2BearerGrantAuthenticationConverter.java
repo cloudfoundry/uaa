@@ -192,7 +192,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
      *
      * @return the default response authentication converter strategy
      */
-    private Converter<AssertionToken, ? extends AbstractAuthenticationToken> createDefaultAssertionAuthenticationConverter() {
+    static Converter<AssertionToken, ? extends AbstractAuthenticationToken> createDefaultAssertionAuthenticationConverter() {
         return assertionToken -> {
             Assertion assertion = assertionToken.assertion;
             Saml2AuthenticationToken token = assertionToken.token;

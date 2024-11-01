@@ -109,7 +109,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @WithDatabaseContext
-class OpenSaml4AuthenticationProviderTests {
+class OpenSaml4AuthenticationProviderUaaTests {
 
     private static final String SAML_USER = "saml.user";
     private static final String SAML_ADMIN = "saml.admin";
@@ -126,7 +126,7 @@ class OpenSaml4AuthenticationProviderTests {
     private static final String JOHN_THE_SLOTH = "John the Sloth";
     private static final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
     private static final String IDP_META_DATA = getResourceAsString(
-            OpenSaml4AuthenticationProviderTests.class, "IDP_META_DATA.xml");
+            OpenSaml4AuthenticationProviderUaaTests.class, "IDP_META_DATA.xml");
 
     private static final String TEST_EMAIL = "john.doe@example.com";
     private static final String TEST_USERNAME = "test@saml.user";
