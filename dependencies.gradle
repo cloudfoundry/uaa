@@ -147,4 +147,3 @@ libraries.springBootGradlePlugin = "org.springframework.boot:spring-boot-gradle-
 libraries.springDependencyMangementGradlePlugin = "io.spring.gradle:dependency-management-plugin"
 libraries.gradleJcocoPlugin = "org.barfuin.gradle.jacocolog:gradle-jacoco-log:3.1.0"
 libraries.sonarqubePlugin = "org.sonarsource.scanner.gradle:sonarqube-gradle-plugin:5.1.0.4882"
-//libraries.shadowPlugin = "com.github.johnrengelman:shadow:8.1.1"

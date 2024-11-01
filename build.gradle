@@ -21,7 +21,6 @@ buildscript {
         classpath(libraries.testRetryPlugin)
         classpath(libraries.gradleJcocoPlugin)
         classpath(libraries.sonarqubePlugin)
-        //classpath(libraries.shadowPlugin)
     }
 }
 
