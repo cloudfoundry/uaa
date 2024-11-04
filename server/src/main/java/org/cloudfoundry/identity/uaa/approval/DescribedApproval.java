@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.approval;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.cloudfoundry.identity.uaa.approval.Approval;
 
 public class DescribedApproval extends Approval {
     private String description;
