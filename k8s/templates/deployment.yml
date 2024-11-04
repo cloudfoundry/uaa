@@ -100,7 +100,7 @@ spec:
         - name: TRUSTSTORE_PASSWORD
           value: #@ truststore_password
         - name: JAVA_HOME
-          value: /layers/paketo-buildpacks_bellsoft-liberica/jre
+          value: /layers/tanzu-buildpacks_bellsoft-liberica/jre
         - name: OS_CERTS_DIR
           value: /etc/ssl/certs
         volumeMounts:
