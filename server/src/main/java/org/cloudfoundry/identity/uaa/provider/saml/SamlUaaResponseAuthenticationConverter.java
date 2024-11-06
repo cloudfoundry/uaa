@@ -78,13 +78,13 @@ public class SamlUaaResponseAuthenticationConverter
         Saml2AuthenticationToken authenticationToken = responseToken.getToken();
         Response response = responseToken.getResponse();
         List<Assertion> assertions = response.getAssertions();
+        String subjectName = assertions.get(0).getSubject().getNameID().getValue();
 
         IdentityZone zone = identityZoneManager.getCurrentIdentityZone();
         log.debug("Initiating SAML authentication in zone '{}' domain '{}'",
                 zone.getId(), zone.getSubdomain());
 
         RelyingPartyRegistration relyingPartyRegistration = authenticationToken.getRelyingPartyRegistration();
-        String subjectName = assertions.get(0).getSubject().getNameID().getValue();
         String alias = relyingPartyRegistration.getRegistrationId();
         UaaPrincipal initialPrincipal = new UaaPrincipal(NotANumber, subjectName, authenticationToken.getName(),
                 alias, authenticationToken.getName(), zone.getId());
@@ -95,7 +95,7 @@ public class SamlUaaResponseAuthenticationConverter
         IdentityProvider<SamlIdentityProviderDefinition> idp;
         SamlIdentityProviderDefinition samlConfig;
         try {
-            idp = identityProviderProvisioning.retrieveByOrigin(alias, identityZoneManager.getCurrentIdentityZoneId());
+            idp = identityProviderProvisioning.retrieveByOrigin(alias, zone.getId());
             samlConfig = idp.getConfig();
             addNew = samlConfig.isAddShadowUserOnLogin();
             if (!idp.isActive()) {

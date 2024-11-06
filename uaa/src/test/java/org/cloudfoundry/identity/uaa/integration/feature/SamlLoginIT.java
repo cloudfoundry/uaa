@@ -55,7 +55,6 @@ import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
@@ -331,7 +330,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void simpleSamlPhpPasscodeRedirect() throws Exception {
+    void simpleSamlPhpPasscodeRedirect() {
         createIdentityProvider(SAML_ORIGIN);
 
         PasscodePage.assertThatRequestPasscode_goesToLoginPage(webDriver, baseUrl)
@@ -340,8 +339,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: goes to error page instead of redirectUrl")
-    void simpleSamlLoginWithAddShadowUserOnLoginFalse() throws Exception {
+    void simpleSamlLoginWithAddShadowUserOnLoginFalse() {
         // Deleting marissa@test.org from simplesamlphp because previous SAML authentications automatically
         // create a UAA user with the email address as the username.
         deleteUser(SAML_ORIGIN, testAccounts.getEmail());
@@ -352,7 +350,7 @@ public class SamlLoginIT {
         createClientAndSpecifyProvider(clientId, provider, redirectUri);
 
         OauthAuthorizeEndpoint
-                .authorize_goesToSamlLoginPage(webDriver, baseUrl, redirectUri, clientId, "code")
+                .assertThatAuthorize_goesToSamlLoginPage(webDriver, baseUrl, redirectUri, clientId, "code")
                 .assertThatLogin_goesToCustomErrorPage(
                         testAccounts.getUserName(),
                         testAccounts.getPassword(),
@@ -410,7 +408,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void simpleSamlPhpLogin() throws Exception {
+    void simpleSamlPhpLogin() {
         createIdentityProvider(SAML_ORIGIN);
 
         Long beforeTest = System.currentTimeMillis();
@@ -425,7 +423,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void idpInitiatedLogin() throws Exception {
+    void idpInitiatedLogin() {
         createIdentityProvider(SAML_ORIGIN);
         webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
         new SamlLoginPage(webDriver)
@@ -433,7 +431,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void simpleSamlPhpLoginDisplaysLastLogin() throws Exception {
+    void simpleSamlPhpLoginDisplaysLastLogin() {
         createIdentityProvider(SAML_ORIGIN);
 
         Long beforeTest = System.currentTimeMillis();
@@ -452,7 +450,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void singleLogout() throws Exception {
+    void singleLogout() {
         createIdentityProvider(SAML_ORIGIN);
 
         LoginPage.go(webDriver, baseUrl)
@@ -463,7 +461,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void idpInitiatedLogout() throws Exception {
+    void idpInitiatedLogout() {
         createIdentityProvider(SAML_ORIGIN);
 
         LoginPage.go(webDriver, baseUrl)
@@ -564,7 +562,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void groupIntegration() throws Exception {
+    void groupIntegration() {
         createIdentityProvider(SAML_ORIGIN);
         LoginPage.go(webDriver, baseUrl)
                 .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
@@ -572,7 +570,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void faviconShouldNotSave() throws Exception {
+    void faviconShouldNotSave() {
         createIdentityProvider(SAML_ORIGIN);
         FaviconElement.getDefaultIcon(webDriver, baseUrl);
         LoginPage.go(webDriver, baseUrl)
@@ -580,7 +578,7 @@ public class SamlLoginIT {
                 .assertThatLogin_goesToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
-    protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) throws Exception {
+    protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) {
         return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning);
     }
 
@@ -728,7 +726,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void relayStateRedirectFromIdpInitiatedLogin() throws Exception {
+    void relayStateRedirectFromIdpInitiatedLogin() {
         createIdentityProvider(SAML_ORIGIN);
 
         webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login&RelayState=https://www.google.com".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
@@ -1218,7 +1216,7 @@ public class SamlLoginIT {
         samlIdentityProviderDefinition1.setIdpEntityAlias(samlIdentityProviderDefinition.getIdpEntityAlias() + "-1");
         samlIdentityProviderDefinition1.setMetaDataLocation(getValidRandomIDPMetaData());
         samlIdentityProviderDefinition1.setLinkText("Dummy SAML provider");
-        IdentityProvider<SamlIdentityProviderDefinition> provider1 = new IdentityProvider();
+        IdentityProvider<SamlIdentityProviderDefinition> provider1 = new IdentityProvider<>();
         provider1.setIdentityZoneId(zoneId);
         provider1.setType(OriginKeys.SAML);
         provider1.setActive(true);
@@ -1281,7 +1279,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void loginPageShowsIDPsForAuthCodeClient() throws Exception {
+    void loginPageShowsIDPsForAuthCodeClient() {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(
@@ -1304,7 +1302,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void loginSamlOnlyProviderNoUsernamePassword() throws Exception {
+    void loginSamlOnlyProviderNoUsernamePassword() {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         IdentityProvider<SamlIdentityProviderDefinition> provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(provider.getOriginKey(), provider2.getOriginKey());
@@ -1327,7 +1325,7 @@ public class SamlLoginIT {
     }
 
     @Test
-    void samlLoginClientIDPAuthorizationAutomaticRedirect() throws Exception {
+    void samlLoginClientIDPAuthorizationAutomaticRedirect() {
         webDriver.get("%s/logout.do".formatted(baseUrl));
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(SAML_ORIGIN);
         assertThat(provider.getConfig().getIdpEntityAlias()).isEqualTo(provider.getOriginKey());

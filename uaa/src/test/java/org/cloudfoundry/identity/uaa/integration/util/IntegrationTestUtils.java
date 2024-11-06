@@ -882,7 +882,7 @@ public class IntegrationTestUtils {
         headers.add("Authorization", "bearer " + zoneAdminToken);
         headers.add("Content-Type", APPLICATION_JSON_VALUE);
         headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
-        HttpEntity getHeaders = new HttpEntity<>(headers);
+        HttpEntity<Object> getHeaders = new HttpEntity<>(headers);
         ResponseEntity<String> providerGet = client.exchange(
                 url + "/identity-providers",
                 HttpMethod.GET,
@@ -922,7 +922,6 @@ public class IntegrationTestUtils {
      * @param originKey            The unique identifier used to reference the identity provider in UAA.
      * @param addShadowUserOnLogin Specifies whether UAA should automatically create shadow users upon successful SAML authentication.
      * @return An object representation of an identity provider.
-     * @throws Exception on error
      */
     public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning) {
         getZoneAdminToken(baseUrl, serverRunning);
@@ -933,9 +932,10 @@ public class IntegrationTestUtils {
     /**
      * @param addShadowUserOnLogin Specifies whether UAA should automatically create shadow users upon successful SAML authentication.
      * @return An object representation of an identity provider.
-     * @throws Exception on error
      */
-    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String name, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning, SamlIdentityProviderDefinition samlIdentityProviderDefinition) {
+    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(
+            String name, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning,
+            SamlIdentityProviderDefinition samlIdentityProviderDefinition) {
         String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
 
         samlIdentityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);

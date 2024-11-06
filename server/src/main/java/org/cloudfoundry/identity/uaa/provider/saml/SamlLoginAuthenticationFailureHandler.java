@@ -36,6 +36,7 @@ public class SamlLoginAuthenticationFailureHandler extends SimpleUrlAuthenticati
             redirectTo = handleSamlLoginException(request, response, exception);
         } else if (exception instanceof Saml2AuthenticationException) {
             malformedLogger.logMalformedResponse(request);
+            redirectTo = handleSamlLoginException(request, response, exception);
         }
 
         if (redirectTo == null) {
