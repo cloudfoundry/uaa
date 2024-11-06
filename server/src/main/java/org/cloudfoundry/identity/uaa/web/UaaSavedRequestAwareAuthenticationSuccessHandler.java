@@ -35,7 +35,7 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
     public static final String URI_OVERRIDE_ATTRIBUTE = "override.redirect_uri";
     public static final String FORM_REDIRECT_PARAMETER = "form_redirect_uri";
 
-    private RequestCache requestCache = new HttpSessionRequestCache();
+    private final RequestCache requestCache = new HttpSessionRequestCache();
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
