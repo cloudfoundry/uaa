@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -36,8 +35,7 @@ class SamlRedirectUtilsTest {
                         .setLinkText("link text")
                         .setZoneId(IdentityZone.getUaaZoneId());
 
-        String domain = "login.random-made-up-url.com";
-        String url = SamlRedirectUtils.getIdpRedirectUrl(definition, domain, IdentityZoneHolder.get());
+        String url = SamlRedirectUtils.getIdpRedirectUrl(definition);
         assertThat(url).isEqualTo("saml2/authenticate/simplesamlphp-url");
     }
 

@@ -25,7 +25,7 @@ public class SamlRedirectUtils {
         throw new java.lang.UnsupportedOperationException("This is a utility class and cannot be instantiated");
     }
 
-    public static String getIdpRedirectUrl(SamlIdentityProviderDefinition definition, String entityId, IdentityZone identityZone) {
+    public static String getIdpRedirectUrl(SamlIdentityProviderDefinition definition) {
         String entityIdAlias = definition.getIdpEntityAlias();
         UriComponentsBuilder builder = UriComponentsBuilder.fromPath("saml2/authenticate/%s".formatted(entityIdAlias));
         return builder.build().toUriString();
