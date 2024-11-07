@@ -97,10 +97,10 @@ public final class TestSaml2X509Credentials {
         key = key.replace("-----BEGIN PRIVATE KEY-----", "");
         key = key.replace("-----END PRIVATE KEY-----", "");
         key = key.replaceAll("\\s+", "");
-        return decodePrivateKey(key.getBytes(StandardCharsets.UTF_8), new char[0]);
+        return decodePrivateKey(key.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static PrivateKey decodePrivateKey(byte[] keyBytes, char[] password) {
+    private static PrivateKey decodePrivateKey(byte[] keyBytes) {
         try {
             byte[] pkcs8EncodedBytes = Base64.decode(keyBytes);
             PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pkcs8EncodedBytes);
