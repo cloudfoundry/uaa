@@ -191,16 +191,7 @@ class SamlKeyManagerFactoryCertificateTests {
                 cN0E1UrhDloFcftXEXudDL2S2cSQjsyxLNbBop63xq+U6MYG/uFe7GQ=
                 -----END CERTIFICATE-----""";
 
-        SamlConfig config = new SamlConfig();
-        config.setPrivateKey(key);
-        config.setPrivateKeyPassword(PASSWORD);
-        config.setCertificate(certificate);
-        SamlKeyManager keyManager = new SamlKeyManagerFactory(new SamlConfigProps()).getKeyManager(config);
-        assertThatThrownBy(keyManager::getDefaultCredential)
-                .isInstanceOf(CertificateRuntimeException.class)
-                .getCause()
-                .isInstanceOf(CertificateException.class)
-                .hasMessageContaining("Failed to read private key");
+        readSamlConfig(key, certificate, "Failed to read private key");
     }
 
     @Test
@@ -238,16 +229,7 @@ class SamlKeyManagerFactoryCertificateTests {
                 cN0E1UrhDloFcftXEXudDL2S2cSQjsyxLNbBop63xq+U6MYG/uFe7GQ=
                 -----END CERTIFICATE-----""";
 
-        SamlConfig config = new SamlConfig();
-        config.setPrivateKey(key);
-        config.setPrivateKeyPassword(PASSWORD);
-        config.setCertificate(certificate);
-        SamlKeyManager keyManager = new SamlKeyManagerFactory(new SamlConfigProps()).getKeyManager(config);
-        assertThatThrownBy(keyManager::getDefaultCredential)
-                .isInstanceOf(CertificateRuntimeException.class)
-                .getCause()
-                .isInstanceOf(CertificateException.class)
-                .hasMessageContaining("Failed to read certificate");
+        readSamlConfig(key, certificate, "Failed to read certificate");
     }
 
     @Test
@@ -302,6 +284,10 @@ class SamlKeyManagerFactoryCertificateTests {
                 -----END CERTIFICATE-----
                 """;
 
+        readSamlConfig(key, certificate, "Certificate does not match private key");
+    }
+
+    private static void readSamlConfig(String key, String certificate, String expectedError) {
         SamlConfig config = new SamlConfig();
         config.setPrivateKey(key);
         config.setPrivateKeyPassword(PASSWORD);
@@ -311,6 +297,6 @@ class SamlKeyManagerFactoryCertificateTests {
                 .isInstanceOf(CertificateRuntimeException.class)
                 .getCause()
                 .isInstanceOf(CertificateException.class)
-                .hasMessageContaining("Certificate does not match private key");
+                .hasMessageContaining(expectedError);
     }
 }
