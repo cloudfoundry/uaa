@@ -64,7 +64,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         this.generator = new RandomValueStringGenerator(8);
     }
 
-    @RequestMapping("/oauth/token/revoke/user/{userId}")
+    @RequestMapping({"/oauth/token/revoke/user/{userId}", "/oauth/token/revoke/user/{userId}/"})
     public ResponseEntity<Void> revokeTokensForUser(@PathVariable String userId) {
         logger.debug("Revoking tokens for user: " + userId);
         String zoneId = IdentityZoneHolder.get().getId();
@@ -76,7 +76,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         return new ResponseEntity<>(OK);
     }
 
-    @RequestMapping("/oauth/token/revoke/user/{userId}/client/{clientId}")
+    @RequestMapping({"/oauth/token/revoke/user/{userId}/client/{clientId}", "/oauth/token/revoke/user/{userId}/client/{clientId}/"})
     public ResponseEntity<Void> revokeTokensForUserAndClient(@PathVariable String userId, @PathVariable String clientId) {
         String zoneId = IdentityZoneHolder.get().getId();
         logger.debug("Revoking tokens for user " + userId + " and client " + clientId);
@@ -89,7 +89,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         return new ResponseEntity<>(OK);
     }
 
-    @RequestMapping("/oauth/token/revoke/client/{clientId}")
+    @RequestMapping({"/oauth/token/revoke/client/{clientId}", "/oauth/token/revoke/client/{clientId}/"})
     public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
         String zoneId = IdentityZoneHolder.get().getId();
@@ -102,7 +102,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         return new ResponseEntity<>(OK);
     }
 
-    @DeleteMapping(value = "/oauth/token/revoke/{tokenId}")
+    @DeleteMapping(value = {"/oauth/token/revoke/{tokenId}", "/oauth/token/revoke/{tokenId}/"})
     public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId) {
         logger.debug("Revoking token with ID:" + tokenId);
         String zoneId = IdentityZoneHolder.get().getId();
@@ -112,7 +112,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         return new ResponseEntity<>(OK);
     }
 
-    @GetMapping(value = "/oauth/token/list")
+    @GetMapping(value = {"/oauth/token/list", "/oauth/token/list/"})
     public ResponseEntity<List<RevocableToken>> listUserTokens(OAuth2Authentication authentication) {
         UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
         String userId = principal.getId();
@@ -127,7 +127,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         result.forEach(t -> t.setValue(null));
     }
 
-    @GetMapping(value = "/oauth/token/list/user/{userId}")
+    @GetMapping(value = {"/oauth/token/list/user/{userId}", "/oauth/token/list/user/{userId}/"})
     public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId, OAuth2Authentication authentication) {
         if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for user:" + userId);
@@ -139,7 +139,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         }
     }
 
-    @GetMapping(value = "/oauth/token/list/client/{clientId}")
+    @GetMapping(value = {"/oauth/token/list/client/{clientId}", "/oauth/token/list/client/{clientId}/"})
     public ResponseEntity<List<RevocableToken>> listClientTokens(@PathVariable String clientId, OAuth2Authentication authentication) {
         if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for client:" + clientId);

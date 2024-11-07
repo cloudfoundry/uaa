@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.ldap;
 
-import org.apache.http.conn.ssl.AllowAllHostnameVerifier;
+import org.apache.hc.core5.ssl.AllowAllHostnameVerifier;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.DefaultTlsDirContextAuthenticationStrategy;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExternalTlsDirContextAuthenticationStrategy;
 import org.cloudfoundry.identity.uaa.security.LdapSocketFactory;

@@ -16,7 +16,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 
 @Controller
@@ -67,7 +67,7 @@ public class HomeController {
         this.clientId = clientId;
     }
 
-    @RequestMapping("/browse")
+    @RequestMapping({"/browse", "/browse/"})
     public String browse(Model model) {
         model.addAttribute("userAuthorizationUri", userAuthorizationUri);
         model.addAttribute("clientId", clientId);
@@ -75,7 +75,7 @@ public class HomeController {
         return "browse";
     }
 
-    @RequestMapping("/home")
+    @RequestMapping({"/home", "/home/"})
     public String home(Model model, Principal principal) {
         model.addAttribute("principal", principal);
         model.addAttribute("approvalsUri", approvalsUri);
@@ -84,13 +84,13 @@ public class HomeController {
 
     // Home page with just the user id - useful for testing simplest possible
     // use case
-    @RequestMapping("/id")
+    @RequestMapping({"/id", "/id/"})
     public String id(Model model, Principal principal) {
         model.addAttribute("principal", principal);
         return "home";
     }
 
-    @RequestMapping("/logout")
+    @RequestMapping({"/logout", "/logout/"})
     public String logout(Model model, HttpServletRequest request) {
         String redirect = request.getRequestURL().toString();
         model.addAttribute("cflogout", logoutUrl + "?client_id=app&redirect=" + redirect);

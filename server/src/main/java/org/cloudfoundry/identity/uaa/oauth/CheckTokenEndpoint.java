@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -80,7 +80,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         Assert.notNull(resourceServerTokenServices, "tokenServices must be set");
     }
 
-    @RequestMapping(value = "/check_token", method = POST)
+    @RequestMapping(value = {"/check_token", "/check_token/"}, method = POST)
     @ResponseBody
     @Deprecated
     public Claims checkToken(@RequestParam(name = "token",  required = false, defaultValue = "") String value,
@@ -137,7 +137,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         return request.getAttribute(PARAMETER_PARSE_FAILED_ATTR) == null;
     }
 
-    @RequestMapping(value = "/check_token")
+    @RequestMapping(value = {"/check_token", "/check_token/"})
     @ResponseBody
     @Deprecated
     public Claims checkToken(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {

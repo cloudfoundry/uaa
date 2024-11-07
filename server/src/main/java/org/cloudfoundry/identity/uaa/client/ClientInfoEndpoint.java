@@ -42,7 +42,7 @@ public class ClientInfoEndpoint {
         this.identityZoneManager = identityZoneManager;
     }
 
-    @RequestMapping(value = "/clientinfo")
+    @RequestMapping(value = {"/clientinfo", "/clientinfo/"})
     @ResponseBody
     public ClientDetails clientinfo(Principal principal) {
         String clientId = principal.getName();

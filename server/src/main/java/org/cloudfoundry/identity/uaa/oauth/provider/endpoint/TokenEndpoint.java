@@ -50,7 +50,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 
 	private Set<HttpMethod> allowedRequestMethods = new HashSet<>(Arrays.asList(HttpMethod.POST));
 
-	@GetMapping(value = "/oauth/token")
+	@GetMapping(value = {"/oauth/token", "/oauth/token/"})
 	public ResponseEntity<OAuth2AccessToken> getAccessToken(
 			Principal principal, @RequestParam Map<String, String> parameters)
 			throws HttpRequestMethodNotSupportedException {
@@ -61,7 +61,7 @@ public class TokenEndpoint extends AbstractEndpoint {
 		return postAccessToken(principal, parameters);
 	}
 	
-	@PostMapping(value = "/oauth/token")
+	@PostMapping(value = {"/oauth/token", "/oauth/token/"})
 	public ResponseEntity<OAuth2AccessToken> postAccessToken(
 			Principal principal, @RequestParam Map<String, String> parameters) {
 

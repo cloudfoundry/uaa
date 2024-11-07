@@ -20,8 +20,8 @@ import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
     public static final String URI_OVERRIDE_ATTRIBUTE = "override.redirect_uri";

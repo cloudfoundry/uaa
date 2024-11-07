@@ -24,7 +24,7 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 import com.nimbusds.jwt.JWTClaimsSet;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;

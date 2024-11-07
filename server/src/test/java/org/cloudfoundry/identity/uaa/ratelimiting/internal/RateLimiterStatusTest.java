@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.ratelimiting.internal;
 
 import java.time.Instant;
 import java.util.LinkedHashMap;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;

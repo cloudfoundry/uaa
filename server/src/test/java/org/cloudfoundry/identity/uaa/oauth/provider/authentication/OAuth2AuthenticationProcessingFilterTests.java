@@ -19,7 +19,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import javax.servlet.FilterChain;
+import jakarta.servlet.FilterChain;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

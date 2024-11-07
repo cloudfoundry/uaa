@@ -41,8 +41,8 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
+import org.apache.hc.core5.net.URLEncodedUtils;
+import org.apache.hc.core5.http.NameValuePair;
 import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;

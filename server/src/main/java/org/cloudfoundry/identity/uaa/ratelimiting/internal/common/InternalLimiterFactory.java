@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.internal.common;
 
 import java.time.Instant;
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 

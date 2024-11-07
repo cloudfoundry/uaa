@@ -39,7 +39,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.saml.SAMLProcessingFilter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-import javax.servlet.FilterChain;
+import jakarta.servlet.FilterChain;
 import java.util.Collections;
 import java.util.Map;
 

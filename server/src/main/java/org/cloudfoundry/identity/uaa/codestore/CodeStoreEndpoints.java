@@ -11,7 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.View;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class CodeStoreEndpoints {
@@ -44,7 +44,7 @@ public class CodeStoreEndpoints {
         }
     }
 
-    @RequestMapping(value = "/Codes/{code}", method = RequestMethod.GET)
+    @RequestMapping(value = {"/Codes/{code}", "/Codes/{code}/"}, method = RequestMethod.GET)
     @ResponseBody
     public ExpiringCode retrieveCode(@PathVariable String code) {
         ExpiringCode result;

@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import javax.validation.Valid;
+import jakarta.validation.Valid;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -60,7 +60,7 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 @RestController("identityZoneEndpoints")
-@RequestMapping("/identity-zones")
+@RequestMapping({"/identity-zones", "/identity-zones/"})
 public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     private static final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(IdentityZoneEndpoints.class);
@@ -96,7 +96,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     }
 
 
-    @RequestMapping(value = "{id}", method = GET)
+    @RequestMapping(value = {"{id}", "{id}/"}, method = GET)
     public IdentityZone getIdentityZone(@PathVariable String id) {
         List<IdentityZone> result = filterForCurrentZone(Collections.singletonList(zoneDao.retrieveIgnoreActiveFlag(id)));
         if (result.size() == 0) {
@@ -244,7 +244,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         return String.join("\r\n", messages);
     }
 
-    @RequestMapping(value = "{id}", method = PUT)
+    @RequestMapping(value = {"{id}", "{id}/"}, method = PUT)
     public ResponseEntity<IdentityZone> updateIdentityZone(
             @RequestBody @Valid IdentityZone body, @PathVariable String id) {
         IdentityZone previous = IdentityZoneHolder.get();
@@ -319,7 +319,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @RequestMapping(value = "{id}", method = DELETE)
+    @RequestMapping(value = {"{id}", "{id}/"}, method = DELETE)
     @Transactional
     public ResponseEntity<IdentityZone> deleteIdentityZone(@PathVariable String id) {
         if (id == null) {
@@ -355,7 +355,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @RequestMapping(method = POST, value = "{identityZoneId}/clients")
+    @RequestMapping(method = POST, value = {"{identityZoneId}/clients", "{identityZoneId}/clients/"})
     public ResponseEntity<? extends ClientDetails> createClient(
             @PathVariable String identityZoneId, @RequestBody UaaClientDetails clientDetails) {
         if (identityZoneId == null) {
@@ -383,7 +383,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         return response;
     }
 
-    @RequestMapping(method = DELETE, value = "{identityZoneId}/clients/{clientId}")
+    @RequestMapping(method = DELETE, value = {"{identityZoneId}/clients/{clientId}", "{identityZoneId}/clients/{clientId}/"})
     public ResponseEntity<? extends ClientDetails> deleteClient(
             @PathVariable String identityZoneId, @PathVariable String clientId) {
         if (identityZoneId == null) {

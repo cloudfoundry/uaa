@@ -17,9 +17,9 @@ import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import javax.validation.constraints.NotNull;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.constraints.NotNull;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;

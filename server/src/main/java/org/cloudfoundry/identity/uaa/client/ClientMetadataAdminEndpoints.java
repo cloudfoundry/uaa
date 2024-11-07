@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 
 @Controller
@@ -38,7 +38,7 @@ public class ClientMetadataAdminEndpoints {
         };
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.GET)
+    @RequestMapping(value = {"/oauth/clients/{client}/meta", "/oauth/clients/{client}/meta/"}, method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientMetadata retrieveClientMetadata(@PathVariable("client") String clientId) {
@@ -49,14 +49,14 @@ public class ClientMetadataAdminEndpoints {
         }
     }
 
-    @RequestMapping(value = "/oauth/clients/meta", method = RequestMethod.GET)
+    @RequestMapping(value = {"/oauth/clients/meta", "/oauth/clients/meta/"}, method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public List<ClientMetadata> retrieveAllClientMetadata() {
         return clientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.PUT)
+    @RequestMapping(value = {"/oauth/clients/{client}/meta", "/oauth/clients/{client}/meta/"}, method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientMetadata updateClientMetadata(@RequestBody ClientMetadata clientMetadata,

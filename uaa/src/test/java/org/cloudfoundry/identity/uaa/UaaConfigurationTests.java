@@ -15,7 +15,7 @@ package org.cloudfoundry.identity.uaa;
 
 import static org.junit.Assert.assertTrue;
 
-import javax.validation.ConstraintViolationException;
+import jakarta.validation.ConstraintViolationException;
 
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator;

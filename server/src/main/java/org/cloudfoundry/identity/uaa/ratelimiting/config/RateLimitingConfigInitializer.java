@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.ratelimiting.config;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 
 import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimitingConfigException;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.http.CredentialIdType;

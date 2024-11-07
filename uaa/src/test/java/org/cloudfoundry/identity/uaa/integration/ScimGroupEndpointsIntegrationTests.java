@@ -13,8 +13,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.hc.client5.http.cookie.BasicCookieStore;
+import org.apache.hc.client5.http.impl.cookie.BasicClientCookie;
 import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;

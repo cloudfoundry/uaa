@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Enumeration;
 
 /**

@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth.provider.error;
 
 import org.springframework.security.web.util.ThrowableAnalyzer;
-import javax.servlet.ServletException;
+import jakarta.servlet.ServletException;
 
 /**
  * Base exception for OAuth 2 exceptions.

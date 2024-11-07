@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 import java.io.IOException;
 import java.util.Date;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;

@@ -4,9 +4,9 @@ import static java.util.Objects.nonNull;
 import static org.cloudfoundry.identity.uaa.ratelimiting.RateLimitingFilter.RATE_LIMIT_ERROR_ATTRIBUTE;
 import static org.springframework.util.StringUtils.hasText;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -123,7 +123,7 @@ public class HomeController {
         return clientMetadata.isShowOnHomePage() && clientMetadata.getAppLaunchUrl() != null;
     }
 
-    @RequestMapping("/error500")
+    @RequestMapping({"/error500", "/error500/"})
     public String error500(Model model, HttpServletRequest request, HttpServletResponse response) {
         Throwable genericException = (Throwable) request.getAttribute("javax.servlet.error.exception");
         logger.error("Internal error", genericException);
@@ -164,7 +164,7 @@ public class HomeController {
         return ERROR;
     }
 
-    @RequestMapping("/saml_error")
+    @RequestMapping({"/saml_error", "/saml_error/"})
     public String error401(Model model, HttpServletRequest request) {
         AuthenticationException exception = SessionUtils.getAuthenticationException(request.getSession());
         if (nonNull(exception)) {
@@ -173,7 +173,7 @@ public class HomeController {
         return EXTERNAL_AUTH_ERROR;
     }
 
-    @RequestMapping("/oauth_error")
+    @RequestMapping({"/oauth_error", "/oauth_error/"})
     public String error_oauth(Model model, HttpServletRequest request) {
         String OAUTH_ERROR = "oauth_error";
         String exception = (String) request.getSession().getAttribute(OAUTH_ERROR);
@@ -185,7 +185,7 @@ public class HomeController {
         return EXTERNAL_AUTH_ERROR;
     }
 
-    @RequestMapping("/rejected")
+    @RequestMapping({"/rejected", "/rejected/"})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public String handleRequestRejected(Model model,
         @RequestAttribute(RequestDispatcher.ERROR_EXCEPTION) RequestRejectedException ex,
