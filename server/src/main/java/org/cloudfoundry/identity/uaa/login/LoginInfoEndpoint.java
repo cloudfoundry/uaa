@@ -51,6 +51,7 @@ import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -863,7 +864,7 @@ public class LoginInfoEndpoint {
     }
 
     @GetMapping(value = "/login/callback/{origin}")
-    public String handleExternalOAuthCallback(final HttpSession session) {
+    public String handleExternalOAuthCallback(final HttpSession session, @PathVariable String origin) {
         String redirectLocation = "/home";
         SavedRequest savedRequest = SessionUtils.getSavedRequestSession(session);
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {

@@ -920,7 +920,7 @@ class LoginInfoEndpointTests {
     void externalOAuthCallback_redirectsToHomeIfNoSavedRequest() {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
         HttpSession session = new MockHttpSession();
-        String redirectUrl = endpoint.handleExternalOAuthCallback(session);
+        String redirectUrl = endpoint.handleExternalOAuthCallback(session, "origin");
         assertThat(redirectUrl).isEqualTo("redirect:/home");
     }
 
@@ -931,7 +931,7 @@ class LoginInfoEndpointTests {
         DefaultSavedRequest savedRequest = mock(DefaultSavedRequest.class);
         when(savedRequest.getRedirectUrl()).thenReturn("/some.redirect.url");
         SessionUtils.setSavedRequestSession(session, savedRequest);
-        String redirectUrl = endpoint.handleExternalOAuthCallback(session);
+        String redirectUrl = endpoint.handleExternalOAuthCallback(session, "origin");
         assertThat(redirectUrl).isEqualTo("redirect:/some.redirect.url");
     }
 

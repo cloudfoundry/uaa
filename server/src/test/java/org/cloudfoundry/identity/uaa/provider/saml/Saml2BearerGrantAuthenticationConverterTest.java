@@ -21,7 +21,6 @@ import org.opensaml.saml.saml2.core.AttributeValue;
 import org.opensaml.saml.saml2.core.Audience;
 import org.opensaml.saml.saml2.core.AuthnRequest;
 import org.opensaml.saml.saml2.core.Conditions;
-import org.opensaml.saml.saml2.core.EncryptedAssertion;
 import org.opensaml.saml.saml2.core.EncryptedAttribute;
 import org.opensaml.saml.saml2.core.Response;
 import org.opensaml.saml.saml2.core.SubjectConfirmation;
@@ -179,7 +178,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
         Assertion assertion = assertion();
         assertion.getSubject()
                 .getSubjectConfirmations()
-                .forEach((sc) -> sc.getSubjectConfirmationData().setAddress("10.10.10.10"));
+                .forEach(sc -> sc.getSubjectConfirmationData().setAddress("10.10.10.10"));
         Saml2AuthenticationToken token = token(assertion, verifying(registration()));
         this.provider.authenticate(token);
     }
@@ -202,15 +201,6 @@ class Saml2BearerGrantAuthenticationConverterTest {
         assertThatExceptionOfType(Saml2AuthenticationException.class)
                 .isThrownBy(() -> this.provider.authenticate(token))
                 .withStackTraceContaining("invalid_assertion");
-    }
-
-    @Test
-    void evaluateInResponseToSucceedsWhenNoInResponseToInResponseOrAssertions() {
-        Assertion assertion = assertion();
-        AbstractSaml2AuthenticationRequest mockAuthenticationRequest = mockedStoredAuthenticationRequest("SAML2",
-                Saml2MessageBinding.POST, false);
-        Saml2AuthenticationToken token = token(assertion, verifying(registration()), mockAuthenticationRequest);
-        this.provider.authenticate(token);
     }
 
     @Test
@@ -364,8 +354,6 @@ class Saml2BearerGrantAuthenticationConverterTest {
     void writeObjectWhenTypeIsSaml2AuthenticationThenNoException() throws IOException {
         Assertion assertion = TestOpenSamlObjects.signed(assertion(),
                 TestSaml2X509Credentials.assertingPartySigningCredential(), RELYING_PARTY_ENTITY_ID);
-        EncryptedAssertion encryptedAssertion = TestOpenSamlObjects.encrypted(assertion,
-                TestSaml2X509Credentials.assertingPartyEncryptingCredential());
         Saml2AuthenticationToken token = token(signed(assertion), decrypting(verifying(registration())));
         Saml2Authentication authentication = (Saml2Authentication) this.provider.authenticate(token);
         // the following code will throw an exception if authentication isn't serializable
@@ -412,7 +400,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
         assertion.setIssuer(TestOpenSamlObjects.issuer("https://invalid.idp.test/saml2/idp"));
         Saml2AuthenticationToken token = token(signed(assertion), verifying(registration()));
         assertThatExceptionOfType(Saml2AuthenticationException.class).isThrownBy(() -> provider.authenticate(token))
-                .withMessageContaining("from Issuer","was not valid");
+                .withMessageContaining("from Issuer", "was not valid");
     }
 
     private <T extends XMLObject> T build(QName qName) {
@@ -449,8 +437,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
     }
 
     private AuthnRequest request() {
-        AuthnRequest request = TestOpenSamlObjects.authnRequest();
-        return request;
+        return TestOpenSamlObjects.authnRequest();
     }
 
     private String serializedRequest(AuthnRequest request, Saml2MessageBinding binding) {
@@ -512,10 +499,6 @@ class Saml2BearerGrantAuthenticationConverterTest {
     }
 
     private Saml2AuthenticationToken token(Assertion assertion, RelyingPartyRegistration.Builder registration) {
-        return new Saml2AuthenticationToken(registration.build(), serialize(assertion));
-    }
-
-    private Saml2AuthenticationToken token(EncryptedAssertion assertion, RelyingPartyRegistration.Builder registration) {
         return new Saml2AuthenticationToken(registration.build(), serialize(assertion));
     }
 

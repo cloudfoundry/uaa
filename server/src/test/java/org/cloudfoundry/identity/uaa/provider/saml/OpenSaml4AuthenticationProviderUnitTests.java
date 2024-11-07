@@ -572,7 +572,6 @@ class OpenSaml4AuthenticationProviderUnitTests {
     void authenticateWhenCustomResponseValidatorThenUses() {
         Converter<ResponseToken, Saml2ResponseValidatorResult> validator = mock(
                 Converter.class);
-        OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
         // @formatter:off
         provider.setResponseValidator((responseToken) -> OpenSaml4AuthenticationProvider.createDefaultResponseValidator()
                 .convert(responseToken)
@@ -591,7 +590,6 @@ class OpenSaml4AuthenticationProviderUnitTests {
 
     @Test
     void authenticateWhenAssertionIssuerNotValidThenFailsWithInvalidIssuer() {
-        OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
         Response response = response();
         Assertion assertion = assertion();
         assertion.setIssuer(TestOpenSamlObjects.issuer("https://invalid.idp.test/saml2/idp"));
@@ -620,7 +618,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
     }
 
     private Consumer<Saml2AuthenticationException> errorOf(String errorCode, String description) {
-        return (ex) -> {
+        return ex -> {
             assertThat(ex.getSaml2Error().getErrorCode()).isEqualTo(errorCode);
             if (StringUtils.hasText(description)) {
                 assertThat(ex.getSaml2Error().getDescription()).contains(description);
@@ -726,16 +724,16 @@ class OpenSaml4AuthenticationProviderUnitTests {
         return TestRelyingPartyRegistrations.noCredentials()
                 .entityId(RELYING_PARTY_ENTITY_ID)
                 .assertionConsumerServiceLocation(DESTINATION)
-                .assertingPartyDetails((party) -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
+                .assertingPartyDetails(party -> party.entityId(ASSERTING_PARTY_ENTITY_ID));
     }
 
     private RelyingPartyRegistration.Builder verifying(RelyingPartyRegistration.Builder builder) {
-        return builder.assertingPartyDetails((party) -> party
-                .verificationX509Credentials((c) -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
+        return builder.assertingPartyDetails(party -> party
+                .verificationX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
     }
 
     private RelyingPartyRegistration.Builder decrypting(RelyingPartyRegistration.Builder builder) {
         return builder
-                .decryptionX509Credentials((c) -> c.add(TestSaml2X509Credentials.relyingPartyDecryptingCredential()));
+                .decryptionX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyDecryptingCredential()));
     }
 }

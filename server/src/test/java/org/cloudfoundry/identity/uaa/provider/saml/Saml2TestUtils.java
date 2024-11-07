@@ -23,7 +23,6 @@ import org.opensaml.core.xml.io.Marshaller;
 import org.opensaml.core.xml.io.MarshallingException;
 import org.opensaml.core.xml.schema.XSDateTime;
 import org.opensaml.core.xml.schema.impl.XSDateTimeBuilder;
-import org.opensaml.saml.common.SignableSAMLObject;
 import org.opensaml.saml.saml2.core.Assertion;
 import org.opensaml.saml.saml2.core.Attribute;
 import org.opensaml.saml.saml2.core.AttributeStatement;
@@ -193,11 +192,6 @@ public final class Saml2TestUtils {
     public static RelyingPartyRegistration.Builder verifying(RelyingPartyRegistration.Builder builder) {
         return builder.assertingPartyDetails(party -> party
                 .verificationX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyVerifyingCredential())));
-    }
-
-    private static RelyingPartyRegistration.Builder decrypting(RelyingPartyRegistration.Builder builder) {
-        return builder
-                .decryptionX509Credentials(c -> c.add(TestSaml2X509Credentials.relyingPartyDecryptingCredential()));
     }
 
     public static Map<String, String> xmlNamespaces() {
