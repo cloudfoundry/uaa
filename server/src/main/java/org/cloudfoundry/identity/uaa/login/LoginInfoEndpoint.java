@@ -597,7 +597,7 @@ public class LoginInfoEndpoint {
     private String redirectToExternalProvider(AbstractIdentityProviderDefinition idpForRedirect, String idpOriginKey, HttpServletRequest request) {
         if (idpForRedirect != null) {
             if (idpForRedirect instanceof SamlIdentityProviderDefinition samlIdentityProviderDefinition) {
-                String url = SamlRedirectUtils.getIdpRedirectUrl(samlIdentityProviderDefinition, entityID, IdentityZoneHolder.get());
+                String url = SamlRedirectUtils.getIdpRedirectUrl(samlIdentityProviderDefinition);
                 return "redirect:/" + url;
             } else if (idpForRedirect instanceof AbstractExternalOAuthIdentityProviderDefinition providerDefinition) {
                 String redirectUrl = getRedirectUrlForExternalOAuthIDP(request, idpOriginKey, providerDefinition);
