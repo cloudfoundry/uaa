@@ -237,7 +237,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
     protected Authentication extractCredentials(HttpServletRequest request) {
         String grantType = request.getParameter("grant_type");
         if (grantType != null && grantType.equals(GRANT_TYPE_PASSWORD)) {
-            Map<String, String> credentials = getCredentials(request);
+            Map<String, String> credentials = UaaHttpRequestUtils.getCredentials(request, parameterNames);
             String passcode = credentials.get("passcode");
             if (passcode != null) {
                 return new ExpiringCodeAuthentication(request, passcode);

@@ -1,10 +1,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,7 +28,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -118,7 +116,7 @@ public class AuthzAuthenticationFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
 
-        Map<String, String> loginInfo = getCredentials(req);
+        Map<String, String> loginInfo = UaaHttpRequestUtils.getCredentials(req, parameterNames);
 
         boolean buggyVmcAcceptHeader = false;
 
@@ -184,29 +182,6 @@ public class AuthzAuthenticationFilter implements Filter {
         chain.doFilter(request, response);
     }
 
-    private Map<String, String> getCredentials(HttpServletRequest request) {
-        Map<String, String> credentials = new HashMap<>();
-
-        for (String paramName : parameterNames) {
-            String value = request.getParameter(paramName);
-            if (value != null) {
-                if (value.startsWith("{")) {
-                    try {
-                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
-                                new TypeReference<>() {
-                                });
-                        credentials.putAll(jsonCredentials);
-                    } catch (JsonUtils.JsonUtilException e) {
-                        logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
-                    }
-                } else {
-                    credentials.put(paramName, value);
-                }
-            }
-        }
-
-        return credentials;
-    }
 
     @Override
     public void init(FilterConfig filterConfig) {
