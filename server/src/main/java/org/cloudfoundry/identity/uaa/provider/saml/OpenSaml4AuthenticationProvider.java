@@ -453,7 +453,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
                 Collections.singletonMap(SAML2AssertionValidationParameters.SIGNATURE_REQUIRED, false)));
     }
 
-    private Consumer<AssertionToken> createDefaultAssertionElementsDecrypter() {
+    public static Consumer<AssertionToken> createDefaultAssertionElementsDecrypter() {
         return assertionToken -> {
             Assertion assertion = assertionToken.getAssertion();
             RelyingPartyRegistration registration = assertionToken.getToken().getRelyingPartyRegistration();
@@ -465,7 +465,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         };
     }
 
-    private boolean hasName(Assertion assertion) {
+    public static boolean hasName(Assertion assertion) {
         if (assertion == null) {
             return false;
         }
@@ -478,7 +478,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return assertion.getSubject().getNameID().getValue() != null;
     }
 
-    private static Map<String, List<Object>> getAssertionAttributes(Assertion assertion) {
+    public static Map<String, List<Object>> getAssertionAttributes(Assertion assertion) {
         MultiValueMap<String, Object> attributeMap = new LinkedMultiValueMap<>();
         for (AttributeStatement attributeStatement : assertion.getAttributeStatements()) {
             for (Attribute attribute : attributeStatement.getAttributes()) {
@@ -495,7 +495,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return new LinkedHashMap<>(attributeMap); // gh-11785
     }
 
-    private static List<String> getSessionIndexes(Assertion assertion) {
+    public static List<String> getSessionIndexes(Assertion assertion) {
         List<String> sessionIndexes = new ArrayList<>();
         for (AuthnStatement statement : assertion.getAuthnStatements()) {
             sessionIndexes.add(statement.getSessionIndex());
@@ -503,7 +503,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return sessionIndexes;
     }
 
-    private static Object getXmlObjectValue(XMLObject xmlObject) {
+    public static Object getXmlObjectValue(XMLObject xmlObject) {
         if (xmlObject instanceof XSAny xsAny) {
             return xsAny.getTextContent();
         }
@@ -526,7 +526,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return xmlObject;
     }
 
-    private static Saml2AuthenticationException createAuthenticationException(String code, String message,
+    public static Saml2AuthenticationException createAuthenticationException(String code, String message,
                                                                               Exception cause) {
         return new Saml2AuthenticationException(new Saml2Error(code, message), cause);
     }
