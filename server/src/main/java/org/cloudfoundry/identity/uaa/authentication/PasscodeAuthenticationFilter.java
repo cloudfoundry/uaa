@@ -14,8 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -241,7 +241,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
     protected Authentication extractCredentials(HttpServletRequest request) {
         String grantType = request.getParameter("grant_type");
         if (grantType != null && grantType.equals(GRANT_TYPE_PASSWORD)) {
-            Map<String, String> credentials = getCredentials(request);
+            Map<String, String> credentials = UaaHttpRequestUtils.getCredentials(request, parameterNames);
             String passcode = credentials.get("passcode");
             if (passcode!=null) {
                 return new ExpiringCodeAuthentication(request, passcode);
@@ -250,30 +250,6 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
             }
         }
         return null;
-    }
-    private Map<String, String> getCredentials(HttpServletRequest request) {
-        Map<String, String> credentials = new HashMap<String, String>();
-
-        for (String paramName : parameterNames) {
-            String value = request.getParameter(paramName);
-            if (value != null) {
-                if (value.startsWith("{")) {
-                    try {
-                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
-                                        new TypeReference<Map<String, String>>() {
-                                        });
-                        credentials.putAll(jsonCredentials);
-                    } catch (JsonUtils.JsonUtilException e) {
-                        logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
-                    }
-                }
-                else {
-                    credentials.put(paramName, value);
-                }
-            }
-        }
-
-        return credentials;
     }
 
     @Override
