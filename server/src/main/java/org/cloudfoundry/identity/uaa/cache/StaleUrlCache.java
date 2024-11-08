@@ -7,10 +7,12 @@ import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -20,11 +22,13 @@ import java.time.Duration;
 import java.time.Instant;
 
 @Slf4j
+@Component
 public class StaleUrlCache implements UrlContentCache {
     private static final int DEFAULT_MAX_ENTRIES = 10_000;
 
     private final LoadingCache<UriRequest, CacheEntry> cache;
 
+    @Autowired
     public StaleUrlCache(final TimeService timeService) {
         this(timeService, Ticker.systemTicker());
     }
