@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -12,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
@@ -42,11 +44,14 @@ import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -178,5 +183,28 @@ public abstract class UaaHttpRequestUtils {
             return null;
         }
         return stream(s.split(",")).map(String::trim).toList().toArray(String[]::new);
+    }
+
+    public static Map<String, String> getCredentials(HttpServletRequest request, List<String> parameterNames) {
+        Map<String, String> credentials = new HashMap<>();
+
+        for (String paramName : parameterNames) {
+            String value = request.getParameter(paramName);
+            if (value != null) {
+                if (value.startsWith("{")) {
+                    try {
+                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
+                            new TypeReference<>() {
+                            });
+                        credentials.putAll(jsonCredentials);
+                    } catch (JsonUtils.JsonUtilException e) {
+                        logger.warn("Unknown format of value for request param: {}. Ignoring.", paramName);
+                    }
+                } else {
+                    credentials.put(paramName, value);
+                }
+            }
+        }
+        return credentials;
     }
 }
