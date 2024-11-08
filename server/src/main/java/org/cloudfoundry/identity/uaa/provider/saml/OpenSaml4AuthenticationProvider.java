@@ -273,7 +273,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidator() {
 
         return createDefaultAssertionValidatorWithParameters(
-                params -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)));
+                params -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)), false);
     }
 
     /**
@@ -286,10 +286,10 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
      * @since 5.8
      */
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidatorWithParameters(
-            Consumer<Map<String, Object>> validationContextParameters) {
+            Consumer<Map<String, Object>> validationContextParameters, boolean saml2bearer) {
         return createAssertionValidator(Saml2ErrorCodes.INVALID_ASSERTION,
                 assertionToken -> SAML20AssertionValidators.attributeValidator,
-                assertionToken -> createValidationContext(assertionToken, validationContextParameters));
+                assertionToken -> createValidationContext(assertionToken, validationContextParameters, saml2bearer));
     }
 
     /**
@@ -558,12 +558,13 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     }
 
     private static ValidationContext createValidationContext(AssertionToken assertionToken,
-                                                             Consumer<Map<String, Object>> paramsConsumer) {
+                                                             Consumer<Map<String, Object>> paramsConsumer,
+                                                             boolean saml2Bearer) {
         Saml2AuthenticationToken token = assertionToken.token;
         RelyingPartyRegistration relyingPartyRegistration = token.getRelyingPartyRegistration();
         String audience = relyingPartyRegistration.getEntityId();
         String recipient;
-        if (paramsConsumer.getClass().isNestmateOf(Saml2BearerGrantAuthenticationConverter.class)) {
+        if (saml2Bearer) {
             recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation().replace("/saml/SSO/alias/", "/oauth/token/alias/");
         } else {
             recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation();
@@ -571,7 +572,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         String assertingPartyEntityId = relyingPartyRegistration.getAssertingPartyDetails().getEntityId();
         Map<String, Object> params = new HashMap<>();
         Assertion assertion = assertionToken.getAssertion();
-        if (assertionContainsInResponseTo(assertion)) {
+        if (!saml2Bearer && assertionContainsInResponseTo(assertion)) {
             String requestId = getAuthnRequestId(token.getAuthenticationRequest());
             params.put(SAML2AssertionValidationParameters.SC_VALID_IN_RESPONSE_TO, requestId);
         }

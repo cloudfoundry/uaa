@@ -147,10 +147,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
     public static Converter<OpenSaml4AuthenticationProvider.AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidator() {
 
         return createDefaultAssertionValidatorWithParameters(
-                params -> {
-                    params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5));
-                    params.put(Saml2BearerGrantAuthenticationConverter.class.getName(), true);
-                });
+                params -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)), true);
     }
 
     /**
