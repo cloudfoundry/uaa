@@ -195,6 +195,8 @@ class StaleUrlCacheTests {
         assertEquals(uriRequest, uriRequest);
         assertThat(uriRequest.equals(null)).isFalse();
         assertThat(uriRequest.equals(URL)).isFalse();
+        assertThat(new StaleUrlCache.UriRequest(URL, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isTrue();
+        assertThat(new StaleUrlCache.UriRequest(null, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isFalse();
     }
 
     @Test
