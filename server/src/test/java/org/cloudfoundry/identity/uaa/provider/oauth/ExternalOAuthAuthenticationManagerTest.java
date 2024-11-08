@@ -323,7 +323,7 @@ class ExternalOAuthAuthenticationManagerTest {
     }
 
     @Test
-    public void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
+    void getUser_doesNotThrowWhenIdTokenMappingIsArray() {
         Map<String, Object> header = map(
                 entry(HeaderParameterNames.ALGORITHM, JWSAlgorithm.RS256.getName()),
                 entry(HeaderParameterNames.KEY_ID, OIDC_PROVIDER_KEY)
