@@ -132,7 +132,7 @@ GEM
       concurrent-ruby (~> 1.0)
     uglifier (3.2.0)
       execjs (>= 0.3.0, < 3)
-    webrick (1.8.2)
+    webrick (1.9.0)
 
 PLATFORMS
   ruby

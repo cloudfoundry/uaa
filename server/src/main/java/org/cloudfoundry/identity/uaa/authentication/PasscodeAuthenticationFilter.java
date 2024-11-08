@@ -14,7 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -23,6 +22,7 @@ import org.cloudfoundry.identity.uaa.passcode.PasscodeInformation;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -58,8 +58,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  * one-time password store.
  */
 public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpointAuthenticationFilter {
-
-    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private List<String> parameterNames = List.of();
 
@@ -237,7 +235,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
     protected Authentication extractCredentials(HttpServletRequest request) {
         String grantType = request.getParameter("grant_type");
         if (grantType != null && grantType.equals(GRANT_TYPE_PASSWORD)) {
-            Map<String, String> credentials = getCredentials(request);
+            Map<String, String> credentials = UaaHttpRequestUtils.getCredentials(request, parameterNames);
             String passcode = credentials.get("passcode");
             if (passcode != null) {
                 return new ExpiringCodeAuthentication(request, passcode);
@@ -246,30 +244,6 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
             }
         }
         return null;
-    }
-
-    private Map<String, String> getCredentials(HttpServletRequest request) {
-        Map<String, String> credentials = new HashMap<>();
-
-        for (String paramName : parameterNames) {
-            String value = request.getParameter(paramName);
-            if (value != null) {
-                if (value.startsWith("{")) {
-                    try {
-                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
-                                new TypeReference<>() {
-                                });
-                        credentials.putAll(jsonCredentials);
-                    } catch (JsonUtils.JsonUtilException e) {
-                        logger.warn("Unknown format of value for request param: {}. Ignoring.", paramName);
-                    }
-                } else {
-                    credentials.put(paramName, value);
-                }
-            }
-        }
-
-        return credentials;
     }
 
     public void setParameterNames(List<String> parameterNames) {

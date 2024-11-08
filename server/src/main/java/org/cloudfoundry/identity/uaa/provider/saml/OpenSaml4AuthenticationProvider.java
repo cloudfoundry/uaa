@@ -273,7 +273,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidator() {
 
         return createDefaultAssertionValidatorWithParameters(
-                params -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)));
+                params -> params.put(SAML2AssertionValidationParameters.CLOCK_SKEW, Duration.ofMinutes(5)), false);
     }
 
     /**
@@ -286,10 +286,10 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
      * @since 5.8
      */
     public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionValidatorWithParameters(
-            Consumer<Map<String, Object>> validationContextParameters) {
+            Consumer<Map<String, Object>> validationContextParameters, boolean saml2bearer) {
         return createAssertionValidator(Saml2ErrorCodes.INVALID_ASSERTION,
                 assertionToken -> SAML20AssertionValidators.attributeValidator,
-                assertionToken -> createValidationContext(assertionToken, validationContextParameters));
+                assertionToken -> createValidationContext(assertionToken, validationContextParameters, saml2bearer));
     }
 
     /**
@@ -444,7 +444,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return response.getStatus().getStatusCode().getValue();
     }
 
-    private Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionSignatureValidator() {
+    public static Converter<AssertionToken, Saml2ResponseValidatorResult> createDefaultAssertionSignatureValidator() {
         return createAssertionValidator(Saml2ErrorCodes.INVALID_SIGNATURE, assertionToken -> {
             RelyingPartyRegistration registration = assertionToken.getToken().getRelyingPartyRegistration();
             SignatureTrustEngine engine = OpenSamlVerificationUtils.trustEngine(registration);
@@ -453,7 +453,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
                 Collections.singletonMap(SAML2AssertionValidationParameters.SIGNATURE_REQUIRED, false)));
     }
 
-    private Consumer<AssertionToken> createDefaultAssertionElementsDecrypter() {
+    public static Consumer<AssertionToken> createDefaultAssertionElementsDecrypter() {
         return assertionToken -> {
             Assertion assertion = assertionToken.getAssertion();
             RelyingPartyRegistration registration = assertionToken.getToken().getRelyingPartyRegistration();
@@ -465,7 +465,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         };
     }
 
-    private boolean hasName(Assertion assertion) {
+    public static boolean hasName(Assertion assertion) {
         if (assertion == null) {
             return false;
         }
@@ -478,7 +478,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return assertion.getSubject().getNameID().getValue() != null;
     }
 
-    private static Map<String, List<Object>> getAssertionAttributes(Assertion assertion) {
+    public static Map<String, List<Object>> getAssertionAttributes(Assertion assertion) {
         MultiValueMap<String, Object> attributeMap = new LinkedMultiValueMap<>();
         for (AttributeStatement attributeStatement : assertion.getAttributeStatements()) {
             for (Attribute attribute : attributeStatement.getAttributes()) {
@@ -495,7 +495,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return new LinkedHashMap<>(attributeMap); // gh-11785
     }
 
-    private static List<String> getSessionIndexes(Assertion assertion) {
+    public static List<String> getSessionIndexes(Assertion assertion) {
         List<String> sessionIndexes = new ArrayList<>();
         for (AuthnStatement statement : assertion.getAuthnStatements()) {
             sessionIndexes.add(statement.getSessionIndex());
@@ -503,7 +503,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return sessionIndexes;
     }
 
-    private static Object getXmlObjectValue(XMLObject xmlObject) {
+    public static Object getXmlObjectValue(XMLObject xmlObject) {
         if (xmlObject instanceof XSAny xsAny) {
             return xsAny.getTextContent();
         }
@@ -526,7 +526,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         return xmlObject;
     }
 
-    private static Saml2AuthenticationException createAuthenticationException(String code, String message,
+    public static Saml2AuthenticationException createAuthenticationException(String code, String message,
                                                                               Exception cause) {
         return new Saml2AuthenticationException(new Saml2Error(code, message), cause);
     }
@@ -546,25 +546,33 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
                 }
             } catch (Exception ex) {
                 String message = String.format("Invalid assertion [%s] for SAML response [%s]: %s", assertion.getID(),
-                        ((Response) assertion.getParent()).getID(), ex.getMessage());
+                        assertion.getParent() != null ? ((Response) assertion.getParent()).getID() : assertion.getID(),
+                        ex.getMessage());
                 return Saml2ResponseValidatorResult.failure(new Saml2Error(errorCode, message));
             }
             String message = String.format("Invalid assertion [%s] for SAML response [%s]: %s", assertion.getID(),
-                    ((Response) assertion.getParent()).getID(), context.getValidationFailureMessage());
+                    assertion.getParent() != null ? ((Response) assertion.getParent()).getID() : assertion.getID(),
+                    context.getValidationFailureMessage());
             return Saml2ResponseValidatorResult.failure(new Saml2Error(errorCode, message));
         };
     }
 
     private static ValidationContext createValidationContext(AssertionToken assertionToken,
-                                                             Consumer<Map<String, Object>> paramsConsumer) {
+                                                             Consumer<Map<String, Object>> paramsConsumer,
+                                                             boolean saml2Bearer) {
         Saml2AuthenticationToken token = assertionToken.token;
         RelyingPartyRegistration relyingPartyRegistration = token.getRelyingPartyRegistration();
         String audience = relyingPartyRegistration.getEntityId();
-        String recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation();
+        String recipient;
+        if (saml2Bearer) {
+            recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation().replace("/saml/SSO/alias/", "/oauth/token/alias/");
+        } else {
+            recipient = relyingPartyRegistration.getAssertionConsumerServiceLocation();
+        }
         String assertingPartyEntityId = relyingPartyRegistration.getAssertingPartyDetails().getEntityId();
         Map<String, Object> params = new HashMap<>();
         Assertion assertion = assertionToken.getAssertion();
-        if (assertionContainsInResponseTo(assertion)) {
+        if (!saml2Bearer && assertionContainsInResponseTo(assertion)) {
             String requestId = getAuthnRequestId(token.getAuthenticationRequest());
             params.put(SAML2AssertionValidationParameters.SC_VALID_IN_RESPONSE_TO, requestId);
         }
@@ -736,5 +744,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             this.token = token;
             this.assertion = assertion;
         }
+
+        public Assertion getAssertion() { return this.assertion; }
     }
 }

@@ -194,7 +194,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
 
     @Test
     void evaluateInResponseToFailsWhenInResponseToInAssertionMismatchWithRequestID() {
-        Assertion assertion = assertion("SAML2");
+        Assertion assertion = assertion("saml2");
         AbstractSaml2AuthenticationRequest mockAuthenticationRequest = mockedStoredAuthenticationRequest("SAML2",
                 Saml2MessageBinding.POST, false);
         Saml2AuthenticationToken token = token(assertion, verifying(registration()), mockAuthenticationRequest);
@@ -366,7 +366,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
     @Test
     void createDefaultAssertionValidatorWhenAssertionThenValidates() {
         Assertion assertion = signed(assertion());
-        Saml2BearerGrantAuthenticationConverter.AssertionToken assertionToken = new Saml2BearerGrantAuthenticationConverter.AssertionToken(
+        OpenSaml4AuthenticationProvider.AssertionToken assertionToken = new OpenSaml4AuthenticationProvider.AssertionToken(
                 assertion, token());
         assertThat(
                 Saml2BearerGrantAuthenticationConverter.createDefaultAssertionValidator().convert(assertionToken).hasErrors())
@@ -387,7 +387,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
     void createDefaultResponseAuthenticationConverterWhenResponseThenConverts() {
         Assertion assertion = assertion();
         Saml2AuthenticationToken token = token(assertion, verifying(registration()));
-        Saml2BearerGrantAuthenticationConverter.AssertionToken assertionToken = new Saml2BearerGrantAuthenticationConverter.AssertionToken(assertion, token);
+        OpenSaml4AuthenticationProvider.AssertionToken assertionToken = new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token);
         AbstractAuthenticationToken authentication = Saml2BearerGrantAuthenticationConverter
                 .createDefaultAssertionAuthenticationConverter()
                 .convert(assertionToken);

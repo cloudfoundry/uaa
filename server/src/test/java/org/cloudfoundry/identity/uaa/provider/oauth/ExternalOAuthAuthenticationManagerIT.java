@@ -91,7 +91,9 @@ import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
@@ -391,7 +393,7 @@ class ExternalOAuthAuthenticationManagerIT {
         CompositeToken token = getCompositeAccessToken();
         xCodeToken = new ExternalOAuthCodeToken(null, null, null, token.getIdTokenValue(), null, null);
         String zoneId = IdentityZoneHolder.get().getId();
-        when(provisioning.retrieveAll(true, zoneId)).thenReturn(emptyList());
+        when(provisioning.retrieveAll(eq(true), eq(zoneId))).thenReturn(emptyList());
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
                 .isInstanceOf(InsufficientAuthenticationException.class)
                 .hasMessage("Unable to map issuer, %s , to a single registered provider".formatted(claims.get(ISS)));
@@ -429,9 +431,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("iss", issuerURL);
         CompositeToken token = getCompositeAccessToken();
 
-        String idTokenValue = token.getIdTokenValue();
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.resolveOriginProvider(idTokenValue))
-                .isInstanceOf(InsufficientAuthenticationException.class);
+        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() -> externalOAuthAuthenticationManager.resolveOriginProvider(token.getIdTokenValue()));
     }
 
     @Test
@@ -477,8 +477,7 @@ class ExternalOAuthAuthenticationManagerIT {
         xCodeToken.setIdToken(idToken);
         xCodeToken.setOrigin(null);
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken))
-                .isInstanceOf(InsufficientAuthenticationException.class);
+        assertThatExceptionOfType(InsufficientAuthenticationException.class).isThrownBy(() -> externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken));
     }
 
     @Test
@@ -562,7 +561,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setTokenUrl(null);
         config.setDiscoveryUrl(new URL("http://some.discovery.url"));
 
-        Map<String, Object> discoveryContent = new HashMap<>();
+        Map<String, Object> discoveryContent = new HashMap();
         discoveryContent.put("authorization_endpoint", authUrl.toString());
         discoveryContent.put("token_endpoint", tokenUrl.toString());
         //mandatory but not used
@@ -712,7 +711,7 @@ class ExternalOAuthAuthenticationManagerIT {
     @Test
     void single_key_response_without_value() throws Exception {
         String json = getKeyJson(PRIVATE_KEY, "correctKey", false);
-        Map<String, Object> map = JsonUtils.readValue(json, new TypeReference<>() {
+        Map<String, Object> map = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {
         });
         map.remove("value");
         json = JsonUtils.writeValueAsString(map);
@@ -725,9 +724,9 @@ class ExternalOAuthAuthenticationManagerIT {
     void multi_key_response_without_value() throws Exception {
         String jsonValid = getKeyJson(PRIVATE_KEY, "correctKey", false);
         String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
-        Map<String, Object> mapValid = JsonUtils.readValue(jsonValid, new TypeReference<>() {
+        Map<String, Object> mapValid = JsonUtils.readValue(jsonValid, new TypeReference<Map<String, Object>>() {
         });
-        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<>() {
+        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {
         });
         mapValid.remove("value");
         mapInvalid.remove("value");
@@ -741,9 +740,9 @@ class ExternalOAuthAuthenticationManagerIT {
     void multi_key_all_invalid() throws Exception {
         String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
         String jsonInvalid2 = getKeyJson(invalidRsaSigningKey, "invalidKey2", false);
-        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<>() {
+        Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {
         });
-        Map<String, Object> mapInvalid2 = JsonUtils.readValue(jsonInvalid2, new TypeReference<>() {
+        Map<String, Object> mapInvalid2 = JsonUtils.readValue(jsonInvalid2, new TypeReference<Map<String, Object>>() {
         });
         String json = JsonUtils.writeValueAsString(new JsonWebKeySet<>(Arrays.asList(new JsonWebKey(mapInvalid), new JsonWebKey(mapInvalid2))));
         assertThat(json).contains("\"invalidKey\"", "\"invalidKey2\"");
@@ -765,7 +764,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void invalid_key() throws Exception {
-        String json = "{x}";
+        String json = new String("{x}");
         configureTokenKeyResponse("http://localhost/token_key", json);
         addTheUserOnAuth();
         assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
@@ -794,8 +793,12 @@ class ExternalOAuthAuthenticationManagerIT {
                 true);
         addTheUserOnAuth();
         config.setTokenKeyUrl(null);
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(IllegalArgumentException.class);
+        try {
+            externalOAuthAuthenticationManager.authenticate(xCodeToken);
+            fail("not expected");
+        } catch (Exception e) {
+            assertThat(e).isInstanceOf(IllegalArgumentException.class);
+        }
     }
 
     @Test
@@ -803,8 +806,7 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setAddShadowUserOnLogin(false);
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(AccountNotPreCreatedException.class);
+        assertThatExceptionOfType(AccountNotPreCreatedException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
 
     @Test
@@ -813,16 +815,14 @@ class ExternalOAuthAuthenticationManagerIT {
 
         config.setTokenKey("WRONG_KEY");
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(InvalidTokenException.class);
+        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
 
     @Test
     void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
         configureTokenKeyResponse("http://localhost/token_key", invalidRsaSigningKey, "wrongKey");
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(InvalidTokenException.class);
+        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
 
     @Test
@@ -830,8 +830,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("iss", "http://wrong.issuer/");
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(InvalidTokenException.class);
+        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
 
     @Test
@@ -839,8 +838,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("exp", Instant.now().getEpochSecond() - 1);
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(InvalidTokenException.class);
+        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
 
     @Test
@@ -848,8 +846,7 @@ class ExternalOAuthAuthenticationManagerIT {
         claims.put("aud", Arrays.asList("another_client", "a_complete_stranger"));
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(InvalidTokenException.class);
+        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
 
     @Test
@@ -1047,10 +1044,10 @@ class ExternalOAuthAuthenticationManagerIT {
         config.setIssuer(ISSUER);
         mockToken();
 
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.getUser(
+        assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> externalOAuthAuthenticationManager.getUser(
                 xCodeToken,
                 externalOAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken)
-        )).isInstanceOf(InvalidTokenException.class);
+        ));
     }
 
     @Test
@@ -1103,9 +1100,7 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         mockUaaServer.expect(requestTo("http://localhost/oauth/token")).andRespond(withServerError());
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(HttpServerErrorException.class);
-
+        assertThatExceptionOfType(HttpServerErrorException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
 
     @Test
@@ -1115,8 +1110,7 @@ class ExternalOAuthAuthenticationManagerIT {
         when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         mockUaaServer.expect(requestTo("http://localhost/oauth/token")).andRespond(withBadRequest());
-        assertThatThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken))
-                .isInstanceOf(HttpClientErrorException.class);
+        assertThatExceptionOfType(HttpClientErrorException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
 
     @Test
@@ -1278,7 +1272,8 @@ class ExternalOAuthAuthenticationManagerIT {
     private void addTheUserOnAuth() {
         doAnswer(invocation -> {
             Object e = invocation.getArguments()[0];
-            if (e instanceof NewUserAuthenticatedEvent event) {
+            if (e instanceof NewUserAuthenticatedEvent) {
+                NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) e;
                 UaaUser user = event.getUser();
                 userDatabase.addUser(user);
             }
@@ -1323,7 +1318,7 @@ class ExternalOAuthAuthenticationManagerIT {
     }
 
     private CompositeToken getCompositeAccessToken(List<String> removeClaims) {
-        removeClaims.forEach(c -> claims.remove(c));
+        removeClaims.stream().forEach(c -> claims.remove(c));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = getProvider();

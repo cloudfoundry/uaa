@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.cache;
 
 import com.github.benmanes.caffeine.cache.Ticker;
+import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -175,6 +176,22 @@ class StaleUrlCacheTests {
         cache.getUrlContent(URI, mockRestTemplate, HttpMethod.GET, httpEntity);
         verify(mockRestTemplate, times(1)).exchange(eq(new URI(URI)),
                 eq(HttpMethod.GET), any(HttpEntity.class), same(byte[].class));
+    }
+
+    @Test
+    void exception_invoked_on_rest_template() {
+        when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenThrow(new UncheckedExecutionException(new IllegalArgumentException("illegal")));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> cache.getUrlContent(URI, mockRestTemplate, HttpMethod.GET, httpEntity));
+    }
+
+    @Test
+    void test_equal() {
+        StaleUrlCache.UriRequest uriRequest = new StaleUrlCache.UriRequest(URI, mockRestTemplate, HttpMethod.GET, responseEntity);
+        assertThat(uriRequest.equals(uriRequest)).isTrue();
+        assertThat(uriRequest.equals(null)).isFalse();
+        assertThat(uriRequest.equals(URI)).isFalse();
+        assertThat(new StaleUrlCache.UriRequest(URI, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isTrue();
+        assertThat(new StaleUrlCache.UriRequest(null, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isFalse();
     }
 
     @Test
