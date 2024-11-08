@@ -196,6 +196,23 @@ class StaleUrlCacheTests {
 
     @Test
     void extended_method_invoked_on_rest_template_invalid_http_response() {
+    void exception_invoked_on_rest_template() {
+        when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenThrow(new UncheckedExecutionException(new IllegalArgumentException("illegal")));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> cache.getUrlContent(URL, mockRestTemplate, HttpMethod.GET, httpEntity));
+    }
+
+    @Test
+    void test_equal() {
+        StaleUrlCache.UriRequest uriRequest = new StaleUrlCache.UriRequest(URL, mockRestTemplate, HttpMethod.GET, responseEntity);
+        assertEquals(uriRequest, uriRequest);
+        assertThat(uriRequest.equals(null)).isFalse();
+        assertThat(uriRequest.equals(URL)).isFalse();
+        assertThat(new StaleUrlCache.UriRequest(URL, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isTrue();
+        assertThat(new StaleUrlCache.UriRequest(null, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isFalse();
+    }
+
+    @Test
+    void extended_method_invoked_on_rest_template_invalid_http_response() {
         when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
         when(responseEntity.getStatusCode()).thenReturn(HttpStatus.TEMPORARY_REDIRECT);
         assertThatThrownBy(() -> cache.getUrlContent(URI, mockRestTemplate, HttpMethod.GET, httpEntity))

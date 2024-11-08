@@ -119,7 +119,7 @@ public class StaleUrlCache implements UrlContentCache {
         }
     }
 
-    static class UrlCacheLoader implements CacheLoader<UriRequest, CacheEntry> {
+  class UrlCacheLoader extends CacheLoader<UriRequest, CacheEntry> {
 
         private final TimeService timeService;
 
