@@ -25,18 +25,18 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
+import static org.awaitility.Awaitility.await;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.reset;
-import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -45,23 +45,12 @@ import static org.mockito.Mockito.when;
 class StaleUrlCacheTests {
 
     private static final Duration CACHE_EXPIRATION = Duration.ofMinutes(10);
-    private static final Duration CACHE_EXPIRED = CACHE_EXPIRATION.plusMinutes(1);
-    private static final String URL = "http://localhost:8080/uaa/.well-known/openid-configuration";
+    private static final Duration CACHE_EXPIRED = CACHE_EXPIRATION.multipliedBy(2).plusMinutes(1);
+    private static final String URI = "http://localhost:8080/uaa/.well-known/openid-configuration";
     private static final byte[] content1;
     private static final byte[] content2;
     private static final byte[] content3;
 
-    private StaleUrlCache cache;
-    @Mock
-    private TimeService mockTimeService;
-    @Mock
-    private RestTemplate mockRestTemplate;
-    @Mock
-    HttpEntity<?> httpEntity;
-    @Mock
-    ResponseEntity<byte[]> responseEntity;
-
-    private TestTicker ticker;
 
     static {
         content1 = new byte[8];
@@ -72,6 +61,16 @@ class StaleUrlCacheTests {
         Arrays.fill(content3, (byte) 3);
     }
 
+    @Mock
+    HttpEntity<?> httpEntity;
+    @Mock
+    ResponseEntity<byte[]> responseEntity;
+    private StaleUrlCache cache;
+    @Mock
+    private TimeService mockTimeService;
+    @Mock
+    private RestTemplate mockRestTemplate;
+    private TestTicker ticker;
     @BeforeEach
     void setup() {
         ticker = new TestTicker(System.nanoTime());
@@ -81,8 +80,8 @@ class StaleUrlCacheTests {
 
     @Test
     void correct_method_invoked_on_rest_template() throws URISyntaxException {
-        cache.getUrlContent(URL, mockRestTemplate);
-        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(URL)), same(byte[].class));
+        cache.getUrlContent(URI, mockRestTemplate);
+        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(URI)), same(byte[].class));
     }
 
     @Test
@@ -93,37 +92,35 @@ class StaleUrlCacheTests {
     @Test
     void rest_client_exception_is_propagated() {
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenThrow(new RestClientException("mock"));
-        assertThatExceptionOfType(RestClientException.class).isThrownBy(() -> cache.getUrlContent(URL, mockRestTemplate));
+        assertThatExceptionOfType(RestClientException.class).isThrownBy(() -> cache.getUrlContent(URI, mockRestTemplate));
     }
 
     @Test
     void calling_twice_uses_cache() throws Exception {
-        byte[] c1 = cache.getUrlContent(URL, mockRestTemplate);
-        byte[] c2 = cache.getUrlContent(URL, mockRestTemplate);
-        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(URL)), same(byte[].class));
+        byte[] c1 = cache.getUrlContent(URI, mockRestTemplate);
+        byte[] c2 = cache.getUrlContent(URI, mockRestTemplate);
+        verify(mockRestTemplate, times(1)).getForObject(eq(new URI(URI)), same(byte[].class));
         assertThat(c2).isSameAs(c1);
         assertThat(cache.size()).isOne();
     }
 
     @Test
-    void entry_refreshes_after_time() throws Exception {
+    void entry_refreshes_after_time() {
         when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content1, content2, content3);
 
         // populate the cache
-        byte[] c1 = cache.getUrlContent(URL, mockRestTemplate);
+        byte[] c1 = cache.getUrlContent(URI, mockRestTemplate);
         ticker.advance(CACHE_EXPIRED);
 
         // next call after timeout, should force async refresh
-        byte[] c2 = cache.getUrlContent(URL, mockRestTemplate);
+        byte[] c2 = cache.getUrlContent(URI, mockRestTemplate);
         assertThat(c2).isSameAs(c1);
 
-        // allow the async refresh to complete
-        verify(mockRestTemplate, timeout(1000).times(2)).getForObject(eq(new URI(URL)), same(byte[].class));
-
-        // the next call should return the new content
-        byte[] c3 = cache.getUrlContent(URL, mockRestTemplate);
-        assertThat(c3).isNotSameAs(c1);
+        // Allow time for the async getUrlContent to be called
+        await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> verify(mockRestTemplate, times(2)).getForObject(eq(new URI(URI)), same(byte[].class)));
+        // Allow time for the async update to caffeine's cache.
+        await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> assertThat(cache.getUrlContent(URI, mockRestTemplate)).isNotSameAs(c1));
     }
 
     @Test
@@ -154,23 +151,22 @@ class StaleUrlCacheTests {
     }
 
     @Test
-    void stale_entry_returned_on_failure() throws Exception {
+    void stale_entry_returned_on_failure() {
         when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content3).thenThrow(new RestClientException("mock"));
 
         // populate the cache
-        byte[] c1 = cache.getUrlContent(URL, mockRestTemplate);
+        byte[] c1 = cache.getUrlContent(URI, mockRestTemplate);
         ticker.advance(CACHE_EXPIRED);
 
         // next call after timeout, should force async refresh
-        byte[] c2 = cache.getUrlContent(URL, mockRestTemplate);
+        byte[] c2 = cache.getUrlContent(URI, mockRestTemplate);
         assertThat(c2).isSameAs(c1);
 
-        // allow the async refresh to complete
-        verify(mockRestTemplate, timeout(1000).times(2)).getForObject(eq(new URI(URL)), same(byte[].class));
-
-        // the next call would normally return the new content, in this case it should return the stale content
-        byte[] c3 = cache.getUrlContent(URL, mockRestTemplate);
-        assertThat(c3).isSameAs(c1);
+        // Allow time for the async getUrlContent to be called
+        await().atMost(1, TimeUnit.SECONDS).untilAsserted(() -> verify(mockRestTemplate, times(2)).getForObject(eq(new URI(URI)), same(byte[].class)));
+        // Allow time for the async update to caffeine's cache.
+        // It should continue returning the stale content due to the exception
+        await().during(200, TimeUnit.MILLISECONDS).untilAsserted(() -> assertThat(cache.getUrlContent(URI, mockRestTemplate)).isSameAs(c1));
     }
 
     @Test
@@ -178,24 +174,24 @@ class StaleUrlCacheTests {
         when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
         when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
         when(responseEntity.getBody()).thenReturn(new byte[1]);
-        cache.getUrlContent(URL, mockRestTemplate, HttpMethod.GET, httpEntity);
-        verify(mockRestTemplate, times(1)).exchange(eq(new URI(URL)),
+        cache.getUrlContent(URI, mockRestTemplate, HttpMethod.GET, httpEntity);
+        verify(mockRestTemplate, times(1)).exchange(eq(new URI(URI)),
                 eq(HttpMethod.GET), any(HttpEntity.class), same(byte[].class));
     }
 
     @Test
     void exception_invoked_on_rest_template() {
         when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenThrow(new UncheckedExecutionException(new IllegalArgumentException("illegal")));
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> cache.getUrlContent(URL, mockRestTemplate, HttpMethod.GET, httpEntity));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> cache.getUrlContent(URI, mockRestTemplate, HttpMethod.GET, httpEntity));
     }
 
     @Test
     void test_equal() {
-        StaleUrlCache.UriRequest uriRequest = new StaleUrlCache.UriRequest(URL, mockRestTemplate, HttpMethod.GET, responseEntity);
+        StaleUrlCache.UriRequest uriRequest = new StaleUrlCache.UriRequest(URI, mockRestTemplate, HttpMethod.GET, responseEntity);
         assertEquals(uriRequest, uriRequest);
         assertThat(uriRequest.equals(null)).isFalse();
-        assertThat(uriRequest.equals(URL)).isFalse();
-        assertThat(new StaleUrlCache.UriRequest(URL, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isTrue();
+        assertThat(uriRequest.equals(URI)).isFalse();
+        assertThat(new StaleUrlCache.UriRequest(URI, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isTrue();
         assertThat(new StaleUrlCache.UriRequest(null, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isFalse();
     }
 
@@ -203,7 +199,8 @@ class StaleUrlCacheTests {
     void extended_method_invoked_on_rest_template_invalid_http_response() {
         when(mockRestTemplate.exchange(any(URI.class), any(HttpMethod.class), any(HttpEntity.class), any(Class.class))).thenReturn(responseEntity);
         when(responseEntity.getStatusCode()).thenReturn(HttpStatus.TEMPORARY_REDIRECT);
-        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> cache.getUrlContent(URL, mockRestTemplate, HttpMethod.GET, httpEntity));
+        assertThatThrownBy(() -> cache.getUrlContent(URI, mockRestTemplate, HttpMethod.GET, httpEntity))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -215,6 +212,22 @@ class StaleUrlCacheTests {
         assertThat(urlCache.size()).isZero();
     }
 
+    static class TestTicker implements Ticker {
+        long nanos;
+
+        public TestTicker(long initialNanos) {
+            nanos = initialNanos;
+        }
+
+        @Override
+        public long read() {
+            return nanos;
+        }
+
+        public void advance(Duration duration) {
+            nanos += duration.toNanos();
+        }
+    }
     @Nested
     @DisplayName("When a http server never returns a http response")
     class DeadHttpServer {
@@ -238,26 +251,9 @@ class StaleUrlCacheTests {
             RestTemplate restTemplate = restTemplateConfig.trustingRestTemplate();
 
             String url = slowHttpServer.getUrl();
-            assertTimeout(Duration.ofSeconds(60), () -> assertThatThrownBy(() -> cache.getUrlContent(url, restTemplate))
-                    .isInstanceOf(ResourceAccessException.class)
-            );
-        }
-    }
-
-    static class TestTicker implements Ticker {
-        long nanos;
-
-        public TestTicker(long initialNanos) {
-            nanos = initialNanos;
-        }
-
-        @Override
-        public long read() {
-            return nanos;
-        }
-
-        public void advance(Duration duration) {
-            nanos += duration.toNanos();
+            await().atMost(60, TimeUnit.SECONDS).untilAsserted(() ->
+                    assertThatThrownBy(() -> cache.getUrlContent(url, restTemplate))
+                            .isInstanceOf(ResourceAccessException.class));
         }
     }
 }
