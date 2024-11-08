@@ -87,7 +87,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Collections.emptyList;
@@ -579,7 +578,7 @@ class ExternalOAuthAuthenticationManagerIT {
         mockToken();
         addTheUserOnAuth();
         externalOAuthAuthenticationManager.authenticate(xCodeToken);
-        verify(externalOAuthProviderConfigurator, atLeast(1)).overlay(eq(config));
+        verify(externalOAuthProviderConfigurator, atLeast(1)).overlay(config);
         mockUaaServer.verify();
 
     }
@@ -798,7 +797,7 @@ class ExternalOAuthAuthenticationManagerIT {
             externalOAuthAuthenticationManager.authenticate(xCodeToken);
             fail("not expected");
         } catch (Exception e) {
-            assertThat(e instanceof IllegalArgumentException).isTrue();
+            assertThat(e).isInstanceOf(IllegalArgumentException.class);
         }
     }
 
@@ -874,7 +873,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher, times(2)).publishEvent(userArgumentCaptor.capture());
-        assertThat(userArgumentCaptor.getAllValues().size()).isEqualTo(2);
+        assertThat(userArgumentCaptor.getAllValues()).hasSize(2);
         ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent) userArgumentCaptor.getAllValues().get(0);
 
         UaaUser uaaUser = event.getUser();
