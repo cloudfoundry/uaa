@@ -31,7 +31,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.awaitility.Awaitility.await;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -50,7 +49,6 @@ class StaleUrlCacheTests {
     private static final byte[] content1;
     private static final byte[] content2;
     private static final byte[] content3;
-
 
     static {
         content1 = new byte[8];
@@ -71,6 +69,7 @@ class StaleUrlCacheTests {
     @Mock
     private RestTemplate mockRestTemplate;
     private TestTicker ticker;
+
     @BeforeEach
     void setup() {
         ticker = new TestTicker(System.nanoTime());
@@ -188,7 +187,7 @@ class StaleUrlCacheTests {
     @Test
     void test_equal() {
         StaleUrlCache.UriRequest uriRequest = new StaleUrlCache.UriRequest(URI, mockRestTemplate, HttpMethod.GET, responseEntity);
-        assertEquals(uriRequest, uriRequest);
+        assertThat(uriRequest.equals(uriRequest)).isTrue();
         assertThat(uriRequest.equals(null)).isFalse();
         assertThat(uriRequest.equals(URI)).isFalse();
         assertThat(new StaleUrlCache.UriRequest(URI, mockRestTemplate, HttpMethod.GET, responseEntity).equals(uriRequest)).isTrue();
@@ -228,6 +227,7 @@ class StaleUrlCacheTests {
             nanos += duration.toNanos();
         }
     }
+
     @Nested
     @DisplayName("When a http server never returns a http response")
     class DeadHttpServer {
