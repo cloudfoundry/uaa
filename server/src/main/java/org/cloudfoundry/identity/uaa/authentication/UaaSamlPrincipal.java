@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticatedPrincipal;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * UaaSamlPrincipal extends {@link UaaPrincipal} and adds the {@link Saml2AuthenticatedPrincipal} interface.
@@ -30,10 +31,14 @@ import java.io.Serializable;
  * The SAML Logout Handlers check if the Principal is an instance of Saml2AuthenticatedPrincipal to handle SAML Logout.
  */
 @ToString(callSuper = true)
-@JsonIgnoreProperties({"relyingPartyRegistrationId", "sessionIndexes", "attributes"})
+@JsonIgnoreProperties({"relyingPartyRegistrationId", "attributes"})
 public class UaaSamlPrincipal extends UaaPrincipal implements Saml2AuthenticatedPrincipal, Serializable {
-    public UaaSamlPrincipal(UaaUser user) {
+
+    private final List<String>  sessionIndexes;
+
+    public UaaSamlPrincipal(UaaUser user, List<String> sessionIndexes) {
         super(user);
+        this.sessionIndexes = sessionIndexes;
     }
 
     @JsonCreator
@@ -42,13 +47,18 @@ public class UaaSamlPrincipal extends UaaPrincipal implements Saml2Authenticated
             @JsonProperty("name") String username,
             @JsonProperty("email") String email,
             @JsonProperty("origin") String origin,
+            @JsonProperty("sessionIndexes") List<String> sessionIndexes,
             @JsonProperty("externalId") String externalId,
             @JsonProperty("zoneId") String zoneId) {
         super(id, username, email, origin, externalId, zoneId);
+        this.sessionIndexes = sessionIndexes;
     }
 
     @Override
     public String getRelyingPartyRegistrationId() {
         return getOrigin();
     }
+
+    @Override
+    public List<String> getSessionIndexes() { return sessionIndexes; }
 }
