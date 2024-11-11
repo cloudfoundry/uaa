@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -13,6 +15,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ReAuthenticationRequiredFilter extends OncePerRequestFilter {
+
+    @Autowired
+    private String samlEntityID;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         boolean reAuthenticationRequired = false;
@@ -32,6 +38,9 @@ public class ReAuthenticationRequiredFilter extends OncePerRequestFilter {
             request.getSession().invalidate();
             sendRedirect(request.getRequestURL().toString(), requestParams, request, response);
         } else {
+            if (request.getServletPath().startsWith("/saml/SingleLogout/alias/" + samlEntityID)) {
+                CsrfFilter.skipRequest(request);
+            }
             filterChain.doFilter(request, response);
         }
     }
