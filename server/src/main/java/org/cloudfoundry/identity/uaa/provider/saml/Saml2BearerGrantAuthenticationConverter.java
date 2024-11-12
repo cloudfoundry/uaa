@@ -222,7 +222,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
 
         UaaUser user = userManager.createIfMissing(initialPrincipal, addNew, List.of(), userAttributes);
         UaaAuthentication authentication = new UaaAuthentication(
-                new UaaSamlPrincipal(user),
+                new UaaSamlPrincipal(user, null),
                 authenticationToken.getCredentials(),
                 user.getAuthorities(),
                 Set.of(),

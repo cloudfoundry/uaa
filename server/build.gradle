@@ -76,6 +76,9 @@ dependencies {
 
     implementation(libraries.passay)
 
+    implementation(libraries.velocity)
+    implementation(libraries.xerces)
+
     implementation(libraries.slf4jImpl)
     implementation(libraries.log4jCore)
 

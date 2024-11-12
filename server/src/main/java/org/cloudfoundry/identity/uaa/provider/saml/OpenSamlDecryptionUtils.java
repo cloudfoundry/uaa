@@ -65,7 +65,7 @@ final class OpenSamlDecryptionUtils {
 				response.getAssertions().add(assertion);
 			}
 			catch (Exception ex) {
-				throw new Saml2Exception(ex);
+				throw new Saml2Exception(ex.getMessage(), ex);
 			}
 		}
 	}
@@ -79,7 +79,7 @@ final class OpenSamlDecryptionUtils {
 					statement.getAttributes().add(attribute);
 				}
 				catch (Exception ex) {
-					throw new Saml2Exception(ex);
+					throw new Saml2Exception(ex.getMessage(), ex);
 				}
 			}
 		}
@@ -93,7 +93,7 @@ final class OpenSamlDecryptionUtils {
 			assertion.getSubject().setNameID((NameID) decrypter.decrypt(assertion.getSubject().getEncryptedID()));
 		}
 		catch (Exception ex) {
-			throw new Saml2Exception(ex);
+			throw new Saml2Exception(ex.getMessage(), ex);
 		}
 	}
 

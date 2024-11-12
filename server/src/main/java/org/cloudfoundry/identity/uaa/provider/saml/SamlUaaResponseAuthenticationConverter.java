@@ -36,6 +36,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
@@ -114,8 +115,9 @@ public class SamlUaaResponseAuthenticationConverter
         UaaUser user = userManager.createIfMissing(initialPrincipal, addNew, getMappedAuthorities(
                 idp, samlAuthorities), userAttributes);
 
+        List<String> sessionIndexes = assertions.stream().flatMap(assertion -> assertion.getAuthnStatements().stream().filter(Objects::nonNull).map(s -> s.getSessionIndex()).filter(Objects::nonNull)).toList();
         UaaAuthentication authentication = new UaaAuthentication(
-                new UaaSamlPrincipal(user),
+                new UaaSamlPrincipal(user, sessionIndexes),
                 authenticationToken.getCredentials(),
                 user.getAuthorities(),
                 authoritiesConverter.filterSamlAuthorities(samlConfig, samlAuthorities),
