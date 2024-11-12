@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.ToString;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -34,6 +35,7 @@ import java.util.List;
 @JsonIgnoreProperties({"relyingPartyRegistrationId", "attributes"})
 public class UaaSamlPrincipal extends UaaPrincipal implements Saml2AuthenticatedPrincipal, Serializable {
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private final List<String>  sessionIndexes;
 
     public UaaSamlPrincipal(UaaUser user, List<String> sessionIndexes) {
