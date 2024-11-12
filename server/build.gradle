@@ -23,6 +23,7 @@ dependencies {
     implementation(libraries.springSecurityWeb)
     implementation(libraries.springSecurityConfig)
     implementation(libraries.springBootStarterMail)
+    implementation(libraries.openSamlApi)
     implementation(libraries.springSecuritySamlServiceProvider)
     implementation(libraries.jodaTime)
     implementation(libraries.xmlSecurity)
@@ -75,9 +76,6 @@ dependencies {
     }
 
     implementation(libraries.passay)
-
-    implementation(libraries.velocity)
-    implementation(libraries.xerces)
 
     implementation(libraries.slf4jImpl)
     implementation(libraries.log4jCore)
