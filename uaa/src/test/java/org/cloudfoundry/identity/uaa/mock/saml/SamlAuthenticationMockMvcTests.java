@@ -26,8 +26,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.opensaml.saml.saml2.core.Response;
-import org.owasp.esapi.ESAPI;
-import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.TestPropertySource;
@@ -41,7 +39,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.function.Consumer;
 
 import static org.apache.logging.log4j.Level.DEBUG;
@@ -118,20 +115,6 @@ class SamlAuthenticationMockMvcTests {
 
         spZoneEntityId = spZone.getSubdomain() + ".cloudfoundry-saml-login";
         createUser(jdbcScimUserProvisioning, idpZone);
-    }
-
-    @BeforeEach
-    void setupEsapiProps() {
-        Properties esapiProps = new Properties();
-        esapiProps.put("ESAPI.Logger", "org.owasp.esapi.logging.slf4j.Slf4JLogFactory");
-        esapiProps.put("ESAPI.Encoder", "org.owasp.esapi.reference.DefaultEncoder");
-        esapiProps.put("Logger.LogEncodingRequired", Boolean.FALSE.toString());
-        esapiProps.put("Logger.UserInfo", Boolean.TRUE.toString());
-        esapiProps.put("Logger.ClientInfo", Boolean.TRUE.toString());
-        esapiProps.put("Logger.ApplicationName", "uaa");
-        esapiProps.put("Logger.LogApplicationName", Boolean.FALSE.toString());
-        esapiProps.put("Logger.LogServerIP", Boolean.FALSE.toString());
-        ESAPI.override(new DefaultSecurityConfiguration(esapiProps));
     }
 
     @Test
