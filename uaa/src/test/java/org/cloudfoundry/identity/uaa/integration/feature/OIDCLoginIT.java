@@ -44,7 +44,6 @@ import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Rule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.openqa.selenium.By;
@@ -429,7 +428,6 @@ public class OIDCLoginIT {
     }
 
     @Test
-    @Disabled("SAML test fails: acr value is not set in the id_token")
     void successfulLoginWithOIDC_and_SAML_Provider_PlusRefreshRotation() throws Exception {
         SamlIdentityProviderDefinition saml = IntegrationTestUtils.createSimplePHPSamlIDP("simplesamlphp", OriginKeys.UAA);
         saml.setLinkText("SAML Login");

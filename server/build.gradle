@@ -26,6 +26,7 @@ dependencies {
     implementation(libraries.owaspEsapi) {
         transitive = false
     }
+    implementation(libraries.openSamlApi)
     implementation(libraries.springSecuritySamlServiceProvider)
     implementation(libraries.jodaTime)
     implementation(libraries.xmlSecurity)
