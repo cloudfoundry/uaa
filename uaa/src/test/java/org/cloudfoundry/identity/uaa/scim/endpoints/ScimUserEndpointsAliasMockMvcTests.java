@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 
-import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
 import org.cloudfoundry.identity.uaa.alias.AliasMockMvcTestBase;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -16,6 +15,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserAliasHandler;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -704,7 +704,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                             () -> createIdpAndUserWithAlias(zone1, zone2)
                     );
 
-                    createdScimUser.setAliasZid(StringUtils.EMPTY);
+                    createdScimUser.setAliasZid(UaaStringUtils.EMPTY_STRING);
                     shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
 
@@ -1056,8 +1056,8 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                             () -> createIdpAndUserWithAlias(zone1, zone2)
                     );
 
-                    createdScimUser.setAliasId(StringUtils.EMPTY);
-                    createdScimUser.setAliasZid(StringUtils.EMPTY);
+                    createdScimUser.setAliasId(UaaStringUtils.EMPTY_STRING);
+                    createdScimUser.setAliasZid(UaaStringUtils.EMPTY_STRING);
 
                     shouldRejectUpdate(method, zone1, createdScimUser, HttpStatus.BAD_REQUEST);
                 }
@@ -1084,8 +1084,8 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                             () -> createIdpAndUserWithAlias(zone1, zone2)
                     );
 
-                    createdScimUser.setAliasId(StringUtils.EMPTY);
-                    createdScimUser.setAliasZid(StringUtils.EMPTY);
+                    createdScimUser.setAliasId(UaaStringUtils.EMPTY_STRING);
+                    createdScimUser.setAliasZid(UaaStringUtils.EMPTY_STRING);
                     final String newGivenName = "some-new-given-name";
                     createdScimUser.setName(new ScimUser.Name(newGivenName, createdScimUser.getFamilyName()));
 
@@ -1118,7 +1118,7 @@ public class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
                     createdScimUser.setAliasId(null);
                     final ScimUser scimUserWithIncompleteRef = updateUserViaDb(createdScimUser, zone1.getId());
 
-                    scimUserWithIncompleteRef.setAliasZid(StringUtils.EMPTY);
+                    scimUserWithIncompleteRef.setAliasZid(UaaStringUtils.EMPTY_STRING);
                     shouldRejectUpdate(method, zone1, scimUserWithIncompleteRef, HttpStatus.BAD_REQUEST);
                 }
 

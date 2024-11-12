@@ -23,9 +23,6 @@ dependencies {
     implementation(libraries.springSecurityWeb)
     implementation(libraries.springSecurityConfig)
     implementation(libraries.springBootStarterMail)
-    implementation(libraries.owaspEsapi) {
-        transitive = false
-    }
     implementation(libraries.springSecuritySamlServiceProvider)
     implementation(libraries.jodaTime)
     implementation(libraries.xmlSecurity)
