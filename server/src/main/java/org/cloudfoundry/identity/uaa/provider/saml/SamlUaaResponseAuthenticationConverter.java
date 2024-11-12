@@ -80,7 +80,6 @@ public class SamlUaaResponseAuthenticationConverter
         Response response = responseToken.getResponse();
         List<Assertion> assertions = response.getAssertions();
         String subjectName = assertions.get(0).getSubject().getNameID().getValue();
-        List<String> sessionIndexes;
 
         IdentityZone zone = identityZoneManager.getCurrentIdentityZone();
         log.debug("Initiating SAML authentication in zone '{}' domain '{}'",
@@ -116,7 +115,7 @@ public class SamlUaaResponseAuthenticationConverter
         UaaUser user = userManager.createIfMissing(initialPrincipal, addNew, getMappedAuthorities(
                 idp, samlAuthorities), userAttributes);
 
-        sessionIndexes = assertions.stream().flatMap(assertion -> assertion.getAuthnStatements().stream().filter(Objects::nonNull).map(s -> s.getSessionIndex()).filter(Objects::nonNull)).toList();
+        List<String> sessionIndexes = assertions.stream().flatMap(assertion -> assertion.getAuthnStatements().stream().filter(Objects::nonNull).map(s -> s.getSessionIndex()).filter(Objects::nonNull)).toList();
         UaaAuthentication authentication = new UaaAuthentication(
                 new UaaSamlPrincipal(user, sessionIndexes),
                 authenticationToken.getCredentials(),
