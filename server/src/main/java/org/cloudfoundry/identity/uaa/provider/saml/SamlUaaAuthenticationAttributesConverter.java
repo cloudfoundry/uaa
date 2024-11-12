@@ -1,17 +1,22 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.opensaml.core.xml.schema.XSURI;
 import org.opensaml.saml.saml2.core.Assertion;
+import org.opensaml.saml.saml2.core.AuthnContext;
+import org.opensaml.saml.saml2.core.AuthnStatement;
 import org.opensaml.saml.saml2.core.Response;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.ObjectUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlUaaResponseAuthenticationConverter.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 
 /**
  * Part of the AuthenticationConverter used during SAML login flow.
@@ -39,6 +44,14 @@ public class SamlUaaAuthenticationAttributesConverter {
                         }
                     });
                 });
+
+        List<String> authnContextList = assertions.stream().flatMap(assertion -> assertion.getAuthnStatements().stream())
+                .map(AuthnStatement::getAuthnContext).filter(Objects::nonNull)
+                .map(AuthnContext::getAuthnContextClassRef).filter(Objects::nonNull)
+                .map(XSURI::getURI).filter(Objects::nonNull).toList();
+        if (!ObjectUtils.isEmpty(authnContextList)) {
+            userAttributes.addAll(AUTHENTICATION_CONTEXT_CLASS_REFERENCE, authnContextList);
+        }
 
         if (definition != null && definition.getAttributeMappings() != null) {
             definition.getAttributeMappings().forEach((key, attributeKey) -> {
