@@ -8,11 +8,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.saml.saml2.core.Response;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -49,8 +47,8 @@ public class SamlUaaAuthenticationAuthoritiesConverter {
         return result;
     }
 
-    protected Collection<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities, String identityZoneId) {
-        Collection<GrantedAuthority> result = new LinkedList<>();
+    protected Collection<SamlUserAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities, String identityZoneId) {
+        Collection<SamlUserAuthority> result = new LinkedList<>();
         log.debug("Mapping SAML authorities:" + authorities);
         for (GrantedAuthority authority : authorities) {
             String externalGroup = authority.getAuthority();
@@ -58,13 +56,13 @@ public class SamlUaaAuthenticationAuthoritiesConverter {
             for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, identityZoneId)) {
                 String internalName = internalGroup.getDisplayName();
                 log.debug("Mapped external: '{}' to internal: '{}'", externalGroup, internalName);
-                result.add(new SimpleGrantedAuthority(internalName));
+                result.add(new SamlUserAuthority(internalName));
             }
         }
         return result;
     }
 
-    protected List<? extends GrantedAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, Response response) {
+    protected List<SamlUserAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, Response response) {
         if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) != null) {
             List<String> groupAttributeNames = getGroupAttributeNames(definition);
 
@@ -92,8 +90,8 @@ public class SamlUaaAuthenticationAuthoritiesConverter {
 
         if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof String value) {
             attributeNames.add(value);
-        } else if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof Collection value) {
-            attributeNames.addAll(value);
+        } else if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof Collection<?> value) {
+            attributeNames.addAll((Collection<String>) value);
         }
         return attributeNames;
     }

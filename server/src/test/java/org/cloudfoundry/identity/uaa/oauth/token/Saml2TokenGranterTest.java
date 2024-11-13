@@ -164,6 +164,7 @@ class Saml2TokenGranterTest {
         DefaultOAuth2RefreshToken refreshToken = new DefaultOAuth2RefreshToken("refresh_token");
 
         Map<String, Object> info = new HashMap<>(token.getAdditionalInformation());
+        assertThat(info).isNotNull();
         info.put(JTI, token.getValue());
         token.setAdditionalInformation(info);
         token.setRefreshToken(refreshToken);
@@ -214,7 +215,6 @@ class Saml2TokenGranterTest {
     }
 
     public static class PublicTokenRequest extends TokenRequest {
-        public PublicTokenRequest() {
-        }
+        // empty
     }
 }

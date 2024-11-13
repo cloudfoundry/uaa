@@ -113,7 +113,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
 
     private final Converter<OpenSaml4AuthenticationProvider.AssertionToken, Saml2ResponseValidatorResult> assertionValidator = createDefaultAssertionValidator();
 
-    private final Converter<OpenSaml4AuthenticationProvider.AssertionToken, ? extends AbstractAuthenticationToken> assertionTokenAuthenticationConverter = createDefaultAssertionAuthenticationConverter();
+    private final Converter<OpenSaml4AuthenticationProvider.AssertionToken, AbstractAuthenticationToken> assertionTokenAuthenticationConverter = createDefaultAssertionAuthenticationConverter();
 
     private final RelyingPartyRegistrationResolver relyingPartyRegistrationResolver;
     private final IdentityZoneManager identityZoneManager;
@@ -156,7 +156,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
      *
      * @return the default response authentication converter strategy
      */
-    static Converter<OpenSaml4AuthenticationProvider.AssertionToken, ? extends AbstractAuthenticationToken> createDefaultAssertionAuthenticationConverter() {
+    static Converter<OpenSaml4AuthenticationProvider.AssertionToken, AbstractAuthenticationToken> createDefaultAssertionAuthenticationConverter() {
         return assertionToken -> {
             Assertion assertion = assertionToken.getAssertion();
             Saml2AuthenticationToken token = assertionToken.getToken();
