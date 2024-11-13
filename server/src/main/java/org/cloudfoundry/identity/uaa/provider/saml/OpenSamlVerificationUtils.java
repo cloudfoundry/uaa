@@ -22,7 +22,6 @@ import org.opensaml.saml.common.xml.SAMLConstants;
 import org.opensaml.saml.criterion.ProtocolCriterion;
 import org.opensaml.saml.metadata.criteria.role.impl.EvaluableProtocolRoleDescriptorCriterion;
 import org.opensaml.saml.saml2.core.Issuer;
-import org.opensaml.saml.saml2.core.RequestAbstractType;
 import org.opensaml.saml.saml2.core.StatusResponseType;
 import org.opensaml.saml.security.impl.SAMLSignatureProfileValidator;
 import org.opensaml.security.credential.Credential;
@@ -39,14 +38,10 @@ import org.opensaml.xmlsec.signature.support.SignatureTrustEngine;
 import org.opensaml.xmlsec.signature.support.impl.ExplicitKeySignatureTrustEngine;
 import org.springframework.security.saml2.core.Saml2Error;
 import org.springframework.security.saml2.core.Saml2ErrorCodes;
-import org.springframework.security.saml2.core.Saml2ParameterNames;
 import org.springframework.security.saml2.core.Saml2ResponseValidatorResult;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
-import org.springframework.web.util.UriUtils;
 
-import javax.servlet.http.HttpServletRequest;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -65,10 +60,6 @@ import java.util.Set;
 final class OpenSamlVerificationUtils {
 
     static VerifierPartial verifySignature(StatusResponseType object, RelyingPartyRegistration registration) {
-        return new VerifierPartial(object, registration);
-    }
-
-    static VerifierPartial verifySignature(RequestAbstractType object, RelyingPartyRegistration registration) {
         return new VerifierPartial(object, registration);
     }
 
@@ -107,37 +98,6 @@ final class OpenSamlVerificationUtils {
             this.trustEngine = trustEngine(registration);
         }
 
-        VerifierPartial(RequestAbstractType object, RelyingPartyRegistration registration) {
-            this.id = object.getID();
-            this.criteria = verificationCriteria(object.getIssuer());
-            this.trustEngine = trustEngine(registration);
-        }
-
-        Saml2ResponseValidatorResult redirect(HttpServletRequest request, String objectParameterName) {
-            RedirectSignature signature = new RedirectSignature(request, objectParameterName);
-            if (signature.getAlgorithm() == null) {
-                return Saml2ResponseValidatorResult.failure(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
-                        "Missing signature algorithm for object [" + this.id + "]"));
-            }
-            if (!signature.hasSignature()) {
-                return Saml2ResponseValidatorResult.failure(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
-                        "Missing signature for object [" + this.id + "]"));
-            }
-            Collection<Saml2Error> errors = new ArrayList<>();
-            String algorithmUri = signature.getAlgorithm();
-            try {
-                if (!this.trustEngine.validate(signature.getSignature(), signature.getContent(), algorithmUri,
-                        this.criteria, null)) {
-                    errors.add(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
-                            INVALID_SIGNATURE_FOR_OBJECT.formatted(this.id)));
-                }
-            } catch (Exception ex) {
-                errors.add(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
-                        INVALID_SIGNATURE_FOR_OBJECT_COLON.formatted(this.id)));
-            }
-            return Saml2ResponseValidatorResult.failure(errors);
-        }
-
         Saml2ResponseValidatorResult post(Signature signature) {
             Collection<Saml2Error> errors = new ArrayList<>();
             SAMLSignatureProfileValidator profileValidator = new SAMLSignatureProfileValidator();
@@ -169,50 +129,5 @@ final class OpenSamlVerificationUtils {
             return criteriaSet;
         }
 
-        private static class RedirectSignature {
-
-            private final HttpServletRequest request;
-
-            private final String objectParameterName;
-
-            RedirectSignature(HttpServletRequest request, String objectParameterName) {
-                this.request = request;
-                this.objectParameterName = objectParameterName;
-            }
-
-            String getAlgorithm() {
-                return this.request.getParameter(Saml2ParameterNames.SIG_ALG);
-            }
-
-            byte[] getContent() {
-                if (this.request.getParameter(Saml2ParameterNames.RELAY_STATE) != null) {
-                    return String
-                            .format("%s=%s&%s=%s&%s=%s", this.objectParameterName, UriUtils
-                                            .encode(this.request.getParameter(this.objectParameterName), StandardCharsets.ISO_8859_1),
-                                    Saml2ParameterNames.RELAY_STATE,
-                                    UriUtils.encode(this.request.getParameter(Saml2ParameterNames.RELAY_STATE),
-                                            StandardCharsets.ISO_8859_1),
-                                    Saml2ParameterNames.SIG_ALG,
-                                    UriUtils.encode(getAlgorithm(), StandardCharsets.ISO_8859_1))
-                            .getBytes(StandardCharsets.UTF_8);
-                } else {
-                    return String
-                            .format("%s=%s&%s=%s", this.objectParameterName,
-                                    UriUtils.encode(this.request.getParameter(this.objectParameterName),
-                                            StandardCharsets.ISO_8859_1),
-                                    Saml2ParameterNames.SIG_ALG,
-                                    UriUtils.encode(getAlgorithm(), StandardCharsets.ISO_8859_1))
-                            .getBytes(StandardCharsets.UTF_8);
-                }
-            }
-
-            byte[] getSignature() {
-                return Saml2Utils.samlDecode(this.request.getParameter(Saml2ParameterNames.SIGNATURE));
-            }
-
-            boolean hasSignature() {
-                return this.request.getParameter(Saml2ParameterNames.SIGNATURE) != null;
-            }
-        }
     }
 }
