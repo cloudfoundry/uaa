@@ -36,7 +36,7 @@ public class ReAuthenticationRequiredFilterTests {
 
     @Before
     public void setup() {
-        filter = new ReAuthenticationRequiredFilter();
+        filter = new ReAuthenticationRequiredFilter("cloudfoundry-login");
         authentication = mock(UaaAuthentication.class);
         request = new MockHttpServletRequest();
         response = mock(HttpServletResponse.class);
@@ -98,6 +98,7 @@ public class ReAuthenticationRequiredFilterTests {
     @Test
     public void request_without_prompt_and_max_age() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        request.setServletPath("/saml/SingleLogout/alias/cloudfoundry-login");
         request.setParameter("client_id", "testclient");
         request.setParameter("scope", "openid");
         filter.doFilterInternal(request, response, chain);
