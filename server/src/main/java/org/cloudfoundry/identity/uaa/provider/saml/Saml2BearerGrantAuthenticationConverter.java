@@ -73,6 +73,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -187,7 +188,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         RelyingPartyRegistration relyingPartyRegistration = relyingPartyRegistrationResolver.resolve(request, null);
 
         String serializedAssertion = request.getParameter("assertion");
-        byte[] decodedAssertion = Saml2Utils.samlDecode(serializedAssertion);
+        byte[] decodedAssertion = Base64.getUrlDecoder().decode(serializedAssertion);
         String assertionXml = new String(decodedAssertion, StandardCharsets.UTF_8);
 
         Assertion assertion = parseAssertion(assertionXml);
