@@ -486,7 +486,7 @@ public class IntegrationTestUtils {
         @SuppressWarnings("rawtypes")
         Map results = response.getBody();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat((Integer) results.get("totalResults")).as("There should be more than zero groups").isGreaterThan(0);
+        assertThat((Integer) results.get("totalResults")).as("There should be more than zero groups").isPositive();
         return results;
     }
 
@@ -1529,7 +1529,7 @@ public class IntegrationTestUtils {
         if (callCheckToken) {
             tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
             assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-            assertThat(tokenResponse.getBody().get("iss")).isNotNull();
+            assertThat(tokenResponse.getBody()).containsKey("iss");
         }
         return body;
     }

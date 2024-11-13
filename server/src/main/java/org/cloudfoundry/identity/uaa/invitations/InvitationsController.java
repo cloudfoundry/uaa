@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
@@ -26,8 +27,6 @@ import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -65,17 +64,16 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.util.SessionUtils.SAVED_REQUEST_SESSION_ATTRIBUTE;
+import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
+@Slf4j
 @Controller
 @RequestMapping("/invitations")
 public class InvitationsController {
-
-    private static Logger logger = LoggerFactory.getLogger(InvitationsController.class);
 
     private final InvitationsService invitationsService;
     private final ExpiringCodeStore expiringCodeStore;
@@ -83,7 +81,6 @@ public class InvitationsController {
     private final IdentityProviderProvisioning identityProviderProvisioning;
     private final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
     private final UaaUserDatabase userDatabase;
-    private final String spEntityID;
     private final ScimUserProvisioning userProvisioning;
     private final ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
 
@@ -94,7 +91,6 @@ public class InvitationsController {
             final IdentityProviderProvisioning identityProviderProvisioning,
             final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager,
             final UaaUserDatabase userDatabase,
-            final @Qualifier("samlEntityID") String spEntityID,
             final ScimUserProvisioning userProvisioning,
             final @Qualifier("externalOAuthProviderConfigurator") ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator) {
         this.invitationsService = invitationsService;
@@ -103,7 +99,6 @@ public class InvitationsController {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.zoneAwareAuthenticationManager = zoneAwareAuthenticationManager;
         this.userDatabase = userDatabase;
-        this.spEntityID = spEntityID;
         this.userProvisioning = userProvisioning;
         this.externalOAuthProviderConfigurator = externalOAuthProviderConfigurator;
     }
@@ -137,7 +132,7 @@ public class InvitationsController {
             if (isUaaUserAndVerified || isExternalUserAndAcceptedInvite) {
                 AcceptedInvitation accepted = invitationsService.acceptInvitation(code, "");
                 String redirect = "redirect:" + accepted.getRedirectUri();
-                logger.debug(String.format("Redirecting accepted invitation for email:%s, id:%s to URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
+                log.debug(String.format("Redirecting accepted invitation for email:%s, id:%s to URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else if (SAML.equals(provider.getType())) {
                 setRequestAttributes(request, code, user);
@@ -145,7 +140,7 @@ public class InvitationsController {
                 SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
 
                 String redirect = "redirect:/" + SamlRedirectUtils.getIdpRedirectUrl(definition);
-                logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
+                log.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else if (OIDC10.equals(provider.getType()) || OAUTH20.equals(provider.getType())) {
                 setRequestAttributes(request, code, user);
@@ -153,7 +148,7 @@ public class InvitationsController {
                 AbstractExternalOAuthIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), AbstractExternalOAuthIdentityProviderDefinition.class);
 
                 String redirect = "redirect:" + externalOAuthProviderConfigurator.getIdpAuthenticationUrl(definition, provider.getOriginKey(), request);
-                logger.debug(String.format("Redirecting invitation for email:%s, id:%s OIDC IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
+                log.debug(String.format("Redirecting invitation for email:%s, id:%s OIDC IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else {
                 UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), origin, null, IdentityZoneHolder.get().getId());
@@ -163,12 +158,12 @@ public class InvitationsController {
                 model.addAttribute("provider", provider.getType());
                 model.addAttribute("code", code);
                 model.addAttribute("email", codeData.get("email"));
-                logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
+                log.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             }
             updateModelWithConsentAttributes(model);
             return "invitations/accept_invite";
         } catch (EmptyResultDataAccessException noProviderFound) {
-            logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
+            log.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }
     }
@@ -252,14 +247,14 @@ public class InvitationsController {
         final ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
 
         if (expiringCode == null || expiringCode.getData() == null) {
-            logger.debug("Failing invitation. Code not found.");
+            log.debug("Failing invitation. Code not found.");
             SecurityContextHolder.clearContext();
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
         });
         if (principal == null || data.get("user_id") == null || !data.get("user_id").equals(principal.getId())) {
-            logger.debug("Failing invitation. Code and user ID mismatch.");
+            log.debug("Failing invitation. Code and user ID mismatch.");
             SecurityContextHolder.clearContext();
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
@@ -267,15 +262,15 @@ public class InvitationsController {
         final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
         BrandingInformation zoneBranding = IdentityZoneHolder.get().getConfig().getBranding();
         if (zoneBranding != null && zoneBranding.getConsent() != null && !doesUserConsent) {
-            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message_code", "missing_consent");
+            return processErrorReload(newCode, model, response, "error_message_code", "missing_consent");
         }
         if (!validation.valid()) {
-            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message_code", validation.getMessageCode());
+            return processErrorReload(newCode, model, response, "error_message_code", validation.getMessageCode());
         }
         try {
             passwordValidator.validate(password);
         } catch (InvalidPasswordException e) {
-            return processErrorReload(newCode, model, principal.getEmail(), response, "error_message", e.getMessagesAsOneString());
+            return processErrorReload(newCode, model, response, "error_message", e.getMessagesAsOneString());
         }
         AcceptedInvitation invitation;
         try {
@@ -290,7 +285,7 @@ public class InvitationsController {
         return res;
     }
 
-    private String processErrorReload(String code, Model model, String email, HttpServletResponse response, String errorCode, String error) {
+    private String processErrorReload(String code, Model model, HttpServletResponse response, String errorCode, String error) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<>() {
         });
@@ -301,7 +296,7 @@ public class InvitationsController {
             model.addAttribute("code", newCode);
             return "redirect:accept";
         } catch (EmptyResultDataAccessException noProviderFound) {
-            logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
+            log.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }
     }
@@ -321,8 +316,8 @@ public class InvitationsController {
         String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000 * 60 * 10)), null, IdentityZoneHolder.get().getId()).getCode();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
-        AuthenticationManager authenticationManager = null;
-        IdentityProvider ldapProvider = null;
+        AuthenticationManager authenticationManager;
+        IdentityProvider ldapProvider;
         try {
             ldapProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
             zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapAuthenticationManager();
@@ -331,7 +326,7 @@ public class InvitationsController {
             //ldap provider was not available
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         } catch (Exception x) {
-            logger.error("Unable to retrieve LDAP config.", x);
+            log.error("Unable to retrieve LDAP config.", x);
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }
         Authentication authentication;
@@ -347,7 +342,6 @@ public class InvitationsController {
                 return handleUnprocessableEntity(model, response, "error_message", "invite.email_mismatch", "invitations/accept_invite");
             }
 
-
             if (authentication.isAuthenticated()) {
                 //change username from email to username
                 user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
@@ -361,12 +355,11 @@ public class InvitationsController {
         } catch (AuthenticationException x) {
             return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
         } catch (Exception x) {
-            logger.error("Unable to authenticate against LDAP", x);
+            log.error("Unable to authenticate against LDAP", x);
             model.addAttribute("ldap", true);
             model.addAttribute("email", email);
             return handleUnprocessableEntity(model, response, "error_message", "bad_credentials", "invitations/accept_invite");
         }
-
     }
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue, String view) {

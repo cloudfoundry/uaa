@@ -242,7 +242,7 @@ public class InvitationsIT {
     }
 
     @Test
-    void acceptInvitation_for_samlUser() throws Exception {
+    void acceptInvitation_for_samlUser() {
         webDriver.get(baseUrl + "/logout.do");
 
         UaaClientDetails appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");

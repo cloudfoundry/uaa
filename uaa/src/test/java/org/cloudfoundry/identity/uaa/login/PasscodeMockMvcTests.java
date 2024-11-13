@@ -315,7 +315,7 @@ class PasscodeMockMvcTests {
     }
 
     @Test
-    void testPasscodeReturnSpecialCharacters() throws Exception {
+    void testPasscodeReturnSpecialCharacters() {
         // NOTE: This test is flaky but passes on retry
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
         UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<>(), details);

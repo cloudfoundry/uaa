@@ -194,7 +194,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
         Assertion assertion = assertion();
         assertion.getSubject()
                 .getSubjectConfirmations()
-                .forEach((sc) -> sc.getSubjectConfirmationData().setAddress("10.10.10.10"));
+                .forEach(sc -> sc.getSubjectConfirmationData().setAddress("10.10.10.10"));
         response.getAssertions().add(signed(assertion));
         Saml2AuthenticationToken token = token(response, verifying(registration()));
         this.provider.authenticate(token);
@@ -466,7 +466,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
                 TestSaml2X509Credentials.assertingPartyEncryptingCredential());
         response.getEncryptedAssertions().add(encryptedAssertion);
         Saml2AuthenticationToken token = token(signed(response), registration()
-                .decryptionX509Credentials((c) -> c.add(TestSaml2X509Credentials.assertingPartyPrivateCredential())));
+                .decryptionX509Credentials(c -> c.add(TestSaml2X509Credentials.assertingPartyPrivateCredential())));
         assertThatExceptionOfType(Saml2AuthenticationException.class)
                 .isThrownBy(() -> this.provider.authenticate(token))
                 .satisfies(errorOf(Saml2ErrorCodes.DECRYPTION_ERROR, "Failed to decrypt EncryptedData"));
@@ -478,7 +478,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
         Assertion assertion = assertion();
         assertion.getSubject()
                 .getSubjectConfirmations()
-                .forEach((sc) -> sc.getSubjectConfirmationData().setAddress("10.10.10.10"));
+                .forEach(sc -> sc.getSubjectConfirmationData().setAddress("10.10.10.10"));
         response.getAssertions().add(signed(assertion));
         Saml2AuthenticationToken token = token(response, verifying(registration()));
         token.setDetails("some-details");
@@ -539,7 +539,6 @@ class OpenSaml4AuthenticationProviderUnitTests {
     @Test
     void authenticateWhenResponseAuthenticationConverterConfiguredThenUses() {
         Converter<ResponseToken, Saml2Authentication> authenticationConverter = mock(Converter.class);
-        OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
         provider.setResponseAuthenticationConverter(authenticationConverter);
         Response response = TestOpenSamlObjects.signedResponseWithOneAssertion();
         Saml2AuthenticationToken token = token(response, verifying(registration()));
@@ -558,7 +557,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
     @Test
     void authenticateWhenResponseStatusIsNotSuccessThenFails() {
         Response response = TestOpenSamlObjects
-                .signedResponseWithOneAssertion((r) -> r.setStatus(TestOpenSamlObjects.status(StatusCode.AUTHN_FAILED)));
+                .signedResponseWithOneAssertion(r -> r.setStatus(TestOpenSamlObjects.status(StatusCode.AUTHN_FAILED)));
         Saml2AuthenticationToken token = token(response, verifying(registration()));
         assertThatExceptionOfType(Saml2AuthenticationException.class)
                 .isThrownBy(() -> this.provider.authenticate(token))
@@ -568,7 +567,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
     @Test
     void authenticateWhenResponseStatusIsSuccessThenSucceeds() {
         Response response = TestOpenSamlObjects
-                .signedResponseWithOneAssertion((r) -> r.setStatus(TestOpenSamlObjects.successStatus()));
+                .signedResponseWithOneAssertion(r -> r.setStatus(TestOpenSamlObjects.successStatus()));
         Saml2AuthenticationToken token = token(response, verifying(registration()));
         Authentication authentication = this.provider.authenticate(token);
         assertThat(authentication.getName()).isEqualTo("test@saml.user");
@@ -581,10 +580,9 @@ class OpenSaml4AuthenticationProviderUnitTests {
 
     @Test
     void authenticateWhenCustomResponseValidatorThenUses() {
-        Converter<ResponseToken, Saml2ResponseValidatorResult> validator = mock(
-                Converter.class);
+        Converter<ResponseToken, Saml2ResponseValidatorResult> validator = mock(Converter.class);
         // @formatter:off
-        provider.setResponseValidator((responseToken) -> OpenSaml4AuthenticationProvider.createDefaultResponseValidator()
+        provider.setResponseValidator(responseToken -> OpenSaml4AuthenticationProvider.createDefaultResponseValidator()
                 .convert(responseToken)
                 .concat(validator.convert(responseToken))
         );
@@ -650,8 +648,7 @@ class OpenSaml4AuthenticationProviderUnitTests {
     }
 
     private AuthnRequest request() {
-        AuthnRequest request = TestOpenSamlObjects.authnRequest();
-        return request;
+        return TestOpenSamlObjects.authnRequest();
     }
 
     private String serializedRequest(AuthnRequest request, Saml2MessageBinding binding) {

@@ -84,7 +84,7 @@ class BootstrapTests {
         }
 
         @Override
-        public <Type extends EventListener> void addListener(@Nullable Type t) {
+        public <T extends EventListener> void addListener(@Nullable T t) {
             //no op
         }
     };

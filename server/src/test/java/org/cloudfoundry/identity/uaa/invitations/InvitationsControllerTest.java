@@ -108,9 +108,6 @@ class InvitationsControllerTest {
     PasswordValidator passwordValidator;
 
     @Autowired
-    ClientDetailsService clientDetailsService;
-
-    @Autowired
     IdentityProviderProvisioning providerProvisioning;
 
     @Autowired
@@ -118,9 +115,6 @@ class InvitationsControllerTest {
 
     @Autowired
     DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
-
-    @Autowired
-    CookieBasedCsrfTokenRepository loginCookieCsrfRepository;
 
     @Autowired
     ScimUserProvisioning scimUserProvisioning;
@@ -835,7 +829,6 @@ class InvitationsControllerTest {
                     providerProvisioning,
                     zoneAwareAuthenticationManager,
                     userDatabase,
-                    "sp-entity-id",
                     provisioning,
                     externalOAuthProviderConfigurator);
         }
