@@ -224,6 +224,17 @@ class OpenSaml4AuthenticationProviderUnitTests {
     }
 
     @Test
+    void evaluateInResponseToSucceedsWhenInResponseToRedirectAssertionOnlyMatchRequestID() {
+        Response response = response();
+        response.getAssertions().add(signed(assertion()));
+        response.getAssertions().add(signed(assertion("SAML2")));
+        AbstractSaml2AuthenticationRequest mockAuthenticationRequest = mockedStoredAuthenticationRequest("SAML2",
+                Saml2MessageBinding.REDIRECT, false);
+        Saml2AuthenticationToken token = token(response, verifying(registration()), mockAuthenticationRequest);
+        this.provider.authenticate(token);
+    }
+
+    @Test
     void evaluateInResponseToFailsWhenInResponseToInAssertionOnlyAndCorruptedStoredRequest() {
         Response response = response();
         response.getAssertions().add(signed(assertion()));
