@@ -157,7 +157,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    private static final String macSigningKeySecret = "foobarfoobarfoobarfoobarfoobarfoo";
+    private static final String macSigningKeySecret = "foobarfoobarfoobarfoobarfoobarfoofoobarfoobarfoobarfoobarfoobarfoobar";
 
     @Before
     public void setup() throws KeyLengthException {
