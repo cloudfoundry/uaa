@@ -83,10 +83,6 @@ public final class Saml2Utils {
         return samlEncode(s.getBytes(StandardCharsets.UTF_8));
     }
 
-    public static String samlDeflateAndEncode(String s) {
-        return samlEncode(samlDeflate(s));
-    }
-
     public static String samlDecodeAndInflate(String s) {
         return samlInflate(samlDecode(s));
     }
