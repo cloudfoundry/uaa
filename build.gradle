@@ -124,6 +124,44 @@ subprojects {
         }
     }
 
+    // Integration teset coverage
+    // - To get integration test only coverage, do
+    //   `./gradlew clean integrationTest` first. This will create
+    //   `integrationTest.exec` files in subproject `build/jacoco/` folders.
+    //   Here, `clean` is for removing any `unit-test` coverage data and reports
+    //   generated from previous runs of `./gradlew test` if you have any,
+    //   so they are not included in the aggregated report.
+    // - To get integration test coverage from the generated
+    //   `integrationTest.exec` files, do
+    //   `./gradlew jacocoIntegrationTestReport`.
+    // - To get aggregated report, do `./gradlew jacocoAggregatedReport`.
+    // - See the console output for coverage summaries.
+    // - See subproject's `build/reports/jacoco/jacocoIntegrationTestReport/`
+    //   for subproject's integration test coverage.
+    // - See rootProject `build/reports/jacoco/jacocoAggregatedReport/` for
+    //   aggregated coverage report.
+    //
+    // Implementation based on the info at
+    // https://discuss.gradle.org/t/jacoco-plugin-with-multi-project-builds/22219,
+    // with necessary adjustments
+    def otherProjects = project.rootProject.subprojects.findAll {
+        it != project && it.pluginManager.hasPlugin('java')
+    }
+    task jacocoIntegrationTestReport(type: JacocoReport) {
+        // Include sibling project application sources.
+        FileTree sourceTree = files().asFileTree
+        FileTree classTree = files().asFileTree
+        otherProjects.each {
+            sourceTree += it.sourceSets.main.allJava
+            classTree += it.sourceSets.main.output.asFileTree
+        }
+        additionalSourceDirs = sourceTree
+        additionalClassDirs = classTree
+
+        sourceSets sourceSets.main
+        executionData(integrationTest)
+    }
+
     task generateDocs() {}
 
     task allDeps(type: DependencyReportTask) {}
