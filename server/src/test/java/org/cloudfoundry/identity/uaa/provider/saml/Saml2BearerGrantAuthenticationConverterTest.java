@@ -442,8 +442,8 @@ class Saml2BearerGrantAuthenticationConverterTest {
 
     private String serializedRequest(AuthnRequest request, Saml2MessageBinding binding) {
         String xml = serialize(request);
-        return (binding == Saml2MessageBinding.POST) ? Saml2Utils.samlEncode(xml.getBytes(StandardCharsets.UTF_8))
-                : Saml2Utils.samlEncode(Saml2Utils.samlDeflate(xml));
+        return (binding == Saml2MessageBinding.POST) ? Saml2Utils.samlBearerEncode(xml.getBytes(StandardCharsets.UTF_8))
+                : Saml2Utils.samlBearerEncode(Saml2Utils.samlDeflate(xml));
     }
 
     private Assertion assertion(String inResponseTo) {

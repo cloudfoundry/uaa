@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.UaaSamlPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -37,6 +36,7 @@ import org.opensaml.core.xml.config.XMLObjectProviderRegistry;
 import org.opensaml.saml.common.assertion.ValidationContext;
 import org.opensaml.saml.saml2.assertion.SAML2AssertionValidationParameters;
 import org.opensaml.saml.saml2.core.Assertion;
+import org.opensaml.saml.saml2.core.Issuer;
 import org.opensaml.saml.saml2.core.impl.AssertionUnmarshaller;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -73,15 +73,16 @@ import javax.servlet.http.HttpServletRequest;
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4AuthenticationProvider.createDefaultAssertionValidatorWithParameters;
 
 /**
@@ -185,36 +186,26 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
 
     @Override
     public Authentication convert(HttpServletRequest request) throws AuthenticationException {
-        RelyingPartyRegistration relyingPartyRegistration = relyingPartyRegistrationResolver.resolve(request, null);
 
         String serializedAssertion = request.getParameter("assertion");
-        byte[] decodedAssertion = Base64.getUrlDecoder().decode(serializedAssertion);
+        byte[] decodedAssertion = Saml2Utils.samlBearerDecode(serializedAssertion);
         String assertionXml = new String(decodedAssertion, StandardCharsets.UTF_8);
 
         Assertion assertion = parseAssertion(assertionXml);
+        RelyingPartyRegistration relyingPartyRegistration = relyingPartyRegistrationResolver.resolve(request, getIssuer(assertion));
+        IdentityProvider<SamlIdentityProviderDefinition> idp = retrieveSamlIdpSamlIdentityProvider(relyingPartyRegistration.getRegistrationId());
         Saml2AuthenticationToken authenticationToken = new Saml2AuthenticationToken(relyingPartyRegistration, assertionXml);
         process(authenticationToken, assertion);
 
         String subjectName = assertion.getSubject().getNameID().getValue();
-        String alias = relyingPartyRegistration.getRegistrationId();
+        String alias = idp.getOriginKey();
         IdentityZone zone = identityZoneManager.getCurrentIdentityZone();
 
         UaaPrincipal initialPrincipal = new UaaPrincipal(NotANumber, subjectName, subjectName,
                 alias, subjectName, zone.getId());
 
-        boolean addNew;
-        IdentityProvider<SamlIdentityProviderDefinition> idp;
-        SamlIdentityProviderDefinition samlConfig;
-        try {
-            idp = identityProviderProvisioning.retrieveByOrigin(alias, identityZoneManager.getCurrentIdentityZoneId());
-            samlConfig = idp.getConfig();
-            addNew = samlConfig.isAddShadowUserOnLogin();
-            if (!idp.isActive()) {
-                throw new ProviderNotFoundException("Identity Provider has been disabled by administrator for alias:" + alias);
-            }
-        } catch (EmptyResultDataAccessException x) {
-            throw new ProviderNotFoundException("No SAML identity provider found in zone for alias:" + alias);
-        }
+        SamlIdentityProviderDefinition samlConfig = idp.getConfig();
+        boolean addNew = samlConfig.isAddShadowUserOnLogin();
 
         MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
 
@@ -234,7 +225,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         authentication.setAuthenticationMethods(Set.of("ext"));
         setAuthContextClassRefs(assertion, authentication);
 
-        publish(new IdentityProviderAuthenticationSuccessEvent(user, authentication, OriginKeys.SAML, identityZoneManager.getCurrentIdentityZoneId()));
+        publish(new IdentityProviderAuthenticationSuccessEvent(user, authentication, SAML, identityZoneManager.getCurrentIdentityZoneId()));
 
         AbstractSaml2AuthenticationRequest authenticationRequest = authenticationToken.getAuthenticationRequest();
         if (authenticationRequest != null) {
@@ -310,12 +301,17 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
             Element element = document.getDocumentElement();
             return (Assertion) assertionUnmarshaller.unmarshall(element);
         } catch (Exception ex) {
-            throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_ASSERTION, ex.getMessage(), ex);
+            throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_ASSERTION, "Unable to parse bearer assertion", ex);
         }
     }
 
+    private static String getIssuer(Assertion assertion) {
+        return Optional.ofNullable(assertion.getIssuer()).map(Issuer::getValue)
+                .orElseThrow(() -> new Saml2AuthenticationException(new Saml2Error(Saml2ErrorCodes.INVALID_ASSERTION, "Missing issuer in bearer assertion")));
+    }
+
     private void process(Saml2AuthenticationToken token, Assertion assertion) {
-        String issuer = assertion.getIssuer().getValue();
+        String issuer = getIssuer(assertion);
         log.debug("Processing SAML response from {}", issuer);
 
         OpenSaml4AuthenticationProvider.AssertionToken assertionToken = new OpenSaml4AuthenticationProvider.AssertionToken(assertion, token);
@@ -345,4 +341,16 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         }
     }
 
+    private IdentityProvider<SamlIdentityProviderDefinition> retrieveSamlIdpSamlIdentityProvider(String origin) {
+        try {
+            IdentityProvider<SamlIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(origin,
+                    identityZoneManager.getCurrentIdentityZoneId());
+            if (idp == null || !SAML.equals(idp.getType()) || !idp.isActive()) {
+                throw new ProviderNotFoundException("Identity Provider has been disabled by administrator for alias: " + origin);
+            }
+            return idp;
+        } catch (EmptyResultDataAccessException x) {
+            throw new ProviderNotFoundException("No SAML identity provider found in zone for alias: " + origin);
+        }
+    }
 }

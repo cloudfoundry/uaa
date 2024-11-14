@@ -17,6 +17,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.springframework.security.saml2.Saml2Exception;
+import org.springframework.security.saml2.core.Saml2ErrorCodes;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -46,8 +47,20 @@ public final class Saml2Utils {
         return Base64.getEncoder().encodeToString(b);
     }
 
+    public static String samlBearerEncode(byte[] b) {
+        return Base64.getUrlEncoder().encodeToString(b);
+    }
+
     public static byte[] samlDecode(String s) {
         return Base64.getMimeDecoder().decode(s);
+    }
+
+    public static byte[] samlBearerDecode(String s) {
+        try {
+            return Base64.getUrlDecoder().decode(s);
+        } catch (IllegalArgumentException ex) {
+            throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_ASSERTION, "Unable to urlBase64Decode bearer assertion", ex);
+        }
     }
 
     public static byte[] samlDeflate(String s) {
@@ -79,8 +92,8 @@ public final class Saml2Utils {
      * Below are convenience methods not originally in the Spring-Security class
      *****************************************************************************/
 
-    public static String samlEncode(String s) {
-        return samlEncode(s.getBytes(StandardCharsets.UTF_8));
+    public static String samlBearerEncode(String s) {
+        return samlBearerEncode(s.getBytes(StandardCharsets.UTF_8));
     }
 
     public static String samlDecodeAndInflate(String s) {

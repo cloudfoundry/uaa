@@ -604,6 +604,6 @@ public final class TestOpenSamlObjects {
             assertion = signed(assertion, signingCredential, issuerEntityId);
         }
         String serialized = Saml2TestUtils.serialize(assertion);
-        return Saml2Utils.samlEncode(serialized);
+        return Saml2Utils.samlBearerEncode(serialized);
     }
 }

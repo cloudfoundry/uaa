@@ -1,20 +1,18 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.extern.slf4j.Slf4j;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
-import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
 import org.springframework.util.Assert;
 
 import java.util.List;
 import java.util.Optional;
 
 @Slf4j
-public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyingPartyRegistrationRepository
-        implements RelyingPartyRegistrationRepository, ZoneAware {
+public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyingPartyRegistrationRepository {
 
     private final SamlIdentityProviderConfigurator configurator;
 
@@ -38,19 +36,26 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
     @Override
     public RelyingPartyRegistration findByRegistrationId(String registrationId) {
         IdentityZone currentZone = retrieveZone();
-        List<SamlIdentityProviderDefinition> identityProviderDefinitions = configurator.getIdentityProviderDefinitionsForZone(currentZone);
+        AbstractIdentityProviderDefinition idpDefinition = configurator.getIdentityProviderDefinitionsForOrigin(currentZone, registrationId);
+        if (idpDefinition == null) {
+            idpDefinition = configurator.getIdentityProviderDefinitionsForIssuer(currentZone, registrationId);
+        }
+        if (idpDefinition instanceof SamlIdentityProviderDefinition foundSamlIdentityProviderDefinition) {
+            return createRelyingPartyRegistration(foundSamlIdentityProviderDefinition.getIdpEntityAlias(), foundSamlIdentityProviderDefinition, currentZone);
+        }
 
+        List<SamlIdentityProviderDefinition> identityProviderDefinitions = configurator.getIdentityProviderDefinitionsForZone(currentZone);
         for (SamlIdentityProviderDefinition identityProviderDefinition : identityProviderDefinitions) {
-            if (identityProviderDefinition.getIdpEntityAlias().equals(registrationId)) {
-                return createRelyingPartyRegistration(registrationId, identityProviderDefinition, currentZone);
+            if (registrationId.equals(identityProviderDefinition.getIdpEntityAlias()) || registrationId.equals(identityProviderDefinition.getIdpEntityId())) {
+                return createRelyingPartyRegistration(identityProviderDefinition.getIdpEntityAlias(), identityProviderDefinition, currentZone);
             }
         }
 
-        if (!identityProviderDefinitions.isEmpty()) {
+        // TODO remove hack
+        if (!identityProviderDefinitions.isEmpty() && identityProviderDefinitions.size() == 1) {
             SamlIdentityProviderDefinition identityProviderDefinition = identityProviderDefinitions.get(0);
             return createRelyingPartyRegistration(identityProviderDefinition.getIdpEntityAlias(), identityProviderDefinition, currentZone);
         }
-
         return null;
     }
 
