@@ -51,11 +51,6 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
             }
         }
 
-        // TODO remove hack
-        if (!identityProviderDefinitions.isEmpty() && identityProviderDefinitions.size() == 1) {
-            SamlIdentityProviderDefinition identityProviderDefinition = identityProviderDefinitions.get(0);
-            return createRelyingPartyRegistration(identityProviderDefinition.getIdpEntityAlias(), identityProviderDefinition, currentZone);
-        }
         return null;
     }
 

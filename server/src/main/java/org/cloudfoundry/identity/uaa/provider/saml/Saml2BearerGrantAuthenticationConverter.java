@@ -37,7 +37,9 @@ import org.opensaml.saml.common.assertion.ValidationContext;
 import org.opensaml.saml.saml2.assertion.SAML2AssertionValidationParameters;
 import org.opensaml.saml.saml2.core.Assertion;
 import org.opensaml.saml.saml2.core.Issuer;
+import org.opensaml.saml.saml2.core.Response;
 import org.opensaml.saml.saml2.core.impl.AssertionUnmarshaller;
+import org.opensaml.saml.saml2.core.impl.ResponseUnmarshaller;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -99,6 +101,7 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
     }
 
     private static final AssertionUnmarshaller assertionUnmarshaller;
+    private static final ResponseUnmarshaller responseUnMarshaller;
 
     private static final ParserPool parserPool;
 
@@ -106,6 +109,8 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         XMLObjectProviderRegistry registry = ConfigurationService.get(XMLObjectProviderRegistry.class);
         assertionUnmarshaller = (AssertionUnmarshaller) registry.getUnmarshallerFactory()
                 .getUnmarshaller(Assertion.DEFAULT_ELEMENT_NAME);
+        responseUnMarshaller = (ResponseUnmarshaller) registry.getUnmarshallerFactory()
+                .getUnmarshaller(Response.DEFAULT_ELEMENT_NAME);
         parserPool = registry.getParserPool();
     }
 
@@ -303,6 +308,22 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         } catch (Exception ex) {
             throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_ASSERTION, "Unable to parse bearer assertion", ex);
         }
+    }
+
+    protected static Response parseSamlResponse(String samlResponse) throws Saml2Exception, Saml2AuthenticationException {
+        try {
+            Document document = parserPool
+                    .parse(new ByteArrayInputStream(samlResponse.getBytes(StandardCharsets.UTF_8)));
+            Element element = document.getDocumentElement();
+            return (Response) responseUnMarshaller.unmarshall(element);
+        } catch (Exception ex) {
+            throw OpenSaml4AuthenticationProvider.createAuthenticationException(Saml2ErrorCodes.INVALID_RESPONSE, "Unable to parse saml response", ex);
+        }
+    }
+
+    protected static String getIssuer(Response response) {
+        return Optional.ofNullable(response.getIssuer()).map(Issuer::getValue)
+                .orElseThrow(() -> new Saml2AuthenticationException(new Saml2Error(Saml2ErrorCodes.INVALID_RESPONSE, "Missing issuer in saml response")));
     }
 
     private static String getIssuer(Assertion assertion) {

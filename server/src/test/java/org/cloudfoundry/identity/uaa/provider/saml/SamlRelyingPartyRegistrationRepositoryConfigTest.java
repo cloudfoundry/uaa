@@ -47,7 +47,7 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
         SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
                 samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
-        RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository);
+        RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository, ENTITY_ID);
 
         assertThat(resolver).isNotNull();
     }

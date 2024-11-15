@@ -92,7 +92,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
                         List.of(SignatureAlgorithm.SHA256, SignatureAlgorithm.SHA512));
 
         RelyingPartyRegistrationRepository relyingPartyRegistrationRepository = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationRepository(identityProviderConfigurator);
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
+        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationResolver(relyingPartyRegistrationRepository, null);
 
         provider = new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
                 providerProvisioning, null, null);
