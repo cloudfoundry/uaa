@@ -22,8 +22,6 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlMetadataEndpoint.D
 @Slf4j
 public class SamlRelyingPartyRegistrationRepositoryConfig {
 
-    public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
-
     private final String samlEntityID;
     private final SamlConfigProps samlConfigProps;
     private final BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
@@ -67,7 +65,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
                 .samlEntityID(samlEntityID)
                 .samlSpNameId(samlSpNameID)
                 .keys(defaultKeysWithCerts)
-                .metadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
+                .metadataLocation(RelyingPartyRegistrationBuilder.createOwnMetadata(samlEntityID, defaultKeysWithCerts))
                 .rpRegistrationId(DEFAULT_REGISTRATION_ID)
                 .samlSpAlias(uaaWideSamlEntityIDAlias)
                 .requestSigned(samlConfigProps.getSignRequest())

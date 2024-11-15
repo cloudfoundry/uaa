@@ -17,6 +17,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
+import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.io.Marshaller;
@@ -214,5 +215,58 @@ public final class Saml2TestUtils {
                 "samlp", "urn:oasis:names:tc:SAML:2.0:protocol",
                 "saml", "urn:oasis:names:tc:SAML:2.0:assertion"
         );
+    }
+
+    public static SamlConfigProps createTestSamlProperties() {
+        SamlConfigProps samlConfigProps = new SamlConfigProps();
+        samlConfigProps = new SamlConfigProps();
+        samlConfigProps.setActiveKeyId("1");
+        samlConfigProps.setKeys(Map.of("1", new SamlKey("-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIEpAIBAAKCAQEA0iq1SNMD4EHTO/33gxXn6ptjyitcAbA0cq4CufABS7KZjVm9\n" +
+                "/Khvn4NlejfqZe02Md7vwTqoImdnyKFoIzUwPGDki2Gy6/Cm0raLbuIfDH1ba0Rq\n" +
+                "2fNs8AWpk1wP3IcBGvU18EsirS7SOuGieAmKk/2UPeeau0RPwpZ7sEsoOJteYOuO\n" +
+                "eJ3JYOufxUOSCw2moISEu+EcsjZw1Fhs9htbyr1ImRJOzArHczecyL6X45Hrrimv\n" +
+                "hIenxjCwYROtf80RhT6R7LNOPIzhd212FmZLnbYf2pavtW1dyZTAjljQu4wUjDFB\n" +
+                "DzJjvGfS1v36WiraXv8qJgN8PwV3GUMLitHmMQIDAQABAoIBAQDCN0tt7+rOC6Z7\n" +
+                "8xcO4Wh/CnguNOGCgeYF8D5+u4dG/9YcpMkIOlNk0lUtm4yWAp8peP6Qz3bezDZB\n" +
+                "Vr9YgeeAdH3fPDrPBIX1hVHW90mADjw0JXak0Opj6KerkNDrlyrzUZU16Qkzh2gp\n" +
+                "l6e/S/nvBtA+YNBBrEAU72GAKgQSQf09Km0x9+eHO2zvmxGoALJeHBEr9wfCxP63\n" +
+                "xWTbJYnkVX41chHlsk0TntTFPgvwtm4U468AjnOBrmWwoECbzDAa1uuMgpL4M5UH\n" +
+                "Y2BW7TgBY22Yv0WMNTIq0SlIF7LY8HSe6BPCGLkBo2p5HARZaXI+N6XjA5cltXmn\n" +
+                "469oBj9tAoGBAOoaMiZOFLAlVDLMhon5QLNRqePs+p37uV17Ogr4YIh/WJMl+7I0\n" +
+                "y70cygxBv61PZcb4bgfOtVsAPXm1wgwbFhZzR++dnWXi6e03VMGA9yM6S7/PFt8U\n" +
+                "vQvTnxDIc06xutTja7Bf/L6Z2ahEDHhVkDxmcA9fMQqCoaU1p69YJmRvAoGBAOXT\n" +
+                "WpS8/PRThDv/WF5Zz3FalhpfWVGF1jiUnyoLYZ9s7LGDtS2E0eVY8YWAxBRz175i\n" +
+                "ro5cIYn+DAmEKhTkT9vza0J2yySAWFi1n1UXGF1wW1XnUidTYur8mD+P2rd4HZLD\n" +
+                "zOvsbV1vXd0mZWbkOMWYphUHg6o5bAtJOPvdoe9fAoGBAMdg2CVXircak8NP/aW0\n" +
+                "6y3N92tvgWLb6Nt8/8ooD88w5jcsuljkLkE6K7qUpLLuVDhJjSyJGFwQsErgSgwV\n" +
+                "ZZJpTHL/QfZsc97cqQrE07blB26s6UXFW9yet3KLxejX5c86gZUNqyyJy55LlnNG\n" +
+                "LDnE5NuyrwnMh+8060OjR89xAoGAbjHDqbNf2co9igLpnPuU4jXb6LM1AUiZqTFh\n" +
+                "i2g/m5A/gPG0qimX9k6KJ0fRPDk7BXcNWQbFsgNURC/ReYjq3Xw+PnT0/ABp28bh\n" +
+                "qYvUS+D2eh7ani52LFOGsFtKNFPsYhVtqOUInxcpu0KQth/RNLT3VPfwYmr76gFm\n" +
+                "yCTBYyMCgYBKowVroyYpaoCd/I0+zXkw2tU982U9pZpjMQJUIDYpKOjppicuzF6C\n" +
+                "m2aVwkGNZlbk7EJnR9hQQZtitpi2Z6l4UkfNa70AxlViLdHvgvSRN+OrV3T7Rd7F\n" +
+                "R7nO/5euJjEyRK4v1cOvGxlHGtQCN/cknWBeDakT7Rzd8OvsNnY9SQ==\n" +
+                "-----END RSA PRIVATE KEY-----",
+        "",
+        "-----BEGIN CERTIFICATE-----\n" +
+                "MIIC5zCCAc8CFC/HOKAyFrw/UMS9PB3nmVsJ/+c+MA0GCSqGSIb3DQEBCwUAMDAx\n" +
+                "CzAJBgNVBAYTAlVTMRMwEQYDVQQIDApTb21lLVN0YXRlMQwwCgYDVQQKDANVQUEw\n" +
+                "HhcNMjIxMTIzMTQxNTE4WhcNMjUwODIwMTQxNTE4WjAwMQswCQYDVQQGEwJVUzET\n" +
+                "MBEGA1UECAwKU29tZS1TdGF0ZTEMMAoGA1UECgwDVUFBMIIBIjANBgkqhkiG9w0B\n" +
+                "AQEFAAOCAQ8AMIIBCgKCAQEA0iq1SNMD4EHTO/33gxXn6ptjyitcAbA0cq4CufAB\n" +
+                "S7KZjVm9/Khvn4NlejfqZe02Md7vwTqoImdnyKFoIzUwPGDki2Gy6/Cm0raLbuIf\n" +
+                "DH1ba0Rq2fNs8AWpk1wP3IcBGvU18EsirS7SOuGieAmKk/2UPeeau0RPwpZ7sEso\n" +
+                "OJteYOuOeJ3JYOufxUOSCw2moISEu+EcsjZw1Fhs9htbyr1ImRJOzArHczecyL6X\n" +
+                "45HrrimvhIenxjCwYROtf80RhT6R7LNOPIzhd212FmZLnbYf2pavtW1dyZTAjljQ\n" +
+                "u4wUjDFBDzJjvGfS1v36WiraXv8qJgN8PwV3GUMLitHmMQIDAQABMA0GCSqGSIb3\n" +
+                "DQEBCwUAA4IBAQCAExiglWf/gCbpcsBE+kodih5V0yJQsyf0net7VehSJt2sKxHq\n" +
+                "P+D05RQMAlet6osHrMDVkG0cAB4UlBpcywPHRBajijSwzEXDZP41EhNLKHKnzRPE\n" +
+                "iNbUeoCfjeecb6uATbSVTsiKM4IycWbYxwyIxw/lTEyVTP1xw/Hy1zg5q/HUFd3q\n" +
+                "y0J9KAmGP/z1zEOq4q2AGVIF/pf5GnkiQ4JqMJmwdKLAksGJs5TK1a9yTBm/PkKC\n" +
+                "BvQqCT8e8aJ4m2NJ0zpXcn8ObDZE3lpe4WSF+yS29AM/36FWLPQlCuhNTDJBx/nt\n" +
+                "eFWGllY+4er+Ml08PVUZLxr/n44ZOixrA633\n" +
+                "-----END CERTIFICATE-----")));
+return samlConfigProps;
     }
 }

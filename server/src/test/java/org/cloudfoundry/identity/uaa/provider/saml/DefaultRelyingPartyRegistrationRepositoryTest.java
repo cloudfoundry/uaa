@@ -38,7 +38,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     private static final String REGISTRATION_ID = "registrationId";
     private static final String REGISTRATION_ID_2 = "registrationId2";
 
-    private static final SamlConfigProps samlConfigProps = new SamlConfigProps();
+    private static final SamlConfigProps samlConfigProps = Saml2TestUtils.createTestSamlProperties();
 
     @Mock
     private IdentityZone identityZone;
@@ -79,7 +79,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("exampleEntityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .returns("entityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
     }
 
     @Test
@@ -102,7 +102,7 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
                 .returns("{baseUrl}/saml/SingleLogout/alias/testzone.entityIdAlias", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("exampleEntityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
+                .returns("testzone.entityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId)
                 // signature algorithm defaults to SHA256
                 .extracting(RelyingPartyRegistration.AssertingPartyDetails::getSigningAlgorithms)
                 .isEqualTo(List.of(ALGO_ID_SIGNATURE_RSA_SHA256));
