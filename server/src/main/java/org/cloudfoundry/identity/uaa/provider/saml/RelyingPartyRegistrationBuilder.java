@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
@@ -15,6 +16,7 @@ import org.springframework.security.saml2.provider.service.registration.Saml2Mes
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.security.cert.CertificateException;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
@@ -23,7 +25,6 @@ import java.util.function.UnaryOperator;
  */
 @Slf4j
 public class RelyingPartyRegistrationBuilder {
-    public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
     private static final UnaryOperator<String> assertionConsumerServiceLocationFunction = "{baseUrl}/saml/SSO/alias/%s"::formatted;
     private static final UnaryOperator<String> singleLogoutServiceResponseLocationFunction = "{baseUrl}/saml/SingleLogout/alias/%s"::formatted;
@@ -36,13 +37,13 @@ public class RelyingPartyRegistrationBuilder {
     /**
      * Build a RelyingPartyRegistration object from the given parameters
      *
-     * @param params the params object used to build the RelyingPartyRegistration object
+     * @param builderParams the params object used to build the RelyingPartyRegistration object
      * @return a RelyingPartyRegistration object
      */
     public static RelyingPartyRegistration buildRelyingPartyRegistration(Params builderParams) {
         final Params params;
         if (StringUtils.isEmpty(builderParams.getMetadataLocation())) {
-            params = builderParams.withMetadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML);
+            params = builderParams.withMetadataLocation(createOwnMetadata(builderParams.samlEntityID, builderParams.keys));
         } else {
             params = builderParams;
         }
@@ -86,6 +87,38 @@ public class RelyingPartyRegistrationBuilder {
                     details.wantAuthnRequestsSigned(params.requestSigned);
                     details.signingAlgorithms(alg -> alg.addAll(params.signatureAlgorithms.stream().map(SignatureAlgorithm::getSignatureAlgorithmURI).toList()));
                 }).build();
+    }
+
+    /**
+     * Create the metadata XML
+     * @param entityId entityID
+     * @param keyWithCerts Keys
+     * @return metadata XML
+     */
+    public static String createOwnMetadata(String entityId, List<KeyWithCert> keyWithCerts) {
+        String certificate = keyWithCerts.stream().findFirst().map(e -> {
+            try {
+                return e.getEncodedCertificate();
+            } catch (CertificateException ex) {
+                return UaaStringUtils.EMPTY_STRING;
+            }
+        }).orElse(UaaStringUtils.EMPTY_STRING);
+
+        return """
+                <?xml version="1.0"?>
+                <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="%s">
+                    <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+                        <md:KeyDescriptor use="signing">
+                            <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                                <ds:X509Data>
+                                    <ds:X509Certificate>%s</ds:X509Certificate>
+                                </ds:X509Data>
+                            </ds:KeyInfo>
+                        </md:KeyDescriptor>
+                        <md:SingleSignOnService
+                                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://www.cloudfoundry.org"/>
+                    </md:IDPSSODescriptor>
+                </md:EntityDescriptor>""".formatted(entityId, certificate);
     }
 
     /**

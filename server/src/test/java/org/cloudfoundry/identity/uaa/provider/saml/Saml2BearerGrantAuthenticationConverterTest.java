@@ -86,7 +86,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
         );
         SamlRelyingPartyRegistrationRepositoryConfig samlRelyingPartyRegistrationRepositoryConfig =
                 new SamlRelyingPartyRegistrationRepositoryConfig(
-                        "integration-saml-entity-id", new SamlConfigProps(),
+                        "integration-saml-entity-id", Saml2TestUtils.createTestSamlProperties(),
                         new BootstrapSamlIdentityProviderData(identityProviderConfigurator),
                         "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                         List.of(SignatureAlgorithm.SHA256, SignatureAlgorithm.SHA512));
