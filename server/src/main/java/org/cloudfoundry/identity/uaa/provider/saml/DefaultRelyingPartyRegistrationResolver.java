@@ -35,6 +35,11 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
+/**
+ * This was copied from Spring Security, and modified to work with Open SAML 4.0.x
+ * <p/>
+ * We may keep this implementation, because it resolves the correct SamlIdp with relyingPartyRegistrationId==null
+ */
 @Slf4j
 public final class DefaultRelyingPartyRegistrationResolver implements Converter<HttpServletRequest, RelyingPartyRegistration>, RelyingPartyRegistrationResolver {
 
@@ -63,24 +68,7 @@ public final class DefaultRelyingPartyRegistrationResolver implements Converter<
 
             String resolvedEntityId = this.registrationRequestMatcher.matcher(request).getVariables().get("registrationId");
             String samlResponseParameter = request.getParameter("SAMLResponse");
-            if (samlEntityID != null && samlEntityID.equals(resolvedEntityId) && samlResponseParameter != null) {
-                if (log.isTraceEnabled()) {
-                    log.trace("Attempting to resolve from SAMLResponse parameter");
-                }
-                String assertionXml = null;
-                if (request.getMethod().equalsIgnoreCase("POST")) {
-                    assertionXml = new String(Saml2Utils.samlDecode(samlResponseParameter), StandardCharsets.UTF_8);
-                } else if (request.getMethod().equalsIgnoreCase("GET")) {
-                    assertionXml = Saml2Utils.samlDecodeAndInflate(samlResponseParameter);
-                }
-                if (assertionXml != null) {
-                    resolvedEntityId = Saml2BearerGrantAuthenticationConverter
-                            .getIssuer(Saml2BearerGrantAuthenticationConverter.parseSamlResponse(assertionXml));
-                    relyingPartyRegistrationId = resolvedEntityId;
-                } else {
-                    relyingPartyRegistrationId = null;
-                }
-            }
+            relyingPartyRegistrationId = resolveFromRequest(request, resolvedEntityId, samlResponseParameter);
         }
 
         if (relyingPartyRegistrationId == null) {
@@ -105,6 +93,27 @@ public final class DefaultRelyingPartyRegistrationResolver implements Converter<
         }
     }
 
+    private String resolveFromRequest(HttpServletRequest request, String resolvedEntityId, String samlResponseParameter) {
+        String relyingPartyRegistrationId = null;
+        if (samlEntityID != null && samlEntityID.equals(resolvedEntityId) && samlResponseParameter != null) {
+            if (log.isTraceEnabled()) {
+                log.trace("Attempting to resolve from SAMLResponse parameter");
+            }
+            String assertionXml = null;
+            if (request.getMethod().equalsIgnoreCase("POST")) {
+                assertionXml = new String(Saml2Utils.samlDecode(samlResponseParameter), StandardCharsets.UTF_8);
+            } else if (request.getMethod().equalsIgnoreCase("GET")) {
+                assertionXml = Saml2Utils.samlDecodeAndInflate(samlResponseParameter);
+            }
+            if (assertionXml != null) {
+                resolvedEntityId = Saml2BearerGrantAuthenticationConverter
+                        .getIssuer(Saml2BearerGrantAuthenticationConverter.parseSamlResponse(assertionXml));
+                relyingPartyRegistrationId = resolvedEntityId;
+            }
+        }
+        return relyingPartyRegistrationId;
+    }
+
     private Function<String, String> templateResolver(String applicationUri, RelyingPartyRegistration relyingParty) {
         return template -> resolveUrlTemplate(template, applicationUri, relyingParty);
     }
@@ -113,27 +122,31 @@ public final class DefaultRelyingPartyRegistrationResolver implements Converter<
         if (template == null) {
             return null;
         } else {
-            String entityId = relyingParty.getAssertingPartyDetails().getEntityId();
-            String registrationId = relyingParty.getRegistrationId();
-            Map<String, String> uriVariables = new HashMap<>();
-            UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(baseUrl).replaceQuery((String)null).fragment((String)null).build();
-            String scheme = uriComponents.getScheme();
-            uriVariables.put("baseScheme", scheme != null ? scheme : "");
-            String host = uriComponents.getHost();
-            uriVariables.put("baseHost", host != null ? host : "");
-            int port = uriComponents.getPort();
-            uriVariables.put("basePort", port == -1 ? "" : ":" + port);
-            String path = uriComponents.getPath();
-            if (StringUtils.hasLength(path) && path.charAt(0) != '/') {
-                path = '/' + path;
-            }
-
-            uriVariables.put("basePath", path != null ? path : "");
-            uriVariables.put("baseUrl", uriComponents.toUriString());
-            uriVariables.put("entityId", StringUtils.hasText(entityId) ? entityId : "");
-            uriVariables.put("registrationId", StringUtils.hasText(registrationId) ? registrationId : "");
-            return UriComponentsBuilder.fromUriString(template).buildAndExpand(uriVariables).toUriString();
+            return UriComponentsBuilder.fromUriString(template).buildAndExpand(constructUriVariables(baseUrl, relyingParty)).toUriString();
         }
+    }
+
+    private static Map<String, String> constructUriVariables(String baseUrl, RelyingPartyRegistration relyingParty) {
+        String entityId = relyingParty.getAssertingPartyDetails().getEntityId();
+        String registrationId = relyingParty.getRegistrationId();
+        Map<String, String> uriVariables = new HashMap<>();
+        UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(baseUrl).replaceQuery((String)null).fragment((String)null).build();
+        String scheme = uriComponents.getScheme();
+        uriVariables.put("baseScheme", scheme != null ? scheme : "");
+        String host = uriComponents.getHost();
+        uriVariables.put("baseHost", host != null ? host : "");
+        int port = uriComponents.getPort();
+        uriVariables.put("basePort", port == -1 ? "" : ":" + port);
+        String path = uriComponents.getPath();
+        if (StringUtils.hasLength(path) && path.charAt(0) != '/') {
+            path = '/' + path;
+        }
+
+        uriVariables.put("basePath", path != null ? path : "");
+        uriVariables.put("baseUrl", uriComponents.toUriString());
+        uriVariables.put("entityId", StringUtils.hasText(entityId) ? entityId : "");
+        uriVariables.put("registrationId", StringUtils.hasText(registrationId) ? registrationId : "");
+        return uriVariables;
     }
 
     private static String getApplicationUri(HttpServletRequest request) {
