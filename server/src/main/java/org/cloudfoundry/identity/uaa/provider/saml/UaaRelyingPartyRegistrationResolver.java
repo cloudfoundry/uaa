@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
@@ -36,26 +35,27 @@ import java.util.Map;
 import java.util.function.Function;
 
 /**
- * This was copied from Spring Security, and modified to work with Open SAML 4.0.x
+ * Resolves the correct SamlIdp from request parameters when relyingPartyRegistrationId==null
+ * Such as on SAML2 bearer and IdP initiated SSO
  * <p/>
- * We may keep this implementation, because it resolves the correct SamlIdp with relyingPartyRegistrationId==null
+ * Originally copied from Spring Security's DefaultRelyingPartyRegistrationResolver
  */
 @Slf4j
-public final class DefaultRelyingPartyRegistrationResolver implements Converter<HttpServletRequest, RelyingPartyRegistration>, RelyingPartyRegistrationResolver {
+public final class UaaRelyingPartyRegistrationResolver implements Converter<HttpServletRequest, RelyingPartyRegistration>, RelyingPartyRegistrationResolver {
 
     private final String samlEntityID;
     private final RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
     private final RequestMatcher registrationRequestMatcher = new AntPathRequestMatcher("/**/{registrationId}");
 
-    public DefaultRelyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-                                                   @Qualifier("samlEntityID") String samlEntityID) {
+    public UaaRelyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
+                                               String samlEntityID) {
         Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
         this.relyingPartyRegistrationRepository = relyingPartyRegistrationRepository;
         this.samlEntityID = samlEntityID;
     }
 
     public RelyingPartyRegistration convert(HttpServletRequest request) {
-        return this.resolve(request, (String)null);
+        return this.resolve(request, null);
     }
 
     @Override
@@ -130,7 +130,7 @@ public final class DefaultRelyingPartyRegistrationResolver implements Converter<
         String entityId = relyingParty.getAssertingPartyDetails().getEntityId();
         String registrationId = relyingParty.getRegistrationId();
         Map<String, String> uriVariables = new HashMap<>();
-        UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(baseUrl).replaceQuery((String)null).fragment((String)null).build();
+        UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(baseUrl).replaceQuery(null).fragment(null).build();
         String scheme = uriComponents.getScheme();
         uriVariables.put("baseScheme", scheme != null ? scheme : "");
         String host = uriComponents.getHost();
@@ -150,7 +150,7 @@ public final class DefaultRelyingPartyRegistrationResolver implements Converter<
     }
 
     private static String getApplicationUri(HttpServletRequest request) {
-        UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(UrlUtils.buildFullRequestUrl(request)).replacePath(request.getContextPath()).replaceQuery((String)null).fragment((String)null).build();
+        UriComponents uriComponents = UriComponentsBuilder.fromHttpUrl(UrlUtils.buildFullRequestUrl(request)).replacePath(request.getContextPath()).replaceQuery(null).fragment(null).build();
         return uriComponents.toUriString();
     }
 }

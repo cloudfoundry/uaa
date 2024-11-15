@@ -112,14 +112,12 @@ public class SamlAuthenticationFilterConfig {
     @Autowired
     @Bean
     Filter saml2WebSsoAuthenticationFilter(AuthenticationProvider samlAuthenticationProvider,
-                                           RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
+                                           UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
                                            SecurityContextRepository securityContextRepository,
                                            SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler,
-                                           UaaSavedRequestAwareAuthenticationSuccessHandler samlLoginAuthenticationSuccessHandler,
-                                           @Qualifier("samlEntityID") String samlEntityID) {
+                                           UaaSavedRequestAwareAuthenticationSuccessHandler samlLoginAuthenticationSuccessHandler) {
 
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, samlEntityID);
-        Saml2AuthenticationTokenConverter saml2AuthenticationTokenConverter = new Saml2AuthenticationTokenConverter(relyingPartyRegistrationResolver);
+        Saml2AuthenticationTokenConverter saml2AuthenticationTokenConverter = new Saml2AuthenticationTokenConverter((RelyingPartyRegistrationResolver)relyingPartyRegistrationResolver);
         Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter = new Saml2WebSsoAuthenticationFilter(saml2AuthenticationTokenConverter, BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
 
         ProviderManager authenticationManager = new ProviderManager(samlAuthenticationProvider);
@@ -224,11 +222,9 @@ public class SamlAuthenticationFilterConfig {
      */
     @Autowired
     @Bean
-    Saml2LogoutRequestFilter saml2LogoutRequestFilter(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
+    Saml2LogoutRequestFilter saml2LogoutRequestFilter(UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
                                                       UaaAuthenticationFailureHandler authenticationFailureHandler,
-                                                      CookieBasedCsrfTokenRepository loginCookieCsrfRepository,
-                                                      @Qualifier("samlEntityID") String samlEntityID) {
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, samlEntityID);
+                                                      CookieBasedCsrfTokenRepository loginCookieCsrfRepository) {
 
         // This validator ignores missing signatures in the SAML2 Logout Response
         Saml2LogoutRequestValidator logoutRequestValidator = new SamlLogoutRequestValidator();
@@ -255,10 +251,8 @@ public class SamlAuthenticationFilterConfig {
                                                                                   final JdbcIdentityProviderProvisioning identityProviderProvisioning,
                                                                                   SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager,
                                                                                   ApplicationEventPublisher applicationEventPublisher,
-                                                                                  RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-                                                                                  @Qualifier("samlEntityID") String samlEntityID) {
+                                                                                  UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
 
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, samlEntityID);
         return new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
                 identityProviderProvisioning, samlUaaAuthenticationUserManager, applicationEventPublisher);
     }

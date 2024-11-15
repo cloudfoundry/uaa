@@ -84,7 +84,7 @@ public class SamlMetadataEndpointKeyRotationTests {
 
         RelyingPartyRegistrationRepository registrationRepository =
                 new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias", List.of(), NAME_ID_FORMAT);
-        RelyingPartyRegistrationResolver registrationResolver = new DefaultRelyingPartyRegistrationResolver(registrationRepository, ENTITY_ID);
+        RelyingPartyRegistrationResolver registrationResolver = new UaaRelyingPartyRegistrationResolver(registrationRepository, ENTITY_ID);
         endpoint = spy(new SamlMetadataEndpoint(registrationResolver, identityZoneManager, SignatureAlgorithm.SHA256, true));
         IdentityZoneHolder.set(otherZone);
 
