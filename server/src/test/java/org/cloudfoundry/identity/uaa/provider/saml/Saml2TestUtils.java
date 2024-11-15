@@ -87,9 +87,17 @@ public final class Saml2TestUtils {
         return responseWithAssertions(null, TestOpenSamlObjects.attributeStatements());
     }
 
+    public static Response responseWithAssertions(String issuer) {
+        return responseWithAssertions(issuer, null, TestOpenSamlObjects.attributeStatements());
+    }
+
     public static Response responseWithAssertions(String username, List<AttributeStatement> attributeStatements) {
-        Response response = response();
-        Assertion assertion = assertion(username, null);
+        return responseWithAssertions(null, username, attributeStatements);
+    }
+
+    public static Response responseWithAssertions(String issuer, String username, List<AttributeStatement> attributeStatements) {
+        Response response = response(issuer);
+        Assertion assertion = assertion(issuer, username, null);
         assertion.getAttributeStatements().addAll(attributeStatements);
 
         Assertion signedAssertion = TestOpenSamlObjects.signed(assertion,
@@ -111,8 +119,8 @@ public final class Saml2TestUtils {
         }
     }
 
-    public static Response response() {
-        Response response = TestOpenSamlObjects.response();
+    public static Response response(String issuer) {
+        Response response = TestOpenSamlObjects.response(issuer);
         response.setIssueInstant(Instant.now());
         return response;
     }
@@ -132,8 +140,8 @@ public final class Saml2TestUtils {
         return Saml2Utils.samlEncode(xml.getBytes(StandardCharsets.UTF_8));
     }
 
-    private static Assertion assertion(String username, String inResponseTo) {
-        Assertion assertion = TestOpenSamlObjects.assertion(username);
+    private static Assertion assertion(String issuer, String username, String inResponseTo) {
+        Assertion assertion = TestOpenSamlObjects.assertion(issuer, username);
         assertion.setIssueInstant(Instant.now());
         for (SubjectConfirmation confirmation : assertion.getSubject().getSubjectConfirmations()) {
             SubjectConfirmationData data = confirmation.getSubjectConfirmationData();

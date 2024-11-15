@@ -112,6 +112,10 @@ public final class TestOpenSamlObjects {
         return response(DESTINATION, ASSERTING_PARTY_ENTITY_ID);
     }
 
+    public static Response response(String issuer) {
+        return response(DESTINATION, issuer != null ? issuer : ASSERTING_PARTY_ENTITY_ID);
+    }
+
     public static Response response(String destination, String issuerEntityId) {
         Response response = build(Response.DEFAULT_ELEMENT_NAME);
         response.setID("R" + UUID.randomUUID());
@@ -138,11 +142,14 @@ public final class TestOpenSamlObjects {
         return assertion(USERNAME, ASSERTING_PARTY_ENTITY_ID, RELYING_PARTY_ENTITY_ID, DESTINATION);
     }
 
-    public static Assertion assertion(String username) {
+    public static Assertion assertion(String issuer, String username) {
         if (username == null) {
             username = USERNAME;
         }
-        return assertion(username, ASSERTING_PARTY_ENTITY_ID, RELYING_PARTY_ENTITY_ID, DESTINATION);
+        if (issuer == null) {
+            issuer = ASSERTING_PARTY_ENTITY_ID;
+        }
+        return assertion(username, issuer, RELYING_PARTY_ENTITY_ID, DESTINATION);
     }
 
     public static Assertion assertion(String username, String issuerEntityId, String recipientEntityId, String recipientUri) {

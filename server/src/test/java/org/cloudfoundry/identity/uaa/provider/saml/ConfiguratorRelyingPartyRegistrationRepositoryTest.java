@@ -139,7 +139,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
         when(definition.getIdpEntityAlias()).thenReturn(REGISTRATION_ID);
         when(definition.getNameID()).thenReturn(NAME_ID);
         when(definition.getMetaDataLocation()).thenReturn(metadata);
-        when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
+        when(configurator.getIdentityProviderDefinitionsForOrigin(identityZone, "defaultRegistrationId")).thenReturn(definition);
 
         assertThat(repository.findByRegistrationId("defaultRegistrationId"))
                 .returns(REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId);
