@@ -50,6 +50,7 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         final String host = "%s.localhost".formatted(subdomain);
         final String fullPath = "/uaa/oauth/token/alias/%s.integration-saml-entity-id".formatted(subdomain);
         final String origin = "%s.integration-saml-entity-id".formatted(subdomain);
+        final String entityId = "%s.cloudfoundry-saml-login".formatted(subdomain);
         MockMvcUtils.IdentityZoneCreationResult testZone =
                 MockMvcUtils.createOtherIdentityZoneAndReturnResult(
                         subdomain, mockMvc, this.webApplicationContext, null,
@@ -59,6 +60,7 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         String idpMetadata = getIdpMetadata(host, origin);
         SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(
                 origin, testZone.getIdentityZone().getId(), idpMetadata);
+        idpDef.setIdpEntityId(entityId);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setConfig(idpDef);
         provider.setActive(true);
@@ -71,7 +73,7 @@ class Saml2BearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         IdentityZoneHolder.clear();
 
         String spEndpoint = "http://%s:8080/uaa/oauth/token/alias/%s".formatted(host, origin);
-        String assertionStr = TestOpenSamlObjects.getEncodedAssertion("68uexx.cloudfoundry-saml-login", NameID.UNSPECIFIED,
+        String assertionStr = TestOpenSamlObjects.getEncodedAssertion(entityId, NameID.UNSPECIFIED,
                 "Saml2BearerIntegrationUser", spEndpoint, origin, true);
 
         // create a client in the test zone

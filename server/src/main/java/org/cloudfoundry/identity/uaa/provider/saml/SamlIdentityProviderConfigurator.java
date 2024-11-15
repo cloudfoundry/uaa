@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
@@ -40,6 +41,22 @@ public class SamlIdentityProviderConfigurator {
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
         return getIdentityProviderDefinitionsForZone(identityZoneManager.getCurrentIdentityZone());
+    }
+
+    public AbstractIdentityProviderDefinition getIdentityProviderDefinitionsForOrigin(IdentityZone zone, String origin) {
+        try {
+            return providerProvisioning.retrieveByOrigin(origin, zone.getId()).getConfig();
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
+    }
+
+    public AbstractIdentityProviderDefinition getIdentityProviderDefinitionsForIssuer(IdentityZone zone, String issuer) {
+        try {
+            return providerProvisioning.retrieveByExternId(issuer, OriginKeys.SAML, zone.getId()).getConfig();
+        } catch (EmptyResultDataAccessException e) {
+            return null;
+        }
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {

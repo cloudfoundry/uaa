@@ -38,6 +38,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
@@ -237,9 +238,15 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 log.debug("Attempting SAML authentication for token endpoint.");
                 try {
                     authResult = saml2BearerGrantAuthenticationConverter.convert(request);
+                } catch (AuthenticationException e) {
+                    String errorMessage = (e instanceof Saml2AuthenticationException saml2AuthenticationException) ?
+                            saml2AuthenticationException.getSaml2Error().getDescription() : e.getMessage();
+                    log.debug(errorMessage, e);
+                    throw new InsufficientAuthenticationException(errorMessage);
                 } catch (Exception e) {
-                    log.error("Error setting assertion in SAML filter", e);
-                    throw new InsufficientAuthenticationException("Error setting assertion in SAML filter");
+                    String errorMessage = "Error setting assertion in SAML filter";
+                    log.error(errorMessage, e);
+                    throw new InsufficientAuthenticationException(errorMessage);
                 }
             } else {
                 log.debug("No assertion or filter, not attempting SAML authentication for token endpoint.");

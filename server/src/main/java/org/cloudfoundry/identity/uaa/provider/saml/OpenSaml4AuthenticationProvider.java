@@ -616,7 +616,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             return null;
         }
         if (request.getBinding() == Saml2MessageBinding.REDIRECT) {
-            samlRequest = Saml2Utils.samlInflate(Saml2Utils.samlDecode(samlRequest));
+            samlRequest = Saml2Utils.samlDecodeAndInflate(samlRequest);
         } else {
             samlRequest = new String(Saml2Utils.samlDecode(samlRequest), StandardCharsets.UTF_8);
         }

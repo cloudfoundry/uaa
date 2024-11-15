@@ -428,6 +428,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
         String idpMetadata = getIdpMetadata(host, origin);
         SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(
                 origin, testZone.getIdentityZone().getId(), idpMetadata);
+        idpDef.setIdpEntityId("68uexx.cloudfoundry-saml-login");
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setConfig(idpDef);
         provider.setActive(true);
