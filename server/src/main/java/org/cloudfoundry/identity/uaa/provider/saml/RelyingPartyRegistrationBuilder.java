@@ -37,7 +37,7 @@ public class RelyingPartyRegistrationBuilder {
     /**
      * Build a RelyingPartyRegistration object from the given parameters
      *
-     * @param params the params object used to build the RelyingPartyRegistration object
+     * @param builderParams the params object used to build the RelyingPartyRegistration object
      * @return a RelyingPartyRegistration object
      */
     public static RelyingPartyRegistration buildRelyingPartyRegistration(Params builderParams) {
@@ -90,10 +90,10 @@ public class RelyingPartyRegistrationBuilder {
     }
 
     /**
-     * Create the dummy XML
+     * Create the metadata XML
      * @param entityId entityID
      * @param keyWithCerts Keys
-     * @return
+     * @return metadata XML
      */
     public static String createOwnMetadata(String entityId, List<KeyWithCert> keyWithCerts) {
         String certificate = keyWithCerts.stream().findFirst().map(e -> {
@@ -103,21 +103,22 @@ public class RelyingPartyRegistrationBuilder {
                 return UaaStringUtils.EMPTY_STRING;
             }
         }).orElse(UaaStringUtils.EMPTY_STRING);
-        return "<?xml version=\"1.0\"?>\n" +
-                "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\""+entityId+"\">\n" +
-                "    <md:IDPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n" +
-                "        <md:KeyDescriptor use=\"signing\">\n" +
-                "            <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
-                "                <ds:X509Data>\n" +
-                "                    <ds:X509Certificate>\n" +
-                                       certificate+"\n</ds:X509Certificate>\n" +
-                "                </ds:X509Data>\n" +
-                "            </ds:KeyInfo>\n" +
-                "        </md:KeyDescriptor>\n" +
-                "        <md:SingleSignOnService\n" +
-                "                Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://www.cloudfoundry.org\"/>\n" +
-                "    </md:IDPSSODescriptor>\n" +
-                "</md:EntityDescriptor>";
+
+        return """
+                <?xml version="1.0"?>
+                <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="%s">
+                    <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+                        <md:KeyDescriptor use="signing">
+                            <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                                <ds:X509Data>
+                                    <ds:X509Certificate>%s</ds:X509Certificate>
+                                </ds:X509Data>
+                            </ds:KeyInfo>
+                        </md:KeyDescriptor>
+                        <md:SingleSignOnService
+                                Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://www.cloudfoundry.org"/>
+                    </md:IDPSSODescriptor>
+                </md:EntityDescriptor>""".formatted(entityId, certificate);
     }
 
     /**
