@@ -51,7 +51,7 @@ import static org.opensaml.xmlsec.signature.support.SignatureConstants.TRANSFORM
 class SamlMetadataEndpointTest {
     private static final String ASSERTION_CONSUMER_SERVICE_1 = "http://localhost:8080/saml/SSO/alias/entityAlias";
     private static final String ASSERTION_CONSUMER_SERVICE_2 = "http://localhost:8080/oauth/token/alias/entityAlias";
-    private static final String REGISTRATION_ID = "regId";
+    private static final String REGISTRATION_ID = SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID;
     private static final String ENTITY_ID = "entityId";
     private static final String TEST_ZONE = "testzone1";
 
@@ -98,7 +98,7 @@ class SamlMetadataEndpointTest {
     void defaultZoneFileName() {
         when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
                 .isEqualTo("attachment; filename=\"saml-sp.xml\"; filename*=UTF-8''saml-sp.xml");
     }
@@ -110,7 +110,7 @@ class SamlMetadataEndpointTest {
         when(identityZone.getSubdomain()).thenReturn(TEST_ZONE);
         when(endpoint.retrieveZone()).thenReturn(identityZone);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_DISPOSITION))
                 .isEqualTo("attachment; filename=\"saml-%1$s-sp.xml\"; filename*=UTF-8''saml-%1$s-sp.xml".formatted(TEST_ZONE));
     }
@@ -121,7 +121,7 @@ class SamlMetadataEndpointTest {
         when(samlConfig.isWantAssertionSigned()).thenReturn(true);
         when(samlConfig.isRequestSigned()).thenReturn(true);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
         xmlAssert.valueByXPath("//md:EntityDescriptor/@entityID").isEqualTo(ENTITY_ID);
         xmlAssert.valueByXPath("//md:EntityDescriptor/@ID").isEqualTo(ENTITY_ID);
@@ -145,7 +145,7 @@ class SamlMetadataEndpointTest {
         when(samlConfig.isWantAssertionSigned()).thenReturn(false);
         when(samlConfig.isRequestSigned()).thenReturn(false);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
         xmlAssert.valueByXPath("//md:SPSSODescriptor/@AuthnRequestsSigned").isEqualTo(false);
         xmlAssert.valueByXPath("//md:SPSSODescriptor/@WantAssertionsSigned").isEqualTo(false);
@@ -156,7 +156,7 @@ class SamlMetadataEndpointTest {
         endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA1, false));
         when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces())
                 .nodesByXPath("/md:EntityDescriptor/ds:Signature").doNotExist();
     }
@@ -166,7 +166,7 @@ class SamlMetadataEndpointTest {
         endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, null, true));
         when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces())
                 .nodesByXPath("/md:EntityDescriptor/ds:Signature").doNotExist();
     }
@@ -175,7 +175,7 @@ class SamlMetadataEndpointTest {
     void sha256Signature() throws CertificateEncodingException {
         when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         System.out.println(response.getBody());
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
         xmlAssert.valueByXPath("/md:EntityDescriptor/@ID").isEqualTo(ENTITY_ID);
@@ -197,7 +197,7 @@ class SamlMetadataEndpointTest {
         endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA512, true));
         when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
         xmlAssert.valueByXPath("/md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:SignatureMethod/@Algorithm").isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA512);
         xmlAssert.valueByXPath("/md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestMethod/@Algorithm").isEqualTo(ALGO_ID_DIGEST_SHA512);
@@ -208,7 +208,7 @@ class SamlMetadataEndpointTest {
         endpoint = spy(new SamlMetadataEndpoint(resolver, identityZoneManager, SignatureAlgorithm.SHA1, true));
         when(resolver.resolve(request, REGISTRATION_ID)).thenReturn(registration);
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
         xmlAssert.valueByXPath("/md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:SignatureMethod/@Algorithm").isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA1);
         xmlAssert.valueByXPath("/md:EntityDescriptor/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestMethod/@Algorithm").isEqualTo(ALGO_ID_DIGEST_SHA1);

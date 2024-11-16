@@ -51,13 +51,13 @@ class SamlMetadataEndpointMockMvcTests {
     @Test
     void testSamlMetadataDefaultNoEndingSlash() throws Exception {
         mockMvc.perform(get(new URI("/saml/metadata/example")))
-                .andExpect(status().isOk());
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
     void testSamlMetadataDefaultWithEndingSlash() throws Exception {
         mockMvc.perform(get(new URI("/saml/metadata/example/")))
-                .andExpect(status().isOk());
+                .andExpect(status().is4xxClientError());
     }
 
     @Test
