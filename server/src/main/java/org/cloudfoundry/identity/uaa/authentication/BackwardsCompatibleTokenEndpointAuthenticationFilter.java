@@ -220,11 +220,11 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             log.debug("Authentication credentials found password grant for '" + credentials.getName() + "'");
             authResult = authenticationManager.authenticate(credentials);
 
-            if (authResult != null && authResult.isAuthenticated() && authResult instanceof UaaAuthentication uaaAuthentication) {
-                if (SessionUtils.isPasswordChangeRequired(request.getSession())) {
+            if (authResult != null && authResult.isAuthenticated() && authResult instanceof UaaAuthentication uaaAuthentication
+                    && SessionUtils.isPasswordChangeRequired(request.getSession())) {
                     throw new PasswordChangeRequiredException(uaaAuthentication, "password change required");
                 }
-            }
+
 
             return authResult;
         } else if (GRANT_TYPE_SAML2_BEARER.equals(grantType)) {
