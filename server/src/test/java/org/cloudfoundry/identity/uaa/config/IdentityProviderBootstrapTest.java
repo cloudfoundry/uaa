@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderData;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -110,7 +111,7 @@ class IdentityProviderBootstrapTest {
         publisher = mock(ApplicationEventPublisher.class);
         provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         environment = new MockEnvironment();
-        bootstrap = new IdentityProviderBootstrap(provisioning, environment);
+        bootstrap = new IdentityProviderBootstrap(provisioning, new IdentityZoneManagerImpl(), environment);
         bootstrap.setApplicationEventPublisher(publisher);
 
     }
