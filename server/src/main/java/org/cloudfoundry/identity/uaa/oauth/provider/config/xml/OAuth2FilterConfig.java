@@ -23,6 +23,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import javax.servlet.http.HttpServletRequest;
 
 @Configuration
 public class OAuth2FilterConfig {
@@ -33,7 +34,7 @@ public class OAuth2FilterConfig {
                                                                                            UaaAuthorizationRequestManager authorizationRequestManager,
                                                                                            Saml2BearerGrantAuthenticationConverter samlBearerGrantAuthenticationProvider,
                                                                                            ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager,
-                                                                                           AuthenticationDetailsSource authenticationDetailsSource,
+                                                                                           AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource,
                                                                                            AuthenticationEntryPoint basicAuthenticationEntryPoint) {
 
         BackwardsCompatibleTokenEndpointAuthenticationFilter authenticationFilter =
