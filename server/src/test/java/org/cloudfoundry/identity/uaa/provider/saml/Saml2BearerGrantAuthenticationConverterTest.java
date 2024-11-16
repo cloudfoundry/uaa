@@ -86,13 +86,13 @@ class Saml2BearerGrantAuthenticationConverterTest {
         );
         SamlRelyingPartyRegistrationRepositoryConfig samlRelyingPartyRegistrationRepositoryConfig =
                 new SamlRelyingPartyRegistrationRepositoryConfig(
-                        "integration-saml-entity-id", new SamlConfigProps(),
+                        "integration-saml-entity-id", Saml2TestUtils.createTestSamlProperties(),
                         new BootstrapSamlIdentityProviderData(identityProviderConfigurator),
                         "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified",
                         List.of(SignatureAlgorithm.SHA256, SignatureAlgorithm.SHA512));
 
         RelyingPartyRegistrationRepository relyingPartyRegistrationRepository = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationRepository(identityProviderConfigurator);
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
+        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationResolver(relyingPartyRegistrationRepository, null);
 
         provider = new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
                 providerProvisioning, null, null);

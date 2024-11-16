@@ -56,13 +56,14 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 
 /**
  * Provides an implementation that sets the UserAuthentication
- * prior to createAuthorizatioRequest is called.
+ * prior to createAuthorizationRequest is called.
  * Backwards compatible with Spring Security Oauth2 v1
  * This is a copy of the TokenEndpointAuthenticationFilter from Spring Security Oauth2 v2, but made to work with UAA
  */
@@ -157,18 +158,18 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                         .getContext()
                         .setAuthentication(new OAuth2Authentication(storedOAuth2Request, userAuthentication));
 
-                onSuccessfulAuthentication(request, response, userAuthentication);
+                onSuccessfulAuthentication();
             }
         } catch (AuthenticationException failed) {
             log.debug("Authentication request failed: {}", failed.getMessage());
-            onUnsuccessfulAuthentication(request, response, failed);
+            onUnsuccessfulAuthentication();
             authenticationEntryPoint.commence(request, response, failed);
             return;
         } catch (OAuth2Exception failed) {
             String message = failed.getMessage();
             log.debug("Authentication request failed with Oauth exception: {}", message);
             InsufficientAuthenticationException ex = new InsufficientAuthenticationException(message, failed);
-            onUnsuccessfulAuthentication(request, response, ex);
+            onUnsuccessfulAuthentication();
             authenticationEntryPoint.commence(request, response, ex);
             return;
         }
@@ -186,14 +187,11 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         return map;
     }
 
-    protected void onSuccessfulAuthentication(HttpServletRequest request,
-                                              HttpServletResponse response,
-                                              Authentication authResult) {
+    protected void onSuccessfulAuthentication() {
+        // do nothing
     }
 
-    protected void onUnsuccessfulAuthentication(HttpServletRequest request,
-                                                HttpServletResponse response,
-                                                AuthenticationException failed) {
+    protected void onUnsuccessfulAuthentication() {
         SecurityContextHolder.clearContext();
     }
 
@@ -214,7 +212,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
     }
 
     protected Authentication attemptTokenAuthentication(HttpServletRequest request, HttpServletResponse response) {
-        String grantType = request.getParameter("grant_type");
+        String grantType = request.getParameter(GRANT_TYPE);
         log.debug("Processing token user authentication for grant:{}", UaaStringUtils.getCleanedUserControlString(grantType));
         Authentication authResult = null;
         if (GRANT_TYPE_PASSWORD.equals(grantType)) {

@@ -11,8 +11,6 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
-import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,8 +20,6 @@ import static org.cloudfoundry.identity.uaa.provider.saml.SamlMetadataEndpoint.D
 @Configuration
 @Slf4j
 public class SamlRelyingPartyRegistrationRepositoryConfig {
-
-    public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
     private final String samlEntityID;
     private final SamlConfigProps samlConfigProps;
@@ -68,7 +64,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
                 .samlEntityID(samlEntityID)
                 .samlSpNameId(samlSpNameID)
                 .keys(defaultKeysWithCerts)
-                .metadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
+                .metadataLocation(RelyingPartyRegistrationBuilder.createOwnMetadata(samlEntityID, defaultKeysWithCerts))
                 .rpRegistrationId(DEFAULT_REGISTRATION_ID)
                 .samlSpAlias(uaaWideSamlEntityIDAlias)
                 .requestSigned(samlConfigProps.getSignRequest())
@@ -103,7 +99,8 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
 
     @Autowired
     @Bean
-    RelyingPartyRegistrationResolver relyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
-        return new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
+    UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
+                                                                      @Qualifier("samlEntityID") String samlEntityID) {
+        return new UaaRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, samlEntityID);
     }
 }

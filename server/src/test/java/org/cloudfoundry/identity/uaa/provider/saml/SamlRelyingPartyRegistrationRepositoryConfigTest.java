@@ -20,8 +20,7 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     private static final String ENTITY_ID = "entityId";
     private static final String NAME_ID = "nameIdFormat";
 
-    @Mock
-    SamlConfigProps samlConfigProps;
+    private static SamlConfigProps samlConfigProps;
 
     @Mock
     BootstrapSamlIdentityProviderData bootstrapSamlIdentityProviderData;
@@ -32,6 +31,7 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     @BeforeAll
     public static void beforeAll() {
         Security.addProvider(new BouncyCastleFipsProvider());
+        samlConfigProps = Saml2TestUtils.createTestSamlProperties();
     }
 
     @Test
@@ -47,7 +47,7 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
         SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
                 samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
-        RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository);
+        RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository, ENTITY_ID);
 
         assertThat(resolver).isNotNull();
     }
@@ -67,6 +67,6 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
                 .returns("{baseUrl}/saml/SingleLogout/alias/entityId", RelyingPartyRegistration::getSingleLogoutServiceResponseLocation)
                 // from xml
                 .extracting(RelyingPartyRegistration::getAssertingPartyDetails)
-                .returns("exampleEntityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
+                .returns("entityId", RelyingPartyRegistration.AssertingPartyDetails::getEntityId);
     }
 }

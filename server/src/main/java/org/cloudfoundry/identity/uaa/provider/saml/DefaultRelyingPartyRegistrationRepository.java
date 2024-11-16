@@ -15,7 +15,6 @@ import java.util.List;
  * but for non-default zones.
  */
 public class DefaultRelyingPartyRegistrationRepository extends BaseUaaRelyingPartyRegistrationRepository {
-    public static final String CLASSPATH_DUMMY_SAML_IDP_METADATA_XML = "classpath:dummy-saml-idp-metadata.xml";
 
     public DefaultRelyingPartyRegistrationRepository(String uaaWideSamlEntityID,
                                                      String uaaWideSamlEntityIDAlias,
@@ -50,7 +49,7 @@ public class DefaultRelyingPartyRegistrationRepository extends BaseUaaRelyingPar
                 .samlEntityID(zonedSamlEntityID)
                 .samlSpNameId(uaaWideSamlNameId)
                 .keys(keyWithCerts)
-                .metadataLocation(CLASSPATH_DUMMY_SAML_IDP_METADATA_XML)
+                .metadataLocation(RelyingPartyRegistrationBuilder.createOwnMetadata(zonedSamlEntityID, keyWithCerts))
                 .rpRegistrationId(registrationId)
                 .samlSpAlias(zonedSamlEntityIDAlias)
                 .requestSigned(requestSigned)

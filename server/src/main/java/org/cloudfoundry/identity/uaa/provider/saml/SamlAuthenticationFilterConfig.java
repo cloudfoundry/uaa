@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,7 +21,6 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutRequestValidator;
 import org.springframework.security.saml2.provider.service.authentication.logout.Saml2LogoutResponseValidator;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.Saml2AuthenticationTokenConverter;
 import org.springframework.security.saml2.provider.service.web.Saml2WebSsoAuthenticationRequestFilter;
@@ -112,13 +112,12 @@ public class SamlAuthenticationFilterConfig {
     @Autowired
     @Bean
     Filter saml2WebSsoAuthenticationFilter(AuthenticationProvider samlAuthenticationProvider,
-                                           RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
+                                           UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
                                            SecurityContextRepository securityContextRepository,
                                            SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler,
                                            UaaSavedRequestAwareAuthenticationSuccessHandler samlLoginAuthenticationSuccessHandler) {
 
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
-        Saml2AuthenticationTokenConverter saml2AuthenticationTokenConverter = new Saml2AuthenticationTokenConverter(relyingPartyRegistrationResolver);
+        Saml2AuthenticationTokenConverter saml2AuthenticationTokenConverter = new Saml2AuthenticationTokenConverter((RelyingPartyRegistrationResolver)relyingPartyRegistrationResolver);
         Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter = new Saml2WebSsoAuthenticationFilter(saml2AuthenticationTokenConverter, BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
 
         ProviderManager authenticationManager = new ProviderManager(samlAuthenticationProvider);
@@ -223,10 +222,9 @@ public class SamlAuthenticationFilterConfig {
      */
     @Autowired
     @Bean
-    Saml2LogoutRequestFilter saml2LogoutRequestFilter(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
+    Saml2LogoutRequestFilter saml2LogoutRequestFilter(UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
                                                       UaaAuthenticationFailureHandler authenticationFailureHandler,
                                                       CookieBasedCsrfTokenRepository loginCookieCsrfRepository) {
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
 
         // This validator ignores missing signatures in the SAML2 Logout Response
         Saml2LogoutRequestValidator logoutRequestValidator = new SamlLogoutRequestValidator();
@@ -253,9 +251,8 @@ public class SamlAuthenticationFilterConfig {
                                                                                   final JdbcIdentityProviderProvisioning identityProviderProvisioning,
                                                                                   SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager,
                                                                                   ApplicationEventPublisher applicationEventPublisher,
-                                                                                  RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
+                                                                                  UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
 
-        RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = new DefaultRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository);
         return new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
                 identityProviderProvisioning, samlUaaAuthenticationUserManager, applicationEventPublisher);
     }

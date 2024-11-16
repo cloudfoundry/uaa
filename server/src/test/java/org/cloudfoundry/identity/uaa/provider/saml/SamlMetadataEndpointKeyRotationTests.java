@@ -14,7 +14,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
-import org.springframework.security.saml2.provider.service.web.DefaultRelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.xmlunit.assertj.MultipleNodeAssert;
 import org.xmlunit.assertj.XmlAssert;
@@ -85,7 +84,7 @@ public class SamlMetadataEndpointKeyRotationTests {
 
         RelyingPartyRegistrationRepository registrationRepository =
                 new DefaultRelyingPartyRegistrationRepository("entityId", "entityIdAlias", List.of(), NAME_ID_FORMAT);
-        RelyingPartyRegistrationResolver registrationResolver = new DefaultRelyingPartyRegistrationResolver(registrationRepository);
+        RelyingPartyRegistrationResolver registrationResolver = new UaaRelyingPartyRegistrationResolver(registrationRepository, ENTITY_ID);
         endpoint = spy(new SamlMetadataEndpoint(registrationResolver, identityZoneManager, SignatureAlgorithm.SHA256, true));
         IdentityZoneHolder.set(otherZone);
 

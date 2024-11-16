@@ -301,7 +301,7 @@ class SamlAuthenticationMockMvcTests {
     void receiveAuthnResponseFromIdpToLegacyAliasUrl() throws Exception {
 
         String encodedSamlResponse = serializedResponse(responseWithAssertions());
-        mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("testsaml-post-binding"))
+        mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
                         .contextPath("/uaa")
                         .header(HOST, "localhost:8080")
                         .param(SAML_RESPONSE, encodedSamlResponse)
@@ -474,10 +474,10 @@ class SamlAuthenticationMockMvcTests {
         @Test
         void AuthnResponseSucceedsWithWithInvalidInResponseTo() throws Exception {
 
-            Response response = responseWithAssertions();
+            Response response = responseWithAssertions("https://some.idp.test/saml/idp");
             response.setInResponseTo("incorrect");
             String encodedSamlResponse = serializedResponse(response);
-            mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("testsaml-post-binding"))
+            mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
                             .contextPath("/uaa")
                             .header(HOST, "localhost:8080")
                             .param(SAML_RESPONSE, encodedSamlResponse)

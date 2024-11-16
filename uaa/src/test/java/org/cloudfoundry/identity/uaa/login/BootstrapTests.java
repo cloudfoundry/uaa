@@ -181,7 +181,7 @@ class BootstrapTests {
     @Test
     void legacySamlIdpAsTopLevelElement() {
         System.setProperty(LOGIN_SAML_METADATA_TRUST_CHECK, "false");
-        System.setProperty(LOGIN_IDP_METADATA_URL, "classpath:sample-okta-localhost.xml");
+        System.setProperty(LOGIN_IDP_METADATA, loadResouceAsString("sample-okta-localhost.xml"));
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
 
         context = getServletContext("default", "uaa.yml");
@@ -191,7 +191,7 @@ class BootstrapTests {
                 .returns(false, BootstrapSamlIdentityProviderData::isLegacyMetadataTrustCheck);
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertThat(providerByAlias(defs, "testIDPFile"))
-                .returns(SamlIdentityProviderDefinition.MetadataLocation.URL, SamlIdentityProviderDefinition::getType);
+                .returns(SamlIdentityProviderDefinition.MetadataLocation.DATA, SamlIdentityProviderDefinition::getType);
     }
 
     @Test
