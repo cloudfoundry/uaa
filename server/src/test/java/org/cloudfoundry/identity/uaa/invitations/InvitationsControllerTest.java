@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -830,6 +831,7 @@ class InvitationsControllerTest {
                     zoneAwareAuthenticationManager,
                     userDatabase,
                     provisioning,
+                    new IdentityZoneManagerImpl(),
                     externalOAuthProviderConfigurator);
         }
 
