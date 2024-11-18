@@ -22,7 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.LinkedList;
 import java.util.List;
 
-import static java.util.stream.Collectors.toList;
 import static org.springframework.util.StringUtils.hasText;
 
 @Component("metaDataProviders")
@@ -48,7 +47,7 @@ public class SamlIdentityProviderConfigurator {
         final List<IdentityProvider> samlIdpsInZone = providerProvisioning.retrieveActiveByType(OriginKeys.SAML, zone.getId());
         return samlIdpsInZone.stream()
                 .map(samlIdp -> (SamlIdentityProviderDefinition) samlIdp.getConfig())
-                .collect(toList());
+                .toList();
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone) {

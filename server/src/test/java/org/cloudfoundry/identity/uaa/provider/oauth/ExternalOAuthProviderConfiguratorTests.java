@@ -33,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.IntStream;
 
-import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -170,14 +169,14 @@ class ExternalOAuthProviderConfiguratorTests {
          * -> however, they should not be returned since the types don't match */
         final String originKeyPrefix = RandomStringUtils.randomAlphanumeric(8) + "-";
         final List<IdentityProvider> idps = IntStream.rangeClosed(1,3).mapToObj(index -> {
-            final IdentityProvider<?> idp = new IdentityProvider<>();
+            final IdentityProvider idp = new IdentityProvider<>();
             final String originKey = "%s%d".formatted(originKeyPrefix, index);
             idp.setOriginKey(originKey);
             idp.setId(originKey);
             idp.setType(type);
             idp.setActive(true);
             return idp;
-        }).collect(toList());
+        }).toList();
         lenient().when(mockIdentityProviderProvisioning.retrieveActiveByType(type, zoneId)).thenReturn(idps);
 
         assertTrue(configurator.retrieveActiveByType(type, zoneId).isEmpty());
@@ -201,7 +200,7 @@ class ExternalOAuthProviderConfiguratorTests {
             }
             idp.setActive(true);
             return idp;
-        }).collect(toList());
+        }).toList();
         when(mockIdentityProviderProvisioning.retrieveActiveByType(type, zoneId)).thenReturn(idps);
 
         final List<IdentityProvider> result = configurator.retrieveActiveByType(type, zoneId);

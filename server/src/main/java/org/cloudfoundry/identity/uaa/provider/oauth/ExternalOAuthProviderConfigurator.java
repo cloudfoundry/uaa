@@ -35,7 +35,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Predicate.not;
-import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
@@ -203,7 +202,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
                     return idp;
                 })
                 .filter(not(Objects::isNull))
-                .collect(toList());
+                .toList();
     }
 
     public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
