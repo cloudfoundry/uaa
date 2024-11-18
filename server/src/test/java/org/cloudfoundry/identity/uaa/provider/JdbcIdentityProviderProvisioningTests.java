@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
+import static java.util.stream.Collectors.toSet;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
@@ -19,21 +21,24 @@ import static org.mockito.Mockito.when;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.springframework.util.StringUtils;
 
 @WithDatabaseContext
 class JdbcIdentityProviderProvisioningTests {
@@ -312,7 +317,7 @@ class JdbcIdentityProviderProvisioningTests {
         String idpId = "idpId-" + generator.generate();
         IdentityProvider idp = MultitenancyFixture.identityProvider(origin, uaaZoneId);
         idp.setId(idpId);
-        idp.setType(OriginKeys.LDAP);
+        idp.setType(LDAP);
         idp = jdbcIdentityProviderProvisioning.create(idp, uaaZoneId);
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
@@ -397,6 +402,41 @@ class JdbcIdentityProviderProvisioningTests {
         idp.setId(idpId);
         IdentityProvider idp1 = jdbcIdentityProviderProvisioning.create(idp, otherZoneId1);
         assertThrows(EmptyResultDataAccessException.class, () -> jdbcIdentityProviderProvisioning.retrieveByOrigin(idp1.getOriginKey(), otherZoneId2));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { SAML, UAA, LDAP, OAUTH20, OIDC10 })
+    void retrieveActiveByType(final String type) {
+        // have the correct type and zone
+        final String idp1Id = createIdp(type, origin, otherZoneId1);
+        final String idp2Id = createIdp(type, "origin-" + generator.generate(), otherZoneId1);
+
+        // have another type -> should not be in the result
+        final String otherType = type.equals(SAML) ? OIDC10 : SAML;
+        createIdp(otherType, "origin-" + generator.generate(), otherZoneId1);
+        createIdp(otherType, "origin-" + generator.generate(), otherZoneId1);
+
+        // have the correct type, but another zone -> should not be in the result
+        createIdp(type, "origin-" + generator.generate(), otherZoneId2);
+        createIdp(type, "origin-" + generator.generate(), otherZoneId2);
+
+        final List<IdentityProvider> result = jdbcIdentityProviderProvisioning.retrieveActiveByType(type, otherZoneId1);
+        assertEquals(2, result.size());
+
+        final Set<String> idsInResult = result.stream().map(IdentityProvider::getId).collect(toSet());
+        assertTrue(idsInResult.contains(idp1Id));
+        assertTrue(idsInResult.contains(idp2Id));
+    }
+
+    private String createIdp(final String type, final String originKey, final String zoneId) {
+        final String idpId = "idpId-" + generator.generate();
+        final IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, idpId);
+        idp.setId(idpId);
+        idp.setType(type);
+        final IdentityProvider createdIdp = jdbcIdentityProviderProvisioning.create(idp, zoneId);
+        final String idpIdCreated = createdIdp.getId();
+        assertTrue(StringUtils.hasText(idpIdCreated));
+        return idpIdCreated;
     }
 
     @Test
