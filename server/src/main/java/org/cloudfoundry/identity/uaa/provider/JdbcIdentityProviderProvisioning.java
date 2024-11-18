@@ -37,6 +37,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=?";
 
+    public static final String IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY = IDENTITY_ACTIVE_PROVIDERS_QUERY + " and type=?";
+
     public static final String IDP_WITH_ALIAS_EXISTS_QUERY = "select 1 from identity_provider idp where idp.identity_zone_id = ? and idp.alias_zid <> '' limit 1";
 
     public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active,alias_id,alias_zid,external_key".replace(",", "=?,") + "=?";
@@ -83,6 +85,11 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     @Override
     public List<IdentityProvider> retrieveActive(String zoneId) {
         return jdbcTemplate.query(IDENTITY_ACTIVE_PROVIDERS_QUERY, mapper, zoneId, true);
+    }
+
+    @Override
+    public List<IdentityProvider> retrieveActiveByType(final String type, final String zoneId) {
+        return jdbcTemplate.query(IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY, mapper, zoneId, true, type);
     }
 
     @Override

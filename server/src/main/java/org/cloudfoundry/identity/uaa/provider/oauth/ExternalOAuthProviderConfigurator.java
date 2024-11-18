@@ -28,11 +28,14 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Predicate.not;
+import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
@@ -177,6 +180,30 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     @Override
     public List<IdentityProvider> retrieveActive(String zoneId) {
         return retrieveAll(true, zoneId);
+    }
+
+    @Override
+    public List<IdentityProvider> retrieveActiveByType(final String type, final String zoneId) {
+        if (!OAUTH20.equals(type) && !OIDC10.equals(type)) {
+            return emptyList();
+        }
+        return providerProvisioning.retrieveActiveByType(type, zoneId).stream()
+                .map((idp) -> {
+                    if (idp.getType().equals(OIDC10)) {
+                        try {
+                            final OIDCIdentityProviderDefinition overlayedDefinition = overlay(
+                                    (OIDCIdentityProviderDefinition) idp.getConfig()
+                            );
+                            idp.setConfig(overlayedDefinition);
+                        } catch (final Exception e) {
+                            LOGGER.error("Identity provider excluded from login page due to a problem.", e);
+                            return null;
+                        }
+                    }
+                    return idp;
+                })
+                .filter(not(Objects::isNull))
+                .collect(toList());
     }
 
     public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
