@@ -12,17 +12,17 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.UUID;
 
 @RestController
 public class SamlMetadataEndpoint implements ZoneAware {
-    public static final String DEFAULT_REGISTRATION_ID = "example";
+    protected static final String DEFAULT_REGISTRATION_ID = UUID.randomUUID().toString();
     private static final String APPLICATION_XML_CHARSET_UTF_8 = "application/xml; charset=UTF-8";
 
     private final Saml2MetadataResolver saml2MetadataResolver;
@@ -41,13 +41,8 @@ public class SamlMetadataEndpoint implements ZoneAware {
     }
 
     @GetMapping(value = "/saml/metadata", produces = APPLICATION_XML_CHARSET_UTF_8)
-    public ResponseEntity<String> legacyMetadataEndpoint(HttpServletRequest request) {
-        return metadataEndpoint(request, DEFAULT_REGISTRATION_ID);
-    }
-
-    @GetMapping(value = "/saml/metadata/{registrationId}", produces = APPLICATION_XML_CHARSET_UTF_8)
-    public ResponseEntity<String> metadataEndpoint(HttpServletRequest request, @PathVariable String registrationId) {
-        RelyingPartyRegistration relyingPartyRegistration = relyingPartyRegistrationResolver.resolve(request, registrationId);
+    public ResponseEntity<String> metadataEndpoint(HttpServletRequest request) {
+        RelyingPartyRegistration relyingPartyRegistration = relyingPartyRegistrationResolver.resolve(request, DEFAULT_REGISTRATION_ID);
         if (relyingPartyRegistration == null) {
             return ResponseEntity.status(HttpServletResponse.SC_UNAUTHORIZED).build();
         }

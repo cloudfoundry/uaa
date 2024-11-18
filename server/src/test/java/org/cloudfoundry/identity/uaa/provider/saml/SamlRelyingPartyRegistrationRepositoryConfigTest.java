@@ -57,9 +57,9 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
         SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
                 samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
-        RelyingPartyRegistration registration = repository.findByRegistrationId("example");
+        RelyingPartyRegistration registration = repository.findByRegistrationId(SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID);
         assertThat(registration)
-                .returns("example", RelyingPartyRegistration::getRegistrationId)
+                .returns(SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID, RelyingPartyRegistration::getRegistrationId)
                 .returns(ENTITY_ID, RelyingPartyRegistration::getEntityId)
                 .returns(NAME_ID, RelyingPartyRegistration::getNameIdFormat)
                 // from functions

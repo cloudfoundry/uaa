@@ -37,7 +37,6 @@ import static org.mockito.Mockito.spy;
 public class SamlMetadataEndpointKeyRotationTests {
 
     private static final String ZONE_ID = "zone-id";
-    private static final String REGISTRATION_ID = "regId";
     private static final String NAME_ID_FORMAT = "nameIdFormat";
     private static final String ENTITY_ID = "entityIdValue";
     private static final String ENTITY_ALIAS = "entityAlias";
@@ -103,7 +102,7 @@ public class SamlMetadataEndpointKeyRotationTests {
         request.setServerPort(8080);
         request.setContextPath("uaa");
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         MultipleNodeAssert acsAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces()).nodesByXPath("//md:AssertionConsumerService");
         acsAssert.extractingAttribute("Binding").contains("urn:oasis:names:tc:SAML:2.0:bindings:URI");
         acsAssert.extractingAttribute("Location").contains("http://zone-id.localhost:8080/uaa/oauth/token/alias/zone-id.entityIdAlias");
@@ -112,7 +111,7 @@ public class SamlMetadataEndpointKeyRotationTests {
 
     @Test
     void defaultKeys() {
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 
         assertThatEncryptionKeyHasValues(xmlAssert, certificate1());
@@ -123,7 +122,7 @@ public class SamlMetadataEndpointKeyRotationTests {
     void multipleKeys() {
         samlConfig.addKey(keyName2(), samlKey2());
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 
         assertThatEncryptionKeyHasValues(xmlAssert, certificate1());
@@ -135,7 +134,7 @@ public class SamlMetadataEndpointKeyRotationTests {
         multipleKeys();
         samlConfig.addAndActivateKey(keyName2(), samlKey2());
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 
         assertThatEncryptionKeyHasValues(xmlAssert, certificate2());
@@ -147,7 +146,7 @@ public class SamlMetadataEndpointKeyRotationTests {
         changeActiveKey();
         samlConfig.removeKey(keyName1());
 
-        ResponseEntity<String> response = endpoint.metadataEndpoint(request, REGISTRATION_ID);
+        ResponseEntity<String> response = endpoint.metadataEndpoint(request);
         XmlAssert xmlAssert = XmlAssert.assertThat(response.getBody()).withNamespaceContext(xmlNamespaces());
 
         assertThatEncryptionKeyHasValues(xmlAssert, certificate2());
