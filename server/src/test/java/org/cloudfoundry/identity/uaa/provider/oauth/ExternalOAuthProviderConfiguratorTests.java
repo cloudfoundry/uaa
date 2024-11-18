@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.apache.commons.lang.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -29,7 +31,9 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.IntStream;
 
+import static java.util.stream.Collectors.toList;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -46,12 +50,14 @@ import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.spy;
@@ -153,6 +159,56 @@ class ExternalOAuthProviderConfiguratorTests {
         assertEquals(2, activeExternalOAuthProviders.size());
         verify(configurator, times(1)).overlay(eq(config));
         verify(configurator, times(1)).retrieveAll(eq(true), anyString());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { OriginKeys.UAA, OriginKeys.SAML, LDAP, OriginKeys.KEYSTONE, OriginKeys.LOGIN_SERVER })
+    void retrieveActiveByType_ShouldReturnEmptyListWhenNotOidcOrOAuth(final String type) {
+        final String zoneId = RandomStringUtils.randomAlphanumeric(8);
+
+        /* arrange three active IdPs of this type being present in the zone
+         * -> however, they should not be returned since the types don't match */
+        final String originKeyPrefix = RandomStringUtils.randomAlphanumeric(8) + "-";
+        final List<IdentityProvider> idps = IntStream.rangeClosed(1,3).mapToObj(index -> {
+            final IdentityProvider<?> idp = new IdentityProvider<>();
+            final String originKey = "%s%d".formatted(originKeyPrefix, index);
+            idp.setOriginKey(originKey);
+            idp.setId(originKey);
+            idp.setType(type);
+            idp.setActive(true);
+            return idp;
+        }).collect(toList());
+        lenient().when(mockIdentityProviderProvisioning.retrieveActiveByType(type, zoneId)).thenReturn(idps);
+
+        assertTrue(configurator.retrieveActiveByType(type, zoneId).isEmpty());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = { OIDC10, OAUTH20 })
+    void retrieveActiveByType(final String type) throws OidcMetadataFetchingException {
+        final String zoneId = RandomStringUtils.randomAlphanumeric(8);
+
+        // arrange three active IdPs of this type being present in the zone
+        final String originKeyPrefix = RandomStringUtils.randomAlphanumeric(8) + "-";
+        final List<IdentityProvider> idps = IntStream.rangeClosed(1,3).mapToObj(index -> {
+            final IdentityProvider idp = new IdentityProvider<>();
+            final String originKey = "%s%d".formatted(originKeyPrefix, index);
+            idp.setOriginKey(originKey);
+            idp.setId(originKey);
+            idp.setType(type);
+            if (OIDC10.equals(type)) {
+                idp.setConfig(new OIDCIdentityProviderDefinition());
+            }
+            idp.setActive(true);
+            return idp;
+        }).collect(toList());
+        when(mockIdentityProviderProvisioning.retrieveActiveByType(type, zoneId)).thenReturn(idps);
+
+        final List<IdentityProvider> result = configurator.retrieveActiveByType(type, zoneId);
+        assertEquals(3, result.size());
+        if (OIDC10.equals(type)) {
+            verify(mockOidcMetadataFetcher, times(3)).fetchMetadataAndUpdateDefinition(any());
+        }
     }
 
     @Test
