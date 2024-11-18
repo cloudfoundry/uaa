@@ -188,7 +188,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
             return emptyList();
         }
         return providerProvisioning.retrieveActiveByType(type, zoneId).stream()
-                .map((idp) -> {
+                .map(idp -> {
                     if (idp.getType().equals(OIDC10)) {
                         try {
                             final OIDCIdentityProviderDefinition overlayedDefinition = overlay(
