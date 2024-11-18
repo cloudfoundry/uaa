@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
@@ -39,6 +38,7 @@ import java.util.Timer;
 
 import static java.time.Duration.ofSeconds;
 import static java.util.Arrays.asList;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertEquals;
@@ -48,6 +48,7 @@ import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -187,7 +188,7 @@ public class SamlIdentityProviderConfiguratorTests {
                 case "okta-local-2": {
                     ComparableProvider provider = (ComparableProvider) configurator.getExtendedMetadataDelegateFromCache(def).getDelegate();
                     IdentityProvider idp2 = mock(IdentityProvider.class);
-                    when(idp2.getType()).thenReturn(OriginKeys.SAML);
+                    when(idp2.getType()).thenReturn(SAML);
                     when(idp2.getConfig()).thenReturn(def);
                     when(provisioning.retrieveActive(anyString())).thenReturn(asList(idp2));
                     configurator.validateSamlIdentityProviderDefinition(def, true);
@@ -219,9 +220,9 @@ public class SamlIdentityProviderConfiguratorTests {
         for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
             if ("okta-local-2".equalsIgnoreCase(def.getIdpEntityAlias())) {
                 IdentityProvider idp2 = mock(IdentityProvider.class);
-                when(idp2.getType()).thenReturn(OriginKeys.SAML);
+                when(idp2.getType()).thenReturn(SAML);
                 when(idp2.getConfig()).thenReturn(def.clone().setIdpEntityAlias("okta-local-1"));
-                when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp2));
+                when(provisioning.retrieveActiveByType(eq(SAML), anyString())).thenReturn(Arrays.asList(idp2));
                 assertThrowsWithMessageThat(
                     MetadataProviderException.class,
                     () -> configurator.validateSamlIdentityProviderDefinition(def, true),
@@ -252,18 +253,18 @@ public class SamlIdentityProviderConfiguratorTests {
           .setIconUrl("sample-icon-url")
           .setZoneId("other-zone-id");
         IdentityProvider idp1 = mock(IdentityProvider.class);
-        when(idp1.getType()).thenReturn(OriginKeys.SAML);
+        when(idp1.getType()).thenReturn(SAML);
         when(idp1.getConfig()).thenReturn(def1);
 
         IdentityProvider idp2 = mock(IdentityProvider.class);
-        when(idp2.getType()).thenReturn(OriginKeys.SAML);
+        when(idp2.getType()).thenReturn(SAML);
         when(idp2.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-2"));
 
         IdentityProvider idp3 = mock(IdentityProvider.class);
-        when(idp3.getType()).thenReturn(OriginKeys.SAML);
+        when(idp3.getType()).thenReturn(SAML);
         when(idp3.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-3"));
 
-        when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp1, idp2));
+        when(provisioning.retrieveActiveByType(eq(SAML), anyString())).thenReturn(Arrays.asList(idp1, idp2));
 
         return configurator.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
     }
