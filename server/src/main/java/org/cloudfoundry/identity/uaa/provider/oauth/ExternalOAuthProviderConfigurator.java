@@ -185,23 +185,8 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         if (!OAUTH20.equals(type) && !OIDC10.equals(type)) {
             return emptyList();
         }
-        return providerProvisioning.retrieveActiveByType(type, zoneId).stream()
-                .map(idp -> {
-                    if (idp.getType().equals(OIDC10)) {
-                        try {
-                            final OIDCIdentityProviderDefinition overlayedDefinition = overlay(
-                                    (OIDCIdentityProviderDefinition) idp.getConfig()
-                            );
-                            idp.setConfig(overlayedDefinition);
-                        } catch (final Exception e) {
-                            LOGGER.error("Identity provider excluded from login page due to a problem.", e);
-                            return null;
-                        }
-                    }
-                    return idp;
-                })
-                .filter(Objects::nonNull)
-                .toList();
+        final List<IdentityProvider> idps = providerProvisioning.retrieveActiveByType(type, zoneId);
+        return overlayConfigurationsOfOidcIdps(idps);
     }
 
     public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
@@ -239,16 +224,25 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     @Override
     public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId) {
         final List<String> types = Arrays.asList(OAUTH20, OIDC10);
-        List<IdentityProvider> providers = providerProvisioning.retrieveAll(activeOnly, zoneId);
-        List<IdentityProvider> overlayedProviders = new ArrayList<>();
-        ofNullable(providers).orElse(emptyList()).stream()
+        final List<IdentityProvider> providers = Optional.ofNullable(
+                providerProvisioning.retrieveAll(activeOnly, zoneId)
+        ).orElse(emptyList());
+        final List<IdentityProvider> oauthAndOidcProviders = providers.stream()
                 .filter(p -> types.contains(p.getType()))
+                .toList();
+        return overlayConfigurationsOfOidcIdps(oauthAndOidcProviders);
+    }
+
+    private List<IdentityProvider> overlayConfigurationsOfOidcIdps(final List<IdentityProvider> providers) {
+        final List<IdentityProvider> overlayedProviders = new ArrayList<>();
+        providers.stream()
                 .forEach(p -> {
                     if (p.getType().equals(OIDC10)) {
                         try {
-                            OIDCIdentityProviderDefinition overlayedDefinition = overlay((OIDCIdentityProviderDefinition) p.getConfig());
+                            final OIDCIdentityProviderDefinition overlayedDefinition = overlay(
+                                    (OIDCIdentityProviderDefinition) p.getConfig());
                             p.setConfig(overlayedDefinition);
-                        } catch (Exception e) {
+                        } catch (final Exception e) {
                             LOGGER.error("Identity provider excluded from login page due to a problem.", e);
                             return;
                         }
