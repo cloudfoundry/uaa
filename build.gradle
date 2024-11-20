@@ -74,6 +74,7 @@ subprojects {
         testRuntimeOnly(libraries.junit5JupiterEngine)
         testRuntimeOnly(libraries.junitVintageEngine)
         testImplementation(libraries.unboundIdLdapSdk)
+        testRuntimeOnly(libraries.jacocoAgent)
 
         compileOnly("org.projectlombok:lombok")
         annotationProcessor("org.projectlombok:lombok")
@@ -195,6 +196,19 @@ cargo {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
 
+        if (Boolean.valueOf(System.getProperty("xcoveragerun"))) {
+            copy {
+                from(zipTree(configurations.getByName('jacocoAgent')
+                        .findAll { 'runtimeClasspath' }.get(0))
+                        .matching { include 'jacocoagent.jar' }.singleFile)
+                into(layout.buildDirectory.dir("jacoco"))
+            }
+            String jacocoBuildPath = layout.buildDirectory.dir("jacoco").get().asFile.path
+            jvmArgs = String.format(
+                    "%s -javaagent:%s/jacocoagent.jar=destfile=%s/cargo.exec",
+                    jvmArgs, jacocoBuildPath, jacocoBuildPath)
+        }
+
         outputFile = file("uaa/build/reports/tests/uaa-server.log")
         configFile {
             files = files("scripts/cargo/tomcat-conf/context.xml")
@@ -216,8 +230,8 @@ cargo {
 
         installer {
             installUrl = "https://repo1.maven.org/maven2/org/apache/tomcat/tomcat/" + tomcatCargoVersion + "/tomcat-" + tomcatCargoVersion + ".tar.gz"
-            downloadDir = file("$buildDir/download")
-            extractDir = file("$buildDir/extract")
+            downloadDir = layout.buildDirectory.dir("download").get().asFile
+            extractDir = layout.buildDirectory.dir("extract").get().asFile
         }
     }
 }
@@ -277,6 +291,31 @@ tasks.register('integrationTest', Test) {
     dependsOn killUaa
     dependsOn subprojects.integrationTest
     finalizedBy cargoStopLocal
+}
+
+// Jacoco report from cargo run
+// - To record coverage of cargo run, execute the task with
+// `-Dxcoveragerun=true` option, then use this task to generate report from it.
+// - e.g. To genernate coverage report of integration test:
+//   1) ./gradlew integrationTest -Dxcoveragerun=true
+//   2) ./gradlew jacocoCargoReport
+//   3) See the Gradle console output for the test coverage summary.
+//   4) See `build/reports/jacoco/jacocoCargoReport` for the full report.
+task jacocoCargoReport(type: JacocoReport) {
+    def javaProjects = subprojects.findAll {
+        it.pluginManager.hasPlugin('java')
+    }
+
+    executionData(fileTree(layout.buildDirectory).include("jacoco/cargo.exec"))
+
+    FileTree sourceTree = files().asFileTree
+    FileTree classTree = files().asFileTree
+    javaProjects.each {
+        sourceTree += it.sourceSets.main.allJava
+        classTree += it.sourceSets.main.output.asFileTree
+    }
+    additionalSourceDirs = sourceTree
+    additionalClassDirs = classTree
 }
 
 // task dependencies
