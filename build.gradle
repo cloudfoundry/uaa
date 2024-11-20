@@ -298,9 +298,10 @@ tasks.register('integrationTest', Test) {
 // `-Dxcoveragerun=true` option, then use this task to generate report from it.
 // - e.g. To genernate coverage report of integration test:
 //   1) ./gradlew integrationTest -Dxcoveragerun=true
-//   2) ./gradlew jacocoCargoReport
-//   3) See the Gradle console output for the test coverage summary.
-//   4) See `build/reports/jacoco/jacocoCargoReport` for the full report.
+//   2) ./bin/kill_uaa.sh
+//   3) ./gradlew jacocoCargoReport
+//   4) See the Gradle console output for the test coverage summary.
+//   5) See `build/reports/jacoco/jacocoCargoReport` for the full report.
 task jacocoCargoReport(type: JacocoReport) {
     def javaProjects = subprojects.findAll {
         it.pluginManager.hasPlugin('java')
