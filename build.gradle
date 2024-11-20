@@ -296,7 +296,7 @@ tasks.register('integrationTest', Test) {
 // Jacoco report from cargo run
 // - To record coverage of cargo run, execute the task with
 // `-Dxcoveragerun=true` option, then use this task to generate report from it.
-// - e.g. To genernate coverage report of integration test:
+// - e.g. To generate coverage report of integration test:
 //   1) ./gradlew integrationTest -Dxcoveragerun=true
 //   2) ./bin/kill_uaa.sh
 //   3) ./gradlew jacocoCargoReport
