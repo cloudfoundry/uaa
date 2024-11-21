@@ -198,6 +198,11 @@ class ExternalOAuthProviderConfiguratorTests {
         ).map(Arguments::of);
     }
 
+    @Test
+    void retrieveActiveByNullType() {
+        assertEquals(0, configurator.retrieveActiveByTypes(IdentityZone.getUaaZoneId(), null).size());
+    }
+
     @ParameterizedTest
     @MethodSource
     void retrieveActiveByTypes(final String[] types) throws OidcMetadataFetchingException {

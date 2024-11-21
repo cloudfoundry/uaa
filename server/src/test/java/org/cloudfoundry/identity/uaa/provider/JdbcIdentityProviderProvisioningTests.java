@@ -445,6 +445,7 @@ class JdbcIdentityProviderProvisioningTests {
 
     private static Stream<Arguments> retrieveActiveByTypes() {
         return Stream.of(
+                new String[] { },
                 new String[] { OAUTH20, OIDC10 },
                 new String[] { OAUTH20, OIDC10, SAML },
                 new String[] { SAML },
