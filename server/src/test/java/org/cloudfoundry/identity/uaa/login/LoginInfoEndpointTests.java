@@ -83,7 +83,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -831,7 +830,7 @@ class LoginInfoEndpointTests {
         clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
         clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
 
-        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(clientAllowedIdps);
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20))).thenReturn(clientAllowedIdps);
 
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
 
@@ -856,7 +855,7 @@ class LoginInfoEndpointTests {
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
-        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any())).thenReturn(singletonList(identityProvider));
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_HTML));
 
         assertThat(extendedModelMap.get("showLoginLinks"), equalTo(true));
@@ -873,7 +872,8 @@ class LoginInfoEndpointTests {
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
-        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20)))
+                .thenReturn(singletonList(identityProvider));
         endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
 
         Map mapPrompts = (Map) extendedModelMap.get("prompts");
@@ -892,7 +892,8 @@ class LoginInfoEndpointTests {
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
-        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20)))
+                .thenReturn(singletonList(identityProvider));
         endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
 
         Map mapPrompts = (Map) extendedModelMap.get("prompts");
@@ -911,7 +912,7 @@ class LoginInfoEndpointTests {
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
-        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(singletonList(identityProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any())).thenReturn(singletonList(identityProvider));
         endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
 
         Map mapPrompts = (Map) extendedModelMap.get("prompts");
@@ -935,7 +936,8 @@ class LoginInfoEndpointTests {
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
         oidcProvider.setConfig(oidcDefinition);
 
-        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20)))
+                .thenReturn(Arrays.asList(oauthProvider, oidcProvider));
         assertEquals(2, endpoint.getOauthIdentityProviderDefinitions(null).size());
     }
 
@@ -981,7 +983,8 @@ class LoginInfoEndpointTests {
         when(mockOidcConfig.getResponseType()).thenReturn("token");
         when(mockOidcConfig.getEmailDomain()).thenReturn(singletonList("example.com"));
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
-        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), any())).thenReturn(singletonList(mockProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20)))
+                .thenReturn(singletonList(mockProvider));
 
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
 
@@ -1237,7 +1240,7 @@ class LoginInfoEndpointTests {
         List<IdentityProvider> clientAllowedIdps = new LinkedList<>();
         clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
         clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
-        when(mockIdentityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(clientAllowedIdps);
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), eq(OriginKeys.OIDC10), eq(OriginKeys.OAUTH20))).thenReturn(clientAllowedIdps);
         when(mockIdentityProviderProvisioning.retrieveByOrigin(eq("invalidorigin"), anyString())).thenThrow(new EmptyResultDataAccessException(1));
 
         SavedRequest savedRequest = SessionUtils.getSavedRequestSession(mockHttpServletRequest.getSession());
@@ -1848,7 +1851,7 @@ class LoginInfoEndpointTests {
         when(mockOidcConfig.getResponseType()).thenReturn("token");
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(mockOidcConfig.isShowLinkText()).thenReturn(true);
-        when(mockIdentityProviderProvisioning.retrieveAll(anyBoolean(), any())).thenReturn(singletonList(mockProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any())).thenReturn(singletonList(mockProvider));
     }
 
     private static void mockLoginHintProvider(ExternalOAuthProviderConfigurator mockIdentityProviderProvisioning)
