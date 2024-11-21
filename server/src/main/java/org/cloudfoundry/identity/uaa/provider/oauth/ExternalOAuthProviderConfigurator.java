@@ -28,12 +28,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toSet;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
@@ -181,11 +182,23 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     }
 
     @Override
-    public List<IdentityProvider> retrieveActiveByType(final String type, final String zoneId) {
-        if (!OAUTH20.equals(type) && !OIDC10.equals(type)) {
+    public List<IdentityProvider> retrieveActiveByTypes(final String zoneId, final String... types) {
+        if (types == null || types.length == 0) {
             return emptyList();
         }
-        final List<IdentityProvider> idps = providerProvisioning.retrieveActiveByType(type, zoneId);
+
+        // intersect passed types with "oidc1.0" and "oauth2.0"
+        final Set<String> filteredTypes = Arrays.stream(types)
+                .filter(type -> OIDC10.equals(type) || OAUTH20.equals(type))
+                .collect(toSet());
+        if (filteredTypes.isEmpty()) {
+            return emptyList();
+        }
+
+        final List<IdentityProvider> idps = providerProvisioning.retrieveActiveByTypes(
+                zoneId,
+                filteredTypes.toArray(new String[0])
+        );
         return overlayConfigurationsOfOidcIdps(idps);
     }
 

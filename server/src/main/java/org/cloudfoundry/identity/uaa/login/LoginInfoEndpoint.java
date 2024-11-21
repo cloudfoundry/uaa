@@ -92,6 +92,8 @@ import static java.util.Base64.getDecoder;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.util.StringUtils.hasText;
@@ -629,8 +631,10 @@ public class LoginInfoEndpoint {
 
     protected Map<String, AbstractExternalOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
 
-        List<IdentityProvider> identityProviders =
-                externalOAuthProviderConfigurator.retrieveAll(true, IdentityZoneHolder.get().getId());
+        List<IdentityProvider> identityProviders = externalOAuthProviderConfigurator.retrieveActiveByTypes(
+                IdentityZoneHolder.get().getId(),
+                OIDC10, OAUTH20
+        );
 
         return identityProviders.stream()
                 .filter(p -> allowedIdps == null || allowedIdps.contains(p.getOriginKey()))

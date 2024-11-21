@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -18,6 +17,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -29,13 +30,18 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.IntStream;
+import java.util.Set;
+import java.util.stream.Stream;
 
+import static java.util.stream.Collectors.toSet;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -161,53 +167,102 @@ class ExternalOAuthProviderConfiguratorTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { OriginKeys.UAA, OriginKeys.SAML, LDAP, OriginKeys.KEYSTONE, OriginKeys.LOGIN_SERVER })
-    void retrieveActiveByType_ShouldReturnEmptyListWhenNotOidcOrOAuth(final String type) {
+    @MethodSource
+    void retrieveActiveByTypes_ShouldReturnEmptyListWhenNeitherOidcNorOAuthInTypes(final String[] types) {
         final String zoneId = RandomStringUtils.randomAlphanumeric(8);
 
-        /* arrange three active IdPs of this type being present in the zone
+        /* arrange one active IdP per type being present in the zone
          * -> however, they should not be returned since the types don't match */
         final String originKeyPrefix = RandomStringUtils.randomAlphanumeric(8) + "-";
-        final List<IdentityProvider> idps = IntStream.rangeClosed(1,3).mapToObj(index -> {
-            final IdentityProvider idp = new IdentityProvider<>();
-            final String originKey = "%s%d".formatted(originKeyPrefix, index);
-            idp.setOriginKey(originKey);
-            idp.setId(originKey);
-            idp.setType(type);
-            idp.setActive(true);
-            return idp;
-        }).toList();
-        lenient().when(mockIdentityProviderProvisioning.retrieveActiveByType(type, zoneId)).thenReturn(idps);
+        final List<IdentityProvider> idps = new HashSet<>(Arrays.asList(types)).stream()
+                .map(type -> {
+                    final IdentityProvider idp = new IdentityProvider<>();
+                    final String originKey = "%s%s".formatted(originKeyPrefix, type);
+                    idp.setOriginKey(originKey);
+                    idp.setId(originKey);
+                    idp.setType(type);
+                    idp.setActive(true);
+                    return idp;
+                }).toList();
+        lenient().when(mockIdentityProviderProvisioning.retrieveActiveByTypes(zoneId, types)).thenReturn(idps);
 
-        assertTrue(configurator.retrieveActiveByType(type, zoneId).isEmpty());
+        assertTrue(configurator.retrieveActiveByTypes(zoneId, types).isEmpty());
+    }
+
+    private static Stream<Arguments> retrieveActiveByTypes_ShouldReturnEmptyListWhenNeitherOidcNorOAuthInTypes() {
+        return Stream.of(
+                new String[] { SAML },
+                new String[] { SAML, LDAP },
+                new String[] {  },
+                (Object) new String[] { UAA, LDAP, LDAP } // contains duplicates
+        ).map(Arguments::of);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { OIDC10, OAUTH20 })
-    void retrieveActiveByType(final String type) throws OidcMetadataFetchingException {
+    @MethodSource
+    void retrieveActiveByTypes(final String[] types) throws OidcMetadataFetchingException {
         final String zoneId = RandomStringUtils.randomAlphanumeric(8);
 
-        // arrange three active IdPs of this type being present in the zone
-        final String originKeyPrefix = RandomStringUtils.randomAlphanumeric(8) + "-";
-        final List<IdentityProvider> idps = IntStream.rangeClosed(1,3).mapToObj(index -> {
-            final IdentityProvider idp = new IdentityProvider<>();
-            final String originKey = "%s%d".formatted(originKeyPrefix, index);
-            idp.setOriginKey(originKey);
-            idp.setId(originKey);
-            idp.setType(type);
-            if (OIDC10.equals(type)) {
-                idp.setConfig(new OIDCIdentityProviderDefinition());
-            }
-            idp.setActive(true);
-            return idp;
-        }).toList();
-        when(mockIdentityProviderProvisioning.retrieveActiveByType(type, zoneId)).thenReturn(idps);
+        // eliminate duplicates
+        final Set<String> typesAsSet = new HashSet<>(Arrays.asList(types));
+        final boolean inputContainsOidc = typesAsSet.contains(OIDC10);
+        final boolean inputContainsOauth = typesAsSet.contains(OAUTH20);
 
-        final List<IdentityProvider> result = configurator.retrieveActiveByType(type, zoneId);
-        assertEquals(3, result.size());
-        if (OIDC10.equals(type)) {
-            verify(mockOidcMetadataFetcher, times(3)).fetchMetadataAndUpdateDefinition(any());
+        // arrange one active IdP of every type in "oauth2.0" and "oidc1.0" exists in the zone
+        final String originKeyPrefix = RandomStringUtils.randomAlphanumeric(8) + "-";
+        final List<IdentityProvider> idps = Stream.of(OIDC10, OAUTH20)
+                .filter(type -> !OIDC10.equals(type) || inputContainsOidc)
+                .filter(type -> !OAUTH20.equals(type) || inputContainsOauth)
+                .map(type -> {
+                    final IdentityProvider idp = new IdentityProvider<>();
+                    final String originKey = "%s%s".formatted(originKeyPrefix, type);
+                    idp.setOriginKey(originKey);
+                    idp.setId(originKey);
+                    idp.setType(type);
+                    if (OIDC10.equals(type)) {
+                        idp.setConfig(new OIDCIdentityProviderDefinition());
+                    }
+                    idp.setActive(true);
+                    return idp;
+                }).toList();
+        if (inputContainsOidc && inputContainsOauth) {
+            lenient().when(mockIdentityProviderProvisioning.retrieveActiveByTypes(zoneId, OIDC10, OAUTH20))
+                    .thenReturn(idps);
+            lenient().when(mockIdentityProviderProvisioning.retrieveActiveByTypes(zoneId, OAUTH20, OIDC10))
+                    .thenReturn(idps);
+        } else if (inputContainsOidc) {
+            when(mockIdentityProviderProvisioning.retrieveActiveByTypes(zoneId, OIDC10)).thenReturn(idps);
+        } else if (inputContainsOauth) {
+            when(mockIdentityProviderProvisioning.retrieveActiveByTypes(zoneId, OAUTH20)).thenReturn(idps);
         }
+
+        final List<IdentityProvider> result = configurator.retrieveActiveByTypes(zoneId, types);
+
+        /* the result should contain only IdPs of type "oauth2.0" and "oidc1.0" and only if the corresponding type
+         * was part of the input types */
+        final int expectedSize = (inputContainsOauth ? 1 : 0) + (inputContainsOidc ? 1 : 0);
+        assertEquals(expectedSize, result.size());
+
+        final Set<String> typesInResult = result.stream().map(IdentityProvider::getType).collect(toSet());
+        assertEquals(expectedSize, typesInResult.size());
+        assertEquals(inputContainsOauth, typesInResult.contains(OAUTH20));
+        assertEquals(inputContainsOidc, typesInResult.contains(OIDC10));
+
+        if (inputContainsOidc) {
+            verify(mockOidcMetadataFetcher, times(1)).fetchMetadataAndUpdateDefinition(any());
+        }
+    }
+
+    private static Stream<Arguments> retrieveActiveByTypes() {
+        return Stream.of(
+                new String[] { OIDC10, OAUTH20 },
+                new String[] { OIDC10 },
+                new String[] { OAUTH20 },
+                new String[] { OIDC10, OIDC10, OAUTH20 }, // contains duplicates
+                new String[] { OIDC10, LDAP, SAML }, // ldap and saml should be ignored
+                new String[] { OIDC10, OIDC10, LDAP, SAML }, // ldap and saml should be ignored
+                (Object) new String[] { OIDC10, OIDC10, OAUTH20, LDAP, SAML } // ldap and saml should be ignored
+        ).map(Arguments::of);
     }
 
     @Test

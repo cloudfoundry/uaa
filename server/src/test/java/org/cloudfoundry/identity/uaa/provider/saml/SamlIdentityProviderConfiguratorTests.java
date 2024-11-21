@@ -222,7 +222,7 @@ public class SamlIdentityProviderConfiguratorTests {
                 IdentityProvider idp2 = mock(IdentityProvider.class);
                 when(idp2.getType()).thenReturn(SAML);
                 when(idp2.getConfig()).thenReturn(def.clone().setIdpEntityAlias("okta-local-1"));
-                when(provisioning.retrieveActiveByType(eq(SAML), anyString())).thenReturn(Arrays.asList(idp2));
+                when(provisioning.retrieveActiveByTypes(anyString(), eq(SAML))).thenReturn(Arrays.asList(idp2));
                 assertThrowsWithMessageThat(
                     MetadataProviderException.class,
                     () -> configurator.validateSamlIdentityProviderDefinition(def, true),
@@ -264,7 +264,7 @@ public class SamlIdentityProviderConfiguratorTests {
         when(idp3.getType()).thenReturn(SAML);
         when(idp3.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-3"));
 
-        when(provisioning.retrieveActiveByType(eq(SAML), anyString())).thenReturn(Arrays.asList(idp1, idp2));
+        when(provisioning.retrieveActiveByTypes(anyString(), eq(SAML))).thenReturn(Arrays.asList(idp1, idp2));
 
         return configurator.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
     }

@@ -44,7 +44,8 @@ public class SamlIdentityProviderConfigurator {
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {
-        final List<IdentityProvider> samlIdpsInZone = providerProvisioning.retrieveActiveByType(OriginKeys.SAML, zone.getId());
+        final List<IdentityProvider> samlIdpsInZone = providerProvisioning.retrieveActiveByTypes(zone.getId(),
+                OriginKeys.SAML);
         return samlIdpsInZone.stream()
                 .map(samlIdp -> (SamlIdentityProviderDefinition) samlIdp.getConfig())
                 .toList();

@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import static java.sql.Types.VARCHAR;
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.joining;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isNotEmpty;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -19,9 +21,13 @@ import org.springframework.util.StringUtils;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 @Component("identityProviderProvisioning")
@@ -37,7 +43,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=?";
 
-    public static final String IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY = IDENTITY_ACTIVE_PROVIDERS_QUERY + " and type=?";
+    public static final String IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY_TEMPLATE = IDENTITY_ACTIVE_PROVIDERS_QUERY + " and type in (%s)";
 
     public static final String IDP_WITH_ALIAS_EXISTS_QUERY = "select 1 from identity_provider idp where idp.identity_zone_id = ? and idp.alias_zid <> '' limit 1";
 
@@ -88,8 +94,28 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     }
 
     @Override
-    public List<IdentityProvider> retrieveActiveByType(final String type, final String zoneId) {
-        return jdbcTemplate.query(IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY, mapper, zoneId, true, type);
+    public List<IdentityProvider> retrieveActiveByTypes(final String zoneId, final String... types) {
+        if (types == null || types.length == 0) {
+            return emptyList();
+        }
+
+        // eliminate duplicates
+        final Set<String> typesAsSet = new HashSet<>(Arrays.asList(types));
+
+        // adjust the number of SQL parameters in the prepared statement
+        final String sqlPlaceholdersForTypes = typesAsSet.stream()
+                .map(type -> "?")
+                .collect(joining(","));
+        final String sql = IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY_TEMPLATE.formatted(sqlPlaceholdersForTypes);
+
+        final Object[] args = new Object[2 + typesAsSet.size()];
+        args[0] = zoneId;
+        args[1] = true; // active
+        final List<String> typesAsList = new ArrayList<>(typesAsSet);
+        for (int i = 0; i < typesAsList.size(); i++) {
+            args[i + 2] = typesAsList.get(i);
+        }
+        return jdbcTemplate.query(sql, mapper, args);
     }
 
     @Override

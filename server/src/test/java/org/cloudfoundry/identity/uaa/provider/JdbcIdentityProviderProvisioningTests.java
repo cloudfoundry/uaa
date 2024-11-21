@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import static java.util.stream.Collectors.toSet;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
@@ -19,11 +21,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Stream;
 
+import org.apache.commons.collections4.SetUtils;
 import org.assertj.core.api.Assertions;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
@@ -33,7 +39,8 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -53,6 +60,8 @@ class JdbcIdentityProviderProvisioningTests {
     private String uaaZoneId;
     private String otherZoneId1;
     private String otherZoneId2;
+
+    private static final Set<String> ALL_TYPES = Set.of(LDAP, OIDC10, UAA, OAUTH20, SAML, KEYSTONE, LOGIN_SERVER);
 
     @BeforeEach
     void createDatasource() {
@@ -405,27 +414,45 @@ class JdbcIdentityProviderProvisioningTests {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { SAML, UAA, LDAP, OAUTH20, OIDC10 })
-    void retrieveActiveByType(final String type) {
-        // have the correct type and zone
-        final String idp1Id = createIdp(type, origin, otherZoneId1);
-        final String idp2Id = createIdp(type, "origin-" + generator.generate(), otherZoneId1);
+    @MethodSource
+    void retrieveActiveByTypes(final String[] types) {
+        final Set<String> expectedTypes = new HashSet<>(Arrays.asList(types)); // eliminate duplicates
+
+        // create one IdP for every expected type in the correct zone
+        final List<String> expectedIdpIds = expectedTypes.stream()
+                .map(type -> createIdp(type, "origin-" + generator.generate(), otherZoneId1))
+                .toList();
 
         // have another type -> should not be in the result
-        final String otherType = type.equals(SAML) ? OIDC10 : SAML;
-        createIdp(otherType, "origin-" + generator.generate(), otherZoneId1);
-        createIdp(otherType, "origin-" + generator.generate(), otherZoneId1);
+        final Set<String> otherTypes = SetUtils.difference(ALL_TYPES, expectedTypes);
+        for (final String otherType : otherTypes) {
+            createIdp(otherType, "origin-" + generator.generate(), otherZoneId1);
+        }
 
         // have the correct type, but another zone -> should not be in the result
-        createIdp(type, "origin-" + generator.generate(), otherZoneId2);
-        createIdp(type, "origin-" + generator.generate(), otherZoneId2);
+        for (final String type : expectedTypes) {
+            createIdp(type, "origin-" + generator.generate(), otherZoneId2);
+        }
 
-        final List<IdentityProvider> result = jdbcIdentityProviderProvisioning.retrieveActiveByType(type, otherZoneId1);
-        assertEquals(2, result.size());
-
+        final List<IdentityProvider> result = jdbcIdentityProviderProvisioning.retrieveActiveByTypes(otherZoneId1,
+                types);
         final Set<String> idsInResult = result.stream().map(IdentityProvider::getId).collect(toSet());
-        assertTrue(idsInResult.contains(idp1Id));
-        assertTrue(idsInResult.contains(idp2Id));
+        assertEquals(expectedIdpIds.size(), idsInResult.size());
+        for (final String id : expectedIdpIds) {
+            assertTrue(idsInResult.contains(id));
+        }
+    }
+
+    private static Stream<Arguments> retrieveActiveByTypes() {
+        return Stream.of(
+                new String[] { OAUTH20, OIDC10 },
+                new String[] { OAUTH20, OIDC10, SAML },
+                new String[] { SAML },
+                new String[] { OIDC10 },
+                new String[] { LDAP, UAA, OAUTH20, OIDC10 },
+                new String[] { LDAP, UAA, OAUTH20, LDAP, LDAP, OIDC10 }, // contains duplicates
+                (Object) new String[] { LDAP, UAA, OAUTH20, OIDC10, OIDC10, UAA } // contains duplicates
+        ).map(Arguments::of);
     }
 
     private String createIdp(final String type, final String originKey, final String zoneId) {

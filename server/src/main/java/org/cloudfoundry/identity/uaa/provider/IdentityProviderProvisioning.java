@@ -27,7 +27,7 @@ public interface IdentityProviderProvisioning {
 
     List<IdentityProvider> retrieveActive(String zoneId);
 
-    List<IdentityProvider> retrieveActiveByType(String type, String zoneId);
+    List<IdentityProvider> retrieveActiveByTypes(String zoneId, String... types);
 
     List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId);
 
