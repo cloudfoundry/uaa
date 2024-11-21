@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -19,7 +18,6 @@ import org.springframework.util.StringUtils;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
-import java.util.LinkedList;
 import java.util.List;
 
 import static org.springframework.util.StringUtils.hasText;
@@ -44,25 +42,14 @@ public class SamlIdentityProviderConfigurator {
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {
-        final List<IdentityProvider> samlIdpsInZone = providerProvisioning.retrieveActiveByTypes(zone.getId(),
-                OriginKeys.SAML);
-        return samlIdpsInZone.stream()
+        return providerProvisioning.retrieveActiveByTypes(zone.getId(), OriginKeys.SAML).stream()
                 .map(samlIdp -> (SamlIdentityProviderDefinition) samlIdp.getConfig())
                 .toList();
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone) {
-        List<SamlIdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(zone);
-        if (allowedIdps != null) {
-            List<SamlIdentityProviderDefinition> result = new LinkedList<>();
-            for (SamlIdentityProviderDefinition def : idpsInTheZone) {
-                if (allowedIdps.contains(def.getIdpEntityAlias())) {
-                    result.add(def);
-                }
-            }
-            return result;
-        }
-        return idpsInTheZone;
+        return getIdentityProviderDefinitionsForZone(zone).stream()
+            .filter(def -> allowedIdps == null || allowedIdps.contains(def.getIdpEntityAlias())).toList();
     }
 
     /**

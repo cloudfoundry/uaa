@@ -95,27 +95,22 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public List<IdentityProvider> retrieveActiveByTypes(final String zoneId, final String... types) {
-        if (types == null || types.length == 0) {
+        if (ObjectUtils.isNotEmpty(types)) {
+            // eliminate duplicates
+            final Set<String> typesAsSet = new HashSet<>(Arrays.asList(types));
+
+            // adjust the number of SQL parameters in the prepared statement
+            final String sqlPlaceholdersForTypes = typesAsSet.stream().map(type -> "?").collect(joining(","));
+            final String sql = IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY_TEMPLATE.formatted(sqlPlaceholdersForTypes);
+
+            final ArrayList<Object> arrayList = new ArrayList<>(typesAsSet.size() + 2);
+            arrayList.add(zoneId);
+            arrayList.add(true);
+            arrayList.addAll(typesAsSet);
+            return jdbcTemplate.query(sql, mapper, arrayList.toArray());
+        } else {
             return emptyList();
         }
-
-        // eliminate duplicates
-        final Set<String> typesAsSet = new HashSet<>(Arrays.asList(types));
-
-        // adjust the number of SQL parameters in the prepared statement
-        final String sqlPlaceholdersForTypes = typesAsSet.stream()
-                .map(type -> "?")
-                .collect(joining(","));
-        final String sql = IDENTITY_ACTIVE_PROVIDERS_OF_TYPE_QUERY_TEMPLATE.formatted(sqlPlaceholdersForTypes);
-
-        final Object[] args = new Object[2 + typesAsSet.size()];
-        args[0] = zoneId;
-        args[1] = true; // active
-        final List<String> typesAsList = new ArrayList<>(typesAsSet);
-        for (int i = 0; i < typesAsList.size(); i++) {
-            args[i + 2] = typesAsList.get(i);
-        }
-        return jdbcTemplate.query(sql, mapper, args);
     }
 
     @Override
