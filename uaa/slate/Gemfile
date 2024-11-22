@@ -12,6 +12,6 @@ gem 'redcarpet', '~> 3.6.0'
 gem 'nokogiri', '~> 1.16.5'
 gem 'sass'
 gem 'webrick'
-gem 'opal'
-gem 'opal-sprockets'
+gem 'sprockets', '~> 3.7'
+
 
