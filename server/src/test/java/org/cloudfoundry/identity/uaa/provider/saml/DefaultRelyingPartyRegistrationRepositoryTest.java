@@ -126,6 +126,26 @@ class DefaultRelyingPartyRegistrationRepositoryTest {
     }
 
     @Test
+    void findByRegistrationIdForZoneWithoutConfig_WhenUaaWideSamlEntityIdIsInUrlFormat() {
+        String uaaWideEntityIDInUrlFormat = "https://login.foo.cf-app.com";
+        repository = spy(new DefaultRelyingPartyRegistrationRepository(uaaWideEntityIDInUrlFormat, uaaWideEntityIDInUrlFormat, List.of(), NAME_ID_FORMAT));
+
+        when(repository.retrieveZone()).thenReturn(identityZone);
+        when(identityZone.isUaa()).thenReturn(false);
+        when(identityZone.getSubdomain()).thenReturn(ZONE_SUBDOMAIN);
+
+        RelyingPartyRegistration registration = repository.findByRegistrationId(REGISTRATION_ID_2);
+        assertThat(registration)
+                // from definition
+                .returns(REGISTRATION_ID_2, RelyingPartyRegistration::getRegistrationId)
+                .returns("https://%s.login.foo.cf-app.com".formatted(ZONE_SUBDOMAIN), RelyingPartyRegistration::getEntityId)
+                .returns(NAME_ID_FORMAT, RelyingPartyRegistration::getNameIdFormat)
+                // from functions
+                .returns("{baseUrl}/saml/SSO/alias/%s.login.foo.cf-app.com".formatted(ZONE_SUBDOMAIN), RelyingPartyRegistration::getAssertionConsumerServiceLocation)
+                .returns("{baseUrl}/saml/SingleLogout/alias/%s.login.foo.cf-app.com".formatted(ZONE_SUBDOMAIN), RelyingPartyRegistration::getSingleLogoutServiceResponseLocation);
+    }
+
+    @Test
     void findByRegistrationId_NoAliasFailsOverToEntityId() {
         repository = spy(new DefaultRelyingPartyRegistrationRepository(ENTITY_ID, null, List.of(), NAME_ID_FORMAT));
         when(repository.retrieveZone()).thenReturn(identityZone);
