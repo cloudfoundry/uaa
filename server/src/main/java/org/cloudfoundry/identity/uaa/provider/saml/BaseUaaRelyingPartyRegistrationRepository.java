@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.extern.slf4j.Slf4j;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
@@ -36,8 +37,18 @@ public abstract class BaseUaaRelyingPartyRegistrationRepository implements Relyi
         return Optional.ofNullable(currentZone.getConfig())
                 .map(IdentityZoneConfiguration::getSamlConfig)
                 .map(SamlConfig::getEntityID)
-                // otherwise use the zone subdomain + default entityID
-                .orElseGet(() -> "%s.%s".formatted(currentZone.getSubdomain(), uaaWideSamlEntityID));
+                // otherwise, construct a default value using the zone subdomain & uaa wide entityID
+                .orElseGet(
+                        () -> getDefaultZoneEntityId(currentZone.getSubdomain(), uaaWideSamlEntityID)
+                );
+    }
+
+    private String getDefaultZoneEntityId(String zoneSubdomain, String uaaWideSamlEntityID) {
+        if (UaaUrlUtils.isUrl(uaaWideSamlEntityID)) {
+            return UaaUrlUtils.addSubdomainToUrl(uaaWideSamlEntityID, zoneSubdomain);
+        } else {
+            return "%s.%s".formatted(zoneSubdomain, uaaWideSamlEntityID);
+        }
     }
 
     String getZoneEntityIdAlias(IdentityZone currentZone) {
@@ -48,7 +59,11 @@ public abstract class BaseUaaRelyingPartyRegistrationRepository implements Relyi
         if (currentZone.isUaa()) {
             return alias;
         }
-        // for non-default zone, use the "zone subdomain+.+alias"
-        return "%s.%s".formatted(currentZone.getSubdomain(), alias);
+        // for non-default zone, construct a value using the zone subdomain & alias
+        if (UaaUrlUtils.isUrl(alias)) {
+            return UaaUrlUtils.getHostForURI(UaaUrlUtils.addSubdomainToUrl(alias, currentZone.getSubdomain()));
+        } else {
+            return "%s.%s".formatted(currentZone.getSubdomain(), alias);
+        }
     }
 }
