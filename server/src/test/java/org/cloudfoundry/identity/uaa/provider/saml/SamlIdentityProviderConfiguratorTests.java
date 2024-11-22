@@ -18,10 +18,10 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
@@ -50,10 +50,14 @@ import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
+import static org.hamcrest.Matchers.startsWith;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -149,7 +153,7 @@ public class SamlIdentityProviderConfiguratorTests {
                     break;
                 }
                 default:
-                    fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
+                    fail("Unknown provider %s".formatted(def.getIdpEntityAlias()));
             }
         }
     }
@@ -161,7 +165,27 @@ public class SamlIdentityProviderConfiguratorTests {
         assertThat(singleAdd.getSocketFactoryClassName()).isNull();
     }
 
-    private List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> clientIdpAliases) {
+    @Test
+    void testGetEntityIDExists() {
+        BootstrapSamlIdentityProviderData bootstrap = new BootstrapSamlIdentityProviderData(configurator);
+        bootstrap.setIdentityProviders(BootstrapSamlIdentityProviderDataTests.parseYaml(BootstrapSamlIdentityProviderDataTests.sampleYaml));
+        bootstrap.afterPropertiesSet();
+        for (SamlIdentityProviderDefinition def : bootstrap.getIdentityProviderDefinitions()) {
+            if ("okta-local-2".equalsIgnoreCase(def.getIdpEntityAlias())) {
+                when(idp2.getConfig()).thenReturn(def.clone().setIdpEntityAlias("okta-local-1"));
+                when(provisioning.retrieveActiveByTypes(anyString(), eq(SAML))).thenReturn(List.of(idp2));
+                assertThrowsWithMessageThat(
+                        IdpAlreadyExistsException.class,
+                        () -> configurator.validateSamlIdentityProviderDefinition(def, true),
+                        startsWith("Duplicate entity ID:http://www.okta.com")
+                );
+            }
+        }
+    }
+
+    @Test
+    void testGetIdentityProviderDefinitionsForAllowedProviders() {
+        List<String> clientIdpAliases = asList("simplesamlphp-url", "okta-local-2");
         String xmlMetadata = getOktaMetadata("http://www.okta.com/k2lw4l5bPODCMIIDBRYZ");
 
         SamlIdentityProviderDefinition def1 = new SamlIdentityProviderDefinition()
@@ -174,19 +198,11 @@ public class SamlIdentityProviderConfiguratorTests {
                 .setIconUrl("sample-icon-url")
                 .setZoneId("other-zone-id");
 
-        when(idp1.getType()).thenReturn(OriginKeys.SAML);
         when(idp1.getConfig()).thenReturn(def1);
-        when(idp2.getType()).thenReturn(OriginKeys.SAML);
         when(idp2.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-2"));
-        when(provisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(idp1, idp2));
+        when(provisioning.retrieveActiveByTypes(anyString(), eq(SAML))).thenReturn(Arrays.asList(idp1, idp2));
 
-        return configurator.getIdentityProviderDefinitions(clientIdpAliases, new IdentityZoneManagerImpl().getCurrentIdentityZone());
-    }
-
-    @Test
-    void testGetIdentityProviderDefinitionsForAllowedProviders() {
-        List<String> clientIdpAliases = asList("simplesamlphp-url", "okta-local-2");
-        List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
+        List<SamlIdentityProviderDefinition> clientIdps = configurator.getIdentityProviderDefinitions(clientIdpAliases, new IdentityZoneManagerImpl().getCurrentIdentityZone());
         assertThat(clientIdps).hasSize(2);
         assertThat(clientIdpAliases).contains(clientIdps.get(0).getIdpEntityAlias(), clientIdps.get(1).getIdpEntityAlias());
     }
@@ -194,7 +210,23 @@ public class SamlIdentityProviderConfiguratorTests {
     @Test
     void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() {
         List<String> clientIdpAliases = Collections.singletonList("non-existent");
-        List<SamlIdentityProviderDefinition> clientIdps = getSamlIdentityProviderDefinitions(clientIdpAliases);
+        String xmlMetadata = getOktaMetadata("http://www.okta.com/k2lw4l5bPODCMIIDBRYZ");
+
+        SamlIdentityProviderDefinition def1 = new SamlIdentityProviderDefinition()
+                .setMetaDataLocation(xmlMetadata)
+                .setIdpEntityAlias("simplesamlphp-url")
+                .setNameID("sample-nameID")
+                .setAssertionConsumerIndex(1)
+                .setMetadataTrustCheck(true)
+                .setLinkText("sample-link-test")
+                .setIconUrl("sample-icon-url")
+                .setZoneId("other-zone-id");
+
+        when(idp1.getConfig()).thenReturn(def1);
+        when(idp2.getConfig()).thenReturn(def1.clone().setIdpEntityAlias("okta-local-2"));
+        when(provisioning.retrieveActiveByTypes(anyString(), eq(SAML))).thenReturn(Arrays.asList(idp1, idp2));
+
+        List<SamlIdentityProviderDefinition> clientIdps = configurator.getIdentityProviderDefinitions(clientIdpAliases, new IdentityZoneManagerImpl().getCurrentIdentityZone());
         assertThat(clientIdps).isEmpty();
     }
 

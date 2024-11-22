@@ -27,6 +27,8 @@ public interface IdentityProviderProvisioning {
 
     List<IdentityProvider> retrieveActive(String zoneId);
 
+    List<IdentityProvider> retrieveActiveByTypes(String zoneId, String... types);
+
     List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId);
 
     IdentityProvider retrieveByOrigin(String origin, String zoneId);
