@@ -72,18 +72,29 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         UaaLoginHint uaaLoginHint = zoneAwareAuthzAuthenticationManager.extractLoginHint(authentication);
         List<String> allowedProviders = getAllowedProviders();
         String defaultProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
-        UaaLoginHint loginHintToUse;
+
+        // check whether there is a single OIDC IdP that qualifies for the login hint (or default origin as fallback)
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = retrieveOidcPasswordIdp(uaaLoginHint, defaultProvider, allowedProviders);
-        List<String> possibleProviders;
+
+        final List<String> possibleProviders;
         if (identityProvider != null) {
             possibleProviders = List.of(identityProvider.getOriginKey());
         } else {
-            List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream()
+            /* no suiting OIDC IdP was found - get all qualifying IdPs in the zone
+             * (i.e., active, supports password grant and is allowed by the client) */
+            final List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream()
                     .filter(PasswordGrantAuthenticationManager::providerSupportsPasswordGrant)
                     .map(IdentityProvider::getOriginKey)
                     .toList();
-            possibleProviders = Optional.ofNullable(allowedProviders).orElse(identityProviders).stream().filter(identityProviders::contains).toList();
+            if (allowedProviders == null) {
+                // client allows all IdPs
+                possibleProviders = new ArrayList<>(identityProviders);
+            } else {
+                possibleProviders = allowedProviders.stream().filter(identityProviders::contains).toList();
+            }
         }
+
+        UaaLoginHint loginHintToUse;
         if (uaaLoginHint == null) {
             if (defaultProvider != null && possibleProviders.contains(defaultProvider)) {
                 loginHintToUse = new UaaLoginHint(defaultProvider);
