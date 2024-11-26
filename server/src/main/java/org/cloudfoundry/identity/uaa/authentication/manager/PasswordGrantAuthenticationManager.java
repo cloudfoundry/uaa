@@ -78,7 +78,10 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (identityProvider != null) {
             possibleProviders = List.of(identityProvider.getOriginKey());
         } else {
-            List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream().filter(this::providerSupportsPasswordGrant).map(IdentityProvider::getOriginKey).toList();
+            List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream()
+                    .filter(PasswordGrantAuthenticationManager::providerSupportsPasswordGrant)
+                    .map(IdentityProvider::getOriginKey)
+                    .toList();
             possibleProviders = Optional.ofNullable(allowedProviders).orElse(identityProviders).stream().filter(identityProviders::contains).toList();
         }
         if (uaaLoginHint == null) {
@@ -246,7 +249,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return externalOAuthAuthenticationManager.authenticate(token);
     }
 
-    private boolean providerSupportsPasswordGrant(IdentityProvider provider) {
+    private static boolean providerSupportsPasswordGrant(IdentityProvider provider) {
         if (OriginKeys.UAA.equals(provider.getType()) || OriginKeys.LDAP.equals(provider.getType())) {
             return true;
         }
