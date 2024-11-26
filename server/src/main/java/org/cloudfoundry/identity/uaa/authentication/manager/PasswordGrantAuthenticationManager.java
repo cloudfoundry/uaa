@@ -76,6 +76,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         // check whether there is a single OIDC IdP that qualifies for the login hint (or default origin as fallback)
         IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = retrieveOidcPasswordIdp(uaaLoginHint, defaultProvider, allowedProviders);
 
+        // determine the possible providers, i.e., those allowed for the client, supporting password grant and active
         final List<String> possibleProviders;
         if (identityProvider != null) {
             possibleProviders = List.of(identityProvider.getOriginKey());
@@ -94,25 +95,35 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             }
         }
 
+        // determine the IdP to use from the list of possible ones
         UaaLoginHint loginHintToUse;
         if (uaaLoginHint == null) {
             if (defaultProvider != null && possibleProviders.contains(defaultProvider)) {
+                // no login hint was passed, but the default provider qualifies
                 loginHintToUse = new UaaLoginHint(defaultProvider);
             } else {
+                /* no login hint was passed and there is either no default IdP or it does not qualify
+                 * -> select a different IdP from the list of possible ones */
                 loginHintToUse = getUaaLoginHintForChainedAuth(possibleProviders);
                 if (identityProvider == null) {
                     identityProvider = retrieveOidcPasswordIdp(loginHintToUse, null, null);
                 }
             }
         } else {
+            /* there is a login hint passed in the password grant request
+             * -> we must use exactly this IdP, but only if it is in the list of possible IdPs */
+
             if (possibleProviders.contains(uaaLoginHint.getOrigin())) {
                 loginHintToUse = uaaLoginHint;
-            } else if (allowedProviders == null || allowedProviders.contains(uaaLoginHint.getOrigin())){
+            } else if (allowedProviders == null || allowedProviders.contains(uaaLoginHint.getOrigin())) {
+                // login with the provider is not possible because it is not active or does not support password grant
                 throw new ProviderConfigurationException("The origin provided in the login_hint does not match an active Identity Provider, that supports password grant.");
             } else {
+                // login with the provider is not possible because it is not allowed
                 throw new ProviderConfigurationException("Client is not authorized for specified user's identity provider.");
             }
         }
+
         if (loginHintToUse != null) {
             zoneAwareAuthzAuthenticationManager.setLoginHint(authentication, loginHintToUse);
         }
