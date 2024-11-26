@@ -113,19 +113,22 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     }
 
     private IdentityProvider<OIDCIdentityProviderDefinition> retrieveOidcPasswordIdp(UaaLoginHint loginHint, String defaultOrigin, List<String> allowedProviders) {
-        IdentityProvider<OIDCIdentityProviderDefinition> idp = null;
         String useOrigin = loginHint != null && loginHint.getOrigin() != null ? loginHint.getOrigin() : defaultOrigin;
-        if (useOrigin != null && !useOrigin.equalsIgnoreCase(OriginKeys.UAA) && !useOrigin.equalsIgnoreCase(OriginKeys.LDAP)) {
-            try {
-                IdentityProvider<OIDCIdentityProviderDefinition> retrievedByOrigin = externalOAuthProviderProvisioning.retrieveByOrigin(useOrigin,
-                    IdentityZoneHolder.get().getId());
-                if (retrievedByOrigin != null && retrievedByOrigin.isActive() && retrievedByOrigin.getOriginKey().equals(useOrigin)
-                    && providerSupportsPasswordGrant(retrievedByOrigin) && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
-                    idp = retrievedByOrigin;
-                }
-            } catch (EmptyResultDataAccessException e) {
-                // ignore
+
+        if (useOrigin == null || useOrigin.equalsIgnoreCase(OriginKeys.UAA) || useOrigin.equalsIgnoreCase(OriginKeys.LDAP)) {
+            return null;
+        }
+
+        IdentityProvider<OIDCIdentityProviderDefinition> idp = null;
+        try {
+            IdentityProvider<OIDCIdentityProviderDefinition> retrievedByOrigin = externalOAuthProviderProvisioning.retrieveByOrigin(useOrigin,
+                IdentityZoneHolder.get().getId());
+            if (retrievedByOrigin != null && retrievedByOrigin.isActive() && retrievedByOrigin.getOriginKey().equals(useOrigin)
+                && providerSupportsPasswordGrant(retrievedByOrigin) && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
+                idp = retrievedByOrigin;
             }
+        } catch (EmptyResultDataAccessException e) {
+            // ignore
         }
         return idp;
     }
