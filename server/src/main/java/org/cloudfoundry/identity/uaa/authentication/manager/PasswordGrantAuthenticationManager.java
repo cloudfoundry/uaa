@@ -97,7 +97,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
 
         // determine the IdP to use from the list of possible ones
         UaaLoginHint loginHintToUse;
-        if (uaaLoginHint == null) {
+        if (uaaLoginHint == null || uaaLoginHint.getOrigin() == null) {
             if (defaultProvider != null && possibleProviders.contains(defaultProvider)) {
                 // no login hint was passed, but the default provider qualifies
                 loginHintToUse = new UaaLoginHint(defaultProvider);
