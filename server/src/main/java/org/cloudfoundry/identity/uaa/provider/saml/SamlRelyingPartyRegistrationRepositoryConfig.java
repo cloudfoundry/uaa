@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.provider.service.registration.InMemoryRelyingPartyRegistrationRepository;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistrationRepository;
@@ -84,7 +85,11 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
                     .requestSigned(samlConfigProps.getSignRequest())
                     .signatureAlgorithms(signatureAlgorithms)
                     .build();
-            relyingPartyRegistrations.add(RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params));
+            try {
+                relyingPartyRegistrations.add(RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params));
+            } catch (Saml2Exception e) {
+                // ignore
+            }
         }
 
         InMemoryRelyingPartyRegistrationRepository bootstrapRepo = new InMemoryRelyingPartyRegistrationRepository(relyingPartyRegistrations);

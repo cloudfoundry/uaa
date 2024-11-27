@@ -40,14 +40,18 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
         if (idpDefinition == null) {
             idpDefinition = configurator.getIdentityProviderDefinitionsForIssuer(currentZone, registrationId);
         }
-        if (idpDefinition instanceof SamlIdentityProviderDefinition foundSamlIdentityProviderDefinition) {
-            return createRelyingPartyRegistration(foundSamlIdentityProviderDefinition.getIdpEntityAlias(), foundSamlIdentityProviderDefinition, currentZone);
-        }
-
-        for (SamlIdentityProviderDefinition identityProviderDefinition : configurator.getIdentityProviderDefinitionsForZone(currentZone)) {
-            if (registrationId.equals(identityProviderDefinition.getIdpEntityAlias()) || registrationId.equals(identityProviderDefinition.getIdpEntityId())) {
-                return createRelyingPartyRegistration(identityProviderDefinition.getIdpEntityAlias(), identityProviderDefinition, currentZone);
+        try {
+            if (idpDefinition instanceof SamlIdentityProviderDefinition foundSamlIdentityProviderDefinition) {
+                return createRelyingPartyRegistration(foundSamlIdentityProviderDefinition.getIdpEntityAlias(), foundSamlIdentityProviderDefinition, currentZone);
             }
+
+            for (SamlIdentityProviderDefinition identityProviderDefinition : configurator.getIdentityProviderDefinitionsForZone(currentZone)) {
+                if (registrationId.equals(identityProviderDefinition.getIdpEntityAlias()) || registrationId.equals(identityProviderDefinition.getIdpEntityId())) {
+                    return createRelyingPartyRegistration(identityProviderDefinition.getIdpEntityAlias(), identityProviderDefinition, currentZone);
+                }
+            }
+        } catch (Exception e) {
+            // ignore
         }
 
         return null;

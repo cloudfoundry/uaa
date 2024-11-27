@@ -155,6 +155,19 @@ public final class SamlKeyManagerFactory {
                     .map(Map.Entry::getValue)
                     .toList());
 
+            if (keyList.isEmpty()) {
+                SamlKey legacyKey = null;
+                if (samlConfigProps.getServiceProviderKey() != null && samlConfigProps.getServiceProviderCertificate() != null) {
+                    legacyKey = new SamlKey(samlConfigProps.getServiceProviderKey(), samlConfigProps.getServiceProviderKeyPassword(),
+                        samlConfigProps.getServiceProviderCertificate());
+                } else if (samlConfigProps.getLegacyServiceProviderKey() != null && samlConfigProps.getLegacyServiceProviderCertificate() != null) {
+                    legacyKey = new SamlKey(samlConfigProps.getLegacyServiceProviderKey(), samlConfigProps.getLegacyServiceProviderKeyPassword(),
+                        samlConfigProps.getLegacyServiceProviderCertificate());
+                }
+                if (legacyKey != null) {
+                    keyList.add(legacyKey);
+                }
+            }
             return convertList(keyList);
         }
 

@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.lang.Nullable;
 
@@ -86,6 +87,16 @@ public class SamlConfigProps {
      * Defaults to false
      */
     private Boolean disableInResponseToCheck = false;
+
+    private String serviceProviderKey;
+    private String serviceProviderKeyPassword;
+    private String serviceProviderCertificate;
+    @Value("${login.serviceProviderKey:null}")
+    private String legacyServiceProviderKey;
+    @Value("${login.serviceProviderKeyPassword:null}")
+    private String legacyServiceProviderKeyPassword;
+    @Value("${login.serviceProviderCertificate:null}")
+    private String legacyServiceProviderCertificate;
 
     /**
      * Get the active key
