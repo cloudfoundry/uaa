@@ -53,6 +53,7 @@ public class SamlConfigProps {
 
     /**
      * Map of key IDs to SamlKey objects
+     * This replaces the deprecated settings from login.* and login.saml.*
      */
     private Map<String, SamlKey> keys = new HashMap<>();
 
@@ -88,13 +89,36 @@ public class SamlConfigProps {
      */
     private Boolean disableInResponseToCheck = false;
 
+    /**
+     * Legacy setting: login.saml.serviceProviderKey
+     */
     private String serviceProviderKey;
+
+    /**
+     * Legacy setting: login.saml.serviceProviderKeyPassword
+     */
     private String serviceProviderKeyPassword;
+
+    /**
+     * Legacy setting: login.saml.serviceProviderCertificate
+     */
     private String serviceProviderCertificate;
+
+    /**
+     * Deprecated but sill working: login.serviceProviderKey
+     */
     @Value("${login.serviceProviderKey:null}")
     private String legacyServiceProviderKey;
+
+    /**
+     * Deprecated but sill working: login.serviceProviderKeyPassword
+     */
     @Value("${login.serviceProviderKeyPassword:null}")
     private String legacyServiceProviderKeyPassword;
+
+    /**
+     * Deprecated but sill working: login.serviceProviderCertificate
+     */
     @Value("${login.serviceProviderCertificate:null}")
     private String legacyServiceProviderCertificate;
 
