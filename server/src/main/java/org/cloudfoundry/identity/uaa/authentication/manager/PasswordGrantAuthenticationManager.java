@@ -83,10 +83,34 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         } else {
             /* no suiting OIDC IdP was found - get all qualifying IdPs in the zone
              * (i.e., active, supports password grant and is allowed by the client) */
-            final List<String> identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId()).stream()
-                    .filter(PasswordGrantAuthenticationManager::providerSupportsPasswordGrant)
-                    .map(IdentityProvider::getOriginKey)
-                    .toList();
+            final List<String> identityProviders;
+
+            final String originLoginHint = Optional.ofNullable(uaaLoginHint).map(UaaLoginHint::getOrigin).orElse(null);
+            final boolean isLoginHintUaa = OriginKeys.UAA.equalsIgnoreCase(originLoginHint);
+            if (isLoginHintUaa || OriginKeys.LDAP.equalsIgnoreCase(originLoginHint)) {
+                /* if "uaa" or "ldap" is passed in the login hint (not as default origin), only look up the single IdP
+                 * instead of all qualifying ones in the zone (we later only allow this exact IdP anyway) */
+
+                // only returns active IdP
+                final IdentityProvider uaaOrLdapIdp = identityProviderProvisioning.retrieveByOrigin(
+                        isLoginHintUaa ? OriginKeys.UAA : OriginKeys.LDAP,
+                        IdentityZoneHolder.get().getId()
+                );
+
+                identityProviders = Optional.ofNullable(uaaOrLdapIdp)
+                        .filter(PasswordGrantAuthenticationManager::providerSupportsPasswordGrant) // always true for "uaa" or "ldap" IdPs
+                        .map(IdentityProvider::getOriginKey)
+                        .stream()
+                        .toList();
+            } else {
+                identityProviders = identityProviderProvisioning.retrieveActive(IdentityZoneHolder.get().getId())
+                        .stream()
+                        .filter(PasswordGrantAuthenticationManager::providerSupportsPasswordGrant)
+                        .map(IdentityProvider::getOriginKey)
+                        .toList();
+            }
+
+            // only keep the IdPs that are allowed by the client
             if (allowedProviders == null) {
                 // client allows all IdPs
                 possibleProviders = new ArrayList<>(identityProviders);

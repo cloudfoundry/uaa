@@ -117,6 +117,8 @@ class PasswordGrantAuthenticationManagerTest {
 
         when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(idp, uaaProvider, ldapProvider));
         when(externalOAuthProviderConfigurator.retrieveByOrigin("oidcprovider", "uaa")).thenReturn(idp);
+        when(identityProviderProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(uaaProvider);
+        when(identityProviderProvisioning.retrieveByOrigin("ldap", "uaa")).thenReturn(ldapProvider);
 
         Authentication clientAuth = mock(Authentication.class);
         when(clientAuth.getName()).thenReturn("clientid");
