@@ -31,9 +31,12 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigu
 import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.core.ParameterizedTypeReference;
@@ -632,22 +635,29 @@ class PasswordGrantAuthenticationManagerTest {
         verify(zoneAwareAuthzAuthenticationManager, times(0)).setLoginHint(any(), any());
     }
 
-    @Test
-    void testPasswordGrant_NoLoginHintWithDefaultUaa() {
+    @ParameterizedTest
+    @ValueSource(strings = { OriginKeys.UAA, OriginKeys.LDAP })
+    void testPasswordGrant_NoLoginHintWithDefaultUaaOrLdap(final String loginHintOrigin) {
         Authentication auth = mock(Authentication.class);
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
         Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(loginHintOrigin));
         when(uaaClient.getAdditionalInformation()).thenReturn(additionalInformation);
-        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider(loginHintOrigin);
 
         instance.authenticate(auth);
+
+        /* should read all in the zone during lookup of possible providers
+         * - "uaa" or "ldap" is used, but not as login hint */
+        final String idzId = IdentityZoneHolder.get().getId();
+        verify(identityProviderProvisioning, times(1)).retrieveActive(idzId);
+        verify(identityProviderProvisioning, times(0)).retrieveByOrigin(loginHintOrigin, idzId);
 
         verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
         ArgumentCaptor<UaaLoginHint> captor = ArgumentCaptor.forClass(UaaLoginHint.class);
         verify(zoneAwareAuthzAuthenticationManager, times(1)).setLoginHint(eq(auth), captor.capture());
-        assertNotNull(captor.getValue());
-        assertEquals("uaa", captor.getValue().getOrigin());
+        Assertions.assertNotNull(captor.getValue());
+        Assertions.assertEquals(loginHintOrigin, captor.getValue().getOrigin());
     }
 
     @Test
@@ -724,24 +734,30 @@ class PasswordGrantAuthenticationManagerTest {
         verify(identityProviderProvisioning, times(0)).retrieveActive(any());
     }
 
-    @Test
-    void testOIDCPasswordGrant_LoginHintUaaOverridesDefaultOidc() {
+    @ParameterizedTest
+    @ValueSource(strings = { OriginKeys.UAA, OriginKeys.LDAP })
+    void testOIDCPasswordGrant_LoginHintUaaOrLdapOverridesDefaultOidc(final String loginHintOrigin) {
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
-        when(loginHint.getOrigin()).thenReturn("uaa");
+        when(loginHint.getOrigin()).thenReturn(loginHintOrigin);
         Authentication auth = mock(Authentication.class);
-        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(null);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
         Map<String, Object> additionalInformation = new HashMap<>();
-        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("uaa"));
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(loginHintOrigin));
         when(uaaClient.getAdditionalInformation()).thenReturn(additionalInformation);
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("oidcprovider");
 
         instance.authenticate(auth);
 
+        // should read only "uaa" or "ldap" IdP during lookup of possible providers
+        final String idzId = IdentityZoneHolder.get().getId();
+        verify(identityProviderProvisioning, times(0)).retrieveActive(idzId);
+        verify(identityProviderProvisioning, times(1)).retrieveByOrigin(loginHintOrigin, idzId);
+
         verify(zoneAwareAuthzAuthenticationManager, times(1)).authenticate(auth);
         ArgumentCaptor<UaaLoginHint> captor = ArgumentCaptor.forClass(UaaLoginHint.class);
         verify(zoneAwareAuthzAuthenticationManager, times(1)).setLoginHint(eq(auth), captor.capture());
-        assertNotNull(captor.getValue());
-        assertEquals("uaa", captor.getValue().getOrigin());
+        Assertions.assertNotNull(captor.getValue());
+        Assertions.assertEquals(loginHintOrigin, captor.getValue().getOrigin());
     }
 
     @Test
