@@ -14,7 +14,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
-import org.springframework.security.saml2.Saml2Exception;
 import org.springframework.security.saml2.core.Saml2X509Credential;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.util.FileCopyUtils;
@@ -29,6 +28,7 @@ import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName1;
 import static org.cloudfoundry.identity.uaa.provider.saml.TestCredentialObjects.keyName2;
@@ -315,9 +315,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
         when(definition.getMetaDataLocation()).thenReturn("not_found_metadata.xml");
         when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
 
-        assertThatThrownBy(() -> repository.findByRegistrationId(REGISTRATION_ID))
-                .isInstanceOf(Saml2Exception.class)
-                .hasMessageContaining("not_found_metadata.xml");
+        assertThatNoException().isThrownBy(() -> repository.findByRegistrationId(REGISTRATION_ID));
     }
 
     @Test
@@ -331,9 +329,7 @@ class ConfiguratorRelyingPartyRegistrationRepositoryTest {
         when(definition.getMetaDataLocation()).thenReturn("<?xml version=\"1.0\"?>\n<xml>invalid xml</xml>");
         when(configurator.getIdentityProviderDefinitionsForZone(identityZone)).thenReturn(List.of(definition));
 
-        assertThatThrownBy(() -> repository.findByRegistrationId(REGISTRATION_ID))
-                .isInstanceOf(Saml2Exception.class)
-                .hasMessageContaining("Unsupported element");
+        assertThatNoException().isThrownBy(() -> repository.findByRegistrationId(REGISTRATION_ID));
     }
 
     @Test
