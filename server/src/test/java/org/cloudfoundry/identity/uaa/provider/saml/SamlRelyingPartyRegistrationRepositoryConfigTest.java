@@ -41,24 +41,30 @@ class SamlRelyingPartyRegistrationRepositoryConfigTest {
     @Test
     void relyingPartyRegistrationRepository() {
         when(bootstrapSamlIdentityProviderData.getIdentityProviderDefinitions()).thenReturn(List.of(new SamlIdentityProviderDefinition()));
-        Map<String, SamlKey> samlKeys = samlConfigProps.getKeys();
-        samlConfigProps.setKeys(Map.of());
-        samlConfigProps.setLegacyServiceProviderKey(samlKeys.entrySet().stream().findFirst().map(e -> e.getValue().getKey()).orElse(null));
-        samlConfigProps.setLegacyServiceProviderCertificate(samlKeys.entrySet().stream().findFirst().map(e -> e.getValue().getCertificate()).orElse(null));
+        SamlConfigProps localSamlConfigProps = new SamlConfigProps();
+        localSamlConfigProps.setActiveKeyId(samlConfigProps.getActiveKeyId());
+        localSamlConfigProps.setKeys(samlConfigProps.getKeys());
+        Map<String, SamlKey> samlKeys = localSamlConfigProps.getKeys();
+        localSamlConfigProps.setKeys(Map.of());
+        localSamlConfigProps.setLegacyServiceProviderKey(samlKeys.entrySet().stream().findFirst().map(e -> e.getValue().getKey()).orElse(null));
+        localSamlConfigProps.setLegacyServiceProviderCertificate(samlKeys.entrySet().stream().findFirst().map(e -> e.getValue().getCertificate()).orElse(null));
         SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
-                samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
+                localSamlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         assertThat(repository).isNotNull();
     }
 
     @Test
     void relyingPartyRegistrationResolver() {
-        Map<String, SamlKey> samlKeys = samlConfigProps.getKeys();
-        samlConfigProps.setKeys(Map.of());
-        samlConfigProps.setServiceProviderKey(samlKeys.entrySet().stream().findFirst().map(e -> e.getValue().getKey()).orElse(null));
-        samlConfigProps.setServiceProviderCertificate(samlKeys.entrySet().stream().findFirst().map(e -> e.getValue().getCertificate()).orElse(null));
+        SamlConfigProps localSamlConfigProps = new SamlConfigProps();
+        localSamlConfigProps.setActiveKeyId(samlConfigProps.getActiveKeyId());
+        localSamlConfigProps.setKeys(samlConfigProps.getKeys());
+        Map<String, SamlKey> samlKeys = localSamlConfigProps.getKeys();
+        localSamlConfigProps.setKeys(Map.of());
+        localSamlConfigProps.setServiceProviderKey(samlKeys.entrySet().stream().findFirst().map(e -> e.getValue().getKey()).orElse(null));
+        localSamlConfigProps.setServiceProviderCertificate(samlKeys.entrySet().stream().findFirst().map(e -> e.getValue().getCertificate()).orElse(null));
         SamlRelyingPartyRegistrationRepositoryConfig config = new SamlRelyingPartyRegistrationRepositoryConfig(ENTITY_ID,
-                samlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
+                localSamlConfigProps, bootstrapSamlIdentityProviderData, NAME_ID, List.of());
         RelyingPartyRegistrationRepository repository = config.relyingPartyRegistrationRepository(samlIdentityProviderConfigurator);
         RelyingPartyRegistrationResolver resolver = config.relyingPartyRegistrationResolver(repository, ENTITY_ID);
 
