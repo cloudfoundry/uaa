@@ -65,6 +65,7 @@ dependencies {
     implementation(libraries.hsqldb)
 
     implementation(libraries.snakeyaml)
+    implementation(libraries.velocity)
 
     implementation(libraries.springWebMvc)
     implementation(libraries.springSecurityLdap)
