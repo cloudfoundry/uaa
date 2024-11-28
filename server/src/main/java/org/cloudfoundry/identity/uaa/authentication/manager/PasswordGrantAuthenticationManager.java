@@ -44,7 +44,6 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URL;
 import java.util.*;
 import java.util.function.Supplier;
-import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -103,12 +102,14 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         if (identityProvider == null || loginHintToUse == null || loginHintToUse.getOrigin() == null || loginHintToUse.getOrigin().equals(OriginKeys.UAA) || loginHintToUse.getOrigin().equals(OriginKeys.LDAP)) {
             return zoneAwareAuthzAuthenticationManager.authenticate(authentication);
         } else {
-            return oidcPasswordGrant(authentication, identityProvider);
+            if (OriginKeys.OIDC10.equals(identityProvider.getType()) && identityProvider.getConfig() instanceof OIDCIdentityProviderDefinition) {
+                return oidcPasswordGrant(authentication, (IdentityProvider<OIDCIdentityProviderDefinition>) identityProvider);
+            }
         }
+        throw new ProviderConfigurationException("Invalid identity provider type");
     }
 
     private IdentityProvider<?> retrievePasswordIdp(UaaLoginHint loginHint, String defaultOrigin, List<String> allowedProviders) {
-        IdentityProvider<?> idp = null;
         String useOrigin = loginHint != null && loginHint.getOrigin() != null ? loginHint.getOrigin() : defaultOrigin;
         if (useOrigin != null) {
             try {
@@ -116,13 +117,13 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
                     IdentityZoneHolder.get().getId());
                 if (retrievedByOrigin != null && retrievedByOrigin.isActive() && retrievedByOrigin.getOriginKey().equals(useOrigin)
                     && providerSupportsPasswordGrant(retrievedByOrigin) && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
-                    idp = retrievedByOrigin;
+                    return retrievedByOrigin;
                 }
             } catch (EmptyResultDataAccessException e) {
                 // ignore
             }
         }
-        return idp;
+        return null;
     }
 
     private UaaLoginHint getUaaLoginHintForChainedAuth(List<String> allowedProviders) {
@@ -143,11 +144,8 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return loginHintToUse;
     }
 
-    Authentication oidcPasswordGrant(Authentication authentication, final IdentityProvider<?> identityProvider) {
-        final OIDCIdentityProviderDefinition config = Stream.of(identityProvider).
-                map(i -> i.getConfig()).
-                filter(OIDCIdentityProviderDefinition.class::isInstance).
-                map(OIDCIdentityProviderDefinition.class::cast).findFirst().orElseThrow(() -> new ProviderConfigurationException("Invalid identity provider type"));
+    Authentication oidcPasswordGrant(Authentication authentication, final IdentityProvider<OIDCIdentityProviderDefinition> identityProvider) {
+        final OIDCIdentityProviderDefinition config = identityProvider.getConfig();
 
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();
