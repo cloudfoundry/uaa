@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
-import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEvent;
@@ -45,6 +44,7 @@ import org.springframework.web.client.RestTemplate;
 import java.net.URL;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -56,15 +56,13 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private IdentityProviderProvisioning identityProviderProvisioning;
     private RestTemplateConfig restTemplateConfig;
     private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
-    private ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning;
     private ApplicationEventPublisher eventPublisher;
 
-    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager, ExternalOAuthProviderConfigurator externalOAuthProviderProvisioning) {
+    public PasswordGrantAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager, final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning identityProviderProvisioning, RestTemplateConfig restTemplateConfig, ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager) {
         this.zoneAwareAuthzAuthenticationManager = zoneAwareAuthzAuthenticationManager;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.restTemplateConfig = restTemplateConfig;
         this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
-        this.externalOAuthProviderProvisioning = externalOAuthProviderProvisioning;
     }
 
     @Override
@@ -73,7 +71,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         List<String> allowedProviders = getAllowedProviders();
         String defaultProvider = IdentityZoneHolder.get().getConfig().getDefaultIdentityProvider();
         UaaLoginHint loginHintToUse;
-        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = retrieveOidcPasswordIdp(uaaLoginHint, defaultProvider, allowedProviders);
+        IdentityProvider<?> identityProvider = retrievePasswordIdp(uaaLoginHint, defaultProvider, allowedProviders);
         List<String> possibleProviders;
         if (identityProvider != null) {
             possibleProviders = List.of(identityProvider.getOriginKey());
@@ -87,7 +85,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
             } else {
                 loginHintToUse = getUaaLoginHintForChainedAuth(possibleProviders);
                 if (identityProvider == null) {
-                    identityProvider = retrieveOidcPasswordIdp(loginHintToUse, null, null);
+                    identityProvider = retrievePasswordIdp(loginHintToUse, null, null);
                 }
             }
         } else {
@@ -109,12 +107,12 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         }
     }
 
-    private IdentityProvider<OIDCIdentityProviderDefinition> retrieveOidcPasswordIdp(UaaLoginHint loginHint, String defaultOrigin, List<String> allowedProviders) {
-        IdentityProvider<OIDCIdentityProviderDefinition> idp = null;
+    private IdentityProvider<?> retrievePasswordIdp(UaaLoginHint loginHint, String defaultOrigin, List<String> allowedProviders) {
+        IdentityProvider<?> idp = null;
         String useOrigin = loginHint != null && loginHint.getOrigin() != null ? loginHint.getOrigin() : defaultOrigin;
-        if (useOrigin != null && !useOrigin.equalsIgnoreCase(OriginKeys.UAA) && !useOrigin.equalsIgnoreCase(OriginKeys.LDAP)) {
+        if (useOrigin != null) {
             try {
-                IdentityProvider<OIDCIdentityProviderDefinition> retrievedByOrigin = externalOAuthProviderProvisioning.retrieveByOrigin(useOrigin,
+                IdentityProvider<?> retrievedByOrigin = identityProviderProvisioning.retrieveByOrigin(useOrigin,
                     IdentityZoneHolder.get().getId());
                 if (retrievedByOrigin != null && retrievedByOrigin.isActive() && retrievedByOrigin.getOriginKey().equals(useOrigin)
                     && providerSupportsPasswordGrant(retrievedByOrigin) && (allowedProviders == null || allowedProviders.contains(useOrigin))) {
@@ -145,8 +143,11 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
         return loginHintToUse;
     }
 
-    Authentication oidcPasswordGrant(Authentication authentication, final IdentityProvider<OIDCIdentityProviderDefinition> identityProvider) {
-        final OIDCIdentityProviderDefinition config = identityProvider.getConfig();
+    Authentication oidcPasswordGrant(Authentication authentication, final IdentityProvider<?> identityProvider) {
+        final OIDCIdentityProviderDefinition config = Stream.of(identityProvider).
+                map(i -> i.getConfig()).
+                filter(OIDCIdentityProviderDefinition.class::isInstance).
+                map(OIDCIdentityProviderDefinition.class::cast).findFirst().orElseThrow(() -> new ProviderConfigurationException("Invalid identity provider type"));
 
         //Token per RestCall
         URL tokenUrl = config.getTokenUrl();
