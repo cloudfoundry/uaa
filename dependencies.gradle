@@ -129,6 +129,7 @@ libraries.tomcatJasperEl = "org.apache.tomcat.embed:tomcat-embed-jasper:${versio
 libraries.tomcatJdbc = "org.apache.tomcat:tomcat-jdbc:${versions.tomcatCargoVersion}"
 libraries.unboundIdLdapSdk = "com.unboundid:unboundid-ldapsdk"
 libraries.unboundIdScimSdk = "com.unboundid.product.scim:scim-sdk:1.8.26"
+libraries.velocity = "org.apache.velocity:velocity-engine-core:2.4.1"
 libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:9.47"
 libraries.xmlSecurity = "org.apache.santuario:xmlsec:4.0.3"
 libraries.xmlUnit = "org.xmlunit:xmlunit-assertj:2.10.0"
