@@ -88,7 +88,7 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
             try {
                 relyingPartyRegistrations.add(RelyingPartyRegistrationBuilder.buildRelyingPartyRegistration(params));
             } catch (Saml2Exception e) {
-                // ignore
+                log.error("Error building relying party", e);
             }
         }
 

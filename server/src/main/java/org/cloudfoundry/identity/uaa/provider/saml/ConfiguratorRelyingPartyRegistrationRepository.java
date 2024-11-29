@@ -51,7 +51,7 @@ public class ConfiguratorRelyingPartyRegistrationRepository extends BaseUaaRelyi
                 }
             }
         } catch (Exception e) {
-            // ignore
+            log.warn("Cannot retrieve SAML trusted party.", e);
         }
 
         return null;
