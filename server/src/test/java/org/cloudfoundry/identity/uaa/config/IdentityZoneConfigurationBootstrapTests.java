@@ -135,6 +135,22 @@ public class IdentityZoneConfigurationBootstrapTests {
     }
 
     @Test
+    void passphraseOnlyException() {
+        bootstrap.setSamlSpPrivateKey(key1());
+        bootstrap.setSamlSpCertificate(certificate1());
+        bootstrap.setSamlSpPrivateKeyPassphrase(passphrase1());
+        Map<String, Map<String, String>> keys = new HashMap<>();
+        Map<String, String> key1 = new HashMap<>();
+        key1.put("passphrase", passphrase1());
+        keys.put("key1", key1);
+        bootstrap.setActiveKeyId(null);
+        bootstrap.setSamlKeys(keys);
+        assertThatExceptionOfType(InvalidIdentityZoneDetailsException.class)
+                .isThrownBy(() -> bootstrap.afterPropertiesSet())
+                .withMessage("The zone configuration is invalid. Identity zone cannot be updated with partial Saml CertKey config.");
+    }
+
+    @Test
     void samlKeysAndSigningConfigs() throws Exception {
         bootstrap.setSamlSpPrivateKey(key1());
         bootstrap.setSamlSpCertificate(certificate1());

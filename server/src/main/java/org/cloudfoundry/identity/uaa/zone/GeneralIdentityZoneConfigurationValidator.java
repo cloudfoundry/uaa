@@ -98,7 +98,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
 
     private void failIfPartialCertKeyInfo(String samlSpCert, String samlSpKey, String samlSpkeyPassphrase) throws InvalidIdentityZoneConfigurationException {
         if ((samlSpCert == null && samlSpKey == null && samlSpkeyPassphrase == null) ||
-                (samlSpCert != null && samlSpKey != null && samlSpkeyPassphrase == null)) {
+                (samlSpCert != null && samlSpKey != null)) {
             return;
         }
         throw new InvalidIdentityZoneConfigurationException("Identity zone cannot be updated with partial Saml CertKey config.", null);
