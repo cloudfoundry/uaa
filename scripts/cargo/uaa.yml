@@ -73,7 +73,6 @@ login:
           N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB
           qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
           -----END RSA PRIVATE KEY-----
-        passphrase: password
         certificate: |
           -----BEGIN CERTIFICATE-----
           MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO
