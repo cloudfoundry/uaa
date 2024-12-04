@@ -11,7 +11,9 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -45,6 +47,20 @@ class SamlConfigurationTest {
     void bootstrapMetaDataProviders() {
         SamlConfiguration samlConfiguration = new SamlConfiguration(applicationContextProvider);
         assertNotNull(samlConfiguration.bootstrapMetaDataProviders(configProps, samlIdentityProviderConfigurator));
+    }
+
+    @Test
+    void bootstrapMetaDataProvidersNoApplicationContext() {
+        SamlConfiguration samlConfiguration = new SamlConfiguration(null);
+        assertNotNull(samlConfiguration.bootstrapMetaDataProviders(configProps, samlIdentityProviderConfigurator));
+    }
+
+    @Test
+    void bootstrapMetaDataProvidersNoWebApplicationContext() {
+        SamlConfiguration samlConfiguration = new SamlConfiguration(applicationContextProvider);
+        configProps.setProviders(Map.of("login", Map.of()));
+        applicationContextProvider.setApplicationContext(null);
+        assertThrowsExactly(IllegalArgumentException.class, () -> samlConfiguration.bootstrapMetaDataProviders(configProps, samlIdentityProviderConfigurator));
     }
 
     @Test
