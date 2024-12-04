@@ -88,7 +88,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
     @BeforeEach
     public void beforeEach() {
-        samlConfiguration = new SamlConfiguration();
+        samlConfiguration = new SamlConfiguration(null);
 
         slowHttpServer = new SlowHttpServer();
         singleAdd = new SamlIdentityProviderDefinition()

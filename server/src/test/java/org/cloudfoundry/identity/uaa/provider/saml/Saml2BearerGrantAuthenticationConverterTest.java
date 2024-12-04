@@ -78,7 +78,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
     void beforeEach() {
         IdentityZoneManager identityZoneManager = new IdentityZoneManagerImpl();
         RestTemplate restTemplate = new RestTemplate();
-        SamlConfiguration samlConfiguration = new SamlConfiguration();
+        SamlConfiguration samlConfiguration = new SamlConfiguration(null);
         JdbcIdentityProviderProvisioning providerProvisioning = mock(JdbcIdentityProviderProvisioning.class);
 
         SamlIdentityProviderConfigurator identityProviderConfigurator = new SamlIdentityProviderConfigurator(

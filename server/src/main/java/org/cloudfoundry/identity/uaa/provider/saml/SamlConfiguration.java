@@ -9,6 +9,8 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.ssl.TrustStrategy;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
+import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
+import org.cloudfoundry.identity.uaa.oauth.beans.ApplicationContextProvider;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,13 +21,16 @@ import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.util.ObjectUtils;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 
 import javax.net.ssl.SSLContext;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
+import java.util.Map;
 
 @Slf4j
 @EnableConfigurationProperties({SamlConfigProps.class})
@@ -70,11 +75,19 @@ public class SamlConfiguration {
         return samlEntityID;
     }
 
+    public SamlConfiguration(final @Qualifier("applicationContextProvider") ApplicationContextProvider applicationContextProvider) {
+        // access the parsed Yaml structure mainly login.saml.providers
+        this.applicationContextProvider = applicationContextProvider;
+    }
+
+    private final ApplicationContextProvider applicationContextProvider;
+
     @Autowired
     @Bean
     public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders(SamlConfigProps samlConfigProps,
                                                                         final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator metaDataProviders) {
         BootstrapSamlIdentityProviderData idpData = new BootstrapSamlIdentityProviderData(metaDataProviders);
+        setSamlProvidersFromContext(samlConfigProps);
         idpData.setIdentityProviders(samlConfigProps.getProviders());
         if (isNotNull(metaData)) {
             idpData.setLegacyIdpMetaData(metaData);
@@ -94,6 +107,20 @@ public class SamlConfiguration {
             return false;
         }
         return !value.isEmpty() && !value.equals("null");
+    }
+
+    private void setSamlProvidersFromContext(SamlConfigProps samlConfigProps) {
+        // this object is created by spring boot ConfigurationProperties and cannot handle dots in key
+        if (applicationContextProvider == null || ObjectUtils.isEmpty(samlConfigProps.getProviders())) {
+            return;
+        }
+        // if there are entries in login.saml.providers then retrieve map from initialization of YamlMapFactoryBean
+        if (applicationContextProvider.getApplicationContext() instanceof ConfigurableWebApplicationContext configContext &&
+            configContext.getEnvironment().getPropertySources().get("servletConfigYaml") instanceof NestedMapPropertySource mapPropertySource &&
+            mapPropertySource.getProperty("login") instanceof Map<?,?> loginMap &&
+            loginMap.get("saml") instanceof Map<?,?> samlMap && samlMap.get("providers") instanceof Map<?,?> providers) {
+            samlConfigProps.setProviders((Map<String, Map<String, Object>>) providers);
+        }
     }
 
     @Autowired
