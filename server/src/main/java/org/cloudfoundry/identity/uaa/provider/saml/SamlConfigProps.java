@@ -151,8 +151,7 @@ public class SamlConfigProps implements EnvironmentAware {
     @Override
     public void setEnvironment(Environment environment) {
         var nestedMap = Optional.ofNullable(((ConfigurableEnvironment) environment).getPropertySources().get("servletConfigYaml")).orElse((PropertySource) new NestedMapPropertySource("servletConfigYaml", Map.of()));
-        var samlProviders = nestedMap.getProperty("login.saml.providers");
-        if (samlProviders instanceof LinkedHashMap<?, ?> linkedHashMap) {
+        if (nestedMap.getProperty("login.saml.providers") instanceof LinkedHashMap<?, ?> linkedHashMap) {
             this.environmentProviders = new LinkedHashMap<>((Map<String, Map<String, Object>>)linkedHashMap);
         }
         this.legacyServiceProviderKey = getNestedStringValue(nestedMap, "login.serviceProviderKey");
@@ -160,8 +159,7 @@ public class SamlConfigProps implements EnvironmentAware {
         this.legacyServiceProviderCertificate = getNestedStringValue(nestedMap, "login.serviceProviderCertificate");
     }
 
-    private static String getNestedStringValue(PropertySource nestedMapPropertySource, String key) {
-        var propertyValue = nestedMapPropertySource.getProperty(key);
-        return (propertyValue instanceof String valueString) ? valueString : null;
+    private static String getNestedStringValue(PropertySource<?> nestedMapPropertySource, String key) {
+        return (nestedMapPropertySource.getProperty(key) instanceof String valueString) ? valueString : null;
     }
 }
