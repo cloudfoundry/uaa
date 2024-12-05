@@ -65,7 +65,7 @@ class SamlConfigurationTest {
         // Assert
         assertThat(props).isNotNull()
                 .hasFieldOrPropertyWithValue("entityIDAlias", "foo")
-                .extracting("providers", InstanceOfAssertFactories.map(String.class, Map.class))
+                .extracting("environmentProviders", InstanceOfAssertFactories.map(String.class, Map.class))
                 .extractingByKey("idp.one")
                 .extracting("idpMetadata")
                 .isEqualTo("<xml />");

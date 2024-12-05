@@ -75,7 +75,7 @@ public class SamlConfiguration {
     public BootstrapSamlIdentityProviderData bootstrapMetaDataProviders(SamlConfigProps samlConfigProps,
                                                                         final @Qualifier("metaDataProviders") SamlIdentityProviderConfigurator metaDataProviders) {
         BootstrapSamlIdentityProviderData idpData = new BootstrapSamlIdentityProviderData(metaDataProviders);
-        idpData.setIdentityProviders(samlConfigProps.getProviders());
+        idpData.setIdentityProviders(samlConfigProps.getEnvironmentProviders());
         if (isNotNull(metaData)) {
             idpData.setLegacyIdpMetaData(metaData);
         } else if (isNotNull(metaDataUrl)) {

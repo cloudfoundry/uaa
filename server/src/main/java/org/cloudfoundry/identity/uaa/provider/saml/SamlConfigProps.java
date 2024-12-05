@@ -1,17 +1,23 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import lombok.AccessLevel;
 import lombok.Data;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.PropertySource;
 import org.springframework.lang.Nullable;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Configuration properties for SAML
@@ -25,7 +31,8 @@ public class SamlConfigProps implements EnvironmentAware {
     /**
      * Map of provider IDs to provider configuration
      */
-    private Map<String, Map<String, Object>> providers;
+    @Setter(AccessLevel.NONE)
+    private Map<String, Map<String, Object>> environmentProviders;
 
     /**
      * Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias};
@@ -109,18 +116,21 @@ public class SamlConfigProps implements EnvironmentAware {
 
     /**
      * Deprecated but sill working: login.serviceProviderKey
+     * WILL be REMOVED with UAA 78.x
      */
     @Value("${login.serviceProviderKey:null}")
     private String legacyServiceProviderKey;
 
     /**
      * Deprecated but sill working: login.serviceProviderKeyPassword
+     * WILL be REMOVED with UAA 78.x
      */
     @Value("${login.serviceProviderKeyPassword:null}")
     private String legacyServiceProviderKeyPassword;
 
     /**
      * Deprecated but sill working: login.serviceProviderCertificate
+     * WILL be REMOVED with UAA 78.x
      */
     @Value("${login.serviceProviderCertificate:null}")
     private String legacyServiceProviderCertificate;
@@ -134,19 +144,8 @@ public class SamlConfigProps implements EnvironmentAware {
         return keys != null ? keys.get(activeKeyId) : null;
     }
 
-    /**
-     * This method is invoked 2 times, but only the first should be used.
-     * The first invocation is done from setEnvironment in initialization phase.
-     * The 2nd call is from ConfigurationProperties.
-     *
-     * @param providers
-     */
-    public void setProviders(Map<String, Map<String, Object>> providers) {
-        if (this.providers != null) {
-            // it's already set by the environment.
-            return;
-        }
-        this.providers = providers;
+    public Map<String, Map<String, Object>> getEnvironmentProviders() {
+        return environmentProviders;
     }
 
     /**
@@ -158,8 +157,9 @@ public class SamlConfigProps implements EnvironmentAware {
      */
     @Override
     public void setEnvironment(Environment environment) {
-        // TODO: clean up the type checks
-        var providers = ((ConfigurableEnvironment) environment).getPropertySources().get("servletConfigYaml").getProperty("login.saml.providers");
-        this.setProviders((Map<String, Map<String, Object>>) providers);
+        var samlProviders = Optional.ofNullable(((ConfigurableEnvironment) environment).getPropertySources().get("servletConfigYaml")).orElse((PropertySource) new NestedMapPropertySource("servletConfigYaml", Map.of())).getProperty("login.saml.providers");
+        if (samlProviders instanceof LinkedHashMap<?, ?> linkedHashMap) {
+            this.environmentProviders = new LinkedHashMap<>((Map<String, Map<String, Object>>)linkedHashMap);
+        }
     }
 }
