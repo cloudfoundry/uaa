@@ -6,7 +6,6 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.impl.config.NestedMapPropertySource;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -116,23 +115,20 @@ public class SamlConfigProps implements EnvironmentAware {
 
     /**
      * Deprecated but sill working: login.serviceProviderKey
-     * WILL be REMOVED with UAA 78.x
      */
-    @Value("${login.serviceProviderKey:null}")
+    @Setter(AccessLevel.NONE)
     private String legacyServiceProviderKey;
 
     /**
      * Deprecated but sill working: login.serviceProviderKeyPassword
-     * WILL be REMOVED with UAA 78.x
      */
-    @Value("${login.serviceProviderKeyPassword:null}")
+    @Setter(AccessLevel.NONE)
     private String legacyServiceProviderKeyPassword;
 
     /**
      * Deprecated but sill working: login.serviceProviderCertificate
-     * WILL be REMOVED with UAA 78.x
      */
-    @Value("${login.serviceProviderCertificate:null}")
+    @Setter(AccessLevel.NONE)
     private String legacyServiceProviderCertificate;
 
     /**
@@ -157,9 +153,18 @@ public class SamlConfigProps implements EnvironmentAware {
      */
     @Override
     public void setEnvironment(Environment environment) {
-        var samlProviders = Optional.ofNullable(((ConfigurableEnvironment) environment).getPropertySources().get("servletConfigYaml")).orElse((PropertySource) new NestedMapPropertySource("servletConfigYaml", Map.of())).getProperty("login.saml.providers");
+        var nestedMap = Optional.ofNullable(((ConfigurableEnvironment) environment).getPropertySources().get("servletConfigYaml")).orElse((PropertySource) new NestedMapPropertySource("servletConfigYaml", Map.of()));
+        var samlProviders = nestedMap.getProperty("login.saml.providers");
         if (samlProviders instanceof LinkedHashMap<?, ?> linkedHashMap) {
             this.environmentProviders = new LinkedHashMap<>((Map<String, Map<String, Object>>)linkedHashMap);
         }
+        this.legacyServiceProviderKey = getNestedStringValue(nestedMap, "login.serviceProviderKey");
+        this.legacyServiceProviderKeyPassword = getNestedStringValue(nestedMap, "login.serviceProviderKeyPassword");
+        this.legacyServiceProviderCertificate = getNestedStringValue(nestedMap, "login.serviceProviderCertificate");
+    }
+
+    private static String getNestedStringValue(PropertySource nestedMapPropertySource, String key) {
+        var propertyValue = nestedMapPropertySource.getProperty(key);
+        return (propertyValue instanceof String valueString) ? valueString : null;
     }
 }
