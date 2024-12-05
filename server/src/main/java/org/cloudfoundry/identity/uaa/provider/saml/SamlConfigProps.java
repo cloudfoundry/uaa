@@ -5,6 +5,9 @@ import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.saml.SamlKey;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.env.Environment;
 import org.springframework.lang.Nullable;
 
 import java.util.HashMap;
@@ -17,7 +20,7 @@ import java.util.Map;
 @Slf4j
 @Data
 @ConfigurationProperties(prefix = "login.saml")
-public class SamlConfigProps {
+public class SamlConfigProps implements EnvironmentAware {
 
     /**
      * Map of provider IDs to provider configuration
@@ -129,5 +132,34 @@ public class SamlConfigProps {
     @Nullable
     public SamlKey getActiveSamlKey() {
         return keys != null ? keys.get(activeKeyId) : null;
+    }
+
+    /**
+     * This method is invoked 2 times, but only the first should be used.
+     * The first invocation is done from setEnvironment in initialization phase.
+     * The 2nd call is from ConfigurationProperties.
+     *
+     * @param providers
+     */
+    public void setProviders(Map<String, Map<String, Object>> providers) {
+        if (this.providers != null) {
+            // it's already set by the environment.
+            return;
+        }
+        this.providers = providers;
+    }
+
+    /**
+     * Remark: The providers map can have dots in key, typically because of domain names, e.g. cloudfoundry.org
+     * With spring-boot Configuration annotations we loose the context, therefore use the map from YamlMapFactoryBean
+     * from the environment.
+     *
+     * @param environment
+     */
+    @Override
+    public void setEnvironment(Environment environment) {
+        // TODO: clean up the type checks
+        var providers = ((ConfigurableEnvironment) environment).getPropertySources().get("servletConfigYaml").getProperty("login.saml.providers");
+        this.setProviders((Map<String, Map<String, Object>>) providers);
     }
 }
