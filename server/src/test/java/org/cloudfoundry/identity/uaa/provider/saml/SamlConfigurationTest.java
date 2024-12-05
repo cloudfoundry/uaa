@@ -12,7 +12,6 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
@@ -35,7 +34,7 @@ class SamlConfigurationTest {
     }
 
     @Test
-    void bindFromEnvironment() throws IOException {
+    void bindFromEnvironment() {
         //@formatter:off
         var config = new ByteArrayResource("""
                 login:
