@@ -116,19 +116,16 @@ public class SamlConfigProps implements EnvironmentAware {
     /**
      * Deprecated but sill working: login.serviceProviderKey
      */
-    @Setter(AccessLevel.NONE)
     private String legacyServiceProviderKey;
 
     /**
      * Deprecated but sill working: login.serviceProviderKeyPassword
      */
-    @Setter(AccessLevel.NONE)
     private String legacyServiceProviderKeyPassword;
 
     /**
      * Deprecated but sill working: login.serviceProviderCertificate
      */
-    @Setter(AccessLevel.NONE)
     private String legacyServiceProviderCertificate;
 
     /**

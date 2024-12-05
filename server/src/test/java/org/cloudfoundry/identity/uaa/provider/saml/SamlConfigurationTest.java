@@ -16,6 +16,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -69,5 +70,12 @@ class SamlConfigurationTest {
                 .extractingByKey("idp.one")
                 .extracting("idpMetadata")
                 .isEqualTo("<xml />");
+    }
+
+    @Test
+    void bootstrapMetaDataProviders() {
+        SamlConfiguration samlConfiguration = new SamlConfiguration();
+        assertThatNoException().isThrownBy(() ->
+                samlConfiguration.bootstrapMetaDataProviders(mock(SamlConfigProps.class), mock(SamlIdentityProviderConfigurator.class)));
     }
 }
