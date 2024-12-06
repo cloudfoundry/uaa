@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 import org.owasp.esapi.ESAPI;
@@ -27,6 +28,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -127,11 +129,20 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             applicationContext.getEnvironment().getPropertySources().addLast(properties);
             applySpringProfiles(applicationContext.getEnvironment());
             applyLog4jConfiguration(applicationContext.getEnvironment(), contextPath);
-
+            resetRandomAlgorithm();
         } catch (Exception e) {
             System.err.println("Error loading YAML environment properties from location: " + resources.toString());
             e.printStackTrace();
         }
+    }
+
+    private void resetRandomAlgorithm() {
+        final Logger logger = LogManager.getLogger(YamlServletProfileInitializer.class);
+        String origStrongAlgorithms = Security.getProperty("securerandom.strongAlgorithms");
+        logger.error("Current securerandom.strongAlgorithms: {}", origStrongAlgorithms);
+        String strongAlgorithms = "NativePRNGNonBlocking:SUN," + origStrongAlgorithms;
+        logger.error("New set - securerandom.strongAlgorithms: {}", strongAlgorithms);
+        Security.setProperty("securerandom.strongAlgorithms", strongAlgorithms);
     }
 
     private static List<String> getSecretsFiles(
