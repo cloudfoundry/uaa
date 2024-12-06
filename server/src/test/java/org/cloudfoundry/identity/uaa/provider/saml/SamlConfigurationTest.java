@@ -36,7 +36,6 @@ class SamlConfigurationTest {
 
     @Test
     void bindFromEnvironment() {
-        //@formatter:off
         var config = new ByteArrayResource("""
                 login:
                   saml:
@@ -45,7 +44,6 @@ class SamlConfigurationTest {
                         idpMetadata: "<xml />"
                     entityIDAlias: foo
                 """.getBytes(StandardCharsets.UTF_8));
-        //@formatter:on
 
         // Build property source
         YamlMapFactoryBean factory = new YamlMapFactoryBean();

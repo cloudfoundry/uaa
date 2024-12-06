@@ -116,16 +116,19 @@ public class SamlConfigProps implements EnvironmentAware {
     /**
      * Deprecated but sill working: login.serviceProviderKey
      */
+    @Deprecated(since = "77.20.0", forRemoval = true)
     private String legacyServiceProviderKey;
 
     /**
      * Deprecated but sill working: login.serviceProviderKeyPassword
      */
+    @Deprecated(since = "77.20.0", forRemoval = true)
     private String legacyServiceProviderKeyPassword;
 
     /**
      * Deprecated but sill working: login.serviceProviderCertificate
      */
+    @Deprecated(since = "77.20.0", forRemoval = true)
     private String legacyServiceProviderCertificate;
 
     /**
@@ -135,10 +138,6 @@ public class SamlConfigProps implements EnvironmentAware {
     @Nullable
     public SamlKey getActiveSamlKey() {
         return keys != null ? keys.get(activeKeyId) : null;
-    }
-
-    public Map<String, Map<String, Object>> getEnvironmentProviders() {
-        return environmentProviders;
     }
 
     /**
