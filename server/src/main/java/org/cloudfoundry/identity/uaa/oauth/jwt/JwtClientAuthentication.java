@@ -83,12 +83,13 @@ public class JwtClientAuthentication {
             final boolean allowDynamicValueLookupInCustomZone
     ) {
         HashMap<String, String> jwtClientConfiguration = Optional.ofNullable(getJwtClientConfigurationElements(config.getJwtClientAuthentication())).orElse(new HashMap<>());
+        String subject = readJwtClientOption(jwtClientConfiguration.get("sub"), config.getRelyingPartyId(), allowDynamicValueLookupInCustomZone);
         String issuer = readJwtClientOption(jwtClientConfiguration.get("iss"), config.getRelyingPartyId(), allowDynamicValueLookupInCustomZone);
         String audience = readJwtClientOption(jwtClientConfiguration.get("aud"), config.getTokenUrl().toString(), allowDynamicValueLookupInCustomZone);
         String kid = readJwtClientOption(jwtClientConfiguration.get("kid"), keyInfoService.getActiveKey().keyId(), allowDynamicValueLookupInCustomZone);
         Claims claims = new Claims();
         claims.setAud(Arrays.asList(audience));
-        claims.setSub(config.getRelyingPartyId());
+        claims.setSub(subject);
         claims.setIss(issuer);
         claims.setJti(UUID.randomUUID().toString().replace("-", ""));
         claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
