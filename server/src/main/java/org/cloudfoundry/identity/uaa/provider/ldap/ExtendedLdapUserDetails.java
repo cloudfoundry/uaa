@@ -28,7 +28,7 @@ public interface ExtendedLdapUserDetails extends LdapUserDetails, VerifiableUser
 
     String[] getMail();
 
-    Map<String,String[]> getAttributes();
+    Map<String, String[]> getAttributes();
 
     String[] getAttribute(String name, boolean caseSensitive);
 

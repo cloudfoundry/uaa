@@ -12,5 +12,5 @@ public interface CredentialIdType {
      */
     String key();
 
-    AuthorizationCredentialIdExtractor factory( String keyTypeParameters );
+    AuthorizationCredentialIdExtractor factory(String keyTypeParameters);
 }

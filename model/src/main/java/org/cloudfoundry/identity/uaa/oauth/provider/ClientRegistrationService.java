@@ -15,14 +15,14 @@ import java.util.List;
  */
 public interface ClientRegistrationService {
 
-	void addClientDetails(ClientDetails clientDetails) throws ClientAlreadyExistsException;
+    void addClientDetails(ClientDetails clientDetails) throws ClientAlreadyExistsException;
 
-	void updateClientDetails(ClientDetails clientDetails) throws NoSuchClientException;
+    void updateClientDetails(ClientDetails clientDetails) throws NoSuchClientException;
 
-	void updateClientSecret(String clientId, String secret) throws NoSuchClientException;
+    void updateClientSecret(String clientId, String secret) throws NoSuchClientException;
 
-	void removeClientDetails(String clientId) throws NoSuchClientException;
-	
-	List<ClientDetails> listClientDetails();
+    void removeClientDetails(String clientId) throws NoSuchClientException;
+
+    List<ClientDetails> listClientDetails();
 
 }

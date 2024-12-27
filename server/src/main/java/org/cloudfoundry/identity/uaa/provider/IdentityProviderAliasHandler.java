@@ -96,8 +96,7 @@ public class IdentityProviderAliasHandler extends EntityAliasHandler<IdentityPro
         try {
             return identityProviderProvisioning.create(entity, zoneId);
         } catch (final IdpAlreadyExistsException e) {
-            final String errorMessage = String.format(
-                    "Could not create %s. An IdP with this origin already exists in the alias zone.",
+            final String errorMessage = "Could not create %s. An IdP with this origin already exists in the alias zone.".formatted(
                     entity.getAliasDescription()
             );
             throw new EntityAliasFailedException(errorMessage, HttpStatus.CONFLICT.value(), e);

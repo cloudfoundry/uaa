@@ -29,7 +29,7 @@ class CommonLoginPolicyTest {
     private UaaAuditService auditService;
     private AuditEventType failureEventType;
     private AuditEventType successEventType;
-    private boolean enabled = true;
+    private final boolean enabled = true;
 
     @BeforeEach
     void setup() {

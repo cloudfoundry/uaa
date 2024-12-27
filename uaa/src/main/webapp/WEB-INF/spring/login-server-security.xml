@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xmlns:sec="http://www.springframework.org/schema/security"
-       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
+          xmlns:sec="http://www.springframework.org/schema/security"
+          xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+          xmlns:util="http://www.springframework.org/schema/util"
+          xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
         http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
     <oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
-                           resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint"/>
+                    resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <http name="secFilterLoginServerAuthenticate" request-matcher-ref="loginAuthenticateRequestMatcher"
-          create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
-          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
-          use-expressions="false">
+                    create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
+                    authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
+                    use-expressions="false">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
         <!-- scope authentication filter configured with a scope authentication manager -->
@@ -37,9 +37,9 @@
     <sec:http name="secFilterAuthenticateOpen" pattern="/authenticate/**" security="none"/>
 
     <http name="secFilterLoginServerAuthorize" request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never"
-          entry-point-ref="oauthAuthenticationEntryPoint"
-          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
-          use-expressions="false">
+                    entry-point-ref="oauthAuthenticationEntryPoint"
+                    authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
+                    use-expressions="false">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
@@ -62,9 +62,9 @@
     </bean>
 
     <http name="secFilterLoginServerToken" request-matcher-ref="loginTokenRequestMatcher" create-session="never"
-          entry-point-ref="oauthAuthenticationEntryPoint"
-          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
-          use-expressions="false">
+                    entry-point-ref="oauthAuthenticationEntryPoint"
+                    authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
+                    use-expressions="false">
         <!--
           This represents a /oauth/token requests that gets passed through
           from the login server. It assumes that the User has been authenticated
@@ -91,12 +91,12 @@
     </http>
 
     <bean id="oauthLoginScopeAuthenticatingFilter"
-          class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationFilter">
+                    class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationFilter">
         <property name="authenticationManager" ref="oauthLoginAuthManager"/>
     </bean>
 
     <bean id="oauthLoginAuthManager"
-          class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationManager">
+                    class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationManager">
         <property name="requiredScopes">
             <list>
                 <value type="java.lang.String">oauth.login</value>
@@ -122,7 +122,7 @@
     </bean>
 
     <bean id="loginServerTokenEndpointAuthenticationFilter"
-          class="org.cloudfoundry.identity.uaa.authentication.LoginServerTokenEndpointFilter">
+                    class="org.cloudfoundry.identity.uaa.authentication.LoginServerTokenEndpointFilter">
         <constructor-arg ref="loginAuthenticationMgr"/>
         <constructor-arg ref="authorizationRequestManager"/>
         <constructor-arg ref="addNewUserParameters"/>
@@ -130,15 +130,15 @@
     </bean>
 
     <bean id="loginClientParameterAuthenticationFilter"
-          class="org.cloudfoundry.identity.uaa.authentication.LoginClientParametersAuthenticationFilter">
+                    class="org.cloudfoundry.identity.uaa.authentication.LoginClientParametersAuthenticationFilter">
         <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
     </bean>
 
     <!-- Support for older login servers -->
     <http name="secFilterLoginServerAuthorizeOld" request-matcher-ref="loginAuthorizeRequestMatcherOld"
-          create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
-          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
-          use-expressions="false">
+                    create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
+                    authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security"
+                    use-expressions="false">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
@@ -175,7 +175,7 @@
     </bean>
 
     <bean id="loginAuthenticationMgr"
-          class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
+                    class="org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager">
         <property name="userDatabase" ref="userDatabase"/>
     </bean>
 
@@ -185,10 +185,10 @@
     </bean>
 
     <http name="secFilterLoginServerPasswordEndpoints" create-session="stateless"
-          entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-          pattern="/password_*" xmlns="http://www.springframework.org/schema/security" use-expressions="true">
+                    entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+                    pattern="/password_*" xmlns="http://www.springframework.org/schema/security" use-expressions="true">
         <intercept-url pattern="/**"
-                       access="#oauth2.hasScope('oauth.login') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"/>
+                              access="#oauth2.hasScope('oauth.login') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"/>
         <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
         <anonymous enabled="false"/>
         <access-denied-handler ref="oauthAccessDeniedHandler"/>
@@ -197,9 +197,9 @@
     </http>
 
     <http name="secFilterLoginServerEmailEndpoints" create-session="stateless"
-          entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-          access-decision-manager-ref="accessDecisionManager" pattern="/email_*"
-          xmlns="http://www.springframework.org/schema/security" use-expressions="false">
+                    entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+                    access-decision-manager-ref="accessDecisionManager" pattern="/email_*"
+                    xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <intercept-url pattern="/**" access="scope=oauth.login"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
         <anonymous enabled="false"/>

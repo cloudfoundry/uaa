@@ -28,7 +28,7 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 
 public class KeyInfoService {
-    private String uaaBaseURL;
+    private final String uaaBaseURL;
 
     public KeyInfoService(String uaaBaseURL) {
         this.uaaBaseURL = uaaBaseURL;
@@ -55,8 +55,8 @@ public class KeyInfoService {
         Map<String, KeyInfo> keys = new HashMap<>();
         for (Map.Entry<String, TokenPolicy.KeyInformation> entry : config.getTokenPolicy().getKeys().entrySet()) {
             KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue().getSigningKey(), addSubdomainToUrl(uaaBaseURL, IdentityZoneHolder.get().getSubdomain()),
-                sigAlg != null ? sigAlg : entry.getValue().getSigningAlg(),
-                entry.getValue().getSigningCert());
+                    sigAlg != null ? sigAlg : entry.getValue().getSigningAlg(),
+                    entry.getValue().getSigningCert());
             keys.put(entry.getKey(), keyInfo);
         }
 
@@ -73,7 +73,9 @@ public class KeyInfoService {
 
     private String getActiveKeyId() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        if (config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        if (config == null) {
+            return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        }
         String activeKeyId = config.getTokenPolicy().getActiveKeyId();
 
         Map<String, KeyInfo> keys;

@@ -24,7 +24,7 @@ public class MapWrapper {
 
     private final StandardEvaluationContext context;
 
-    private Object target;
+    private final Object target;
 
     public MapWrapper(Object target) {
         this.target = target;
@@ -44,7 +44,7 @@ public class MapWrapper {
 
     public <T> T get(String expression, Class<T> type) {
         return parser.parseExpression(expression).getValue(context, target,
-                        type);
+                type);
     }
 
     @Override

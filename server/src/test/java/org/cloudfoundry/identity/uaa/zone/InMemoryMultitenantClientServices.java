@@ -18,7 +18,7 @@ import static java.util.Optional.ofNullable;
 
 public class InMemoryMultitenantClientServices extends MultitenantClientServices {
 
-    private ConcurrentMap<String, Map<String, UaaClientDetails>> services = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Map<String, UaaClientDetails>> services = new ConcurrentHashMap<>();
 
     public InMemoryMultitenantClientServices(IdentityZoneManager identityZoneManager) {
         super(identityZoneManager);

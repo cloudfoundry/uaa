@@ -33,7 +33,7 @@ class SessionControllerIntegrationTests {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -45,7 +45,7 @@ class SessionControllerIntegrationTests {
         webDriver.get(baseUrl +
                 "/session?clientId=admin&messageOrigin=http://localhost:8080");
 
-        Object r = ((JavascriptExecutor)webDriver).executeScript(
+        Object r = ((JavascriptExecutor) webDriver).executeScript(
                 "return typeof(handleMessage);");
         assertEquals("function", r.toString());
     }
@@ -55,11 +55,11 @@ class SessionControllerIntegrationTests {
         webDriver.get(baseUrl +
                 "/session_management?clientId=admin&messageOrigin=http://localhost:8080");
 
-        Object clientId = ((JavascriptExecutor)webDriver).executeScript(
+        Object clientId = ((JavascriptExecutor) webDriver).executeScript(
                 "return clientId;");
         assertEquals("admin", clientId.toString());
 
-        Object origin = ((JavascriptExecutor)webDriver).executeScript(
+        Object origin = ((JavascriptExecutor) webDriver).executeScript(
                 "return messageOrigin;");
         assertEquals("http://localhost:8080", origin.toString());
     }

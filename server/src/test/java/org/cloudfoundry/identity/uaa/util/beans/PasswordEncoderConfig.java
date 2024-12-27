@@ -12,7 +12,7 @@ import java.util.Map;
 
 public class PasswordEncoderConfig {
 
-    private static Logger logger = LoggerFactory.getLogger(PasswordEncoderConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(PasswordEncoderConfig.class);
 
     @Bean
     public PasswordEncoder nonCachingPasswordEncoder() {

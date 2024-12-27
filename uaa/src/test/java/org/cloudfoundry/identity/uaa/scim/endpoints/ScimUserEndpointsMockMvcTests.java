@@ -144,12 +144,12 @@ class ScimUserEndpointsMockMvcTests {
         mockMvc.perform(
                 put("/Users/some-user")
         )
-                .andExpect(status().isUnauthorized());
+        .andExpect(status().isUnauthorized());
 
         mockMvc.perform(
                 put("/Users")
         )
-                .andExpect(status().isUnauthorized());
+        .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -1278,9 +1278,12 @@ class ScimUserEndpointsMockMvcTests {
                 .header("Authorization", "Bearer " + token)
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
-        if (subdomain != null && !subdomain.equals(""))
+        if (subdomain != null && !"".equals(subdomain)) {
             post.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
-        if (switchZone != null) post.header(HEADER, switchZone);
+        }
+        if (switchZone != null) {
+            post.header(HEADER, switchZone);
+        }
 
         return mockMvc.perform(post);
     }
@@ -1368,7 +1371,7 @@ class ScimUserEndpointsMockMvcTests {
     }
 
     private void attemptUnsuccessfulLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
-        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
+        String requestDomain = "".equals(subdomain) ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/login.do")
                 .with(new SetServerNameRequestPostProcessor(requestDomain))
                 .with(cookieCsrf())

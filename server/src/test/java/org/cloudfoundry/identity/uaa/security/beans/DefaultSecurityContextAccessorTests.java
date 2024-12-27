@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationDetails;
@@ -13,7 +14,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -26,7 +26,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -73,7 +72,7 @@ class DefaultSecurityContextAccessorTests {
     @Test
     void adminClientIsAdmin() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest("admin", null);
-        authorizationRequest.setScope(UaaAuthority.ADMIN_AUTHORITIES.stream().map(UaaAuthority::getAuthority).collect(Collectors.toList()));
+        authorizationRequest.setScope(UaaAuthority.ADMIN_AUTHORITIES.stream().map(UaaAuthority::getAuthority).toList());
         SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null));
 
         assertTrue(defaultSecurityContextAccessor.isAdmin());

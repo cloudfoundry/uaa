@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -38,8 +39,8 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
 
     private final IdentityZoneProvisioning dao;
     private final Set<String> staticResources = Set.of("/resources/", "/vendor/font-awesome/");
-    private Set<String> defaultZoneHostnames = new HashSet<>();
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Set<String> defaultZoneHostnames = new HashSet<>();
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public IdentityZoneResolvingFilter(final IdentityZoneProvisioning dao) {
         this.dao = dao;
@@ -66,7 +67,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
         if (identityZone == null) {
             // skip filter to static resources in order to serve images and css in case of invalid zones
             boolean isStaticResource = staticResources.stream().anyMatch(UaaUrlUtils.getRequestPath(request)::startsWith);
-            if(isStaticResource) {
+            if (isStaticResource) {
                 filterChain.doFilter(request, response);
                 return;
             }
@@ -94,39 +95,39 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
             }
         }
         //UAA is catch all if we haven't configured anything
-        if (defaultZoneHostnames.size()==1 && defaultZoneHostnames.contains("localhost")) {
-            logger.debug("No root domains configured, UAA is catch-all domain for host:"+hostname);
+        if (defaultZoneHostnames.size() == 1 && defaultZoneHostnames.contains("localhost")) {
+            logger.debug("No root domains configured, UAA is catch-all domain for host:" + hostname);
             return "";
         }
-        logger.debug("Unable to determine subdomain for host:"+hostname+"; root domains:"+Arrays.toString(defaultZoneHostnames.toArray()));
+        logger.debug("Unable to determine subdomain for host:" + hostname + "; root domains:" + Arrays.toString(defaultZoneHostnames.toArray()));
         return null;
     }
 
     public void setAdditionalInternalHostnames(Set<String> hostnames) {
-        if (hostnames!=null) {
+        if (hostnames != null) {
             hostnames
-                .forEach(
-                  entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
-                 );
+                    .forEach(
+                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                    );
         }
     }
 
     public void setDefaultInternalHostnames(Set<String> hostnames) {
-        if (hostnames!=null) {
+        if (hostnames != null) {
             hostnames
-                .forEach(
-                        entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
-                );
+                    .forEach(
+                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                    );
         }
     }
 
     public synchronized void restoreDefaultHostnames(Set<String> hostnames) {
         this.defaultZoneHostnames.clear();
-        if (hostnames!=null) {
+        if (hostnames != null) {
             hostnames
-                .forEach(
-                        entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
-                );
+                    .forEach(
+                            entry -> this.defaultZoneHostnames.add(entry.toLowerCase())
+                    );
         }
     }
 
@@ -137,6 +138,6 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     @Override
     public void afterPropertiesSet() throws ServletException {
         super.afterPropertiesSet();
-        logger.info("Zone Resolving Root domains are: "+ Arrays.toString(getDefaultZoneHostnames().toArray()));
+        logger.info("Zone Resolving Root domains are: " + Arrays.toString(getDefaultZoneHostnames().toArray()));
     }
 }

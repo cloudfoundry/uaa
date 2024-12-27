@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -28,7 +29,7 @@ import java.util.Objects;
 public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends AbstractExternalOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
     public enum OAuthGroupMappingMode {
         EXPLICITLY_MAPPED,
-        AS_SCOPES;
+        AS_SCOPES
     }
     private URL authUrl;
     private URL tokenUrl;
@@ -38,7 +39,7 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     private URL logoutUrl;
     private String linkText;
     private boolean showLinkText = true;
-    private boolean clientAuthInBody = false;
+    private boolean clientAuthInBody;
     private boolean skipSslValidation;
     private String relyingPartyId;
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -168,39 +169,81 @@ public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends 
     @JsonIgnore
     public Class getParameterizedClass() {
         ParameterizedType parameterizedType =
-            (ParameterizedType)getClass().getGenericSuperclass();
+                (ParameterizedType) getClass().getGenericSuperclass();
         return (Class) parameterizedType.getActualTypeArguments()[0];
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         AbstractExternalOAuthIdentityProviderDefinition<?> that = (AbstractExternalOAuthIdentityProviderDefinition<?>) o;
 
-        if (showLinkText != that.showLinkText) return false;
-        if (skipSslValidation != that.skipSslValidation) return false;
-        if (!Objects.equals(authUrl, that.authUrl)) return false;
-        if (!Objects.equals(tokenUrl, that.tokenUrl)) return false;
-        if (!Objects.equals(tokenKeyUrl, that.tokenKeyUrl)) return false;
-        if (!Objects.equals(tokenKey, that.tokenKey)) return false;
-        if (!Objects.equals(userInfoUrl, that.userInfoUrl)) return false;
-        if (!Objects.equals(logoutUrl, that.logoutUrl)) return false;
-        if (!Objects.equals(linkText, that.linkText)) return false;
-        if (!Objects.equals(relyingPartyId, that.relyingPartyId))
+        if (showLinkText != that.showLinkText) {
             return false;
-        if (!Objects.equals(relyingPartySecret, that.relyingPartySecret))
+        }
+        if (skipSslValidation != that.skipSslValidation) {
             return false;
-        if (!Objects.equals(scopes, that.scopes)) return false;
-        if (!Objects.equals(issuer, that.issuer)) return false;
-        if (!Objects.equals(userPropagationParameter, that.userPropagationParameter)) return false;
-        if (!Objects.equals(groupMappingMode, that.groupMappingMode)) return false;
-        if (pkce != that.pkce) return false;
-        if (performRpInitiatedLogout != that.performRpInitiatedLogout) return false;
-        if (!Objects.equals(authMethod, that.authMethod)) return false;
-        if (cacheJwks != that.cacheJwks) return false;
+        }
+        if (!Objects.equals(authUrl, that.authUrl)) {
+            return false;
+        }
+        if (!Objects.equals(tokenUrl, that.tokenUrl)) {
+            return false;
+        }
+        if (!Objects.equals(tokenKeyUrl, that.tokenKeyUrl)) {
+            return false;
+        }
+        if (!Objects.equals(tokenKey, that.tokenKey)) {
+            return false;
+        }
+        if (!Objects.equals(userInfoUrl, that.userInfoUrl)) {
+            return false;
+        }
+        if (!Objects.equals(logoutUrl, that.logoutUrl)) {
+            return false;
+        }
+        if (!Objects.equals(linkText, that.linkText)) {
+            return false;
+        }
+        if (!Objects.equals(relyingPartyId, that.relyingPartyId)) {
+            return false;
+        }
+        if (!Objects.equals(relyingPartySecret, that.relyingPartySecret)) {
+            return false;
+        }
+        if (!Objects.equals(scopes, that.scopes)) {
+            return false;
+        }
+        if (!Objects.equals(issuer, that.issuer)) {
+            return false;
+        }
+        if (!Objects.equals(userPropagationParameter, that.userPropagationParameter)) {
+            return false;
+        }
+        if (!Objects.equals(groupMappingMode, that.groupMappingMode)) {
+            return false;
+        }
+        if (pkce != that.pkce) {
+            return false;
+        }
+        if (performRpInitiatedLogout != that.performRpInitiatedLogout) {
+            return false;
+        }
+        if (!Objects.equals(authMethod, that.authMethod)) {
+            return false;
+        }
+        if (cacheJwks != that.cacheJwks) {
+            return false;
+        }
         return Objects.equals(responseType, that.responseType);
 
     }

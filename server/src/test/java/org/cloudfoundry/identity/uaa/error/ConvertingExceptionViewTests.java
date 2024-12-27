@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -37,17 +38,17 @@ public class ConvertingExceptionViewTests {
 
     private ConvertingExceptionView view;
 
-    private HttpMessageConverter<?>[] messageConverters = new HttpMessageConverter<?>[] { new StringHttpMessageConverter() };
+    private final HttpMessageConverter<?>[] messageConverters = new HttpMessageConverter<?>[]{new StringHttpMessageConverter()};
 
-    private MockHttpServletRequest request = new MockHttpServletRequest();
+    private final MockHttpServletRequest request = new MockHttpServletRequest();
 
-    private MockHttpServletResponse response = new MockHttpServletResponse();
+    private final MockHttpServletResponse response = new MockHttpServletResponse();
 
     @Test
     public void testGetContentType() {
         RuntimeException e = new RuntimeException("Unexpected error");
         view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e),
-                        HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
+                HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
         assertEquals(MediaType.APPLICATION_JSON_UTF8_VALUE, view.getContentType());
     }
 
@@ -55,7 +56,7 @@ public class ConvertingExceptionViewTests {
     public void testRender() throws Exception {
         RuntimeException e = new RuntimeException("Unexpected error");
         view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e),
-                        HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
+                HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
         view.render(new HashMap<String, Object>(), request, response);
         assertNotNull(response.getContentAsString());
     }

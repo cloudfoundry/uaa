@@ -20,7 +20,6 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher.DEFAULT_EMAIL_DOMAIN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -101,7 +100,7 @@ class PasswordChangeEventPublisherTests {
     @Test
     void shouldConstructEmailBasedOnUsernameIfNoEmailList() {
         ScimUser scimUser = scimUserFrom("userName", null);
-        assertEquals(String.format("userName@%s", DEFAULT_EMAIL_DOMAIN), subject.getEmail(scimUser));
+        assertEquals("userName@%s".formatted(DEFAULT_EMAIL_DOMAIN), subject.getEmail(scimUser));
     }
 
     @Test
@@ -113,7 +112,7 @@ class PasswordChangeEventPublisherTests {
     @Test
     void shouldConstructEmailBasedOnUsernameIfEmailListIsEmpty() {
         ScimUser scimUser = scimUserFrom("userName", Collections.emptyList());
-        assertEquals(String.format("userName@%s", DEFAULT_EMAIL_DOMAIN), subject.getEmail(scimUser));
+        assertEquals("userName@%s".formatted(DEFAULT_EMAIL_DOMAIN), subject.getEmail(scimUser));
     }
 
     @Test
@@ -145,11 +144,11 @@ class PasswordChangeEventPublisherTests {
     private ScimUser scimUserFrom(String userName, List<String> emailAddresses) {
         ScimUser scimUser = new ScimUser(userName, userName, userName, userName);
         if (emailAddresses != null) {
-            List<ScimUser.Email> emails = emailAddresses.stream().map((emailAddress) -> {
+            List<ScimUser.Email> emails = emailAddresses.stream().map(emailAddress -> {
                 ScimUser.Email email = new ScimUser.Email();
                 email.setValue(emailAddress);
                 return email;
-            }).collect(Collectors.toList());
+            }).toList();
 
             scimUser.setEmails(emails);
         }

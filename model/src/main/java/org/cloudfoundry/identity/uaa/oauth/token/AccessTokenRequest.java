@@ -16,34 +16,34 @@ import java.util.Map;
  */
 public interface AccessTokenRequest extends MultiValueMap<String, String> {
 
-	OAuth2AccessToken getExistingToken();
+    OAuth2AccessToken getExistingToken();
 
-	void setExistingToken(OAuth2AccessToken existingToken);
+    void setExistingToken(OAuth2AccessToken existingToken);
 
-	void setAuthorizationCode(String code);
+    void setAuthorizationCode(String code);
 
-	String getAuthorizationCode();
+    String getAuthorizationCode();
 
-	void setCurrentUri(String uri);
+    void setCurrentUri(String uri);
 
-	String getCurrentUri();
+    String getCurrentUri();
 
-	void setStateKey(String state);
+    void setStateKey(String state);
 
-	String getStateKey();
+    String getStateKey();
 
-	void setPreservedState(Object state);
+    void setPreservedState(Object state);
 
-	Object getPreservedState();
+    Object getPreservedState();
 
-	boolean isError();
+    boolean isError();
 
-	void setCookie(String cookie);
+    void setCookie(String cookie);
 
-	String getCookie();
-	
-	void setHeaders(Map<String, List<String>> headers);
+    String getCookie();
 
-	Map<String, List<String>> getHeaders();
+    void setHeaders(Map<String, List<String>> headers);
+
+    Map<String, List<String>> getHeaders();
 
 }

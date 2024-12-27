@@ -27,36 +27,36 @@ class AssertThrowsWithMessageTest {
     @Test
     void test() {
         // These should not throw
-        assertThrowsWithMessageThat(FooException.class, () -> doThrow(), is("the message"));
-        assertThrowsWithMessageThat(Throwable.class, () -> doThrow(), is("the message"));
-        assertThrowsWithMessageThat(Throwable.class, () -> doThrow(), startsWith("the mess"));
+        assertThrowsWithMessageThat(FooException.class, AssertThrowsWithMessageTest::doThrow, is("the message"));
+        assertThrowsWithMessageThat(Throwable.class, AssertThrowsWithMessageTest::doThrow, is("the message"));
+        assertThrowsWithMessageThat(Throwable.class, AssertThrowsWithMessageTest::doThrow, startsWith("the mess"));
 
         AssertionFailedError actualException;
 
         // when the executable didn't throw
         actualException = assertThrows(AssertionFailedError.class, () ->
-                assertThrowsWithMessageThat(FooException.class, () -> doNotThrow(), is("the message")));
+                assertThrowsWithMessageThat(FooException.class, AssertThrowsWithMessageTest::doNotThrow, is("the message")));
         assertThat(actualException.getMessage(),
                 is("Expected org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessageTest.FooException to be thrown, but nothing was thrown.")
         );
 
         // when the actual exception has the wrong exception type
         actualException = assertThrows(AssertionFailedError.class, () ->
-                assertThrowsWithMessageThat(IllegalArgumentException.class, () -> doThrow(), is("the message")));
+                assertThrowsWithMessageThat(IllegalArgumentException.class, AssertThrowsWithMessageTest::doThrow, is("the message")));
         assertThat(actualException.getMessage(),
                 is("Unexpected exception type thrown ==> expected: <java.lang.IllegalArgumentException> but was: <org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessageTest.FooException>")
         );
 
         // when the message does not match
         actualException = assertThrows(AssertionFailedError.class, () ->
-                assertThrowsWithMessageThat(FooException.class, () -> doThrow(), is("wrong message")));
+                assertThrowsWithMessageThat(FooException.class, AssertThrowsWithMessageTest::doThrow, is("wrong message")));
         assertThat(actualException.getMessage(),
                 is("The expected exception was thrown, but the exception's message did not match:\nExpected: is \"wrong message\"\n     but: was \"the message\"")
         );
 
         // when the message does not match using a different matcher
         actualException = assertThrows(AssertionFailedError.class, () ->
-                assertThrowsWithMessageThat(FooException.class, () -> doThrow(), startsWith("wrong")));
+                assertThrowsWithMessageThat(FooException.class, AssertThrowsWithMessageTest::doThrow, startsWith("wrong")));
         assertThat(actualException.getMessage(),
                 is("The expected exception was thrown, but the exception's message did not match:\nExpected: a string starting with \"wrong\"\n     but: was \"the message\"")
         );

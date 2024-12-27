@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -52,7 +53,7 @@ public class RefreshTokenSupportIntegrationTests {
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
@@ -64,8 +65,8 @@ public class RefreshTokenSupportIntegrationTests {
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
 
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
-                        .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
-                        .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
+                .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
+                .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
         ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), getHeaders(cookies));
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
@@ -73,7 +74,7 @@ public class RefreshTokenSupportIntegrationTests {
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
 
@@ -81,7 +82,7 @@ public class RefreshTokenSupportIntegrationTests {
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
         // should be directed to the login screen...
@@ -89,7 +90,7 @@ public class RefreshTokenSupportIntegrationTests {
         assertTrue(response.getBody().contains("username"));
         assertTrue(response.getBody().contains("password"));
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", testAccounts.getUserName());
         formData.add("password", testAccounts.getPassword());
         formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
@@ -100,7 +101,7 @@ public class RefreshTokenSupportIntegrationTests {
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
@@ -110,7 +111,7 @@ public class RefreshTokenSupportIntegrationTests {
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
         if (response.getStatusCode() == HttpStatus.OK) {
@@ -123,14 +124,13 @@ public class RefreshTokenSupportIntegrationTests {
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();
-        }
-        else {
+        } else {
             // Token cached so no need for second approval
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = response.getHeaders().getLocation().toString();
         }
         assertTrue("Wrong location: " + location,
-                        location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
+                location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
 
         formData.clear();
         formData.add("client_id", resource.getClientId());
@@ -139,7 +139,7 @@ public class RefreshTokenSupportIntegrationTests {
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         tokenHeaders.set("Cache-Control", "no-store");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
@@ -149,13 +149,14 @@ public class RefreshTokenSupportIntegrationTests {
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
 
         // get the refresh token
-        formData = new LinkedMultiValueMap<String, String>();
+        formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "refresh_token");
         formData.add("refresh_token", accessToken.getRefreshToken().getValue());
         tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
         assertEquals("no-store", tokenResponse.getHeaders().getFirst("Cache-Control"));
-        @SuppressWarnings("unchecked") OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
+        @SuppressWarnings("unchecked")
+        OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
         try {
             JwtHelper.decode(newAccessToken.getValue());
         } catch (IllegalArgumentException e) {
@@ -179,8 +180,8 @@ public class RefreshTokenSupportIntegrationTests {
     @Test
     public void testRefreshTokenWithInactiveZone() {
         RestTemplate identityClient = IntegrationTestUtils
-            .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
-                    new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+                .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                        new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
         IntegrationTestUtils.createInactiveIdentityZone(identityClient, "http://localhost:8080/uaa");
 
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<>();

@@ -46,15 +46,16 @@ public class CommonSignerTest {
 
     @Before
     public void setup() {
-        rsaSigningKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOQIBAAJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdpY8Ada9pZfxXz1PZSqv9T\n" +
-            "PTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQABAkBoR39y4rw0/QsY3PKQD5xo\n" +
-            "hYSZCMCmJUI/sFCuECevIFY4h6q9KBP+4Set96f7Bgs9wJWVvCMx/nJ6guHAjsIB\n" +
-            "AiEAywVOoCGIZ2YzARXWYcMRYZ89hxoHh8kZ+QMthRSZieECIQCP/GWQYgyofAQA\n" +
-            "BtM8YwThXEV+S3KtuCn4IAQ89gqdGQIgULBASpZpPyc4OEM0nFBKFTGT46EtwwLj\n" +
-            "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
-            "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
-            "-----END RSA PRIVATE KEY-----";
+        rsaSigningKey = """
+                -----BEGIN RSA PRIVATE KEY-----
+                MIIBOQIBAAJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdpY8Ada9pZfxXz1PZSqv9T
+                PTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQABAkBoR39y4rw0/QsY3PKQD5xo
+                hYSZCMCmJUI/sFCuECevIFY4h6q9KBP+4Set96f7Bgs9wJWVvCMx/nJ6guHAjsIB
+                AiEAywVOoCGIZ2YzARXWYcMRYZ89hxoHh8kZ+QMthRSZieECIQCP/GWQYgyofAQA
+                BtM8YwThXEV+S3KtuCn4IAQ89gqdGQIgULBASpZpPyc4OEM0nFBKFTGT46EtwwLj
+                RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3
+                2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=
+                -----END RSA PRIVATE KEY-----""";
         macSigningKey = "mac-sign-key";
     }
 
@@ -119,7 +120,7 @@ public class CommonSignerTest {
     @Test
     public void test_nimbus_singing_with_single_aud_value() throws JOSEException, ParseException {
         // given
-        Map<String, Object> objectMap = Map.of("sub","1234567890", "name", "John Doe", "aud", Arrays.asList("single"));
+        Map<String, Object> objectMap = Map.of("sub", "1234567890", "name", "John Doe", "aud", Arrays.asList("single"));
         // when
         CommonSigner signer = new CommonSigner("id", rsaSigningKey, "http://localhost/uaa");
         assertEquals("RS256", signer.algorithm());
@@ -136,7 +137,7 @@ public class CommonSignerTest {
     @Test
     public void test_uaa_singing_with_single_aud_value() throws ParseException {
         // given
-        Map<String, Object> objectMap = Map.of("sub","1234567890", "name", "John Doe", "aud", Arrays.asList("single"));
+        Map<String, Object> objectMap = Map.of("sub", "1234567890", "name", "John Doe", "aud", Arrays.asList("single"));
         // when
         String uaaResultedJwt = JwtHelper.encode(objectMap, KeyInfoBuilder.build("id", rsaSigningKey, "http://localhost/uaa")).getEncoded();
         String payLoadString = JWTParser.parse(uaaResultedJwt).getParsedParts()[1].decodeToString();

@@ -24,6 +24,7 @@ import javax.net.SocketFactory;
 public class SkipSslLdapSocketFactory extends BaseLdapSocketFactory {
 
     private static SocketFactory instance;
+
     public static SocketFactory getDefault() {
         if (instance == null) {
             instance = new SkipSslLdapSocketFactory();

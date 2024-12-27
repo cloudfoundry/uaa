@@ -11,20 +11,20 @@ class CredentialIdTypeJWTjsonFieldTest extends CredentialIdTypeAbstractTestJWT<C
     public static final String EMAIL_FROM_CLAIMS = "claims:email";
 
     public CredentialIdTypeJWTjsonFieldTest() {
-        super( EMAIL_FROM_CLAIMS, CredentialIdTypeJWTjsonField::new );
+        super(EMAIL_FROM_CLAIMS, CredentialIdTypeJWTjsonField::new);
     }
 
     @Test
     void key() {
-        assertEquals( "JWTjsonField", credentialIdType.key() );
+        assertEquals("JWTjsonField", credentialIdType.key());
     }
 
     @Test
     void factoryFlavors() {
-        checkFlavor( EMAIL_FROM_CLAIMS, SectionFieldJWT.class, "|" + EMAIL_DEVIN + "|" );
+        checkFlavor(EMAIL_FROM_CLAIMS, SectionFieldJWT.class, "|" + EMAIL_DEVIN + "|");
 
-        AuthorizationCredentialIdExtractor factory = credentialIdType.factory( EMAIL_FROM_CLAIMS );
-        when( requestInfo.getAuthorizationHeader() ).thenReturn( null );
-        assertNull( factory.mapAuthorizationToCredentialsID( requestInfo ) );
+        AuthorizationCredentialIdExtractor factory = credentialIdType.factory(EMAIL_FROM_CLAIMS);
+        when(requestInfo.getAuthorizationHeader()).thenReturn(null);
+        assertNull(factory.mapAuthorizationToCredentialsID(requestInfo));
     }
 }

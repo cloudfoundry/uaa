@@ -17,7 +17,7 @@ import org.springframework.context.ApplicationEvent;
  * subcomponent's license, as noted in the LICENSE file.
  * *****************************************************************************
  */
-abstract public class AuthEvent extends ApplicationEvent {
+public abstract class AuthEvent extends ApplicationEvent {
 
     private boolean userModified = true;
 

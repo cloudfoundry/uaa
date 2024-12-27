@@ -20,7 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RateLimitingFilter extends HttpFilter {
-    private static final Logger log = LoggerFactory.getLogger( RateLimitingFilter.class );
+    private static final Logger log = LoggerFactory.getLogger(RateLimitingFilter.class);
 
     public static final String RATE_LIMIT_ERROR_ATTRIBUTE = "RATE_LIMIT_ERROR";
 
@@ -28,24 +28,24 @@ public class RateLimitingFilter extends HttpFilter {
     // Not really unused, called by container to create Filter
     public RateLimitingFilter() // default and production constructor
             throws ServletException {
-        this( RateLimiter.isEnabled() ? new RateLimiterImpl() : null );
+        this(RateLimiter.isEnabled() ? new RateLimiterImpl() : null);
     }
 
     interface Filterer {
         String status();
 
-        void doFilter( HttpServletRequest request, HttpServletResponse response, FilterChain filterChain )
+        void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
                 throws ServletException, IOException;
     }
 
     private final transient Filterer filterer;
 
-    RateLimitingFilter( RateLimiter rateLimiter ) // flexible (real-actual and testing) constructor
+    RateLimitingFilter(RateLimiter rateLimiter) // flexible (real-actual and testing) constructor
             throws ServletException {
-        filterer = (rateLimiter == null) ?
-                   new NoLimitingFilter( RateLimiterStatus.NO_RATE_LIMITING.toString() ) :
-                   new WithLimitingFilter( rateLimiter );
-        init( new FilterConfig() {
+        filterer = rateLimiter == null ?
+                new NoLimitingFilter( RateLimiterStatus.NO_RATE_LIMITING.toString() ) :
+                new WithLimitingFilter( rateLimiter );
+        init(new FilterConfig() {
             @Override
             public String getFilterName() {
                 return RateLimitingFilter.class.getName();
@@ -57,7 +57,7 @@ public class RateLimitingFilter extends HttpFilter {
             }
 
             @Override
-            public String getInitParameter( String name ) {
+            public String getInitParameter(String name) {
                 return null;
             }
 
@@ -65,16 +65,16 @@ public class RateLimitingFilter extends HttpFilter {
             public Enumeration<String> getInitParameterNames() {
                 return Collections.emptyEnumeration();
             }
-        } );
+        });
     }
 
     @Override
-    protected void doFilter( HttpServletRequest request, HttpServletResponse response, FilterChain filterChain )
+    protected void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        if ( !RateLimiter.STATUS_PATH.equals( request.getServletPath() ) ) {
-            filterer.doFilter( request, response, filterChain );
+        if (!RateLimiter.STATUS_PATH.equals(request.getServletPath())) {
+            filterer.doFilter(request, response, filterChain);
         } else {
-            filterChain.doFilter( request, response );
+            filterChain.doFilter(request, response);
         }
     }
 
@@ -88,16 +88,16 @@ public class RateLimitingFilter extends HttpFilter {
         }
 
         @Override
-        public void doFilter( HttpServletRequest request, HttpServletResponse response, FilterChain filterChain )
+        public void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
                 throws ServletException, IOException {
-            filterChain.doFilter( request, response ); // just forward it!
+            filterChain.doFilter(request, response); // just forward it!
         }
     }
 
     static class WithLimitingFilter implements Filterer {
         private final RateLimiter rateLimiter;
 
-        public WithLimitingFilter( RateLimiter rateLimiter ) {
+        public WithLimitingFilter(RateLimiter rateLimiter) {
             this.rateLimiter = rateLimiter;
         }
 
@@ -107,37 +107,37 @@ public class RateLimitingFilter extends HttpFilter {
         }
 
         @Override
-        public final void doFilter( HttpServletRequest request, HttpServletResponse response, FilterChain filterChain )
+        public final void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
                 throws ServletException, IOException {
             try {
                 Limiter limiter = log.isInfoEnabled() ?
-                                  getLimiterWithLogging( request ) :
-                                  getLimiterNoLogging( request );
-                if ( limiter.shouldLimit() ) {
-                    limitRequest( request, response, "429 - Too Many Request - Request limited by Rate Limiter configuration: " + limiter.getLimitingKey().errorString() );
+                        getLimiterWithLogging(request) :
+                        getLimiterNoLogging(request);
+                if (limiter.shouldLimit()) {
+                    limitRequest(request, response, "429 - Too Many Request - Request limited by Rate Limiter configuration: " + limiter.getLimitingKey().errorString());
                     return;
                 }
             }
-            catch ( RuntimeException e ) {
-                log.error( "Unexpected RateLimiter error w/ path '" + request.getRequestURI() + "'", e );
+            catch (RuntimeException e) {
+                log.error("Unexpected RateLimiter error w/ path '" + request.getRequestURI() + "'", e);
             }
-            filterChain.doFilter( request, response ); // just forward it!
+            filterChain.doFilter(request, response); // just forward it!
         }
 
-        private Limiter getLimiterNoLogging( HttpServletRequest request ) {
-            return rateLimiter.checkRequest( request );
+        private Limiter getLimiterNoLogging(HttpServletRequest request) {
+            return rateLimiter.checkRequest(request);
         }
 
-        private Limiter getLimiterWithLogging( HttpServletRequest request ) {
+        private Limiter getLimiterWithLogging(HttpServletRequest request) {
             Instant startTime = Instant.now();
-            Limiter limiter = rateLimiter.checkRequest( request );
-            limiter.log( request.getRequestURI(), log::info, startTime );
+            Limiter limiter = rateLimiter.checkRequest(request);
+            limiter.log(request.getRequestURI(), log::info, startTime);
             return limiter;
         }
 
-        private static void limitRequest( HttpServletRequest request, HttpServletResponse response, String error ) throws IOException {
+        private static void limitRequest(HttpServletRequest request, HttpServletResponse response, String error) throws IOException {
             request.setAttribute(RATE_LIMIT_ERROR_ATTRIBUTE, error);
-            response.sendError( 429, error );
+            response.sendError(429, error);
         }
     }
 }

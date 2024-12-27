@@ -63,7 +63,7 @@ class IdentityZoneResolvingMockMvcTest {
                 get("/login")
                         .header("Host", "testsomeother.ip.com")
         )
-                .andExpect(status().isOk());
+        .andExpect(status().isOk());
     }
 
     @Nested
@@ -84,7 +84,7 @@ class IdentityZoneResolvingMockMvcTest {
                     get("/login")
                             .header("Host", hostname)
             )
-                    .andExpect(status().isOk());
+            .andExpect(status().isOk());
 
         }
 
@@ -95,7 +95,7 @@ class IdentityZoneResolvingMockMvcTest {
                     get("/login")
                             .header("Host", hostname)
             )
-                    .andExpect(status().isNotFound());
+            .andExpect(status().isNotFound());
         }
     }
 }

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -39,7 +40,7 @@ public class ClientAuthenticationPublisher implements ApplicationEventPublisherA
     }
 
     public void publish(ApplicationEvent event) {
-        if (publisher!=null) {
+        if (publisher != null) {
             publisher.publishEvent(event);
         }
     }

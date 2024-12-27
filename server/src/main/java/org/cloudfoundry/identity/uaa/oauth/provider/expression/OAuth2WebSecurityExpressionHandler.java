@@ -14,15 +14,15 @@ import org.springframework.security.web.access.expression.DefaultWebSecurityExpr
  * Scope: OAuth2 server
  */
 public class OAuth2WebSecurityExpressionHandler extends DefaultWebSecurityExpressionHandler {
-	public OAuth2WebSecurityExpressionHandler() {
-		setExpressionParser(new OAuth2ExpressionParser(getExpressionParser()));
-	}
+    public OAuth2WebSecurityExpressionHandler() {
+        setExpressionParser(new OAuth2ExpressionParser(getExpressionParser()));
+    }
 
-	@Override
-	protected StandardEvaluationContext createEvaluationContextInternal(Authentication authentication,
-			FilterInvocation invocation) {
-		StandardEvaluationContext ec = super.createEvaluationContextInternal(authentication, invocation);
-		ec.setVariable("oauth2", new OAuth2SecurityExpressionMethods(authentication));
-		return ec;
-	}
+    @Override
+    protected StandardEvaluationContext createEvaluationContextInternal(Authentication authentication,
+            FilterInvocation invocation) {
+        StandardEvaluationContext ec = super.createEvaluationContextInternal(authentication, invocation);
+        ec.setVariable("oauth2", new OAuth2SecurityExpressionMethods(authentication));
+        return ec;
+    }
 }

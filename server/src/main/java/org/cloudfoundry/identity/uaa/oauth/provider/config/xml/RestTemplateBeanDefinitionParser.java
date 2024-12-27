@@ -14,62 +14,62 @@ import org.w3c.dom.Element;
 
 public class RestTemplateBeanDefinitionParser extends AbstractSingleBeanDefinitionParser {
 
-	private static final String RESOURCE = "resource";
+    private static final String RESOURCE = "resource";
 
-	@Override
-	protected Class<?> getBeanClass(Element element) {
-		return OAuth2RestTemplate.class;
-	}
+    @Override
+    protected Class<?> getBeanClass(Element element) {
+        return OAuth2RestTemplate.class;
+    }
 
-	@Override
-	protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
+    @Override
+    protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
 
-		String accessTokenProviderRef = element.getAttribute("access-token-provider");
-		
-		builder.addConstructorArgReference(element.getAttribute(RESOURCE));
+        String accessTokenProviderRef = element.getAttribute("access-token-provider");
 
-		BeanDefinitionBuilder request = BeanDefinitionBuilder.genericBeanDefinition(DefaultAccessTokenRequest.class);
-		request.setScope("request");
-		request.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-		request.addConstructorArgValue("#{request.parameterMap}");
-		request.addPropertyValue("currentUri", "#{request.getAttribute('currentUri')}");
+        builder.addConstructorArgReference(element.getAttribute(RESOURCE));
 
-		BeanDefinitionHolder requestDefinition = new BeanDefinitionHolder(request.getRawBeanDefinition(), parserContext
-				.getReaderContext().generateBeanName(request.getRawBeanDefinition()));
-		parserContext.getRegistry().registerBeanDefinition(requestDefinition.getBeanName(),
-				requestDefinition.getBeanDefinition());
-		BeanDefinitionHolder requestHolder = ScopedProxyUtils.createScopedProxy(requestDefinition,
-				parserContext.getRegistry(), false);
+        BeanDefinitionBuilder request = BeanDefinitionBuilder.genericBeanDefinition(DefaultAccessTokenRequest.class);
+        request.setScope("request");
+        request.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+        request.addConstructorArgValue("#{request.parameterMap}");
+        request.addPropertyValue("currentUri", "#{request.getAttribute('currentUri')}");
 
-		BeanDefinitionBuilder scopedContext = BeanDefinitionBuilder
-				.genericBeanDefinition(DefaultOAuth2ClientContext.class);
-		scopedContext.setScope("session");
-		scopedContext.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
-		BeanDefinitionHolder contextDefinition = new BeanDefinitionHolder(scopedContext.getRawBeanDefinition(),
-				parserContext.getReaderContext().generateBeanName(scopedContext.getRawBeanDefinition()));
-		parserContext.getRegistry().registerBeanDefinition(contextDefinition.getBeanName(),
-				contextDefinition.getBeanDefinition());
-		BeanDefinitionHolder contextHolder = ScopedProxyUtils.createScopedProxy(contextDefinition,
-				parserContext.getRegistry(), false);
-		scopedContext.addConstructorArgValue(requestHolder.getBeanDefinition());
+        BeanDefinitionHolder requestDefinition = new BeanDefinitionHolder(request.getRawBeanDefinition(), parserContext
+                .getReaderContext().generateBeanName(request.getRawBeanDefinition()));
+        parserContext.getRegistry().registerBeanDefinition(requestDefinition.getBeanName(),
+                requestDefinition.getBeanDefinition());
+        BeanDefinitionHolder requestHolder = ScopedProxyUtils.createScopedProxy(requestDefinition,
+                parserContext.getRegistry(), false);
 
-		BeanDefinitionBuilder bareContext = BeanDefinitionBuilder
-				.genericBeanDefinition(DefaultOAuth2ClientContext.class);
+        BeanDefinitionBuilder scopedContext = BeanDefinitionBuilder
+                .genericBeanDefinition(DefaultOAuth2ClientContext.class);
+        scopedContext.setScope("session");
+        scopedContext.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+        BeanDefinitionHolder contextDefinition = new BeanDefinitionHolder(scopedContext.getRawBeanDefinition(),
+                parserContext.getReaderContext().generateBeanName(scopedContext.getRawBeanDefinition()));
+        parserContext.getRegistry().registerBeanDefinition(contextDefinition.getBeanName(),
+                contextDefinition.getBeanDefinition());
+        BeanDefinitionHolder contextHolder = ScopedProxyUtils.createScopedProxy(contextDefinition,
+                parserContext.getRegistry(), false);
+        scopedContext.addConstructorArgValue(requestHolder.getBeanDefinition());
 
-		BeanDefinitionBuilder context = BeanDefinitionBuilder
-				.genericBeanDefinition(OAuth2ClientContextFactoryBean.class);
+        BeanDefinitionBuilder bareContext = BeanDefinitionBuilder
+                .genericBeanDefinition(DefaultOAuth2ClientContext.class);
 
-		context.addPropertyValue("scopedContext", contextHolder.getBeanDefinition());
-		context.addPropertyValue("bareContext", bareContext.getBeanDefinition());
-		context.addPropertyReference(RESOURCE, element.getAttribute(RESOURCE));
+        BeanDefinitionBuilder context = BeanDefinitionBuilder
+                .genericBeanDefinition(OAuth2ClientContextFactoryBean.class);
 
-		builder.addConstructorArgValue(context.getBeanDefinition());
-		if (StringUtils.hasText(accessTokenProviderRef)) {
-			builder.addPropertyReference("accessTokenProvider", accessTokenProviderRef);
-		}
+        context.addPropertyValue("scopedContext", contextHolder.getBeanDefinition());
+        context.addPropertyValue("bareContext", bareContext.getBeanDefinition());
+        context.addPropertyReference(RESOURCE, element.getAttribute(RESOURCE));
 
-		parserContext.getDelegate().parsePropertyElements(element, builder.getBeanDefinition());
+        builder.addConstructorArgValue(context.getBeanDefinition());
+        if (StringUtils.hasText(accessTokenProviderRef)) {
+            builder.addPropertyReference("accessTokenProvider", accessTokenProviderRef);
+        }
 
-	}
+        parserContext.getDelegate().parsePropertyElements(element, builder.getBeanDefinition());
+
+    }
 
 }

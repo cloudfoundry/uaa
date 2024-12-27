@@ -24,24 +24,24 @@ import java.util.Set;
 @SuppressWarnings("serial")
 public class Jackson2ArrayOrStringDeserializer extends StdDeserializer<Set<String>> {
 
-	public Jackson2ArrayOrStringDeserializer() {
-		super(Set.class);
-	}
+    public Jackson2ArrayOrStringDeserializer() {
+        super(Set.class);
+    }
 
-	@Override
-	public JavaType getValueType() {
-		return SimpleType.construct(String.class);
-	}
+    @Override
+    public JavaType getValueType() {
+        return SimpleType.construct(String.class);
+    }
 
-	@Override
-	public Set<String> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
-		JsonToken token = jp.getCurrentToken();
-		if (token.isScalarValue()) {
-			String list = jp.getText();
-			list = list.replaceAll("\\s+", ",");
-			return new LinkedHashSet<>(Arrays.asList(StringUtils.commaDelimitedListToStringArray(list)));
-		}
-		return jp.readValueAs(new TypeReference<Set<String>>() {
-		});
-	}
+    @Override
+    public Set<String> deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
+        JsonToken token = jp.getCurrentToken();
+        if (token.isScalarValue()) {
+            String list = jp.getText();
+            list = list.replaceAll("\\s+", ",");
+            return new LinkedHashSet<>(Arrays.asList(StringUtils.commaDelimitedListToStringArray(list)));
+        }
+        return jp.readValueAs(new TypeReference<Set<String>>() {
+        });
+    }
 }

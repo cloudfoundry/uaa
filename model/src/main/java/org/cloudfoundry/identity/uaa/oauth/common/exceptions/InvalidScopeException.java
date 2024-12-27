@@ -15,18 +15,18 @@ import java.util.Set;
 @SuppressWarnings("serial")
 public class InvalidScopeException extends OAuth2Exception {
 
-	public InvalidScopeException(String msg, Set<String> validScope) {
-		this(msg);
-		addAdditionalInformation(OAuth2Utils.SCOPE, OAuth2Utils.formatParameterList(validScope));
-	}
+    public InvalidScopeException(String msg, Set<String> validScope) {
+        this(msg);
+        addAdditionalInformation(OAuth2Utils.SCOPE, OAuth2Utils.formatParameterList(validScope));
+    }
 
-	public InvalidScopeException(String msg) {
-		super(msg);
-	}
+    public InvalidScopeException(String msg) {
+        super(msg);
+    }
 
-	@Override
-	public String getOAuth2ErrorCode() {
-		return INVALID_SCOPE;
-	}
+    @Override
+    public String getOAuth2ErrorCode() {
+        return INVALID_SCOPE;
+    }
 
 }

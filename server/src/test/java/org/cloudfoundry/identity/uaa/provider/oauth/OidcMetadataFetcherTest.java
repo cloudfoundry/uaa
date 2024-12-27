@@ -120,15 +120,15 @@ class OidcMetadataFetcherTest {
             definition.setSkipSslValidation(false);
 
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
-                .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
+                    .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
 
             metadataDiscoverer.fetchWebKeySet(definition);
             metadataDiscoverer.fetchWebKeySet(definition);
 
             verify(urlContentCache, times(2))
-                .getUrlContent(
-                    any(), any(), any(), any()
-                );
+                    .getUrlContent(
+                            any(), any(), any(), any()
+                    );
         }
 
         @Test
@@ -139,7 +139,7 @@ class OidcMetadataFetcherTest {
 
             ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
             when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
-                .thenReturn(responseEntity);
+                    .thenReturn(responseEntity);
             when(responseEntity.getStatusCode()).thenReturn(HttpStatus.OK);
             when(responseEntity.getBody()).thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
 
@@ -148,9 +148,9 @@ class OidcMetadataFetcherTest {
             metadataDiscoverer.fetchWebKeySet(definition);
 
             verify(urlContentCache, times(0))
-                .getUrlContent(
-                    any(), any(), any(), any()
-                );
+                    .getUrlContent(
+                            any(), any(), any(), any()
+                    );
             verify(restTemplate, times(2)).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class));
         }
 
@@ -162,15 +162,15 @@ class OidcMetadataFetcherTest {
 
             ResponseEntity<byte[]> responseEntity = mock(ResponseEntity.class);
             when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class)))
-                .thenReturn(responseEntity);
+                    .thenReturn(responseEntity);
             when(responseEntity.getStatusCode()).thenReturn(HttpStatus.FORBIDDEN);
 
             assertThrows(IllegalArgumentException.class, () -> metadataDiscoverer.fetchWebKeySet(definition));
 
             verify(urlContentCache, times(0))
-                .getUrlContent(
-                    any(), any(), any(), any()
-                );
+                    .getUrlContent(
+                            any(), any(), any(), any()
+                    );
             verify(restTemplate, times(1)).exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(Class.class));
         }
     }
@@ -220,7 +220,7 @@ class OidcMetadataFetcherTest {
         void failWithEmptyContent() throws OidcMetadataFetchingException, MalformedURLException {
 
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
-                .thenReturn("".getBytes());
+                    .thenReturn("".getBytes());
 
             assertThrows(OidcMetadataFetchingException.class, () -> metadataDiscoverer.fetchWebKeySet(definition));
         }
@@ -229,7 +229,7 @@ class OidcMetadataFetcherTest {
         void failWithInvalidContent() throws OidcMetadataFetchingException, MalformedURLException {
 
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
-                .thenReturn("{x}".getBytes());
+                    .thenReturn("{x}".getBytes());
 
             assertThrows(OidcMetadataFetchingException.class, () -> metadataDiscoverer.fetchWebKeySet(definition));
         }
@@ -244,7 +244,7 @@ class OidcMetadataFetcherTest {
             definition.setRelyingPartyId("id");
             definition.setRelyingPartySecret(null);
             when(urlContentCache.getUrlContent(anyString(), any(RestTemplate.class), any(HttpMethod.class), any(HttpEntity.class)))
-                .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
+                    .thenReturn("{\"keys\":[{\"alg\":\"RS256\",\"e\":\"e\",\"kid\":\"id\",\"kty\":\"RSA\",\"n\":\"n\"}]}".getBytes());
         }
 
         @Test

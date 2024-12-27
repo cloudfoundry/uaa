@@ -53,7 +53,7 @@ class JdbcQueryableClientDetailsServiceTests {
                 multitenantJdbcClientDetailsService,
                 namedParameterJdbcTemplate,
                 new JdbcPagingListFactory(
-                    namedParameterJdbcTemplate,
+                        namedParameterJdbcTemplate,
                         limitSqlAdapter));
     }
 

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -62,6 +63,7 @@ public class UaaException extends OAuth2Exception {
         this.errorString = error;
         this.status = status;
     }
+
     /**
      * The error code.
      *

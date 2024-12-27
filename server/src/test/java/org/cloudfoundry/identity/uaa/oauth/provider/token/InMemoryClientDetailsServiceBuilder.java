@@ -14,20 +14,20 @@ import java.util.Map;
  * Scope: Test class
  */
 public class InMemoryClientDetailsServiceBuilder extends
-		ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder> {
+        ClientDetailsServiceBuilder<InMemoryClientDetailsServiceBuilder> {
 
-	private Map<String, UaaClientDetails> clientDetails = new HashMap<>();
+    private final Map<String, UaaClientDetails> clientDetails = new HashMap<>();
 
-	@Override
-	protected void addClient(String clientId, ClientDetails value) {
-		clientDetails.put(clientId, (UaaClientDetails) value);
-	}
+    @Override
+    protected void addClient(String clientId, ClientDetails value) {
+        clientDetails.put(clientId, (UaaClientDetails) value);
+    }
 
-	@Override
-	protected ClientDetailsService performBuild() {
-		InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
-		clientDetailsService.setClientDetailsStore(clientDetails);
-		return clientDetailsService;
-	}
+    @Override
+    protected ClientDetailsService performBuild() {
+        InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
+        clientDetailsService.setClientDetailsStore(clientDetails);
+        return clientDetailsService;
+    }
 
 }

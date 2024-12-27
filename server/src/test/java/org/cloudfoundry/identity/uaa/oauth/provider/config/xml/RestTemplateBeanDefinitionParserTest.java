@@ -25,36 +25,36 @@ import static org.mockito.Mockito.when;
  */
 public class RestTemplateBeanDefinitionParserTest {
 
-  private RestTemplateBeanDefinitionParser parser;
-  private Element element;
-  private BeanDefinitionBuilder builder;
-  private ParserContext parserContext;
-  private XmlReaderContext xmlReaderContext;
+    private RestTemplateBeanDefinitionParser parser;
+    private Element element;
+    private BeanDefinitionBuilder builder;
+    private ParserContext parserContext;
+    private XmlReaderContext xmlReaderContext;
 
-  @Before
-  public void setUp() throws Exception {
-    element = mock(Element.class);
-    parserContext = mock(ParserContext.class);
-    xmlReaderContext = mock(XmlReaderContext.class);
-    builder = mock(BeanDefinitionBuilder.class);
-    when(parserContext.getReaderContext()).thenReturn(xmlReaderContext);
-    when(parserContext.getRegistry()).thenReturn(mock(BeanDefinitionRegistry.class));
-    when(xmlReaderContext.generateBeanName(any(BeanDefinition.class))).thenReturn("bean");//thenAnswer(invocation -> invocation.getArguments()[0]);
-    parser = new RestTemplateBeanDefinitionParser();
-  }
+    @Before
+    public void setUp() throws Exception {
+        element = mock(Element.class);
+        parserContext = mock(ParserContext.class);
+        xmlReaderContext = mock(XmlReaderContext.class);
+        builder = mock(BeanDefinitionBuilder.class);
+        when(parserContext.getReaderContext()).thenReturn(xmlReaderContext);
+        when(parserContext.getRegistry()).thenReturn(mock(BeanDefinitionRegistry.class));
+        when(xmlReaderContext.generateBeanName(any(BeanDefinition.class))).thenReturn("bean");//thenAnswer(invocation -> invocation.getArguments()[0]);
+        parser = new RestTemplateBeanDefinitionParser();
+    }
 
-  @Test
-  public void getBeanClass() {
-    assertEquals(OAuth2RestTemplate.class, parser.getBeanClass(element));
-  }
+    @Test
+    public void getBeanClass() {
+        assertEquals(OAuth2RestTemplate.class, parser.getBeanClass(element));
+    }
 
-  @Test
-  public void doParse() {
-    when(element.getAttribute("access-token-provider")).thenReturn("ref");
-    when(element.getAttribute("resource")).thenReturn("classpath:oauth-rest-template.xml");
-    when(parserContext.getDelegate()).thenReturn(new BeanDefinitionParserDelegate(xmlReaderContext));
-    when(element.getChildNodes()).thenReturn(mock(NodeList.class));
-    parser.doParse(element, parserContext, builder);
-    verify(builder, times(1)).addConstructorArgReference("classpath:oauth-rest-template.xml");
-  }
+    @Test
+    public void doParse() {
+        when(element.getAttribute("access-token-provider")).thenReturn("ref");
+        when(element.getAttribute("resource")).thenReturn("classpath:oauth-rest-template.xml");
+        when(parserContext.getDelegate()).thenReturn(new BeanDefinitionParserDelegate(xmlReaderContext));
+        when(element.getChildNodes()).thenReturn(mock(NodeList.class));
+        parser.doParse(element, parserContext, builder);
+        verify(builder, times(1)).addConstructorArgReference("classpath:oauth-rest-template.xml");
+    }
 }

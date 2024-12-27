@@ -159,16 +159,16 @@ class LoginAuthenticationManagerTests {
             UaaUser user = manager.getUser(req1, info);
 
             assertThat(user, is(
-                aUaaUser()
-                    .withUsername("user")
-                    .withEmail("user@example.com")
-                    .withGivenName("Jane")
-                    .withFamilyName("Doe")
-                    .withPassword("")
-                    .withAuthorities(Matchers.equalTo(UaaAuthority.USER_AUTHORITIES))
-                    .withOrigin("test-origin")
-                    .withExternalId("user")
-                    .withZoneId(mockIdentityZoneManager.getCurrentIdentityZoneId())
+                    aUaaUser()
+                            .withUsername("user")
+                            .withEmail("user@example.com")
+                            .withGivenName("Jane")
+                            .withFamilyName("Doe")
+                            .withPassword("")
+                            .withAuthorities(Matchers.equalTo(UaaAuthority.USER_AUTHORITIES))
+                            .withOrigin("test-origin")
+                            .withExternalId("user")
+                            .withZoneId(mockIdentityZoneManager.getCurrentIdentityZoneId())
             ));
         }
 

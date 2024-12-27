@@ -45,8 +45,8 @@ public class ProcessLdapProperties {
     private String tlsConfig;
 
     public ProcessLdapProperties(String baseUrl,
-                                 boolean disableSslVerification,
-                                 String tlsConfig) {
+            boolean disableSslVerification,
+            String tlsConfig) {
         this.baseUrl = baseUrl;
         this.disableSslVerification = disableSslVerification;
         this.tlsConfig = tlsConfig;

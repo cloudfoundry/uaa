@@ -45,7 +45,7 @@ public class ApiController {
      * @param info the info to set
      */
     public void setInfo(Resource info) {
-        try (InputStreamReader in = new InputStreamReader(info.getInputStream())){
+        try (InputStreamReader in = new InputStreamReader(info.getInputStream())) {
             this.infoResource = FileCopyUtils.copyToString(in);
         } catch (IOException e) {
             throw new IllegalArgumentException("Could not load template", e);

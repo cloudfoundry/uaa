@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -64,23 +65,25 @@ import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_O
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class ScimGroupEndpointsIntegrationTests {
 
-    private ScimGroupMember DALE, JOEL, VIDYA;
+    private ScimGroupMember dale;
+    private ScimGroupMember joel;
+    private ScimGroupMember vidya;
 
-    private final String DELETE_ME = "deleteme_" + new RandomValueStringGenerator().generate().toLowerCase();
+    private final String deleteMe = "deleteme_" + new RandomValueStringGenerator().generate().toLowerCase();
 
-    private final String CF_DEV = "cf_dev_" + new RandomValueStringGenerator().generate().toLowerCase();
+    private final String cfDev = "cf_dev_" + new RandomValueStringGenerator().generate().toLowerCase();
 
-    private final String CF_MGR = "cf_mgr_" + new RandomValueStringGenerator().generate().toLowerCase();
+    private final String cfMgr = "cf_mgr_" + new RandomValueStringGenerator().generate().toLowerCase();
 
-    private final String CFID = "cfid_" + new RandomValueStringGenerator().generate().toLowerCase();
+    private final String cfid = "cfid_" + new RandomValueStringGenerator().generate().toLowerCase();
 
-    private final List<String> allowedGroups = List.of(DELETE_ME, CF_DEV, CF_MGR, CFID);
+    private final List<String> allowedGroups = List.of(deleteMe, cfDev, cfMgr, cfid);
 
     private final String groupEndpoint = "/Groups";
 
     private final String userEndpoint = "/Users";
 
-    private List<String> groupIds = new ArrayList<String>();
+    private List<String> groupIds = new ArrayList<>();
 
     private static final List<String> defaultGroups = Arrays.asList("openid", "scim.me", "cloud_controller.read",
             "cloud_controller.write", "password.write", "scim.userids", "uaa.user", "approvals.me",
@@ -116,16 +119,16 @@ public class ScimGroupEndpointsIntegrationTests {
             }
         });
 
-        JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
-        DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
-        VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
+        joel = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
+        dale = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
+        vidya = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
     }
 
     @After
     public void tearDown() {
-        deleteResource(userEndpoint, DALE.getMemberId());
-        deleteResource(userEndpoint, JOEL.getMemberId());
-        deleteResource(userEndpoint, VIDYA.getMemberId());
+        deleteResource(userEndpoint, dale.getMemberId());
+        deleteResource(userEndpoint, joel.getMemberId());
+        deleteResource(userEndpoint, vidya.getMemberId());
         for (String id : groupIds) {
             deleteResource(groupEndpoint, id);
         }
@@ -199,7 +202,7 @@ public class ScimGroupEndpointsIntegrationTests {
         Map results = response.getBody();
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertTrue("There should be more than zero users", (Integer) results.get("totalResults") > 0);
-        assertTrue("There should be some resources", ((Collection<?>) results.get("resources")).size() > 0);
+        assertTrue("There should be some resources", !((Collection<?>) results.get("resources")).isEmpty());
         @SuppressWarnings("rawtypes")
         Map firstGroup = (Map) ((List) results.get("resources")).get(0);
         assertTrue(firstGroup.containsKey("id"));
@@ -210,7 +213,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createGroupSucceeds() {
-        ScimGroup g1 = createGroup(CFID);
+        ScimGroup g1 = createGroup(cfid);
         // Check we can GET the group
         ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
         assertEquals(g1, g2);
@@ -225,7 +228,7 @@ public class ScimGroupEndpointsIntegrationTests {
         config.getUserConfig().setAllowedGroups(allowedGroups);
         String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
         String inZoneAdminToken = IntegrationTestUtils.createClientAdminTokenInZone(serverRunning.getBaseUrl(), adminToken, testZoneId, config);
-        ScimGroup g1 = new ScimGroup(null, CFID, testZoneId);
+        ScimGroup g1 = new ScimGroup(null, cfid, testZoneId);
         // Check we can GET the group
         ScimGroup g2 = IntegrationTestUtils.createOrUpdateGroup(inZoneAdminToken, null, zoneUrl, g1);
         assertEquals(g1.getDisplayName(), g2.getDisplayName());
@@ -237,9 +240,9 @@ public class ScimGroupEndpointsIntegrationTests {
     public void createNotAllowedGroupFailsCorrectly() throws URISyntaxException {
         String testZoneId = "testzone1";
         assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-        final String NOT_ALLOWED = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
+        final String notAllowed = "not_allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning.getBaseUrl(), "admin", "adminsecret");
-        ScimGroup g1 = new ScimGroup(null, NOT_ALLOWED, testZoneId);
+        ScimGroup g1 = new ScimGroup(null, notAllowed, testZoneId);
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.getUserConfig().setAllowedGroups(allowedGroups);
         String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
@@ -253,7 +256,7 @@ public class ScimGroupEndpointsIntegrationTests {
             assertTrue(e.getStatusCode().is4xxClientError());
             assertEquals(400, e.getRawStatusCode());
             assertThat(e.getMessage(),
-                containsString("The group with displayName: "+ g1.getDisplayName() +" is not allowed in Identity Zone " + testZoneId));
+                    containsString("The group with displayName: " + g1.getDisplayName() + " is not allowed in Identity Zone " + testZoneId));
         } finally {
             IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
         }
@@ -298,9 +301,9 @@ public class ScimGroupEndpointsIntegrationTests {
         }
 
         // add a new group to the allowed groups
-        final String ALLOWED = "allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
-        List<String> newDefaultGroups = new ArrayList<String>(defaultGroups);
-        newDefaultGroups.add(ALLOWED);
+        final String allowed = "allowed_" + new RandomValueStringGenerator().generate().toLowerCase();
+        List<String> newDefaultGroups = new ArrayList<>(defaultGroups);
+        newDefaultGroups.add(allowed);
         config.getUserConfig().setAllowedGroups(List.of());
         config.getUserConfig().setDefaultGroups(newDefaultGroups);
         String zoneUrl = serverRunning.getBaseUrl().replace("localhost", testZoneId + ".localhost");
@@ -309,7 +312,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
         // creating the newly allowed group should fail, as it already exists
         RestTemplate template = new RestTemplate();
-        ScimGroup g1 = new ScimGroup(null, ALLOWED, testZoneId);
+        ScimGroup g1 = new ScimGroup(null, allowed, testZoneId);
         HttpEntity entity = new HttpEntity<>(JsonUtils.writeValueAsBytes(g1), IntegrationTestUtils.getAuthenticatedHeaders(inZoneAdminToken));
         try {
             final HttpClientErrorException.Conflict exception = assertThrows(
@@ -317,7 +320,7 @@ public class ScimGroupEndpointsIntegrationTests {
                     () -> template.exchange(zoneUrl + "/Groups", HttpMethod.POST, entity, HashMap.class)
             );
             Assertions.assertThat(exception.getMessage())
-                    .contains("A group with displayName: %s already exists.".formatted(ALLOWED));
+                    .contains("A group with displayName: %s already exists.".formatted(allowed));
         } finally {
             IntegrationTestUtils.deleteZone(serverRunning.getBaseUrl(), testZoneId, adminToken);
         }
@@ -325,26 +328,26 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createGroupWithMembersSucceeds() {
-        ScimGroup g1 = createGroup(CFID, JOEL, DALE, VIDYA);
+        ScimGroup g1 = createGroup(cfid, joel, dale, vidya);
         // Check we can GET the group
         ScimGroup g2 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g1.getId());
         assertEquals(g1, g2);
         assertEquals(3, g2.getMembers().size());
-        assertTrue(g2.getMembers().contains(JOEL));
-        assertTrue(g2.getMembers().contains(DALE));
-        assertTrue(g2.getMembers().contains(VIDYA));
+        assertTrue(g2.getMembers().contains(joel));
+        assertTrue(g2.getMembers().contains(dale));
+        assertTrue(g2.getMembers().contains(vidya));
 
         // check that User.groups is updated
-        validateUserGroups(JOEL.getMemberId(), CFID);
-        validateUserGroups(DALE.getMemberId(), CFID);
-        validateUserGroups(VIDYA.getMemberId(), CFID);
+        validateUserGroups(joel.getMemberId(), cfid);
+        validateUserGroups(dale.getMemberId(), cfid);
+        validateUserGroups(vidya.getMemberId(), cfid);
     }
 
     @Test
     public void createGroupWithInvalidMembersFailsCorrectly() {
-        ScimGroup g = new ScimGroup(null, CFID, IdentityZoneHolder.get().getId());
+        ScimGroup g = new ScimGroup(null, cfid, IdentityZoneHolder.get().getId());
         ScimGroupMember m2 = new ScimGroupMember("wrongid");
-        g.setMembers(Arrays.asList(VIDYA, m2));
+        g.setMembers(Arrays.asList(vidya, m2));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> r = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, Map.class);
@@ -358,16 +361,16 @@ public class ScimGroupEndpointsIntegrationTests {
         // check that the group was not created
         @SuppressWarnings("unchecked")
         Map<String, Object> g2 = client.getForObject(
-                serverRunning.getUrl(groupEndpoint + "?filter=displayName eq \"{name}\""), Map.class, CFID);
+                serverRunning.getUrl(groupEndpoint + "?filter=displayName eq \"{name}\""), Map.class, cfid);
         assertTrue(g2.containsKey("totalResults"));
         assertEquals(Integer.valueOf(0), (Integer) g2.get("totalResults"));
     }
 
     @Test
     public void createGroupWithMemberGroupSucceeds() {
-        ScimGroup g1 = createGroup(CFID, VIDYA);
+        ScimGroup g1 = createGroup(cfid, vidya);
         ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP);
-        ScimGroup g2 = createGroup(CF_DEV, m2);
+        ScimGroup g2 = createGroup(cfDev, m2);
 
         // Check we can GET the group
         ScimGroup g3 = client.getForObject(serverRunning.getUrl(groupEndpoint + "/{id}"), ScimGroup.class, g2.getId());
@@ -376,12 +379,12 @@ public class ScimGroupEndpointsIntegrationTests {
         assertTrue(g3.getMembers().contains(m2));
 
         // check that User.groups is updated
-        validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
+        validateUserGroups(vidya.getMemberId(), cfid, cfDev);
     }
 
     @Test
     public void createExistingGroupFailsCorrectly() {
-        ScimGroup g1 = createGroup(CFID);
+        ScimGroup g1 = createGroup(cfid);
         @SuppressWarnings("unchecked")
         Map<String, String> g2 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g1, Map.class).getBody();
         assertTrue(g2.containsKey("error"));
@@ -390,39 +393,39 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void deleteGroupUpdatesUser() {
-        ScimGroup g1 = createGroup(DELETE_ME, DALE, VIDYA);
-        validateUserGroups(DALE.getMemberId(), DELETE_ME);
-        validateUserGroups(VIDYA.getMemberId(), DELETE_ME);
+        ScimGroup g1 = createGroup(deleteMe, dale, vidya);
+        validateUserGroups(dale.getMemberId(), deleteMe);
+        validateUserGroups(vidya.getMemberId(), deleteMe);
 
         deleteResource(groupEndpoint, g1.getId());
 
         // check that the group does not exist anymore
         @SuppressWarnings("unchecked")
         Map<String, Object> g2 = client.getForObject(
-                serverRunning.getUrl(groupEndpoint + "?filter=displayName eq \"{name}\""), Map.class, DELETE_ME);
+                serverRunning.getUrl(groupEndpoint + "?filter=displayName eq \"{name}\""), Map.class, deleteMe);
         assertTrue(g2.containsKey("totalResults"));
         assertEquals(0, g2.get("totalResults"));
 
         // check that group membership is updated
-        validateUserGroups(DALE.getMemberId());
-        validateUserGroups(VIDYA.getMemberId());
+        validateUserGroups(dale.getMemberId());
+        validateUserGroups(vidya.getMemberId());
     }
 
     @Test
     public void deleteNonExistentGroupFailsCorrectly() {
         @SuppressWarnings("unchecked")
-        Map<String, Object> g = deleteResource(groupEndpoint, DELETE_ME).getBody();
+        Map<String, Object> g = deleteResource(groupEndpoint, deleteMe).getBody();
         assertTrue(g.containsKey("error"));
         assertEquals("scim_resource_not_found", g.get("error"));
     }
 
     @Test
     public void deleteMemberGroupUpdatesGroup() {
-        ScimGroup g1 = createGroup(CFID, VIDYA);
+        ScimGroup g1 = createGroup(cfid, vidya);
         ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP);
-        ScimGroup g2 = createGroup(CF_DEV, DALE, m2);
+        ScimGroup g2 = createGroup(cfDev, dale, m2);
         assertTrue(g2.getMembers().contains(m2));
-        validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
+        validateUserGroups(vidya.getMemberId(), cfid, cfDev);
 
         deleteResource(groupEndpoint, g1.getId());
 
@@ -434,9 +437,9 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void testDeleteMemberUserUpdatesGroups() {
-        ScimGroupMember toDelete = new ScimGroupMember(createUser(DELETE_ME, "Passwo3d").getId());
-        ScimGroup g1 = createGroup(CFID, JOEL, DALE, toDelete);
-        ScimGroup g2 = createGroup(CF_MGR, DALE, toDelete);
+        ScimGroupMember toDelete = new ScimGroupMember(createUser(deleteMe, "Passwo3d").getId());
+        ScimGroup g1 = createGroup(cfid, joel, dale, toDelete);
+        ScimGroup g2 = createGroup(cfMgr, dale, toDelete);
         deleteResource(userEndpoint, toDelete.getMemberId());
 
         // check that membership has been updated
@@ -451,15 +454,15 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void testUpdateGroupUpdatesMemberUsers() {
-        ScimGroup g1 = createGroup(CFID, JOEL, VIDYA);
-        ScimGroup g2 = createGroup(CF_MGR, DALE);
+        ScimGroup g1 = createGroup(cfid, joel, vidya);
+        ScimGroup g2 = createGroup(cfMgr, dale);
         ScimGroupMember m1 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP);
         ScimGroupMember m2 = new ScimGroupMember(g2.getId(), ScimGroupMember.Type.GROUP);
-        ScimGroup g3 = createGroup(CF_DEV, m1, m2);
+        ScimGroup g3 = createGroup(cfDev, m1, m2);
 
-        validateUserGroups(JOEL.getMemberId(), CFID, CF_DEV);
-        validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
-        validateUserGroups(DALE.getMemberId(), CF_MGR, CF_DEV);
+        validateUserGroups(joel.getMemberId(), cfid, cfDev);
+        validateUserGroups(vidya.getMemberId(), cfid, cfDev);
+        validateUserGroups(dale.getMemberId(), cfMgr, cfDev);
 
         ScimGroup g4 = updateGroup(g3.getId(), "new_name", m1);
 
@@ -467,21 +470,21 @@ public class ScimGroupEndpointsIntegrationTests {
         // existing one
         assertEquals(g3, g4);
         // check that member users were updated
-        validateUserGroups(DALE.getMemberId(), CF_MGR);
-        validateUserGroups(JOEL.getMemberId(), CFID, "new_name");
-        validateUserGroups(VIDYA.getMemberId(), CFID, "new_name");
+        validateUserGroups(dale.getMemberId(), cfMgr);
+        validateUserGroups(joel.getMemberId(), cfid, "new_name");
+        validateUserGroups(vidya.getMemberId(), cfid, "new_name");
     }
 
     @Test
     public void testAccessTokenReflectsGroupMembership() throws Exception {
 
-        createTestClient(DELETE_ME, "secret", CFID);
-        ScimUser user = createUser(DELETE_ME, "Passwo3d");
-        createGroup(CFID, new ScimGroupMember(user.getId()));
-        OAuth2AccessToken token = getAccessToken(DELETE_ME, "secret", DELETE_ME, "Passwo3d");
-        assertTrue("Wrong token: " + token, token.getScope().contains(CFID));
+        createTestClient(deleteMe, "secret", cfid);
+        ScimUser user = createUser(deleteMe, "Passwo3d");
+        createGroup(cfid, new ScimGroupMember(user.getId()));
+        OAuth2AccessToken token = getAccessToken(deleteMe, "secret", deleteMe, "Passwo3d");
+        assertTrue("Wrong token: " + token, token.getScope().contains(cfid));
 
-        deleteTestClient(DELETE_ME);
+        deleteTestClient(deleteMe);
         deleteResource(userEndpoint, user.getId());
 
     }
@@ -489,13 +492,13 @@ public class ScimGroupEndpointsIntegrationTests {
     @Test
     public void testAccessTokenReflectsGroupMembershipForPasswordGrant() throws Exception {
 
-        createTestClient(DELETE_ME, "secret", CFID);
-        ScimUser user = createUser(DELETE_ME, "Passwo3d");
-        createGroup(CFID, new ScimGroupMember(user.getId()));
-        OAuth2AccessToken token = getAccessTokenWithPassword(DELETE_ME, "secret", DELETE_ME, "Passwo3d");
-        assertTrue("Wrong token: " + token, token.getScope().contains(CFID));
+        createTestClient(deleteMe, "secret", cfid);
+        ScimUser user = createUser(deleteMe, "Passwo3d");
+        createGroup(cfid, new ScimGroupMember(user.getId()));
+        OAuth2AccessToken token = getAccessTokenWithPassword(deleteMe, "secret", deleteMe, "Passwo3d");
+        assertTrue("Wrong token: " + token, token.getScope().contains(cfid));
 
-        deleteTestClient(DELETE_ME);
+        deleteTestClient(deleteMe);
         deleteResource(userEndpoint, user.getId());
 
     }
@@ -556,14 +559,14 @@ public class ScimGroupEndpointsIntegrationTests {
         String clientId = testAccounts.getAdminClientId();
         String clientSecret = testAccounts.getAdminClientSecret();
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "client_credentials");
         formData.add("client_id", clientId);
         formData.add("scope", scope);
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.set("Authorization",
-                "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+                "Basic " + new String(Base64.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
@@ -584,8 +587,8 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     private OAuth2AccessToken getAccessTokenWithPassword(String clientId, String clientSecret, String username,
-                                                         String password) {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+            String password) {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("client_id", clientId);
         formData.add("grant_type", "password");
         formData.add("username", username);
@@ -666,7 +669,7 @@ public class ScimGroupEndpointsIntegrationTests {
             formData.clear();
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             formData.add(USER_OAUTH_APPROVAL, "true");
-            formData.add("scope.0", "scope." + CFID);
+            formData.add("scope.0", "scope." + cfid);
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();

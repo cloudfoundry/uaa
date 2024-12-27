@@ -41,7 +41,9 @@ public class JsonWebKeySet<T extends JsonWebKey> {
         Set<T> set = new LinkedHashSet<>();
         //rules for how to override duplicates
         for (T key : keys) {
-            if(key == null) continue;
+            if (key == null) {
+                continue;
+            }
             set.remove(key);
             set.add(key);
         }
@@ -57,7 +59,7 @@ public class JsonWebKeySet<T extends JsonWebKey> {
         Map<String, Object> keySet = new HashMap<>();
         ArrayList<Map<String, Object>> keyArray = new ArrayList<>();
         long keyCount = Optional.ofNullable(keys).orElseThrow(() -> new IllegalStateException("No keys found.")).stream()
-            .map(k -> keyArray.add(k.getKeyProperties())).filter(Objects::nonNull).count();
+                .map(k -> keyArray.add(k.getKeyProperties())).filter(Objects::nonNull).count();
         if (keyCount > 0) {
             keySet.put(JSON_PROPERTY_KEYS, keyArray);
         }

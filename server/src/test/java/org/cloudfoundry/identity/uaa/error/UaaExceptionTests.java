@@ -61,7 +61,7 @@ public class UaaExceptionTests {
         assertEquals("additional1", x.getAdditionalInformation().get("additional1"));
         assertEquals("additional2", x.getAdditionalInformation().get("additional2"));
 
-        params.put("status","test");
+        params.put("status", "test");
         x = UaaException.valueOf(params);
         assertEquals("error", x.getErrorCode());
         assertEquals("error_description", x.getMessage());

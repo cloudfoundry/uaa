@@ -32,7 +32,7 @@ public class CommonSigner implements Signer {
     private final JWSSigner delegate;
     private final String algorithm;
     private final String keyId;
-    private String keyURL;
+    private final String keyURL;
 
     public CommonSigner(String keyId, String signingKey, String keyURL) {
         if (signingKey == null) {

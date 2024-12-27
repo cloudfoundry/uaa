@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -35,9 +36,9 @@ import java.util.Set;
  */
 public class NestedMapPropertySource extends MapPropertySource {
 
-    private Map<String, Object> cache = new HashMap<String, Object>();
+    private final Map<String, Object> cache = new HashMap<>();
 
-    private boolean initialized = false;
+    private boolean initialized;
 
     /**
      * @param name the name of this property source
@@ -74,7 +75,7 @@ public class NestedMapPropertySource extends MapPropertySource {
         if (initialized) {
             return;
         }
-        appendCache(this.cache, new HashSet<String>(), this.source, null);
+        appendCache(this.cache, new HashSet<>(), this.source, null);
         initialized = true;
     }
 
@@ -89,16 +90,14 @@ public class NestedMapPropertySource extends MapPropertySource {
                 if (StringUtils.hasText(path)) {
                     if (key.startsWith("[")) {
                         key = path + key;
-                    }
-                    else {
+                    } else {
                         key = path + "." + key;
                     }
                 }
                 Object value = entry.getValue();
                 if (value instanceof String) {
                     output.put(key, value);
-                }
-                else if (value instanceof Map) {
+                } else if (value instanceof Map) {
                     // Need a compound key
                     @SuppressWarnings("unchecked")
                     Map<String, Object> map = (Map<String, Object>) value;
@@ -106,8 +105,7 @@ public class NestedMapPropertySource extends MapPropertySource {
                     if (!seen.contains(ObjectUtils.getIdentityHexString(map))) {
                         appendCache(output, seen, map, key);
                     }
-                }
-                else if (value instanceof Collection) {
+                } else if (value instanceof Collection) {
                     // Need a compound key
                     @SuppressWarnings("unchecked")
                     Collection<Object> collection = (Collection<Object>) value;
@@ -117,13 +115,11 @@ public class NestedMapPropertySource extends MapPropertySource {
                         String index = "[" + (count++) + "]";
                         if (!seen.contains(ObjectUtils.getIdentityHexString(object))) {
                             appendCache(output, seen, Collections.singletonMap(index, object), key);
-                        }
-                        else {
+                        } else {
                             output.put(key + index, object);
                         }
                     }
-                }
-                else {
+                } else {
                     output.put(key, value);
                 }
             }

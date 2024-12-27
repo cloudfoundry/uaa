@@ -6,14 +6,14 @@ public class Singleton<T> {
     private final Object[] indirectInstanceRef = new Object[1];
     private final Supplier<T> constructor;
 
-    public Singleton( Supplier<T> constructor ) {
+    public Singleton(Supplier<T> constructor) {
         this.constructor = constructor;
     }
 
     public T getInstance() {
         synchronized (indirectInstanceRef) {
             T instance = getArrayEntry();
-            if ( instance == null ) {
+            if (instance == null) {
                 instance = constructor.get();
                 indirectInstanceRef[0] = instance;
             }

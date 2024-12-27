@@ -94,7 +94,7 @@ public class HttpHeadersFilterRequestWrapperTest {
     @Test
     public void filtered_x_forwarded_headers_single_header() {
         for (String header : BAD_HEADERS) {
-            assertNull(String.format("Header %s should be filtered.", header), request.getHeader(header));
+            assertNull("Header %s should be filtered.".formatted(header), request.getHeader(header));
         }
     }
 
@@ -102,18 +102,18 @@ public class HttpHeadersFilterRequestWrapperTest {
     public void non_filtered_x_forwarded_headers_single_header() {
         request = new HttpHeadersFilterRequestWrapper(Collections.emptyList(), mock);
         for (String header : BAD_HEADERS) {
-            assertNotNull(String.format("Header %s should be present.", header), request.getHeader(header));
+            assertNotNull("Header %s should be present.".formatted(header), request.getHeader(header));
         }
     }
 
     @Test
     public void filtered_x_forwarded_headers_multi_header() {
         for (String header : BAD_HEADERS) {
-            assertFalse(String.format("Header %s should return empty enumeration.", header), request.getHeaders(header).hasMoreElements());
+            assertFalse("Header %s should return empty enumeration.".formatted(header), request.getHeaders(header).hasMoreElements());
             assertSame(
-                String.format("Header %s should return singleton enumeration .", header),
-                EmptyEnumerationOfString.EMPTY_ENUMERATION,
-                request.getHeaders(header)
+                    "Header %s should return singleton enumeration .".formatted(header),
+                    EmptyEnumerationOfString.EMPTY_ENUMERATION,
+                    request.getHeaders(header)
             );
         }
     }
@@ -122,10 +122,10 @@ public class HttpHeadersFilterRequestWrapperTest {
     public void non_filtered_x_forwarded_headers_multi_header() {
         request = new HttpHeadersFilterRequestWrapper(Collections.emptyList(), mock);
         for (String header : BAD_HEADERS) {
-            assertTrue(String.format("Header %s should return empty enumeration.", header), request.getHeaders(header).hasMoreElements());
+            assertTrue("Header %s should return empty enumeration.".formatted(header), request.getHeaders(header).hasMoreElements());
             assertNotNull(
-                String.format("Header %s should return a value.", header),
-                request.getHeaders(header).nextElement()
+                    "Header %s should return a value.".formatted(header),
+                    request.getHeaders(header).nextElement()
             );
         }
     }

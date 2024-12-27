@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-       xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
+          xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+          xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
         http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <http name="userInfoSecurity" pattern="/userinfo" create-session="stateless"
-          authentication-manager-ref="emptyAuthenticationManager"
-          entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-          use-expressions="false"
-          xmlns="http://www.springframework.org/schema/security">
+                    authentication-manager-ref="emptyAuthenticationManager"
+                    entry-point-ref="oauthAuthenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+                    use-expressions="false"
+                    xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="scope=openid"/>
         <custom-filter ref="openidResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
         <access-denied-handler ref="oauthAccessDeniedHandler"/>
@@ -17,7 +17,7 @@
     </http>
 
     <oauth:resource-server id="openidResourceAuthenticationFilter" token-services-ref="tokenServices"
-                           resource-id="openid" entry-point-ref="oauthAuthenticationEntryPoint"/>
+                    resource-id="openid" entry-point-ref="oauthAuthenticationEntryPoint"/>
 
     <bean id="openIdSessionStateCalculator" class="org.cloudfoundry.identity.uaa.oauth.OpenIdSessionStateCalculator"/>
 </beans>

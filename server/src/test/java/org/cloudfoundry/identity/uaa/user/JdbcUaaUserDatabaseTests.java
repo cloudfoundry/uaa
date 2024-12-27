@@ -368,7 +368,7 @@ class JdbcUaaUserDatabaseTests {
         int oldValue = jdbcUaaUserDatabase.getMaxSqlParameters();
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn("zone-the-bob");
 
-        for (int l: List.of(-1, 10)) {
+        for (int l : List.of(-1, 10)) {
             jdbcUaaUserDatabase.setMaxSqlParameters(l);
             for (int i = 0; i < 5; i++) {
                 addAuthority("testAuth" + l + i, jdbcTemplate, "zone-the-bob", BOB_ID);
@@ -404,8 +404,10 @@ class JdbcUaaUserDatabaseTests {
 
     private void validateBob(int numberAuths, UaaUser bob, int prefix) {
         int count = 0;
-        for (GrantedAuthority s: bob.getAuthorities()) {
-            if (s.getAuthority().startsWith("testAuth" + prefix)) count++;
+        for (GrantedAuthority s : bob.getAuthorities()) {
+            if (s.getAuthority().startsWith("testAuth" + prefix)) {
+                count++;
+            }
         }
         Assert.assertEquals(count, numberAuths);
     }

@@ -67,7 +67,8 @@ public class PasswordGrantIntegrationTests {
         ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), client.getClientId(), "secret", serverRunning.getAccessTokenUri());
         assertEquals(HttpStatus.BAD_REQUEST, responseEntity.getStatusCode());
         assertEquals(APPLICATION_JSON_VALUE, responseEntity.getHeaders().get("Content-Type").get(0));
-        Map<String, Object> errors = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
+        Map<String, Object> errors = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String, Object>>() {
+        });
         assertEquals("User does not meet the client's required group criteria.", errors.get("error_description"));
         assertEquals("invalid_scope", errors.get("error"));
     }
@@ -92,16 +93,16 @@ public class PasswordGrantIntegrationTests {
 
     protected UaaClientDetails addUserGroupsRequiredClient() {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(
-            serverRunning.getBaseUrl(),
-            "admin",
-            "adminsecret"
+                serverRunning.getBaseUrl(),
+                "admin",
+                "adminsecret"
         );
         UaaClientDetails client = new UaaClientDetails(
-            generator.generate(),
-            null,
-            "openid",
-            "password",
-            null
+                generator.generate(),
+                null,
+                "openid",
+                "password",
+                null
         );
         client.setClientSecret("secret");
         Map<String, Object> additional = new HashMap();
@@ -110,7 +111,7 @@ public class PasswordGrantIntegrationTests {
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(APPLICATION_JSON));
-        headers.add("Authorization", "Bearer "+adminToken);
+        headers.add("Authorization", "Bearer " + adminToken);
         headers.setContentType(APPLICATION_JSON);
 
         HttpEntity<String> request = new HttpEntity<>(JsonUtils.writeValueAsString(client), headers);
@@ -142,7 +143,7 @@ public class PasswordGrantIntegrationTests {
         template.setErrorHandler(new ResponseErrorHandler() {
             @Override
             public boolean hasError(ClientHttpResponse response) throws IOException {
-                return response.getRawStatusCode()>=500;
+                return response.getRawStatusCode() >= 500;
             }
 
             @Override
@@ -154,7 +155,8 @@ public class PasswordGrantIntegrationTests {
     }
 
     protected static String validateClientAuthenticationMethod(ResponseEntity<String> responseEntity, boolean isNone) {
-        Map<String, Object> jsonBody = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String,Object>>() {});
+        Map<String, Object> jsonBody = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String, Object>>() {
+        });
         String accessToken = (String) jsonBody.get("access_token");
         assertThat(accessToken, is(notNullValue()));
         Map<String, Object> claims = UaaTokenUtils.getClaims(accessToken, Map.class);

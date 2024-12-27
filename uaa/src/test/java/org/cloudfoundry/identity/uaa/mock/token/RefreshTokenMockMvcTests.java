@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -71,35 +72,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
-    private String signingKey1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +
-            "xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG\n" +
-            "YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB\n" +
-            "AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS\n" +
-            "fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4\n" +
-            "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
-            "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
-            "-----END RSA PRIVATE KEY-----";
+    private final String signingKey1 = """
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H
+            xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG
+            YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB
+            AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS
+            fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4
+            nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM
+            L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=
+            -----END RSA PRIVATE KEY-----""";
 
-    private String signingKey2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
-            "UlVjXSTLiJ3r1bJXVded4JzVvNSh5Nw+7zsCAwEAAQJAYeVH8klL39nHhLfIiHF7\n" +
-            "5W63FhwktyIATrM4KBFKhXn8i29l76qVqX88LAYpeULric8fGgNoSaYVsHWIOgDu\n" +
-            "cQIhAPCJ7hu7OgqvyIGWRp2G2qjKfQVqSntG9HNSt9MhaXKjAiEArJt+PoF0AQFR\n" +
-            "R9O/XULmxR0OUYhkYZTr5eCo7kNscokCIDSv0aLrYKxEkqOn2fHZPv3n1HiiLoxQ\n" +
-            "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
-            "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
-            "-----END RSA PRIVATE KEY-----";
+    private final String signingKey2 = """
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+
+            UlVjXSTLiJ3r1bJXVded4JzVvNSh5Nw+7zsCAwEAAQJAYeVH8klL39nHhLfIiHF7
+            5W63FhwktyIATrM4KBFKhXn8i29l76qVqX88LAYpeULric8fGgNoSaYVsHWIOgDu
+            cQIhAPCJ7hu7OgqvyIGWRp2G2qjKfQVqSntG9HNSt9MhaXKjAiEArJt+PoF0AQFR
+            R9O/XULmxR0OUYhkYZTr5eCo7kNscokCIDSv0aLrYKxEkqOn2fHZPv3n1HiiLoxQ
+            H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE
+            Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=
+            -----END RSA PRIVATE KEY-----""";
 
-    private String signingKey3 = "-----BEGIN RSA PRIVATE KEY-----\n" +
-            "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
-            "DGWce+B+n23E1IXbRKHWckCY0UH7fEgbrKkCAwEAAQJAGR9aCJoH8EhRVn1prKKw\n" +
-            "Wmx5WPWDzgfC2fzXyuvBCzPZNMQqOxWT9ajr+VysuyFZbz+HGJDqpf9Jl+fcIIUJ\n" +
-            "LQIhAPTn319kLU0QzoNBSB53tPhdNbzggBpW/Xv6B52XqGwPAiEA9IAAFu7GVymQ\n" +
-            "/neMHM7/umMFGFFbdq8E2pohLyjcg8cCIQCZWfv/0k2ffQ+jFqSfF1wFTPBSRc1R\n" +
-            "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
-            "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
-            "-----END RSA PRIVATE KEY-----";
+    private final String signingKey3 = """
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ
+            DGWce+B+n23E1IXbRKHWckCY0UH7fEgbrKkCAwEAAQJAGR9aCJoH8EhRVn1prKKw
+            Wmx5WPWDzgfC2fzXyuvBCzPZNMQqOxWT9ajr+VysuyFZbz+HGJDqpf9Jl+fcIIUJ
+            LQIhAPTn319kLU0QzoNBSB53tPhdNbzggBpW/Xv6B52XqGwPAiEA9IAAFu7GVymQ
+            /neMHM7/umMFGFFbdq8E2pohLyjcg8cCIQCZWfv/0k2ffQ+jFqSfF1wFTPBSRc1R
+            MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy
+            SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if
+            -----END RSA PRIVATE KEY-----""";
 
     IdentityZone zone;
     ScimUser user;
@@ -189,18 +193,19 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
                         .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
-        String accessToken = (String)JsonUtils.readValue(tokenResponse, new TypeReference<Map<String, Object>>() {}).get("access_token");
+        String accessToken = (String) JsonUtils.readValue(tokenResponse, new TypeReference<Map<String, Object>>() {
+        }).get("access_token");
 
         mockMvc.perform(
-            post("/oauth/token")
-                    .header("Host", getZoneHostUrl(zone))
-                    .accept(MediaType.APPLICATION_JSON)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
-                    .param(REFRESH_TOKEN, accessToken)
-                    .param("client_secret", SECRET)
-                    .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
-            .andExpect(status().isUnauthorized());
+                post("/oauth/token")
+                        .header("Host", getZoneHostUrl(zone))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                        .param(REFRESH_TOKEN, accessToken)
+                        .param("client_secret", SECRET)
+                        .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -218,7 +223,8 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
-        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {
+        });
         String accessToken = (String) bodyMap.get("access_token");
 
         mockMvc.perform(
@@ -245,22 +251,23 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
                 .param("client_secret", SECRET)
                 .param("username", user.getUserName())
                 .param("password", SECRET))
-            .andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString();
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
 
-        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String, Object>>() {
+        });
         String idToken = (String) bodyMap.get("id_token");
 
         mockMvc.perform(
-            post("/oauth/token")
-                .header("Host", getZoneHostUrl(zone))
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
-                .param(REFRESH_TOKEN, idToken)
-                .param("client_secret", SECRET)
-                .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
-            .andExpect(status().isUnauthorized());
+                post("/oauth/token")
+                        .header("Host", getZoneHostUrl(zone))
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                        .param(REFRESH_TOKEN, idToken)
+                        .param("client_secret", SECRET)
+                        .param(OAuth2Utils.CLIENT_ID, client.getClientId()))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -455,8 +462,8 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         when(timeService.getCurrentTimeMillis()).thenCallRealMethod().thenReturn(notYetExpiredTimeMillis);
         MockHttpServletResponse refreshResponse = useRefreshToken(firstRefreshToken, client.getClientId(), SECRET, getZoneHostUrl(zone));
         String secondRefreshToken = JsonUtils.readValue(refreshResponse.getContentAsString(), CompositeToken.class)
-                                                .getRefreshToken()
-                                                .getValue();
+                .getRefreshToken()
+                .getValue();
         assertEquals(HttpStatus.SC_OK, refreshResponse.getStatus());
 
         long expiredTimeMillis = firstGrantMillis + refreshTokenValiditySeconds * 1000L + 1L;
@@ -505,16 +512,16 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         String refreshToken = getJwtRefreshToken(client.getClientId(), SECRET, user.getUserName(), SECRET, "localhost");
 
         mockMvc.perform(
-            post("/oauth/token")
-                    .header("Host", "localhost")
-                    .accept(MediaType.APPLICATION_JSON)
-                    .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
-                    .param(REFRESH_TOKEN, refreshToken)
-                    .param("client_secret", SECRET)
-                    .param(OAuth2Utils.CLIENT_ID, clientWithoutRefresh.getClientId()))
-            .andExpect(status().isUnauthorized())
-            .andExpect(jsonPath("$.error_description").value("Unauthorized grant type"));
+                post("/oauth/token")
+                        .header("Host", "localhost")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                        .param(REFRESH_TOKEN, refreshToken)
+                        .param("client_secret", SECRET)
+                        .param(OAuth2Utils.CLIENT_ID, clientWithoutRefresh.getClientId()))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error_description").value("Unauthorized grant type"));
     }
 
     int countTokens(String clientId, String userId) {
@@ -558,7 +565,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
                         .param(REQUEST_TOKEN_FORMAT, tokenFormat)
                         .param(OAuth2Utils.CLIENT_ID, clientId)
         )
-                .andExpect(status().isOk())
+        .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
 
         return JsonUtils.readValue(response, CompositeToken.class);

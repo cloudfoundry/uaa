@@ -40,12 +40,12 @@ public class RestrictUaaScopesClientValidator implements ClientDetailsValidator 
         if (Mode.CREATE.equals(mode) || Mode.MODIFY.equals(mode)) {
             for (String scope : clientDetails.getScope()) {
                 if (uaaScopes.isUaaScope(scope)) {
-                    throw new InvalidClientDetailsException(scope+" is a restricted scope.");
+                    throw new InvalidClientDetailsException(scope + " is a restricted scope.");
                 }
             }
             for (GrantedAuthority authority : clientDetails.getAuthorities()) {
                 if (uaaScopes.isUaaScope(authority)) {
-                    throw new InvalidClientDetailsException(authority.getAuthority()+" is a restricted authority.");
+                    throw new InvalidClientDetailsException(authority.getAuthority() + " is a restricted authority.");
                 }
             }
         }

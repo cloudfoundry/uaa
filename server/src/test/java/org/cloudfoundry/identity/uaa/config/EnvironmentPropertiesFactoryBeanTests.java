@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -50,7 +51,7 @@ public class EnvironmentPropertiesFactoryBeanTests {
 
     private Properties getProperties(String input) {
         return StringUtils.splitArrayElementsIntoProperties(
-                        StringUtils.commaDelimitedListToStringArray(input), "=");
+                StringUtils.commaDelimitedListToStringArray(input), "=");
     }
 
 }

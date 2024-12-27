@@ -47,23 +47,23 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.getRevocableTokenSignature;
 
 public class IdTokenCreator {
-    private final String ROLES_SCOPE = "roles";
+    private static final String ROLES_SCOPE = "roles";
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private TokenEndpointBuilder tokenEndpointBuilder;
+    private final TokenEndpointBuilder tokenEndpointBuilder;
     private final IdentityZoneManager identityZoneManager;
     private TimeService timeService;
-    private TokenValidityResolver tokenValidityResolver;
-    private UaaUserDatabase uaaUserDatabase;
-    private MultitenantClientServices multitenantClientServices;
-    private Set<String> excludedClaims;
+    private final TokenValidityResolver tokenValidityResolver;
+    private final UaaUserDatabase uaaUserDatabase;
+    private final MultitenantClientServices multitenantClientServices;
+    private final Set<String> excludedClaims;
 
     public IdTokenCreator(final TokenEndpointBuilder tokenEndpointBuilder,
-                          final TimeService timeService,
-                          final TokenValidityResolver tokenValidityResolver,
-                          final UaaUserDatabase uaaUserDatabase,
-                          final MultitenantClientServices multitenantClientServices,
-                          final Set<String> excludedClaims,
-                          final IdentityZoneManager identityZoneManager) {
+            final TimeService timeService,
+            final TokenValidityResolver tokenValidityResolver,
+            final UaaUserDatabase uaaUserDatabase,
+            final MultitenantClientServices multitenantClientServices,
+            final Set<String> excludedClaims,
+            final IdentityZoneManager identityZoneManager) {
         this.timeService = timeService;
         this.tokenValidityResolver = tokenValidityResolver;
         this.uaaUserDatabase = uaaUserDatabase;
@@ -74,8 +74,8 @@ public class IdTokenCreator {
     }
 
     public IdToken create(ClientDetails clientDetails,
-                          UaaUser uaaUser,
-                          UserAuthenticationData userAuthenticationData) throws IdTokenCreationException {
+            UaaUser uaaUser,
+            UserAuthenticationData userAuthenticationData) throws IdTokenCreationException {
         Date expiryDate = tokenValidityResolver.resolve(clientDetails.getClientId());
         Date issuedAt = timeService.getCurrentDate();
 
@@ -91,31 +91,31 @@ public class IdTokenCreator {
         String clientTokenSalt = (String) clientDetails.getAdditionalInformation().get(ClientConstants.TOKEN_SALT);
         String revSig = getRevocableTokenSignature(uaaUser, clientTokenSalt, clientDetails.getClientId(), clientDetails.getClientSecret());
         return new IdToken(
-            getIfNotExcluded(uaaUser.getId(), USER_ID),
-            getIfNotExcluded(newArrayList(clientDetails.getClientId()), AUD),
-            getIfNotExcluded(issuerUrl, ISS),
-            getIfNotExcluded(expiryDate, EXPIRY_IN_SECONDS),
-            getIfNotExcluded(issuedAt, IAT),
-            getIfNotExcluded(userAuthenticationData.authTime, AUTH_TIME),
-            getIfNotExcluded(userAuthenticationData.authenticationMethods, AMR),
-            getIfNotExcluded(userAuthenticationData.contextClassRef, ACR),
-            getIfNotExcluded(clientDetails.getClientId(), AZP),
-            getIfNotExcluded(givenName, GIVEN_NAME),
-            getIfNotExcluded(familyName, FAMILY_NAME),
-            getIfNotExcluded(uaaUser.getPreviousLogonTime(), PREVIOUS_LOGON_TIME),
-            getIfNotExcluded(phoneNumber, PHONE_NUMBER),
-            getIfNotExcluded(roles, ROLES),
-            getIfNotExcluded(userAttributes, USER_ATTRIBUTES),
-            getIfNotExcluded(uaaUser.isVerified(), EMAIL_VERIFIED),
-            getIfNotExcluded(userAuthenticationData.nonce, NONCE),
-            getIfNotExcluded(uaaUser.getEmail(), EMAIL),
-            getIfNotExcluded(clientDetails.getClientId(), CID),
-            getIfNotExcluded(userAuthenticationData.grantType, GRANT_TYPE),
-            getIfNotExcluded(uaaUser.getUsername(), USER_NAME),
-            getIfNotExcluded(identityZoneId, ZONE_ID),
-            getIfNotExcluded(uaaUser.getOrigin(), ORIGIN),
-            getIfNotExcluded(userAuthenticationData.jti, JTI),
-            getIfNotExcluded(revSig, REVOCATION_SIGNATURE));
+                getIfNotExcluded(uaaUser.getId(), USER_ID),
+                getIfNotExcluded(newArrayList(clientDetails.getClientId()), AUD),
+                getIfNotExcluded(issuerUrl, ISS),
+                getIfNotExcluded(expiryDate, EXPIRY_IN_SECONDS),
+                getIfNotExcluded(issuedAt, IAT),
+                getIfNotExcluded(userAuthenticationData.authTime, AUTH_TIME),
+                getIfNotExcluded(userAuthenticationData.authenticationMethods, AMR),
+                getIfNotExcluded(userAuthenticationData.contextClassRef, ACR),
+                getIfNotExcluded(clientDetails.getClientId(), AZP),
+                getIfNotExcluded(givenName, GIVEN_NAME),
+                getIfNotExcluded(familyName, FAMILY_NAME),
+                getIfNotExcluded(uaaUser.getPreviousLogonTime(), PREVIOUS_LOGON_TIME),
+                getIfNotExcluded(phoneNumber, PHONE_NUMBER),
+                getIfNotExcluded(roles, ROLES),
+                getIfNotExcluded(userAttributes, USER_ATTRIBUTES),
+                getIfNotExcluded(uaaUser.isVerified(), EMAIL_VERIFIED),
+                getIfNotExcluded(userAuthenticationData.nonce, NONCE),
+                getIfNotExcluded(uaaUser.getEmail(), EMAIL),
+                getIfNotExcluded(clientDetails.getClientId(), CID),
+                getIfNotExcluded(userAuthenticationData.grantType, GRANT_TYPE),
+                getIfNotExcluded(uaaUser.getUsername(), USER_NAME),
+                getIfNotExcluded(identityZoneId, ZONE_ID),
+                getIfNotExcluded(uaaUser.getOrigin(), ORIGIN),
+                getIfNotExcluded(userAuthenticationData.jti, JTI),
+                getIfNotExcluded(revSig, REVOCATION_SIGNATURE));
     }
 
     private String getIfScopeContainsProfile(String value, Set<String> scopes) {
@@ -144,8 +144,8 @@ public class IdTokenCreator {
         boolean requestedRoles = userAuthenticationData.scopes.contains(ROLES_SCOPE);
         Set<String> roles = null;
         if (requestedRoles
-            && userAuthenticationData.roles != null
-            && !userAuthenticationData.roles.isEmpty()) {
+                && userAuthenticationData.roles != null
+                && !userAuthenticationData.roles.isEmpty()) {
             roles = userAuthenticationData.roles;
         }
 

@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.logging;
 
 import org.springframework.lang.Nullable;
 
-public class LogSanitizerUtil {
+public final class LogSanitizerUtil {
 
     public static final String SANITIZED_FLAG = "[SANITIZED]";
 
@@ -11,11 +11,13 @@ public class LogSanitizerUtil {
 
     @Nullable
     public static String sanitize(String original) {
-        if (original == null) return null;
+        if (original == null) {
+            return null;
+        }
 
-        String cleaned = original.replace("\r","|")
-                .replace("\n","|")
-                .replace("\t","|");
+        String cleaned = original.replace("\r", "|")
+                .replace("\n", "|")
+                .replace("\t", "|");
 
         if (!cleaned.equals(original)) {
             cleaned += SANITIZED_FLAG;

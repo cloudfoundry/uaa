@@ -36,7 +36,7 @@ import java.util.Date;
 
 public class SessionResetFilter extends OncePerRequestFilter {
 
-    private static Logger logger = LoggerFactory.getLogger(SessionResetFilter.class);
+    private static final Logger logger = LoggerFactory.getLogger(SessionResetFilter.class);
 
     private final RedirectStrategy strategy;
     private final String redirectUrl;
@@ -55,16 +55,16 @@ public class SessionResetFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         SecurityContext context = SecurityContextHolder.getContext();
-        if (context!=null && context.getAuthentication()!=null && context.getAuthentication() instanceof UaaAuthentication) {
-            UaaAuthentication authentication = (UaaAuthentication)context.getAuthentication();
+        if (context != null && context.getAuthentication() != null && context.getAuthentication() instanceof UaaAuthentication) {
+            UaaAuthentication authentication = (UaaAuthentication) context.getAuthentication();
             if (authentication.isAuthenticated() &&
-                OriginKeys.UAA.equals(authentication.getPrincipal().getOrigin()) &&
-                null != request.getSession(false)) {
+                    OriginKeys.UAA.equals(authentication.getPrincipal().getOrigin()) &&
+                    null != request.getSession(false)) {
 
                 boolean redirect = false;
                 String userId = authentication.getPrincipal().getId();
                 try {
-                    logger.debug("Evaluating user-id for session reset:"+userId);
+                    logger.debug("Evaluating user-id for session reset:" + userId);
                     UaaUserPrototype user = userDatabase.retrieveUserPrototypeById(userId);
                     Date lastModified;
                     if ((lastModified = user.getPasswordLastModified()) != null) {
@@ -72,12 +72,12 @@ public class SessionResetFilter extends OncePerRequestFilter {
                         long passwordModTime = lastModified.getTime();
                         //if the password has changed after authentication time
                         if (hasPasswordChangedAfterAuthentication(lastAuthTime, passwordModTime)) {
-                            logger.debug(String.format("Resetting user session for user ID: %s Auth Time: %s Password Change Time: %s",userId, lastAuthTime, passwordModTime));
+                            logger.debug("Resetting user session for user ID: %s Auth Time: %s Password Change Time: %s".formatted(userId, lastAuthTime, passwordModTime));
                             redirect = true;
                         }
                     }
                 } catch (UsernameNotFoundException x) {
-                    logger.info("Authenticated user ["+userId+"] was not found in DB.");
+                    logger.info("Authenticated user [" + userId + "] was not found in DB.");
                     redirect = true;
                 }
                 if (redirect) {
@@ -86,7 +86,7 @@ public class SessionResetFilter extends OncePerRequestFilter {
                 }
             }
         }
-        filterChain.doFilter(request,response);
+        filterChain.doFilter(request, response);
     }
 
     protected boolean hasPasswordChangedAfterAuthentication(long lastAuthTime, long passwordModTime) {
@@ -95,7 +95,7 @@ public class SessionResetFilter extends OncePerRequestFilter {
 
     protected void handleRedirect(HttpServletRequest request, HttpServletResponse response) throws IOException {
         HttpSession session = request.getSession(false);
-        if (session!=null) {
+        if (session != null) {
             session.invalidate();
         }
         strategy.sendRedirect(request, response, getRedirectUrl());

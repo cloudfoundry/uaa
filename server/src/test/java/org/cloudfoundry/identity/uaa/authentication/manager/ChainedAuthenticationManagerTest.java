@@ -26,7 +26,7 @@ class ChainedAuthenticationManagerTest {
     private AuthenticationManager authenticateFalse;
     private AuthenticationManager authenticateThrow;
     private ChainedAuthenticationManager.AuthenticationManagerConfiguration[] managers;
-    private ChainedAuthenticationManager authMgr = new ChainedAuthenticationManager();
+    private final ChainedAuthenticationManager authMgr = new ChainedAuthenticationManager();
     private AuthenticationManager loginAuthenticationManager;
 
     private class UsernamePasswordAuthenticationManager implements AuthenticationManager {
@@ -38,7 +38,7 @@ class ChainedAuthenticationManagerTest {
             return authentication;
         }
     }
-    
+
     @BeforeEach
     void setUp() {
         success = mock(Authentication.class);
@@ -125,11 +125,11 @@ class ChainedAuthenticationManagerTest {
         verify(authenticateTrue, times(1)).authenticate(any(Authentication.class));
         verify(loginAuthenticationManager, times(1)).authenticate(any(Authentication.class));
     }
-    
+
     @Test
     void testNonStringCredential() {
         when(success.getCredentials()).thenReturn(new Object());
-        
+
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(new UsernamePasswordAuthenticationManager());
         Authentication result = authMgr.authenticate(success);

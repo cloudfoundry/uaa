@@ -35,7 +35,8 @@ public final class JsonWebKeyHelper {
     private static final int PEM_TYPE = 1;
     private static final int PEM_CONTENT = 2;
 
-    private JsonWebKeyHelper() {}
+    private JsonWebKeyHelper() {
+    }
 
     public static JsonWebKeySet<JsonWebKey> deserialize(String s) {
         if (!s.contains("\"keys\"")) {
@@ -70,7 +71,7 @@ public final class JsonWebKeyHelper {
                     p.put("kty", MAC.name());
                     return new JsonWebKeySet<>(Collections.singletonList(new JsonWebKey(p)));
                 }
-            } catch(JOSEException e) {
+            } catch (JOSEException e) {
                 throw new IllegalArgumentException(e);
             }
         }

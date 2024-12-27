@@ -67,7 +67,7 @@ public class IsSelfCheckTest {
         clientId = id;
         request = new MockHttpServletRequest();
         request.setRemoteAddr("127.0.0.1");
-        principal = new UaaPrincipal(id, "username","username@email.org", OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
+        principal = new UaaPrincipal(id, "username", "username@email.org", OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
         authentication = new UaaAuthentication(principal, Collections.<GrantedAuthority>emptyList(), new UaaAuthenticationDetails(request));
         OAuth2Request request = new OAuth2Request(emptyMap(), clientId, emptyList(), true, emptySet(), emptySet(), null, emptySet(), emptyMap());
         oAuth2AuthenticationWithUser = new OAuth2Authentication(request, authentication);
@@ -75,7 +75,6 @@ public class IsSelfCheckTest {
         tokenProvisioning = Mockito.mock(RevocableTokenProvisioning.class);
         bean = new IsSelfCheck(tokenProvisioning);
     }
-
 
 
     @After
@@ -86,7 +85,7 @@ public class IsSelfCheckTest {
     @Test
     public void testSelfCheckLastUaaAuth() {
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        request.setPathInfo("/Users/"+id);
+        request.setPathInfo("/Users/" + id);
         assertTrue(bean.isUserSelf(request, 1));
     }
 
@@ -94,7 +93,7 @@ public class IsSelfCheckTest {
     public void testSelfCheckSecondUaaAuth() {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         request.setPathInfo("/Users/" + id + "/verify");
-        assertTrue(bean.isUserSelf(request,1));
+        assertTrue(bean.isUserSelf(request, 1));
     }
 
     @Test
@@ -111,7 +110,7 @@ public class IsSelfCheckTest {
         request.setPathInfo("/Users/" + id + "/verify");
         assertTrue(bean.isUserSelf(request, 1));
 
-        request.setPathInfo("/Users/"+id);
+        request.setPathInfo("/Users/" + id);
         assertTrue(bean.isUserSelf(request, 1));
     }
 
@@ -129,7 +128,7 @@ public class IsSelfCheckTest {
         request.setPathInfo("/Users/" + id + "/verify");
         assertFalse(bean.isUserSelf(request, 1));
 
-        request.setPathInfo("/Users/"+id);
+        request.setPathInfo("/Users/" + id);
         assertFalse(bean.isUserSelf(request, 1));
     }
 
@@ -145,7 +144,6 @@ public class IsSelfCheckTest {
         request.setPathInfo("/oauth/token/revoke/user/" + "other-user-id");
         assertFalse(bean.isUserTokenRevocationForSelf(request, 4));
     }
-
 
 
     @Test
@@ -164,10 +162,10 @@ public class IsSelfCheckTest {
     @Test
     public void ensure_revoke_self_detects_client_vs_user() {
         RevocableToken revocableUserToken = new RevocableToken()
-            .setTokenId("token-id")
-            .setUserId(id)
-            .setClientId(clientId);
-        request.setPathInfo("/oauth/token/revoke/"+revocableUserToken.getTokenId());
+                .setTokenId("token-id")
+                .setUserId(id)
+                .setClientId(clientId);
+        request.setPathInfo("/oauth/token/revoke/" + revocableUserToken.getTokenId());
         when(tokenProvisioning.retrieve(eq(revocableUserToken.getTokenId()), eq(IdentityZoneHolder.get().getId()))).thenReturn(revocableUserToken);
 
         //test with user authentication

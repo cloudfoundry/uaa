@@ -14,35 +14,30 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
 
 class IdentityZoneTest {
 
     @Test
     void getUaa() {
-
         Calendar calendar = Calendar.getInstance();
         calendar.set(2000, Calendar.JANUARY, 1, 0, 0, 0);
         calendar.set(Calendar.MILLISECOND, 0);
         Date expectedDate = calendar.getTime();
 
         IdentityZone actual = IdentityZone.getUaa();
+        assertThat(actual.getId()).isEqualTo("uaa");
+        assertThat(actual.getSubdomain()).isEmpty();
+        assertThat(actual.getName()).isEqualTo("uaa");
+        assertThat(actual.getVersion()).isZero();
+        assertThat(actual.getDescription()).isEqualTo("The system zone for backwards compatibility");
+        assertThat(actual.isActive()).isTrue();
+        assertThat(actual.getCreated()).isEqualTo(expectedDate);
+        assertThat(actual.getLastModified()).isEqualTo(expectedDate);
 
-        assertThat(actual.getId(), is("uaa"));
-        assertThat(actual.getSubdomain(), is(""));
-        assertThat(actual.getName(), is("uaa"));
-        assertThat(actual.getVersion(), is(0));
-        assertThat(actual.getDescription(), is("The system zone for backwards compatibility"));
-        assertThat(actual.isActive(), is(true));
-        assertThat(actual.getCreated(), is(expectedDate));
-        assertThat(actual.getLastModified(), is(expectedDate));
-
-        // TODO: Validate that the config is the result of `new IdentityZoneConfiguration()`
-        // Currently this is not possible because not all objects have a `.equals()` method
-//        assertThat(actual.getConfig(), is(new IdentityZoneConfiguration()));
+        // Validate that the config is the result of `new IdentityZoneConfiguration()`
+        assertThat(actual.getConfig()).usingRecursiveComparison().isEqualTo(new IdentityZoneConfiguration());
     }
 
     private static class IsUaaArgumentsSource implements ArgumentsProvider {
@@ -56,23 +51,23 @@ class IdentityZoneTest {
             uaa.setId("uaa");
 
             return Stream.of(
-                    Arguments.of(IdentityZone.getUaa(), true),
-                    Arguments.of(uaa, true),
-                    Arguments.of(new IdentityZone(), false),
-                    Arguments.of(notUaa, false)
+                    Arguments.of(IdentityZone.getUaa(), true, "true:getUaa"),
+                    Arguments.of(uaa, true, "true:id=uaa"),
+                    Arguments.of(new IdentityZone(), false, "false:new"),
+                    Arguments.of(notUaa, false, "false:id=something")
             );
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {2}")
     @ArgumentsSource(IsUaaArgumentsSource.class)
-    void isUaa_usesOnlyId(IdentityZone identityZone, boolean isUaa) {
-        assertThat(identityZone.isUaa(), is(isUaa));
+    void isUaa_usesOnlyId(IdentityZone identityZone, boolean isUaa, String ignoredMessage) {
+        assertThat(identityZone.isUaa()).isEqualTo(isUaa);
     }
 
     @Test
     void getUaaZoneId() {
-        assertThat(IdentityZone.getUaaZoneId(), is("uaa"));
+        assertThat(IdentityZone.getUaaZoneId()).isEqualTo("uaa");
     }
 
     private static class EqualsArgumentsSource implements ArgumentsProvider {
@@ -90,18 +85,21 @@ class IdentityZoneTest {
             zone2.setSubdomain("subdomain");
 
             return Stream.of(
-                    Arguments.of(new IdentityZone(), new IdentityZone(), true),
-                    Arguments.of(IdentityZone.getUaa(), zoneWithIdUaa, true),
-                    Arguments.of(zone1, zone2, false)
+                    Arguments.of(new IdentityZone(), new IdentityZone(), true, "new=new"),
+                    Arguments.of(IdentityZone.getUaa(), zoneWithIdUaa, true, "uaa=uaa"),
+                    Arguments.of(zone1, zone1, true, "zone1=zone1"),
+                    Arguments.of(zone1, zone2, false, "zone1!=zone2"),
+                    Arguments.of(zone2, zone1, false, "zone2!=zone1"),
+                    Arguments.of(zone1, null, false, "zone1=null"),
+                    Arguments.of(zone1, "blah", false, "zone1=string")
             );
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {3}")
     @ArgumentsSource(EqualsArgumentsSource.class)
-    void equals_usesOnlyId(IdentityZone zone1, IdentityZone zone2, boolean areEqual) {
-        assertThat(zone1.equals(zone2), is(areEqual));
-        assertThat(zone2.equals(zone1), is(areEqual));
+    void equals_usesOnlyId(IdentityZone zone1, Object zone2, boolean areEqual, String ignoredMessage) {
+        assertThat(zone1.equals(zone2)).isEqualTo(areEqual);
     }
 
     private static class HashCodeArgumentsSource implements ArgumentsProvider {
@@ -111,34 +109,40 @@ class IdentityZoneTest {
             IdentityZone zone1 = new IdentityZone();
             zone1.setSubdomain("subdomain");
             zone1.setId("asdf");
+            IdentityZone nullIdZone = new IdentityZone();
 
+            final int prime = 59;
+            final int nullVal = prime + 43;
             return Stream.of(
-                    Arguments.of(zone1, 31 + "asdf".hashCode()),
-                    Arguments.of(IdentityZone.getUaa(), 31 + "uaa".hashCode())
+                    Arguments.of(zone1, prime + "asdf".hashCode(), "asdf"),
+                    Arguments.of(zone1, prime + "asdf".hashCode(), "asdf"),
+                    Arguments.of(IdentityZone.getUaa(), prime + "uaa".hashCode(), "uaa"),
+                    Arguments.of(IdentityZone.getUaa(), prime + "uaa".hashCode(), "uaa"),
+                    Arguments.of(nullIdZone, nullVal, "null id"),
+                    Arguments.of(nullIdZone, nullVal, "null id")
             );
         }
     }
 
-    @ParameterizedTest
+    @ParameterizedTest(name = "[{index}] {2}")
     @ArgumentsSource(HashCodeArgumentsSource.class)
-    void hashCode_usesOnlyId(IdentityZone zone, int expectedHashCode) {
-        assertThat(zone.hashCode(), is(expectedHashCode));
+    void hashCode_usesOnlyId(IdentityZone zone, int expectedHashCode, String ignoredMessage) {
+        assertThat(zone.hashCode()).isEqualTo(expectedHashCode);
     }
 
     @Test
     void deserialize() {
         final String sampleIdentityZoneJson = getResourceAsString(getClass(), "SampleIdentityZone.json");
         IdentityZone sampleIdentityZone = JsonUtils.readValue(sampleIdentityZoneJson, IdentityZone.class);
-        assertEquals("f7758816-ab47-48d9-9d24-25b10b92d4cc", sampleIdentityZone.getId());
-        assertEquals("demo", sampleIdentityZone.getSubdomain());
-        assertEquals(List.of("openid", "password.write", "uaa.user", "approvals.me",
-                            "profile", "roles", "user_attributes", "uaa.offline_token"),
-                            sampleIdentityZone.getConfig().getUserConfig().getDefaultGroups());
-        assertEquals(Set.of("openid", "password.write", "uaa.user", "approvals.me",
-                            "profile", "roles", "user_attributes", "uaa.offline_token",
-                            "scim.me", "cloud_controller.user"),
-                            sampleIdentityZone.getConfig().getUserConfig().resultingAllowedGroups());
-        assertEquals(1000, sampleIdentityZone.getConfig().getUserConfig().getMaxUsers());
-        assertEquals(true, sampleIdentityZone.getConfig().getUserConfig().isCheckOriginEnabled());
+        assertThat(sampleIdentityZone).isNotNull()
+                .returns("f7758816-ab47-48d9-9d24-25b10b92d4cc", IdentityZone::getId)
+                .returns("demo", IdentityZone::getSubdomain);
+        assertThat(sampleIdentityZone.getConfig().getUserConfig().getDefaultGroups()).isEqualTo(List.of("openid", "password.write", "uaa.user", "approvals.me",
+                "profile", "roles", "user_attributes", "uaa.offline_token"));
+        assertThat(sampleIdentityZone.getConfig().getUserConfig().resultingAllowedGroups()).isEqualTo(Set.of("openid", "password.write", "uaa.user", "approvals.me",
+                "profile", "roles", "user_attributes", "uaa.offline_token",
+                "scim.me", "cloud_controller.user"));
+        assertThat(sampleIdentityZone.getConfig().getUserConfig().getMaxUsers()).isEqualTo(1000);
+        assertThat(sampleIdentityZone.getConfig().getUserConfig().isCheckOriginEnabled()).isTrue();
     }
 }

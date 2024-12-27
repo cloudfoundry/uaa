@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -47,14 +48,14 @@ import java.util.Map;
  */
 public class AutologinAuthenticationManager implements AuthenticationManager {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private ExpiringCodeStore codeStore;
     private MultitenantClientServices clientDetailsService;
     private UaaUserDatabase userDatabase;
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
-        this.codeStore= expiringCodeStore;
+        this.codeStore = expiringCodeStore;
     }
 
     public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
@@ -70,7 +71,6 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
     }
 
 
-
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 
@@ -83,14 +83,15 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
         String code = info.get("code");
 
         ExpiringCode expiringCode = doRetrieveCode(code);
-        Map<String,String> codeData = null;
+        Map<String, String> codeData = null;
         try {
             if (expiringCode == null) {
                 logger.debug("Autologin code has expired");
                 throw new InvalidCodeException("expired_code", "Expired code", 422);
             }
-            codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
-            if(!isAutologinCode(expiringCode.getIntent(), codeData.get("action"))) {
+            codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
+            });
+            if (!isAutologinCode(expiringCode.getIntent(), codeData.get("action"))) {
                 logger.debug("Code is not meant for autologin");
                 throw new InvalidCodeException("invalid_code", "Not an autologin code", 422);
             }

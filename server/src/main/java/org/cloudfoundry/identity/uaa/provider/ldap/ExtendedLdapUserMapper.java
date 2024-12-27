@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -39,16 +40,16 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     private String givenNameAttributeName;
     private String familyNameAttributeName;
     private String phoneNumberAttributeName;
-    private String mailSubstitute = null;
-    private boolean mailSubstituteOverrides = false;
-    private String emailVerifiedAttributeName = null;
+    private String mailSubstitute;
+    private boolean mailSubstituteOverrides;
+    private String emailVerifiedAttributeName;
 
     @Override
     public UserDetails mapUserFromContext(DirContextOperations ctx, String username, Collection<? extends GrantedAuthority> authorities) {
         LdapUserDetails ldapUserDetails = (LdapUserDetails) super.mapUserFromContext(ctx, username, authorities);
 
         DirContextAdapter adapter = (DirContextAdapter) ctx;
-        Map<String, String[]> record = new HashMap<String, String[]>();
+        Map<String, String[]> record = new HashMap<>();
         List<String> attributeNames = Collections.list(adapter.getAttributes().getIDs());
         for (String attributeName : attributeNames) {
             try {
@@ -58,8 +59,8 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
                     if (objValues[i] != null) {
                         if (objValues[i].getClass().isAssignableFrom(String.class)) {
                             values[i] = (String) objValues[i];
-                        } else if (objValues[i] instanceof byte[]) {
-                            values[i] = new String((byte[]) objValues[i]);
+                        } else if (objValues[i] instanceof byte[] bytes) {
+                            values[i] = new String(bytes);
                         } else {
                             values[i] = objValues[i].toString();
                         }

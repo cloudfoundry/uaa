@@ -50,7 +50,7 @@ public class LinkedMaskingMultiValueMapTests {
         map.add("key", "value1");
         map.add("key", "value2");
         assertEquals(1, map.size());
-        List<String> expected = new ArrayList<String>(2);
+        List<String> expected = new ArrayList<>(2);
         expected.add("value1");
         expected.add("value2");
         assertEquals(expected, map.get("key"));
@@ -81,7 +81,7 @@ public class LinkedMaskingMultiValueMapTests {
 
     @Test
     public void getFirst() {
-        List<String> values = new ArrayList<String>(2);
+        List<String> values = new ArrayList<>(2);
         values.add("value1");
         values.add("value2");
         map.put("key", values);
@@ -101,11 +101,11 @@ public class LinkedMaskingMultiValueMapTests {
     public void equals() {
         map.set("key1", "value1");
         assertEquals(map, map);
-        MultiValueMap<String, String> o1 = new LinkedMaskingMultiValueMap<String, String>();
+        MultiValueMap<String, String> o1 = new LinkedMaskingMultiValueMap<>();
         o1.set("key1", "value1");
         assertEquals(map, o1);
         assertEquals(o1, map);
-        Map<String, List<String>> o2 = new HashMap<String, List<String>>();
+        Map<String, List<String>> o2 = new HashMap<>();
         o2.put("key1", Collections.singletonList("value1"));
         assertEquals(map, o2);
         assertEquals(o2, map);
@@ -136,10 +136,10 @@ public class LinkedMaskingMultiValueMapTests {
 
     @Test
     public void doNotPrintPasswordWhenArrayConstructorIsUsed() {
-        for (LinkedMaskingMultiValueMap<String,Object> map :
+        for (LinkedMaskingMultiValueMap<String, Object> map :
             Arrays.asList(
                 new LinkedMaskingMultiValueMap<>("password", "code"),
-                new LinkedMaskingMultiValueMap<>(new String[] {"password", "code"}))) {
+                new LinkedMaskingMultiValueMap<>(new String[]{"password", "code"}))) {
             map.add("password", "password-value");
             map.add("code", "code-value");
             String s = map.toString();
@@ -166,8 +166,8 @@ public class LinkedMaskingMultiValueMapTests {
     public void testCyclicKeyHash() {
         objectMap.add(objectMap, "value1");
         objectMap.add(objectMap, "value2");
-        LinkedMaskingMultiValueMap<Object, Object> objectMap2 = new LinkedMaskingMultiValueMap<Object, Object>(
-                        "password");
+        LinkedMaskingMultiValueMap<Object, Object> objectMap2 = new LinkedMaskingMultiValueMap<>(
+                "password");
         objectMap2.add(objectMap2, "value1");
         objectMap2.add(objectMap2, "value2");
         int hash1 = objectMap.hashCode();
@@ -180,8 +180,8 @@ public class LinkedMaskingMultiValueMapTests {
         objectMap.add("key1", "value1");
         objectMap.add("key1", objectMap);
 
-        LinkedMaskingMultiValueMap<Object, Object> objectMap2 = new LinkedMaskingMultiValueMap<Object, Object>(
-                        "password");
+        LinkedMaskingMultiValueMap<Object, Object> objectMap2 = new LinkedMaskingMultiValueMap<>(
+                "password");
         objectMap2.add("key1", "value1");
         objectMap2.add("key1", objectMap2);
 

@@ -13,9 +13,9 @@ import static org.mockito.Mockito.mock;
  */
 public class ExpressionHandlerBeanDefinitionParserTest {
 
-  @Test
-  public void getBeanClass() {
-    ExpressionHandlerBeanDefinitionParser expressionHandlerBeanDefinitionParser = new ExpressionHandlerBeanDefinitionParser();
-    assertEquals(OAuth2MethodSecurityExpressionHandler.class, expressionHandlerBeanDefinitionParser.getBeanClass(mock(Element.class)));
-  }
+    @Test
+    public void getBeanClass() {
+        ExpressionHandlerBeanDefinitionParser expressionHandlerBeanDefinitionParser = new ExpressionHandlerBeanDefinitionParser();
+        assertEquals(OAuth2MethodSecurityExpressionHandler.class, expressionHandlerBeanDefinitionParser.getBeanClass(mock(Element.class)));
+    }
 }

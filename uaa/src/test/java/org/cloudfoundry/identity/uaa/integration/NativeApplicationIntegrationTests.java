@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -40,7 +41,7 @@ public class NativeApplicationIntegrationTests {
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
@@ -60,14 +61,14 @@ public class NativeApplicationIntegrationTests {
     @Test
     public void testHappyDay() {
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
         formData.add("username", resource.getUsername());
         formData.add("password", resource.getPassword());
         formData.add("scope", "cloud_controller.read");
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -78,7 +79,7 @@ public class NativeApplicationIntegrationTests {
      */
     @Test
     public void testSecretRequired() {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
         formData.add("username", resource.getUsername());
         formData.add("password", resource.getPassword());

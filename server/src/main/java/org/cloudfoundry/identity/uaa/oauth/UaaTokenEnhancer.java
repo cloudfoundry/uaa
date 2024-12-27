@@ -9,7 +9,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXTERNAL_
 
 public interface UaaTokenEnhancer {
 
-    Map<String,String> getExternalAttributes(OAuth2Authentication authentication);
+    Map<String, String> getExternalAttributes(OAuth2Authentication authentication);
 
     default Map<String, Object> enhance(Map<String, Object> claims, OAuth2Authentication authentication) {
         Map<String, Object> result = new HashMap<>();

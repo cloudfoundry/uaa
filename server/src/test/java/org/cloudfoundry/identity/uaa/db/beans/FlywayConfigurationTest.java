@@ -18,50 +18,50 @@ import org.springframework.mock.env.MockEnvironment;
 @ExtendWith(MockitoExtension.class)
 class FlywayConfigurationTest {
 
-  @Mock
-  private ConditionContext mockConditionContext;
+    @Mock
+    private ConditionContext mockConditionContext;
 
-  private MockEnvironment mockEnvironment;
+    private MockEnvironment mockEnvironment;
 
-  private ConfiguredWithMigrations configuredWithMigrations;
+    private ConfiguredWithMigrations configuredWithMigrations;
 
-  private ConfiguredWithoutMigrations configuredWithoutMigrations;
+    private ConfiguredWithoutMigrations configuredWithoutMigrations;
 
-  @BeforeEach
-  void setUp() {
-    mockEnvironment = new MockEnvironment();
-    when(mockConditionContext.getEnvironment()).thenReturn(mockEnvironment);
-    configuredWithMigrations = new ConfiguredWithMigrations();
-    configuredWithoutMigrations = new ConfiguredWithoutMigrations();
-  }
+    @BeforeEach
+    void setUp() {
+        mockEnvironment = new MockEnvironment();
+        when(mockConditionContext.getEnvironment()).thenReturn(mockEnvironment);
+        configuredWithMigrations = new ConfiguredWithMigrations();
+        configuredWithoutMigrations = new ConfiguredWithoutMigrations();
+    }
 
-  @Test
-  void flywayConfiguration_RunsMigrations_WhenTheConfigurationIsNotSet() {
-    assertTrue(configuredWithMigrations.matches(mockConditionContext, null));
-    assertFalse(configuredWithoutMigrations.matches(mockConditionContext, null));
-  }
+    @Test
+    void flywayConfiguration_RunsMigrations_WhenTheConfigurationIsNotSet() {
+        assertTrue(configuredWithMigrations.matches(mockConditionContext, null));
+        assertFalse(configuredWithoutMigrations.matches(mockConditionContext, null));
+    }
 
-  @Test
-  void flywayConfiguration_RunsMigrations_WhenTheyAreEnabled() {
-    mockEnvironment.setProperty("uaa.migrationsEnabled", "true");
+    @Test
+    void flywayConfiguration_RunsMigrations_WhenTheyAreEnabled() {
+        mockEnvironment.setProperty("uaa.migrationsEnabled", "true");
 
-    assertTrue(configuredWithMigrations.matches(mockConditionContext, null));
-    assertFalse(configuredWithoutMigrations.matches(mockConditionContext, null));
-  }
+        assertTrue(configuredWithMigrations.matches(mockConditionContext, null));
+        assertFalse(configuredWithoutMigrations.matches(mockConditionContext, null));
+    }
 
-  @Test
-  void flywayConfiguration_RunsMigrations_WhenTheyAreDisabled() {
-    mockEnvironment.setProperty("uaa.migrationsEnabled", "false");
+    @Test
+    void flywayConfiguration_RunsMigrations_WhenTheyAreDisabled() {
+        mockEnvironment.setProperty("uaa.migrationsEnabled", "false");
 
-    assertFalse(configuredWithMigrations.matches(mockConditionContext, null));
-    assertTrue(configuredWithoutMigrations.matches(mockConditionContext, null));
-  }
+        assertFalse(configuredWithMigrations.matches(mockConditionContext, null));
+        assertTrue(configuredWithoutMigrations.matches(mockConditionContext, null));
+    }
 
-  @Test
-  void flywayConfiguration_RunsMigration_WhenInvalidConfiguration() {
-    mockEnvironment.setProperty("uaa.migrationsEnabled", "bogus");
+    @Test
+    void flywayConfiguration_RunsMigration_WhenInvalidConfiguration() {
+        mockEnvironment.setProperty("uaa.migrationsEnabled", "bogus");
 
-    assertTrue(configuredWithMigrations.matches(mockConditionContext, null));
-    assertFalse(configuredWithoutMigrations.matches(mockConditionContext, null));
-  }
+        assertTrue(configuredWithMigrations.matches(mockConditionContext, null));
+        assertFalse(configuredWithoutMigrations.matches(mockConditionContext, null));
+    }
 }

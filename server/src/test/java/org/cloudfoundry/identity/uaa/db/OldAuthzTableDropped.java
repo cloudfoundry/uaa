@@ -23,7 +23,7 @@ class OldAuthzTableDropped {
             ResultSet rs = meta.getTables(connection.getCatalog(), null, null, null);
             String tableName = "authz_approvals_old";
             while (rs.next() && !foundTable) {
-                foundTable = (tableName.equalsIgnoreCase(rs.getString("TABLE_NAME")));
+                foundTable = tableName.equalsIgnoreCase(rs.getString("TABLE_NAME"));
             }
             rs.close();
             assertFalse(foundTable, "Table " + tableName + " found!");

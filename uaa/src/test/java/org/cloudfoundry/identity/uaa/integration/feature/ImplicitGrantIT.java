@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -60,7 +61,8 @@ public class ImplicitGrantIT {
     @Autowired
     TestAccounts testAccounts;
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -83,11 +85,11 @@ public class ImplicitGrantIT {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
 
@@ -123,17 +125,17 @@ public class ImplicitGrantIT {
 
         String[] scopes = UriUtils.decode(params.getFirst("scope"), "UTF-8").split(" ");
         Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
-            "scim.userids",
-            "password.write",
-            "cloud_controller.write",
-            "openid",
-            "cloud_controller.read",
-            "uaa.user"
+                "scim.userids",
+                "password.write",
+                "cloud_controller.write",
+                "openid",
+                "cloud_controller.read",
+                "uaa.user"
         ));
 
-        Jwt access_token = JwtHelper.decode(params.getFirst("access_token"));
+        Jwt accessToken = JwtHelper.decode(params.getFirst("access_token"));
 
-        Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
+        Map<String, Object> claims = JsonUtils.readValue(accessToken.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
         Assert.assertThat(claims.get("jti"), is(params.getFirst("jti")));

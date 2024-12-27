@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -33,11 +34,11 @@ import static org.junit.Assert.assertNotNull;
  */
 public class ForwardAwareInternalResourceViewResolverTests {
 
-    private ForwardAwareInternalResourceViewResolver resolver = new ForwardAwareInternalResourceViewResolver();
+    private final ForwardAwareInternalResourceViewResolver resolver = new ForwardAwareInternalResourceViewResolver();
 
-    private MockHttpServletRequest request = new MockHttpServletRequest();
+    private final MockHttpServletRequest request = new MockHttpServletRequest();
 
-    private GenericApplicationContext context = new GenericApplicationContext();
+    private final GenericApplicationContext context = new GenericApplicationContext();
 
     @Before
     public void start() {

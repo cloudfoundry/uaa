@@ -15,6 +15,7 @@ import static org.junit.Assert.assertNotNull;
 
 public class EncryptionServiceTest {
     private EncryptionService service;
+
     @BeforeClass
     public static void key() {
         Security.setProperty("crypto.policy", "unlimited");

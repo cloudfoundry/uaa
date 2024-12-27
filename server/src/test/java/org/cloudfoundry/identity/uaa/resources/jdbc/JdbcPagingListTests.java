@@ -1,10 +1,13 @@
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.cloudfoundry.identity.uaa.extensions.profiles.DisabledIfProfile;
+import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.TransientDataAccessResourceException;
 import org.springframework.jdbc.BadSqlGrammarException;
 import org.springframework.jdbc.core.ColumnMapRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -16,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,8 +36,8 @@ class JdbcPagingListTests {
 
     @BeforeEach
     public void initJdbcPagingListTests(@Autowired DataSource dataSource) {
-
         jdbcTemplate = new JdbcTemplate(dataSource);
+        jdbcTemplate.execute("drop table if exists foo");
         jdbcTemplate.execute("create table foo (id integer primary key, name varchar(10) not null)");
         jdbcTemplate.execute("insert into foo (id, name) values (0, 'foo')");
         jdbcTemplate.execute("insert into foo (id, name) values (1, 'bar')");
@@ -51,17 +55,17 @@ class JdbcPagingListTests {
 
     @Test
     void iterationOverPages() {
-        list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
                 Collections.<String, Object>singletonMap("id", 0), new ColumnMapRowMapper(), 3);
         assertEquals(6, list.size());
-        Set<String> names = new HashSet<String>();
+        Set<String> names = new HashSet<>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
             names.add(name);
         }
         assertEquals(6, names.size());
-        names = new HashSet<String>();
+        names = new HashSet<>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
@@ -72,11 +76,11 @@ class JdbcPagingListTests {
 
     @Test
     void iterationWithDeletedElements() {
-        list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo where id>=:id",
                 Collections.<String, Object>singletonMap("id", 0), new ColumnMapRowMapper(), 3);
         jdbcTemplate.update("DELETE from foo where id>3");
         assertEquals(6, list.size());
-        Set<String> names = new HashSet<String>();
+        Set<String> names = new HashSet<>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
@@ -87,10 +91,10 @@ class JdbcPagingListTests {
 
     @Test
     void orderBy() {
-        list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo order by id asc",
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo order by id asc",
                 Collections.<String, Object>singletonMap("id", 0), new ColumnMapRowMapper(), 3);
         assertEquals(6, list.size());
-        Set<String> names = new HashSet<String>();
+        Set<String> names = new HashSet<>();
         for (Map<String, Object> map : list) {
             String name = (String) map.get("name");
             assertNotNull(name);
@@ -101,7 +105,7 @@ class JdbcPagingListTests {
 
     @Test
     void jumpOverPages() {
-        list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                 new ColumnMapRowMapper(), 3);
         Map<String, Object> map = list.get(3);
         assertNotNull(map.get("name"));
@@ -109,15 +113,19 @@ class JdbcPagingListTests {
 
     @Test
     void selectColumnsFull() {
-        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT Foo.id, FOO.NAME from foo", new ColumnMapRowMapper(), 3);
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT foo.id, foo.name from foo", new ColumnMapRowMapper(), 3);
         Map<String, Object> map = list.get(3);
         assertNotNull(map.get("name"));
         assertEquals("zab", map.get("name"));
     }
 
+    /**
+     * HSQL-db has a different ordering from postgres and mysql
+     */
     @Test
-    void selectMoreColumnsWithOrderBy() {
-        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT Foo.id, FOO.NAME FrOm foo wHere foo.name = 'FoO' OR foo.name = 'foo' OrDeR By foo.name", new ColumnMapRowMapper(), 3);
+    @DisabledIfProfile({"postgresql", "mysql"})
+    void selectMoreColumnsWithOrderBy_Hsql() {
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT foo.id, foo.NAME FrOm foo wHere foo.name = 'FoO' OR foo.name = 'foo' OrDeR By foo.name", new ColumnMapRowMapper(), 3);
         Map<String, Object> map = list.get(0);
         assertNotNull(map.get("name"));
         assertEquals("FoO", map.get("name"));
@@ -127,17 +135,33 @@ class JdbcPagingListTests {
     }
 
     @Test
-    void testWrongStatement() {
-        assertThrows(BadSqlGrammarException.class,
-            () -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "Insert ('6', 'sab') from foo", new ColumnMapRowMapper(), 3));
+    @EnabledIfProfile({"postgresql", "mysql"})
+    void selectMoreColumnsWithOrderBy_PostgresMysql() {
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT foo.id, foo.NAME FrOm foo wHere foo.name = 'FoO' OR foo.name = 'foo' OrDeR By foo.name", new ColumnMapRowMapper(), 3);
+        Map<String, Object> map = list.get(0);
+        assertNotNull(map.get("name"));
+        assertEquals("foo", map.get("name"));
+        map = list.get(1);
+        assertNotNull(map.get("name"));
+        assertEquals("FoO", map.get("name"));
+    }
 
-        assertThrows(BadSqlGrammarException.class,
-            () -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * ", new ColumnMapRowMapper(), 3));
+    @Test
+    void testWrongStatement() {
+        assertThatThrownBy
+                (() -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "Insert ('6', 'sab') from foo", new ColumnMapRowMapper(), 3))
+                .isInstanceOf(BadSqlGrammarException.class);
+
+        assertThatThrownBy(() -> new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * ", new ColumnMapRowMapper(), 3))
+                .isInstanceOfAny(
+                        BadSqlGrammarException.class, // hsqldb, postgres
+                        TransientDataAccessResourceException.class // mysql
+                );
     }
 
     @Test
     void iterationOverSubList() {
-        list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                 new ColumnMapRowMapper(), 3);
         list = list.subList(1, 4);
         assertEquals(3, list.size());
@@ -151,7 +175,7 @@ class JdbcPagingListTests {
 
     @Test
     void iterationOverSubListWithSameSize() {
-        list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                 new ColumnMapRowMapper(), 3);
         list = list.subList(0, 5);
         assertEquals(5, list.size());
@@ -165,14 +189,14 @@ class JdbcPagingListTests {
 
     @Test
     void subListExtendsBeyondSize() {
-        list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                 new ColumnMapRowMapper(), 3);
         assertThrows(IndexOutOfBoundsException.class, () -> list.subList(1, 40));
     }
 
     @Test
     void subListFromDeletedElements() {
-        list = new JdbcPagingList<Map<String, Object>>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
+        list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT * from foo",
                 new ColumnMapRowMapper(), 3);
         jdbcTemplate.update("DELETE from foo where id>3");
         list = list.subList(1, list.size());

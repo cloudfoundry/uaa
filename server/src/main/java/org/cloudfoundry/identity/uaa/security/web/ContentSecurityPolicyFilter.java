@@ -20,7 +20,7 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
     private final String cspHeader;
 
     public ContentSecurityPolicyFilter(List<String> allowedScriptSrc) {
-        this.allowedScriptSrc = unmodifiableSet(new HashSet<String>(allowedScriptSrc));
+        this.allowedScriptSrc = unmodifiableSet(new HashSet<>(allowedScriptSrc));
         this.cspHeader = cspHeaderValue();
     }
 
@@ -38,6 +38,7 @@ public class ContentSecurityPolicyFilter extends OncePerRequestFilter {
         final String requestPath = UaaUrlUtils.getRequestPath(request);
         final List<String> pathsWithHtmlInlineScripts = Arrays.asList(
                 "/saml/",
+                "/saml2/",
                 "/login_implicit");
 
         return pathsWithHtmlInlineScripts.stream()

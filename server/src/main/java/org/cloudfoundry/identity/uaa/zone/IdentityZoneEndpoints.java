@@ -76,11 +76,11 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private ApplicationEventPublisher publisher;
 
     public IdentityZoneEndpoints(final IdentityZoneProvisioning zoneDao,
-                                 final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning idpDao,
-                                 final IdentityZoneEndpointClientRegistrationService clientRegistrationService,
-                                 final ScimGroupProvisioning groupProvisioning,
-                                 final IdentityZoneValidator validator,
-                                 final MessageSource messageSource) {
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning idpDao,
+            final IdentityZoneEndpointClientRegistrationService clientRegistrationService,
+            final ScimGroupProvisioning groupProvisioning,
+            final IdentityZoneValidator validator,
+            final MessageSource messageSource) {
         super();
         this.zoneDao = zoneDao;
         this.idpDao = idpDao;
@@ -99,7 +99,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "{id}", method = GET)
     public IdentityZone getIdentityZone(@PathVariable String id) {
         List<IdentityZone> result = filterForCurrentZone(Collections.singletonList(zoneDao.retrieveIgnoreActiveFlag(id)));
-        if (result.size() == 0) {
+        if (result.isEmpty()) {
             throw new ZoneDoesNotExistsException("Zone does not exist or is not accessible.");
         }
         return removeKeys(result.get(0));
@@ -194,8 +194,8 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - creating id[{}] subdomain[{}]",
-                UaaStringUtils.getCleanedUserControlString(body.getId()),
-                UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
+                    UaaStringUtils.getCleanedUserControlString(body.getId()),
+                    UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
             );
             IdentityZone created = zoneDao.create(body);
             logger.debug("Zone - created id " + ID_SUBDOMAIN_LOGGING, created.getId(), created.getSubdomain());
@@ -221,9 +221,9 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         UserConfig userConfig = zone.getConfig().getUserConfig();
         if (userConfig != null) {
             List<String> defaultGroups = ofNullable(userConfig.getDefaultGroups()).orElse(Collections.emptyList());
-            logger.debug(String.format("About to create default groups count: %s for subdomain: %s", defaultGroups.size(), zone.getSubdomain()));
+            logger.debug("About to create default groups count: %s for subdomain: %s".formatted(defaultGroups.size(), zone.getSubdomain()));
             for (String group : defaultGroups) {
-                logger.debug(String.format("Creating zone default group: %s for subdomain: %s", group, zone.getSubdomain()));
+                logger.debug("Creating zone default group: %s for subdomain: %s".formatted(group, zone.getSubdomain()));
                 groupProvisioning.createOrGet(
                         new ScimGroup(
                                 null,
@@ -271,14 +271,14 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             if (!userConfig.allGroupsAllowed()) {
                 Set<String> allowedGroups = userConfig.resultingAllowedGroups();
                 // check for groups which would be not allowed after the update
-                if(groupProvisioning.retrieveAll(body.getId()).stream().anyMatch(g -> !allowedGroups.contains(g.getDisplayName()))) {
+                if (groupProvisioning.retrieveAll(body.getId()).stream().anyMatch(g -> !allowedGroups.contains(g.getDisplayName()))) {
                     throw new UnprocessableEntityException("The identity zone user configuration contains not-allowed groups.");
                 }
             }
 
             logger.debug("Zone - updating id[{}] subdomain[{}]",
-                UaaStringUtils.getCleanedUserControlString(id),
-                UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
+                    UaaStringUtils.getCleanedUserControlString(id),
+                    UaaStringUtils.getCleanedUserControlString(body.getSubdomain())
             );
             IdentityZone updated = zoneDao.update(body);
             IdentityZoneHolder.set(updated);

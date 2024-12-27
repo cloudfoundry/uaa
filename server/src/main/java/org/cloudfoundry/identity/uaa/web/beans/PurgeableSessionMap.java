@@ -9,20 +9,18 @@ import org.springframework.stereotype.Component;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static java.util.stream.Collectors.toList;
-
 @Component
 class PurgeableSessionMap extends ConcurrentHashMap<String, Session> {
-    private final static Logger logger = LoggerFactory.getLogger(PurgeableSessionMap.class);
+    private static final Logger logger = LoggerFactory.getLogger(PurgeableSessionMap.class);
 
     @Scheduled(fixedDelayString = "${servlet-session-purge-delay:900000}")
     public void purge() {
         List<Session> expired = expired();
         expired.forEach(s -> remove(s.getId()));
-        logger.debug(String.format("Purged %s sessions", expired.size()));
+        logger.debug("Purged %s sessions".formatted(expired.size()));
     }
 
     public List<Session> expired() {
-        return values().stream().filter(Session::isExpired).collect(toList());
+        return values().stream().filter(Session::isExpired).toList();
     }
 }

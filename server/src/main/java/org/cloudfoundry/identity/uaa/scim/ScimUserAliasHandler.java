@@ -145,8 +145,7 @@ public class ScimUserAliasHandler extends EntityAliasHandler<ScimUser> {
         try {
             return scimUserProvisioning.createUser(entity, entity.getPassword(), zoneId);
         } catch (final ScimResourceAlreadyExistsException e) {
-            final String errorMessage = String.format(
-                    "Could not create %s. A user with the same username already exists in the alias zone.",
+            final String errorMessage = "Could not create %s. A user with the same username already exists in the alias zone.".formatted(
                     entity.getAliasDescription()
             );
             throw new EntityAliasFailedException(errorMessage, HttpStatus.CONFLICT.value(), e);

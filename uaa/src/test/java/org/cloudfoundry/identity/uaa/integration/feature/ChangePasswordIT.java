@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -39,7 +40,8 @@ public class ChangePasswordIT {
 
     public static final String PASSWORD = "s3Cret";
     public static final String NEW_PASSWORD = "newsecr3T";
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -64,7 +66,7 @@ public class ChangePasswordIT {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -117,7 +119,7 @@ public class ChangePasswordIT {
     }
 
     private void changePassword(String originalPassword, String newPassword, String confirmPassword) {
-        webDriver.findElement(By.xpath("//*[text()='"+userEmail+"']")).click();
+        webDriver.findElement(By.xpath("//*[text()='" + userEmail + "']")).click();
         webDriver.findElement(By.linkText("Account Settings")).click();
         webDriver.findElement(By.linkText("Change Password")).click();
         webDriver.findElement(By.name("current_password")).sendKeys(originalPassword);
@@ -128,7 +130,7 @@ public class ChangePasswordIT {
     }
 
     private void signOut() {
-        webDriver.findElement(By.xpath("//*[text()='"+userEmail+"']")).click();
+        webDriver.findElement(By.xpath("//*[text()='" + userEmail + "']")).click();
         webDriver.findElement(By.linkText("Sign Out")).click();
     }
 

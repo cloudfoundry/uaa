@@ -99,7 +99,7 @@ class ResetPasswordAuthenticationEntryPointTests {
 
     @Test
     void test_when_invalid_password_exception() throws Exception {
-        InvalidPasswordException pe = new InvalidPasswordException(Arrays.asList("one","two"));
+        InvalidPasswordException pe = new InvalidPasswordException(Arrays.asList("one", "two"));
         BadCredentialsException be = new BadCredentialsException("", pe);
 
         entryPoint.commence(request, response, be);

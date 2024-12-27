@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+          entityID="https://idp-saml.ua3.int/simplesaml/saml2/idp/metadata.php">
+    <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+        <md:KeyDescriptor use="signing">
+            <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                <ds:X509Data>
+                    <ds:X509Certificate>
+                        MIID7TCCAtWgAwIBAgIJANn3qP9lF7M3MA0GCSqGSIb3DQEBCwUAMIGMMQswCQYDVQQGEwJVQTEXMBUGA1UE
+                        CAwOS2hhcmtpdiBSZWdpb24xEDAOBgNVBAcMB0toYXJrb3YxDzANBgNVBAoMBk9yYWNsZTEYMBYGA1UEAwwPc3RzeWJvdi12bTEudWEzMScw
+                        JQYJKoZIhvcNAQkBFhhzZXJnaWkudHN5Ym92QG9yYWNsZS5jb20wHhcNMTUxMjI1MTIyMjU5WhcNMjUxMjI0MTIyMjU5WjCBjDELMAkGA1UE
+                        BhMCVUExFzAVBgNVBAgMDktoYXJraXYgUmVnaW9uMRAwDgYDVQQHDAdLaGFya292MQ8wDQYDVQQKDAZPcmFjbGUxGDAWBgNVBAMMD3N0c3lib
+                        3Ytdm0xLnVhMzEnMCUGCSqGSIb3DQEJARYYc2VyZ2lpLnRzeWJvdkBvcmFjbGUuY29tMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCA
+                        QEAw4OFwuUNjn6xxb/OuAnmQA6mCWPY2hKMoOz0cAajUHjNZZMwGnuEeUyPtEcULfz2MYo1yKQLxVj3pY0HTIQAzpY8o+xCqJFQmdMiakb
+                        PFHlh4z/qqiS5jHng6JCeUpCIxeiTG9JXVwF1ErBEZbwZYjVxa6S+0grVkS3YxuH4uTyqxskuGnHK/AviTHLBrLfSrbFKYuQUrXyy6X22wpzo
+                        bQ3Z+4bhEE8SXQtVbQdy7K0MKWYopNhX05SMTv7yMfUGp8EkGNyJ5Km8AuQt6ZCbVao6cHL2hSujQiN6aMjKbdzHeA1QEicppnnoG/Zefyi/
+                        okWdlLAaLjcpYrjUSWQJZQIDAQABo1AwTjAdBgNVHQ4EFgQUIKa0zeXmAJsCuNhJjhU0o7KiQgYwHwYDVR0jBBgwFoAUIKa0zeXmAJsCuNhJj
+                        hU0o7KiQgYwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAJawU5WRXqkW4emm+djpJAxZ0076qPgEsaaog6ng4MLAlU7RmfIY/
+                        l0VhXQegvhIBfG4OfduuzGaqd9y4IsQZFJ0yuotl96iEVcqg7hJ1LEY6UT6u6dZyGj1a9I6IlwJm/9CXFZHuVqGJkMfQZ4gaunE4c5gjbQA5/
+                        +PEJwPorKn48w8bojymV8hriqzrmaP8eQNuZUJsJdnKENOE5/asGyj+R2YfP6bmlOX3q0ozLcyJbXeZ6IvDFdRiDH5wO4JqW/ujvdvC553y
+                        CO3xxsorB4xCupuHu/c7vkzNpaKjYdmGRkqhEqBcCqYSxdwIFc1xhOwYPWKJzgn7pGQsT7yNJg==
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+        <md:KeyDescriptor use="encryption">
+            <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+                <ds:X509Data>
+                    <ds:X509Certificate>
+                        MIID7TCCAtWgAwIBAgIJANn3qP9lF7M3MA0GCSqGSIb3DQEBCwUAMIGMMQswCQYDVQQGEwJVQTEXMBUGA1
+                        UECAwOS2hhcmtpdiBSZWdpb24xEDAOBgNVBAcMB0toYXJrb3YxDzANBgNVBAoMBk9yYWNsZTEYMBYGA1UEAwwPc3RzeWJvdi12bTEud
+                        WEzMScwJQYJKoZIhvcNAQkBFhhzZXJnaWkudHN5Ym92QG9yYWNsZS5jb20wHhcNMTUxMjI1MTIyMjU5WhcNMjUxMjI0MTIyMjU5WjCB
+                        jDELMAkGA1UEBhMCVUExFzAVBgNVBAgMDktoYXJraXYgUmVnaW9uMRAwDgYDVQQHDAdLaGFya292MQ8wDQYDVQQKDAZPcmFjbGUxGDA
+                        WBgNVBAMMD3N0c3lib3Ytdm0xLnVhMzEnMCUGCSqGSIb3DQEJARYYc2VyZ2lpLnRzeWJvdkBvcmFjbGUuY29tMIIBIjANBgkqhkiG9w0B
+                        AQEFAAOCAQ8AMIIBCgKCAQEAw4OFwuUNjn6xxb/OuAnmQA6mCWPY2hKMoOz0cAajUHjNZZMwGnuEeUyPtEcULfz2MYo1yKQLxVj3pY0HT
+                        IQAzpY8o+xCqJFQmdMiakbPFHlh4z/qqiS5jHng6JCeUpCIxeiTG9JXVwF1ErBEZbwZYjVxa6S+0grVkS3YxuH4uTyqxskuGnHK/
+                        AviTHLBrLfSrbFKYuQUrXyy6X22wpzobQ3Z+4bhEE8SXQtVbQdy7K0MKWYopNhX05SMTv7yMfUGp8EkGNyJ5Km8AuQt6ZCbVao6cHL2h
+                        SujQiN6aMjKbdzHeA1QEicppnnoG/Zefyi/okWdlLAaLjcpYrjUSWQJZQIDAQABo1AwTjAdBgNVHQ4EFgQUIKa0zeXmAJsCuNhJjhU0o
+                        7KiQgYwHwYDVR0jBBgwFoAUIKa0zeXmAJsCuNhJjhU0o7KiQgYwDAYDVR0TBAUwAwEB/zANBgkqhkiG9w0BAQsFAAOCAQEAJawU5WRXq
+                        kW4emm+djpJAxZ0076qPgEsaaog6ng4MLAlU7RmfIY/l0VhXQegvhIBfG4OfduuzGaqd9y4IsQZFJ0yuotl96iEVcqg7hJ1LEY6UT6u6d
+                        ZyGj1a9I6IlwJm/9CXFZHuVqGJkMfQZ4gaunE4c5gjbQA5/+PEJwPorKn48w8bojymV8hriqzrmaP8eQNuZUJsJdnKENOE5/
+                        asGyj+R2YfP6bmlOX3q0ozLcyJbXeZ6IvDFdRiDH5wO4JqW/ujvdvC553yCO3xxsorB4xCupuHu/c7vkzNpaKjYdmGRkqhEqBcCqYSxd
+                        wIFc1xhOwYPWKJzgn7pGQsT7yNJg==
+                    </ds:X509Certificate>
+                </ds:X509Data>
+            </ds:KeyInfo>
+        </md:KeyDescriptor>
+        <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+                              Location="https://idp-saml.ua3.int/simplesaml/saml2/idp/SingleLogoutService.php"/>
+        <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>
+        <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect"
+                              Location="https://idp-saml.ua3.int/simplesaml/saml2/idp/SSOService.php"/>
+    </md:IDPSSODescriptor>
+    <md:ContactPerson contactType="technical">
+        <md:SurName>Administrator</md:SurName>
+        <md:EmailAddress>name@emailprovider.com</md:EmailAddress>
+    </md:ContactPerson>
+</md:EntityDescriptor>

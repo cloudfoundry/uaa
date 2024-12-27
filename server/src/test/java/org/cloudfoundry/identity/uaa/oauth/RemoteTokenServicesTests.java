@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -44,13 +45,13 @@ import org.springframework.web.client.RestTemplate;
  */
 public class RemoteTokenServicesTests {
 
-    private RemoteTokenServices services = new RemoteTokenServices();
+    private final RemoteTokenServices services = new RemoteTokenServices();
 
-    private Map<String, Object> body = new HashMap<String, Object>();
+    private final Map<String, Object> body = new HashMap<>();
 
-    private HttpHeaders headers = new HttpHeaders();
+    private final HttpHeaders headers = new HttpHeaders();
 
-    private HttpStatus status = HttpStatus.OK;
+    private final HttpStatus status = HttpStatus.OK;
 
     public RemoteTokenServicesTests() {
         services.setClientId("client");
@@ -64,8 +65,8 @@ public class RemoteTokenServicesTests {
             @SuppressWarnings("unchecked")
             @Override
             public <T> ResponseEntity<T> exchange(String url, HttpMethod method, HttpEntity<?> requestEntity,
-                            Class<T> responseType, Object... uriVariables) throws RestClientException {
-                return new ResponseEntity<T>((T) body, headers, status);
+                    Class<T> responseType, Object... uriVariables) throws RestClientException {
+                return new ResponseEntity<>((T) body, headers, status);
             }
         });
     }
@@ -113,7 +114,7 @@ public class RemoteTokenServicesTests {
     public void testNoBodyReceived() {
         RestTemplate restTemplate = mock(RestTemplate.class);
         ResponseEntity responseEntity = mock(ResponseEntity.class);
-        when(restTemplate.exchange(anyString(), (HttpMethod)any(), (HttpEntity<MultiValueMap<String, String>>)any(), (Class)any())).thenReturn(responseEntity);
+        when(restTemplate.exchange(anyString(), (HttpMethod) any(), (HttpEntity<MultiValueMap<String, String>>) any(), (Class) any())).thenReturn(responseEntity);
         when(responseEntity.getBody()).thenReturn(null);
         services.setRestTemplate(restTemplate);
         assertThrows(IllegalStateException.class, () -> services.loadAuthentication("FOO"));
@@ -128,6 +129,6 @@ public class RemoteTokenServicesTests {
 
         assertNotNull(result);
         assertEquals(JsonUtils.writeValueAsString(additionalAuthorizationAttributesMap), result.getOAuth2Request()
-                        .getRequestParameters().get(ClaimConstants.ADDITIONAL_AZ_ATTR));
+                .getRequestParameters().get(ClaimConstants.ADDITIONAL_AZ_ATTR));
     }
 }

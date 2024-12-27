@@ -47,8 +47,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
 
             if (!hasText(existingEntity.getAliasId())) {
                 // at this point, we expect both properties to be set -> if not, the entity is in an inconsistent state
-                throw new IllegalStateException(String.format(
-                        "Both alias ID and alias ZID expected to be set for existing entity %s.",
+                throw new IllegalStateException("Both alias ID and alias ZID expected to be set for existing entity %s.".formatted(
                         existingEntity.getAliasDescription()
                 ));
             }
@@ -168,8 +167,7 @@ public abstract class EntityAliasHandler<T extends EntityWithAlias> {
         try {
             identityZoneProvisioning.retrieve(originalEntity.getAliasZid());
         } catch (final ZoneDoesNotExistsException e) {
-            final String errorMessage = String.format(
-                    "Could not create alias for %s, as alias zone does not exist.",
+            final String errorMessage = "Could not create alias for %s, as alias zone does not exist.".formatted(
                     originalEntity.getAliasDescription()
             );
             throw new EntityAliasFailedException(errorMessage, HttpStatus.UNPROCESSABLE_ENTITY.value(), e);

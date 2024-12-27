@@ -29,7 +29,7 @@ class UaaPasswordPolicyValidatorTests {
 
     private IdentityProvider internalIDP;
 
-    private PasswordPolicy defaultPolicy = new PasswordPolicy(0,255,0,0,0,0,0);
+    private PasswordPolicy defaultPolicy = new PasswordPolicy(0, 255, 0, 0, 0, 0, 0);
     private PasswordPolicy policy;
 
     @BeforeEach

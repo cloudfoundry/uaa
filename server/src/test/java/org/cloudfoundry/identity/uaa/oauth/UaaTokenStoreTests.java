@@ -472,20 +472,19 @@ class UaaTokenStoreTests {
 
         @Override
         public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-            switch (method.getName()) {
-                case CLOSE_VAL:
-                    // This breaks things
-                    return null;
-                case PREPARE_VAL:
-                    if (args.length > 0) {
-                        String sql = (String) args[0];
-                        if (sql.startsWith("delete from oauth_code where expiresat ")) {
-                            PreparedStatement stmt = (PreparedStatement) method.invoke(con, args);
-                            return Proxy.newProxyInstance(getClass().getClassLoader(),
-                                    new Class[]{PreparedStatement.class},
-                                    new ExpirationLoserPreparedStatement(stmt));
-                        }
+            if (CLOSE_VAL.equals(method.getName())) {
+                // This breaks things
+                return null;
+            } else if (PREPARE_VAL.equals(method.getName())) {
+                if (args.length > 0) {
+                    String sql = (String) args[0];
+                    if (sql.startsWith("delete from oauth_code where expiresat ")) {
+                        PreparedStatement stmt = (PreparedStatement) method.invoke(con, args);
+                        return Proxy.newProxyInstance(getClass().getClassLoader(),
+                                new Class[]{PreparedStatement.class},
+                                new ExpirationLoserPreparedStatement(stmt));
                     }
+                }
             }
             return method.invoke(con, args);
         }

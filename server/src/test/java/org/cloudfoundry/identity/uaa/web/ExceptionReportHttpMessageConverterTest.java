@@ -33,7 +33,7 @@ public class ExceptionReportHttpMessageConverterTest {
         httpMessageConverter = mock(HttpMessageConverter.class);
         httpOutputMessage = new MockHttpOutputMessage();
         exceptionReportHttpMessageConverter.setMessageConverters(
-            new HttpMessageConverter<?>[]{httpMessageConverter});
+                new HttpMessageConverter<?>[]{httpMessageConverter});
 
         when(httpMessageConverter.canWrite(any(Class.class), any(MediaType.class))).thenReturn(true);
         when(httpMessageConverter.getSupportedMediaTypes()).thenReturn(Collections.singletonList(APPLICATION_JSON));

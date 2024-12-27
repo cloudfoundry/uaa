@@ -22,7 +22,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -160,8 +159,9 @@ class IdentityZoneEndpointsTests {
         identityZone.getConfig().getUserConfig().setAllowedGroups(List.of("sps.write", "sps.read", "idps.write", "idps.read"));
         when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(identityZone.getId())).thenReturn(identityZone);
         when(mockIdentityZoneProvisioning.update(same(identityZone))).thenReturn(identityZone);
-        List<ScimGroup> existingScimGroups = List.of("sps.write", "sps.read").stream().
-            map(e -> new ScimGroup(e, e, identityZone.getId())).collect(Collectors.toList());
+        List<ScimGroup> existingScimGroups = List.of("sps.write", "sps.read").stream()
+                .map(e -> new ScimGroup(e, e, identityZone.getId()))
+                .toList();
         when(mockScimGroupProvisioning.retrieveAll(identityZone.getId())).thenReturn(existingScimGroups);
         spy.updateIdentityZone(identityZone, identityZone.getId());
         verify(spy, times(1)).createUserGroups(same(identityZone));
@@ -175,12 +175,13 @@ class IdentityZoneEndpointsTests {
         identityZone.getConfig().getUserConfig().setAllowedGroups(List.of("clients.admin", "clients.write", "clients.read", "clients.secret"));
         when(mockIdentityZoneProvisioning.retrieveIgnoreActiveFlag(identityZone.getId())).thenReturn(identityZone);
         List<ScimGroup> existingScimGroups = List.of("sps.write", "sps.read", "idps.write", "idps.read",
-            "clients.admin", "clients.write", "clients.read", "clients.secret", "scim.write", "scim.read", "scim.create", "scim.userids",
-            "scim.zones", "groups.update", "password.write", "oauth.login", "uaa.admin").stream().
-            map(e -> new ScimGroup(e, e, identityZone.getId())).collect(Collectors.toList());
+                        "clients.admin", "clients.write", "clients.read", "clients.secret", "scim.write", "scim.read", "scim.create", "scim.userids",
+                        "scim.zones", "groups.update", "password.write", "oauth.login", "uaa.admin").stream()
+                .map(e -> new ScimGroup(e, e, identityZone.getId()))
+                .toList();
         when(mockScimGroupProvisioning.retrieveAll(identityZone.getId())).thenReturn(existingScimGroups);
         assertThrowsWithMessageThat(UaaException.class, () -> endpoints.updateIdentityZone(identityZone, identityZone.getId()),
-            is("The identity zone user configuration contains not-allowed groups."));
+                is("The identity zone user configuration contains not-allowed groups."));
     }
 
     @Test

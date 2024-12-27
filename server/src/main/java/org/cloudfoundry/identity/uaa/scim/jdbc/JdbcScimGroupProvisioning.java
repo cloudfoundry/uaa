@@ -86,70 +86,55 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
 
         final String quotedGroupsTableName = dbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
-        updateGroupSql = String.format(
-                "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=? and identity_zone_id=?",
+        updateGroupSql = "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=? and identity_zone_id=?".formatted(
                 quotedGroupsTableName
         );
-        getGroupSql = String.format(
-                "select %s from %s where id=? and identity_zone_id=?",
+        getGroupSql = "select %s from %s where id=? and identity_zone_id=?".formatted(
                 GROUP_FIELDS,
                 quotedGroupsTableName
         );
-        getGroupByNameSql = String.format(
-                "select %s from %s where LOWER(displayName)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)",
+        getGroupByNameSql = "select %s from %s where LOWER(displayName)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)".formatted(
                 GROUP_FIELDS,
                 quotedGroupsTableName
         );
-        queryForFilter = String.format(
-                "select %s from %s",
+        queryForFilter = "select %s from %s".formatted(
                 GROUP_FIELDS,
                 quotedGroupsTableName
         );
-        deleteGroupSql = String.format(
-                "delete from %s where id=? and identity_zone_id=?",
+        deleteGroupSql = "delete from %s where id=? and identity_zone_id=?".formatted(
                 quotedGroupsTableName
         );
 
-        deleteGroupSqlByIdZoneVersion = String.format(
-            "delete from %s where id=? and identity_zone_id=? and version=?",
-            quotedGroupsTableName
-        );
-
-        deleteGroupByZone = String.format(
-                "delete from %s where identity_zone_id=?",
+        deleteGroupSqlByIdZoneVersion = "delete from %s where id=? and identity_zone_id=? and version=?".formatted(
                 quotedGroupsTableName
         );
-        deleteGroupMembershipByZone = String.format(
-                "delete from %s where identity_zone_id = ?",
+
+        deleteGroupByZone = "delete from %s where identity_zone_id=?".formatted(
+                quotedGroupsTableName
+        );
+        deleteGroupMembershipByZone = "delete from %s where identity_zone_id = ?".formatted(
                 GROUP_MEMBERSHIP_TABLE
         );
-        deleteExternalGroupByZone = String.format(
-                "delete from %s where identity_zone_id = ?",
+        deleteExternalGroupByZone = "delete from %s where identity_zone_id = ?".formatted(
                 EXTERNAL_GROUP_TABLE
         );
-        deleteZoneAdminMembershipByZone = String.format(
-                "delete from %s where group_id in (select id from %s where identity_zone_id=? and displayName like ?)",
+        deleteZoneAdminMembershipByZone = "delete from %s where group_id in (select id from %s where identity_zone_id=? and displayName like ?)".formatted(
                 GROUP_MEMBERSHIP_TABLE,
                 quotedGroupsTableName
         );
-        deleteZoneAdminGroupsByZone = String.format(
-                "delete from %s where identity_zone_id=? and displayName like ?",
+        deleteZoneAdminGroupsByZone = "delete from %s where identity_zone_id=? and displayName like ?".formatted(
                 quotedGroupsTableName
         );
-        deleteGroupMembershipByProvider = String.format(
-                "delete from %s where identity_zone_id = ? and origin = ?",
+        deleteGroupMembershipByProvider = "delete from %s where identity_zone_id = ? and origin = ?".formatted(
                 GROUP_MEMBERSHIP_TABLE
         );
-        deleteExternalGroupByProvider = String.format(
-                "delete from %s where identity_zone_id = ? and origin = ?",
+        deleteExternalGroupByProvider = "delete from %s where identity_zone_id = ? and origin = ?".formatted(
                 EXTERNAL_GROUP_TABLE
         );
-        deleteMemberSql = String.format(
-                "delete from %s where member_id=? and member_id in (select id from users where id=? and identity_zone_id=?)",
+        deleteMemberSql = "delete from %s where member_id=? and member_id in (select id from users where id=? and identity_zone_id=?)".formatted(
                 GROUP_MEMBERSHIP_TABLE
         );
-        addGroupSql = String.format(
-                "insert into %s ( %s ) values (?,?,?,?,?,?,?)",
+        addGroupSql = "insert into %s ( %s ) values (?,?,?,?,?,?,?)".formatted(
                 quotedGroupsTableName,
                 GROUP_FIELDS
         );
@@ -258,9 +243,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         Set<String> zoneAllowedGroups = null; // default: all groups allowed
         try {
             IdentityZone currentZone = IdentityZoneHolder.get();
-            zoneAllowedGroups = (currentZone.getId().equals(zoneId)) ?
-                currentZone.getConfig().getUserConfig().resultingAllowedGroups() :
-                jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().resultingAllowedGroups();
+            zoneAllowedGroups = currentZone.getId().equals(zoneId) ?
+                    currentZone.getConfig().getUserConfig().resultingAllowedGroups() :
+                    jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().resultingAllowedGroups();
         } catch (ZoneDoesNotExistsException e) {
             logger.debug("could not retrieve identity zone with id: {}", zoneId);
         }
@@ -377,7 +362,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         Set<String> allowedGroups = getAllowedUserGroups(zoneId);
         if ((allowedGroups != null) && (!allowedGroups.contains(group.getDisplayName()))) {
             throw new InvalidScimResourceException("The group with displayName: " + group.getDisplayName()
-                + " is not allowed in Identity Zone " + zoneId);
+                    + " is not allowed in Identity Zone " + zoneId);
         }
     }
 

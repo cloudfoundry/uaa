@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -15,10 +16,11 @@ package org.cloudfoundry.identity.uaa.passcode;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.Data;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlUserAuthority;
+import org.springframework.security.core.Authentication;
 
 import java.security.Principal;
 import java.util.ArrayList;
@@ -28,24 +30,24 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.springframework.security.core.Authentication;
-
+@Data
 public class PasscodeInformation {
 
     private static final String AUTHORITIES_KEY = "authorities";
     private String userId;
     private String username;
     private String passcode;
+    @JsonIgnore
     private Map<String, Object> authorizationParameters;
     private String origin;
 
     @JsonCreator
     public PasscodeInformation(
-        @JsonProperty("userId") String userId,
-        @JsonProperty("username") String username,
-        @JsonProperty("passcode") String passcode,
-        @JsonProperty("origin") String origin,
-        @JsonProperty("samlAuthorities") List<SamlUserAuthority> authorities) {
+            @JsonProperty("userId") String userId,
+            @JsonProperty("username") String username,
+            @JsonProperty("passcode") String passcode,
+            @JsonProperty("origin") String origin,
+            @JsonProperty("samlAuthorities") List<SamlUserAuthority> authorities) {
 
         setUserId(userId);
         setUsername(username);
@@ -61,11 +63,9 @@ public class PasscodeInformation {
             uaaPrincipal = getUaaPrincipal(castUaaPrincipal);
         } else if (principal instanceof UaaAuthentication castUaaAuthentication) {
             uaaPrincipal = getUaaPrincipal(castUaaAuthentication.getPrincipal());
-        } else if (principal instanceof final LoginSamlAuthenticationToken samlTokenPrincipal) {
-            uaaPrincipal = getUaaPrincipal(samlTokenPrincipal.getUaaPrincipal());
         } else if (
                 principal instanceof Authentication castAuthentication &&
-                  castAuthentication.getPrincipal() instanceof UaaPrincipal castUaaPrincipal
+                        castAuthentication.getPrincipal() instanceof UaaPrincipal castUaaPrincipal
         ) {
             uaaPrincipal = getUaaPrincipal(castUaaPrincipal);
         } else {
@@ -83,14 +83,6 @@ public class PasscodeInformation {
         return castUaaPrincipal;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
     @JsonProperty("samlAuthorities")
     public List<SamlUserAuthority> getSamlAuthorities() {
         ArrayList<SamlUserAuthority> list = new ArrayList<>();
@@ -104,38 +96,5 @@ public class PasscodeInformation {
     public void setSamlAuthorities(List<SamlUserAuthority> authorities) {
         Set<SamlUserAuthority> set = new HashSet<>(authorities);
         authorizationParameters.put(AUTHORITIES_KEY, set);
-    }
-
-    @JsonIgnore
-    public Map<String, Object> getAuthorizationParameters() {
-        return authorizationParameters;
-    }
-
-    public void setAuthorizationParameters(Map<String, Object> authorizationParameters) {
-        this.authorizationParameters = authorizationParameters;
-    }
-
-    public String getPasscode() {
-        return passcode;
-    }
-
-    public void setPasscode(String passcode) {
-        this.passcode = passcode;
-    }
-
-    public String getOrigin() {
-        return origin;
-    }
-
-    public void setOrigin(String origin) {
-        this.origin = origin;
-    }
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
     }
 }

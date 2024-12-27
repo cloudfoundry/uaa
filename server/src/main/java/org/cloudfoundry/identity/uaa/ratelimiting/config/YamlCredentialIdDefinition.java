@@ -21,18 +21,18 @@ public class YamlCredentialIdDefinition {
      *
      * @return null if <code>yamlCredentialID</code> is null or blank.
      */
-    public static YamlCredentialIdDefinition from( String yamlCredentialID ) {
-        yamlCredentialID = StringUtils.stripToNull( yamlCredentialID );
-        if ( yamlCredentialID == null ) {
+    public static YamlCredentialIdDefinition from(String yamlCredentialID) {
+        yamlCredentialID = StringUtils.stripToNull(yamlCredentialID);
+        if (yamlCredentialID == null) {
             return null;
         }
         String key = yamlCredentialID;
         String postKeyConfig = null;
-        int at = yamlCredentialID.indexOf( ':' ); // key and postKeyConfig separator
-        if ( at != -1 ) {
-            key = StringUtils.stripToNull( yamlCredentialID.substring( 0, at ) );
-            postKeyConfig = StringUtils.stripToNull( yamlCredentialID.substring( at + 1 ) );
-            if ( key == null ) {
+        int at = yamlCredentialID.indexOf(':'); // key and postKeyConfig separator
+        if (at != -1) {
+            key = StringUtils.stripToNull(yamlCredentialID.substring(0, at));
+            postKeyConfig = StringUtils.stripToNull(yamlCredentialID.substring(at + 1));
+            if (key == null) {
                 throw new RateLimitingConfigException( EMPTY_KEY_FROM_PREFIX + yamlCredentialID );
             }
         }

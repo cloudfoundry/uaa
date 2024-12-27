@@ -23,7 +23,6 @@ import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
@@ -96,7 +95,7 @@ public class TokenKeyEndpoint {
     }
 
     private boolean unmodifiedResource(String eTag, String lastModified) {
-        return !eTag.equals("NaN") && lastModified.equals(eTag);
+        return !"NaN".equals(eTag) && lastModified.equals(eTag);
     }
 
     /**
@@ -114,7 +113,7 @@ public class TokenKeyEndpoint {
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
                 .filter(k -> includeSymmetric || RSA.name().equals(k.type()))
                 .map(TokenKeyEndpoint::getVerificationKeyResponse)
-                .collect(Collectors.toList());
+                .toList();
         return new VerificationKeysListResponse(keyResponses);
     }
 
@@ -122,8 +121,7 @@ public class TokenKeyEndpoint {
         if (principal != null) {
             if (principal instanceof AnonymousAuthenticationToken) {
                 return false;
-            } else if (principal instanceof Authentication) {
-                Authentication auth = (Authentication) principal;
+            } else if (principal instanceof Authentication auth) {
                 if (auth.getAuthorities() != null) {
                     for (GrantedAuthority authority : auth.getAuthorities()) {
                         if ("uaa.resource".equals(authority.getAuthority())) {

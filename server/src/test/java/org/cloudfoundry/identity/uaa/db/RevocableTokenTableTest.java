@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 @WithDatabaseContext
 class RevocableTokenTableTest {
 
-    private List<TestColumn> TEST_COLUMNS = Arrays.asList(
+    private List<TestColumn> testColumns = Arrays.asList(
             new TestColumn("token_id", "varchar/nvarchar", 36),
             new TestColumn("client_id", "varchar/nvarchar", 255),
             new TestColumn("user_id", "varchar/nvarchar", 36),
@@ -30,7 +30,7 @@ class RevocableTokenTableTest {
             new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
     );
 
-    private List<TestColumn> TEST_INDEX = Arrays.asList(
+    private List<TestColumn> testIndex = Arrays.asList(
             new TestColumn("idx_revocable_token_client_id", "", 0),
             new TestColumn("idx_revocable_token_user_id", "", 0),
             new TestColumn("idx_revocable_token_expires_at", "", 0)
@@ -38,7 +38,7 @@ class RevocableTokenTableTest {
     );
 
     public boolean testColumn(String name, String type, int size) {
-        return testColumn(TEST_COLUMNS, name, type, size);
+        return testColumn(testColumns, name, type, size);
     }
 
     public boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
@@ -73,7 +73,7 @@ class RevocableTokenTableTest {
             }
             rs.close();
             assertTrue(foundTable, "Table " + tableName + " not found!");
-            assertEquals(TEST_COLUMNS.size(), foundColumn, "Table " + tableName + " is missing columns!");
+            assertEquals(testColumns.size(), foundColumn, "Table " + tableName + " is missing columns!");
 
 
             rs = meta.getIndexInfo(connection.getCatalog(), null, tableName, false, false);
@@ -86,17 +86,17 @@ class RevocableTokenTableTest {
                 String indexName = rs.getString("INDEX_NAME");
                 short indexType = rs.getShort("TYPE");
                 if (shouldCompareIndex(indexName)) {
-                    assertTrue(testColumn(TEST_INDEX, indexName, "", indexType), "Testing index: " + indexName);
+                    assertTrue(testColumn(testIndex, indexName, "", indexType), "Testing index: " + indexName);
                     indexCount++;
 
                 }
             } while (rs.next());
-            assertEquals(TEST_INDEX.size(), indexCount, "One or more indices are missing");
+            assertEquals(testIndex.size(), indexCount, "One or more indices are missing");
         }
     }
 
     boolean shouldCompareIndex(String indexName) {
-        for (TestColumn c : TEST_INDEX) {
+        for (TestColumn c : testIndex) {
             if (c.name.equalsIgnoreCase(indexName)) {
                 return true;
             }

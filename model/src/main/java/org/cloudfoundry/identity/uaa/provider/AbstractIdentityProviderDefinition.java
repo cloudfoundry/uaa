@@ -26,7 +26,7 @@ public class AbstractIdentityProviderDefinition {
     public static final String PROVIDER_DESCRIPTION = "providerDescription";
 
     private List<String> emailDomain;
-    private Map<String,Object> additionalConfiguration;
+    private Map<String, Object> additionalConfiguration;
     private String providerDescription;
 
     public List<String> getEmailDomain() {
@@ -57,8 +57,12 @@ public class AbstractIdentityProviderDefinition {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
 
         AbstractIdentityProviderDefinition that = (AbstractIdentityProviderDefinition) o;
 

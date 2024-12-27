@@ -30,12 +30,13 @@ import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinit
 
 public final class LdapUtils {
 
-    private LdapUtils() {}
+    private LdapUtils() {
+    }
 
     public static ConfigurableEnvironment getLdapConfigurationEnvironment(LdapIdentityProviderDefinition definition) {
         Assert.notNull(definition);
 
-        Map<String,Object> properties = new HashMap<>();
+        Map<String, Object> properties = new HashMap<>();
 
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS, definition.getAttributeMappings(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_BASE_LOCAL_PASSWORD_COMPARE, definition.isLocalPasswordCompare(), properties);
@@ -65,14 +66,14 @@ public final class LdapUtils {
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_PROFILE_FILE, definition.getLdapProfileFile(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_SSL_SKIPVERIFICATION, definition.isSkipSSLVerification(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_SSL_TLS, definition.getTlsConfiguration(), properties);
-        setIfNotNull("ldap.addShadowUserOnLogin",  definition.isAddShadowUserOnLogin(), properties);
+        setIfNotNull("ldap.addShadowUserOnLogin", definition.isAddShadowUserOnLogin(), properties);
 
         MapPropertySource source = new NestedMapPropertySource("ldap", properties);
         return new LdapIdentityProviderDefinition.LdapConfigEnvironment(source);
     }
 
-    private static void setIfNotNull(String property, Object value, Map<String,Object> map) {
-        if (value!=null) {
+    private static void setIfNotNull(String property, Object value, Map<String, Object> map) {
+        if (value != null) {
             map.put(property, value);
         }
     }
@@ -84,23 +85,23 @@ public final class LdapUtils {
         Assert.notNull(ldapConfig);
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
-        if (ldapConfig==null || ldapConfig.isEmpty()) {
+        if (ldapConfig == null || ldapConfig.isEmpty()) {
             return definition;
         }
 
-        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_STORE_CUSTOM_ATTRIBUTES)!=null) {
+        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_STORE_CUSTOM_ATTRIBUTES) != null) {
             definition.setStoreCustomAttributes((boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_STORE_CUSTOM_ATTRIBUTES));
         }
 
-        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN)!=null) {
+        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN) != null) {
             definition.setEmailDomain((List<String>) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN));
         }
 
-        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EXTERNAL_GROUPS_WHITELIST)!=null) {
+        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EXTERNAL_GROUPS_WHITELIST) != null) {
             definition.setExternalGroupsWhitelist((List<String>) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EXTERNAL_GROUPS_WHITELIST));
         }
 
-        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS)!=null) {
+        if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS) != null) {
             definition.setAttributeMappings((Map<String, Object>) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS));
         }
 
@@ -137,21 +138,21 @@ public final class LdapUtils {
         definition.setSkipSSLVerification((Boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_SSL_SKIPVERIFICATION));
         definition.setTlsConfiguration((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_SSL_TLS));
         definition.setReferral((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_REFERRAL));
-        definition.setMailSubstituteOverridesLdap((Boolean)ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP));
+        definition.setMailSubstituteOverridesLdap((Boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP));
         if (StringUtils.hasText((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_ATTRIBUTE_NAME))) {
             definition.setMailAttributeName((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_ATTRIBUTE_NAME));
         }
         definition.setMailSubstitute((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_SUBSTITUTE));
         definition.setPasswordAttributeName((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_PASSWORD_ATTRIBUTE_NAME));
         definition.setPasswordEncoder((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_PASSWORD_ENCODER));
-        definition.setLocalPasswordCompare((Boolean)ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_LOCAL_PASSWORD_COMPARE));
+        definition.setLocalPasswordCompare((Boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_LOCAL_PASSWORD_COMPARE));
         if (StringUtils.hasText((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_GROUPS_FILE))) {
             definition.setLdapGroupFile((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_GROUPS_FILE));
         }
         if (StringUtils.hasText(definition.getLdapGroupFile()) && !LdapIdentityProviderDefinition.LDAP_GROUP_FILE_GROUPS_NULL_XML.equals(definition.getLdapGroupFile())) {
             definition.setGroupSearchBase((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_GROUPS_SEARCH_BASE));
             definition.setGroupSearchFilter((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_GROUPS_GROUP_SEARCH_FILTER));
-            definition.setGroupsIgnorePartialResults((Boolean)ldapConfig.get(LdapIdentityProviderDefinition.LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION));
+            definition.setGroupsIgnorePartialResults((Boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION));
             if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_GROUPS_MAX_SEARCH_DEPTH) != null) {
                 definition.setMaxGroupSearchDepth((Integer) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_GROUPS_MAX_SEARCH_DEPTH));
             }
@@ -161,17 +162,17 @@ public final class LdapUtils {
         }
 
         //if flat attributes are set in the properties
-        final String LDAP_ATTR_MAP_PREFIX = LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS+".";
-        for (Map.Entry<String,Object> entry : ldapConfig.entrySet()) {
+        final String ldapAttrMapPrefix = LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS + ".";
+        for (Map.Entry<String, Object> entry : ldapConfig.entrySet()) {
             if (!LdapIdentityProviderDefinition.LDAP_PROPERTY_NAMES.contains(entry.getKey()) &&
-                entry.getKey().startsWith(LDAP_ATTR_MAP_PREFIX) &&
-                entry.getValue() instanceof String) {
-                definition.addAttributeMapping(entry.getKey().substring(LDAP_ATTR_MAP_PREFIX.length()), entry.getValue());
+                    entry.getKey().startsWith(ldapAttrMapPrefix) &&
+                    entry.getValue() instanceof String) {
+                definition.addAttributeMapping(entry.getKey().substring(ldapAttrMapPrefix.length()), entry.getValue());
             }
         }
 
-        if (ldapConfig.get(LDAP_PREFIX+PROVIDER_DESCRIPTION)!=null && ldapConfig.get(LDAP_PREFIX+PROVIDER_DESCRIPTION) instanceof String) {
-            definition.setProviderDescription((String)ldapConfig.get(LDAP_PREFIX+PROVIDER_DESCRIPTION));
+        if (ldapConfig.get(LDAP_PREFIX + PROVIDER_DESCRIPTION) != null && ldapConfig.get(LDAP_PREFIX + PROVIDER_DESCRIPTION) instanceof String) {
+            definition.setProviderDescription((String) ldapConfig.get(LDAP_PREFIX + PROVIDER_DESCRIPTION));
         }
 
         return definition;

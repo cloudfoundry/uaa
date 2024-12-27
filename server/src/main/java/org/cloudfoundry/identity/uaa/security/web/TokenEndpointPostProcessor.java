@@ -32,8 +32,7 @@ public class TokenEndpointPostProcessor implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        if (bean != null && bean instanceof TokenEndpoint) {
-            TokenEndpoint endpoint = (TokenEndpoint)bean;
+        if (bean != null && bean instanceof TokenEndpoint endpoint) {
             Set<HttpMethod> methods = new HashSet<>();
             methods.add(HttpMethod.POST);
             methods.add(HttpMethod.GET);

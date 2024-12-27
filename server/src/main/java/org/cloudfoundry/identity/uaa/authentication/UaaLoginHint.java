@@ -4,11 +4,13 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
 public class UaaLoginHint implements Serializable {
+    @Serial
     private static final long serialVersionUID = 4021539346161285037L;
     private String origin;
     private static ObjectMapper mapper = new ObjectMapper();

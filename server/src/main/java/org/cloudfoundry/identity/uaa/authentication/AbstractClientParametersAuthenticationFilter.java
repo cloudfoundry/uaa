@@ -14,10 +14,13 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
@@ -28,7 +31,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.Filter;
@@ -57,26 +59,15 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     public static final String CLIENT_ID = "client_id";
     public static final String CLIENT_SECRET = "client_secret";
     public static final String CLIENT_ASSERTION = "client_assertion";
+
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    @Setter
+    @Getter
     protected AuthenticationManager clientAuthenticationManager;
 
+    @Setter
     protected AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
-
-    public AuthenticationManager getClientAuthenticationManager() {
-        return clientAuthenticationManager;
-    }
-
-    public void setClientAuthenticationManager(AuthenticationManager clientAuthenticationManager) {
-        this.clientAuthenticationManager = clientAuthenticationManager;
-    }
-
-    /**
-     * @param authenticationEntryPoint the authenticationEntryPoint to set
-     */
-    public void setAuthenticationEntryPoint(AuthenticationEntryPoint authenticationEntryPoint) {
-        this.authenticationEntryPoint = authenticationEntryPoint;
-    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
@@ -109,12 +100,11 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     }
 
     private Map<String, String> getSingleValueMap(HttpServletRequest request) {
-        Map<String, String> map = new HashMap<String, String>();
-        @SuppressWarnings("unchecked")
+        Map<String, String> map = new HashMap<>();
         Map<String, String[]> parameters = request.getParameterMap();
-        for (String key : parameters.keySet()) {
-            String[] values = parameters.get(key);
-            map.put(key, values != null && values.length > 0 ? values[0] : null);
+        for (Map.Entry<String, String[]> entry : parameters.entrySet()) {
+            String[] values = parameters.get(entry.getKey());
+            map.put(entry.getKey(), values != null && values.length > 0 ? values[0] : null);
         }
         return map;
     }
@@ -137,12 +127,11 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
             authorizationRequest.setRequestParameters(getSingleValueMap(req));
             authorizationRequest.setApproved(true);
 
-            if (auth.getDetails() instanceof  UaaAuthenticationDetails) {
-                UaaAuthenticationDetails clientDetails = (UaaAuthenticationDetails) auth.getDetails();
-                if (clientDetails.getAuthenticationMethod() != null) {
-                    authorizationRequest.setExtensions(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, clientDetails.getAuthenticationMethod()));
-                }
+            if (auth.getDetails() instanceof UaaAuthenticationDetails clientDetails
+                    && clientDetails.getAuthenticationMethod() != null) {
+                authorizationRequest.setExtensions(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, clientDetails.getAuthenticationMethod()));
             }
+
             //must set this to true in order for
             //Authentication.isAuthenticated to return true
             OAuth2Authentication result = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
@@ -151,7 +140,7 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
         } catch (AuthenticationException e) {
             throw new BadCredentialsException(e.getMessage(), e);
         } catch (Exception e) {
-            logger.debug("Unable to authenticate client: " + UaaStringUtils.getCleanedUserControlString(clientId), e);
+            logger.debug("Unable to authenticate client: {}", UaaStringUtils.getCleanedUserControlString(clientId), e);
             throw new BadCredentialsException(e.getMessage(), e);
         }
     }
@@ -174,5 +163,4 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     @Override
     public void destroy() {
     }
-
 }

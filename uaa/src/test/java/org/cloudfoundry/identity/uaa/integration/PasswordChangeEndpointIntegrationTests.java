@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -56,7 +57,7 @@ public class PasswordChangeEndpointIntegrationTests {
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
@@ -81,7 +82,7 @@ public class PasswordChangeEndpointIntegrationTests {
     @Before
     public void createRestTemplate() {
         client = serverRunning.getRestTemplate();
-        ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
+        ((RestTemplate) serverRunning.getRestTemplate()).setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
             public boolean hasError(ClientHttpResponse response) {
@@ -115,9 +116,9 @@ public class PasswordChangeEndpointIntegrationTests {
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
-                        .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                                        HttpMethod.PUT, new HttpEntity<>(change, headers),
-                                        Void.class, joe.getId());
+                .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+                        HttpMethod.PUT, new HttpEntity<>(change, headers),
+                        Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 
@@ -129,9 +130,9 @@ public class PasswordChangeEndpointIntegrationTests {
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
-            .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                HttpMethod.PUT, new HttpEntity<>(change, headers),
-                Void.class, joe.getId());
+                .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+                        HttpMethod.PUT, new HttpEntity<>(change, headers),
+                        Void.class, joe.getId());
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getStatusCode());
     }
 
@@ -139,7 +140,7 @@ public class PasswordChangeEndpointIntegrationTests {
     @OAuth2ContextConfiguration(resource = OAuth2ContextConfiguration.Implicit.class, initialize = false)
     public void testUserChangesOwnPassword() {
 
-        MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
         parameters.set("source", "credentials");
         parameters.set("username", joe.getUserName());
         parameters.set("password", "pas5Word");
@@ -151,9 +152,9 @@ public class PasswordChangeEndpointIntegrationTests {
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
-                        .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                                        HttpMethod.PUT, new HttpEntity<>(change, headers),
-                                        Void.class, joe.getId());
+                .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+                        HttpMethod.PUT, new HttpEntity<>(change, headers),
+                        Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
     }
 
@@ -161,7 +162,7 @@ public class PasswordChangeEndpointIntegrationTests {
     @OAuth2ContextConfiguration(resource = OAuth2ContextConfiguration.Implicit.class, initialize = false)
     public void testUserMustSupplyOldPassword() {
 
-        MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
         parameters.set("source", "credentials");
         parameters.set("username", joe.getUserName());
         parameters.set("password", "pas5Word");
@@ -172,9 +173,9 @@ public class PasswordChangeEndpointIntegrationTests {
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
-                        .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                                        HttpMethod.PUT, new HttpEntity<>(change, headers),
-                                        Void.class, joe.getId());
+                .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+                        HttpMethod.PUT, new HttpEntity<>(change, headers),
+                        Void.class, joe.getId());
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
     }
 
@@ -186,15 +187,15 @@ public class PasswordChangeEndpointIntegrationTests {
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.set("Authorization",
-                        testAccounts.getAuthorizationHeader("app", "appclientsecret"));
+                testAccounts.getAuthorizationHeader("app", "appclientsecret"));
 
-        MultiValueMap<String, String> data = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> data = new LinkedMultiValueMap<>();
         data.put("grant_type", Collections.singletonList("password"));
         data.put("username", Collections.singletonList(joe.getUserName()));
         data.put("password", Collections.singletonList("pas5Word"));
 
         ResponseEntity<Map> result = serverRunning.postForMap(
-                        serverRunning.buildUri("/oauth/token").build().toString(), data, headers);
+                serverRunning.buildUri("/oauth/token").build().toString(), data, headers);
         assertEquals(HttpStatus.OK, result.getStatusCode());
 
         // Lock out the account
@@ -213,7 +214,7 @@ public class PasswordChangeEndpointIntegrationTests {
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setPassword("Newpasswo3d");
 
-        MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> parameters = new LinkedMultiValueMap<>();
         parameters.set("grant_type", "client_credentials");
         parameters.set("username", "admin");
         parameters.set("password", "adminsecret");
@@ -222,18 +223,18 @@ public class PasswordChangeEndpointIntegrationTests {
         // Change the password
         HttpHeaders passwordChangeHeaders = new HttpHeaders();
         ResponseEntity<Void> passwordChangeResult = client.exchange(serverRunning.getUrl(userEndpoint)
-                        + "/{id}/password",
-                        HttpMethod.PUT, new HttpEntity<>(change, passwordChangeHeaders),
-                        Void.class, joe.getId());
+                + "/{id}/password",
+                HttpMethod.PUT, new HttpEntity<>(change, passwordChangeHeaders),
+                Void.class, joe.getId());
         assertEquals(HttpStatus.OK, passwordChangeResult.getStatusCode());
 
-        MultiValueMap<String, String> newData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> newData = new LinkedMultiValueMap<>();
         newData.put("grant_type", Collections.singletonList("password"));
         newData.put("username", Collections.singletonList(joe.getUserName()));
         newData.put("password", Collections.singletonList("Newpasswo3d"));
 
         ResponseEntity<Map> updatedResult = serverRunning.postForMap(serverRunning.buildUri("/oauth/token").build()
-                        .toString(), newData, headers);
+                .toString(), newData, headers);
         assertEquals(HttpStatus.OK, updatedResult.getStatusCode());
 
     }

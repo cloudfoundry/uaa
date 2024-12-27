@@ -43,7 +43,7 @@ public class PkceValidationServiceTest {
     @Before
     public void createPkceValidationService() throws Exception {
         pkceValidationService = new PkceValidationService(createPkceVerifiers());
-        authorizeRequestParameters = new HashMap<String, String>();
+        authorizeRequestParameters = new HashMap<>();
     }
 
     @Test
@@ -81,12 +81,12 @@ public class PkceValidationServiceTest {
     public void testNullCodeChallengeMethodParameter() throws Exception {
         assertFalse(pkceValidationService.isCodeChallengeMethodSupported(null));
     }
-    
+
     @Test
     public void testS256CodeChallengeMethodParameter() throws Exception {
         assertTrue(pkceValidationService.isCodeChallengeMethodSupported("S256"));
     }
-    
+
     @Test
     public void testPlainCodeChallengeMethodParameter() throws Exception {
         assertTrue(pkceValidationService.isCodeChallengeMethodSupported("plain"));
@@ -115,7 +115,7 @@ public class PkceValidationServiceTest {
         authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
                 validPlainCodeChallengeOrCodeVerifierParameter);
         assertThat(pkceValidationService.checkAndValidate(authorizeRequestParameters,
-                validPlainCodeChallengeOrCodeVerifierParameter,null), is(true));
+                validPlainCodeChallengeOrCodeVerifierParameter, null), is(true));
     }
 
     @Test
@@ -129,9 +129,9 @@ public class PkceValidationServiceTest {
         ClientDetails client = mock(ClientDetails.class);
         when(client.getAdditionalInformation()).thenReturn(Map.of(ClientConstants.ALLOW_PUBLIC, "true"));
         authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
-            validPlainCodeChallengeOrCodeVerifierParameter);
+                validPlainCodeChallengeOrCodeVerifierParameter);
         assertThrows(InvalidGrantException.class, () -> pkceValidationService.checkAndValidate(authorizeRequestParameters,
-            validPlainCodeChallengeOrCodeVerifierParameter,client));
+                validPlainCodeChallengeOrCodeVerifierParameter, client));
     }
 
     @Test
@@ -139,16 +139,16 @@ public class PkceValidationServiceTest {
         ClientDetails client = mock(ClientDetails.class);
         when(client.getAdditionalInformation()).thenReturn(Map.of("foo", "bar"));
         authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE,
-            validPlainCodeChallengeOrCodeVerifierParameter);
+                validPlainCodeChallengeOrCodeVerifierParameter);
         authorizeRequestParameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, new PlainPkceVerifier().getCodeChallengeMethod());
         assertThat(pkceValidationService.checkAndValidate(authorizeRequestParameters,
-            validPlainCodeChallengeOrCodeVerifierParameter,null), is(true));
+                validPlainCodeChallengeOrCodeVerifierParameter, null), is(true));
     }
 
-    private Map<String,PkceVerifier> createPkceVerifiers() {
+    private Map<String, PkceVerifier> createPkceVerifiers() {
         S256PkceVerifier s256PkceVerifier = new S256PkceVerifier();
         PlainPkceVerifier plainPkceVerifier = new PlainPkceVerifier();
-        Map<String,PkceVerifier> pkceVerifiers = new HashMap<String, PkceVerifier>();
+        Map<String, PkceVerifier> pkceVerifiers = new HashMap<>();
         pkceVerifiers.put(plainPkceVerifier.getCodeChallengeMethod(), plainPkceVerifier);
         pkceVerifiers.put(s256PkceVerifier.getCodeChallengeMethod(), s256PkceVerifier);
         return pkceVerifiers;

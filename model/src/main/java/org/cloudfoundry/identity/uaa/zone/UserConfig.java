@@ -25,7 +25,7 @@ public class UserConfig {
     private List<String> defaultGroups = DEFAULT_ZONE_GROUPS;
 
     // in addition to defaultGroups, which are implicitely allowed
-    private List<String> allowedGroups = null;
+    private List<String> allowedGroups;
 
     private int maxUsers = -1;
 
@@ -50,7 +50,7 @@ public class UserConfig {
     }
 
     public boolean allGroupsAllowed() {
-        return (allowedGroups == null);
+        return allowedGroups == null;
     }
 
     // return defaultGroups plus allowedGroups
@@ -60,7 +60,9 @@ public class UserConfig {
             return null; // null = all groups allowed
         } else {
             HashSet<String> allAllowedGroups = new HashSet<>(allowedGroups);
-            if (defaultGroups != null) allAllowedGroups.addAll(defaultGroups);
+            if (defaultGroups != null) {
+                allAllowedGroups.addAll(defaultGroups);
+            }
             return allAllowedGroups;
         }
     }

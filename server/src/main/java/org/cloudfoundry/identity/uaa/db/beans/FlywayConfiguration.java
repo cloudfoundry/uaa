@@ -16,75 +16,77 @@ import org.springframework.core.type.AnnotatedTypeMetadata;
 @Configuration
 public class FlywayConfiguration {
 
-  /**
-   * In Flyway 5, the default version table name changed to flyway_schema_history
-   * https://flywaydb.org/documentation/releaseNotes#5.0.0
-   * https://github.com/flyway/flyway/issues/1848
-   * <p>
-   * We need to maintain backwards compatibility due to {@link FixFailedBackportMigrations_4_0_4}
-   */
-  static final String VERSION_TABLE = "schema_version";
+    /**
+     * In Flyway 5, the default version table name changed to flyway_schema_history
+     * https://flywaydb.org/documentation/releaseNotes#5.0.0
+     * https://github.com/flyway/flyway/issues/1848
+     * <p>
+     * We need to maintain backwards compatibility due to {@link FixFailedBackportMigrations_4_0_4}
+     */
+    static final String VERSION_TABLE = "schema_version";
 
-  /**
-   * @param dataSourceAccessor This bean does NOT need need an instance of {@link DataSourceAccessor}.
+    /**
+     * @param dataSourceAccessor This bean does NOT need need an instance of {@link DataSourceAccessor}.
    *                           However, other Flyway objects (example {@link V1_5_3__InitialDBScript}
    *                           DO make use of {@link DataSourceAccessor}
-   */
-  @Bean
-  public Flyway baseFlyway(
-      DataSource dataSource,
-      DataSourceAccessor dataSourceAccessor,
-      @Qualifier("platform") String platform) {
-    Flyway flyway = Flyway.configure()
-        .baselineOnMigrate(true)
-        .dataSource(dataSource)
-        .locations("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/")
-        .baselineVersion("1.5.2")
-        .validateOnMigrate(false)
-        .table(VERSION_TABLE)
-        .load();
-    return flyway;
-  }
-
-  private static final String MIGRATIONS_ENABLED = "uaa.migrationsEnabled";
-
-  @Configuration
-  @Conditional(FlywayConfigurationWithMigration.ConfiguredWithMigrations.class)
-  public static class FlywayConfigurationWithMigration {
-    static class ConfiguredWithMigrations implements Condition {
-
-      @Override
-      public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        var migrationsEnabled = context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
-        return !migrationsEnabled.equals("false");
-      }
-    }
-
+     */
     @Bean
-    public Flyway flyway(Flyway baseFlyway) {
-      baseFlyway.repair();
-      baseFlyway.migrate();
-      return baseFlyway;
-    }
-  }
-
-  @Configuration
-  @Conditional(FlywayConfigurationWithoutMigrations.ConfiguredWithoutMigrations.class)
-  static class FlywayConfigurationWithoutMigrations {
-
-    static class ConfiguredWithoutMigrations implements Condition {
-
-      @Override
-      public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-        var migrationsEnabled = context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
-        return migrationsEnabled.equals("false");
-      }
+    public Flyway baseFlyway(
+            DataSource dataSource,
+            DataSourceAccessor dataSourceAccessor,
+            @Qualifier("platform") String platform) {
+        return Flyway.configure()
+                .baselineOnMigrate(true)
+                .dataSource(dataSource)
+                .locations("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/")
+                .baselineVersion("1.5.2")
+                .validateOnMigrate(false)
+                .table(VERSION_TABLE)
+                .load();
     }
 
-    @Bean
-    public Flyway flyway(Flyway baseFlyway) {
-      return baseFlyway;
+    private static final String MIGRATIONS_ENABLED = "uaa.migrationsEnabled";
+
+    @Configuration
+    @Conditional(FlywayConfigurationWithMigration.ConfiguredWithMigrations.class)
+    public static class FlywayConfigurationWithMigration {
+        static class ConfiguredWithMigrations implements Condition {
+
+            @Override
+            public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+                var migrationsEnabled = context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
+                return !"false".equals(migrationsEnabled);
+            }
+        }
+
+        @Bean
+        public Flyway flyway(Flyway baseFlyway) {
+            baseFlyway.repair();
+            baseFlyway.migrate();
+            org.apache.tomcat.jdbc.pool.DataSource ds =
+                    (org.apache.tomcat.jdbc.pool.DataSource)baseFlyway.getConfiguration().getDataSource();
+            ds.purge();
+            return baseFlyway;
+        }
     }
-  }
+
+    @Configuration
+    @Conditional(FlywayConfigurationWithoutMigrations.ConfiguredWithoutMigrations.class)
+    static class FlywayConfigurationWithoutMigrations {
+
+        static class ConfiguredWithoutMigrations implements Condition {
+
+            @Override
+            public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
+                var migrationsEnabled = context.getEnvironment().getProperty(MIGRATIONS_ENABLED, "true");
+                return "false".equals(migrationsEnabled);
+            }
+        }
+
+        @Bean
+        public Flyway flyway(Flyway baseFlyway) {
+            return baseFlyway;
+        }
+    }
 }
 

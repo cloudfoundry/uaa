@@ -75,10 +75,10 @@ public class RefreshTokenCreatorTest {
     @Test
     public void refreshToken_includesClaimsNeededToBuildIdTokens() {
         UaaUser user = new UaaUser(new UaaUserPrototype()
-            .withId("id")
-            .withEmail("spongebob@krustykrab.com")
-            .withUsername("spongebob")
-            .withOrigin("uaa")
+                .withId("id")
+                .withEmail("spongebob@krustykrab.com")
+                .withUsername("spongebob")
+                .withOrigin("uaa")
         );
         Date authTime = new Date(1000L);
         HashSet<String> authenticationMethods = Sets.newHashSet("pwd");
@@ -140,10 +140,10 @@ public class RefreshTokenCreatorTest {
     @Test
     public void createRefreshToken_whenRefreshRestricted_requiresOfflineScope() {
         UaaUser user = new UaaUser(new UaaUserPrototype()
-            .withId("id")
-            .withEmail("spongebob@krustykrab.com")
-            .withUsername("spongebob")
-            .withOrigin("uaa")
+                .withId("id")
+                .withEmail("spongebob@krustykrab.com")
+                .withUsername("spongebob")
+                .withOrigin("uaa")
         );
 
         HashSet<String> authenticationMethods = Sets.newHashSet();

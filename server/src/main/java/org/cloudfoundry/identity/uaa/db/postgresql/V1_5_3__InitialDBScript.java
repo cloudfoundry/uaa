@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -29,7 +30,10 @@ public class V1_5_3__InitialDBScript extends InitialPreDatabaseVersioningSchemaC
         try {
             super.migrate(con);
         } finally {
-            try { con.close(); } catch (Exception ignore) {}
+            try {
+                con.close();
+            } catch (Exception ignore) {
+            }
         }
     }
 }

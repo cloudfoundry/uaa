@@ -28,11 +28,13 @@ import static org.mockito.Mockito.*;
 public class TimeBasedExpiringValueMapTest {
 
     public static final int TIMEOUT = 50;
-    private MockTimeService timeService = new MockTimeService();
+    private final MockTimeService timeService = new MockTimeService();
     private TimeBasedExpiringValueMap<String, Object> map;
-    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
-    private String key1 = generator.generate(), key2 = generator.generate();
-    private Object value1 = new Object(), value2 = new Object();
+    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
+    private final String key1 = generator.generate();
+    private final String key2 = generator.generate();
+    private final Object value1 = new Object();
+    private final Object value2 = new Object();
 
     @Before
     public void setUp() {

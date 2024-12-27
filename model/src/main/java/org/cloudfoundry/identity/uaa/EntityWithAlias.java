@@ -41,8 +41,7 @@ public interface EntityWithAlias {
      */
     @JsonIgnore
     default String getAliasDescription() {
-        return String.format(
-                "%s[id=%s,zid=%s,aliasId=%s,aliasZid=%s]",
+        return "%s[id=%s,zid=%s,aliasId=%s,aliasZid=%s]".formatted(
                 getClass().getSimpleName(),
                 surroundWithSingleQuotesIfPresent(getId()),
                 surroundWithSingleQuotesIfPresent(getZoneId()),

@@ -63,7 +63,7 @@ class PasswordResetEndpointMockMvcTests {
     void setUp() throws Exception {
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
-        scimUser = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        scimUser = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate() + "@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         scimUser.setPrimaryEmail(scimUser.getUserName());
         scimUser.setPassword("secr3T");
         scimUser = MockMvcUtils.createUser(mockMvc, adminToken, scimUser);
@@ -96,7 +96,8 @@ class PasswordResetEndpointMockMvcTests {
 
         ExpiringCode expiringCode = store.retrieveCode("test" + generator.counter.get(), IdentityZoneHolder.get().getId());
         assertThat(expiringCode.getIntent(), is(ExpiringCodeType.AUTOLOGIN.name()));
-        Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
+        Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
+        });
         assertThat(data, is(not(nullValue())));
         assertThat(data.get("user_id"), is(scimUser.getId()));
         assertThat(data.get("username"), is(scimUser.getUserName()));
@@ -125,7 +126,8 @@ class PasswordResetEndpointMockMvcTests {
                 .andExpect(jsonPath("$.code").value("test" + generator.counter.get()));
 
         ExpiringCode expiringCode = store.retrieveCode("test" + generator.counter.get(), IdentityZoneHolder.get().getId());
-        Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
+        Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
+        });
         assertThat(data, is(not(nullValue())));
         assertThat(data.get(OAuth2Utils.CLIENT_ID), is("another-client"));
     }
@@ -136,13 +138,13 @@ class PasswordResetEndpointMockMvcTests {
         String email = scimUser.getUserName();
 
         MockHttpServletRequestBuilder get = get("/reset_password")
-            .param("code", code)
-            .param("email", email);
+                .param("code", code)
+                .param("email", email);
 
         MvcResult result = mockMvc.perform(get)
-            .andExpect(status().isOk())
-            .andExpect(content().string(containsString(String.format("<input type=\"hidden\" name=\"email\" value=\"%s\"/>", email))))
-            .andReturn();
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<input type=\"hidden\" name=\"email\" value=\"%s\"/>".formatted(email))))
+                .andReturn();
 
         String resultingCodeString = getCodeFromPage(result);
         ExpiringCode resultingCode = jdbcExpiringCodeStore.retrieveCode(resultingCodeString, IdentityZoneHolder.get().getId());
@@ -163,36 +165,36 @@ class PasswordResetEndpointMockMvcTests {
         String email = scimUser.getUserName();
 
         MockHttpServletRequestBuilder get = get("/reset_password")
-            .param("code", code)
-            .param("email", email);
+                .param("code", code)
+                .param("email", email);
 
         MvcResult result = mockMvc.perform(get)
-            .andExpect(status().isOk())
-            .andExpect(content().string(containsString(String.format("<input type=\"hidden\" name=\"email\" value=\"%s\"/>", email))))
-            .andReturn();
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("<input type=\"hidden\" name=\"email\" value=\"%s\"/>".formatted(email))))
+                .andReturn();
 
         String resultingCodeString = getCodeFromPage(result);
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .param("code", resultingCodeString)
-            .param("email", email)
-            .param("password", "newpass")
-            .param("password_confirmation", "newpass")
-            .with(cookieCsrf());
+                .param("code", resultingCodeString)
+                .param("email", email)
+                .param("password", "newpass")
+                .param("password_confirmation", "newpass")
+                .with(cookieCsrf());
 
         mockMvc.perform(post)
-            .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl(webApplicationContext.getServletContext().getContextPath() +"/login?success=password_reset&form_redirect_uri=http://localhost:8080/app/"));
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl(webApplicationContext.getServletContext().getContextPath() + "/login?success=password_reset&form_redirect_uri=http://localhost:8080/app/"));
 
         post = post("/login.do")
-            .param("username", scimUser.getUserName())
-            .param("password", "newpass")
-            .param("form_redirect_uri", "http://localhost:8080/app/")
-            .with(cookieCsrf());
+                .param("username", scimUser.getUserName())
+                .param("password", "newpass")
+                .param("form_redirect_uri", "http://localhost:8080/app/")
+                .with(cookieCsrf());
 
         mockMvc.perform(post)
-            .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("http://localhost:8080/app/"));
+                .andExpect(status().is3xxRedirection())
+                .andExpect(redirectedUrl("http://localhost:8080/app/"));
     }
 
     @Test
@@ -200,12 +202,12 @@ class PasswordResetEndpointMockMvcTests {
         String toolongpassword = new AlphanumericRandomValueStringGenerator(260).generate();
         String code = getExpiringCode(mockMvc, null, null, loginToken, scimUser);
         mockMvc.perform(post("/password_change")
-            .header("Authorization", "Bearer " + loginToken)
-            .contentType(APPLICATION_JSON)
-            .content("{\"code\":\"" + code + "\",\"new_password\":\""+toolongpassword+"\"}"))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.error").value("invalid_password"))
-            .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
+                .header("Authorization", "Bearer " + loginToken)
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"new_password\":\"" + toolongpassword + "\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("invalid_password"))
+                .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
     }
 
     @Test
@@ -215,37 +217,37 @@ class PasswordResetEndpointMockMvcTests {
 
         String code = getExpiringCode(mockMvc, null, null, loginToken, scimUser);
         MockHttpServletRequestBuilder post = post("/password_change")
-            .header("Authorization", "Bearer " + loginToken)
-            .contentType(APPLICATION_JSON)
-            .content("{\"code\":\"" + code + "\",\"new_password\":\"d3faultPassword\"}")
-            .accept(APPLICATION_JSON);
+                .header("Authorization", "Bearer " + loginToken)
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"new_password\":\"d3faultPassword\"}")
+                .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(jsonPath("$.error").value("invalid_password"))
-            .andExpect(jsonPath("$.message").value("Your new password cannot be the same as the old password."));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("invalid_password"))
+                .andExpect(jsonPath("$.message").value("Your new password cannot be the same as the old password."));
     }
 
     @Test
     void uaaAdminCanChangePassword() throws Exception {
         MvcResult mvcResult = mockMvc.perform(post("/password_resets")
-            .header("Authorization", "Bearer " + adminToken)
-            .contentType(APPLICATION_JSON)
-            .content(scimUser.getUserName())
-            .accept(APPLICATION_JSON))
-            .andExpect(status().isCreated()).andReturn();
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content(scimUser.getUserName())
+                .accept(APPLICATION_JSON))
+                .andExpect(status().isCreated()).andReturn();
         String responseString = mvcResult.getResponse().getContentAsString();
         String code = Objects.requireNonNull(JsonUtils.readValue(responseString, new TypeReference<Map<String, String>>() {
         })).get("code");
 
         mockMvc.perform(post("/password_change")
-            .header("Authorization", "Bearer " + adminToken)
-            .contentType(APPLICATION_JSON)
-            .content("{\"code\":\"" + code + "\",\"new_password\":\"new-password\"}")
-            .accept(APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.user_id").exists())
-            .andExpect(jsonPath("$.username").value(scimUser.getUserName()));
+                .header("Authorization", "Bearer " + adminToken)
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"new_password\":\"new-password\"}")
+                .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.username").value(scimUser.getUserName()));
     }
 
     @Test
@@ -259,39 +261,39 @@ class PasswordResetEndpointMockMvcTests {
 
         String zonifiedAdminClientId = generator.generate().toLowerCase();
         String zonifiedAdminClientSecret = generator.generate().toLowerCase();
-        MockMvcUtils.createClient(this.mockMvc, adminToken, zonifiedAdminClientId , zonifiedAdminClientSecret, Collections.singleton("oauth"), Collections.singletonList(zoneAdminScope), Arrays.asList("client_credentials", "password"), "uaa.none");
+        MockMvcUtils.createClient(this.mockMvc, adminToken, zonifiedAdminClientId, zonifiedAdminClientSecret, Collections.singleton("oauth"), Collections.singletonList(zoneAdminScope), Arrays.asList("client_credentials", "password"), "uaa.none");
         String zoneAdminAccessToken = testClient.getUserOAuthAccessToken(zonifiedAdminClientId, zonifiedAdminClientSecret, scimUser.getUserName(), "secr3T", zoneAdminScope);
 
-        ScimUser userInZone = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        ScimUser userInZone = new ScimUser(null, new AlphanumericRandomValueStringGenerator().generate() + "@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         userInZone.setPrimaryEmail(userInZone.getUserName());
         userInZone.setPassword("secr3T");
-        userInZone = MockMvcUtils.createUserInZone(mockMvc, adminToken, userInZone, "",identityZone.getId());
+        userInZone = MockMvcUtils.createUserInZone(mockMvc, adminToken, userInZone, "", identityZone.getId());
 
         mockMvc.perform(
-            post("/password_resets")
-                .header("Authorization", "Bearer " + zoneAdminAccessToken)
-                .header(HEADER, identityZone.getId())
-                .contentType(APPLICATION_JSON)
-                .content(userInZone.getPrimaryEmail())
-                .accept(APPLICATION_JSON))
-            .andExpect(status().isCreated())
-            .andExpect(jsonPath("$.user_id").exists())
-            .andExpect(jsonPath("$.code").isNotEmpty());
+                post("/password_resets")
+                        .header("Authorization", "Bearer " + zoneAdminAccessToken)
+                        .header(HEADER, identityZone.getId())
+                        .contentType(APPLICATION_JSON)
+                        .content(userInZone.getPrimaryEmail())
+                        .accept(APPLICATION_JSON))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.code").isNotEmpty());
     }
 
     private static String getExpiringCode(MockMvc mockMvc, String clientId, String redirectUri, String loginToken, ScimUser scimUser) throws Exception {
         MockHttpServletRequestBuilder post = post("/password_resets")
-            .header("Authorization", "Bearer " + loginToken)
-            .contentType(APPLICATION_JSON)
-            .param("client_id", clientId)
-            .param("redirect_uri", redirectUri)
-            .param("response_type", "code")
-            .content(scimUser.getUserName())
-            .accept(APPLICATION_JSON);
+                .header("Authorization", "Bearer " + loginToken)
+                .contentType(APPLICATION_JSON)
+                .param("client_id", clientId)
+                .param("redirect_uri", redirectUri)
+                .param("response_type", "code")
+                .content(scimUser.getUserName())
+                .accept(APPLICATION_JSON);
 
         MvcResult result = mockMvc.perform(post)
-            .andExpect(status().isCreated())
-            .andReturn();
+                .andExpect(status().isCreated())
+                .andReturn();
 
         String responseString = result.getResponse().getContentAsString();
         Map<String, String> response = new HashMap<>(Objects.requireNonNull(JsonUtils.readValue(responseString, new TypeReference<Map<String, String>>() {
@@ -302,15 +304,15 @@ class PasswordResetEndpointMockMvcTests {
     private static void resetPassword(MockMvc mockMvc, String loginToken, ScimUser scimUser) throws Exception {
         String code = getExpiringCode(mockMvc, null, null, loginToken, scimUser);
         MockHttpServletRequestBuilder post = post("/password_change")
-            .header("Authorization", "Bearer " + loginToken)
-            .contentType(APPLICATION_JSON)
-            .content("{\"code\":\"" + code + "\",\"new_password\":\"d3faultPassword\"}")
-            .accept(APPLICATION_JSON);
+                .header("Authorization", "Bearer " + loginToken)
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"" + code + "\",\"new_password\":\"d3faultPassword\"}")
+                .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.user_id").exists())
-            .andExpect(jsonPath("$.username").value(scimUser.getUserName()));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user_id").exists())
+                .andExpect(jsonPath("$.username").value(scimUser.getUserName()));
     }
 
     private static String getCodeFromPage(MvcResult result) throws UnsupportedEncodingException {

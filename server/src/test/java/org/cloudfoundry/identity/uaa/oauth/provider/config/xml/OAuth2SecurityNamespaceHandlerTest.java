@@ -10,10 +10,10 @@ import static org.junit.Assert.*;
  */
 public class OAuth2SecurityNamespaceHandlerTest {
 
-  @Test
-  public void init() {
-    OAuth2SecurityNamespaceHandler oAuth2SecurityNamespaceHandler = new OAuth2SecurityNamespaceHandler();
-    oAuth2SecurityNamespaceHandler.init();
-    assertNotNull(oAuth2SecurityNamespaceHandler);
-  }
+    @Test
+    public void init() {
+        OAuth2SecurityNamespaceHandler oAuth2SecurityNamespaceHandler = new OAuth2SecurityNamespaceHandler();
+        oAuth2SecurityNamespaceHandler.init();
+        assertNotNull(oAuth2SecurityNamespaceHandler);
+    }
 }

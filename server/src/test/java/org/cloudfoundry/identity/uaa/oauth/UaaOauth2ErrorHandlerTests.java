@@ -15,8 +15,8 @@ import org.springframework.http.client.ClientHttpResponse;
 public class UaaOauth2ErrorHandlerTests {
 
 
-    private Map<HttpStatus, ClientHttpResponse> responses = new HashMap<>();
-    private UaaOauth2ErrorHandler handler = null;
+    private final Map<HttpStatus, ClientHttpResponse> responses = new HashMap<>();
+    private UaaOauth2ErrorHandler handler;
 
     @Before
     public void setUp() throws Exception {

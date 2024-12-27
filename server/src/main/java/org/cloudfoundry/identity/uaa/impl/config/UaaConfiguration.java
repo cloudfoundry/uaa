@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -77,28 +78,28 @@ public class UaaConfiguration {
     @Valid
     public CloudController cloud_controller;
     @Valid
-    public Map<String,Object> ldap;
+    public Map<String, Object> ldap;
 
     @Valid
-    public Map<String,Object> login;
+    public Map<String, Object> login;
     @Valid
-    public Map<String,Object> logout;
+    public Map<String, Object> logout;
     @Valid
-    public Map<String,Object> links;
+    public Map<String, Object> links;
     @Valid
-    public Map<String,Object> smtp;
+    public Map<String, Object> smtp;
     @Valid
-    public Map<String,Object> tiles;
+    public Map<String, Object> tiles;
     @Valid
-    public Map<String,Object> servlet;
+    public Map<String, Object> servlet;
     @Valid
-    public Map<String,Object> password;
+    public Map<String, Object> password;
     @Valid
-    public Map<String,Object> authentication;
+    public Map<String, Object> authentication;
     @Valid
-    public Map<String,Object> notifications;
+    public Map<String, Object> notifications;
     @Valid
-    public Map<String,Object> uaa;
+    public Map<String, Object> uaa;
     @Valid
     public String assetBaseUrl;
     @Valid
@@ -106,7 +107,7 @@ public class UaaConfiguration {
     @Valid
     public OAuth multitenant;
     @Valid
-    public Map<String,Object> cors;
+    public Map<String, Object> cors;
 
     public static class Zones {
         @Valid
@@ -158,16 +159,18 @@ public class UaaConfiguration {
             public String signingAlg;
             public Claims claims;
             public Policy policy;
+
             public static class Claims {
                 public Set<String> exclusions;
             }
 
             public static class Policy {
                 public String activeKeyId;
-                public Map<String,KeySpec> keys;
+                public Map<String, KeySpec> keys;
                 public Policy global;
                 public int accessTokenValiditySeconds;
                 public int refreshTokenValiditySeconds;
+
                 public static class KeySpec {
                     public String signingKey;
                     public String signingKeyPassword;

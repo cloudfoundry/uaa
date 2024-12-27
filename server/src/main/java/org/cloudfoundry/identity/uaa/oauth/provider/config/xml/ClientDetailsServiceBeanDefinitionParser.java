@@ -23,57 +23,55 @@ import java.util.List;
  */
 public class ClientDetailsServiceBeanDefinitionParser extends AbstractSingleBeanDefinitionParser {
 
-	@Override
-	protected Class<?> getBeanClass(Element element) {
-		return InMemoryClientDetailsService.class;
-	}
+    @Override
+    protected Class<?> getBeanClass(Element element) {
+        return InMemoryClientDetailsService.class;
+    }
 
-	@Override
-	protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
-		List<Element> clientElements = DomUtils.getChildElementsByTagName(element, "client");
-		ManagedMap<String, BeanMetadataElement> clients = new ManagedMap<>();
-		for (Element clientElement : clientElements) {
-			BeanDefinitionBuilder client = BeanDefinitionBuilder.rootBeanDefinition(UaaClientDetails.class);
-			String clientId = clientElement.getAttribute("client-id");
-			if (StringUtils.hasText(clientId)) {
-				client.addConstructorArgValue(clientId);
-			}
-			else {
-				parserContext.getReaderContext().error("A client id must be supplied with the definition of a client.",
-						clientElement);
-			}
+    @Override
+    protected void doParse(Element element, ParserContext parserContext, BeanDefinitionBuilder builder) {
+        List<Element> clientElements = DomUtils.getChildElementsByTagName(element, "client");
+        ManagedMap<String, BeanMetadataElement> clients = new ManagedMap<>();
+        for (Element clientElement : clientElements) {
+            BeanDefinitionBuilder client = BeanDefinitionBuilder.rootBeanDefinition(UaaClientDetails.class);
+            String clientId = clientElement.getAttribute("client-id");
+            if (StringUtils.hasText(clientId)) {
+                client.addConstructorArgValue(clientId);
+            } else {
+                parserContext.getReaderContext().error("A client id must be supplied with the definition of a client.",
+                        clientElement);
+            }
 
-			String secret = clientElement.getAttribute("secret");
-			if (StringUtils.hasText(secret)) {
-				client.addPropertyValue("clientSecret", secret);
-			}
-			String resourceIds = clientElement.getAttribute("resource-ids");
-			if (StringUtils.hasText(clientId)) {
-				client.addConstructorArgValue(resourceIds);
-			}
-			else {
-				client.addConstructorArgValue("");
-			}
-			String redirectUri = clientElement.getAttribute("redirect-uri");
-			String tokenValidity = clientElement.getAttribute("access-token-validity");
-			if (StringUtils.hasText(tokenValidity)) {
-				client.addPropertyValue("accessTokenValiditySeconds", tokenValidity);
-			}
-			String refreshValidity = clientElement.getAttribute("refresh-token-validity");
-			if (StringUtils.hasText(refreshValidity)) {
-				client.addPropertyValue("refreshTokenValiditySeconds", refreshValidity);
-			}
-			client.addConstructorArgValue(clientElement.getAttribute("scope"));
-			client.addConstructorArgValue(clientElement.getAttribute("authorized-grant-types"));
-			client.addConstructorArgValue(clientElement.getAttribute("authorities"));
-			if (StringUtils.hasText(redirectUri)) {
-				client.addConstructorArgValue(redirectUri);
-			}
-			client.addPropertyValue("autoApproveScopes", clientElement.getAttribute("autoapprove"));
+            String secret = clientElement.getAttribute("secret");
+            if (StringUtils.hasText(secret)) {
+                client.addPropertyValue("clientSecret", secret);
+            }
+            String resourceIds = clientElement.getAttribute("resource-ids");
+            if (StringUtils.hasText(clientId)) {
+                client.addConstructorArgValue(resourceIds);
+            } else {
+                client.addConstructorArgValue("");
+            }
+            String redirectUri = clientElement.getAttribute("redirect-uri");
+            String tokenValidity = clientElement.getAttribute("access-token-validity");
+            if (StringUtils.hasText(tokenValidity)) {
+                client.addPropertyValue("accessTokenValiditySeconds", tokenValidity);
+            }
+            String refreshValidity = clientElement.getAttribute("refresh-token-validity");
+            if (StringUtils.hasText(refreshValidity)) {
+                client.addPropertyValue("refreshTokenValiditySeconds", refreshValidity);
+            }
+            client.addConstructorArgValue(clientElement.getAttribute("scope"));
+            client.addConstructorArgValue(clientElement.getAttribute("authorized-grant-types"));
+            client.addConstructorArgValue(clientElement.getAttribute("authorities"));
+            if (StringUtils.hasText(redirectUri)) {
+                client.addConstructorArgValue(redirectUri);
+            }
+            client.addPropertyValue("autoApproveScopes", clientElement.getAttribute("autoapprove"));
 
-			clients.put(clientId, client.getBeanDefinition());
-		}
+            clients.put(clientId, client.getBeanDefinition());
+        }
 
-		builder.addPropertyValue("clientDetailsStore", clients);
-	}
+        builder.addPropertyValue("clientDetailsStore", clients);
+    }
 }

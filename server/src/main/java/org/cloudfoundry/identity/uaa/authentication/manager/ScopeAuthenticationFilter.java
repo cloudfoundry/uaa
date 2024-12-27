@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -62,19 +63,19 @@ public class ScopeAuthenticationFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication==null || (!(authentication instanceof OAuth2Authentication))) {
+            if (authentication == null || (!(authentication instanceof OAuth2Authentication))) {
                 throw new InvalidTokenException("Missing oauth token.");
             }
             authenticationManager.authenticate(authentication);
-            chain.doFilter(request,response);
+            chain.doFilter(request, response);
         } catch (OAuth2Exception e) {
             authenticationEntryPoint.commence(
-                (HttpServletRequest)request,
-                (HttpServletResponse)response,
-                new InsufficientAuthenticationException("Insufficient authentication", e));
+                    (HttpServletRequest) request,
+                    (HttpServletResponse) response,
+                    new InsufficientAuthenticationException("Insufficient authentication", e));
             SecurityContextHolder.clearContext();
         } catch (AuthenticationException e) {
-            authenticationEntryPoint.commence((HttpServletRequest)request,(HttpServletResponse)response,e);
+            authenticationEntryPoint.commence((HttpServletRequest) request, (HttpServletResponse) response, e);
             SecurityContextHolder.clearContext();
         }
     }

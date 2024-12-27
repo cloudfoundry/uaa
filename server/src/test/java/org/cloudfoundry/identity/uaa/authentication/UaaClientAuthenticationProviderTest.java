@@ -93,22 +93,22 @@ class UaaClientAuthenticationProviderTest {
 
     private UsernamePasswordAuthenticationToken getAuthenticationToken(String grant_type) {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
-        request.addParameter("code_verifier","E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+        request.addParameter("code_verifier", "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
         request.addParameter("code", "1234567890");
         request.addParameter("client_id", "id");
-        request.addParameter("redirect_uri",  "http://localhost:8080/uaa");
-        request.addParameter("grant_type",  grant_type);
+        request.addParameter("redirect_uri", "http://localhost:8080/uaa");
+        request.addParameter("grant_type", grant_type);
         return getAuthenticationToken(request);
     }
 
     private UsernamePasswordAuthenticationToken getAuthenticationTokenClientJwt(String grant_type) {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
-        request.addParameter("code_verifier","E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
+        request.addParameter("code_verifier", "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM");
         request.addParameter("code", "1234567890");
         request.addParameter("client_assertion", "id");
         request.addParameter("client_assertion_type", "id");
-        request.addParameter("redirect_uri",  "http://localhost:8080/uaa");
-        request.addParameter("grant_type",  grant_type);
+        request.addParameter("redirect_uri", "http://localhost:8080/uaa");
+        request.addParameter("grant_type", grant_type);
         return getAuthenticationToken(request);
     }
 
@@ -151,8 +151,8 @@ class UaaClientAuthenticationProviderTest {
         client = createClient(ClientConstants.ALLOW_PUBLIC, true);
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
         request.addParameter("client_id", "id");
-        request.addParameter("refresh_token",  "1234567890");
-        request.addParameter("grant_type",  "refresh_token");
+        request.addParameter("refresh_token", "1234567890");
+        request.addParameter("grant_type", "refresh_token");
         UsernamePasswordAuthenticationToken a = getAuthenticationToken(request);
         authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a);
         assertNotNull(a);
@@ -164,8 +164,8 @@ class UaaClientAuthenticationProviderTest {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/token");
         request.addHeader("Authorization", "client:secret");
         request.addParameter("client_id", "id");
-        request.addParameter("refresh_token",  "1234567890");
-        request.addParameter("grant_type",  "refresh_token");
+        request.addParameter("refresh_token", "1234567890");
+        request.addParameter("grant_type", "refresh_token");
         UsernamePasswordAuthenticationToken a = getAuthenticationToken(request);
         assertThrows(BadCredentialsException.class, () -> authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a));
     }
@@ -175,8 +175,8 @@ class UaaClientAuthenticationProviderTest {
         client = createClient(ClientConstants.ALLOW_PUBLIC, true);
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/oauth/authorize");
         request.addParameter("client_id", "id");
-        request.addParameter("refresh_token",  "1234567890");
-        request.addParameter("grant_type",  "refresh_token");
+        request.addParameter("refresh_token", "1234567890");
+        request.addParameter("grant_type", "refresh_token");
         UsernamePasswordAuthenticationToken a = getAuthenticationToken(request);
         assertThrows(BadCredentialsException.class, () -> authenticationProvider.additionalAuthenticationChecks(new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a));
     }
@@ -242,7 +242,7 @@ class UaaClientAuthenticationProviderTest {
         UsernamePasswordAuthenticationToken a = mock(UsernamePasswordAuthenticationToken.class);
         UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
         when(a.getDetails()).thenReturn(uaaAuthenticationDetails);
-        assertThrows(BadCredentialsException.class, () ->testClientAuthentication(a));
+        assertThrows(BadCredentialsException.class, () -> testClientAuthentication(a));
     }
 
     @Test
@@ -267,7 +267,7 @@ class UaaClientAuthenticationProviderTest {
     void clientJwt_authenticate_client_without_config() {
         UsernamePasswordAuthenticationToken a = getAuthenticationTokenClientJwt("authorization_code");
         assertThrows(BadCredentialsException.class, () -> authenticationProvider.additionalAuthenticationChecks(
-            new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a));
+                new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a));
     }
 
     @Test
@@ -275,7 +275,7 @@ class UaaClientAuthenticationProviderTest {
         when(jwtClientAuthentication.validateClientJwt(any(), any(), any())).thenReturn(true);
         UsernamePasswordAuthenticationToken a = getAuthenticationTokenClientJwt("authorization_code");
         authenticationProvider.additionalAuthenticationChecks(
-            new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a);
+                new UaaClient("client", "secret", Collections.emptyList(), client.getAdditionalInformation(), null), a);
         assertNotNull(a);
     }
 }

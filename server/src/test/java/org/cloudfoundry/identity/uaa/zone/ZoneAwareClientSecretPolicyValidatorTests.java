@@ -14,8 +14,8 @@ class ZoneAwareClientSecretPolicyValidatorTests {
 
     private IdentityZone zone;
 
-    private ClientSecretPolicy defaultPolicy = new ClientSecretPolicy(0,255,0,0,0,0,6);
-    private ClientSecretPolicy strictPolicy = new ClientSecretPolicy(6,10,1,1,1,1,6);
+    private ClientSecretPolicy defaultPolicy = new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6);
+    private ClientSecretPolicy strictPolicy = new ClientSecretPolicy(6, 10, 1, 1, 1, 1, 6);
 
     private static final String TEST_SECRET_1 = "";
     private static final String TEST_SECRET_2 = "testsecret";

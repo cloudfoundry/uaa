@@ -18,7 +18,7 @@ import org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessi
 @EnableJdbcHttpSession
 public class UaaJdbcSessionConfig extends UaaSessionConfig {
 
-    private final static Logger logger = LoggerFactory.getLogger(UaaJdbcSessionConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(UaaJdbcSessionConfig.class);
 
     public static class DatabaseConfigured implements Condition {
         @Override

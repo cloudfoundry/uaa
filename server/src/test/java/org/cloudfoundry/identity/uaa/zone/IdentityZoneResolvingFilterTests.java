@@ -104,7 +104,7 @@ class IdentityZoneResolvingFilterTests {
         MockHttpServletRequest request = new MockHttpServletRequest();
         String incomingSubdomain = "not_a_zone";
         String uaaHostname = "uaa.mycf.com";
-        String incomingHostname = incomingSubdomain+"."+uaaHostname;
+        String incomingHostname = incomingSubdomain + "." + uaaHostname;
         request.setServerName(incomingHostname);
         request.setRequestURI(context + path);
         request.setContextPath(context);

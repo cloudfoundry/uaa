@@ -11,12 +11,12 @@ package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 @SuppressWarnings("serial")
 public class InvalidGrantException extends ClientAuthenticationException {
 
-	public InvalidGrantException(String msg) {
-		super(msg);
-	}
+    public InvalidGrantException(String msg) {
+        super(msg);
+    }
 
-	@Override
-	public String getOAuth2ErrorCode() {
-		return INVALID_GRANT;
-	}
+    @Override
+    public String getOAuth2ErrorCode() {
+        return INVALID_GRANT;
+    }
 }

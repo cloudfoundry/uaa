@@ -24,7 +24,7 @@ public class ProxyingBeanInfoMatcher<S>
     public static <S, T extends Matcher<S>> T proxying(Class<T> proxyClass) {
         return (T) Proxy.newProxyInstance(
                 proxyClass.getClassLoader(),
-                new Class<?>[] { proxyClass },
+                new Class<?>[]{proxyClass},
                 new ProxyingBeanInfoMatcher<>());
     }
 
@@ -76,8 +76,8 @@ public class ProxyingBeanInfoMatcher<S>
     }
 
     private Matcher<?> getMatcher(Object arg) {
-        if (arg instanceof Matcher) {
-            return (Matcher<?>) arg;
+        if (arg instanceof Matcher<?> matcher) {
+            return matcher;
         }
 
         return Matchers.equalTo(arg);

@@ -46,15 +46,13 @@ class LdapGroupMappingAuthorizationManagerTests {
     private Set<? extends GrantedAuthority> nonLdapGroups;
     private Set<? extends GrantedAuthority> ldapGroups;
 
-    private LdapAuthority
-            la1 = new LdapAuthority("engineering", "cn=Engineering,ou=groups,dc=example,dc=com"),
-            la2 = new LdapAuthority("HR", "cn=HR,ou=groups,dc=example,dc=com"),
-            la3 = new LdapAuthority("mgmt", "cn=mgmt,ou=groups,dc=example,dc=com");
+    private LdapAuthority la1 = new LdapAuthority("engineering", "cn=Engineering,ou=groups,dc=example,dc=com");
+    private LdapAuthority la2 = new LdapAuthority("HR", "cn=HR,ou=groups,dc=example,dc=com");
+    private LdapAuthority la3 = new LdapAuthority("mgmt", "cn=mgmt,ou=groups,dc=example,dc=com");
 
-    private SimpleGrantedAuthority
-            sa1 = new SimpleGrantedAuthority("acme"),
-            sa2 = new SimpleGrantedAuthority("acme.dev"),
-            sa3 = new SimpleGrantedAuthority("acme.notmapped");
+    private SimpleGrantedAuthority sa1 = new SimpleGrantedAuthority("acme");
+    private SimpleGrantedAuthority sa2 = new SimpleGrantedAuthority("acme.dev");
+    private SimpleGrantedAuthority sa3 = new SimpleGrantedAuthority("acme.notmapped");
 
     @BeforeEach
     void initLdapGroupMappingAuthorizationManagerTests(

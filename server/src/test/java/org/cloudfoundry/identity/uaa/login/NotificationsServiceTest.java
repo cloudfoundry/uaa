@@ -39,7 +39,7 @@ public class NotificationsServiceTest {
     private Map<String, Object> response;
 
     @Before
-    public void setUp(){
+    public void setUp() {
         notificationsTemplate = new RestTemplate();
         mockNotificationsServer = MockRestServiceServer.createServer(notificationsTemplate);
 
@@ -62,18 +62,18 @@ public class NotificationsServiceTest {
 
         response = new HashMap<>();
         List<Map<String, String>> resources = new ArrayList<>();
-        Map<String,String> userDetails = new HashMap<>();
+        Map<String, String> userDetails = new HashMap<>();
         userDetails.put("id", "user-id-01");
         resources.add(userDetails);
         response.put("resources", resources);
 
         mockNotificationsServer.expect(requestTo("http://notifications.example.com/registration"))
-            .andExpect(method(PUT))
-            .andExpect(jsonPath("$.source_description").value("CF_Identity"))
-            .andExpect(jsonPath("$.kinds[0].id").value("kind-id-01"))
-            .andExpect(jsonPath("$.kinds[0].description").value("password reset"))
-            .andExpect(jsonPath("$.kinds[0].critical").value(true))
-            .andRespond(withSuccess());
+                .andExpect(method(PUT))
+                .andExpect(jsonPath("$.source_description").value("CF_Identity"))
+                .andExpect(jsonPath("$.kinds[0].id").value("kind-id-01"))
+                .andExpect(jsonPath("$.kinds[0].description").value("password reset"))
+                .andExpect(jsonPath("$.kinds[0].critical").value(true))
+                .andRespond(withSuccess());
     }
 
     @After
@@ -85,12 +85,12 @@ public class NotificationsServiceTest {
     public void testSendingMessageToEmailAddress() {
 
         mockNotificationsServer.expect(requestTo("http://notifications.example.com/emails"))
-            .andExpect(method(POST))
-            .andExpect(jsonPath("$.kind_id").value("kind-id-01"))
-            .andExpect(jsonPath("$.to").value("user@example.com"))
-            .andExpect(jsonPath("$.subject").value("First message"))
-            .andExpect(jsonPath("$.html").value("<p>Message</p>"))
-            .andRespond(withSuccess());
+                .andExpect(method(POST))
+                .andExpect(jsonPath("$.kind_id").value("kind-id-01"))
+                .andExpect(jsonPath("$.to").value("user@example.com"))
+                .andExpect(jsonPath("$.subject").value("First message"))
+                .andExpect(jsonPath("$.html").value("<p>Message</p>"))
+                .andRespond(withSuccess());
 
         notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
 
@@ -103,11 +103,11 @@ public class NotificationsServiceTest {
         IdentityZoneHolder.set(zone);
 
         mockNotificationsServer.expect(requestTo("http://notifications.example.com/emails"))
-            .andExpect(method(POST))
-            .andExpect(jsonPath("$.to").value("user@example.com"))
-            .andExpect(jsonPath("$.subject").value("First message"))
-            .andExpect(jsonPath("$.html").value("<p>Message</p>"))
-            .andRespond(withSuccess());
+                .andExpect(method(POST))
+                .andExpect(jsonPath("$.to").value("user@example.com"))
+                .andExpect(jsonPath("$.subject").value("First message"))
+                .andExpect(jsonPath("$.html").value("<p>Message</p>"))
+                .andRespond(withSuccess());
 
         notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
 
@@ -121,11 +121,11 @@ public class NotificationsServiceTest {
         IdentityZoneHolder.set(zone);
 
         mockNotificationsServer.expect(requestTo("http://notifications.example.com/emails"))
-            .andExpect(method(POST))
-            .andExpect(jsonPath("$.to").value("user@example.com"))
-            .andExpect(jsonPath("$.subject").value("First message"))
-            .andExpect(jsonPath("$.html").value("<p>Message</p>"))
-            .andRespond(withBadRequest());
+                .andExpect(method(POST))
+                .andExpect(jsonPath("$.to").value("user@example.com"))
+                .andExpect(jsonPath("$.subject").value("First message"))
+                .andExpect(jsonPath("$.html").value("<p>Message</p>"))
+                .andRespond(withBadRequest());
         try {
             notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
             fail();

@@ -15,16 +15,16 @@ public class SlowHttpServer {
     private HttpServer httpServer;
 
     public SlowHttpServer() {
-            serverRunner = () -> {
-                try {
-                    HttpHeaders headers = new HttpHeaders();
-                    headers.setContentType(MediaType.APPLICATION_JSON);
-                    File keystore = NetworkTestUtils.getKeystore(new Date(), 10);
-                    httpServer = NetworkTestUtils.startHttpsServer(keystore, NetworkTestUtils.keyPass, new SlowSimpleHttpResponseHandler());
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            };
+        serverRunner = () -> {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
+                File keystore = NetworkTestUtils.getKeystore(new Date(), 10);
+                httpServer = NetworkTestUtils.startHttpsServer(keystore, NetworkTestUtils.keyPass, new SlowSimpleHttpResponseHandler());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        };
     }
 
     public void run() {

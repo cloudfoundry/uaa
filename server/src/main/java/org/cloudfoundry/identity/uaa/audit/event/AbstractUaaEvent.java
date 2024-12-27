@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -46,6 +47,7 @@ import static org.springframework.util.StringUtils.hasText;
  */
 public abstract class AbstractUaaEvent extends ApplicationEvent {
 
+    @Serial
     private static final long serialVersionUID = -7639844193401892160L;
     private final transient String zoneId;
 
@@ -105,8 +107,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
             if (!oAuth2Authentication.isClientOnly()) {
                 builder.append(", ").append("user=").append(oAuth2Authentication.getName());
             }
-        }
-        else {
+        } else {
             builder.append("caller=").append(caller.getName());
         }
 
@@ -115,7 +116,8 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
             try {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> map =
-                    JsonUtils.readValue((String) caller.getDetails(), new TypeReference<Map<String,Object>>(){});
+                        JsonUtils.readValue((String) caller.getDetails(), new TypeReference<Map<String, Object>>(){
+                        });
                 if (map.containsKey("remoteAddress")) {
                     builder.append("remoteAddress=").append(map.get("remoteAddress")).append(", ");
                 }
@@ -159,12 +161,13 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     protected static Authentication getContextAuthentication() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        if (a==null) {
+        if (a == null) {
             a = new Authentication() {
 
                 @Serial
                 private static final long serialVersionUID = -6219210214210936383L;
                 ArrayList<GrantedAuthority> authorities = new ArrayList<>(0);
+
                 @Override
                 public Collection<? extends GrantedAuthority> getAuthorities() {
                     return authorities;
@@ -192,7 +195,7 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
 
                 @Override
                 public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-                // ignore
+                    // ignore
                 }
 
                 @Override

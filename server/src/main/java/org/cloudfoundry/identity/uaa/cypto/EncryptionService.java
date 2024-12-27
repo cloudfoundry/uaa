@@ -21,13 +21,13 @@ public class EncryptionService {
     private Logger logger = LoggerFactory.getLogger(EncryptionService.class);
     private String passphrase;
 
-    private final int GCM_AUTHENTICATION_TAG_SIZE_BITS = 128;
-    private final int GCM_IV_NONCE_SIZE_BYTES = 12;
-    private final int PBKDF2_ITERATIONS = 65536;
-    private final int PBKDF2_SALT_SIZE_BYTES = 32;
-    private final int AES_KEY_LENGTH_BITS = 256;
-    private final String CIPHER = "AES";
-    private final String CIPHERSCHEME = "AES/GCM/NoPadding";
+    private static final int GCM_AUTHENTICATION_TAG_SIZE_BITS = 128;
+    private static final int GCM_IV_NONCE_SIZE_BYTES = 12;
+    private static final int PBKDF2_ITERATIONS = 65536;
+    private static final int PBKDF2_SALT_SIZE_BYTES = 32;
+    private static final int AES_KEY_LENGTH_BITS = 256;
+    private static final String CIPHER = "AES";
+    private static final String CIPHERSCHEME = "AES/GCM/NoPadding";
     private SecureRandom random = new SecureRandom();
 
 
@@ -90,10 +90,10 @@ public class EncryptionService {
 
     private byte[] generateKey(byte[] salt) {
         PasswordBasedDeriver<FipsPBKD.Parameters> gen = new FipsPBKD.DeriverFactory().createDeriver(
-            FipsPBKD.PBKDF2.using(FipsSHS.Algorithm.SHA256_HMAC,
-                    PasswordConverter.UTF8.convert(this.passphrase.toCharArray()))
-                .withIterationCount(PBKDF2_ITERATIONS)
-                .withSalt(salt)
+                FipsPBKD.PBKDF2.using(FipsSHS.Algorithm.SHA256_HMAC,
+                        PasswordConverter.UTF8.convert(this.passphrase.toCharArray()))
+                        .withIterationCount(PBKDF2_ITERATIONS)
+                        .withSalt(salt)
         );
         return gen.deriveKey(PasswordBasedDeriver.KeyType.CIPHER, (AES_KEY_LENGTH_BITS + 7) / 8);
     }

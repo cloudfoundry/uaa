@@ -57,8 +57,7 @@ public class ChangePasswordController {
             changePasswordService.changePassword(username, currentPassword, newPassword);
             request.getSession().invalidate();
             request.getSession(true);
-            if (authentication instanceof UaaAuthentication) {
-                UaaAuthentication uaaAuthentication = (UaaAuthentication) authentication;
+            if (authentication instanceof UaaAuthentication uaaAuthentication) {
                 uaaAuthentication.setAuthenticatedTime(System.currentTimeMillis());
                 uaaAuthentication.setAuthenticationDetails(new UaaAuthenticationDetails(request));
             }

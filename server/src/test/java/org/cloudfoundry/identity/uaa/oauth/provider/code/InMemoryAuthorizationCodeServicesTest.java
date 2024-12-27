@@ -9,28 +9,28 @@ import static org.mockito.Mockito.mock;
 
 public class InMemoryAuthorizationCodeServicesTest {
 
-  private InMemoryAuthorizationCodeServices inMemoryAuthorizationCodeServices;
-  private OAuth2Authentication oAuth2Authentication;
+    private InMemoryAuthorizationCodeServices inMemoryAuthorizationCodeServices;
+    private OAuth2Authentication oAuth2Authentication;
 
 
-  @Before
-  public void setUp() throws Exception {
-    inMemoryAuthorizationCodeServices = new InMemoryAuthorizationCodeServices();
-    oAuth2Authentication = mock(OAuth2Authentication.class);
-  }
+    @Before
+    public void setUp() throws Exception {
+        inMemoryAuthorizationCodeServices = new InMemoryAuthorizationCodeServices();
+        oAuth2Authentication = mock(OAuth2Authentication.class);
+    }
 
-  @Test
-  public void store() {
-    inMemoryAuthorizationCodeServices.store("code", oAuth2Authentication);
-    assertEquals(oAuth2Authentication, inMemoryAuthorizationCodeServices.authorizationCodeStore.get("code"));
-  }
+    @Test
+    public void store() {
+        inMemoryAuthorizationCodeServices.store("code", oAuth2Authentication);
+        assertEquals(oAuth2Authentication, inMemoryAuthorizationCodeServices.authorizationCodeStore.get("code"));
+    }
 
-  @Test
-  public void remove() {
-    assertEquals(0, inMemoryAuthorizationCodeServices.authorizationCodeStore.size());
-    inMemoryAuthorizationCodeServices.store("code", oAuth2Authentication);
-    assertEquals(1, inMemoryAuthorizationCodeServices.authorizationCodeStore.size());
-    inMemoryAuthorizationCodeServices.remove("code");
-    assertEquals(0, inMemoryAuthorizationCodeServices.authorizationCodeStore.size());
-  }
+    @Test
+    public void remove() {
+        assertEquals(0, inMemoryAuthorizationCodeServices.authorizationCodeStore.size());
+        inMemoryAuthorizationCodeServices.store("code", oAuth2Authentication);
+        assertEquals(1, inMemoryAuthorizationCodeServices.authorizationCodeStore.size());
+        inMemoryAuthorizationCodeServices.remove("code");
+        assertEquals(0, inMemoryAuthorizationCodeServices.authorizationCodeStore.size());
+    }
 }

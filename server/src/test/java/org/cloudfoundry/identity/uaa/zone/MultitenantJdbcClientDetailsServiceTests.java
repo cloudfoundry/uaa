@@ -331,8 +331,8 @@ class MultitenantJdbcClientDetailsServiceTests {
         assertEquals("myRedirectUri", uaaUaaClientDetails.getRegisteredRedirectUri() .iterator().next());
         assertEquals(1, uaaUaaClientDetails.getAuthorities().size());
         assertEquals("myAuthority", uaaUaaClientDetails.getAuthorities().iterator() .next().getAuthority());
-        assertEquals(new Integer(100), uaaUaaClientDetails.getAccessTokenValiditySeconds());
-        assertEquals(new Integer(200), uaaUaaClientDetails.getRefreshTokenValiditySeconds());
+        assertEquals(Integer.valueOf(100), uaaUaaClientDetails.getAccessTokenValiditySeconds());
+        assertEquals(Integer.valueOf(200), uaaUaaClientDetails.getRefreshTokenValiditySeconds());
     }
 
     @Test
@@ -444,9 +444,9 @@ class MultitenantJdbcClientDetailsServiceTests {
                 .iterator();
         assertEquals("myAuthority1", authorities.next().getAuthority());
         assertEquals("myAuthority2", authorities.next().getAuthority());
-        assertEquals(new Integer(100),
+        assertEquals(Integer.valueOf(100),
                 clientDetails.getAccessTokenValiditySeconds());
-        assertEquals(new Integer(200),
+        assertEquals(Integer.valueOf(200),
                 clientDetails.getRefreshTokenValiditySeconds());
         assertTrue(clientDetails.isAutoApprove("read"));
     }
@@ -543,7 +543,7 @@ class MultitenantJdbcClientDetailsServiceTests {
         service.addClientJwtConfig(clientDetails.getClientId(), "http://localhost:8080/uaa/token_keys", currentZoneId, true);
 
         Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
-            "newClientIdWithNoDetails");
+                "newClientIdWithNoDetails");
 
         assertEquals("newClientIdWithNoDetails", map.get("client_id"));
         assertTrue(map.containsKey("client_jwt_config"));
@@ -583,13 +583,13 @@ class MultitenantJdbcClientDetailsServiceTests {
         service.addClientDetails(clientDetails, mockIdentityZoneManager.getCurrentIdentityZoneId());
 
         Map<String, Object> map = jdbcTemplate.queryForMap(SELECT_SQL,
-            "newClientIdWithClientJwtConfig");
+                "newClientIdWithClientJwtConfig");
         assertEquals("small", (String) map.get("client_jwt_config"));
 
         service.updateClientJwtConfig(clientDetails.getClientId(), "any json web key config", mockIdentityZoneManager.getCurrentIdentityZoneId());
 
         map = jdbcTemplate.queryForMap(SELECT_SQL,
-            "newClientIdWithClientJwtConfig");
+                "newClientIdWithClientJwtConfig");
 
         assertEquals("newClientIdWithClientJwtConfig", map.get("client_id"));
         assertTrue(map.containsKey("client_jwt_config"));

@@ -35,17 +35,17 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-    private static Logger logger = LoggerFactory.getLogger(JdbcUaaUserDatabase.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcUaaUserDatabase.class);
 
     private static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior,passwd_change_required,last_logon_success_time,previous_logon_success_time ";
 
     private static final String PRE_DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users where %s = ? and active=? and origin=? and identity_zone_id=?";
-    static final String DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY = String.format(PRE_DEFAULT_USER_BY_USERNAME_QUERY, "lower(username)");
-    static final String DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY = String.format(PRE_DEFAULT_USER_BY_USERNAME_QUERY, "username");
+    static final String DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY = PRE_DEFAULT_USER_BY_USERNAME_QUERY.formatted("lower(username)");
+    static final String DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY = PRE_DEFAULT_USER_BY_USERNAME_QUERY.formatted("username");
 
     private static final String PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY = "select " + USER_FIELDS + "from users where %s=? and active=? and origin=? and identity_zone_id=?";
-    static final String DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "lower(email)");
-    static final String DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = String.format(PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, "email");
+    static final String DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY.formatted("lower(email)");
+    static final String DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY = PRE_DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY.formatted("email");
     private static final String DEFAULT_UPDATE_USER_LAST_LOGON_PLAIN = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = ? and identity_zone_id=?";
     private static final String DEFAULT_UPDATE_USER_LAST_LOGON_SKIP_LOCKED = "update users set previous_logon_success_time = last_logon_success_time, last_logon_success_time = ? where id = (select id from users where id = ? and identity_zone_id = ? for update skip locked)";
     public static String DEFAULT_UPDATE_USER_LAST_LOGON = DEFAULT_UPDATE_USER_LAST_LOGON_PLAIN;
@@ -65,7 +65,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
     private final RowMapper<UaaUserPrototype> minimalMapper = new UaaUserPrototypeRowMapper();
     private final RowMapper<UserInfo> userInfoMapper = new UserInfoRowMapper();
-    private String quotedGroupsIdentifier;
+    private final String quotedGroupsIdentifier;
 
     RowMapper<UaaUser> getMapper() {
         return mapper;
@@ -149,12 +149,12 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
         String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
         List<UaaUser> results = jdbcTemplate.query(sql, mapper, email.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
-        if (results.size() == 0) {
+        if (results.isEmpty()) {
             return null;
         } else if (results.size() == 1) {
             return results.get(0);
         } else {
-            throw new IncorrectResultSizeDataAccessException(String.format("Multiple users match email=%s origin=%s", email, origin), 1, results.size());
+            throw new IncorrectResultSizeDataAccessException("Multiple users match email=%s origin=%s".formatted(email, origin), 1, results.size());
         }
     }
 
@@ -162,12 +162,12 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public UaaUserPrototype retrieveUserPrototypeByEmail(String email, String origin) throws UsernameNotFoundException {
         String sql = caseInsensitive ? DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY : DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
         List<UaaUserPrototype> results = jdbcTemplate.query(sql, minimalMapper, email.toLowerCase(Locale.US), true, origin, identityZoneManager.getCurrentIdentityZoneId());
-        if (results.size() == 0) {
+        if (results.isEmpty()) {
             return null;
         } else if (results.size() == 1) {
             return results.get(0);
         } else {
-            throw new IncorrectResultSizeDataAccessException(String.format("Multiple users match email=%s origin=%s", email, origin), 1, results.size());
+            throw new IncorrectResultSizeDataAccessException("Multiple users match email=%s origin=%s".formatted(email, origin), 1, results.size());
         }
     }
 
@@ -207,22 +207,22 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     private UaaUserPrototype getUaaUserPrototype(ResultSet rs) throws SQLException {
         String id = rs.getString("id");
         UaaUserPrototype prototype = new UaaUserPrototype().withId(id)
-            .withUsername(rs.getString("username"))
-            .withPassword(rs.getString("password"))
-            .withEmail(rs.getString("email"))
-            .withGivenName(rs.getString("givenName"))
-            .withFamilyName(rs.getString("familyName"))
-            .withCreated(rs.getTimestamp("created"))
-            .withModified(rs.getTimestamp("lastModified"))
-            .withOrigin(rs.getString("origin"))
-            .withExternalId(rs.getString("external_id"))
-            .withVerified(rs.getBoolean("verified"))
-            .withZoneId(rs.getString("identity_zone_id"))
-            .withSalt(rs.getString("salt"))
-            .withPasswordLastModified(rs.getTimestamp("passwd_lastmodified"))
-            .withPhoneNumber(rs.getString("phoneNumber"))
-            .withLegacyVerificationBehavior(rs.getBoolean("legacy_verification_behavior"))
-            .withPasswordChangeRequired(rs.getBoolean("passwd_change_required"));
+                .withUsername(rs.getString("username"))
+                .withPassword(rs.getString("password"))
+                .withEmail(rs.getString("email"))
+                .withGivenName(rs.getString("givenName"))
+                .withFamilyName(rs.getString("familyName"))
+                .withCreated(rs.getTimestamp("created"))
+                .withModified(rs.getTimestamp("lastModified"))
+                .withOrigin(rs.getString("origin"))
+                .withExternalId(rs.getString("external_id"))
+                .withVerified(rs.getBoolean("verified"))
+                .withZoneId(rs.getString("identity_zone_id"))
+                .withSalt(rs.getString("salt"))
+                .withPasswordLastModified(rs.getTimestamp("passwd_lastmodified"))
+                .withPhoneNumber(rs.getString("phoneNumber"))
+                .withLegacyVerificationBehavior(rs.getBoolean("legacy_verification_behavior"))
+                .withPasswordChangeRequired(rs.getBoolean("passwd_change_required"));
 
         Long lastLogon = rs.getLong("last_logon_success_time");
         if (rs.wasNull()) {
@@ -233,7 +233,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             previousLogon = null;
         }
         prototype.withLastLogonSuccess(lastLogon)
-            .withPreviousLogonSuccess(previousLogon);
+                .withPreviousLogonSuccess(previousLogon);
         return prototype;
     }
 
@@ -257,7 +257,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         public UaaUser mapRow(ResultSet rs, int rowNum) throws SQLException {
             UaaUserPrototype prototype = getUaaUserPrototype(rs);
             List<GrantedAuthority> authorities =
-                AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(prototype.getId()));
+                    AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(prototype.getId()));
             return new UaaUser(prototype.withAuthorities(authorities));
         }
 
@@ -295,7 +295,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             getAuthorities(authorities, newMemberIdList);
         }
 
-        private List<Map<String,Object>> executeAuthoritiesQuery(List<String> memberList) {
+        private List<Map<String, Object>> executeAuthoritiesQuery(List<String> memberList) {
             Vendor dbVendor = databaseUrlModifier.getDatabaseType();
             if (Vendor.postgresql.equals(dbVendor)) {
                 return executeAuthoritiesQueryPostgresql(memberList);
@@ -307,7 +307,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
 
         private List<Map<String, Object>> executeAuthoritiesQueryDefault(List<String> memberList) {
-            List<Map<String,Object>> results = new ArrayList<>();
+            List<Map<String, Object>> results = new ArrayList<>();
             while (!memberList.isEmpty()) {
                 StringBuilder dynamicAuthoritiesQuery = new StringBuilder("select g.id,g.displayName from ")
                         .append(quotedGroupsIdentifier)
@@ -318,7 +318,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                 }
                 dynamicAuthoritiesQuery.append("?);");
 
-                Object[] parameterList = ArrayUtils.addAll(new Object[] { identityZoneManager.getCurrentIdentityZoneId() }, memberList.subList(0, size).toArray());
+                Object[] parameterList = ArrayUtils.addAll(new Object[]{identityZoneManager.getCurrentIdentityZoneId()}, memberList.subList(0, size).toArray());
 
                 results.addAll(jdbcTemplate.queryForList(dynamicAuthoritiesQuery.toString(), parameterList));
                 memberList = memberList.subList(size, memberList.size());
@@ -328,13 +328,13 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
         private List<Map<String, Object>> executeAuthoritiesQueryPostgresql(List<String> memberList) {
             String arrayAuthoritiesQuery = "select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id = ANY(?)";
-            Object[] parameterList = new Object[] { identityZoneManager.getCurrentIdentityZoneId() , memberList.toArray(new String[0])};
+            Object[] parameterList = new Object[]{identityZoneManager.getCurrentIdentityZoneId(), memberList.toArray(new String[0])};
             return jdbcTemplate.queryForList(arrayAuthoritiesQuery, parameterList);
         }
 
         private List<Map<String, Object>> executeAuthoritiesQueryHSQL(List<String> memberList) {
             String arrayAuthoritiesQuery = "select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id  and g.identity_zone_id=? and m.member_id IN (UNNEST(?))";
-            Object[] parameterList = new Object[] { identityZoneManager.getCurrentIdentityZoneId() , memberList.toArray(new String[0])};
+            Object[] parameterList = new Object[]{identityZoneManager.getCurrentIdentityZoneId(), memberList.toArray(new String[0])};
             return jdbcTemplate.queryForList(arrayAuthoritiesQuery, parameterList);
         }
     }

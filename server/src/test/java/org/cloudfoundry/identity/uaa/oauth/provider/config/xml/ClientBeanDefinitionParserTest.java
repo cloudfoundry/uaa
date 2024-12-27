@@ -14,16 +14,16 @@ import static org.mockito.Mockito.when;
  */
 public class ClientBeanDefinitionParserTest {
 
-  private ClientBeanDefinitionParser parser;
-  private Element element;
-  private ParserContext parserContext;
+    private ClientBeanDefinitionParser parser;
+    private Element element;
+    private ParserContext parserContext;
 
-  @Test
-  public void parseInternal() {
-    element = mock(Element.class);
-    parserContext = mock(ParserContext.class);
-    parser = new ClientBeanDefinitionParser();
-    when(element.getAttribute("redirect-strategy-ref")).thenReturn("client_id");
-    assertNotNull(parser.parseInternal(element, parserContext));
-  }
+    @Test
+    public void parseInternal() {
+        element = mock(Element.class);
+        parserContext = mock(ParserContext.class);
+        parser = new ClientBeanDefinitionParser();
+        when(element.getAttribute("redirect-strategy-ref")).thenReturn("client_id");
+        assertNotNull(parser.parseInternal(element, parserContext));
+    }
 }

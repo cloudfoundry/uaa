@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -60,7 +61,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     user.setPreferredLanguage(jp.readValueAs(String.class));
                 } else if ("phoneNumbers".equalsIgnoreCase(fieldName)) {
                     ScimUser.PhoneNumber[] phoneNumbers = jp.readValueAs(ScimUser.PhoneNumber[].class);
-                    if (phoneNumbers!=null) {
+                    if (phoneNumbers != null) {
                         user.setPhoneNumbers(Arrays.asList(phoneNumbers));
                     } else {
                         user.setPhoneNumbers(new ArrayList<>());
@@ -94,22 +95,22 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                 } else if ("salt".equalsIgnoreCase(fieldName)) {
                     user.setSalt(jp.readValueAs(String.class));
                 } else if ("passwordLastModified".equalsIgnoreCase(fieldName)) {
-                    if (jp.getValueAsString()!=null) {
+                    if (jp.getValueAsString() != null) {
                         user.setPasswordLastModified(JsonDateDeserializer.getDate(jp.getValueAsString(), jp.getCurrentLocation()));
                     }
                 } else if ("approvals".equalsIgnoreCase(fieldName)) {
                     user.setApprovals(new HashSet<>(Arrays.asList(jp.readValueAs(Approval[].class))));
-                } else if("lastLogonTime".equalsIgnoreCase(fieldName)) {
-                    if(jp.getValueAsString() != null) {
+                } else if ("lastLogonTime".equalsIgnoreCase(fieldName)) {
+                    if (jp.getValueAsString() != null) {
                         user.setLastLogonTime(jp.getValueAsLong());
                     }
-                } else if("previousLogonTime".equalsIgnoreCase(fieldName)) {
-                    if(jp.getValueAsString() != null) {
+                } else if ("previousLogonTime".equalsIgnoreCase(fieldName)) {
+                    if (jp.getValueAsString() != null) {
                         user.setPreviousLogonTime(jp.getValueAsLong());
                     }
                 } else {
                     throw new UnrecognizedPropertyException("unrecognized field", jp.getCurrentLocation(),
-                                    ScimUser.class, fieldName, Collections.emptySet());
+                            ScimUser.class, fieldName, Collections.emptySet());
                 }
             }
         }

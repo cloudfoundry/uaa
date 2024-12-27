@@ -14,7 +14,7 @@ class SingletonTest {
         String value1 = singleton.getInstance();
         String value2 = singleton.getInstance();
 
-        assertSame( VALUE, value1 );
-        assertSame( value1, value2 );
+        assertSame(VALUE, value1);
+        assertSame(value1, value2);
     }
 }

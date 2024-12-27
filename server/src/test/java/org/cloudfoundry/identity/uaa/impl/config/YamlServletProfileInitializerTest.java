@@ -269,11 +269,13 @@ class YamlServletProfileInitializerTest {
             @Override
             public String getEnvironmentVariable(String name) {
                 return name.equals(YML_ENV_VAR_NAME) ?
-                        "uaa.url: http://uaa.test.url/\n" +
-                                "login.url: http://login.test.url/\n" +
-                                "smtp:\n" +
-                                "  host: mail.server.host\n" +
-                                "  port: 3535\n" :
+                        """
+                        uaa.url: http://uaa.test.url/
+                        login.url: http://login.test.url/
+                        smtp:
+                          host: mail.server.host
+                          port: 3535
+                        """ :
                         null;
             }
         };
@@ -444,7 +446,7 @@ class YamlServletProfileInitializerTest {
                     "  pocus: focus" + NEW_LINE +
                     "  foo: bar").getBytes());
 
-            when(context.getResource(String.format("file:%s", fileName)))
+            when(context.getResource("file:%s".formatted(fileName)))
                     .thenReturn(byteArrayResource);
 
             initializer.initialize(context);
@@ -454,23 +456,23 @@ class YamlServletProfileInitializerTest {
 
         @Test
         void mergesAndOverridesUaaYml() {
-            ByteArrayResource uaa_yml = new ByteArrayResource(("database:" + NEW_LINE +
+            ByteArrayResource uaaYml = new ByteArrayResource(("database:" + NEW_LINE +
                     "  username: default-username" + NEW_LINE +
                     "  password: default-password" + NEW_LINE +
                     "  url: jdbc://hostname").getBytes());
 
             System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", "cloudfoundryconfigpath");
             when(context.getResource("file:cloudfoundryconfigpath/uaa.yml"))
-                    .thenReturn(uaa_yml);
+                    .thenReturn(uaaYml);
 
-            ByteArrayResource database_credentials_yml = new ByteArrayResource(("database:" + NEW_LINE +
+            ByteArrayResource databaseCredentialsYml = new ByteArrayResource(("database:" + NEW_LINE +
                     "  username: donkey" + NEW_LINE +
                     "  password: kong").getBytes());
 
             String fileName = createSecretsFile("database_credentials.yml");
 
-            when(context.getResource(String.format("file:%s", fileName)))
-                    .thenReturn(database_credentials_yml);
+            when(context.getResource("file:%s".formatted(fileName)))
+                    .thenReturn(databaseCredentialsYml);
 
             initializer.initialize(context);
             assertEquals("donkey", environment.getProperty("database.username"));
@@ -483,8 +485,8 @@ class YamlServletProfileInitializerTest {
             String validFileName = createRandomSecretsFile();
             String inValidFileName = createSecretsFile("doesNotEndInYml");
 
-            when(context.getResource("file:" + validFileName)).thenReturn(new ByteArrayResource(("isValid: true").getBytes()));
-            when(context.getResource("file:" + inValidFileName)).thenReturn(new ByteArrayResource(("isNotValid: true").getBytes()));
+            when(context.getResource("file:" + validFileName)).thenReturn(new ByteArrayResource("isValid: true".getBytes()));
+            when(context.getResource("file:" + inValidFileName)).thenReturn(new ByteArrayResource("isNotValid: true".getBytes()));
 
             initializer.initialize(context);
             assertEquals("true", environment.getProperty("isValid"));
@@ -509,11 +511,11 @@ class YamlServletProfileInitializerTest {
     }
 
     private static void assertActiveProfilesAre(
-        final AbstractEnvironment environment,
-        final String... profiles
+            final AbstractEnvironment environment,
+            final String... profiles
     ) {
         assertThat(Arrays.asList(environment.getActiveProfiles()),
-            containsInAnyOrder(profiles));
+                containsInAnyOrder(profiles));
     }
 
 }

@@ -23,6 +23,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+
 @RunWith(Parameterized.class)
 public class KeystoneAuthenticationManagerTest {
 
@@ -32,7 +33,7 @@ public class KeystoneAuthenticationManagerTest {
     private UsernamePasswordAuthenticationToken input;
     private String username = "testUserName";
     private String password = "testpassword";
-    private Map<String,Object> restResult;
+    private Map<String, Object> restResult;
 
     public KeystoneAuthenticationManagerTest(RestAuthenticationManager authzManager, String url) {
         this.restAuthenticationManager = authzManager;
@@ -42,32 +43,33 @@ public class KeystoneAuthenticationManagerTest {
     @Parameterized.Parameters
     public static Collection parameters() {
         return Arrays.asList(new Object[][]{
-            {new KeystoneAuthenticationManager(), "http://this.is.not.used/v3"},
-            {new KeystoneAuthenticationManager(), "http://this.is.not.used/v2.0"},
-            {new RestAuthenticationManager(), "http://this.is.not.used/authenticate"},
+                {new KeystoneAuthenticationManager(), "http://this.is.not.used/v3"},
+                {new KeystoneAuthenticationManager(), "http://this.is.not.used/v2.0"},
+                {new RestAuthenticationManager(), "http://this.is.not.used/authenticate"},
         });
     }
 
     @Before
     public void setUp() {
-        input = new UsernamePasswordAuthenticationToken(username,password);
+        input = new UsernamePasswordAuthenticationToken(username, password);
         setUpRestAuthenticationManager();
     }
 
     private void setUpRestAuthenticationManager() {
         setUpRestAuthenticationManager(HttpStatus.OK);
     }
-    private void setUpRestAuthenticationManager(HttpStatus status ) {
+
+    private void setUpRestAuthenticationManager(HttpStatus status) {
         restResult = new HashMap<>();
         if (remoteUrl.contains("/v3")) {
-            Map<String,Object> token = new HashMap<>();
-            Map<String,Object> user = new HashMap<>();
+            Map<String, Object> token = new HashMap<>();
+            Map<String, Object> user = new HashMap<>();
             restResult.put("token", token);
             token.put("user", user);
             user.put("name", username);
         } else if (remoteUrl.contains("/v2.0")) {
-            Map<String,Object> user = new HashMap<>();
-            Map<String,Object> access = new HashMap<>();
+            Map<String, Object> user = new HashMap<>();
+            Map<String, Object> access = new HashMap<>();
             user.put("username", username);
             access.put("user", user);
             restResult.put("access", access);
@@ -77,11 +79,11 @@ public class KeystoneAuthenticationManagerTest {
 
         restTemplate = mock(RestTemplate.class);
         when(restTemplate.exchange(
-            eq(remoteUrl),
-            eq(HttpMethod.POST),
-            any(HttpEntity.class),
-            eq(Map.class)))
-            .thenReturn(new ResponseEntity<Map>(restResult, status));
+                eq(remoteUrl),
+                eq(HttpMethod.POST),
+                any(HttpEntity.class),
+                eq(Map.class)))
+                .thenReturn(new ResponseEntity<Map>(restResult, status));
 
 
         restAuthenticationManager.setNullPassword(false);

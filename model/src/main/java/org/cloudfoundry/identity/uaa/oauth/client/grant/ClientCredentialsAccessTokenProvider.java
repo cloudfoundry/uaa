@@ -25,39 +25,39 @@ import org.springframework.util.MultiValueMap;
  */
 public class ClientCredentialsAccessTokenProvider extends OAuth2AccessTokenSupport implements AccessTokenProvider {
 
-	public boolean supportsResource(OAuth2ProtectedResourceDetails resource) {
-		return resource instanceof ClientCredentialsResourceDetails
-				&& "client_credentials".equals(resource.getGrantType());
-	}
+    public boolean supportsResource(OAuth2ProtectedResourceDetails resource) {
+        return resource instanceof ClientCredentialsResourceDetails
+                && "client_credentials".equals(resource.getGrantType());
+    }
 
-	public boolean supportsRefresh(OAuth2ProtectedResourceDetails resource) {
-		return false;
-	}
+    public boolean supportsRefresh(OAuth2ProtectedResourceDetails resource) {
+        return false;
+    }
 
-	public OAuth2AccessToken refreshAccessToken(OAuth2ProtectedResourceDetails resource,
-			OAuth2RefreshToken refreshToken, AccessTokenRequest request) throws UserRedirectRequiredException {
-		return null;
-	}
+    public OAuth2AccessToken refreshAccessToken(OAuth2ProtectedResourceDetails resource,
+            OAuth2RefreshToken refreshToken, AccessTokenRequest request) throws UserRedirectRequiredException {
+        return null;
+    }
 
-	public OAuth2AccessToken obtainAccessToken(OAuth2ProtectedResourceDetails details, AccessTokenRequest request)
-			throws UserRedirectRequiredException, AccessDeniedException, OAuth2AccessDeniedException {
+    public OAuth2AccessToken obtainAccessToken(OAuth2ProtectedResourceDetails details, AccessTokenRequest request)
+            throws UserRedirectRequiredException, AccessDeniedException, OAuth2AccessDeniedException {
 
-		ClientCredentialsResourceDetails resource = (ClientCredentialsResourceDetails) details;
-		return retrieveToken(request, resource, getParametersForTokenRequest(resource), new HttpHeaders());
+        ClientCredentialsResourceDetails resource = (ClientCredentialsResourceDetails) details;
+        return retrieveToken(request, resource, getParametersForTokenRequest(resource), new HttpHeaders());
 
-	}
+    }
 
-	private MultiValueMap<String, String> getParametersForTokenRequest(ClientCredentialsResourceDetails resource) {
+    private MultiValueMap<String, String> getParametersForTokenRequest(ClientCredentialsResourceDetails resource) {
 
-		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-		form.set(OAuth2Utils.GRANT_TYPE, "client_credentials");
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.set(OAuth2Utils.GRANT_TYPE, "client_credentials");
 
-		if (resource.isScoped()) {
-			form.set(OAuth2Utils.SCOPE, getScopeString(resource));
-		}
+        if (resource.isScoped()) {
+            form.set(OAuth2Utils.SCOPE, getScopeString(resource));
+        }
 
-		return form;
+        return form;
 
-	}
+    }
 
 }

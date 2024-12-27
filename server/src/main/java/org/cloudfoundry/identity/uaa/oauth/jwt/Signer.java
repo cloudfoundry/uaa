@@ -4,5 +4,6 @@ import com.nimbusds.jose.JWSSigner;
 
 public interface Signer extends JWSSigner {
     String keyId();
+
     String keyURL();
 }

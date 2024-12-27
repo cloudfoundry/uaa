@@ -178,7 +178,7 @@ class JwtHeaderHelperTest {
 
             @Test
             void testInvalidHeader() {
-                assertThrows(IllegalArgumentException.class, () ->JwtHeaderHelper.create(""));
+                assertThrows(IllegalArgumentException.class, () -> JwtHeaderHelper.create(""));
             }
         }
     }

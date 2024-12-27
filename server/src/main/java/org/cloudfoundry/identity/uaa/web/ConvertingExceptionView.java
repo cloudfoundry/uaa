@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -42,12 +43,12 @@ public class ConvertingExceptionView implements View {
 
     private static final Logger logger = LoggerFactory.getLogger(ConvertingExceptionView.class);
 
-    private ResponseEntity<? extends ExceptionReport> responseEntity;
+    private final ResponseEntity<? extends ExceptionReport> responseEntity;
 
     private final HttpMessageConverter<?>[] messageConverters;
 
     public ConvertingExceptionView(ResponseEntity<? extends ExceptionReport> responseEntity,
-                    HttpMessageConverter<?>[] messageConverters) {
+            HttpMessageConverter<?>[] messageConverters) {
         this.responseEntity = responseEntity;
         this.messageConverters = messageConverters;
     }
@@ -97,14 +98,13 @@ public class ConvertingExceptionView implements View {
     }
 
     private void handleHttpEntityResponse(ResponseEntity<? extends ExceptionReport> responseEntity,
-                    HttpInputMessage inputMessage, HttpOutputMessage outputMessage) throws Exception {
-        if (outputMessage instanceof ServerHttpResponse) {
-            ((ServerHttpResponse) outputMessage).setStatusCode(responseEntity.getStatusCode());
+            HttpInputMessage inputMessage, HttpOutputMessage outputMessage) throws Exception {
+        if (outputMessage instanceof ServerHttpResponse response) {
+            response.setStatusCode(responseEntity.getStatusCode());
         }
         if (responseEntity.getBody() != null) {
             writeWithMessageConverters(responseEntity.getBody(), inputMessage, outputMessage);
-        }
-        else {
+        } else {
             // flush headers
             outputMessage.getBody();
         }
@@ -112,7 +112,7 @@ public class ConvertingExceptionView implements View {
 
     @SuppressWarnings("unchecked")
     private void writeWithMessageConverters(Object returnValue, HttpInputMessage inputMessage,
-                    HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
+            HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
         List<MediaType> acceptedMediaTypes = inputMessage.getHeaders().getAccept();
         if (acceptedMediaTypes.isEmpty()) {
             acceptedMediaTypes = Collections.singletonList(MediaType.APPLICATION_JSON_UTF8);
@@ -121,7 +121,7 @@ public class ConvertingExceptionView implements View {
         }
         MediaType.sortByQualityValue(acceptedMediaTypes);
         Class<?> returnValueType = returnValue.getClass();
-        List<MediaType> allSupportedMediaTypes = new ArrayList<MediaType>();
+        List<MediaType> allSupportedMediaTypes = new ArrayList<>();
         if (messageConverters != null) {
             for (MediaType acceptedMediaType : acceptedMediaTypes) {
                 for (@SuppressWarnings("rawtypes")
@@ -134,7 +134,7 @@ public class ConvertingExceptionView implements View {
                                 contentType = acceptedMediaType;
                             }
                             logger.debug("Written [" + returnValue + "] as \"" + contentType + "\" using ["
-                                            + messageConverter + "]");
+                                    + messageConverter + "]");
                         }
                         // this.responseArgumentUsed = true;
                         return;

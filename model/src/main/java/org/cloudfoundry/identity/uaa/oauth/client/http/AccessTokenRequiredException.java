@@ -13,24 +13,24 @@ import org.springframework.security.authentication.InsufficientAuthenticationExc
  */
 public class AccessTokenRequiredException extends InsufficientAuthenticationException {
 
-  private final transient OAuth2ProtectedResourceDetails resource;
+    private final transient OAuth2ProtectedResourceDetails resource;
 
-  public AccessTokenRequiredException(OAuth2ProtectedResourceDetails resource) {
-    super("OAuth2 access denied.");
-    this.resource = resource;
-  }
+    public AccessTokenRequiredException(OAuth2ProtectedResourceDetails resource) {
+        super("OAuth2 access denied.");
+        this.resource = resource;
+    }
 
-  public AccessTokenRequiredException(String msg, OAuth2ProtectedResourceDetails resource) {
-    super(msg);
-    this.resource = resource;
-  }
+    public AccessTokenRequiredException(String msg, OAuth2ProtectedResourceDetails resource) {
+        super(msg);
+        this.resource = resource;
+    }
 
-  public AccessTokenRequiredException(String msg, OAuth2ProtectedResourceDetails resource, Throwable t) {
-    super(msg, t);
-    this.resource = resource;
-  }
+    public AccessTokenRequiredException(String msg, OAuth2ProtectedResourceDetails resource, Throwable t) {
+        super(msg, t);
+        this.resource = resource;
+    }
 
-  public OAuth2ProtectedResourceDetails getResource() {
-    return resource;
-  }
+    public OAuth2ProtectedResourceDetails getResource() {
+        return resource;
+    }
 }

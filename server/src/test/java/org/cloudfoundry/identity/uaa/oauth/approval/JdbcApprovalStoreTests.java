@@ -103,7 +103,7 @@ class JdbcApprovalStoreTests {
                 "select count(*) from authz_approvals where user_id = ?",
                 Integer.class,
                 userId);
-        assertEquals(new Integer(0), actual);
+        assertEquals(Integer.valueOf(0), actual);
     }
 
     @Test

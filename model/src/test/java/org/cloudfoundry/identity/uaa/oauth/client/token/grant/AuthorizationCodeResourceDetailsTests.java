@@ -11,24 +11,24 @@ import static org.junit.Assert.assertEquals;
  * Scope: Test class
  */
 public class AuthorizationCodeResourceDetailsTests {
-	
-	private AuthorizationCodeResourceDetails details = new AuthorizationCodeResourceDetails();
 
-	@Test
-	public void testGetDefaultRedirectUri() {
-		details.setPreEstablishedRedirectUri("https://anywhere.com");
-		DefaultAccessTokenRequest request = new DefaultAccessTokenRequest();
-		request.setCurrentUri("https://nowhere.com");
-		assertEquals("https://nowhere.com", details.getRedirectUri(request));
-	}
+    private final AuthorizationCodeResourceDetails details = new AuthorizationCodeResourceDetails();
 
-	@Test
-	public void testGetOverrideRedirectUri() {
-		details.setPreEstablishedRedirectUri("https://anywhere.com");
-		details.setUseCurrentUri(false);
-		DefaultAccessTokenRequest request = new DefaultAccessTokenRequest();
-		request.setCurrentUri("https://nowhere.com");
-		assertEquals("https://anywhere.com", details.getRedirectUri(request));
-	}
+    @Test
+    public void testGetDefaultRedirectUri() {
+        details.setPreEstablishedRedirectUri("https://anywhere.com");
+        DefaultAccessTokenRequest request = new DefaultAccessTokenRequest();
+        request.setCurrentUri("https://nowhere.com");
+        assertEquals("https://nowhere.com", details.getRedirectUri(request));
+    }
+
+    @Test
+    public void testGetOverrideRedirectUri() {
+        details.setPreEstablishedRedirectUri("https://anywhere.com");
+        details.setUseCurrentUri(false);
+        DefaultAccessTokenRequest request = new DefaultAccessTokenRequest();
+        request.setCurrentUri("https://nowhere.com");
+        assertEquals("https://anywhere.com", details.getRedirectUri(request));
+    }
 
 }

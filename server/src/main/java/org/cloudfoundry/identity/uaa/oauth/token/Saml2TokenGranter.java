@@ -37,22 +37,22 @@ public class Saml2TokenGranter extends AbstractTokenGranter {
     private final SecurityContextAccessor securityContextAccessor;
 
     public Saml2TokenGranter(final AuthorizationServerTokenServices tokenServices,
-                             final MultitenantClientServices clientDetailsService,
-                             final OAuth2RequestFactory requestFactory,
-                             final SecurityContextAccessor securityContextAccessor) {
+            final MultitenantClientServices clientDetailsService,
+            final OAuth2RequestFactory requestFactory,
+            final SecurityContextAccessor securityContextAccessor) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_SAML2_BEARER);
         this.securityContextAccessor = securityContextAccessor;
     }
 
     protected Authentication validateRequest(TokenRequest request) {
         // things to validate
-        if(request == null || request.getRequestParameters() == null) {
+        if (request == null || request.getRequestParameters() == null) {
             throw new InvalidGrantException("Missing token request object");
         }
-        if(request.getRequestParameters().get("grant_type") == null) {
+        if (request.getRequestParameters().get("grant_type") == null) {
             throw new InvalidGrantException("Missing grant type");
         }
-        if(!GRANT_TYPE_SAML2_BEARER.equals(request.getRequestParameters().get("grant_type"))) {
+        if (!GRANT_TYPE_SAML2_BEARER.equals(request.getRequestParameters().get("grant_type"))) {
             throw new InvalidGrantException("Invalid grant type");
         }
         // parse the XML to Assertion

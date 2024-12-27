@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -22,15 +23,19 @@ import java.util.List;
 
 public class UaaUserEditor extends PropertyEditorSupport {
 
-    private static String SHORT_FORMAT = "unm|pwd{|comma-separated-authorities}";
-    private static String LONG_FORMAT = "unm|pwd|email|fname|lname{|comma-separated-authorities}";
-    private static List<String> SUPPORTED_FORMATS = Arrays.asList(SHORT_FORMAT, LONG_FORMAT);
+    private static final String SHORT_FORMAT = "unm|pwd{|comma-separated-authorities}";
+    private static final String LONG_FORMAT = "unm|pwd|email|fname|lname{|comma-separated-authorities}";
+    private static final List<String> SUPPORTED_FORMATS = Arrays.asList(SHORT_FORMAT, LONG_FORMAT);
 
     @Override
     public void setAsText(String text) throws IllegalArgumentException {
         String[] values = text.split("\\|", -1);
         String username = values[0];
-        String pwd = null, email = username, firstName = null, lastName = null, origin = OriginKeys.UAA;
+        String pwd = null;
+        String email = username;
+        String firstName = null;
+        String lastName = null;
+        String origin = OriginKeys.UAA;
         String authorities = null;
 
         if (values.length >= 2) {

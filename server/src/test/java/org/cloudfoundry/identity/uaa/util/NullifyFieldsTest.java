@@ -77,13 +77,13 @@ public class NullifyFieldsTest {
         assertNull(b.b4);
         assertNull(b.b5);
         assertNull(b.a1);
-        assertNull(((A)b).a2);
+        assertNull(((A) b).a2);
         assertNull(b.a3);
         assertNull(b.a4);
-        assertNull(((A)b).a5);
+        assertNull(((A) b).a5);
         assertNotNull(A.a0);
         assertNotNull(B.b0);
-        assertNotNull(((A)b).a6);
+        assertNotNull(((A) b).a6);
         assertNotNull(b.b6);
     }
 
@@ -99,10 +99,10 @@ public class NullifyFieldsTest {
         assertNotNull(((A) b).a2);
         assertNull(b.a3);
         assertNull(b.a4);
-        assertNull(((A)b).a5);
+        assertNull(((A) b).a5);
         assertNotNull(A.a0);
         assertNotNull(B.b0);
-        assertNotNull(((A)b).a6);
+        assertNotNull(((A) b).a6);
         assertNotNull(b.b6);
     }
 
@@ -121,7 +121,7 @@ public class NullifyFieldsTest {
         assertNotNull(b.b5);
         assertNotNull(A.a0);
         assertNotNull(B.b0);
-        assertNotNull(((A)b).a6);
+        assertNotNull(((A) b).a6);
         assertNotNull(b.b6);
     }
 
@@ -147,4 +147,4 @@ public class NullifyFieldsTest {
         private final Object b6 = new Object();
 
     }
- }
+}

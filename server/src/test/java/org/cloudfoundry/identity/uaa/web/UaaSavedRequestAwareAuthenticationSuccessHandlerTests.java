@@ -15,52 +15,108 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.saml2.core.Saml2ParameterNames;
+import org.springframework.security.web.savedrequest.SavedRequest;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpSession;
+import java.io.IOException;
+
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE;
-import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
+class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
 
-public class UaaSavedRequestAwareAuthenticationSuccessHandlerTests {
+    private static final String SPRING_SECURITY_SAVED_REQUEST = "SPRING_SECURITY_SAVED_REQUEST";
 
     MockHttpServletRequest request;
     UaaSavedRequestAwareAuthenticationSuccessHandler handler;
-    @Before
+
+    @BeforeEach
     public void setUp() {
         request = new MockHttpServletRequest();
         handler = new UaaSavedRequestAwareAuthenticationSuccessHandler();
     }
 
     @Test
-    public void allow_url_override() {
-        request.setAttribute(URI_OVERRIDE_ATTRIBUTE, "http://test.com");
-        assertEquals("http://test.com", handler.determineTargetUrl(request, new MockHttpServletResponse()));
+    void allow_url_override() {
+        String overrideUrl = "https://test.com";
+        request.setAttribute(URI_OVERRIDE_ATTRIBUTE, overrideUrl);
+        assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo(overrideUrl);
     }
 
     @Test
-    public void form_parameter_is_overridden() {
-        request.setParameter(FORM_REDIRECT_PARAMETER, "http://test.com");
-        request.setAttribute(URI_OVERRIDE_ATTRIBUTE, "http://override.test.com");
-        assertEquals("http://override.test.com", handler.determineTargetUrl(request, new MockHttpServletResponse()));
+    void form_parameter_is_overridden() {
+        request.setParameter(FORM_REDIRECT_PARAMETER, "https://test.com");
+        String overrideUrl = "https://override.test.com";
+        request.setAttribute(URI_OVERRIDE_ATTRIBUTE, overrideUrl);
+        assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo(overrideUrl);
     }
 
     @Test
-    public void validFormRedirectIsReturned() {
+    void validFormRedirectIsReturned() {
         String redirectUri = request.getScheme() + "://" + request.getServerName() + "/test";
 
         request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
-        assertEquals(redirectUri, handler.determineTargetUrl(request, new MockHttpServletResponse()));
+        assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo(redirectUri);
     }
 
     @Test
-    public void invalidFormRedirectIsNotReturned() {
-        String redirectUri = "http://test.com/test";
+    void invalidFormRedirectIsNotReturned() {
+        String redirectUri = "https://test.com/test";
 
         request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
-        assertEquals("/", handler.determineTargetUrl(request, new MockHttpServletResponse()));
+        assertThat(handler.determineTargetUrl(request, new MockHttpServletResponse())).isEqualTo("/");
+    }
+
+    @Test
+    void onAuthenticationSuccess_noSavedRequest_hasRelayStateUrl() throws ServletException, IOException {
+        String redirectUri = "https://test.com/test2";
+        request.setParameter(Saml2ParameterNames.RELAY_STATE, redirectUri);
+
+        var response = new MockHttpServletResponse();
+        var authentication = mock(Authentication.class);
+        handler.onAuthenticationSuccess(request, response, authentication);
+
+        assertThat(response.getRedirectedUrl()).isEqualTo(redirectUri);
+    }
+
+    @Test
+    void onAuthenticationSuccess_noSavedRequest_noRelayStateUrl() throws ServletException, IOException {
+        request.setParameter(Saml2ParameterNames.RELAY_STATE, "123");
+        request.getSession().setAttribute("SPRING_SECURITY_LAST_EXCEPTION", "exception");
+
+        var response = new MockHttpServletResponse();
+        var authentication = mock(Authentication.class);
+
+        handler.onAuthenticationSuccess(request, response, authentication);
+
+        assertThat(response.getRedirectedUrl()).isEqualTo("/");
+        // Clears Authentication Attributes
+        assertThat(request.getSession().getAttribute("SPRING_SECURITY_LAST_EXCEPTION")).isNull();
+    }
+
+    @Test
+    void onAuthenticationSuccess_withSavedRequest_targetUrlParameter() throws ServletException, IOException {
+        String redirectUri = "https://test.com/test3";
+        SavedRequest savedRequest = mock(SavedRequest.class);
+        when(savedRequest.getRedirectUrl()).thenReturn(redirectUri);
+
+        HttpSession session = request.getSession();
+        session.setAttribute(SPRING_SECURITY_SAVED_REQUEST, savedRequest);
+
+        var response = new MockHttpServletResponse();
+        var authentication = mock(Authentication.class);
+
+        handler.onAuthenticationSuccess(request, response, authentication);
+        assertThat(response.getRedirectedUrl()).isEqualTo(redirectUri);
     }
 }

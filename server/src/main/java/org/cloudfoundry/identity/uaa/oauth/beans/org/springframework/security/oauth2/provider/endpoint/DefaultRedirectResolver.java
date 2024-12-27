@@ -63,7 +63,7 @@ public class DefaultRedirectResolver implements RedirectResolver {
      * @param redirectGrantTypes the redirect grant types to set
      */
     public void setRedirectGrantTypes(Collection<String> redirectGrantTypes) {
-        this.redirectGrantTypes = new HashSet<String>(redirectGrantTypes);
+        this.redirectGrantTypes = new HashSet<>(redirectGrantTypes);
     }
 
     public String resolveRedirect(String requestedRedirect, ClientDetails client) throws OAuth2Exception {
@@ -81,11 +81,9 @@ public class DefaultRedirectResolver implements RedirectResolver {
 
         if (redirectUris != null && !redirectUris.isEmpty()) {
             return obtainMatchingRedirect(redirectUris, requestedRedirect);
-        }
-        else if (StringUtils.hasText(requestedRedirect)) {
+        } else if (StringUtils.hasText(requestedRedirect)) {
             return requestedRedirect;
-        }
-        else {
+        } else {
             throw new InvalidRequestException("A redirect_uri must be supplied.");
         }
 

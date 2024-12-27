@@ -13,7 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-class TimedKeyValue<K,V> {
+class TimedKeyValue<K, V> {
     final long time;
     final K key;
     final V value;

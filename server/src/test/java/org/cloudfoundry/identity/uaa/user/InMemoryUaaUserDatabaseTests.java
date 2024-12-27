@@ -15,8 +15,9 @@ import static org.junit.Assert.assertSame;
 
 public class InMemoryUaaUserDatabaseTests {
 
-    UaaUser user = new UaaUser("test-id","username","password","email",UaaAuthority.USER_AUTHORITIES,"givenname","familyname", new Date(), new Date(), OriginKeys.UAA,"externalID", false, IdentityZoneHolder.get().getId(), "test-id", new Date());
+    UaaUser user = new UaaUser("test-id", "username", "password", "email", UaaAuthority.USER_AUTHORITIES, "givenname", "familyname", new Date(), new Date(), OriginKeys.UAA, "externalID", false, IdentityZoneHolder.get().getId(), "test-id", new Date());
     InMemoryUaaUserDatabase db;
+
     @Before
     public void setUp() {
         db = new InMemoryUaaUserDatabase(Collections.singleton(user));
@@ -77,21 +78,21 @@ public class InMemoryUaaUserDatabaseTests {
     public void testUpdateUser() {
         assertSame(user, db.retrieveUserById(user.getId()));
         UaaUser newUser = new UaaUser(
-            user.getId(),
-            user.getUsername(),
-            user.getPassword(),
-            user.getEmail(),
-            user.getAuthorities(),
-            user.getGivenName(),
-            user.getFamilyName(),
-            user.getCreated(),
-            user.getModified(),
-            user.getOrigin(),
-            user.getExternalId(),
-            false,
-            user.getZoneId(),
-            user.getSalt(),
-            user.getPasswordLastModified());
+                user.getId(),
+                user.getUsername(),
+                user.getPassword(),
+                user.getEmail(),
+                user.getAuthorities(),
+                user.getGivenName(),
+                user.getFamilyName(),
+                user.getCreated(),
+                user.getModified(),
+                user.getOrigin(),
+                user.getExternalId(),
+                false,
+                user.getZoneId(),
+                user.getSalt(),
+                user.getPasswordLastModified());
         db.updateUser(user.getId(), newUser);
         assertSame(newUser, db.retrieveUserById(user.getId()));
     }

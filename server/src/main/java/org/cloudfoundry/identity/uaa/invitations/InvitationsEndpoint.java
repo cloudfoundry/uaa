@@ -59,9 +59,9 @@ public class InvitationsEndpoint {
     private final ExpiringCodeStore expiringCodeStore;
 
     public InvitationsEndpoint(final ScimUserProvisioning scimUserProvisioning,
-                               final IdentityProviderProvisioning identityProviderProvisioning,
-                               final MultitenantClientServices multitenantClientServices,
-                               final ExpiringCodeStore expiringCodeStore) {
+            final IdentityProviderProvisioning identityProviderProvisioning,
+            final MultitenantClientServices multitenantClientServices,
+            final ExpiringCodeStore expiringCodeStore) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.multitenantClientServices = multitenantClientServices;
@@ -70,12 +70,11 @@ public class InvitationsEndpoint {
 
     @RequestMapping(value = "/invite_users", method = RequestMethod.POST, consumes = "application/json")
     public ResponseEntity<InvitationsResponse> inviteUsers(@RequestBody InvitationsRequest invitations,
-                                                           @RequestParam(value = "client_id", required = false) String clientId,
-                                                           @RequestParam(value = "redirect_uri") String redirectUri) {
+            @RequestParam(value = "client_id", required = false) String clientId,
+            @RequestParam(value = "redirect_uri") String redirectUri) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof OAuth2Authentication) {
-            OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
+        if (authentication instanceof OAuth2Authentication oAuth2Authentication) {
 
             if (clientId == null) {
                 clientId = oAuth2Authentication.getOAuth2Request().getClientId();
@@ -118,9 +117,9 @@ public class InvitationsEndpoint {
                             URL inviteLink = new URL(invitationLink);
                             invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
                         } catch (MalformedURLException mue) {
-                            invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url: %s", invitationLink)));
+                            invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", "Malformed url: %s".formatted(invitationLink)));
                         }
-                    } else if (providers.size() == 0) {
+                    } else if (providers.isEmpty()) {
                         invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.non-existent", "No authentication provider found."));
                     } else {
                         invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.ambiguous", "Multiple authentication providers found."));
@@ -141,7 +140,7 @@ public class InvitationsEndpoint {
     private ScimUser findOrCreateUser(String email, String origin) {
         email = email.trim().toLowerCase();
         List<ScimUser> results = scimUserProvisioning.retrieveByEmailAndZone(email, origin, IdentityZoneHolder.get().getId());
-        if (results == null || results.size() == 0) {
+        if (results == null || results.isEmpty()) {
             ScimUser user = new ScimUser(null, email, "", "");
             user.setPrimaryEmail(email.toLowerCase());
             user.setOrigin(origin);
@@ -151,7 +150,7 @@ public class InvitationsEndpoint {
         } else if (results.size() == 1) {
             return results.get(0);
         } else {
-            throw new ScimResourceConflictException(String.format("Ambiguous users found for email:%s with origin:%s", email, origin));
+            throw new ScimResourceConflictException("Ambiguous users found for email:%s with origin:%s".formatted(email, origin));
         }
     }
 

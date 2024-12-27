@@ -21,52 +21,52 @@ import java.util.TreeSet;
  */
 @RunWith(MockitoJUnitRunner.class)
 abstract class BaseOAuth2AccessTokenJacksonTest {
-	protected static final String ACCESS_TOKEN_EMPTYSCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10,\"scope\":\"\"}";
+    protected static final String ACCESS_TOKEN_EMPTYSCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10,\"scope\":\"\"}";
 
-	protected static final String ACCESS_TOKEN_BROKENEXPIRES = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":\"10\",\"scope\":\"\"}";
+    protected static final String ACCESS_TOKEN_BROKENEXPIRES = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":\"10\",\"scope\":\"\"}";
 
-	protected static final String ACCESS_TOKEN_MULTISCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10,\"scope\":\"read write\"}";
+    protected static final String ACCESS_TOKEN_MULTISCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10,\"scope\":\"read write\"}";
 
-	protected static final String ACCESS_TOKEN_ARRAYSCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10,\"scope\":[\"read\",\"write\"]}";
+    protected static final String ACCESS_TOKEN_ARRAYSCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10,\"scope\":[\"read\",\"write\"]}";
 
-	protected static final String ACCESS_TOKEN_NOSCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10}";
+    protected static final String ACCESS_TOKEN_NOSCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10}";
 
-	protected static final String ACCESS_TOKEN_NOREFRESH = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"expires_in\":10}";
+    protected static final String ACCESS_TOKEN_NOREFRESH = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"expires_in\":10}";
 
-	protected static final String ACCESS_TOKEN_SINGLESCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10,\"scope\":\"write\"}";
+    protected static final String ACCESS_TOKEN_SINGLESCOPE = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"refresh_token\":\"refresh-value\",\"expires_in\":10,\"scope\":\"write\"}";
 
-	protected static final String ACCESS_TOKEN_ADDITIONAL_INFO = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"one\":\"two\",\"three\":4,\"five\":{\"six\":7}}";
+    protected static final String ACCESS_TOKEN_ADDITIONAL_INFO = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"one\":\"two\",\"three\":4,\"five\":{\"six\":7}}";
 
-	protected static final String ACCESS_TOKEN_ZERO_EXPIRES = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"expires_in\":0}";
+    protected static final String ACCESS_TOKEN_ZERO_EXPIRES = "{\"access_token\":\"token-value\",\"token_type\":\"bearer\",\"expires_in\":0}";
 
-	@Rule
-	public ExpectedException thrown = ExpectedException.none();
+    @Rule
+    public ExpectedException thrown = ExpectedException.none();
 
-	@Mock
-	protected Date expiration;
+    @Mock
+    protected Date expiration;
 
-	protected DefaultOAuth2AccessToken accessToken;
+    protected DefaultOAuth2AccessToken accessToken;
 
-	protected Map<String, Object> additionalInformation;
+    protected Map<String, Object> additionalInformation;
 
-	public BaseOAuth2AccessTokenJacksonTest() {
-		super();
-	}
+    public BaseOAuth2AccessTokenJacksonTest() {
+        super();
+    }
 
-	@Before
-	public void setUp() {
-		accessToken = new DefaultOAuth2AccessToken("token-value");
-		accessToken.setExpiration(expiration);
-		DefaultOAuth2RefreshToken refreshToken = new DefaultOAuth2RefreshToken("refresh-value");
-		accessToken.setRefreshToken(refreshToken);
-		Set<String> scope = new TreeSet<String>();
-		scope.add("read");
-		scope.add("write");
-		accessToken.setScope(scope);
-		Map<String, Object> map = new LinkedHashMap<String, Object>();
-		map.put("one", "two");
-		map.put("three", 4);
-		map.put("five", Collections.singletonMap("six", 7));
-		additionalInformation = map;
-	}
+    @Before
+    public void setUp() {
+        accessToken = new DefaultOAuth2AccessToken("token-value");
+        accessToken.setExpiration(expiration);
+        DefaultOAuth2RefreshToken refreshToken = new DefaultOAuth2RefreshToken("refresh-value");
+        accessToken.setRefreshToken(refreshToken);
+        Set<String> scope = new TreeSet<>();
+        scope.add("read");
+        scope.add("write");
+        accessToken.setScope(scope);
+        Map<String, Object> map = new LinkedHashMap<>();
+        map.put("one", "two");
+        map.put("three", 4);
+        map.put("five", Collections.singletonMap("six", 7));
+        additionalInformation = map;
+    }
 }

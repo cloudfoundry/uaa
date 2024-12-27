@@ -12,9 +12,11 @@ public interface RateLimiter {
     /**
      * @return one of the STATUS json strings when the RateLimiter is active
      */
-    @NotEmpty String status();
+    @NotEmpty
+    String status();
 
-    @NotNull Limiter checkRequest( HttpServletRequest request );
+    @NotNull
+    Limiter checkRequest(HttpServletRequest request);
 
     static boolean isEnabled() {
         return InitialConfig.SINGLETON.getInstance().isRateLimitingEnabled();

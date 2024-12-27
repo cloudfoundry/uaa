@@ -46,7 +46,7 @@ public class ClientAdminBootstrap implements
         ApplicationListener<ContextRefreshedEvent>,
         ApplicationEventPublisherAware {
 
-    private static Logger logger = LoggerFactory.getLogger(ClientAdminBootstrap.class);
+    private static final Logger logger = LoggerFactory.getLogger(ClientAdminBootstrap.class);
 
     private final PasswordEncoder passwordEncoder;
     private final MultitenantClientServices clientRegistrationService;
@@ -283,17 +283,19 @@ public class ClientAdminBootstrap implements
             // check if both passwords are still up to date
             // 1st line: client already has 2 passwords: check if both are still correct
             // 2nd line: client has only 1 pasword: check if password is correct and second password is null
-            if ( (existingPasswordHash.length > 1 && rawPassword1 != null
-                && passwordEncoder.matches(rawPassword1, existingPasswordHash[0])
-                && rawPassword2 != null && passwordEncoder.matches(rawPassword2, existingPasswordHash[1]) )
-                || (rawPassword1 != null && (passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && rawPassword2 == null)) ) {
+            if ((existingPasswordHash.length > 1 && rawPassword1 != null
+                    && passwordEncoder.matches(rawPassword1, existingPasswordHash[0])
+                    && rawPassword2 != null && passwordEncoder.matches(rawPassword2, existingPasswordHash[1]))
+                    || (rawPassword1 != null && (passwordEncoder.matches(rawPassword1, existingPasswordHash[0]) && rawPassword2 == null))) {
                 // no changes to passwords: nothing to do here
                 return;
             }
         }
         // at least one password has changed: update
         clientRegistrationService.updateClientSecret(clientId, rawPassword1, IdentityZone.getUaaZoneId());
-        if (rawPassword2 != null) clientRegistrationService.addClientSecret(clientId, rawPassword2, IdentityZone.getUaaZoneId());
+        if (rawPassword2 != null) {
+            clientRegistrationService.addClientSecret(clientId, rawPassword2, IdentityZone.getUaaZoneId());
+        }
     }
 
     @Override

@@ -33,7 +33,7 @@ public class UaaHttpRequestUtilsTest {
     private static final String HTTPS_HOST_PROPERTY = "https.proxyHost";
     private static final String HTTPS_PORT_PROPERTY = "https.proxyPort";
 
-    private static Map<String, String> systemProxyConfig = new HashMap<>();
+    private static final Map<String, String> systemProxyConfig = new HashMap<>();
     private NetworkTestUtils.SimpleHttpResponseHandler httpResponseHandler;
     private NetworkTestUtils.SimpleHttpResponseHandler httpsResponseHandler;
 

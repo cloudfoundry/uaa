@@ -71,7 +71,7 @@ class AccountsControllerTest {
 
     private MockMvc mockMvc;
 
-    private boolean selfServiceToReset = false;
+    private boolean selfServiceToReset;
 
     @BeforeEach
     void setUp() {
@@ -102,15 +102,15 @@ class AccountsControllerTest {
     @Test
     void sendActivationEmail() throws Exception {
         MockHttpServletRequestBuilder post = post("/create_account.do")
-            .param("email", "user1@example.com")
-            .param("password", "password")
-            .param("password_confirmation", "password")
-            .param("client_id", "app")
-            .param("redirect_uri", "http://example.com/redirect");
+                .param("email", "user1@example.com")
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("client_id", "app")
+                .param("redirect_uri", "http://example.com/redirect");
 
         mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("accounts/email_sent"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("accounts/email_sent"));
 
         Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
     }
@@ -119,20 +119,20 @@ class AccountsControllerTest {
     void attemptCreateAccountWithEmailDomainRestriction() throws Exception {
         MockHttpSession session = new MockHttpSession();
         MockHttpServletRequestBuilder post = post("/create_account.do")
-            .session(session)
-            .param("email", "user1@example.com")
-            .param("password", "password")
-            .param("password_confirmation", "password")
-            .param("client_id", "app")
-            .param("redirect_uri", "http://example.com/redirect");
+                .session(session)
+                .param("email", "user1@example.com")
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("client_id", "app")
+                .param("redirect_uri", "http://example.com/redirect");
         IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider().setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
         oidcProvider.getConfig().setAuthUrl(new URL("http://localhost:8080/uaa/idp_login"));
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.com"));
         when(identityProviderProvisioning.retrieveAll(true, OriginKeys.UAA)).thenReturn(Collections.singletonList(oidcProvider));
 
         mockMvc.perform(post)
-            .andExpect(view().name("accounts/new_activation_email"))
-            .andExpect(model().attribute("error_message_code", "other_idp"));
+                .andExpect(view().name("accounts/new_activation_email"))
+                .andExpect(model().attribute("error_message_code", "other_idp"));
 
         Mockito.verify(accountCreationService, times(0)).beginActivation("user1@example.com", "password", "app", "http://example.com/redirect");
     }
@@ -142,15 +142,15 @@ class AccountsControllerTest {
         doThrow(new UaaException("username already exists", 409)).when(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
 
         MockHttpServletRequestBuilder post = post("/create_account.do")
-            .param("email", "user1@example.com")
-            .param("password", "password")
-            .param("password_confirmation", "password")
-            .param("client_id", "app");
+                .param("email", "user1@example.com")
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("client_id", "app");
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("accounts/new_activation_email"))
-            .andExpect(model().attribute("error_message_code", "username_exists"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("accounts/new_activation_email"))
+                .andExpect(model().attribute("error_message_code", "username_exists"));
 
         Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app", null);
     }
@@ -174,38 +174,38 @@ class AccountsControllerTest {
     @Test
     void invalidEmail() throws Exception {
         MockHttpServletRequestBuilder post = post("/create_account.do")
-            .param("email", "wrong")
-            .param("password", "password")
-            .param("password_confirmation", "password")
-            .param("client_id", "app");
+                .param("email", "wrong")
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("client_id", "app");
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("accounts/new_activation_email"))
-            .andExpect(model().attribute("error_message_code", "invalid_email"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("accounts/new_activation_email"))
+                .andExpect(model().attribute("error_message_code", "invalid_email"));
     }
 
     @Test
     void passwordMismatch() throws Exception {
         MockHttpServletRequestBuilder post = post("/create_account.do")
-            .param("email", "user1@example.com")
-            .param("password", "pass")
-            .param("password_confirmation", "word")
-            .param("client_id", "app");
+                .param("email", "user1@example.com")
+                .param("password", "pass")
+                .param("password_confirmation", "word")
+                .param("client_id", "app");
 
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(true);
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("accounts/new_activation_email"))
-            .andExpect(model().attribute("error_message_code", "form_error"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("accounts/new_activation_email"))
+                .andExpect(model().attribute("error_message_code", "form_error"));
     }
 
 
     @Test
     void verifyUser() throws Exception {
         when(accountCreationService.completeActivation("the_secret_code"))
-            .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
+                .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", "//example.com/callback"));
 
         MockHttpServletRequestBuilder get = get("/verify_user")
                 .param("code", "the_secret_code");

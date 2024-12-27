@@ -54,30 +54,30 @@ public class ClientAdminEndpointsValidatorTests {
     ClientAdminEndpointsValidator validator;
     ClientSecretValidator secretValidator;
 
-    private List wildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
-    private List httpWildCardUrls = Arrays.asList(
-        "http://*",
-        "http://**",
-        "http://*/**",
-        "http://*/*",
-        "http://**/*",
-        "http://a*",
-        "http://*domain*",
-        "http://*domain.com",
-        "http://*domain/path",
-        "http://**/path");
+    private final List wildCardUrls = Arrays.asList("*", "**", "*/**", "**/*", "*/*", "**/**");
+    private final List httpWildCardUrls = Arrays.asList(
+            "http://*",
+            "http://**",
+            "http://*/**",
+            "http://*/*",
+            "http://**/*",
+            "http://a*",
+            "http://*domain*",
+            "http://*domain.com",
+            "http://*domain/path",
+            "http://**/path");
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void createClient() {
-        client = new UaaClientDetails("newclient","","","client_credentials","");
+        client = new UaaClientDetails("newclient", "", "", "client_credentials", "");
         client.setClientSecret("secret");
-        caller = new UaaClientDetails("caller","","","client_credentials","clients.write");
+        caller = new UaaClientDetails("caller", "", "", "client_credentials", "clients.write");
         SecurityContextAccessor mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
         validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor);
-        secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0,255,0,0,0,0,6));
+        secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         validator.setClientSecretValidator(secretValidator);
 
         QueryableResourceManager<ClientDetails> clientDetailsService = mock(QueryableResourceManager.class);
@@ -130,7 +130,7 @@ public class ClientAdminEndpointsValidatorTests {
     @Test
     public void test_validate_jwt_bearer_grant_type_without_secret_for_update() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
-        client.setScope(Collections.singleton(caller.getClientId()+".write"));
+        client.setScope(Collections.singleton(caller.getClientId() + ".write"));
         client.setClientSecret("");
         validator.validate(client, false, true);
     }
@@ -138,10 +138,10 @@ public class ClientAdminEndpointsValidatorTests {
     @Test
     public void test_validate_jwt_bearer_grant_type_without_secret() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
-        client.setScope(Collections.singleton(caller.getClientId()+".write"));
+        client.setScope(Collections.singleton(caller.getClientId() + ".write"));
         client.setClientSecret("");
         expectedException.expect(InvalidClientDetailsException.class);
-        expectedException.expectMessage("Client secret is required for grant type "+GRANT_TYPE_JWT_BEARER);
+        expectedException.expectMessage("Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
         validator.validate(client, true, true);
     }
 
@@ -149,7 +149,7 @@ public class ClientAdminEndpointsValidatorTests {
     public void test_validate_jwt_bearer_grant_type_without_scopes() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
         expectedException.expect(InvalidClientDetailsException.class);
-        expectedException.expectMessage("Scope cannot be empty for grant_type "+GRANT_TYPE_JWT_BEARER);
+        expectedException.expectMessage("Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
         validator.validate(client, true, true);
     }
 
@@ -175,9 +175,9 @@ public class ClientAdminEndpointsValidatorTests {
         invalidRedirectUris.addAll(httpWildCardUrls);
         invalidRedirectUris.addAll(convertToHttps(httpWildCardUrls));
 
-        for(String s : Arrays.asList(new String[] {GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})) {
+        for (String s : Arrays.asList(new String[]{GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT})) {
             client.setAuthorizedGrantTypes(Collections.singleton(s));
-            for(String url : invalidRedirectUris) {
+            for (String url : invalidRedirectUris) {
                 testValidatorForInvalidURL(url);
             }
             testValidatorForInvalidURL(null);
@@ -191,9 +191,9 @@ public class ClientAdminEndpointsValidatorTests {
         redirectUris.addAll(httpWildCardUrls);
         redirectUris.addAll(convertToHttps(httpWildCardUrls));
 
-        for(String s : Arrays.asList(new String[] {"client_credentials", "password"})) {
+        for (String s : Arrays.asList(new String[]{"client_credentials", "password"})) {
             client.setAuthorizedGrantTypes(Collections.singleton(s));
-            for(String url : redirectUris) {
+            for (String url : redirectUris) {
                 testValidatorForURL(url);
             }
             testValidatorForURL(null);
@@ -240,7 +240,7 @@ public class ClientAdminEndpointsValidatorTests {
         } catch (InvalidClientDetailsException e) {
             return;
         }
-        Assert.fail(String.format("Url %s should not be allowed", url));
+        Assert.fail("Url %s should not be allowed".formatted(url));
     }
 
     private void testValidatorForURL(String url) {
@@ -250,7 +250,7 @@ public class ClientAdminEndpointsValidatorTests {
 
     private List<String> convertToHttps(List<String> urls) {
         List<String> httpsUrls = new ArrayList<>(urls.size());
-        for(String url : urls) {
+        for (String url : urls) {
             httpsUrls.add(url.replace("http", "https"));
         }
 

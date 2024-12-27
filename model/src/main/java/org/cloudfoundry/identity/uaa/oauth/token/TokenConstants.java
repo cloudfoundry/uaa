@@ -19,14 +19,13 @@ import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class TokenConstants {
     public enum TokenFormat {
         OPAQUE("opaque"),
         JWT("jwt");
 
-        private String stringValue;
+        private final String stringValue;
 
         TokenFormat(String string) {
             this.stringValue = string;
@@ -36,7 +35,7 @@ public class TokenConstants {
             return this.stringValue;
         }
 
-        static public TokenFormat fromStringValue(String stringValue) {
+        public static TokenFormat fromStringValue(String stringValue) {
             for (TokenFormat tokenFormat : TokenFormat.values()) {
                 if (tokenFormat.stringValue.equalsIgnoreCase(stringValue)) {
                     return tokenFormat;
@@ -45,8 +44,8 @@ public class TokenConstants {
             return null;
         }
 
-        static public List<String> getStringValues() {
-            return Arrays.stream(TokenFormat.values()).map(TokenFormat::getStringValue).collect(Collectors.toList());
+        public static List<String> getStringValues() {
+            return Arrays.stream(TokenFormat.values()).map(TokenFormat::getStringValue).toList();
         }
     }
 
@@ -70,5 +69,4 @@ public class TokenConstants {
 
     public static final String ID_TOKEN_HINT_PROMPT = "prompt";
     public static final String ID_TOKEN_HINT_PROMPT_NONE = "none";
-
 }

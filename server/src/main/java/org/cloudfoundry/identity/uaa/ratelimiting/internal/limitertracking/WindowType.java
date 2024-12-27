@@ -13,9 +13,9 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.common.InternalLimite
 public interface WindowType {
     String windowType();
 
-    RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping limiterMapping );
+    RequestsPerWindowSecs extractRequestsPerWindowFrom(LimiterMapping limiterMapping);
 
-    String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier );
+    String extractCallerIdFrom(CallerIdSupplierByType callerIdSupplier);
 
     /**
      * Get the Canned Caller ID (for the CompoundKey) - note: only valid on <code>GLOBAL</code> and <code>NON_GLOBAL.NoID</code>.
@@ -26,20 +26,20 @@ public interface WindowType {
         throw new IllegalStateException( windowType() + " does not support a canned Caller ID" );
     }
 
-    default boolean addTo( Map<CompoundKey, InternalLimiterFactory> map,
-                           LimiterMapping limiterMapping, CallerIdSupplierByType callerIdSupplier ) {
-        if ( limiterMapping != null ) {
-            RequestsPerWindowSecs window = extractRequestsPerWindowFrom( limiterMapping );
-            if ( window != null ) {
-                String callerId = extractCallerIdFrom( callerIdSupplier );
-                if ( callerId != null ) {
+    default boolean addTo(Map<CompoundKey, InternalLimiterFactory> map,
+            LimiterMapping limiterMapping, CallerIdSupplierByType callerIdSupplier) {
+        if (limiterMapping != null) {
+            RequestsPerWindowSecs window = extractRequestsPerWindowFrom(limiterMapping);
+            if (window != null) {
+                String callerId = extractCallerIdFrom(callerIdSupplier);
+                if (callerId != null) {
                     String limiterName = limiterMapping.name();
-                    map.put( CompoundKey.from( limiterName, windowType(), callerId ),
-                             InternalLimiterFactoryImpl.builder()
-                                     .name( limiterName )
-                                     .windowType( windowType() )
-                                     .requestsPerWindow( window )
-                                     .build() );
+                    map.put(CompoundKey.from(limiterName, windowType(), callerId),
+                            InternalLimiterFactoryImpl.builder()
+                                    .name(limiterName)
+                                    .windowType(windowType())
+                                    .requestsPerWindow(window)
+                                    .build());
                     return true;
                 }
             }
@@ -54,12 +54,12 @@ public interface WindowType {
         }
 
         @Override
-        public RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping limiterMapping ) {
-            return (limiterMapping == null) ? null : limiterMapping.global();
+        public RequestsPerWindowSecs extractRequestsPerWindowFrom(LimiterMapping limiterMapping) {
+            return limiterMapping == null ? null : limiterMapping.global();
         }
 
         @Override
-        public String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier ) {
+        public String extractCallerIdFrom(CallerIdSupplierByType callerIdSupplier) {
             return cannedCallerID();
         }
 
@@ -75,7 +75,7 @@ public interface WindowType {
         RemoteAddressID( LimiterMapping::withCallerRemoteAddressID, CallerIdSupplierByType::getCallerRemoteAddressID ), //NOSONAR
         NoID( LimiterMapping::withoutCallerID, null ) { //NOSONAR
             @Override
-            public String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier ) {
+            public String extractCallerIdFrom(CallerIdSupplierByType callerIdSupplier) {
                 return cannedCallerID();
             }
 
@@ -88,8 +88,8 @@ public interface WindowType {
         private final Function<LimiterMapping, RequestsPerWindowSecs> windowMapper;
         private final Function<CallerIdSupplierByType, String> callerIdMapper;
 
-        NON_GLOBAL( Function<LimiterMapping, RequestsPerWindowSecs> windowMapper,
-                    Function<CallerIdSupplierByType, String> callerIdMapper ) {
+        NON_GLOBAL(Function<LimiterMapping, RequestsPerWindowSecs> windowMapper,
+                Function<CallerIdSupplierByType, String> callerIdMapper) {
             this.windowMapper = windowMapper;
             this.callerIdMapper = callerIdMapper;
         }
@@ -100,20 +100,20 @@ public interface WindowType {
         }
 
         @Override
-        public RequestsPerWindowSecs extractRequestsPerWindowFrom( LimiterMapping limiterMapping ) {
-            return windowMapper.apply( limiterMapping );
+        public RequestsPerWindowSecs extractRequestsPerWindowFrom(LimiterMapping limiterMapping) {
+            return windowMapper.apply(limiterMapping);
         }
 
         @Override
-        public String extractCallerIdFrom( CallerIdSupplierByType callerIdSupplier ) {
-            return StringUtils.stripToNull( callerIdMapper.apply( callerIdSupplier ) );
+        public String extractCallerIdFrom(CallerIdSupplierByType callerIdSupplier) {
+            return StringUtils.stripToNull(callerIdMapper.apply(callerIdSupplier));
         }
 
-        public static void addBestTo( Map<CompoundKey, InternalLimiterFactory> map,
-                                      LimiterMapping limiterMapping, CallerIdSupplierByType callerIdSupplier ) {
-            if ( limiterMapping != null ) {
-                for ( NON_GLOBAL value : values() ) {
-                    if ( value.addTo( map, limiterMapping, callerIdSupplier ) ) {
+        public static void addBestTo(Map<CompoundKey, InternalLimiterFactory> map,
+                LimiterMapping limiterMapping, CallerIdSupplierByType callerIdSupplier) {
+            if (limiterMapping != null) {
+                for (NON_GLOBAL value : values()) {
+                    if (value.addTo(map, limiterMapping, callerIdSupplier)) {
                         return;
                     }
                 }

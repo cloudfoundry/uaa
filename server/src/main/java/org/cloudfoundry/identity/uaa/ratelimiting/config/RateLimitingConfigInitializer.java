@@ -13,7 +13,7 @@ public class RateLimitingConfigInitializer {
     LimiterFactorySupplierUpdatable limiterManager;
 
     public RateLimitingConfigInitializer(boolean rateLimiting, LoaderLogger logger, InitialConfig initialConfig, LimiterFactorySupplierUpdatable limiterManager, CredentialIdType... credentialIdTypes) {
-        if ( !rateLimiting ) {
+        if (!rateLimiting) {
             return;
         }
 
@@ -21,25 +21,25 @@ public class RateLimitingConfigInitializer {
         YamlConfigFileDTO localConfigDTO = initialConfig.getLocalConfigFileDTO();
         RateLimitingFactoriesSupplierWithStatus configurationWithStatus = initialConfig.getConfigurationWithStatus();
 
-        if ( initialError instanceof RateLimitingConfigException) {
-            logger.logError( (RateLimitingConfigException)initialError );
-        } else if ( initialError != null ) {
-            logger.logUnhandledError( initialError );
+        if (initialError instanceof RateLimitingConfigException exception) {
+            logger.logError(exception);
+        } else if (initialError != null) {
+            logger.logUnhandledError(initialError);
         }
 
         this.limiterManager = limiterManager;
         this.limiterManager.startBackgroundProcessing();
 
         RateLimitingConfigMapper configMapper = new RateLimitingConfigMapperImpl( credentialIdTypes );
-        if ( localConfigDTO != null ) {
+        if (localConfigDTO != null) {
             RateLimiterStatus status = configurationWithStatus.getStatus();
             String source = "Local Config File";
-            if ((status != null) && (status.getFromSource() != null) ) {
+            if ((status != null) && (status.getFromSource() != null)) {
                 source = status.getFromSource();
             }
-            configurationWithStatus = configMapper.map( configurationWithStatus, source, localConfigDTO );
-            limiterManager.update( configurationWithStatus );
-            logger.logUpdate( configurationWithStatus.getStatusJson() );
+            configurationWithStatus = configMapper.map(configurationWithStatus, source, localConfigDTO);
+            limiterManager.update(configurationWithStatus);
+            logger.logUpdate(configurationWithStatus.getStatusJson());
         }
     }
 

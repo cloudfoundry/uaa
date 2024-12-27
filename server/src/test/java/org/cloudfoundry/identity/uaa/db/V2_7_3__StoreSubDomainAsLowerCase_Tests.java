@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.flywaydb.core.api.migration.Context;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,6 +14,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -36,15 +38,23 @@ class V2_7_3__StoreSubDomainAsLowerCase_Tests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    private Connection connection;
+
+    @AfterEach
+    void closeConnection() {
+        try {
+            connection.close();
+        } catch (Exception ignore) {
+        }
+    }
     @BeforeEach
     void setUpDuplicateZones() throws SQLException {
         provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         migration = new V2_7_3__StoreSubDomainAsLowerCase();
         generator = new RandomValueStringGenerator(6);
-
+        connection = jdbcTemplate.getDataSource().getConnection();
         context = mock(Context.class);
-        when(context.getConnection()).thenReturn(
-                jdbcTemplate.getDataSource().getConnection());
+        when(context.getConnection()).thenReturn(connection);
     }
 
     @Test
@@ -132,10 +142,10 @@ class V2_7_3__StoreSubDomainAsLowerCase_Tests {
     }
 
     protected void createIdentityZoneThroughSQL(IdentityZone identityZone) {
-        String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
-        String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
+        String idZoneFields = "id,version,created,lastmodified,name,subdomain,description";
+        String createIdentityZoneSql = "insert into identity_zone(" + idZoneFields + ") values (?,?,?,?,?,?,?)";
 
-        jdbcTemplate.update(CREATE_IDENTITY_ZONE_SQL, ps -> {
+        jdbcTemplate.update(createIdentityZoneSql, ps -> {
             ps.setString(1, identityZone.getId().trim());
             ps.setInt(2, identityZone.getVersion());
             ps.setTimestamp(3, new Timestamp(new Date().getTime()));

@@ -3,8 +3,6 @@ package org.cloudfoundry.identity.uaa.impl.config;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
-import org.owasp.esapi.ESAPI;
-import org.owasp.esapi.reference.DefaultSecurityConfiguration;
 import org.slf4j.MDC;
 import org.springframework.beans.factory.config.YamlMapFactoryBean;
 import org.springframework.beans.factory.config.YamlProcessor;
@@ -34,14 +32,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Properties;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
+import static org.springframework.util.StringUtils.hasLength;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it
@@ -153,8 +149,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         return Arrays.stream(secretFiles)
                 .map(File::getAbsolutePath)
-                .map(path -> String.format("file:%s", path))
-                .collect(Collectors.toList());
+                .map("file:%s"::formatted)
+                .toList();
     }
 
     private Resource getYamlFromEnvironmentVariable() {
@@ -174,17 +170,17 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     ) {
         final List<String> resolvedLocations = fileConfigLocations.stream()
                 .map(applicationContext.getEnvironment()::resolvePlaceholders)
-                .collect(Collectors.toList());
+                .toList();
 
         resolvedLocations.stream()
-                .map(location -> String.format("Testing for YAML resources at: %s", location))
+                .map("Testing for YAML resources at: %s"::formatted)
                 .forEach(System.out::println);
 
         return resolvedLocations.stream()
                 .map(applicationContext::getResource)
                 .filter(Objects::nonNull)
                 .filter(Resource::exists)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void applyLog4jConfiguration(ConfigurableEnvironment environment, String contextPath) {
@@ -195,9 +191,9 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             //we do not want that variable
             //this variable starts with -D, so we can ignore it.
             String location = environment.getProperty("logging.config");
-            if (location != null && location.trim().length() > 0) {
+            if (location != null && !location.trim().isEmpty()) {
                 PropertySource<?> environmentPropertySource = environment.getPropertySources().get(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
-                if ((location.startsWith("-D") && environmentPropertySource != null && location.equals(environmentPropertySource.getProperty("LOGGING_CONFIG")))) {
+                if (location.startsWith("-D") && environmentPropertySource != null && location.equals(environmentPropertySource.getProperty("LOGGING_CONFIG"))) {
                     System.out.println("Ignoring Log Config Location: " + location + ". Location is suspect to be a Tomcat startup script environment variable");
                 } else {
                     System.out.println("Setting Log Config Location: " + location + " based on logging.config setting.");
@@ -221,25 +217,14 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             System.err.println("Error loading log4j config from location: " + log4jConfigLocation);
             e.printStackTrace();
         }
-        // add minimal configuration according to https://github.com/ESAPI/esapi-java-legacy/wiki/Using-ESAPI-with-SLF4J
-        Properties esapiProps = new Properties();
-        esapiProps.put("ESAPI.Logger", "org.owasp.esapi.logging.slf4j.Slf4JLogFactory");
-        esapiProps.put("ESAPI.Encoder", "org.owasp.esapi.reference.DefaultEncoder");
-        esapiProps.put("Logger.LogEncodingRequired", Boolean.FALSE.toString());
-        esapiProps.put("Logger.UserInfo", Boolean.TRUE.toString());
-        esapiProps.put("Logger.ClientInfo", Boolean.TRUE.toString());
-        esapiProps.put("Logger.ApplicationName", "uaa");
-        esapiProps.put("Logger.LogApplicationName", Boolean.FALSE.toString());
-        esapiProps.put("Logger.LogServerIP", Boolean.FALSE.toString());
-        ESAPI.override( new DefaultSecurityConfiguration(esapiProps));
         MDC.put("context", contextPath); // used to fill in %X{context} in our `property.log_pattern` log format
     }
 
     static void applySpringProfiles(ConfigurableEnvironment environment) {
         environment.setDefaultProfiles(new String[0]);
 
-        System.out.println(String.format("System property spring.profiles.active=[%s]", System.getProperty("spring.profiles.active")));
-        System.out.println(String.format("Environment property spring_profiles=[%s]", environment.getProperty("spring_profiles")));
+        System.out.printf("System property spring.profiles.active=[%s]%n", System.getProperty("spring.profiles.active"));
+        System.out.printf("Environment property spring_profiles=[%s]%n", environment.getProperty("spring_profiles"));
 
         if (environment.containsProperty("spring_profiles")) {
             setActiveProfiles(environment, StringUtils.tokenizeToStringArray(environment.getProperty("spring_profiles"), ",", true, true));
@@ -247,7 +232,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         }
 
         String systemProfiles = System.getProperty("spring.profiles.active");
-        if (!isEmpty(systemProfiles)) {
+        if (hasLength(systemProfiles)) {
             setActiveProfiles(environment, commaDelimitedListToStringArray(systemProfiles));
             return;
         }

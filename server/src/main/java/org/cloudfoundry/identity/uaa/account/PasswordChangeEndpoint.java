@@ -36,9 +36,9 @@ public class PasswordChangeEndpoint {
     private final SecurityContextAccessor securityContextAccessor;
 
     public PasswordChangeEndpoint(final IdentityZoneManager identityZoneManager,
-                                  final PasswordValidator passwordValidator,
-                                  final ScimUserProvisioning scimUserProvisioning,
-                                  final SecurityContextAccessor securityContextAccessor) {
+            final PasswordValidator passwordValidator,
+            final ScimUserProvisioning scimUserProvisioning,
+            final SecurityContextAccessor securityContextAccessor) {
         this.identityZoneManager = identityZoneManager;
         this.passwordValidator = passwordValidator;
         this.scimUserProvisioning = scimUserProvisioning;
@@ -72,7 +72,7 @@ public class PasswordChangeEndpoint {
         // logged (then ignored) by the caller.
         return new ConvertingExceptionView(
                 new ResponseEntity<>(new ExceptionReport(
-                        new BadCredentialsException("Invalid password change request"), false),
+                                new BadCredentialsException("Invalid password change request"), false),
                         HttpStatus.UNAUTHORIZED),
                 messageConverters);
     }
@@ -91,7 +91,7 @@ public class PasswordChangeEndpoint {
 
     private ConvertingExceptionView makeConvertingExceptionView(Exception exceptionToWrap, HttpStatus status) {
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
-                exceptionToWrap, false), status),
+                        exceptionToWrap, false), status),
                 messageConverters);
     }
 

@@ -32,8 +32,8 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 
 public class HybridTokenGranterForAuthorizationCode extends AbstractTokenGranter {
     public HybridTokenGranterForAuthorizationCode(AuthorizationServerTokenServices tokenServices,
-                                                  MultitenantClientServices clientDetailsService,
-                                                  OAuth2RequestFactory requestFactory) {
+            MultitenantClientServices clientDetailsService,
+            OAuth2RequestFactory requestFactory) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_AUTHORIZATION_CODE);
     }
 
@@ -41,12 +41,12 @@ public class HybridTokenGranterForAuthorizationCode extends AbstractTokenGranter
     protected OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest clientToken) {
 
         Authentication userAuth = SecurityContextHolder.getContext().getAuthentication();
-        if (userAuth==null || !userAuth.isAuthenticated()) {
+        if (userAuth == null || !userAuth.isAuthenticated()) {
             throw new InsufficientAuthenticationException("There is no currently logged in user");
         }
         Assert.state(clientToken instanceof ImplicitTokenRequest, "An ImplicitTokenRequest is required here. Caller needs to wrap the TokenRequest.");
 
-        OAuth2Request requestForStorage = ((ImplicitTokenRequest)clientToken).getOAuth2Request();
+        OAuth2Request requestForStorage = ((ImplicitTokenRequest) clientToken).getOAuth2Request();
 
         return new OAuth2Authentication(requestForStorage, userAuth);
 

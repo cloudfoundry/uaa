@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -34,7 +35,8 @@ import org.springframework.web.client.RestOperations;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class XFrameOptionsIT {
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -51,7 +53,7 @@ public class XFrameOptionsIT {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }

@@ -9,7 +9,7 @@ package org.cloudfoundry.identity.uaa.oauth.client.resource;
  * Scope: OAuth2 client
  */
 public class AuthorizationCodeResourceDetails extends AbstractRedirectResourceDetails {
-  public AuthorizationCodeResourceDetails() {
-    this.setGrantType("authorization_code");
-  }
+    public AuthorizationCodeResourceDetails() {
+        this.setGrantType("authorization_code");
+    }
 }

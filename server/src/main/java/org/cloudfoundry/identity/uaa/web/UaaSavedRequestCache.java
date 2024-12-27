@@ -54,7 +54,7 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
 
     @Override
     public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException, ServletException {
-        HttpServletRequest request = (HttpServletRequest)req;
+        HttpServletRequest request = (HttpServletRequest) req;
         //we want to be able to capture the parameter on posts
         if (shouldSaveFormRedirectParameter(request) && notAuthenticated()) {
             saveClientRedirect(request, request.getParameter(FORM_REDIRECT_PARAMETER));
@@ -63,8 +63,8 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
     }
 
     public boolean notAuthenticated() {
-        return SecurityContextHolder.getContext().getAuthentication()==null ||
-            !SecurityContextHolder.getContext().getAuthentication().isAuthenticated();
+        return SecurityContextHolder.getContext().getAuthentication() == null ||
+                !SecurityContextHolder.getContext().getAuthentication().isAuthenticated();
     }
 
     @Override
@@ -103,7 +103,7 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
     }
 
     protected static boolean hasSavedRequest(HttpServletRequest request) {
-        return getSavedRequest(request) !=null;
+        return getSavedRequest(request) != null;
     }
 
     protected static SavedRequest getSavedRequest(HttpServletRequest request) {
@@ -127,7 +127,7 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
         private final Map<String, String[]> parameters;
 
         public ClientRedirectSavedRequest(HttpServletRequest request, String redirectUrl) {
-            super(request, req -> req.getServerPort());
+            super(request, ServletRequest::getServerPort);
             this.redirectUrl = redirectUrl;
             parameters = Collections.unmodifiableMap(UaaUrlUtils.getParameterMap(redirectUrl));
         }
@@ -179,11 +179,11 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
 
         @Override
         public boolean doesRequestMatch(HttpServletRequest request, PortResolver portResolver) {
-            boolean result = (UrlUtils.buildFullRequestUrl(request).equals(redirectUrl));
+            boolean result = UrlUtils.buildFullRequestUrl(request).equals(redirectUrl);
             String formRedirect = request.getParameter(FORM_REDIRECT_PARAMETER);
             if (!result &&
-                POST.name().equals(request.getMethod()) &&
-                hasText(formRedirect)) {
+                    POST.name().equals(request.getMethod()) &&
+                    hasText(formRedirect)) {
                 //we received a form parameter
                 result = formRedirect.equals(getRedirectUrl());
             }

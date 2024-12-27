@@ -21,38 +21,38 @@ import static org.mockito.Mockito.when;
 
 public class ClientCredentialsTokenGranterTests {
 
-  private AuthorizationServerTokenServices tokenServices;
-  private ClientCredentialsTokenGranter clientCredentialsTokenGranter;
-  private ClientDetailsService clientDetailsService;
-  private OAuth2RequestFactory requestFactory;
-  private TokenRequest tokenRequest;
+    private AuthorizationServerTokenServices tokenServices;
+    private ClientCredentialsTokenGranter clientCredentialsTokenGranter;
+    private ClientDetailsService clientDetailsService;
+    private OAuth2RequestFactory requestFactory;
+    private TokenRequest tokenRequest;
 
-  @Before
-  public void setUp() throws Exception {
-    tokenServices = mock(AuthorizationServerTokenServices.class);
-    clientDetailsService = mock(ClientDetailsService.class);
-    requestFactory = mock(OAuth2RequestFactory.class);
-    tokenRequest = mock(TokenRequest.class);
-    clientCredentialsTokenGranter = new ClientCredentialsTokenGranter(tokenServices, clientDetailsService, requestFactory);
-  }
+    @Before
+    public void setUp() throws Exception {
+        tokenServices = mock(AuthorizationServerTokenServices.class);
+        clientDetailsService = mock(ClientDetailsService.class);
+        requestFactory = mock(OAuth2RequestFactory.class);
+        tokenRequest = mock(TokenRequest.class);
+        clientCredentialsTokenGranter = new ClientCredentialsTokenGranter(tokenServices, clientDetailsService, requestFactory);
+    }
 
-  @Test
-  public void grant() {
-    OAuth2Request oAuth2Request = mock(OAuth2Request.class);
-    when(clientDetailsService.loadClientByClientId(any())).thenReturn(mock(ClientDetails.class));
-    when(requestFactory.createOAuth2Request(any(), any())).thenReturn(oAuth2Request);
-    when(tokenServices.createAccessToken(any())).thenReturn(mock(OAuth2AccessToken.class));
-    when(oAuth2Request.getAuthorities()).thenReturn(Collections.EMPTY_LIST);
-    assertNotNull(clientCredentialsTokenGranter.grant(TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS, tokenRequest));
-  }
+    @Test
+    public void grant() {
+        OAuth2Request oAuth2Request = mock(OAuth2Request.class);
+        when(clientDetailsService.loadClientByClientId(any())).thenReturn(mock(ClientDetails.class));
+        when(requestFactory.createOAuth2Request(any(), any())).thenReturn(oAuth2Request);
+        when(tokenServices.createAccessToken(any())).thenReturn(mock(OAuth2AccessToken.class));
+        when(oAuth2Request.getAuthorities()).thenReturn(Collections.emptyList());
+        assertNotNull(clientCredentialsTokenGranter.grant(TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS, tokenRequest));
+    }
 
-  @Test
-  public void grantNoToken() {
-    OAuth2Request oAuth2Request = mock(OAuth2Request.class);
-    when(clientDetailsService.loadClientByClientId(any())).thenReturn(mock(ClientDetails.class));
-    when(requestFactory.createOAuth2Request(any(), any())).thenReturn(oAuth2Request);
-    when(tokenServices.createAccessToken(any())).thenReturn(null);
-    when(oAuth2Request.getAuthorities()).thenReturn(Collections.EMPTY_LIST);
-    assertNull(clientCredentialsTokenGranter.grant(TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS, tokenRequest));
-  }
+    @Test
+    public void grantNoToken() {
+        OAuth2Request oAuth2Request = mock(OAuth2Request.class);
+        when(clientDetailsService.loadClientByClientId(any())).thenReturn(mock(ClientDetails.class));
+        when(requestFactory.createOAuth2Request(any(), any())).thenReturn(oAuth2Request);
+        when(tokenServices.createAccessToken(any())).thenReturn(null);
+        when(oAuth2Request.getAuthorities()).thenReturn(Collections.emptyList());
+        assertNull(clientCredentialsTokenGranter.grant(TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS, tokenRequest));
+    }
 }

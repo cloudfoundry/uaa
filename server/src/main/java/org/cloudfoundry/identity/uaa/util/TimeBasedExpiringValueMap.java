@@ -28,7 +28,7 @@ import java.util.concurrent.atomic.AtomicLong;
  */
 public class TimeBasedExpiringValueMap<K, V> {
 
-    public static final long DEFALT_TIMEOUT =  1_000L * 2 * 60;
+    public static final long DEFALT_TIMEOUT = 1_000L * 2 * 60;
 
     private final TimeService timeService;
     private final Map<K, TimedKeyValue> map;

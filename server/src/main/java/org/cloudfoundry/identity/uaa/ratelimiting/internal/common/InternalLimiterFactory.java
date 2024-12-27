@@ -14,5 +14,5 @@ public interface InternalLimiterFactory {
      * @return internal limiter (not Null)
      */
     @Nonnull
-    InternalLimiter newLimiter( CompoundKey compoundKey, @Nonnull Instant now );
+    InternalLimiter newLimiter(CompoundKey compoundKey, @Nonnull Instant now);
 }

@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public abstract class AdminClientCreator extends EndpointDocs {
-    protected String adminToken = null;
+    protected String adminToken;
     protected UaaTestAccounts testAccounts;
 
     public static final String SECRET = "secret";

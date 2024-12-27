@@ -10,7 +10,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import java.util.Objects;
 
 public class ScimUserUpdateDiff {
-    private ScimUserProvisioning scimUserProvisioning;
+    private final ScimUserProvisioning scimUserProvisioning;
 
     public ScimUserUpdateDiff(ScimUserProvisioning scimUserProvisioning) {
         this.scimUserProvisioning = scimUserProvisioning;

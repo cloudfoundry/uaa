@@ -83,9 +83,9 @@ public class IdentityZoneEndpointsIntegrationTests {
     public void cleanup() {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         RestTemplate client = IntegrationTestUtils.getClientCredentialsTemplate(
-          IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret")
+                IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret")
         );
-        String groupId = IntegrationTestUtils.findGroupId(client, serverRunning.getBaseUrl(), String.format("zones.%s.admin", zoneId));
+        String groupId = IntegrationTestUtils.findGroupId(client, serverRunning.getBaseUrl(), "zones.%s.admin".formatted(zoneId));
         if (groupId != null) {
             IntegrationTestUtils.deleteGroup(clientCredentialsToken, "", serverRunning.getBaseUrl(), groupId);
         }
@@ -94,7 +94,7 @@ public class IdentityZoneEndpointsIntegrationTests {
     @Test
     public void testCreateZone() {
         zoneId = UUID.randomUUID().toString();
-        String requestBody = "{\"id\":\""+ zoneId +"\", \"subdomain\":\""+ zoneId +"\", \"name\":\"testCreateZone() "+ zoneId +"\"}";
+        String requestBody = "{\"id\":\"" + zoneId + "\", \"subdomain\":\"" + zoneId + "\", \"name\":\"testCreateZone() " + zoneId + "\"}";
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
@@ -104,17 +104,18 @@ public class IdentityZoneEndpointsIntegrationTests {
                 serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(requestBody, headers),
-                new ParameterizedTypeReference<Void>() {});
+                new ParameterizedTypeReference<Void>() {
+                });
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
 
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret")
+                IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret")
         );
-        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        String email = new RandomValueStringGenerator().generate() + "@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, serverRunning.getBaseUrl(), email, "firstname", "lastname", email, true);
 
-        ScimGroup scimGroup = new ScimGroup(null, String.format("zones.%s.admin", zoneId), null);
+        ScimGroup scimGroup = new ScimGroup(null, "zones.%s.admin".formatted(zoneId), null);
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
         ScimGroup group = IntegrationTestUtils.createGroup(clientCredentialsToken, "", serverRunning.getBaseUrl(), scimGroup);
         IntegrationTestUtils.addMemberToGroup(adminClient, serverRunning.getBaseUrl(), user.getId(), group.getId());
@@ -127,13 +128,14 @@ public class IdentityZoneEndpointsIntegrationTests {
                         email,
                         "secr3T");
 
-        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add("Authorization", "bearer " + zoneAdminToken);
         headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         ResponseEntity<List<IdentityProvider>> idpList = new RestTemplate().exchange(
                 serverRunning.getUrl("/identity-providers"),
                 HttpMethod.GET,
                 new HttpEntity<>(null, headers),
-                new ParameterizedTypeReference<List<IdentityProvider>>() {});
+                new ParameterizedTypeReference<List<IdentityProvider>>() {
+                });
 
         IdentityProvider identityProvider = idpList.getBody().get(0);
         assertThat(identityProvider.getIdentityZoneId(), is(zoneId));
@@ -141,7 +143,7 @@ public class IdentityZoneEndpointsIntegrationTests {
 
         //the default created zone does have a definition, but no policy
         assertNotNull(identityProvider.getConfig());
-        assertNull(ObjectUtils.castInstance(identityProvider.getConfig(),UaaIdentityProviderDefinition.class).getPasswordPolicy());
+        assertNull(ObjectUtils.castInstance(identityProvider.getConfig(), UaaIdentityProviderDefinition.class).getPasswordPolicy());
     }
 
     @Test
@@ -150,35 +152,38 @@ public class IdentityZoneEndpointsIntegrationTests {
         String id = UUID.randomUUID().toString();
         idZone.setId(id);
         idZone.setSubdomain(id);
-        idZone.setName("testUpdateZone-"+id);
+        idZone.setName("testUpdateZone-" + id);
         ResponseEntity<String> response = client.exchange(
                 serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(idZone),
-                new ParameterizedTypeReference<String>() {},
+                new ParameterizedTypeReference<String>() {
+                },
                 id);
         assertEquals(response.getBody(), HttpStatus.CREATED, response.getStatusCode());
 
         List<String> existingGroups = List.of("sps.write", "sps.read", "idps.write", "idps.read", "clients.admin", "clients.write", "clients.read",
-            "clients.secret", "scim.write", "scim.read", "scim.create", "scim.userids", "scim.zones", "groups.update", "password.write", "oauth.login", "uaa.admin");
+                "clients.secret", "scim.write", "scim.read", "scim.create", "scim.userids", "scim.zones", "groups.update", "password.write", "oauth.login", "uaa.admin");
         idZone.getConfig().getUserConfig().setAllowedGroups(existingGroups);
         response = client.exchange(
-                serverRunning.getUrl("/identity-zones/"+id),
+                serverRunning.getUrl("/identity-zones/" + id),
                 HttpMethod.PUT,
                 new HttpEntity<>(idZone),
-                new ParameterizedTypeReference<String>() {},
+                new ParameterizedTypeReference<String>() {
+                },
                 id);
-        assertEquals(response.getBody() , HttpStatus.OK, response.getStatusCode());
+        assertEquals(response.getBody(), HttpStatus.OK, response.getStatusCode());
 
         List<String> notAllExistingGroups = List.of("clients.admin", "clients.write", "clients.read", "clients.secret");
         idZone.getConfig().getUserConfig().setAllowedGroups(notAllExistingGroups);
         response = client.exchange(
-            serverRunning.getUrl("/identity-zones/"+id),
-            HttpMethod.PUT,
-            new HttpEntity<>(idZone),
-            new ParameterizedTypeReference<String>() {},
-            id);
-        assertEquals(response.getBody() , HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
+                serverRunning.getUrl("/identity-zones/" + id),
+                HttpMethod.PUT,
+                new HttpEntity<>(idZone),
+                new ParameterizedTypeReference<String>() {
+                },
+                id);
+        assertEquals(response.getBody(), HttpStatus.UNPROCESSABLE_ENTITY, response.getStatusCode());
     }
 
     @Test
@@ -187,33 +192,36 @@ public class IdentityZoneEndpointsIntegrationTests {
         String id = UUID.randomUUID().toString();
         idZone.setId(id);
         idZone.setSubdomain(id);
-        idZone.setName("testCreateZone() "+id);
+        idZone.setName("testCreateZone() " + id);
         ResponseEntity<Void> response = client.exchange(
                 serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(idZone),
-                new ParameterizedTypeReference<Void>() {},
+                new ParameterizedTypeReference<Void>() {
+                },
                 id);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
 
-        UaaClientDetails clientDetails = new UaaClientDetails("test123", null,"openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
+        UaaClientDetails clientDetails = new UaaClientDetails("test123", null, "openid", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.resource");
         clientDetails.setClientSecret("testSecret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singleton(OriginKeys.UAA));
 
         ResponseEntity<Void> clientCreateResponse = client.exchange(
-                serverRunning.getUrl("/identity-zones/"+id+"/clients"),
+                serverRunning.getUrl("/identity-zones/" + id + "/clients"),
                 HttpMethod.POST,
                 new HttpEntity<>(clientDetails),
-                new ParameterizedTypeReference<Void>() {},
+                new ParameterizedTypeReference<Void>() {
+                },
                 id);
 
         assertEquals(HttpStatus.CREATED, clientCreateResponse.getStatusCode());
 
         ResponseEntity<Void> clientDeleteResponse = client.exchange(
-                serverRunning.getUrl("/identity-zones/"+id+"/clients/"+clientDetails.getClientId()),
+                serverRunning.getUrl("/identity-zones/" + id + "/clients/" + clientDetails.getClientId()),
                 HttpMethod.DELETE,
                 null,
-                new ParameterizedTypeReference<Void>() {},
+                new ParameterizedTypeReference<Void>() {
+                },
                 id);
 
         assertEquals(HttpStatus.OK, clientDeleteResponse.getStatusCode());
@@ -225,26 +233,28 @@ public class IdentityZoneEndpointsIntegrationTests {
         IdentityZone idZone1 = new IdentityZone();
         String id1 = UUID.randomUUID().toString();
         idZone1.setId(id1);
-        idZone1.setSubdomain(id1+"non-unique");
-        idZone1.setName("testCreateZone() "+id1);
+        idZone1.setSubdomain(id1 + "non-unique");
+        idZone1.setName("testCreateZone() " + id1);
         ResponseEntity<Void> response1 = client.exchange(
                 serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(idZone1),
-                new ParameterizedTypeReference<Void>() {},
+                new ParameterizedTypeReference<Void>() {
+                },
                 id1);
         assertEquals(HttpStatus.CREATED, response1.getStatusCode());
 
         IdentityZone idZone2 = new IdentityZone();
         String id2 = UUID.randomUUID().toString();
         idZone2.setId(id2);
-        idZone2.setSubdomain(id1+"non-unique");
-        idZone2.setName("testCreateZone() "+id2);
-        ResponseEntity<Map<String,String>> response2 = client.exchange(
+        idZone2.setSubdomain(id1 + "non-unique");
+        idZone2.setName("testCreateZone() " + id2);
+        ResponseEntity<Map<String, String>> response2 = client.exchange(
                 serverRunning.getUrl("/identity-zones"),
                 HttpMethod.POST,
                 new HttpEntity<>(idZone2),
-                new ParameterizedTypeReference<Map<String,String>>() {},
+                new ParameterizedTypeReference<Map<String, String>>() {
+                },
                 id2);
         assertEquals(HttpStatus.CONFLICT, response2.getStatusCode());
         Assert.assertTrue(response2.getBody().get("error_description").toLowerCase().contains("subdomain"));
@@ -254,7 +264,7 @@ public class IdentityZoneEndpointsIntegrationTests {
         public IdentityClient(Object target) {
             IdentityZoneEndpointsIntegrationTests test = (IdentityZoneEndpointsIntegrationTests) target;
             ClientCredentialsResourceDetails resource = test.testAccounts.getClientCredentialsResource(
-                            new String[] {"zones.write"}, "identity", "identitysecret");
+                    new String[]{"zones.write"}, "identity", "identitysecret");
             setClientId(resource.getClientId());
             setClientSecret(resource.getClientSecret());
             setId(getClientId());

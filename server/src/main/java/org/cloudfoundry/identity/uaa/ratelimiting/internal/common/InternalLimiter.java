@@ -17,7 +17,7 @@ public class InternalLimiter {
     // Tracks requestsRemaining - also Used for toString to determine the minimum requests remaining for the multi InternalLimiter implementation(s)
     private final AtomicInteger requestsRemaining;
 
-    public InternalLimiter( CompoundKey compoundKey, int initialRequestsRemaining, Instant windowEndExclusive ) {
+    public InternalLimiter(CompoundKey compoundKey, int initialRequestsRemaining, Instant windowEndExclusive) {
         this.compoundKey = compoundKey;
         this.windowEndExclusive = windowEndExclusive;
         requestsRemaining = new AtomicInteger( initialRequestsRemaining );
@@ -26,8 +26,8 @@ public class InternalLimiter {
     /**
      * Used to determine if this limiter should be replaced
      */
-    public boolean isExpired( Instant now ) {
-        return !now.isBefore( windowEndExclusive );
+    public boolean isExpired(Instant now) {
+        return !now.isBefore(windowEndExclusive);
     }
 
     /**
@@ -39,18 +39,18 @@ public class InternalLimiter {
      * @param orderedInternalLimiters an appropriately ordered (non-null) iterator of <code>InternalLimiter</code>(s) (no entries null) to be called recursively
      * @return true - if should limit, ; otherwise - false, don't limit
      */
-    public boolean shouldLimit( @Nonnull Iterator<InternalLimiter> orderedInternalLimiters, @Nonnull LimiterImpl limiter ) {
+    public boolean shouldLimit(@Nonnull Iterator<InternalLimiter> orderedInternalLimiters, @Nonnull LimiterImpl limiter) {
         // Note: synchronization here NOT for Memory barriers, but for temporary exclusive access!
-        synchronized ( lockObject ) { // build up synchronization locks in list order!
-            if ( limiter.recordLimiting( getRequestsRemaining() < 1 ) ) {
+        synchronized (lockObject) { // build up synchronization locks in list order!
+            if (limiter.recordLimiting(getRequestsRemaining() < 1)) {
                 return true; // Limit - don't decrement
             }
             // Not Limiting, so check on next Recursively
-            if ( orderedInternalLimiters.hasNext() && orderedInternalLimiters.next().shouldLimit( orderedInternalLimiters, limiter ) ) { // still in range - so recurse
+            if (orderedInternalLimiters.hasNext() && orderedInternalLimiters.next().shouldLimit(orderedInternalLimiters, limiter)) { // still in range - so recurse
                 return true; // Limit - subsequent InternalLimiter says limit - so don't decrement
             }
             // all InternalLimiter(s) in the Iterator indicated have remaining requests, so decrement each as we unwind
-            limiter.recordRemaining( decrementRequestsRemaining() );
+            limiter.recordRemaining(decrementRequestsRemaining());
         }
         return false;
     }
@@ -74,11 +74,11 @@ public class InternalLimiter {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder( "InternalLimiter: " );
-        sb.append( getRequestsRemaining() ).append( " remaining till " ).append( getWindowEndExclusive() );
-        if ( isExpired( Instant.now() ) ) {
-            sb.append( "(expired)" );
+        sb.append(getRequestsRemaining()).append(" remaining till ").append(getWindowEndExclusive());
+        if (isExpired(Instant.now())) {
+            sb.append("(expired)");
         }
-        sb.append( " for " ).append( getCompoundKey() );
+        sb.append(" for ").append(getCompoundKey());
         return sb.toString();
     }
 }

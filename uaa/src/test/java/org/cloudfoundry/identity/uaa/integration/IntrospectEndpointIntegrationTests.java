@@ -143,7 +143,8 @@ public class IntrospectEndpointIntegrationTests {
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
 
-        @SuppressWarnings("unchecked") OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(introspectResponse.getBody());
+        @SuppressWarnings("unchecked")
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(introspectResponse.getBody());
 
         HttpHeaders headers = new HttpHeaders();
         formData = new LinkedMultiValueMap<>();

@@ -45,9 +45,9 @@ public class ProfileController {
     private final IdentityZoneManager identityZoneManager;
 
     public ProfileController(final ApprovalStore approvalsService,
-                             final MultitenantClientServices clientDetailsService,
-                             final SecurityContextAccessor securityContextAccessor,
-                             final IdentityZoneManager identityZoneManager) {
+            final MultitenantClientServices clientDetailsService,
+            final SecurityContextAccessor securityContextAccessor,
+            final IdentityZoneManager identityZoneManager) {
         this.approvalsService = approvalsService;
         this.clientDetailsService = clientDetailsService;
         this.securityContextAccessor = securityContextAccessor;
@@ -72,9 +72,9 @@ public class ProfileController {
      */
     @RequestMapping(value = "/profile", method = RequestMethod.POST)
     public String post(@RequestParam(required = false) Collection<String> checkedScopes,
-                       @RequestParam(required = false) String update,
-                       @RequestParam(required = false) String delete,
-                       @RequestParam(required = false) String clientId) {
+            @RequestParam(required = false) String update,
+            @RequestParam(required = false) String delete,
+            @RequestParam(required = false) String clientId) {
         String userId = getCurrentUserId();
         if (null != update) {
             Map<String, List<DescribedApproval>> approvalsByClientId = getCurrentApprovalsForUser(userId);

@@ -41,11 +41,11 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         if (needsPasswordReset(request.getSession())) {
             entryPoint.commence(request,
-                                response,
-                                new PasswordChangeRequiredException(
-                                    (UaaAuthentication) getContext().getAuthentication(),
-                                    "password reset is required"
-                                )
+                    response,
+                    new PasswordChangeRequiredException(
+                            (UaaAuthentication) getContext().getAuthentication(),
+                            "password reset is required"
+                    )
             );
         } else {
             //pass through

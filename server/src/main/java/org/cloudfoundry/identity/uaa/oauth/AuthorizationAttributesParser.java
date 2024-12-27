@@ -25,12 +25,13 @@ public class AuthorizationAttributesParser {
             try {
                 Map<String, Object> authorities = JsonUtils.readValue(authoritiesJson, new TypeReference<>() {
                 });
-                Object az_attr = authorities.get("az_attr");
-                if (az_attr == null)
+                Object azAttr = authorities.get("az_attr");
+                if (azAttr == null) {
                     return null;
+                }
                 // validate az_attr content with Map<String, String>>
 
-                return JsonUtils.readValue(JsonUtils.writeValueAsBytes(az_attr), new TypeReference<>() {
+                return JsonUtils.readValue(JsonUtils.writeValueAsBytes(azAttr), new TypeReference<>() {
                 });
             } catch (Throwable t) {
                 logger.error("Unable to read additionalAuthorizationAttributes", t);

@@ -19,24 +19,24 @@ class MetricsQueueTest {
 
     private MetricsQueue queue;
 
-    private UrlGroup uriGroup = new UrlGroup()
-        .setGroup("/uri")
-        .setLimit(MAX_TIME)
-        .setPattern("/uri")
-        .setCategory("test");
+    private final UrlGroup uriGroup = new UrlGroup()
+            .setGroup("/uri")
+            .setLimit(MAX_TIME)
+            .setPattern("/uri")
+            .setCategory("test");
 
     @BeforeEach
     void setup() {
         queue = new MetricsQueue();
-        RequestMetric metric = RequestMetric.start("uri", uriGroup,0);
+        RequestMetric metric = RequestMetric.start("uri", uriGroup, 0);
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
         metric.stop(200, 2);
         queue.offer(metric);
-        metric = RequestMetric.start("uri",uriGroup, 0);
+        metric = RequestMetric.start("uri", uriGroup, 0);
         metric.addQuery(new QueryMetric("query1", 0, 5, true));
-        metric.stop(200, MAX_TIME+1);
+        metric.stop(200, MAX_TIME + 1);
         queue.offer(metric);
-        metric = RequestMetric.start("uri", uriGroup,0);
+        metric = RequestMetric.start("uri", uriGroup, 0);
         metric.addQuery(new QueryMetric("query1", 0, 2, false));
         metric.stop(500, 5);
         queue.offer(metric);
@@ -53,8 +53,8 @@ class MetricsQueueTest {
         assertNotNull(summary);
         assertEquals(3, summary.getCount());
         assertEquals(1, summary.getIntolerableCount());
-        assertEquals(((double)(MAX_TIME+3+5)) / 3.0, summary.getAverageTime(), DELTA);
-        assertEquals((double)MAX_TIME+1, summary.getAverageIntolerableTime(), DELTA);
+        assertEquals(((double) (MAX_TIME + 3 + 5)) / 3.0, summary.getAverageTime(), DELTA);
+        assertEquals((double) MAX_TIME + 1, summary.getAverageIntolerableTime(), DELTA);
         assertEquals(3, summary.getDatabaseQueryCount());
         assertEquals(3, summary.getAverageDatabaseQueryTime(), DELTA);
         assertEquals(2, summary.getDatabaseIntolerableQueryCount());
@@ -64,7 +64,8 @@ class MetricsQueueTest {
     @Test
     void json_serialize() {
         String json = JsonUtils.writeValueAsString(queue);
-        Map<String,Object> object = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> object = JsonUtils.readValue(json, new TypeReference<Map<String, Object>>() {
+        });
         assertNotNull(object);
         assertEquals(3, object.size());
         MetricsQueue deserialized = JsonUtils.readValue(json, MetricsQueue.class);
@@ -74,22 +75,22 @@ class MetricsQueueTest {
 
     @Test
     void overflowLimitRespected() throws Exception {
-        RequestMetric metric = RequestMetric.start("uri",uriGroup,0);
+        RequestMetric metric = RequestMetric.start("uri", uriGroup, 0);
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
         metric.stop(200, 2);
         Runnable add10Metrics = () -> {
-            for (int i=0; i<10; i++) {
+            for (int i = 0; i < 10; i++) {
                 queue.offer(metric);
             }
         };
         Thread[] threads = new Thread[5];
-        for (int i=0; i<threads.length; i++) {
+        for (int i = 0; i < threads.length; i++) {
             threads[i] = new Thread(add10Metrics);
         }
-        for (int i=0; i<threads.length; i++) {
+        for (int i = 0; i < threads.length; i++) {
             threads[i].start();
         }
-        for (int i=0; i<threads.length; i++) {
+        for (int i = 0; i < threads.length; i++) {
             threads[i].join();
         }
         assertThat(queue.getLastRequests().size(), Matchers.lessThanOrEqualTo(MetricsQueue.MAX_ENTRIES));
@@ -98,7 +99,7 @@ class MetricsQueueTest {
     @Test
     void offer() {
         queue = new MetricsQueue();
-        RequestMetric metric = RequestMetric.start("uri",uriGroup,0);
+        RequestMetric metric = RequestMetric.start("uri", uriGroup, 0);
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
         metric.addQuery(new QueryMetric("query1", 0, 2, true));
         metric.addQuery(new QueryMetric("query2", 0, 2, false));
@@ -117,8 +118,8 @@ class MetricsQueueTest {
         assertNotNull(twoHundredResponses);
         assertEquals(2, twoHundredResponses.getCount());
         assertEquals(1, twoHundredResponses.getIntolerableCount());
-        assertEquals((double)(MAX_TIME+3) / 2.0, twoHundredResponses.getAverageTime(), DELTA);
-        assertEquals(MAX_TIME+1, twoHundredResponses.getAverageIntolerableTime(), DELTA);
+        assertEquals((double) (MAX_TIME + 3) / 2.0, twoHundredResponses.getAverageTime(), DELTA);
+        assertEquals(MAX_TIME + 1, twoHundredResponses.getAverageIntolerableTime(), DELTA);
         assertEquals(2, twoHundredResponses.getDatabaseQueryCount());
         assertEquals(3.5, twoHundredResponses.getAverageDatabaseQueryTime(), DELTA);
 

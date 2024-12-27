@@ -1,63 +1,75 @@
 package org.cloudfoundry.identity.uaa.db;
 
+import org.cloudfoundry.identity.uaa.db.mysql.V1_5_4__NormalizeTableAndColumnNames;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
 import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderConfig;
-import org.junit.Assume;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.annotation.ImportResource;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.context.web.WebAppConfiguration;
-import org.springframework.web.context.WebApplicationContext;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @ImportResource(locations = {
         "classpath:spring/env.xml",
-        "classpath:spring/use_uaa_db_in_mysql_url.xml", // adds this one
         "classpath:spring/jdbc-test-base-add-flyway.xml",
         "classpath:spring/data-source.xml",
 })
 class TableAndColumnNormalizationTestConfiguration {
 }
 
+/**
+ * For MySQL, the database name is hardcoded in the {@link V1_5_4__NormalizeTableAndColumnNames} migration as
+ * {@code uaa}. But the {@link UaaDatabaseName} class dynamically allocates a DB name based on the gradle worker id,
+ * like {@code uaa_1, uaa_2m ...}.
+ * <p>
+ * When the profile is {@code mysql}, hardcode the DB url to have the database name equal to {@code uaa}.
+ */
+class MySQLInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
+    @Override
+    public void initialize(ConfigurableApplicationContext applicationContext) {
+        var profiles = Arrays.asList(applicationContext.getEnvironment().getActiveProfiles());
+        if (profiles.contains("mysql")) {
+            Map<String, Object> dynamicProperties = Map.of("database.url", "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true");
+            MapPropertySource propertySource = new MapPropertySource("mysql-override", dynamicProperties);
+            applicationContext.getEnvironment().getPropertySources().addLast(propertySource);
+        }
+    }
+}
+
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
-@ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         TableAndColumnNormalizationTestConfiguration.class,
-        PasswordEncoderConfig.class,
-})
+        PasswordEncoderConfig.class
+},
+        initializers = MySQLInitializer.class
+)
+@EnabledIfProfile({"postgresql", "mysql"})
 class TableAndColumnNormalizationTest {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     @Autowired
     private DataSource dataSource;
-
-    @BeforeEach
-    void checkMysqlOrPostgresqlProfile(
-            @Autowired WebApplicationContext webApplicationContext
-    ) {
-        Assume.assumeTrue(
-                Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("mysql") ||
-                        Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles()).contains("postgresql")
-        );
-    }
 
     @Test
     void checkTables() throws Exception {
@@ -73,7 +85,7 @@ class TableAndColumnNormalizationTest {
                     logger.info("Validating table [" + name + "]");
                     assertEquals(name.toLowerCase(),
                             name,
-                            String.format("Table[%s] is not lower case.", name));
+                            "Table[%s] is not lower case.".formatted(name));
                 }
             }
             assertEquals(DatabaseInformation1_5_3.tableNames.size(), count, "Table count:");
@@ -93,10 +105,11 @@ class TableAndColumnNormalizationTest {
                 logger.info("Checking column [" + name + "." + col + "]");
                 if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
                     logger.info("Validating column [" + name + "." + col + "]");
-                    assertEquals(String.format("Column[%s.%s] is not lower case.", name, col), col.toLowerCase(), col);
+                    assertEquals(col.toLowerCase(), col, "Column[%s.%s] is not lower case.".formatted(name, col));
                 }
             }
             assertTrue(hadSomeResults, "Getting columns from db metadata should have returned some results");
         }
     }
+
 }

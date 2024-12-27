@@ -10,7 +10,7 @@ import static org.junit.Assert.assertNotEquals;
 public class KeystoneIdentityProviderDefinitionTest {
 
     @Test
-    public void testEquals(){
+    public void testEquals() {
         KeystoneIdentityProviderDefinition kipd1 = new KeystoneIdentityProviderDefinition();
         kipd1.setAddShadowUserOnLogin(true);
         KeystoneIdentityProviderDefinition kipd2 = new KeystoneIdentityProviderDefinition();

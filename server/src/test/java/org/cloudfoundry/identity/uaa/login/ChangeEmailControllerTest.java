@@ -221,7 +221,7 @@ class ChangeEmailControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
 
-        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        UaaPrincipal principal = (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Assert.assertEquals("user-id-001", principal.getId());
         Assert.assertEquals("new@example.com", principal.getName());
         Assert.assertEquals("new@example.com", principal.getEmail());
@@ -270,7 +270,7 @@ class ChangeEmailControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("//example.com/callback"));
 
-        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        UaaPrincipal principal = (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Assert.assertEquals("user-id-001", principal.getId());
         Assert.assertEquals("new@example.com", principal.getName());
         Assert.assertEquals("new@example.com", principal.getEmail());
@@ -323,7 +323,7 @@ class ChangeEmailControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
 
-        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        UaaPrincipal principal = (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Assert.assertEquals("user-id-001", principal.getId());
         Assert.assertEquals("bob", principal.getName());
         Assert.assertEquals("user@example.com", principal.getEmail());
@@ -352,7 +352,7 @@ class ChangeEmailControllerTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile?success_message_code=email_change.success"));
 
-        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        UaaPrincipal principal = (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         Assert.assertEquals("user-id-001", principal.getId());
         Assert.assertEquals("new@example.com", principal.getName());
         Assert.assertEquals("new@example.com", principal.getEmail());

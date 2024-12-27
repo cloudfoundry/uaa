@@ -62,7 +62,7 @@ public class UserTokenGranterTest {
     private UaaOauth2Authentication authentication;
     private TokenRequest tokenRequest;
     private UaaAuthentication userAuthentication;
-    private Map<String,String> requestParameters;
+    private Map<String, String> requestParameters;
     private UaaClientDetails requestingClient;
     private UaaClientDetails receivingClient;
     private RevocableTokenProvisioning tokenStore;
@@ -77,15 +77,15 @@ public class UserTokenGranterTest {
 
         userAuthentication = mock(UaaAuthentication.class);
         granter = new UserTokenGranter(
-            tokenServices,
-            clientDetailsService,
-            requestFactory,
-            tokenStore
+                tokenServices,
+                clientDetailsService,
+                requestFactory,
+                tokenStore
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        requestingClient = new UaaClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_USER_TOKEN, null);
-        receivingClient =  new UaaClientDetails("receivingId",null,"test.scope",GRANT_TYPE_REFRESH_TOKEN, null);
+        requestingClient = new UaaClientDetails("requestingId", null, "uaa.user", GRANT_TYPE_USER_TOKEN, null);
+        receivingClient = new UaaClientDetails("receivingId", null, "test.scope", GRANT_TYPE_REFRESH_TOKEN, null);
         when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()), anyString())).thenReturn(requestingClient);
         when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()), anyString())).thenReturn(receivingClient);
         requestParameters = new HashMap<>();
@@ -149,7 +149,7 @@ public class UserTokenGranterTest {
         String tokenId = "access_token";
         DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(tokenId);
         DefaultOAuth2RefreshToken refreshToken = new DefaultOAuth2RefreshToken("refresh_token");
-        Map<String,Object> info = new HashMap(token.getAdditionalInformation());
+        Map<String, Object> info = new HashMap(token.getAdditionalInformation());
         info.put(JTI, token.getValue());
         token.setAdditionalInformation(info);
         token.setRefreshToken(refreshToken);
@@ -165,10 +165,10 @@ public class UserTokenGranterTest {
     @Test
     public void ensure_client_gets_swapped() {
         granter = new UserTokenGranter(
-            tokenServices,
-            clientDetailsService,
-            requestFactory,
-            tokenStore
+                tokenServices,
+                clientDetailsService,
+                requestFactory,
+                tokenStore
         ) {
             @Override
             protected DefaultOAuth2AccessToken prepareForSerialization(DefaultOAuth2AccessToken token) {

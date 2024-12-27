@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -33,7 +34,8 @@ public interface ResetPasswordService {
         @JsonProperty("client_id")
         private String clientId;
 
-        public ResetPasswordResponse() {}
+        public ResetPasswordResponse() {
+        }
 
         public ResetPasswordResponse(ScimUser user, String redirectUri, String clientId) {
             this.user = user;

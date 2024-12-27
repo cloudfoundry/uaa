@@ -2,21 +2,22 @@ package org.cloudfoundry.identity.uaa.ratelimiting.util;
 
 import org.apache.commons.lang3.StringUtils;
 
-public class IntUtils {
+public final class IntUtils {
 
-    private IntUtils() {}
+    private IntUtils() {
+    }
 
-    public static Integer parseNoException( String source, Integer defaultOnEmpty ) {
+    public static Integer parseNoException(String source, Integer defaultOnEmpty) {
         try {
-            return parse( source, defaultOnEmpty );
+            return parse(source, defaultOnEmpty);
         }
-        catch ( NumberFormatException e ) {
+        catch (NumberFormatException e) {
             return defaultOnEmpty;
         }
     }
 
-    public static Integer parse( String source, Integer defaultOnEmpty ) {
-        source = StringUtils.stripToEmpty( source );
-        return source.isEmpty() ? defaultOnEmpty : Integer.valueOf( Integer.parseInt( source ) );
+    public static Integer parse(String source, Integer defaultOnEmpty) {
+        source = StringUtils.stripToEmpty(source);
+        return source.isEmpty() ? defaultOnEmpty : Integer.valueOf(Integer.parseInt(source));
     }
 }

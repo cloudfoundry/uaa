@@ -137,7 +137,7 @@ public abstract class AliasMockMvcTestBase {
     }
 
     protected static List<String> getScopesForZone(final String zoneId, final String... scopes) {
-        return Stream.of(scopes).map(scope -> String.format("zones.%s.%s", zoneId, scope)).toList();
+        return Stream.of(scopes).map(scope -> "zones.%s.%s".formatted(zoneId, scope)).toList();
     }
 
     protected static IdentityProvider<?> buildUaaIdpWithAliasProperties(

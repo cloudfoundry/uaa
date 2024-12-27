@@ -45,7 +45,7 @@ class OauthCodeIndexTest {
             try (
                     Connection connection = dataSource.getConnection();
                     ResultSet rs = connection.getMetaData().getIndexInfo(connection.getCatalog(), null, tableName, unique, true)
-            ) {
+                    ) {
                 while (!found && rs.next()) {
                     found = indexName.equalsIgnoreCase(rs.getString("INDEX_NAME"));
                 }
@@ -55,7 +55,7 @@ class OauthCodeIndexTest {
             }
         }
 
-        assertTrue(found, String.format("Expected to find index %s.%s", uncasedTableName, indexName));
+        assertTrue(found, "Expected to find index %s.%s".formatted(uncasedTableName, indexName));
     }
 
 }

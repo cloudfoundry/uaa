@@ -37,20 +37,20 @@ class DynamicZoneAwareAuthenticationManagerTest {
     private static final IdentityZone ZONE = MultitenancyFixture.identityZone("test", "test");
     private IdentityProviderProvisioning providerProvisioning = mock(IdentityProviderProvisioning.class);
     private LdapIdentityProviderDefinition ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-        "ldap://localhost:38889/",
-        "cn=admin,ou=Users,dc=test,dc=com",
-        "adminsecret",
-        "dc=test,dc=com",
-        "cn={0}",
-        "ou=scopes,dc=test,dc=com",
-        "member={0}",
-        "mail",
-        null,
-        false,
-        true,
-        true,
-        100,
-        true);
+            "ldap://localhost:38889/",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            100,
+            true);
 
 
     private AuthenticationManager uaaAuthenticationMgr = mock(AuthenticationManager.class);
@@ -62,7 +62,6 @@ class DynamicZoneAwareAuthenticationManagerTest {
     private IdentityProvider uaaInactive = mock(IdentityProvider.class);
     private IdentityProvider ldapActive = mock(IdentityProvider.class);
     private IdentityProvider ldapInactive = mock(IdentityProvider.class);
-
 
 
     @BeforeEach
@@ -190,7 +189,7 @@ class DynamicZoneAwareAuthenticationManagerTest {
         when(mockManager.getDefinition()).thenReturn(ldapIdentityProviderDefinition);
         try {
             manager.authenticate(success);
-            fail("Was expecting a "+ProviderNotFoundException.class);
+            fail("Was expecting a " + ProviderNotFoundException.class);
         } catch (ProviderNotFoundException x) {
             //expected
         }
@@ -260,15 +259,16 @@ class DynamicZoneAwareAuthenticationManagerTest {
     DynamicZoneAwareAuthenticationManager getDynamicZoneAwareAuthenticationManager() {
         return getDynamicZoneAwareAuthenticationManager(false);
     }
+
     DynamicZoneAwareAuthenticationManager getDynamicZoneAwareAuthenticationManager(boolean mock) {
         if (mock) {
             final DynamicLdapAuthenticationManager mockLdapManager = mock(DynamicLdapAuthenticationManager.class);
             return new DynamicZoneAwareAuthenticationManager(
-                providerProvisioning,
-                uaaAuthenticationMgr,
-                scimGroupExternalMembershipManager,
-                scimGroupProvisioning,
-                ldapLoginAuthenticationManager
+                    providerProvisioning,
+                    uaaAuthenticationMgr,
+                    scimGroupExternalMembershipManager,
+                    scimGroupProvisioning,
+                    ldapLoginAuthenticationManager
             ) {
                 @Override
                 public DynamicLdapAuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
@@ -279,11 +279,11 @@ class DynamicZoneAwareAuthenticationManagerTest {
 
         } else {
             return new DynamicZoneAwareAuthenticationManager(
-                providerProvisioning,
-                uaaAuthenticationMgr,
-                scimGroupExternalMembershipManager,
-                scimGroupProvisioning,
-                ldapLoginAuthenticationManager
+                    providerProvisioning,
+                    uaaAuthenticationMgr,
+                    scimGroupExternalMembershipManager,
+                    scimGroupProvisioning,
+                    ldapLoginAuthenticationManager
             );
         }
     }

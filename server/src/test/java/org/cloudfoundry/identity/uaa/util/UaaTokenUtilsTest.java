@@ -35,12 +35,12 @@ public class UaaTokenUtilsTest {
     @Test
     public void testRevocationHash() {
         List<String> salts = new LinkedList<>();
-        for (int i=0; i<3; i++) {
+        for (int i = 0; i < 3; i++) {
             salts.add(new AlphanumericRandomValueStringGenerator().generate());
         }
         String hash1 = UaaTokenUtils.getRevocationHash(salts);
         String hash2 = UaaTokenUtils.getRevocationHash(salts);
-        assertFalse("Hash 1 should not be empty",StringUtils.isEmpty(hash1));
+        assertFalse("Hash 1 should not be empty", StringUtils.isEmpty(hash1));
         assertFalse("Hash 2 should not be empty", StringUtils.isEmpty(hash2));
         assertEquals(hash1, hash2);
     }
@@ -80,7 +80,7 @@ public class UaaTokenUtilsTest {
         claims.put(SUB, "someClientId");
         claims.put(CID, "someClientId");
         assertFalse(isUserToken(claims));
-   }
+    }
 
     @Test
     public void required_user_groups_null_args_are_ok() {
@@ -92,12 +92,12 @@ public class UaaTokenUtilsTest {
 
     @Test
     public void test_required_user_authorities_invalid() {
-        List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3","scope4");
+        List<String> requiredGroups = Arrays.asList("scope1", "scope2", "scope3", "scope4");
         List<GrantedAuthority> userGroups = Arrays.asList(
-            new SimpleGrantedAuthority("scope1"),
-            new SimpleGrantedAuthority("scope2"),
-            new SimpleGrantedAuthority("scope3"),
-            new SimpleGrantedAuthority("scope5")
+                new SimpleGrantedAuthority("scope1"),
+                new SimpleGrantedAuthority("scope2"),
+                new SimpleGrantedAuthority("scope3"),
+                new SimpleGrantedAuthority("scope5")
         );
 
         assertFalse(UaaTokenUtils.hasRequiredUserAuthorities(requiredGroups, userGroups));
@@ -105,12 +105,12 @@ public class UaaTokenUtilsTest {
 
     @Test
     public void test_required_user_authorities_valid() {
-        List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3");
+        List<String> requiredGroups = Arrays.asList("scope1", "scope2", "scope3");
         List<GrantedAuthority> userGroups = Arrays.asList(
-            new SimpleGrantedAuthority("scope1"),
-            new SimpleGrantedAuthority("scope2"),
-            new SimpleGrantedAuthority("scope3"),
-            new SimpleGrantedAuthority("scope4")
+                new SimpleGrantedAuthority("scope1"),
+                new SimpleGrantedAuthority("scope2"),
+                new SimpleGrantedAuthority("scope3"),
+                new SimpleGrantedAuthority("scope4")
         );
         assertTrue(UaaTokenUtils.hasRequiredUserAuthorities(requiredGroups, userGroups));
     }
@@ -118,18 +118,18 @@ public class UaaTokenUtilsTest {
 
     @Test
     public void test_required_user_groups_invalid() {
-        List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3", "scope5");
-        List<String> userGroups = Arrays.asList("scope1","scope2","scope3","scope4");
+        List<String> requiredGroups = Arrays.asList("scope1", "scope2", "scope3", "scope5");
+        List<String> userGroups = Arrays.asList("scope1", "scope2", "scope3", "scope4");
         assertFalse(UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups));
     }
 
     @Test
     public void test_required_user_groups_valid() {
-        List<String> requiredGroups = Arrays.asList("scope1","scope2","scope3");
-        List<String> userGroups = Arrays.asList("scope1","scope2","scope3","scope4");
+        List<String> requiredGroups = Arrays.asList("scope1", "scope2", "scope3");
+        List<String> userGroups = Arrays.asList("scope1", "scope2", "scope3", "scope4");
         assertTrue(UaaTokenUtils.hasRequiredUserGroups(requiredGroups, userGroups));
     }
-    
+
     @Test
     public void getClaims() throws KeyLengthException {
         Map<String, Object> headers = new HashMap<>();

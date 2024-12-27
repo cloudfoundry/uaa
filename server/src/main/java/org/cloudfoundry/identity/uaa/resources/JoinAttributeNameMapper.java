@@ -7,27 +7,27 @@ package org.cloudfoundry.identity.uaa.resources;
  */
 public class JoinAttributeNameMapper implements AttributeNameMapper {
 
-  private final String name;
-  private final String joinPrefix;
-  private final int prefixLength;
+    private final String name;
+    private final String joinPrefix;
+    private final int prefixLength;
 
-  public JoinAttributeNameMapper(String name) {
-    this.name = name;
-    joinPrefix = name + ".";
-    prefixLength = joinPrefix.length();
-  }
+    public JoinAttributeNameMapper(String name) {
+        this.name = name;
+        joinPrefix = name + ".";
+        prefixLength = joinPrefix.length();
+    }
 
-  @Override
-  public String mapToInternal(String attr) {
-    return joinPrefix + attr;
-  }
+    @Override
+    public String mapToInternal(String attr) {
+        return joinPrefix + attr;
+    }
 
-  @Override
-  public String mapFromInternal(String attr) {
-    return attr.substring(prefixLength);
-  }
+    @Override
+    public String mapFromInternal(String attr) {
+        return attr.substring(prefixLength);
+    }
 
-  public String getName() {
-    return name;
-  }
+    public String getName() {
+        return name;
+    }
 }

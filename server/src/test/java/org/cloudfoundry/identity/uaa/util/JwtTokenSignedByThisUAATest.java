@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -24,9 +25,11 @@ import org.cloudfoundry.identity.uaa.client.InMemoryClientDetailsService;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.ChainedSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -52,8 +55,6 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
@@ -68,7 +69,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import static java.util.Collections.EMPTY_LIST;
+import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.REQUIRED_USER_GROUPS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANTED_SCOPES;
@@ -120,16 +121,16 @@ public class JwtTokenSignedByThisUAATest {
     private List<String> logEvents;
     private AbstractAppender appender;
 
-  public JwtTokenSignedByThisUAATest() throws ParseException {
-  }
+    public JwtTokenSignedByThisUAATest() throws ParseException {
+    }
 
-  @Before
+    @Before
     public void setupLogger() {
         logEvents = new ArrayList<>();
         appender = new AbstractAppender("", null, null) {
             @Override
             public void append(LogEvent event) {
-                logEvents.add(String.format("%s -- %s", event.getLevel().name(), event.getMessage().getFormattedMessage()));
+                logEvents.add("%s -- %s".formatted(event.getLevel().name(), event.getMessage().getFormattedMessage()));
             }
         };
         appender.start();
@@ -156,7 +157,7 @@ public class JwtTokenSignedByThisUAATest {
 
     @Rule
     public ExpectedException expectedException = ExpectedException.none();
-    private static final String macSigningKeySecret = "foobarfoobarfoobarfoobarfoobarfoo";
+    private static final String macSigningKeySecret = "foobarfoobarfoobarfoobarfoobarfoofoobarfoobarfoobarfoobarfoobarfoobar";
 
     @Before
     public void setup() throws KeyLengthException {
@@ -222,8 +223,7 @@ public class JwtTokenSignedByThisUAATest {
                 .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("acme.dev"))));
 
         uaaUser = userDb.retrieveUserById(USER_ID);
-        uaaUserGroups = uaaUser.getAuthorities().stream().map(a -> a.getAuthority()).collect(Collectors.toList());
-
+        uaaUserGroups = uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
     }
 
     @Test
@@ -249,13 +249,13 @@ public class JwtTokenSignedByThisUAATest {
     public void validation_succeeds_with_different_alg() {
         header.put("alg", "HS512");
         JwtTokenSignedByThisUAA jwtTokenSignedByThisUAA = buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-            .checkIssuer("http://localhost:8080/uaa/oauth/token")
-            .checkSignature();
+                .checkIssuer("http://localhost:8080/uaa/oauth/token")
+                .checkSignature();
         assertThat(jwtTokenSignedByThisUAA, notNullValue());
         assertThat(jwtTokenSignedByThisUAA.toString(), notNullValue());
         assertThat(jwtTokenSignedByThisUAA.getJwt().toString(), notNullValue());
         assertThat(jwtTokenSignedByThisUAA.getJwt().getHeader().toString(), notNullValue());
-        assertThat(jwtTokenSignedByThisUAA.getJwt().getEncoded().toString(), notNullValue());
+        assertThat(jwtTokenSignedByThisUAA.getJwt().getEncoded(), notNullValue());
         assertThat(jwtTokenSignedByThisUAA.getJwt().getHeader().getAlg(), containsString("HS512"));
     }
 
@@ -263,61 +263,62 @@ public class JwtTokenSignedByThisUAATest {
     public void validation_with_rs256_rs384_and_rs512_algorithm() {
         IdentityZone uaaZone = IdentityZone.getUaa();
         uaaZone.getConfig().getTokenPolicy().setKeys(
-            map(entry("0", "-----BEGIN RSA PRIVATE KEY-----\n"
-                + "MIIEpAIBAAKCAQEAqL/ATjXzKjxPgYdR9dD436dPRhpa247RD/NroC5/KA19QksN\n"
-                + "3v5rIjVJUdBQ4iT1qKKzHtuqgpaxr7ofw8566O4tLb6Xv5RyYO7NoQup2t+/m17/\n"
-                + "G8zej6jmugZK+aDXuTuAXyiWcNCesNPtUiAdVQnLMNHW95CsgS9X7M9GQ4guu3sU\n"
-                + "vEPd+HCapacx/rGiv9a7NQnNP8xO5c54RReIuFjLGAoyYHpzjGk+/wtuepRbC1cP\n"
-                + "xYSn7yi1Mkh4iqBV63EhBmHhAEGkwpGZ50kDSKDsJEbiHFy0gwxKNIYAGV0+zmUw\n"
-                + "oLhQ/t1l4VTqEPr0LEmdI2kRA2AwWZqqUF5XcQIDAQABAoIBAQChJeTGi5y4k7m1\n"
-                + "T33EiphwNL1ui9KCY2NgoSwBXwXNQPyCZ1xKvJmgpFRtTcs/+t2h+iWl7U5qwO/U\n"
-                + "iaC2A6O6d2ErkxwlNuT3jnVOOu4s94lqHZDvgnhzpm8X7NSCiMgZuym/Nepct80j\n"
-                + "vm6fA84fHGgvKeToq/8gqw6DNfm6mHArHQ1wl6S5vc87fr/sxHmdGJSfDPJJdsAZ\n"
-                + "AulfPKSq05+KlbnRoDAtT4ECRg/hcZ0OSS8Po0F1Yn+7QBMn7/3JB7xAZa8o7APy\n"
-                + "d+HI72Q1TZVpSprHZFaVjbzY5OVt4y9zNQH9O3e4l46S9KTgCiWZBVkIhXf7BYUW\n"
-                + "gVHx/C7xAoGBANYQGFZnIgBNc3Z30x2iga8v1UgVeCR/o2utf+lIkVSpVCGxK4+1\n"
-                + "OyjzmThCaBWBIjLa1W/4XxMAXd6BF/kdW1HKD221Vu0bFB96sfCXX3e4z7yYuuOR\n"
-                + "6/nofneTbFUSmnMVcaTqjrQFwDLUhwKoJeQ1VjPMCwn1ITePpA3kl0ntAoGBAMnP\n"
-                + "B2TB7OCHl5Ns5iIMdorpEvp3EbzRDqIC3HZgs/vh/U9I2U7avLefE4zJFcGmlG/Y\n"
-                + "nkSkgcvS5lrC2DVGfNCek1Upj+j7yf4eU+sylDwDIJ1wdbzp8HYKTrjYPYtBwkVV\n"
-                + "aaw0fFN637UKwQ1vfMFh8MXfIHj9GdWVGdcRhYMVAoGABJenzgK8agE/XuVHNDWO\n"
-                + "TrHaA4fiYfYTDXZVbi3OYGCZm3dvlc+vizteqCRUk1GH6EtllNdhQskZOnLOjtug\n"
-                + "X+rT1ei0CrYwAlThiGXW+HyQiF1GdSdmRqBERlB1XIXfpmRpYb5efWI6M1z34Ii2\n"
-                + "92RliwrvmbEWm1iLjni+/ikCgYBy1WdzohXUPdO2hAT/4u+hY7b05sQlGSCmd9JT\n"
-                + "WfuQnKuzbdSZ1kYEhnRtbA8BPnTAoBaPILzq6ntBshWtWwqy+0kC8L9+56es/jzq\n"
-                + "XMGU1IK+k7urX8MAqCTbcdCzaRvOsCeNYeBM8GJTdmcb6hCnSb/kGG816W/F5S3q\n"
-                + "/4FlcQKBgQC187xHduIFArF3XihiSA4zLgrLBfdvbP4fPYlzKflTnPKtlzqlrDpL\n"
-                + "iJ5TA2qTZ7wn7dOl4epgc11plQZa9yA4d6b8abdJLhuEu+vF3XfwYibqM4axikRc\n"
-                + "81tiTbWzc/xTVjLvFZTZCDAe7e4WjthF/E7GE4AxgfFXWXDP+rN/NQ==\n"
-                + "-----END RSA PRIVATE KEY-----"))
+                map(entry("0", """
+                        -----BEGIN RSA PRIVATE KEY-----
+                        MIIEpAIBAAKCAQEAqL/ATjXzKjxPgYdR9dD436dPRhpa247RD/NroC5/KA19QksN
+                        3v5rIjVJUdBQ4iT1qKKzHtuqgpaxr7ofw8566O4tLb6Xv5RyYO7NoQup2t+/m17/
+                        G8zej6jmugZK+aDXuTuAXyiWcNCesNPtUiAdVQnLMNHW95CsgS9X7M9GQ4guu3sU
+                        vEPd+HCapacx/rGiv9a7NQnNP8xO5c54RReIuFjLGAoyYHpzjGk+/wtuepRbC1cP
+                        xYSn7yi1Mkh4iqBV63EhBmHhAEGkwpGZ50kDSKDsJEbiHFy0gwxKNIYAGV0+zmUw
+                        oLhQ/t1l4VTqEPr0LEmdI2kRA2AwWZqqUF5XcQIDAQABAoIBAQChJeTGi5y4k7m1
+                        T33EiphwNL1ui9KCY2NgoSwBXwXNQPyCZ1xKvJmgpFRtTcs/+t2h+iWl7U5qwO/U
+                        iaC2A6O6d2ErkxwlNuT3jnVOOu4s94lqHZDvgnhzpm8X7NSCiMgZuym/Nepct80j
+                        vm6fA84fHGgvKeToq/8gqw6DNfm6mHArHQ1wl6S5vc87fr/sxHmdGJSfDPJJdsAZ
+                        AulfPKSq05+KlbnRoDAtT4ECRg/hcZ0OSS8Po0F1Yn+7QBMn7/3JB7xAZa8o7APy
+                        d+HI72Q1TZVpSprHZFaVjbzY5OVt4y9zNQH9O3e4l46S9KTgCiWZBVkIhXf7BYUW
+                        gVHx/C7xAoGBANYQGFZnIgBNc3Z30x2iga8v1UgVeCR/o2utf+lIkVSpVCGxK4+1
+                        OyjzmThCaBWBIjLa1W/4XxMAXd6BF/kdW1HKD221Vu0bFB96sfCXX3e4z7yYuuOR
+                        6/nofneTbFUSmnMVcaTqjrQFwDLUhwKoJeQ1VjPMCwn1ITePpA3kl0ntAoGBAMnP
+                        B2TB7OCHl5Ns5iIMdorpEvp3EbzRDqIC3HZgs/vh/U9I2U7avLefE4zJFcGmlG/Y
+                        nkSkgcvS5lrC2DVGfNCek1Upj+j7yf4eU+sylDwDIJ1wdbzp8HYKTrjYPYtBwkVV
+                        aaw0fFN637UKwQ1vfMFh8MXfIHj9GdWVGdcRhYMVAoGABJenzgK8agE/XuVHNDWO
+                        TrHaA4fiYfYTDXZVbi3OYGCZm3dvlc+vizteqCRUk1GH6EtllNdhQskZOnLOjtug
+                        X+rT1ei0CrYwAlThiGXW+HyQiF1GdSdmRqBERlB1XIXfpmRpYb5efWI6M1z34Ii2
+                        92RliwrvmbEWm1iLjni+/ikCgYBy1WdzohXUPdO2hAT/4u+hY7b05sQlGSCmd9JT
+                        WfuQnKuzbdSZ1kYEhnRtbA8BPnTAoBaPILzq6ntBshWtWwqy+0kC8L9+56es/jzq
+                        XMGU1IK+k7urX8MAqCTbcdCzaRvOsCeNYeBM8GJTdmcb6hCnSb/kGG816W/F5S3q
+                        /4FlcQKBgQC187xHduIFArF3XihiSA4zLgrLBfdvbP4fPYlzKflTnPKtlzqlrDpL
+                        iJ5TA2qTZ7wn7dOl4epgc11plQZa9yA4d6b8abdJLhuEu+vF3XfwYibqM4axikRc
+                        81tiTbWzc/xTVjLvFZTZCDAe7e4WjthF/E7GE4AxgfFXWXDP+rN/NQ==
+                        -----END RSA PRIVATE KEY-----"""))
         );
         IdentityZoneHolder.set(uaaZone);
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
         // alg: RS256
         buildAccessTokenValidator(
-            "eyJhbGciOiJSUzI1NiIsImtpZCI6IjAiLCJ0eXAiOiJKV1QifQ."
-            + "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImpvaG4iLCJhZG1pbiI6dHJ1ZX0."
-            + "EFjWTH-T1xJJBS6FOi83M6wuV_9R8tgJ-Y6MfPf55yTQ90qhuUu0VbHktbI1ual0V_DQ8m3gzyF7au3WAO6FwwMJFvkNOrenCuZk00XrPjx_IDa2ewCJQ7mpLH9t8wS"
-            + "mZtHethtGWLDeXdGn1YfP4awcHnMxW33sHE22RjXAH_LrNW5b2scCrzR3UrSa32aMrCSy19goL7SR813Q92Gd-KXPohkstsDSVGg7qwwWh9NsjRYcRYHylqJO3TYCWL"
-            + "Fa0bMQ49pG7lQsSH-rOqPduw7olwmRBt2waA9o-YsbWSeIZGkJ11kZPzMf0IkPWRsx8P5C0ZoOuBqKUynY2ljwaA",
-            new KeyInfoService("https://localhost")).checkSignature();
+                "eyJhbGciOiJSUzI1NiIsImtpZCI6IjAiLCJ0eXAiOiJKV1QifQ."
+                        + "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImpvaG4iLCJhZG1pbiI6dHJ1ZX0."
+                        + "EFjWTH-T1xJJBS6FOi83M6wuV_9R8tgJ-Y6MfPf55yTQ90qhuUu0VbHktbI1ual0V_DQ8m3gzyF7au3WAO6FwwMJFvkNOrenCuZk00XrPjx_IDa2ewCJQ7mpLH9t8wS"
+                        + "mZtHethtGWLDeXdGn1YfP4awcHnMxW33sHE22RjXAH_LrNW5b2scCrzR3UrSa32aMrCSy19goL7SR813Q92Gd-KXPohkstsDSVGg7qwwWh9NsjRYcRYHylqJO3TYCWL"
+                        + "Fa0bMQ49pG7lQsSH-rOqPduw7olwmRBt2waA9o-YsbWSeIZGkJ11kZPzMf0IkPWRsx8P5C0ZoOuBqKUynY2ljwaA",
+                new KeyInfoService("https://localhost")).checkSignature();
         // alg: RS384
         buildAccessTokenValidator(
-            "eyJhbGciOiJSUzM4NCIsImtpZCI6IjAiLCJ0eXAiOiJKV1QifQ."
-            + "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImpvaG4iLCJhZG1pbiI6dHJ1ZX0."
-            + "Olf3eDtbAZtbzXDz-K07quiRf2ml2T98ywmBgHMPSSh8hIex_Qya8mDuSbra4z-PaxRXy1eGsk2dC2EguBjy5_mzpPetcyd6t-XyNK3msml2Cgs0vET5bPC4J5X2ohw"
-            + "UqzlUAZwe7_h0wH3pk2IHYTlB0xelI2Wajw_NoTMBkwgdYICB7VchlO8Pn-3_04qZu5JFQ5aUp-0Pb05jxxGk7RqLiohrGbKKscaN8P4Rq5fw-Gn81ry0Ge_rKVzTaN"
-            + "-vpmCnYKMzIqtdsUXTWWnswE0hTKqKVW0DkUU8-sO11jKYZTma-HUaWcmi5Chg73-R_9so_VCHxN_Jj4FUmfdLWA",
-            new KeyInfoService("https://localhost")).checkSignature();
+                "eyJhbGciOiJSUzM4NCIsImtpZCI6IjAiLCJ0eXAiOiJKV1QifQ."
+                        + "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImpvaG4iLCJhZG1pbiI6dHJ1ZX0."
+                        + "Olf3eDtbAZtbzXDz-K07quiRf2ml2T98ywmBgHMPSSh8hIex_Qya8mDuSbra4z-PaxRXy1eGsk2dC2EguBjy5_mzpPetcyd6t-XyNK3msml2Cgs0vET5bPC4J5X2ohw"
+                        + "UqzlUAZwe7_h0wH3pk2IHYTlB0xelI2Wajw_NoTMBkwgdYICB7VchlO8Pn-3_04qZu5JFQ5aUp-0Pb05jxxGk7RqLiohrGbKKscaN8P4Rq5fw-Gn81ry0Ge_rKVzTaN"
+                        + "-vpmCnYKMzIqtdsUXTWWnswE0hTKqKVW0DkUU8-sO11jKYZTma-HUaWcmi5Chg73-R_9so_VCHxN_Jj4FUmfdLWA",
+                new KeyInfoService("https://localhost")).checkSignature();
         // alg: RS512
         buildAccessTokenValidator(
-            "eyJhbGciOiJSUzUxMiIsImtpZCI6IjAiLCJ0eXAiOiJKV1QifQ."
-            + "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImpvaG4iLCJhZG1pbiI6dHJ1ZX0."
-            + "guEkBUbMJ_b4YULBAE0Cw6dgNNUh03C3rhno3oFjjFwfgze8JUgKpwiKxBu2URZCoeA-pfdj4Mp0I8hz4x6W9C_FubFs0ihnxGWc053EVowgohvGZAoBRZ4S_Rkydhz"
-            + "-16abJ_7tgoieR5g_1t5hSIX7EsKJF0V2Pxyn2OdsGZqe2cPbrxfzgIuH52k4oA3CXljXzBE7stc2Rbs6SlBijpXqc2mqfQWmG0QUy_iO2LqTAHFmgwHgJQONK5RVMba"
-            + "JVM6yhYgiz8LmHy3gSHjI-kDBYDjVDPmpX_oI6jf-nfXd0q-lhKvpqjyKzBHWMbHFIJTJTVSFuDlJZpjosY_A8w",
-            new KeyInfoService("https://localhost")).checkSignature();
+                "eyJhbGciOiJSUzUxMiIsImtpZCI6IjAiLCJ0eXAiOiJKV1QifQ."
+                        + "eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6ImpvaG4iLCJhZG1pbiI6dHJ1ZX0."
+                        + "guEkBUbMJ_b4YULBAE0Cw6dgNNUh03C3rhno3oFjjFwfgze8JUgKpwiKxBu2URZCoeA-pfdj4Mp0I8hz4x6W9C_FubFs0ihnxGWc053EVowgohvGZAoBRZ4S_Rkydhz"
+                        + "-16abJ_7tgoieR5g_1t5hSIX7EsKJF0V2Pxyn2OdsGZqe2cPbrxfzgIuH52k4oA3CXljXzBE7stc2Rbs6SlBijpXqc2mqfQWmG0QUy_iO2LqTAHFmgwHgJQONK5RVMba"
+                        + "JVM6yhYgiz8LmHy3gSHjI-kDBYDjVDPmpX_oI6jf-nfXd0q-lhKvpqjyKzBHWMbHFIJTJTVSFuDlJZpjosY_A8w",
+                new KeyInfoService("https://localhost")).checkSignature();
     }
 
     @Test
@@ -377,7 +378,7 @@ public class JwtTokenSignedByThisUAATest {
     }
 
     private String getToken() {
-        return getToken(EMPTY_LIST);
+        return getToken(emptyList());
     }
 
     private String getToken(Collection<String> excludedClaims) {
@@ -443,9 +444,9 @@ public class JwtTokenSignedByThisUAATest {
     public void checking_token_happy_case() {
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
-                .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
+                .checkClient(clientId -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
-                .checkUser((uid) -> userDb.retrieveUserById(uid))
+                .checkUser(uid -> userDb.retrieveUserById(uid))
                 .checkRequestedScopesAreGranted("acme.dev", "another.scope")
                 .checkRevocationSignature(Collections.singletonList("fa1c787d"))
                 .checkAudience("acme", "app")
@@ -489,9 +490,9 @@ public class JwtTokenSignedByThisUAATest {
                 getToken(Arrays.asList(EMAIL, USER_NAME)), new KeyInfoService("https://localhost"))
                 .checkSignature(verifier)
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
-                .checkClient((clientId) -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
+                .checkClient(clientId -> inMemoryMultitenantClientServices.loadClientByClientId(clientId))
                 .checkExpiry(oneSecondBeforeTheTokenExpires)
-                .checkUser((uid) -> userDb.retrieveUserById(uid))
+                .checkUser(uid -> userDb.retrieveUserById(uid))
                 .checkRequestedScopesAreGranted("acme.dev", "another.scope")
                 .checkRevocationSignature(Collections.singletonList("fa1c787d"))
                 .checkAudience("acme", "app")
@@ -684,8 +685,7 @@ public class JwtTokenSignedByThisUAATest {
         when(revocableTokenProvisioning.retrieve(
                 "8b14f193-8212-4af2-9927-e3ae903f94a6",
                 IdentityZoneHolder.get().getId()
-                )
-        ).thenThrow(new EmptyResultDataAccessException(1));
+        )).thenThrow(new EmptyResultDataAccessException(1));
 
         expectedException.expect(InvalidTokenException.class);
 
@@ -813,9 +813,9 @@ public class JwtTokenSignedByThisUAATest {
                 .requestedScopes();
     }
 
-    @Test(expected=InvalidTokenException.class)
+    @Test(expected = InvalidTokenException.class)
     public void nullUserIsCaught() {
         buildAccessTokenValidator(getToken(), new KeyInfoService("https://localhost"))
-                .checkUser((uid) -> null);
+                .checkUser(uid -> null);
     }
 }

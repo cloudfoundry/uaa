@@ -26,11 +26,13 @@ public class ApprovalService {
     }
 
     public void ensureRequiredApprovals(String userId,
-                                        Collection<String> requestedScopes,
-                                        String grantType,
-                                        UaaClientDetails clientDetails) {
+            Collection<String> requestedScopes,
+            String grantType,
+            UaaClientDetails clientDetails) {
         Set<String> autoApprovedScopes = getAutoApprovedScopes(grantType, requestedScopes, clientDetails.getAutoApproveScopes());
-        if(autoApprovedScopes.containsAll(requestedScopes)) { return; }
+        if (autoApprovedScopes.containsAll(requestedScopes)) {
+            return;
+        }
         Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
         List<Approval> approvals = approvalStore.getApprovals(userId, clientDetails.getClientId(), IdentityZoneHolder.get().getId());

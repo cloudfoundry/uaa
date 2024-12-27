@@ -209,13 +209,32 @@ You can run the integration tests with docker
 
 will create a docker container running uaa + ldap + database whereby integration tests are run against.
 
-### Using Gradle to test with postgresql or mysql
+### Using Docker to test with postgresql or mysql
 
 The default uaa unit tests (./gradlew test integrationTest) use hsqldb.
 
 To run the unit tests with docker:
 
     $ run-unit-tests.sh <dbtype>
+
+### Using Gradle to test with Postgres or MySQL
+
+You need a locally running database. You can launch a Postgres 15 and MySQL 8 locally with docker compose:
+
+    $ docker compose --file scripts/docker-compose.yaml up
+
+If you wish to launch only one of the DBs, select the appropriate service name:
+
+    $ docker compose --file scripts/docker-compose.yaml up postgresql
+
+Then run the test with the appropriate profile:
+
+    $ ./gradlew '-Dspring.profiles.active=postgresql,default' \
+        --no-daemon \
+        test
+
+There are special guarantees in place to avoid pollution between tests, so be sure to run the images
+from the compose script, and run your test with `--no-daemon`. To learn more, read [docs/testing.md](docs/testing.md).
 
 ### To run a single test
 
@@ -272,6 +291,27 @@ In CloudFoundry terms
 
 * `app` is a webapp that needs single sign on and access to the `api`
   service on behalf of users.
+
+## Generating API Documentation
+
+API documentation is generated using the [`spring-restdocs`](https://github.com/spring-projects/spring-restdocs) framework.
+The tests that run this are located in [`uaa/tests`](file:./uaa/src/test/java) folder and are very similar to MockMvc tests.
+
+The formatting of the output documentation is done by using Ruby and [Slate](https://github.com/slatedocs/slate).
+
+To be able to run the command `./gradlew generateDocs` having Ruby 3.3.5 and bundler installed is key.
+
+### Installing Ruby using brew and rbenv
+
+```shell
+brew install rbenv
+rbenv install 3.3.5
+rbenv global 3.3.5 # or use rbenv local 3.3.5
+gem install bundler
+./gradlew generateDocs
+```
+
+The produced documentation can be accessed via [index.html](file:./uaa/build/docs/version/0.0.0/index.html)
 
 # Running the UAA on Kubernetes
 

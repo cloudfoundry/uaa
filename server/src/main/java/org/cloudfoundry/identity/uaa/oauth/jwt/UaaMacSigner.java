@@ -30,67 +30,67 @@ import java.util.Set;
  */
 public class UaaMacSigner implements JWSSigner {
 
-  public static final Set<JWSAlgorithm> SUPPORTED_ALGORITHMS;
+    public static final Set<JWSAlgorithm> SUPPORTED_ALGORITHMS;
 
-  static {
-    Set<JWSAlgorithm> algs = new LinkedHashSet<>();
-    algs.add(JWSAlgorithm.HS256);
-    algs.add(JWSAlgorithm.HS384);
-    algs.add(JWSAlgorithm.HS512);
-    SUPPORTED_ALGORITHMS = Collections.unmodifiableSet(algs);
-  }
-
-  private final SecretKey secretKey;
-
-  public UaaMacSigner(String secretKey) {
-    this(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HS256"));
-  }
-
-  public UaaMacSigner(SecretKey secretKey) {
-    this.secretKey = secretKey;
-  }
-
-  public byte[] getSecret() {
-    if(this.secretKey != null) {
-      return secretKey.getEncoded();
-    } else {
-      throw new IllegalStateException("Unexpected state");
+    static {
+        Set<JWSAlgorithm> algs = new LinkedHashSet<>();
+        algs.add(JWSAlgorithm.HS256);
+        algs.add(JWSAlgorithm.HS384);
+        algs.add(JWSAlgorithm.HS512);
+        SUPPORTED_ALGORITHMS = Collections.unmodifiableSet(algs);
     }
-  }
 
-  @Override
-  public Base64URL sign(JWSHeader header, byte[] signingInput) throws JOSEException {
-    String jcaAlg = JwtAlgorithms.sigAlgJava(header.getAlgorithm().getName());
-    byte[] hmac = HMAC.compute(jcaAlg, secretKey, signingInput, getJCAContext().getProvider());
-    return Base64URL.encode(hmac);
-  }
+    private final SecretKey secretKey;
 
-  @Override
-  public Set<JWSAlgorithm> supportedJWSAlgorithms() {
-    return SUPPORTED_ALGORITHMS;
-  }
-
-  @Override
-  public JCAContext getJCAContext() {
-    return new JCAContext();
-  }
-
-  // legacy method to replace HMAC verify. JOSE library does not allow to verify HMAC with a small key
-  public static JWTClaimsSet verify(String jwToken, JWKSet jwkSet) {
-    SignedJWT token;
-    try {
-      token = (SignedJWT) JWTParser.parse(jwToken);
-      JWSHeader header = token.getHeader();
-      String kid = header.getKeyID();
-      JWK jwKey = jwkSet.getKeys().stream().filter(e -> kid.equals(e.getKeyID())).findFirst().orElseThrow();
-      UaaMacSigner internal = new UaaMacSigner((String)jwKey.toJSONObject().get(JWKParameterNames.OCT_KEY_VALUE));
-      // symmetric signature check: create internal signature and compare if matches the signature from token
-      if (token.getSignature().equals(internal.sign(header, token.getSigningInput())) && SUPPORTED_ALGORITHMS.contains(header.getAlgorithm())) {
-        return token.getJWTClaimsSet();
-      }
-      throw new InvalidSignatureException("HMAC not mached");
-    } catch (ParseException | JOSEException e) {
-      throw new InvalidSignatureException("Invalid signed token", e);
+    public UaaMacSigner(String secretKey) {
+        this(new SecretKeySpec(secretKey.getBytes(StandardCharsets.UTF_8), "HS256"));
     }
-  }
+
+    public UaaMacSigner(SecretKey secretKey) {
+        this.secretKey = secretKey;
+    }
+
+    public byte[] getSecret() {
+        if (this.secretKey != null) {
+            return secretKey.getEncoded();
+        } else {
+            throw new IllegalStateException("Unexpected state");
+        }
+    }
+
+    @Override
+    public Base64URL sign(JWSHeader header, byte[] signingInput) throws JOSEException {
+        String jcaAlg = JwtAlgorithms.sigAlgJava(header.getAlgorithm().getName());
+        byte[] hmac = HMAC.compute(jcaAlg, secretKey, signingInput, getJCAContext().getProvider());
+        return Base64URL.encode(hmac);
+    }
+
+    @Override
+    public Set<JWSAlgorithm> supportedJWSAlgorithms() {
+        return SUPPORTED_ALGORITHMS;
+    }
+
+    @Override
+    public JCAContext getJCAContext() {
+        return new JCAContext();
+    }
+
+    // legacy method to replace HMAC verify. JOSE library does not allow to verify HMAC with a small key
+    public static JWTClaimsSet verify(String jwToken, JWKSet jwkSet) {
+        SignedJWT token;
+        try {
+            token = (SignedJWT) JWTParser.parse(jwToken);
+            JWSHeader header = token.getHeader();
+            String kid = header.getKeyID();
+            JWK jwKey = jwkSet.getKeys().stream().filter(e -> kid.equals(e.getKeyID())).findFirst().orElseThrow();
+            UaaMacSigner internal = new UaaMacSigner((String) jwKey.toJSONObject().get(JWKParameterNames.OCT_KEY_VALUE));
+            // symmetric signature check: create internal signature and compare if matches the signature from token
+            if (token.getSignature().equals(internal.sign(header, token.getSigningInput())) && SUPPORTED_ALGORITHMS.contains(header.getAlgorithm())) {
+                return token.getJWTClaimsSet();
+            }
+            throw new InvalidSignatureException("HMAC not mached");
+        } catch (ParseException | JOSEException e) {
+            throw new InvalidSignatureException("Invalid signed token", e);
+        }
+    }
 }

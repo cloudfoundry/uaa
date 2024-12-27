@@ -38,7 +38,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 @Configuration
-public class ThymeleafConfig  {
+public class ThymeleafConfig {
 
     @Bean
     public ThymeleafViewResolver thymeleafViewResolver(ApplicationContext context) {
@@ -84,7 +84,7 @@ public class ThymeleafConfig  {
 
     @Bean
     public org.springframework.web.servlet.view.ContentNegotiatingViewResolver viewResolver(ApplicationContext context,
-                                                                                            ContentNegotiationManager contentNegotiationManager) {
+            ContentNegotiationManager contentNegotiationManager) {
         ContentNegotiatingViewResolver resolver = new ContentNegotiatingViewResolver();
         ThymeleafViewResolver viewResolver = new ThymeleafViewResolver();
 

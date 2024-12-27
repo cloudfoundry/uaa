@@ -59,10 +59,6 @@ public class IdentityZoneModifiedEventTest {
 
     public void evaluateZoneAuditData(IdentityZoneModifiedEvent event) {
         String s = event.getAuditEvent().getData();
-        assertEquals(String.format(IdentityZoneModifiedEvent.dataFormat,
-                                   zone.getId(),
-                                   zone.getSubdomain()),
-                     s);
+        assertEquals(IdentityZoneModifiedEvent.dataFormat.formatted(zone.getId(), zone.getSubdomain()), s);
     }
-
 }

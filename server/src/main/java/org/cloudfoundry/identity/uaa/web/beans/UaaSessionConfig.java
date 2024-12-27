@@ -19,8 +19,7 @@ public class UaaSessionConfig {
         if (DATABASE_SESSION_STORE_TYPE.equals(sessionStore) || MEMORY_SESSION_STORE_TYPE.equals(sessionStore)) {
             return;
         }
-        throw new IllegalArgumentException(String.format(
-                "%s is not a valid argument for %s. Please choose %s or %s.",
+        throw new IllegalArgumentException("%s is not a valid argument for %s. Please choose %s or %s.".formatted(
                 sessionStore,
                 SERVLET_SESSION_STORE,
                 MEMORY_SESSION_STORE_TYPE,
@@ -29,8 +28,8 @@ public class UaaSessionConfig {
 
     @Bean
     public CookieSerializer uaaCookieSerializer(
-        final @Value("${servlet.session-cookie.max-age:-1}") int cookieMaxAge,
-        final @Value("${servlet.session-cookie.encode-base64:true}") boolean useBase64Encoding
+            final @Value("${servlet.session-cookie.max-age:-1}") int cookieMaxAge,
+            final @Value("${servlet.session-cookie.encode-base64:true}") boolean useBase64Encoding
     ) {
         DefaultCookieSerializer cookieSerializer = new DefaultCookieSerializer();
         cookieSerializer.setSameSite("None");

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -29,21 +30,21 @@ import java.util.regex.Pattern;
 
 public class MockMvcTestClient {
 
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     public MockMvcTestClient(MockMvc mockMvc) {
         this.mockMvc = mockMvc;
     }
 
     public String getOAuthAccessToken(String username, String password, String grantType, String scope)
-                    throws Exception {
+            throws Exception {
         String basicDigestHeaderValue = "Basic "
-                        + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
+                + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-                        .header("Authorization", basicDigestHeaderValue)
-                        .param("grant_type", grantType)
-                        .param("client_id", username)
-                        .param("scope", scope);
+                .header("Authorization", basicDigestHeaderValue)
+                .param("grant_type", grantType)
+                .param("client_id", username)
+                .param("scope", scope);
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;

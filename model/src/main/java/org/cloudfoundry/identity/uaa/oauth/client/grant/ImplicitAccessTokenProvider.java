@@ -34,92 +34,92 @@ import java.util.Map;
  */
 public class ImplicitAccessTokenProvider extends OAuth2AccessTokenSupport implements AccessTokenProvider {
 
-	public boolean supportsResource(OAuth2ProtectedResourceDetails resource) {
-		return resource instanceof ImplicitResourceDetails && "implicit".equals(resource.getGrantType());
-	}
+    public boolean supportsResource(OAuth2ProtectedResourceDetails resource) {
+        return resource instanceof ImplicitResourceDetails && "implicit".equals(resource.getGrantType());
+    }
 
-	public boolean supportsRefresh(OAuth2ProtectedResourceDetails resource) {
-		return false;
-	}
+    public boolean supportsRefresh(OAuth2ProtectedResourceDetails resource) {
+        return false;
+    }
 
-	public OAuth2AccessToken refreshAccessToken(OAuth2ProtectedResourceDetails resource,
-			OAuth2RefreshToken refreshToken, AccessTokenRequest request) throws UserRedirectRequiredException {
-		return null;
-	}
+    public OAuth2AccessToken refreshAccessToken(OAuth2ProtectedResourceDetails resource,
+            OAuth2RefreshToken refreshToken, AccessTokenRequest request) throws UserRedirectRequiredException {
+        return null;
+    }
 
-	public OAuth2AccessToken obtainAccessToken(OAuth2ProtectedResourceDetails details, AccessTokenRequest request)
-			throws UserRedirectRequiredException, AccessDeniedException, OAuth2AccessDeniedException {
+    public OAuth2AccessToken obtainAccessToken(OAuth2ProtectedResourceDetails details, AccessTokenRequest request)
+            throws UserRedirectRequiredException, AccessDeniedException, OAuth2AccessDeniedException {
 
-		ImplicitResourceDetails resource = (ImplicitResourceDetails) details;
-		try {
-			// We can assume here that the request contains all the parameters needed for authentication etc.
-			OAuth2AccessToken token = retrieveToken(request,
-					resource, getParametersForTokenRequest(resource, request), getHeadersForTokenRequest(request));
-			if (token==null) {
-				throw new UserRedirectRequiredException(resource.getUserAuthorizationUri(), request.toSingleValueMap());
-			}
-			return token;
-		}
-		catch (UserRedirectRequiredException e) {
-			// ... but if it doesn't then capture the request parameters for the redirect
-			throw new UserRedirectRequiredException(e.getRedirectUri(), request.toSingleValueMap());
-		}
+        ImplicitResourceDetails resource = (ImplicitResourceDetails) details;
+        try {
+            // We can assume here that the request contains all the parameters needed for authentication etc.
+            OAuth2AccessToken token = retrieveToken(request,
+                    resource, getParametersForTokenRequest(resource, request), getHeadersForTokenRequest(request));
+            if (token == null) {
+                throw new UserRedirectRequiredException(resource.getUserAuthorizationUri(), request.toSingleValueMap());
+            }
+            return token;
+        }
+        catch (UserRedirectRequiredException e) {
+            // ... but if it doesn't then capture the request parameters for the redirect
+            throw new UserRedirectRequiredException(e.getRedirectUri(), request.toSingleValueMap());
+        }
 
-	}
+    }
 
-	@Override
-	public ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
-		return new ImplicitResponseExtractor();
-	}
+    @Override
+    public ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
+        return new ImplicitResponseExtractor();
+    }
 
-	private HttpHeaders getHeadersForTokenRequest(AccessTokenRequest request) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.putAll(request.getHeaders());
-		if (request.getCookie() != null) {
-			headers.set("Cookie", request.getCookie());
-		}
-		return headers;
-	}
+    private HttpHeaders getHeadersForTokenRequest(AccessTokenRequest request) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.putAll(request.getHeaders());
+        if (request.getCookie() != null) {
+            headers.set("Cookie", request.getCookie());
+        }
+        return headers;
+    }
 
-	private MultiValueMap<String, String> getParametersForTokenRequest(ImplicitResourceDetails resource,
-			AccessTokenRequest request) {
+    private MultiValueMap<String, String> getParametersForTokenRequest(ImplicitResourceDetails resource,
+            AccessTokenRequest request) {
 
-		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-		form.set("response_type", "token");
-		form.set("client_id", resource.getClientId());
-		
-		if (resource.isScoped()) {
-			form.set(OAuth2Utils.SCOPE, getScopeString(resource));
-		}
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.set("response_type", "token");
+        form.set("client_id", resource.getClientId());
 
-		for (Map.Entry<String, List<String>> entry : request.entrySet()) {
-			form.put(entry.getKey(), entry.getValue());
-		}
+        if (resource.isScoped()) {
+            form.set(OAuth2Utils.SCOPE, getScopeString(resource));
+        }
 
-		String redirectUri = resource.getRedirectUri(request);
-		if (redirectUri == null) {
-			throw new IllegalStateException("No redirect URI available in request");
-		}
-		form.set("redirect_uri", redirectUri);
+        for (Map.Entry<String, List<String>> entry : request.entrySet()) {
+            form.put(entry.getKey(), entry.getValue());
+        }
 
-		return form;
+        String redirectUri = resource.getRedirectUri(request);
+        if (redirectUri == null) {
+            throw new IllegalStateException("No redirect URI available in request");
+        }
+        form.set("redirect_uri", redirectUri);
 
-	}
+        return form;
 
-	private final class ImplicitResponseExtractor implements ResponseExtractor<OAuth2AccessToken> {
-		public OAuth2AccessToken extractData(ClientHttpResponse response) throws IOException {
-			URI location = response.getHeaders().getLocation();
-			if (location == null) {
-				return null;
-			}
-			String fragment = location.getFragment();
-			OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(OAuth2Utils.extractMap(fragment));
-			if (accessToken.getValue() == null) {
-				throw new UserRedirectRequiredException(location.toString(), Collections.<String, String> emptyMap());
-			}
+    }
 
-			return accessToken;
-		}
-	}
+    private final class ImplicitResponseExtractor implements ResponseExtractor<OAuth2AccessToken> {
+        public OAuth2AccessToken extractData(ClientHttpResponse response) throws IOException {
+            URI location = response.getHeaders().getLocation();
+            if (location == null) {
+                return null;
+            }
+            String fragment = location.getFragment();
+            OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(OAuth2Utils.extractMap(fragment));
+            if (accessToken.getValue() == null) {
+                throw new UserRedirectRequiredException(location.toString(), Collections.<String, String>emptyMap());
+            }
+
+            return accessToken;
+        }
+    }
 
 }

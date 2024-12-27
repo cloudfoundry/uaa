@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -32,7 +33,7 @@ public class HttpsHeaderFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response,
-                    FilterChain chain) throws IOException, ServletException {
+            FilterChain chain) throws IOException, ServletException {
         FixHttpsSchemeRequest modifiedRequest = new FixHttpsSchemeRequest((HttpServletRequest) request);
         chain.doFilter(modifiedRequest, response);
     }

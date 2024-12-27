@@ -30,7 +30,7 @@ import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.UAA_SCOPES
 public class UaaScopes {
 
 
-    private Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(UAA_SCOPES));
+    private final Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(UAA_SCOPES));
 
     public List<String> getUaaScopes() {
         return UAA_SCOPES;

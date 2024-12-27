@@ -8,14 +8,14 @@ import org.cloudfoundry.identity.uaa.integration.pageObjects.Page;
 import org.openqa.selenium.WebDriver;
 
 public class LogoutDoEndpoint {
-    static final private String urlPath = "/logout.do";
+    private static final String urlPath = "/logout.do";
 
-    static public LoginPage logout_goesToLoginPage(WebDriver driver, String baseUrl, String redirectUrl, String clientId) {
+    public static LoginPage logout_goesToLoginPage(WebDriver driver, String baseUrl, String redirectUrl, String clientId) {
         driver.get(buildLogoutDoUrl(baseUrl, redirectUrl, clientId));
         return new LoginPage(driver);
     }
 
-    static public void logout(WebDriver driver, String baseUrl) {
+    public static void logout(WebDriver driver, String baseUrl) {
         driver.get(baseUrl + urlPath);
     }
 

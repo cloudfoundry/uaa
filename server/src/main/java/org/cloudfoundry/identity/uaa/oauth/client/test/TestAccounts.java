@@ -14,25 +14,25 @@ import org.cloudfoundry.identity.uaa.oauth.client.resource.ResourceOwnerPassword
  */
 public interface TestAccounts {
 
-	String getUserName();
+    String getUserName();
 
-	String getPassword();
+    String getPassword();
 
-	String getEmail();
+    String getEmail();
 
-	String getAdminClientId();
+    String getAdminClientId();
 
-	String getAdminClientSecret();
+    String getAdminClientSecret();
 
-	ClientCredentialsResourceDetails getDefaultClientCredentialsResource();
+    ClientCredentialsResourceDetails getDefaultClientCredentialsResource();
 
-	ClientCredentialsResourceDetails getClientCredentialsResource(String clientId, String clientSecret);
-	
-	ResourceOwnerPasswordResourceDetails getDefaultResourceOwnerPasswordResource();
+    ClientCredentialsResourceDetails getClientCredentialsResource(String clientId, String clientSecret);
 
-	ResourceOwnerPasswordResourceDetails getResourceOwnerPasswordResource(String[] scope, String clientId,
-			String clientSecret, String username, String password);
-	
-	ImplicitResourceDetails getDefaultImplicitResource();
+    ResourceOwnerPasswordResourceDetails getDefaultResourceOwnerPasswordResource();
+
+    ResourceOwnerPasswordResourceDetails getResourceOwnerPasswordResource(String[] scope, String clientId,
+            String clientSecret, String username, String password);
+
+    ImplicitResourceDetails getDefaultImplicitResource();
 
 }

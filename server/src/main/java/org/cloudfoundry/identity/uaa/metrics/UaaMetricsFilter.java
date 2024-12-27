@@ -29,7 +29,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Collectors;
 
 @ManagedResource(
         objectName = "cloudfoundry.identity:name=ServerRequests",
@@ -50,7 +49,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     private final Map<String, MetricsQueue> perUriMetrics;
     private final LinkedHashMap<AntPathRequestMatcher, UrlGroup> urlGroups;
     private boolean enabled = true;
-    private boolean perRequestMetrics = false;
+    private boolean perRequestMetrics;
 
     private NotificationPublisher notificationPublisher;
 
@@ -126,7 +125,7 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
                 if (entry.getKey().matches(request)) {
                     UrlGroup group = entry.getValue();
                     if (logger.isDebugEnabled()) {
-                        logger.debug(String.format("Successfully matched URI: %s to a group: %s", uri, group.getGroup()));
+                        logger.debug("Successfully matched URI: %s to a group: %s".formatted(uri, group.getGroup()));
                     }
                     return group;
                 }
@@ -173,8 +172,8 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
         ClassPathResource resource = new ClassPathResource("performance-url-groups.yml");
         Yaml yaml = UaaYamlUtils.createYaml();
         try (InputStream in = resource.getInputStream()) {
-            List<Map<String, Object>> load = (List<Map<String, Object>>) yaml.load(in);
-            return load.stream().map(UrlGroup::from).collect(Collectors.toList());
+            List<Map<String, Object>> load = yaml.load(in);
+            return load.stream().map(UrlGroup::from).toList();
         }
     }
 

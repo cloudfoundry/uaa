@@ -13,10 +13,10 @@ import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerato
  */
 public class DefaultStateKeyGenerator implements StateKeyGenerator {
 
-	private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private final RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
-	public String generateKey(OAuth2ProtectedResourceDetails resource) {
-		return generator.generate();
-	}
+    public String generateKey(OAuth2ProtectedResourceDetails resource) {
+        return generator.generate();
+    }
 
 }

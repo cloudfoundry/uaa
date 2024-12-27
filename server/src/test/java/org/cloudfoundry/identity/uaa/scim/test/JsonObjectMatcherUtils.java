@@ -13,6 +13,7 @@
  */
 
 package org.cloudfoundry.identity.uaa.scim.test;
+
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -35,18 +36,18 @@ public class JsonObjectMatcherUtils extends BaseMatcher<String> {
         this.expected = expected;
     }
 
-    public static Matcher<? super String> matchesJsonObject(JSONObject expected){
+    public static Matcher<? super String> matchesJsonObject(JSONObject expected) {
         return new JsonObjectMatcherUtils(expected);
     }
 
     @Override
     public boolean matches(Object item) {
 
-        if(!String.class.isInstance(item)){
+        if (!(item instanceof String)) {
             return false;
         }
 
-        if(this.expected == null && "null".equals(item)){
+        if (this.expected == null && "null".equals(item)) {
             return true;
         }
 
@@ -57,16 +58,16 @@ public class JsonObjectMatcherUtils extends BaseMatcher<String> {
             return false;
         }
 
-        if(this.expected.length() != actual.length()) {
+        if (this.expected.length() != actual.length()) {
             return false;
         }
 
         JSONArray names = actual.names();
-        for(int i = 0, len = names.length(); i < len; i++){
+        for (int i = 0, len = names.length(); i < len; i++) {
 
             try {
                 String name = names.getString(i);
-                if(!Objects.equals(expected.get(name), actual.get(name))){
+                if (!Objects.equals(expected.get(name), actual.get(name))) {
                     return false;
                 }
             } catch (JSONException e) {

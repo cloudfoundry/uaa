@@ -1,29 +1,24 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 
-import static java.lang.String.format;
-import static junit.framework.TestCase.fail;
-import static org.hamcrest.CoreMatchers.anyOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.fail;
 
+@EnabledIfProfile("mysql")
 public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestParent {
 
-    private String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY'";
-    private String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA = ?";
-    private String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
-
-    @Override
-    protected String onlyRunTestsForActiveSpringProfileName() {
-        return "mysql";
-    }
+    private final String checkPrimaryKeyExists = "SELECT COUNT(*) FROM information_schema.KEY_COLUMN_USAGE WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND CONSTRAINT_NAME = 'PRIMARY'";
+    private final String getAllTableNames = "SELECT distinct TABLE_NAME from information_schema.KEY_COLUMN_USAGE where TABLE_SCHEMA = ?";
+    private final String insertNewOauthCodeRecord = "insert into oauth_code(code) values('code');";
 
     @Test
     public void insertMissingPrimaryKeys_onMigrationOnNewDatabase() {
@@ -35,16 +30,16 @@ public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestP
 
             @Override
             public void runAssertions() throws Exception {
-                int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), "oauth_code");
+                int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, getDatabaseCatalog(), "oauth_code");
                 assertThat("oauth_code is missing primary key", count, is(1));
 
-                count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), "group_membership");
+                count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, getDatabaseCatalog(), "group_membership");
                 assertThat("group_membership is missing primary key", count, is(1));
 
-                count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), "sec_audit");
+                count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, getDatabaseCatalog(), "sec_audit");
                 assertThat("sec_audit is missing primary key", count, is(1));
 
-                count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), "external_group_mapping");
+                count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, getDatabaseCatalog(), "external_group_mapping");
                 assertThat("external_group_membership is missing primary key", count, is(1));
 
                 try {
@@ -84,10 +79,10 @@ public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestP
 
             @Override
             public void runAssertions() throws Exception {
-                int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), "group_membership");
+                int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, getDatabaseCatalog(), "group_membership");
                 assertThat("group_membership is missing primary key", count, is(1));
 
-                count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), "external_group_mapping");
+                count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, getDatabaseCatalog(), "external_group_mapping");
                 assertThat("external_group_mapping is missing primary key", count, is(1));
             }
         });
@@ -99,11 +94,11 @@ public class MySqlDbMigrationIntegrationTest extends DbMigrationIntegrationTestP
     public void everyTableShouldHaveAPrimaryKeyColumn() throws Exception {
         flyway.migrate();
 
-        List<String> tableNames = jdbcTemplate.queryForList(getAllTableNames, String.class, jdbcTemplate.getDataSource().getConnection().getCatalog());
+        List<String> tableNames = jdbcTemplate.queryForList(getAllTableNames, String.class, getDatabaseCatalog());
         assertThat(tableNames, hasSize(greaterThan(0)));
         for (String tableName : tableNames) {
-            int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, jdbcTemplate.getDataSource().getConnection().getCatalog(), tableName);
-            assertThat(format("%s is missing primary key", tableName), count, greaterThanOrEqualTo(1));
+            int count = jdbcTemplate.queryForObject(checkPrimaryKeyExists, Integer.class, getDatabaseCatalog(), tableName);
+            assertThat("%s is missing primary key".formatted(tableName), count, greaterThanOrEqualTo(1));
         }
     }
 }

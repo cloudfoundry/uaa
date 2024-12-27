@@ -31,7 +31,7 @@ class RevocableTokenIndexTest_4_0_8 {
             try (
                     Connection connection = dataSource.getConnection();
                     ResultSet rs = connection.getMetaData().getIndexInfo(connection.getCatalog(), null, tableName, unique, true)
-            ) {
+                    ) {
                 while (!found && rs.next()) {
                     found = indexName.equalsIgnoreCase(rs.getString("INDEX_NAME"));
                 }
@@ -41,7 +41,7 @@ class RevocableTokenIndexTest_4_0_8 {
             }
         }
 
-        assertTrue(found, String.format("Expected to find index %s.%s", tableName, indexName));
+        assertTrue(found, "Expected to find index %s.%s".formatted(tableName, indexName));
     }
 
 }

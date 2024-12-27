@@ -64,7 +64,11 @@ public class OidcMetadata {
         this.issuer = issuer;
     }
 
-    public URL getLogoutEndpoint() { return this.logoutEndpoint;   }
+    public URL getLogoutEndpoint() {
+        return this.logoutEndpoint;
+    }
 
-    public void setLogoutEndpoint(URL logoutEndpoint) { this.logoutEndpoint = logoutEndpoint; }
+    public void setLogoutEndpoint(URL logoutEndpoint) {
+        this.logoutEndpoint = logoutEndpoint;
+    }
 }

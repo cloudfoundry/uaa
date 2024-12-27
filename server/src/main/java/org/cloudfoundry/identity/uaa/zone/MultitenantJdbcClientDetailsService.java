@@ -192,7 +192,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                 clientDetails.getClientSecret() != null ?
                         passwordEncoder.encode(clientDetails.getClientSecret()) :
                         null;
-        clientDetailFieldsForUpdate[1] = (clientDetails instanceof UaaClientDetails) ? ((UaaClientDetails) clientDetails).getClientJwtConfig() : null;
+        clientDetailFieldsForUpdate[1] = clientDetails instanceof UaaClientDetails ucd ? ucd.getClientJwtConfig() : null;
         clientDetailFieldsForUpdate[clientDetailFieldsForUpdate.length - 1] = getUserId();
         return clientDetailFieldsForUpdate;
     }
@@ -309,7 +309,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     @Override
     public void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
         ClientJwtConfiguration clientJwtConfiguration;
-        if(UaaUrlUtils.isUrl(keyConfig)) {
+        if (UaaUrlUtils.isUrl(keyConfig)) {
             clientJwtConfiguration = ClientJwtConfiguration.parse(keyConfig);
         } else {
             clientJwtConfiguration = new ClientJwtConfiguration(keyConfig, null);
@@ -359,7 +359,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                     Object autoApprovedFromAddInfo = additionalInformation.remove(ClientConstants.AUTO_APPROVE);
                     details.setAdditionalInformation(additionalInformation);
                     if (autoApprovedFromAddInfo != null) {
-                        if ((autoApprovedFromAddInfo instanceof Boolean && (Boolean) autoApprovedFromAddInfo || "true".equals(autoApprovedFromAddInfo))) {
+                        if (autoApprovedFromAddInfo instanceof Boolean boolean1 && boolean1 || "true".equals(autoApprovedFromAddInfo)) {
                             autoApproveScopes.add("true");
                         } else if (autoApprovedFromAddInfo instanceof Collection<?>) {
                             @SuppressWarnings("unchecked")
@@ -407,7 +407,9 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
         //Bootstrap will not have authenticated session
-        if (authentication == null) return null;
+        if (authentication == null) {
+            return null;
+        }
         if (authentication.getPrincipal() instanceof UaaPrincipal) {
             userId = ((UaaPrincipal) authentication.getPrincipal()).getId();
         } else if (authentication.getPrincipal() instanceof String) {

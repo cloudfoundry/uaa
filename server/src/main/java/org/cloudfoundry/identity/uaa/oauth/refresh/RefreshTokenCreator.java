@@ -26,15 +26,15 @@ public class RefreshTokenCreator {
     private final TokenValidityResolver refreshTokenValidityResolver;
     private final TokenEndpointBuilder tokenEndpointBuilder;
     private TimeService timeService;
-    private KeyInfoService keyInfoService;
+    private final KeyInfoService keyInfoService;
 
-    private final String UAA_REFRESH_TOKEN = "uaa.offline_token";
+    private static final String UAA_REFRESH_TOKEN = "uaa.offline_token";
 
     public RefreshTokenCreator(boolean isRestrictRefreshGrant,
-                               TokenValidityResolver refreshTokenValidityResolver,
-                               TokenEndpointBuilder tokenEndpointBuilder,
-                               TimeService timeService,
-                               KeyInfoService keyInfoService) {
+            TokenValidityResolver refreshTokenValidityResolver,
+            TokenEndpointBuilder tokenEndpointBuilder,
+            TimeService timeService,
+            KeyInfoService keyInfoService) {
         this.isRestrictRefreshGrant = isRestrictRefreshGrant;
         this.refreshTokenValidityResolver = refreshTokenValidityResolver;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
@@ -43,8 +43,8 @@ public class RefreshTokenCreator {
     }
 
     public CompositeExpiringOAuth2RefreshToken createRefreshToken(UaaUser user,
-                                                         RefreshTokenRequestData tokenRequestData,
-                                                         String revocableHashSignature) {
+            RefreshTokenRequestData tokenRequestData,
+            String revocableHashSignature) {
 
         String grantType = tokenRequestData.grantType;
         Set<String> scope = tokenRequestData.scopes;
@@ -69,12 +69,12 @@ public class RefreshTokenCreator {
     }
 
     private String buildJwtToken(UaaUser user,
-                                 RefreshTokenRequestData tokenRequestData,
-                                 String revocableHashSignature,
-                                 String grantType,
-                                 Map<String, String> additionalAuthorizationAttributes,
-                                 Date expirationDate,
-                                 String tokenId) {
+            RefreshTokenRequestData tokenRequestData,
+            String revocableHashSignature,
+            String grantType,
+            Map<String, String> additionalAuthorizationAttributes,
+            Date expirationDate,
+            String tokenId) {
 
         Map<String, Object> claims = new LinkedHashMap<>();
         claims.put(JTI, tokenId);
@@ -127,7 +127,7 @@ public class RefreshTokenCreator {
 
     private KeyInfo getActiveKeyInfo() {
         return ofNullable(keyInfoService.getActiveKey())
-            .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
+                .orElseThrow(() -> new InternalAuthenticationServiceException("Unable to sign token, misconfigured JWT signing keys"));
     }
 
     /**
@@ -141,11 +141,11 @@ public class RefreshTokenCreator {
     protected boolean isRefreshTokenSupported(String grantType, Set<String> scope) {
         if (!isRestrictRefreshGrant) {
             return GRANT_TYPE_AUTHORIZATION_CODE.equals(grantType) ||
-                GRANT_TYPE_PASSWORD.equals(grantType) ||
-                GRANT_TYPE_USER_TOKEN.equals(grantType) ||
-                GRANT_TYPE_REFRESH_TOKEN.equals(grantType) ||
-                GRANT_TYPE_SAML2_BEARER.equals(grantType) ||
-                GRANT_TYPE_JWT_BEARER.equals(grantType);
+                    GRANT_TYPE_PASSWORD.equals(grantType) ||
+                    GRANT_TYPE_USER_TOKEN.equals(grantType) ||
+                    GRANT_TYPE_REFRESH_TOKEN.equals(grantType) ||
+                    GRANT_TYPE_SAML2_BEARER.equals(grantType) ||
+                    GRANT_TYPE_JWT_BEARER.equals(grantType);
         } else {
             return scope.contains(UAA_REFRESH_TOKEN);
         }
@@ -153,7 +153,7 @@ public class RefreshTokenCreator {
 
     public void ensureRefreshTokenCreationNotRestricted(ArrayList<String> tokenScopes) {
         if (isRestrictRefreshGrant && !tokenScopes.contains(UAA_REFRESH_TOKEN)) {
-            throw new InsufficientScopeException(String.format("Expected scope %s is missing", UAA_REFRESH_TOKEN));
+            throw new InsufficientScopeException("Expected scope %s is missing".formatted(UAA_REFRESH_TOKEN));
         }
     }
 

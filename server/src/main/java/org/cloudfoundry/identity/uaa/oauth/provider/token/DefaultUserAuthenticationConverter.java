@@ -22,77 +22,77 @@ import java.util.Map;
  */
 public class DefaultUserAuthenticationConverter implements UserAuthenticationConverter {
 
-	private Collection<GrantedAuthority> defaultAuthorities;
+    private Collection<GrantedAuthority> defaultAuthorities;
 
-	private UserDetailsService userDetailsService;
+    private UserDetailsService userDetailsService;
 
-	private String userClaimName = USERNAME;
+    private String userClaimName = USERNAME;
 
-	/**
-	 * Optional {@link UserDetailsService} to use when extracting an {@link Authentication} from the incoming map.
-	 * 
-	 * @param userDetailsService the userDetailsService to set
-	 */
-	public void setUserDetailsService(UserDetailsService userDetailsService) {
-		this.userDetailsService = userDetailsService;
-	}
+    /**
+     * Optional {@link UserDetailsService} to use when extracting an {@link Authentication} from the incoming map.
+     * 
+     * @param userDetailsService the userDetailsService to set
+     */
+    public void setUserDetailsService(UserDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
+    }
 
-	/**
-	 * Set the name of the user claim to use when extracting an {@link Authentication} from the incoming map
-	 * or when converting an {@link Authentication} to a map.
-	 * @param claimName the claim name to use (default {@link UserAuthenticationConverter#USERNAME})
-	 */
-	public void setUserClaimName(String claimName) {
-		this.userClaimName = claimName;
-	}
+    /**
+     * Set the name of the user claim to use when extracting an {@link Authentication} from the incoming map
+     * or when converting an {@link Authentication} to a map.
+     * @param claimName the claim name to use (default {@link UserAuthenticationConverter#USERNAME})
+     */
+    public void setUserClaimName(String claimName) {
+        this.userClaimName = claimName;
+    }
 
-	/**
-	 * Default value for authorities if an Authentication is being created and the input has no data for authorities.
-	 * Note that unless this property is set, the default Authentication created by {@link #extractAuthentication(Map)}
-	 * will be unauthenticated.
-	 * 
-	 * @param defaultAuthorities the defaultAuthorities to set. Default null.
-	 */
-	public void setDefaultAuthorities(String[] defaultAuthorities) {
-		this.defaultAuthorities = AuthorityUtils.commaSeparatedStringToAuthorityList(StringUtils
-				.arrayToCommaDelimitedString(defaultAuthorities));
-	}
+    /**
+     * Default value for authorities if an Authentication is being created and the input has no data for authorities.
+     * Note that unless this property is set, the default Authentication created by {@link #extractAuthentication(Map)}
+     * will be unauthenticated.
+     * 
+     * @param defaultAuthorities the defaultAuthorities to set. Default null.
+     */
+    public void setDefaultAuthorities(String[] defaultAuthorities) {
+        this.defaultAuthorities = AuthorityUtils.commaSeparatedStringToAuthorityList(StringUtils
+                .arrayToCommaDelimitedString(defaultAuthorities));
+    }
 
-	public Map<String, Object> convertUserAuthentication(Authentication authentication) {
-		Map<String, Object> response = new LinkedHashMap<>();
-		response.put(userClaimName, authentication.getName());
-		if (authentication.getAuthorities() != null && !authentication.getAuthorities().isEmpty()) {
-			response.put(AUTHORITIES, AuthorityUtils.authorityListToSet(authentication.getAuthorities()));
-		}
-		return response;
-	}
+    public Map<String, Object> convertUserAuthentication(Authentication authentication) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put(userClaimName, authentication.getName());
+        if (authentication.getAuthorities() != null && !authentication.getAuthorities().isEmpty()) {
+            response.put(AUTHORITIES, AuthorityUtils.authorityListToSet(authentication.getAuthorities()));
+        }
+        return response;
+    }
 
-	public Authentication extractAuthentication(Map<String, ?> map) {
-		if (map.containsKey(userClaimName)) {
-			Object principal = map.get(userClaimName);
-			Collection<? extends GrantedAuthority> authorities = getAuthorities(map);
-			if (userDetailsService != null) {
-				UserDetails user = userDetailsService.loadUserByUsername((String) map.get(userClaimName));
-				authorities = user.getAuthorities();
-				principal = user;
-			}
-			return new UsernamePasswordAuthenticationToken(principal, "N/A", authorities);
-		}
-		return null;
-	}
+    public Authentication extractAuthentication(Map<String, ?> map) {
+        if (map.containsKey(userClaimName)) {
+            Object principal = map.get(userClaimName);
+            Collection<? extends GrantedAuthority> authorities = getAuthorities(map);
+            if (userDetailsService != null) {
+                UserDetails user = userDetailsService.loadUserByUsername((String) map.get(userClaimName));
+                authorities = user.getAuthorities();
+                principal = user;
+            }
+            return new UsernamePasswordAuthenticationToken(principal, "N/A", authorities);
+        }
+        return null;
+    }
 
-	protected Collection<GrantedAuthority> getAuthorities(Map<String, ?> map) {
-		if (!map.containsKey(AUTHORITIES)) {
-			return defaultAuthorities;
-		}
-		Object authorities = map.get(AUTHORITIES);
-		if (authorities instanceof String authorityString) {
-			return AuthorityUtils.commaSeparatedStringToAuthorityList(authorityString);
-		}
-		if (authorities instanceof Collection) {
-			return AuthorityUtils.commaSeparatedStringToAuthorityList(StringUtils
-					.collectionToCommaDelimitedString((Collection<?>) authorities));
-		}
-		throw new IllegalArgumentException("Authorities must be either a String or a Collection");
-	}
+    protected Collection<GrantedAuthority> getAuthorities(Map<String, ?> map) {
+        if (!map.containsKey(AUTHORITIES)) {
+            return defaultAuthorities;
+        }
+        Object authorities = map.get(AUTHORITIES);
+        if (authorities instanceof String authorityString) {
+            return AuthorityUtils.commaSeparatedStringToAuthorityList(authorityString);
+        }
+        if (authorities instanceof Collection<?> collection) {
+            return AuthorityUtils.commaSeparatedStringToAuthorityList(StringUtils
+                    .collectionToCommaDelimitedString(collection));
+        }
+        throw new IllegalArgumentException("Authorities must be either a String or a Collection");
+    }
 }

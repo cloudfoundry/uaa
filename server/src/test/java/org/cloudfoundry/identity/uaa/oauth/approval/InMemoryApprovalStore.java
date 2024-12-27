@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -17,11 +18,10 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class InMemoryApprovalStore implements ApprovalStore {
 
-    private ArrayList<Approval> store = new ArrayList<Approval>();
+    private final ArrayList<Approval> store = new ArrayList<>();
 
     @Override
     public boolean addApproval(Approval approval, final String zoneId) {
@@ -41,7 +41,7 @@ public class InMemoryApprovalStore implements ApprovalStore {
 
     @Override
     public List<Approval> getApprovals(String userName, String clientId, final String zoneId) {
-        ArrayList<Approval> returnList = new ArrayList<Approval>();
+        ArrayList<Approval> returnList = new ArrayList<>();
 
         for (Approval a : store) {
             if (a.getUserId().equals(userName) && a.getClientId().equals(clientId)) {
@@ -64,23 +64,23 @@ public class InMemoryApprovalStore implements ApprovalStore {
     @Override
     public boolean revokeApprovalsForClientAndUser(String clientId, String userId, final String zoneId) {
         return store.removeIf(
-            approval ->
-                clientId.equals(approval.getClientId()) &&
-                userId.equals(approval.getUserId())
+                approval ->
+                        clientId.equals(approval.getClientId()) &&
+                                userId.equals(approval.getUserId())
         );
     }
 
     @Override
     public List<Approval> getApprovalsForUser(String userId, final String zoneId) {
         return store.stream()
-            .filter(approval -> userId.equals(approval.getUserId()))
-            .collect(Collectors.toList());
+                .filter(approval -> userId.equals(approval.getUserId()))
+                .toList();
     }
 
     @Override
     public List<Approval> getApprovalsForClient(String clientId, final String zoneId) {
         return store.stream()
-            .filter(approval -> clientId.equals(approval.getClientId()))
-            .collect(Collectors.toList());
+                .filter(approval -> clientId.equals(approval.getClientId()))
+                .toList();
     }
 }

@@ -35,9 +35,9 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
     private final int approvalExpiryInMillis;
 
     public UserManagedAuthzApprovalHandler(
-        final @Qualifier("approvalStore") ApprovalStore approvalStore,
-        final @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
-        final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager) {
+            final @Qualifier("approvalStore") ApprovalStore approvalStore,
+            final @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
+            final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager) {
         this.approvalStore = approvalStore;
         this.clientDetailsService = clientDetailsService;
         this.identityZoneManager = identityZoneManager;
@@ -49,7 +49,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         String approvalParameter1 = OAuth2Utils.USER_OAUTH_APPROVAL;
         String flag = authorizationRequest.getApprovalParameters().get(approvalParameter1);
-        boolean userApproval = flag != null && flag.toLowerCase().equals("true");
+        boolean userApproval = flag != null && "true".equals(flag.toLowerCase());
 
         if (logger.isDebugEnabled()) {
             StringBuilder builder = new StringBuilder("Looking up user approved authorizations for ");

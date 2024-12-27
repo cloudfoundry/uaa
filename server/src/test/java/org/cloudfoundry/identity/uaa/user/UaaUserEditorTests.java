@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -19,54 +20,54 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class UaaUserEditorTests {
-    private static UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
-    
-    private static String unm = testAccounts.getUserName();
-    private static String pwd = testAccounts.getPassword();
-    private static String email = "marissa@test.org";
-    private static String fnm = "Marissa";
-    private static String lnm = "Bloggs";
-    private static String auth1 = "uaa.admin,dash.user";
-    private static String auth2 = "openid";
+    private static final UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+
+    private static final String unm = testAccounts.getUserName();
+    private static final String pwd = testAccounts.getPassword();
+    private static final String email = "marissa@test.org";
+    private static final String fnm = "Marissa";
+    private static final String lnm = "Bloggs";
+    private static final String auth1 = "uaa.admin,dash.user";
+    private static final String auth2 = "openid";
 
     @Test
     public void testShortFormat() {
         UaaUserEditor editor = new UaaUserEditor();
-        editor.setAsText(String.format("%s|%s", unm, pwd));
+        editor.setAsText("%s|%s".formatted(unm, pwd));
         validate((UaaUser) editor.getValue(), unm, pwd, unm, null, null, null);
     }
 
     @Test
     public void testShortFormatWithAuthorities() {
         UaaUserEditor editor = new UaaUserEditor();
-        editor.setAsText(String.format("%s|%s|%s", unm, pwd, auth1));
+        editor.setAsText("%s|%s|%s".formatted(unm, pwd, auth1));
         validate((UaaUser) editor.getValue(), unm, pwd, unm, null, null, auth1.split(","));
 
-        editor.setAsText(String.format("%s|%s|%s", unm, pwd, auth2));
+        editor.setAsText("%s|%s|%s".formatted(unm, pwd, auth2));
         validate((UaaUser) editor.getValue(), unm, pwd, unm, null, null, auth2.split(","));
     }
 
     @Test
     public void testLongFormat() {
         UaaUserEditor editor = new UaaUserEditor();
-        editor.setAsText(String.format("%s|%s|%s|%s|%s", unm, pwd, email, fnm, lnm));
+        editor.setAsText("%s|%s|%s|%s|%s".formatted(unm, pwd, email, fnm, lnm));
         validate((UaaUser) editor.getValue(), unm, pwd, email, fnm, lnm, null);
     }
 
     @Test
     public void testLongFormatWithAuthorities() {
         UaaUserEditor editor = new UaaUserEditor();
-        editor.setAsText(String.format("%s|%s|%s|%s|%s|%s", unm, pwd, email, fnm, lnm, auth1));
+        editor.setAsText("%s|%s|%s|%s|%s|%s".formatted(unm, pwd, email, fnm, lnm, auth1));
         validate((UaaUser) editor.getValue(), unm, pwd, email, fnm, lnm, auth1.split(","));
 
-        editor.setAsText(String.format("%s|%s|%s|%s|%s|%s", unm, pwd, email, fnm, lnm, auth2));
+        editor.setAsText("%s|%s|%s|%s|%s|%s".formatted(unm, pwd, email, fnm, lnm, auth2));
         validate((UaaUser) editor.getValue(), unm, pwd, email, fnm, lnm, auth2.split(","));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testInvalidFormat() {
         UaaUserEditor editor = new UaaUserEditor();
-        editor.setAsText(String.format("%s|%s|%s|%s", unm, pwd, fnm, lnm));
+        editor.setAsText("%s|%s|%s|%s".formatted(unm, pwd, fnm, lnm));
     }
 
     @Test
@@ -94,7 +95,7 @@ public class UaaUserEditorTests {
     }
 
     private void validate(UaaUser user, String expectedUnm, String expectedPwd, String expectedEmail,
-                    String expectedFnm, String expectedLnm, String[] expectedAuth) {
+            String expectedFnm, String expectedLnm, String[] expectedAuth) {
         assertEquals(expectedUnm, user.getUsername());
         assertEquals(expectedPwd, user.getPassword());
         assertEquals(expectedEmail, user.getEmail());

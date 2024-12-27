@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -105,39 +106,44 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         public int hashCode() {
             final int prime = 31;
             int result = 1;
-            result = prime * result + ((display == null) ? 0 : display.hashCode());
-            result = prime * result + ((value == null) ? 0 : value.hashCode());
-            result = prime * result + ((type == null) ? 0 : type.hashCode());
+            result = prime * result + (display == null ? 0 : display.hashCode());
+            result = prime * result + (value == null ? 0 : value.hashCode());
+            result = prime * result + (type == null ? 0 : type.hashCode());
             return result;
         }
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null)
+            }
+            if (obj == null) {
                 return false;
-            if (getClass() != obj.getClass())
+            }
+            if (getClass() != obj.getClass()) {
                 return false;
+            }
             Group other = (Group) obj;
             if (display == null) {
-                if (other.display != null)
+                if (other.display != null) {
                     return false;
-            }
-            else if (!display.equals(other.display))
+                }
+            } else if (!display.equals(other.display)) {
                 return false;
+            }
             if (value == null) {
-                if (other.value != null)
+                if (other.value != null) {
                     return false;
-            }
-            else if (!value.equals(other.value))
+                }
+            } else if (!value.equals(other.value)) {
                 return false;
+            }
             return type == other.type;
         }
 
         @Override
         public String toString() {
-            return String.format("(id: %s, name: %s, type: %s)", value, display, type);
+            return "(id: %s, name: %s, type: %s)".formatted(value, display, type);
         }
     }
 
@@ -221,7 +227,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         // this should probably be an enum
         private String type;
 
-        private boolean primary = false;
+        private boolean primary;
 
         public String getValue() {
             return value;
@@ -250,16 +256,22 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
 
             Email email = (Email) o;
 
-            if (primary != email.primary) return false;
-            if (!Objects.equals(type, email.type)) return false;
-            if (!Objects.equals(value, email.value)) return false;
-
-            return true;
+            if (primary != email.primary) {
+                return false;
+            }
+            if (!Objects.equals(type, email.type)) {
+                return false;
+            }
+            return Objects.equals(value, email.value);
         }
 
         @Override
@@ -282,7 +294,8 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
             this.value = phoneNumber;
         }
 
-        public PhoneNumber() {}
+        public PhoneNumber() {
+        }
 
         public String getValue() {
             return value;
@@ -302,8 +315,12 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) return true;
-            if (o == null || getClass() != o.getClass()) return false;
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
             PhoneNumber that = (PhoneNumber) o;
             return Objects.equals(value, that.value) &&
                     Objects.equals(type, that.type);
@@ -351,21 +368,21 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
     private String externalId = "";
 
-    private String zoneId = null;
+    private String zoneId;
 
     @Setter
-    private String aliasZid = null;
+    private String aliasZid;
 
     @Setter
-    private String aliasId = null;
+    private String aliasId;
 
-    private String salt = null;
+    private String salt;
 
-    private Date passwordLastModified = null;
+    private Date passwordLastModified;
 
-    private Long previousLogonTime = null;
+    private Long previousLogonTime;
 
-    private Long lastLogonTime = null;
+    private Long lastLogonTime;
 
     @JsonProperty
     private String password;
@@ -432,11 +449,11 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
     }
 
     public void setPhoneNumbers(List<PhoneNumber> phoneNumbers) {
-        if (phoneNumbers!=null && phoneNumbers.size()>0) {
+        if (phoneNumbers != null && !phoneNumbers.isEmpty()) {
             ArrayList<PhoneNumber> list = new ArrayList<>(phoneNumbers);
-            for (int i=(list.size()-1); i>=0; i--) {
+            for (int i = list.size() - 1; i >= 0; i--) {
                 PhoneNumber pn = list.get(i);
-                if (pn==null || (!hasText(pn.getValue()))) {
+                if (pn == null || (!hasText(pn.getValue()))) {
                     list.remove(i);
                 }
             }
@@ -533,10 +550,12 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         this.origin = origin;
     }
 
+    @Override
     public String getExternalId() {
         return externalId;
     }
 
+    @Override
     public ScimUser setExternalId(String externalId) {
         this.externalId = externalId;
         return this;
@@ -571,9 +590,9 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
     @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
     public Date getPasswordLastModified() {
-        if (passwordLastModified!=null) {
+        if (passwordLastModified != null) {
             return passwordLastModified;
-        } else if (getId()!=null) {
+        } else if (getId() != null) {
             return getMeta().getCreated();
         }
         return null;
@@ -630,8 +649,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
         if (emails == null) {
             emails = new ArrayList<>(1);
-        }
-        else {
+        } else {
             emails = new ArrayList<>(getEmails());
         }
 
@@ -681,11 +699,9 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
 
     /**
      * Adds a new phone number with null type.
-     *
-     * @param newPhoneNumber
      */
     public void addPhoneNumber(String newPhoneNumber) {
-        if (newPhoneNumber==null || newPhoneNumber.trim().length()==0) {
+        if (newPhoneNumber == null || newPhoneNumber.trim().isEmpty()) {
             return;
         }
 
@@ -768,15 +784,15 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         ofNullable(patch.getPreferredLanguage()).ifPresent(this::setPreferredLanguage);
 
         //Only one email stored, use Primary or first.
-        if (patch.getEmails() != null && patch.getEmails().size()>0) {
+        if (patch.getEmails() != null && !patch.getEmails().isEmpty()) {
             ScimUser.Email primary = null;
             for (ScimUser.Email email : patch.getEmails()) {
                 if (email.isPrimary()) {
-                   primary = email;
-                   break;
+                    primary = email;
+                    break;
                 }
             }
-            List<Email> currentEmails = ofNullable(getEmails()).orElse(new ArrayList());
+            List<Email> currentEmails = ofNullable(getEmails()).orElse(new ArrayList<>());
             if (primary != null) {
                 for (Email e : currentEmails) {
                     e.setPrimary(false);
@@ -787,9 +803,9 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         }
 
         //Only one PhoneNumber stored, use first, as primary does not exist
-        if (patch.getPhoneNumbers() != null && patch.getPhoneNumbers().size()>0) {
+        if (patch.getPhoneNumbers() != null && !patch.getPhoneNumbers().isEmpty()) {
             List<PhoneNumber> current = ofNullable(getPhoneNumbers()).orElse(new ArrayList<>());
-            for (int index=0; index<patch.getPhoneNumbers().size(); index++) {
+            for (int index = 0; index < patch.getPhoneNumbers().size(); index++) {
                 current.add(index, patch.getPhoneNumbers().get(index));
             }
             setPhoneNumbers(current);
@@ -839,25 +855,25 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
                     setName(new Name());
                     break;
                 case "NAME.FAMILYNAME":
-                    ofNullable(getName()).ifPresent(name -> name.setFamilyName(null));
+                    ofNullable(getName()).ifPresent(n -> n.setFamilyName(null));
                     break;
                 case "NAME.GIVENNAME":
-                    ofNullable(getName()).ifPresent(name -> name.setGivenName(null));
+                    ofNullable(getName()).ifPresent(n -> n.setGivenName(null));
                     break;
                 case "NAME.FORMATTED":
-                    ofNullable(getName()).ifPresent(name -> name.setFormatted(null));
+                    ofNullable(getName()).ifPresent(n -> n.setFormatted(null));
                     break;
                 case "NAME.HONORIFICPREFIX":
-                    ofNullable(getName()).ifPresent(name -> name.setHonorificPrefix(null));
+                    ofNullable(getName()).ifPresent(n -> n.setHonorificPrefix(null));
                     break;
                 case "NAME.HONORIFICSUFFIX":
-                    ofNullable(getName()).ifPresent(name -> name.setHonorificSuffix(null));
+                    ofNullable(getName()).ifPresent(n -> n.setHonorificSuffix(null));
                     break;
                 case "NAME.MIDDLENAME":
-                    ofNullable(getName()).ifPresent(name -> name.setMiddleName(null));
+                    ofNullable(getName()).ifPresent(n -> n.setMiddleName(null));
                     break;
                 default:
-                    throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
+                    throw new IllegalArgumentException("Attribute %s cannot be removed using \"Meta.attributes\"".formatted(attribute));
             }
         }
     }

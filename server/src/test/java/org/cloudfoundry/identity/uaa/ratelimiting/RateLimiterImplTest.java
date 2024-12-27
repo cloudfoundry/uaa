@@ -19,9 +19,9 @@ class RateLimiterImplTest {
         }
 
         @Override
-        public Limiter getLimiter( RequestInfo info ) {
+        public Limiter getLimiter(RequestInfo info) {
             return () -> {
-                if ( maxRequestsRemaining == null ) {
+                if (maxRequestsRemaining == null) {
                     throw new RateLimiterInternalException( "maxRequestsRemaining not set!" );
                 }
                 return maxRequestsRemaining < 1;
@@ -33,26 +33,26 @@ class RateLimiterImplTest {
 
     private final RateLimiterImpl rateLimiter = new RateLimiterImpl( manager );
 
-    private final RequestInfo requestInfo = mock( RequestInfo.class );
+    private final RequestInfo requestInfo = mock(RequestInfo.class);
 
     @Test
     void internalExceptionTest() {
-        assertThrows( RateLimiterInternalException.class,
-                      () -> check( null ) ); // Force Error
+        assertThrows(RateLimiterInternalException.class,
+                () -> check(null)); // Force Error
     }
 
     @Test
     void dontLimitTest() {
-        assertFalse( check( 1 ) ); // still remaining requests -> Don't limit
+        assertFalse(check(1)); // still remaining requests -> Don't limit
     }
 
     @Test
     void limitTest() {
-        assertTrue( check( 0 ) ); // No remaining requests -> Limit
+        assertTrue(check(0)); // No remaining requests -> Limit
     }
 
-    boolean check( Integer maxRequestsRemaining ) {
+    boolean check(Integer maxRequestsRemaining) {
         manager.maxRequestsRemaining = maxRequestsRemaining;
-        return rateLimiter.getLimiter( requestInfo ).shouldLimit();
+        return rateLimiter.getLimiter(requestInfo).shouldLimit();
     }
 }

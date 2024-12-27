@@ -32,8 +32,8 @@ public class OidcMetadataFetcher {
     private final RestTemplate nonTrustingRestTemplate;
 
     public OidcMetadataFetcher(UrlContentCache contentCache,
-                               RestTemplate trustingRestTemplate,
-                               RestTemplate nonTrustingRestTemplate
+            RestTemplate trustingRestTemplate,
+            RestTemplate nonTrustingRestTemplate
     ) {
         this.contentCache = contentCache;
         this.trustingRestTemplate = trustingRestTemplate;
@@ -50,7 +50,7 @@ public class OidcMetadataFetcher {
     }
 
     public JsonWebKeySet<JsonWebKey> fetchWebKeySet(AbstractExternalOAuthIdentityProviderDefinition<?> config)
-        throws OidcMetadataFetchingException {
+            throws OidcMetadataFetchingException {
         URL tokenKeyUrl = config.getTokenKeyUrl();
         if (tokenKeyUrl == null || !org.springframework.util.StringUtils.hasText(tokenKeyUrl.toString())) {
             return new JsonWebKeySet<>(Collections.emptyList());
@@ -106,7 +106,7 @@ public class OidcMetadataFetcher {
             return responseEntity.getBody();
         } else {
             throw new IllegalArgumentException(
-                "Unable to fetch content, status:" + responseEntity.getStatusCode().getReasonPhrase());
+                    "Unable to fetch content, status:" + responseEntity.getStatusCode().getReasonPhrase());
         }
     }
 

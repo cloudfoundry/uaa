@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -158,12 +159,10 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     private static final SnippetUtils.ConstrainableField VERSION = (SnippetUtils.ConstrainableField) fieldWithPath("version").type(NUMBER).description(VERSION_DESC);
     private static final Snippet commonRequestParams = requestParameters(parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("<small><mark>UAA 3.4.0</mark></small> Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."));
 
-    private static final int LDAP_PORT = 23389;
-
     private String adminToken;
     private IdentityProviderProvisioning identityProviderProvisioning;
 
-    private FieldDescriptor[] commonProviderFields = {
+    private final FieldDescriptor[] commonProviderFields = {
             NAME,
             PROVIDER_DESC,
             EMAIL_DOMAIN,
@@ -214,10 +213,10 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                     .attributes(key("constraints").value("Optional"))
                     .optional().type(STRING)
                     .description(ALIAS_ZID_DESC_CREATE + " If set and the identity provider did not reference an alias before, an alias identity provider is created in the referenced zone and `" + FIELD_ALIAS_ID + "` is set accordingly. " +
-                    "If the identity provider already referenced an alias identity provider before the update, this field must be left unchanged.")
+                            "If the identity provider already referenced an alias identity provider before the update, this field must be left unchanged.")
     };
 
-    private FieldDescriptor[] attributeMappingFields = {
+    private final FieldDescriptor[] attributeMappingFields = {
             ATTRIBUTE_MAPPING,
             ATTRIBUTE_MAPPING_EMAIL,
             ATTRIBUTE_MAPPING_GIVEN_NAME,
@@ -228,7 +227,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             ATTRIBUTE_MAPPING_CUSTOM_ATTRIBUTES_DEPARTMENT
     };
 
-    private FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").constrained("Required if `config.authMethod` is set to `client_secret_basic`.").type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set and `jwtClientAuthentication` is not set, then the external OAuth client is treated as public client and the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636) using code challenge method `S256`. It is recommended to set `jwtClientAuthentication:true` instead.");
+    private final FieldDescriptor relyingPartySecret = fieldWithPath("config.relyingPartySecret").constrained("Required if `config.authMethod` is set to `client_secret_basic`.").type(STRING).description("The client secret of the relying party at the external OAuth provider. If not set and `jwtClientAuthentication` is not set, then the external OAuth client is treated as public client and the flow is protected with [PKCE](https://tools.ietf.org/html/rfc7636) using code challenge method `S256`. It is recommended to set `jwtClientAuthentication:true` instead.");
 
     private static InMemoryLdapServer ldapContainer;
 
@@ -240,122 +239,122 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
 
     @BeforeAll
     static void startLdapContainer() {
-        ldapContainer = InMemoryLdapServer.startLdap(LDAP_PORT);
+        ldapContainer = InMemoryLdapServer.startLdap();
     }
 
-    private final FieldDescriptor LDAP_TYPE = fieldWithPath("type").required().description("`ldap`");
-    private final FieldDescriptor LDAP_ORIGIN_KEY = fieldWithPath("originKey").required().description("Origin key must be `ldap` for an LDAP provider");
-    private final FieldDescriptor LDAP_PROFILE_FILE = fieldWithPath("config.ldapProfileFile").required().type(STRING).description("The file to be used for configuring the LDAP authentication. Options are: `ldap/ldap-simple-bind.xml`, `ldap/ldap-search-and-bind.xml`, `ldap/ldap-search-and-compare.xml`");
-    private final FieldDescriptor LDAP_GROUP_FILE = fieldWithPath("config.ldapGroupFile").required().type(STRING).description("The file to be used for group integration. Options are: `ldap/ldap-groups-null.xml`, `ldap/ldap-groups-as-scopes.xml`, `ldap/ldap-groups-map-to-scopes.xml`");
-    private final FieldDescriptor LDAP_URL = fieldWithPath("config.baseUrl").required().type(STRING).description("The URL to the ldap server, must start with `ldap://` or `ldaps://`");
-    private final FieldDescriptor LDAP_BIND_USER_DN = fieldWithPath("config.bindUserDn").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. A valid LDAP ID that has read permissions to perform a search of the LDAP tree for user information.");
-    private final FieldDescriptor LDAP_BIND_PASSWORD = fieldWithPath("config.bindPassword").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Password for the LDAP ID that performs a search of the LDAP tree for user information.");
-    private final FieldDescriptor LDAP_USER_SEARCH_BASE = fieldWithPath("config.userSearchBase").optional("dc=test,dc=com").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Define a base where the search starts at.");
-    private final FieldDescriptor LDAP_USER_SEARCH_FILTER = fieldWithPath("config.userSearchFilter").optional("cn={0}").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Search filter used. Takes one parameter, user ID defined as `{0}`");
-    private final FieldDescriptor LDAP_GROUP_SEARCH_BASE = fieldWithPath("config.groupSearchBase").required().type(STRING).description("Search start point for a user group membership search, use the value `memberOf` to skip group search, and use the memberOf attributes of the user.");
-    private final FieldDescriptor LDAP_GROUP_SEARCH_FILTER = fieldWithPath("config.groupSearchFilter").required().type(STRING).description("Search query filter to find the groups a user belongs to, or for a nested search, groups that a group belongs to");
-    private final FieldDescriptor LDAP_GROUP_AUTO_ADD = fieldWithPath("config.autoAddGroups").optional(true).type(BOOLEAN).description("Set to true when `profile_type=groups_as_scopes` to auto create scopes for a user. Ignored for other profiles.");
-    private final FieldDescriptor LDAP_GROUP_SEARCH_SUBTREE = fieldWithPath("config.groupSearchSubTree").optional(true).type(BOOLEAN).description("Boolean value, set to true to search below the search base");
-    private final FieldDescriptor LDAP_GROUP_MAX_SEARCH_DEPTH = fieldWithPath("config.maxGroupSearchDepth").optional(10).type(NUMBER).description("Set to number of levels a nested group search should go. Set to `1` to disable nested groups.");
-    private final FieldDescriptor LDAP_USER_MAIL_ATTRIBUTE = fieldWithPath("config.mailAttributeName").optional(MAIL).type(STRING).description("The name of the LDAP attribute that contains the user's email address");
-    private final FieldDescriptor LDAP_USER_MAIL_SUBSTITUTE = fieldWithPath("config.mailSubstitute").optional(null).type(STRING).description("Defines an email pattern containing a `{0}` to generate an email address for an LDAP user during authentication");
-    private final FieldDescriptor LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP = fieldWithPath("config.mailSubstituteOverridesLdap").optional(false).type(BOOLEAN).description("Set to true if you wish to override an LDAP user email address with a generated one");
-    private final FieldDescriptor LDAP_SSL_SKIP_VERIFICATION = fieldWithPath("config.skipSSLVerification").optional(false).type(BOOLEAN).description("Skips validation of the LDAP cert if set to true.");
-    private final FieldDescriptor LDAP_SSL_TLS = fieldWithPath("config.tlsConfiguration").optional("none").type(STRING).description("Sets the StartTLS options, valid values are `none`, `simple` or `external`");
-    private final FieldDescriptor LDAP_REFERRAL = fieldWithPath("config.referral").optional("follow").type(STRING).description("Configures the UAA LDAP referral behavior. The following values are possible:" +
+    private final FieldDescriptor ldapType = fieldWithPath("type").required().description("`ldap`");
+    private final FieldDescriptor ldapOriginKey = fieldWithPath("originKey").required().description("Origin key must be `ldap` for an LDAP provider");
+    private final FieldDescriptor ldapProfileFile = fieldWithPath("config.ldapProfileFile").required().type(STRING).description("The file to be used for configuring the LDAP authentication. Options are: `ldap/ldap-simple-bind.xml`, `ldap/ldap-search-and-bind.xml`, `ldap/ldap-search-and-compare.xml`");
+    private final FieldDescriptor ldapGroupFile = fieldWithPath("config.ldapGroupFile").required().type(STRING).description("The file to be used for group integration. Options are: `ldap/ldap-groups-null.xml`, `ldap/ldap-groups-as-scopes.xml`, `ldap/ldap-groups-map-to-scopes.xml`");
+    private final FieldDescriptor ldapUrl = fieldWithPath("config.baseUrl").required().type(STRING).description("The URL to the ldap server, must start with `ldap://` or `ldaps://`");
+    private final FieldDescriptor ldapBindUserDn = fieldWithPath("config.bindUserDn").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. A valid LDAP ID that has read permissions to perform a search of the LDAP tree for user information.");
+    private final FieldDescriptor ldapBindPassword = fieldWithPath("config.bindPassword").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Password for the LDAP ID that performs a search of the LDAP tree for user information.");
+    private final FieldDescriptor ldapUserSearchBase = fieldWithPath("config.userSearchBase").optional("dc=test,dc=com").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Define a base where the search starts at.");
+    private final FieldDescriptor ldapUserSearchFilter = fieldWithPath("config.userSearchFilter").optional("cn={0}").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Search filter used. Takes one parameter, user ID defined as `{0}`");
+    private final FieldDescriptor ldapGroupSearchBase = fieldWithPath("config.groupSearchBase").required().type(STRING).description("Search start point for a user group membership search, use the value `memberOf` to skip group search, and use the memberOf attributes of the user.");
+    private final FieldDescriptor ldapGroupSearchFilter = fieldWithPath("config.groupSearchFilter").required().type(STRING).description("Search query filter to find the groups a user belongs to, or for a nested search, groups that a group belongs to");
+    private final FieldDescriptor ldapGroupAutoAdd = fieldWithPath("config.autoAddGroups").optional(true).type(BOOLEAN).description("Set to true when `profile_type=groups_as_scopes` to auto create scopes for a user. Ignored for other profiles.");
+    private final FieldDescriptor ldapGroupSearchSubtree = fieldWithPath("config.groupSearchSubTree").optional(true).type(BOOLEAN).description("Boolean value, set to true to search below the search base");
+    private final FieldDescriptor ldapGroupMaxSearchDepth = fieldWithPath("config.maxGroupSearchDepth").optional(10).type(NUMBER).description("Set to number of levels a nested group search should go. Set to `1` to disable nested groups.");
+    private final FieldDescriptor ldapUserMailAttribute = fieldWithPath("config.mailAttributeName").optional(MAIL).type(STRING).description("The name of the LDAP attribute that contains the user's email address");
+    private final FieldDescriptor ldapUserMailSubstitute = fieldWithPath("config.mailSubstitute").optional(null).type(STRING).description("Defines an email pattern containing a `{0}` to generate an email address for an LDAP user during authentication");
+    private final FieldDescriptor ldapUserMailSubstituteOverridesLdap = fieldWithPath("config.mailSubstituteOverridesLdap").optional(false).type(BOOLEAN).description("Set to true if you wish to override an LDAP user email address with a generated one");
+    private final FieldDescriptor ldapSslSkipVerification = fieldWithPath("config.skipSSLVerification").optional(false).type(BOOLEAN).description("Skips validation of the LDAP cert if set to true.");
+    private final FieldDescriptor ldapSslTls = fieldWithPath("config.tlsConfiguration").optional("none").type(STRING).description("Sets the StartTLS options, valid values are `none`, `simple` or `external`");
+    private final FieldDescriptor ldapReferral = fieldWithPath("config.referral").optional("follow").type(STRING).description("Configures the UAA LDAP referral behavior. The following values are possible:" +
             "  <ul><li>follow &rarr; Referrals are followed</li>" +
             "  <li>ignore &rarr; Referrals are ignored and the partial result is returned</li>" +
             "  <li>throw  &rarr; An error is thrown and the authentication is aborted</li></ul>" +
             "  Reference: [http://docs.oracle.com/javase/jndi/tutorial/ldap/referral/jndi.html](http://docs.oracle.com/javase/jndi/tutorial/ldap/referral/jndi.html)");
-    private final FieldDescriptor LDAP_GROUPS_IGNORE_PARTIAL = fieldWithPath("config.groupsIgnorePartialResults").optional(null).type(BOOLEAN).description("Whether to ignore partial results errors from LDAP when mapping groups");
-    private final FieldDescriptor LDAP_USER_DN_PATTERN = fieldWithPath("config.userDNPattern").optional("cn={0},ou=Users,dc=test,dc=com").type(STRING).description("Used with `simple-bind` only. A semi-colon separated lists of DN patterns to construct a DN direct from the user ID without performing a search.");
-    private final FieldDescriptor LDAP_USER_DN_PATTERN_DELIM = fieldWithPath("config.userDNPatternDelimiter").optional(";").type(STRING).description("The delimiter character in between user DN patterns for `simple-bind` authentication.");
+    private final FieldDescriptor ldapGroupsIgnorePartial = fieldWithPath("config.groupsIgnorePartialResults").optional(null).type(BOOLEAN).description("Whether to ignore partial results errors from LDAP when mapping groups");
+    private final FieldDescriptor ldapUserDnPattern = fieldWithPath("config.userDNPattern").optional("cn={0},ou=Users,dc=test,dc=com").type(STRING).description("Used with `simple-bind` only. A semi-colon separated lists of DN patterns to construct a DN direct from the user ID without performing a search.");
+    private final FieldDescriptor ldapUserDnPatternDelim = fieldWithPath("config.userDNPatternDelimiter").optional(";").type(STRING).description("The delimiter character in between user DN patterns for `simple-bind` authentication.");
 
-    private final FieldDescriptor LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME = fieldWithPath("config.passwordAttributeName").optional("userPassword").type(STRING).description("Used with `search-and-compare` only. The name of the password attribute in the LDAP directory.");
-    private final FieldDescriptor LDAP_USER_COMPARE_ENCODER = fieldWithPath("config.passwordEncoder").optional("org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator").type(STRING).description("Used with `search-and-compare` only. A fully-qualified Java classname to the password encoder. This encoder is used to properly encode user password to match the one in the LDAP directory.");
-    private final FieldDescriptor LDAP_USER_COMPARE_LOCAL = fieldWithPath("config.localPasswordCompare").optional(null).type(BOOLEAN).description("Set to true if the comparison should be done locally. Setting this value to false implies that rather than retrieving the password, the UAA will run a query to match the password. In order for this query to work, you must know what type of hash/encoding/salt is used for the LDAP password.");
-    private final FieldDescriptor LDAP_GROUP_ROLE_ATTRIBUTE = fieldWithPath("config.groupRoleAttribute").optional("description").type(STRING).description("Used with `groups-as-scopes`, defines the attribute that holds the scope name(s).");
-    private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_FIRSTNAME = fieldWithPath("config.attributeMappings.first_name").optional("givenname").type(STRING).description(GIVEN_NAME_DESC);
-    private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_LASTNAME = fieldWithPath("config.attributeMappings.family_name").optional("sn").type(STRING).description(FAMILY_NAME_DESC);
-    private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional("telephonenumber").type(STRING).description(PHONE_NUMBER_DESC);
-    private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_USER_NAME = fieldWithPath("config.attributeMappings.user_name").optional("user_name").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for LDAP is the User Name filter");
+    private final FieldDescriptor ldapUserComparePasswordAttributeName = fieldWithPath("config.passwordAttributeName").optional("userPassword").type(STRING).description("Used with `search-and-compare` only. The name of the password attribute in the LDAP directory.");
+    private final FieldDescriptor ldapUserCompareEncoder = fieldWithPath("config.passwordEncoder").optional("org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator").type(STRING).description("Used with `search-and-compare` only. A fully-qualified Java classname to the password encoder. This encoder is used to properly encode user password to match the one in the LDAP directory.");
+    private final FieldDescriptor ldapUserCompareLocal = fieldWithPath("config.localPasswordCompare").optional(null).type(BOOLEAN).description("Set to true if the comparison should be done locally. Setting this value to false implies that rather than retrieving the password, the UAA will run a query to match the password. In order for this query to work, you must know what type of hash/encoding/salt is used for the LDAP password.");
+    private final FieldDescriptor ldapGroupRoleAttribute = fieldWithPath("config.groupRoleAttribute").optional("description").type(STRING).description("Used with `groups-as-scopes`, defines the attribute that holds the scope name(s).");
+    private final FieldDescriptor ldapAttributeMappingFirstname = fieldWithPath("config.attributeMappings.first_name").optional("givenname").type(STRING).description(GIVEN_NAME_DESC);
+    private final FieldDescriptor ldapAttributeMappingLastname = fieldWithPath("config.attributeMappings.family_name").optional("sn").type(STRING).description(FAMILY_NAME_DESC);
+    private final FieldDescriptor ldapAttributeMappingPhone = fieldWithPath("config.attributeMappings.phone_number").optional("telephonenumber").type(STRING).description(PHONE_NUMBER_DESC);
+    private final FieldDescriptor ldapAttributeMappingUserName = fieldWithPath("config.attributeMappings.user_name").optional("user_name").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for LDAP is the User Name filter");
 
 
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what Identity Zone this request goes to by supplying a subdomain.");
-    private FieldDescriptor[] ldapAllFields = ArrayUtils.addAll(commonProviderFields,
-            LDAP_TYPE,
-            LDAP_ORIGIN_KEY,
-            LDAP_PROFILE_FILE,
-            LDAP_GROUP_FILE,
-            LDAP_URL,
-            LDAP_BIND_USER_DN,
+    private final FieldDescriptor[] ldapAllFields = ArrayUtils.addAll(commonProviderFields,
+            ldapType,
+            ldapOriginKey,
+            ldapProfileFile,
+            ldapGroupFile,
+            ldapUrl,
+            ldapBindUserDn,
 //        LDAP_BIND_PASSWORD,
-            LDAP_USER_SEARCH_BASE,
-            LDAP_USER_SEARCH_FILTER,
-            LDAP_GROUP_SEARCH_BASE,
-            LDAP_GROUP_SEARCH_FILTER,
-            LDAP_GROUP_AUTO_ADD,
-            LDAP_GROUP_SEARCH_SUBTREE,
-            LDAP_GROUP_MAX_SEARCH_DEPTH,
-            LDAP_USER_MAIL_ATTRIBUTE,
-            LDAP_USER_MAIL_SUBSTITUTE,
-            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
-            LDAP_SSL_SKIP_VERIFICATION,
-            LDAP_SSL_TLS,
-            LDAP_REFERRAL,
-            LDAP_GROUPS_IGNORE_PARTIAL,
-            LDAP_USER_DN_PATTERN,
-            LDAP_USER_DN_PATTERN_DELIM,
-            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME,
-            LDAP_USER_COMPARE_ENCODER,
-            LDAP_USER_COMPARE_LOCAL,
-            LDAP_GROUP_ROLE_ATTRIBUTE,
+            ldapUserSearchBase,
+            ldapUserSearchFilter,
+            ldapGroupSearchBase,
+            ldapGroupSearchFilter,
+            ldapGroupAutoAdd,
+            ldapGroupSearchSubtree,
+            ldapGroupMaxSearchDepth,
+            ldapUserMailAttribute,
+            ldapUserMailSubstitute,
+            ldapUserMailSubstituteOverridesLdap,
+            ldapSslSkipVerification,
+            ldapSslTls,
+            ldapReferral,
+            ldapGroupsIgnorePartial,
+            ldapUserDnPattern,
+            ldapUserDnPatternDelim,
+            ldapUserComparePasswordAttributeName,
+            ldapUserCompareEncoder,
+            ldapUserCompareLocal,
+            ldapGroupRoleAttribute,
             ATTRIBUTE_MAPPING,
-            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
-            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
-            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
-            LDAP_ATTRIBUTE_MAPPING_PHONE,
+            ldapAttributeMappingUserName,
+            ldapAttributeMappingFirstname,
+            ldapAttributeMappingLastname,
+            ldapAttributeMappingPhone,
             ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
             EXTERNAL_GROUPS_WHITELIST);
 
 
-    private FieldDescriptor[] ldap_SearchAndCompare_GroupsAsScopes = ArrayUtils.addAll(
+    private final FieldDescriptor[] ldapSearchAndCompareGroupsAsScopes = ArrayUtils.addAll(
             commonProviderFields,
             ArrayUtils.addAll(
                     new FieldDescriptor[]{
-                            LDAP_TYPE,
-                            LDAP_ORIGIN_KEY,
-                            LDAP_PROFILE_FILE,
-                            LDAP_GROUP_FILE,
-                            LDAP_URL,
-                            LDAP_BIND_USER_DN,
-                            LDAP_BIND_PASSWORD,
-                            LDAP_USER_SEARCH_BASE,
-                            LDAP_USER_SEARCH_FILTER,
-                            LDAP_GROUP_SEARCH_BASE,
-                            LDAP_GROUP_SEARCH_FILTER,
-                            LDAP_GROUP_AUTO_ADD,
-                            LDAP_GROUP_SEARCH_SUBTREE,
-                            LDAP_GROUP_MAX_SEARCH_DEPTH,
-                            LDAP_USER_MAIL_ATTRIBUTE,
-                            LDAP_USER_MAIL_SUBSTITUTE,
-                            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
-                            LDAP_SSL_SKIP_VERIFICATION,
-                            LDAP_SSL_TLS,
-                            LDAP_REFERRAL,
-                            LDAP_GROUPS_IGNORE_PARTIAL,
-                            LDAP_USER_DN_PATTERN.ignored(),
-                            LDAP_USER_DN_PATTERN_DELIM.ignored(),
-                            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME,
-                            LDAP_USER_COMPARE_ENCODER,
-                            LDAP_USER_COMPARE_LOCAL,
-                            LDAP_GROUP_ROLE_ATTRIBUTE,
+                            ldapType,
+                            ldapOriginKey,
+                            ldapProfileFile,
+                            ldapGroupFile,
+                            ldapUrl,
+                            ldapBindUserDn,
+                            ldapBindPassword,
+                            ldapUserSearchBase,
+                            ldapUserSearchFilter,
+                            ldapGroupSearchBase,
+                            ldapGroupSearchFilter,
+                            ldapGroupAutoAdd,
+                            ldapGroupSearchSubtree,
+                            ldapGroupMaxSearchDepth,
+                            ldapUserMailAttribute,
+                            ldapUserMailSubstitute,
+                            ldapUserMailSubstituteOverridesLdap,
+                            ldapSslSkipVerification,
+                            ldapSslTls,
+                            ldapReferral,
+                            ldapGroupsIgnorePartial,
+                            ldapUserDnPattern.ignored(),
+                            ldapUserDnPatternDelim.ignored(),
+                            ldapUserComparePasswordAttributeName,
+                            ldapUserCompareEncoder,
+                            ldapUserCompareLocal,
+                            ldapGroupRoleAttribute,
                             ATTRIBUTE_MAPPING,
-                            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
-                            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
-                            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
-                            LDAP_ATTRIBUTE_MAPPING_PHONE,
+                            ldapAttributeMappingUserName,
+                            ldapAttributeMappingFirstname,
+                            ldapAttributeMappingLastname,
+                            ldapAttributeMappingPhone,
                             ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
                             EXTERNAL_GROUPS_WHITELIST
                     },
@@ -363,42 +362,42 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
             )
     );
 
-    private FieldDescriptor[] ldapSimpleBindFields = ArrayUtils.addAll(
+    private final FieldDescriptor[] ldapSimpleBindFields = ArrayUtils.addAll(
             commonProviderFields,
             ArrayUtils.addAll(
                     new FieldDescriptor[]{
-                            LDAP_TYPE,
-                            LDAP_ORIGIN_KEY,
-                            LDAP_PROFILE_FILE,
-                            LDAP_GROUP_FILE,
-                            LDAP_URL,
-                            LDAP_USER_MAIL_ATTRIBUTE,
-                            LDAP_USER_MAIL_SUBSTITUTE,
-                            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
-                            LDAP_SSL_SKIP_VERIFICATION,
-                            LDAP_SSL_TLS,
-                            LDAP_REFERRAL,
-                            LDAP_USER_DN_PATTERN,
-                            LDAP_USER_DN_PATTERN_DELIM,
+                            ldapType,
+                            ldapOriginKey,
+                            ldapProfileFile,
+                            ldapGroupFile,
+                            ldapUrl,
+                            ldapUserMailAttribute,
+                            ldapUserMailSubstitute,
+                            ldapUserMailSubstituteOverridesLdap,
+                            ldapSslSkipVerification,
+                            ldapSslTls,
+                            ldapReferral,
+                            ldapUserDnPattern,
+                            ldapUserDnPatternDelim,
                             ATTRIBUTE_MAPPING,
-                            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
-                            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
-                            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
-                            LDAP_ATTRIBUTE_MAPPING_PHONE,
+                            ldapAttributeMappingUserName,
+                            ldapAttributeMappingFirstname,
+                            ldapAttributeMappingLastname,
+                            ldapAttributeMappingPhone,
                             ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
-                            LDAP_BIND_USER_DN.ignored(),
-                            LDAP_USER_SEARCH_BASE.ignored(),
-                            LDAP_USER_SEARCH_FILTER.ignored(),
-                            LDAP_GROUP_SEARCH_BASE.ignored(),
-                            LDAP_GROUP_SEARCH_FILTER.ignored(),
-                            LDAP_GROUP_AUTO_ADD.ignored(),
-                            LDAP_GROUP_SEARCH_SUBTREE.ignored(),
-                            LDAP_GROUP_MAX_SEARCH_DEPTH.ignored(),
-                            LDAP_GROUPS_IGNORE_PARTIAL.ignored(),
-                            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME.ignored(),
-                            LDAP_USER_COMPARE_ENCODER.ignored(),
-                            LDAP_USER_COMPARE_LOCAL.ignored(),
-                            LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
+                            ldapBindUserDn.ignored(),
+                            ldapUserSearchBase.ignored(),
+                            ldapUserSearchFilter.ignored(),
+                            ldapGroupSearchBase.ignored(),
+                            ldapGroupSearchFilter.ignored(),
+                            ldapGroupAutoAdd.ignored(),
+                            ldapGroupSearchSubtree.ignored(),
+                            ldapGroupMaxSearchDepth.ignored(),
+                            ldapGroupsIgnorePartial.ignored(),
+                            ldapUserComparePasswordAttributeName.ignored(),
+                            ldapUserCompareEncoder.ignored(),
+                            ldapUserCompareLocal.ignored(),
+                            ldapGroupRoleAttribute.ignored(),
                             EXTERNAL_GROUPS_WHITELIST.ignored()
                     },
                     ALIAS_FIELDS_LDAP_CREATE
@@ -406,42 +405,42 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     );
 
 
-    private FieldDescriptor[] ldapSearchAndBind_GroupsToScopes = ArrayUtils.addAll(
+    private final FieldDescriptor[] ldapSearchAndBindGroupsToScopes = ArrayUtils.addAll(
             commonProviderFields,
             ArrayUtils.addAll(
                     new FieldDescriptor[]{
-                            LDAP_TYPE,
-                            LDAP_ORIGIN_KEY,
-                            LDAP_PROFILE_FILE,
-                            LDAP_GROUP_FILE,
-                            LDAP_URL,
-                            LDAP_BIND_USER_DN,
-                            LDAP_BIND_PASSWORD,
-                            LDAP_USER_SEARCH_BASE,
-                            LDAP_USER_SEARCH_FILTER,
-                            LDAP_GROUP_SEARCH_BASE,
-                            LDAP_GROUP_SEARCH_FILTER,
-                            LDAP_GROUP_AUTO_ADD.ignored(),
-                            LDAP_GROUP_SEARCH_SUBTREE,
-                            LDAP_GROUP_MAX_SEARCH_DEPTH,
-                            LDAP_USER_MAIL_ATTRIBUTE,
-                            LDAP_USER_MAIL_SUBSTITUTE,
-                            LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
-                            LDAP_SSL_SKIP_VERIFICATION,
-                            LDAP_SSL_TLS,
-                            LDAP_REFERRAL,
-                            LDAP_GROUPS_IGNORE_PARTIAL,
-                            LDAP_USER_DN_PATTERN.ignored(),
-                            LDAP_USER_DN_PATTERN_DELIM.ignored(),
-                            LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME.ignored(),
-                            LDAP_USER_COMPARE_ENCODER.ignored(),
-                            LDAP_USER_COMPARE_LOCAL.ignored(),
-                            LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
+                            ldapType,
+                            ldapOriginKey,
+                            ldapProfileFile,
+                            ldapGroupFile,
+                            ldapUrl,
+                            ldapBindUserDn,
+                            ldapBindPassword,
+                            ldapUserSearchBase,
+                            ldapUserSearchFilter,
+                            ldapGroupSearchBase,
+                            ldapGroupSearchFilter,
+                            ldapGroupAutoAdd.ignored(),
+                            ldapGroupSearchSubtree,
+                            ldapGroupMaxSearchDepth,
+                            ldapUserMailAttribute,
+                            ldapUserMailSubstitute,
+                            ldapUserMailSubstituteOverridesLdap,
+                            ldapSslSkipVerification,
+                            ldapSslTls,
+                            ldapReferral,
+                            ldapGroupsIgnorePartial,
+                            ldapUserDnPattern.ignored(),
+                            ldapUserDnPatternDelim.ignored(),
+                            ldapUserComparePasswordAttributeName.ignored(),
+                            ldapUserCompareEncoder.ignored(),
+                            ldapUserCompareLocal.ignored(),
+                            ldapGroupRoleAttribute.ignored(),
                             ATTRIBUTE_MAPPING,
-                            LDAP_ATTRIBUTE_MAPPING_USER_NAME,
-                            LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
-                            LDAP_ATTRIBUTE_MAPPING_LASTNAME,
-                            LDAP_ATTRIBUTE_MAPPING_PHONE,
+                            ldapAttributeMappingUserName,
+                            ldapAttributeMappingFirstname,
+                            ldapAttributeMappingLastname,
+                            ldapAttributeMappingPhone,
                             ATTRIBUTE_MAPPING_EMAIL_VERIFIED_FIELD,
                             EXTERNAL_GROUPS_WHITELIST
                     },
@@ -605,14 +604,15 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`"),
                 fieldWithPath("config.groupMappingMode").optional(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external claim values to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use claim values names as scopes. You need to define also ``external_groups`` for the mapping in order to use this feature."),
                 fieldWithPath("config.authMethod").optional("client_secret_basic").type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Define an explicit method to authenticate against the identity provider. Supported values are `client_secret_basic`, `client_secret_post`, `private_key_jwt`, and `none`. Remark: If you switch the method from `client_secret_basic` to `private_key_jwt` or to `none`, your existing `config.relyingPartySecret` will be removed from UAA database. If you want to switch back to `client_secret_basic`, provide again a `config.relyingPartySecret` in the configuration."),
-                fieldWithPath("config.jwtClientAuthentication").constrained("Required if `config.authMethod` is set to `private_key_jwt`").type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. "+
-                "<br>For standard OIDC compliance, set this field to `true`. Alternatively, you can further configure the created JWT for client authentication by setting this parameter to an Object containing sub-parameters, e.g. if your IdP follows OAuth2 standard according to RFC 7523. The supported sub-parameters are" +
-                "<ul><li>    `kid`  <small><mark>UAA 76.18.0</mark></small> Optional custom key from your defined keys, defaults to `activeKeyId` from token policy section</li>" +
-                "<li>        `key`  <small><mark>UAA 77.4.0</mark></small> Optional custom private key, used to generate the client JWT signature, defaults to key from token policy, depending on `kid` </li>" +
-                "<li>        `cert` <small><mark>UAA 77.4.0</mark></small> Optional custom X509 certificate, related to key, used to generate the client JWT with x5t header, defaults to a cert from token policy or omits x5t header </li>" +
-                "<li>        `iss`  Optional custom issuer, see RFC 7523, defaults to `relyingPartyId` for OIDC compliance</li>" +
-                "<li>        `aud`  Optional custom audience, see RFC 7523, defaults to `tokenUrl` for OIDC compliance</li></ul><p>"+
-                "The values in the list can be a reference to another section in uaa yaml, e.g. define for key a reference like ${\"jwt.client.key\"}. This will load the private key from yaml context jwt.client.key. The advantage is, that you can use a single key for many IdP configurations and the key itself is not persistent in the UAA DB.</p>"),
+                fieldWithPath("config.jwtClientAuthentication").constrained("Required if `config.authMethod` is set to `private_key_jwt`").type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. " +
+                        "<br>For standard OIDC compliance, set this field to `true`. Alternatively, you can further configure the created JWT for client authentication by setting this parameter to an Object containing sub-parameters, e.g. if your IdP follows OAuth2 standard according to RFC 7523. The supported sub-parameters are" +
+                        "<ul><li>    `kid`  <small><mark>UAA 76.18.0</mark></small> Optional custom key from your defined keys, defaults to `activeKeyId` from token policy section</li>" +
+                        "<li>        `key`  <small><mark>UAA 77.4.0</mark></small> Optional custom private key, used to generate the client JWT signature, defaults to key from token policy, depending on `kid` </li>" +
+                        "<li>        `cert` <small><mark>UAA 77.4.0</mark></small> Optional custom X509 certificate, related to key, used to generate the client JWT with x5t header, defaults to a cert from token policy or omits x5t header </li>" +
+                        "<li>        `sub`  Optional custom subject, see RFC 7523, defaults to `relyingPartyId` for OIDC compliance</li>" +
+                        "<li>        `iss`  Optional custom issuer, see RFC 7523, defaults to `relyingPartyId` for OIDC compliance</li>" +
+                        "<li>        `aud`  Optional custom audience, see RFC 7523, defaults to `tokenUrl` for OIDC compliance</li></ul><p>" +
+                        "The values in the list can be a reference to another section in uaa yaml, e.g. define for key a reference like ${\"jwt.client.key\"}. This will load the private key from yaml context jwt.client.key. The advantage is, that you can use a single key for many IdP configurations and the key itself is not persistent in the UAA DB.</p>"),
         }, attributeMappingFields));
 
         Snippet requestFields = requestFields(
@@ -716,13 +716,14 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 fieldWithPath("config.passwordGrantEnabled").optional(false).type(BOOLEAN).description("Enable Resource Owner Password Grant flow for this identity provider."),
                 fieldWithPath("config.setForwardHeader").optional(false).type(BOOLEAN).description("Only effective if Password Grant enabled. Set X-Forward-For header in Password Grant request to this identity provider."),
                 fieldWithPath("config.authMethod").optional("client_secret_basic").type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Define an explicit method to authenticate against the identity provider. Supported values are `client_secret_basic`, `client_secret_post`, `private_key_jwt`, and `none`. Remark: If you switch the method from `client_secret_basic` to `private_key_jwt` or to `none`, your existing `config.relyingPartySecret` will be removed from UAA database. If you want to switch back to `client_secret_basic`, provide again a `config.relyingPartySecret` in the configuration."),
-                fieldWithPath("config.jwtClientAuthentication").constrained("Required if `config.authMethod` is set to `private_key_jwt`").type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. "+
+                fieldWithPath("config.jwtClientAuthentication").constrained("Required if `config.authMethod` is set to `private_key_jwt`").type(OBJECT).description("<small><mark>UAA 76.5.0</mark></small> Only effective if relyingPartySecret is not set or null. Creates private_key_jwt client authentication according to OIDC or OAuth2 (RFC 7523) standard. " +
                         "<br>For standard OIDC compliance, set this field to `true`. Alternatively, you can further configure the created JWT for client authentication by setting this parameter to an Object containing sub-parameters, e.g. if your IdP follows OAuth2 standard according to RFC 7523. The supported sub-parameters are" +
                         "<ul><li>    `kid`  <small><mark>UAA 76.18.0</mark></small> Optional custom key from your defined keys, defaults to `activeKeyId` from token policy section</li>" +
                         "<li>        `key`  <small><mark>UAA 77.4.0</mark></small> Optional custom private key, used to generate the client JWT signature, defaults to key from token policy, depending on `kid` </li>" +
                         "<li>        `cert` <small><mark>UAA 77.4.0</mark></small> Optional custom X509 certificate, related to key, used to generate the client JWT with x5t header, defaults to a cert from token policy or omits x5t header </li>" +
+                        "<li>        `sub`  Optional custom subject, see RFC 7523, defaults to `relyingPartyId` for OIDC compliance</li>" +
                         "<li>        `iss`  Optional custom issuer, see RFC 7523, defaults to `relyingPartyId` for OIDC compliance</li>" +
-                        "<li>        `aud`  Optional custom audience, see RFC 7523, defaults to `tokenUrl` for OIDC compliance</li></ul><p>"+
+                        "<li>        `aud`  Optional custom audience, see RFC 7523, defaults to `tokenUrl` for OIDC compliance</li></ul><p>" +
                         "The values in the list can be a reference to another section in uaa yaml, e.g. define for key a reference like ${\"jwt.client.key\"}. This will load the private key from yaml context jwt.client.key. The advantage is, that you can use a single key for many IdP configurations and the key itself is not persistent in the UAA DB.</p>"),
                 fieldWithPath("config.attributeMappings.user_name").optional("sub").type(STRING).description("Map `user_name` to the attribute for user name in the provider assertion or token. The default for OpenID Connect is `sub`."),
                 fieldWithPath("config.additionalAuthzParameters").optional(null).type(OBJECT).description("<small><mark>UAA 76.17.0</mark></small>Map of key-value pairs that are added as additional parameters for grant type `authorization_code`. For example, configure an entry with key `token_format` and value `jwt`."),
@@ -789,7 +790,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-simple-bind.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-null.xml");
-        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
+        providerDefinition.setBaseUrl(ldapContainer.getUrl());
         providerDefinition.setUserDNPattern("cn={0},ou=Users,dc=test,dc=com");
         providerDefinition.setUserDNPatternDelimiter(";");
         providerDefinition.setMailAttributeName("mail");
@@ -809,7 +810,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-search-and-bind.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-map-to-scopes.xml");
-        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
+        providerDefinition.setBaseUrl(ldapContainer.getUrl());
         providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         providerDefinition.setBindPassword("adminsecret");
         providerDefinition.setUserSearchBase("dc=test,dc=com");
@@ -825,7 +826,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] fields = ArrayUtils.add(ldapSearchAndBind_GroupsToScopes, LDAP_BIND_PASSWORD);
+        FieldDescriptor[] fields = ArrayUtils.add(ldapSearchAndBindGroupsToScopes, ldapBindPassword);
         createLDAPProvider(identityProvider, fields, "create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider");
 
     }
@@ -838,7 +839,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-search-and-compare.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-as-scopes.xml");
-        providerDefinition.setBaseUrl(ldapContainer.getLdapBaseUrl());
+        providerDefinition.setBaseUrl(ldapContainer.getUrl());
         providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         providerDefinition.setBindPassword("adminsecret");
         providerDefinition.setUserSearchBase("dc=test,dc=com");
@@ -857,14 +858,14 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] fields = ldap_SearchAndCompare_GroupsAsScopes;
+        FieldDescriptor[] fields = ldapSearchAndCompareGroupsAsScopes;
         createLDAPProvider(identityProvider, fields, "create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider");
 
     }
 
     void createLDAPProvider(IdentityProvider<LdapIdentityProviderDefinition> identityProvider,
-                            FieldDescriptor[] fields,
-                            String name) throws Exception {
+            FieldDescriptor[] fields,
+            String name) throws Exception {
         Map<String, Object> attributeMappings = new HashedMap(identityProvider.getConfig().getAttributeMappings());
         attributeMappings.put(EMAIL_VERIFIED_ATTRIBUTE_NAME, "emailVerified");
         identityProvider.getConfig().setAttributeMappings(attributeMappings);
@@ -930,7 +931,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                         .param("username", "marissa4")
                         .param("password", "ldap4")
         )
-                .andExpect(status().isFound())
+        .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/"));
 
     }
@@ -974,20 +975,20 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
     @Test
     void getFilteredIdentityProviders() throws Exception {
         Snippet responseFields = responseFields(
-            fieldWithPath("[].type").description("Type of the identity provider."),
-            fieldWithPath("[].originKey").description("Unique identifier for the identity provider."),
-            fieldWithPath("[].name").description(NAME_DESC),
-            fieldWithPath("[].config").description(CONFIG_DESCRIPTION),
-            fieldWithPath("[]." + FIELD_ALIAS_ID).description(ALIAS_ID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING),
-            fieldWithPath("[]." + FIELD_ALIAS_ZID).description(ALIAS_ZID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING),
+                fieldWithPath("[].type").description("Type of the identity provider."),
+                fieldWithPath("[].originKey").description("Unique identifier for the identity provider."),
+                fieldWithPath("[].name").description(NAME_DESC),
+                fieldWithPath("[].config").description(CONFIG_DESCRIPTION),
+                fieldWithPath("[]." + FIELD_ALIAS_ID).description(ALIAS_ID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING),
+                fieldWithPath("[]." + FIELD_ALIAS_ZID).description(ALIAS_ZID_DESC).attributes(key("constraints").value("Optional")).optional().type(STRING),
 
-            fieldWithPath("[].version").description(VERSION_DESC),
-            fieldWithPath("[].active").description(ACTIVE_DESC),
+                fieldWithPath("[].version").description(VERSION_DESC),
+                fieldWithPath("[].active").description(ACTIVE_DESC),
 
-            fieldWithPath("[].id").description(ID_DESC),
-            fieldWithPath("[].identityZoneId").description(IDENTITY_ZONE_ID_DESC),
-            fieldWithPath("[].created").description(CREATED_DESC),
-            fieldWithPath("[].last_modified").description(LAST_MODIFIED_DESC)
+                fieldWithPath("[].id").description(ID_DESC),
+                fieldWithPath("[].identityZoneId").description(IDENTITY_ZONE_ID_DESC),
+                fieldWithPath("[].created").description(CREATED_DESC),
+                fieldWithPath("[].last_modified").description(LAST_MODIFIED_DESC)
         );
 
         mockMvc.perform(get("/identity-providers")
@@ -996,20 +997,20 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
                 .param("originKey", "my-oauth2-provider")
                 .header("Authorization", "Bearer " + adminToken)
                 .contentType(APPLICATION_JSON))
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}",
-                preprocessResponse(prettyPrint()),
-                requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` or `idps.read` (only in the same zone that you are a user of)"),
-                    headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` scope against the default UAA zone.").optional(),
-                    IDENTITY_ZONE_SUBDOMAIN_HEADER
-                ),
-                requestParameters(
-                    parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."),
-                    parameterWithName("active_only").optional("false").type(BOOLEAN).description("Flag indicating whether only active IdPs should be returned or all."),
-                    parameterWithName("originKey").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Return only IdPs with specific origin.")
-                ),
-                responseFields));
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/{methodName}",
+                        preprocessResponse(prettyPrint()),
+                        requestHeaders(
+                                headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` or `idps.read` (only in the same zone that you are a user of)"),
+                                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `zones.<zone id>.idps.read` or `uaa.admin` scope against the default UAA zone.").optional(),
+                                IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        ),
+                        requestParameters(
+                                parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."),
+                                parameterWithName("active_only").optional("false").type(BOOLEAN).description("Flag indicating whether only active IdPs should be returned or all."),
+                                parameterWithName("originKey").optional(null).type(STRING).description("<small><mark>UAA 77.10.0</mark></small> Return only IdPs with specific origin.")
+                        ),
+                        responseFields));
     }
 
     @Test
@@ -1204,7 +1205,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setType(SAML);
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderDataTests.xmlWithoutID, "http://www.okta.com/" + identityProvider.getOriginKey()))
+                .setMetaDataLocation(BootstrapSamlIdentityProviderDataTests.XML_WITHOUT_ID.formatted("http://www.okta.com/" + identityProvider.getOriginKey()))
                 .setIdpEntityAlias(identityProvider.getOriginKey())
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
                 .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())

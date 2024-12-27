@@ -25,7 +25,7 @@ class LogoutInfoEndpointDocs extends EndpointDocs {
                 parameterWithName("client_id").optional(null).type(STRING).description("On a successful logout the client's redirect_uri configuration is used as the redirect uri whitelist. If this value is not provided, the identity zone whitelist will be used instead."),
                 parameterWithName("post_logout_redirect_uri").optional("Same as redirect uri, supports OIDC logout").type(STRING).description("Support the parameter for OIDC applications based on [OpenID Connect Session Management](https://openid.net/specs/openid-connect-session-1_0.html)."),
                 parameterWithName("id_token_hint").optional("Support for OIDC logout").type(STRING).description("ID token from OIDC authentication. Used to identify the oauth client redirect uri whitelist. If this value is not provided, the identity zone whitelist will be used instead.redirect uri whitelist.")
-            );
+        );
 
         Snippet responseHeaders = responseHeaders(HeaderDocumentation.headerWithName("Location").description("Redirect URI"));
 

@@ -23,7 +23,7 @@ import java.util.Map;
 /**
  * Use {@link JsonWebKey}
  */
-public class VerificationKeyResponse extends JsonWebKey{
+public class VerificationKeyResponse extends JsonWebKey {
 
 
     public VerificationKeyResponse(Map<String, Object> json) {

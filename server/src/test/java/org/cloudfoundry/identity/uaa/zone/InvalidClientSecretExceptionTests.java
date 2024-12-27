@@ -26,9 +26,9 @@ public class InvalidClientSecretExceptionTests {
     public void getMessagesAsOneString() {
         String msg1 = "Message 1.";
         String msg2 = "Message 2.";
-        InvalidClientSecretException exception = new InvalidClientSecretException(Arrays.asList(msg1,msg2));
-        assertEquals(msg1+" "+msg2, exception.getMessagesAsOneString());
-        assertEquals(msg1+" "+msg2, exception.getMessage());
+        InvalidClientSecretException exception = new InvalidClientSecretException(Arrays.asList(msg1, msg2));
+        assertEquals(msg1 + " " + msg2, exception.getMessagesAsOneString());
+        assertEquals(msg1 + " " + msg2, exception.getMessage());
     }
 
 }

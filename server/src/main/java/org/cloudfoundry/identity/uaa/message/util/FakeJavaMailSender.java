@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -52,7 +53,7 @@ public class FakeJavaMailSender implements JavaMailSender {
     }
 
     public void setMaxMessages(int maxMessages) {
-        if (maxMessages<0) {
+        if (maxMessages < 0) {
             this.maxMessages = 0;
         } else {
             this.maxMessages = maxMessages;
@@ -65,24 +66,24 @@ public class FakeJavaMailSender implements JavaMailSender {
     }
 
     @Override
-    public MimeMessage createMimeMessage(InputStream inputStream)  {
+    public MimeMessage createMimeMessage(InputStream inputStream) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public synchronized void send(MimeMessage mimeMessage) throws MailException {
-        if (getMaxMessages()>0) {
+        if (getMaxMessages() > 0) {
             sentMessages.add(new MimeMessageWrapper(mimeMessage));
         }
 
-        while (sentMessages.size()>getMaxMessages()) {
+        while (sentMessages.size() > getMaxMessages()) {
             sentMessages.remove(0);
         }
     }
 
     @Override
     public void send(MimeMessage[] mimeMessages) throws MailException {
-        if (mimeMessages!=null) {
+        if (mimeMessages != null) {
             for (MimeMessage m : mimeMessages) {
                 send(m);
             }
@@ -146,7 +147,7 @@ public class FakeJavaMailSender implements JavaMailSender {
                 sb.append("From=").append(Arrays.toString(getFrom().toArray()));
                 sb.append("; To=").append(Arrays.toString(getRecipients(Message.RecipientType.TO).toArray()));
                 sb.append("; Content=").append(getContentString());
-            }catch (MessagingException | IOException x) {
+            } catch (MessagingException | IOException x) {
                 sb.append("Message=").append(mimeMessage);
             }
             sb.append('}');

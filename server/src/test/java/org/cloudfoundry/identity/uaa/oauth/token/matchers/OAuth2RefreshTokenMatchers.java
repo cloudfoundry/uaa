@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 public class OAuth2RefreshTokenMatchers extends AbstractOAuth2AccessTokenMatchers<OAuth2RefreshToken> {
 
-    private String key;
+    private final String key;
 
 
     public OAuth2RefreshTokenMatchers(String key, Matcher<?> value) {
@@ -99,7 +99,7 @@ public class OAuth2RefreshTokenMatchers extends AbstractOAuth2AccessTokenMatcher
     }
 
     public static Matcher<OAuth2RefreshToken> validFor(Matcher<?> validFor) {
-        return new AbstractOAuth2AccessTokenMatchers<OAuth2RefreshToken>() {
+        return new AbstractOAuth2AccessTokenMatchers<>() {
 
             @Override
             protected boolean matchesSafely(OAuth2RefreshToken token) {

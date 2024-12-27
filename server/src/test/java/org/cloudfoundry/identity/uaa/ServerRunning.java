@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -76,22 +77,22 @@ import static org.junit.Assert.assertTrue;
  * @author Dave Syer
  * 
  */
-public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper {
+public final class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper {
 
-    private static Logger logger = LoggerFactory.getLogger(ServerRunning.class);
+    private static final Logger logger = LoggerFactory.getLogger(ServerRunning.class);
 
-    private Environment environment;
+    private final Environment environment;
 
     // Static so that we only test once on failure: speeds up test suite
-    private static Map<Integer, Boolean> serverOnline = new HashMap<Integer, Boolean>();
+    private static final Map<Integer, Boolean> serverOnline = new HashMap<>();
 
     private final boolean integrationTest;
 
-    private static int DEFAULT_PORT = 8080;
+    private static final int DEFAULT_PORT = 8080;
 
-    private static String DEFAULT_HOST = "localhost";
+    private static final String DEFAULT_HOST = "localhost";
 
-    private static String DEFAULT_ROOT_PATH = "/uaa";
+    private static final String DEFAULT_ROOT_PATH = "/uaa";
 
     private int port;
 
@@ -130,7 +131,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     public void setHostName(String hostName) {
         this.hostName = hostName;
     }
-    
+
     public String getHostName() {
         return hostName;
     }
@@ -141,10 +142,9 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
      * @param rootPath the rootPath to set
      */
     public void setRootPath(String rootPath) {
-        if (rootPath.equals("/")) {
+        if ("/".equals(rootPath)) {
             rootPath = "";
-        }
-        else {
+        } else {
             if (!rootPath.startsWith("/")) {
                 rootPath = "/" + rootPath;
             }
@@ -271,7 +271,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
         actualHeaders.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
         return client.exchange(getUrl(path), HttpMethod.POST, new HttpEntity<>(params,
-                        actualHeaders), Void.class);
+                actualHeaders), Void.class);
     }
 
     public ResponseEntity<Void> postForRedirect(String path, HttpHeaders headers, MultiValueMap<String, String> params) {
@@ -304,8 +304,8 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     @Override
     public void setRestTemplate(RestOperations restTemplate) {
         this.client = restTemplate;
-        if (restTemplate instanceof HttpAccessor) {
-            ((HttpAccessor) restTemplate).setRequestFactory(new StatelessRequestFactory());
+        if (restTemplate instanceof HttpAccessor accessor) {
+            accessor.setRequestFactory(new StatelessRequestFactory());
         }
     }
 
@@ -369,8 +369,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
                     for (String key : params.keySet()) {
                         if (!first) {
                             builder.append("&");
-                        }
-                        else {
+                        } else {
                             first = false;
                         }
                         for (String value : params.get(key)) {

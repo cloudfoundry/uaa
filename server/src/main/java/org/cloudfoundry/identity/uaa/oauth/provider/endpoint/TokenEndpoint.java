@@ -45,144 +45,144 @@ import java.util.Set;
  */
 public class TokenEndpoint extends AbstractEndpoint {
 
-	private static final String HANDLING_ERROR = "Handling error: ";
-	private OAuth2RequestValidator oAuth2RequestValidator = new UaaOauth2RequestValidator();
+    private static final String HANDLING_ERROR = "Handling error: ";
+    private OAuth2RequestValidator oAuth2RequestValidator = new UaaOauth2RequestValidator();
 
-	private Set<HttpMethod> allowedRequestMethods = new HashSet<>(Arrays.asList(HttpMethod.POST));
+    private Set<HttpMethod> allowedRequestMethods = new HashSet<>(Arrays.asList(HttpMethod.POST));
 
-	@GetMapping(value = "/oauth/token")
-	public ResponseEntity<OAuth2AccessToken> getAccessToken(
-			Principal principal, @RequestParam Map<String, String> parameters)
-			throws HttpRequestMethodNotSupportedException {
+    @GetMapping(value = "/oauth/token")
+    public ResponseEntity<OAuth2AccessToken> getAccessToken(
+            Principal principal, @RequestParam Map<String, String> parameters)
+            throws HttpRequestMethodNotSupportedException {
 
-		if (!allowedRequestMethods.contains(HttpMethod.GET)) {
-			throw new HttpRequestMethodNotSupportedException("GET");
-		}
-		return postAccessToken(principal, parameters);
-	}
-	
-	@PostMapping(value = "/oauth/token")
-	public ResponseEntity<OAuth2AccessToken> postAccessToken(
-			Principal principal, @RequestParam Map<String, String> parameters) {
+        if (!allowedRequestMethods.contains(HttpMethod.GET)) {
+            throw new HttpRequestMethodNotSupportedException("GET");
+        }
+        return postAccessToken(principal, parameters);
+    }
 
-		if (!(principal instanceof Authentication)) {
-			throw new InsufficientAuthenticationException(
-					"There is no client authentication. Try adding an appropriate authentication filter.");
-		}
+    @PostMapping(value = "/oauth/token")
+    public ResponseEntity<OAuth2AccessToken> postAccessToken(
+            Principal principal, @RequestParam Map<String, String> parameters) {
 
-		String clientId = getClientId(principal);
-		ClientDetails authenticatedClient = getClientDetailsService().loadClientByClientId(clientId);
+        if (!(principal instanceof Authentication)) {
+            throw new InsufficientAuthenticationException(
+                    "There is no client authentication. Try adding an appropriate authentication filter.");
+        }
 
-		TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(parameters, authenticatedClient);
+        String clientId = getClientId(principal);
+        ClientDetails authenticatedClient = getClientDetailsService().loadClientByClientId(clientId);
 
-		// Only validate client details if a client is authenticated during this request.
-		// Double check to make sure that the client ID is the same in the token request and authenticated client.
-		if (StringUtils.hasText(clientId) && !clientId.equals(tokenRequest.getClientId())) {
-			throw new InvalidClientException("Given client ID does not match authenticated client");
-		}
+        TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(parameters, authenticatedClient);
 
-		if (authenticatedClient != null) {
-			oAuth2RequestValidator.validateScope(tokenRequest, authenticatedClient);
-		}
+        // Only validate client details if a client is authenticated during this request.
+        // Double check to make sure that the client ID is the same in the token request and authenticated client.
+        if (StringUtils.hasText(clientId) && !clientId.equals(tokenRequest.getClientId())) {
+            throw new InvalidClientException("Given client ID does not match authenticated client");
+        }
 
-		if (!StringUtils.hasText(tokenRequest.getGrantType())) {
-			throw new InvalidRequestException("Missing grant type");
-		}
+        if (authenticatedClient != null) {
+            oAuth2RequestValidator.validateScope(tokenRequest, authenticatedClient);
+        }
 
-		if (tokenRequest.getGrantType().equals("implicit")) {
-			throw new InvalidGrantException("Implicit grant type not supported from token endpoint");
-		}
+        if (!StringUtils.hasText(tokenRequest.getGrantType())) {
+            throw new InvalidRequestException("Missing grant type");
+        }
 
-		if (isAuthCodeRequest(parameters) && !tokenRequest.getScope().isEmpty()) {
-			// The scope was requested or determined during the authorization step
-			logger.debug("Clearing scope of incoming token request");
-			tokenRequest.setScope(Collections.<String>emptySet());
-		} else if (isRefreshTokenRequest(parameters)) {
-			if (UaaStringUtils.isNullOrEmpty(parameters.get("refresh_token"))) {
-				throw new InvalidRequestException("refresh_token parameter not provided");
-			}
-			// A refresh token has its own default scopes, so we should ignore any added by the factory here.
-			tokenRequest.setScope(OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.SCOPE)));
-		}
+        if ("implicit".equals(tokenRequest.getGrantType())) {
+            throw new InvalidGrantException("Implicit grant type not supported from token endpoint");
+        }
 
-		OAuth2AccessToken token = getTokenGranter().grant(tokenRequest.getGrantType(), tokenRequest);
-		if (token == null) {
-			throw new UnsupportedGrantTypeException("Unsupported grant type");
-		}
+        if (isAuthCodeRequest(parameters) && !tokenRequest.getScope().isEmpty()) {
+            // The scope was requested or determined during the authorization step
+            logger.debug("Clearing scope of incoming token request");
+            tokenRequest.setScope(Collections.<String>emptySet());
+        } else if (isRefreshTokenRequest(parameters)) {
+            if (UaaStringUtils.isNullOrEmpty(parameters.get("refresh_token"))) {
+                throw new InvalidRequestException("refresh_token parameter not provided");
+            }
+            // A refresh token has its own default scopes, so we should ignore any added by the factory here.
+            tokenRequest.setScope(OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.SCOPE)));
+        }
 
-		return getResponse(token);
-	}
+        OAuth2AccessToken token = getTokenGranter().grant(tokenRequest.getGrantType(), tokenRequest);
+        if (token == null) {
+            throw new UnsupportedGrantTypeException("Unsupported grant type");
+        }
 
-	/**
-	 * @param principal the currently authentication principal
-	 * @return a client id if there is one in the principal
-	 */
-	protected String getClientId(Principal principal) {
-		Authentication client = (Authentication) principal;
-		if (!client.isAuthenticated()) {
-			throw new InsufficientAuthenticationException("The client is not authenticated.");
-		}
-		String clientId = client.getName();
-		if (client instanceof OAuth2Authentication oAuth2Authentication) {
-			// Might be a client and user combined authentication
-			clientId = oAuth2Authentication.getOAuth2Request().getClientId();
-		}
-		return clientId;
-	}
+        return getResponse(token);
+    }
 
-	@ExceptionHandler(HttpRequestMethodNotSupportedException.class)
-	public ResponseEntity<OAuth2Exception> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {
-		if (logger.isInfoEnabled()) {
-			logger.info(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
-		}
-	    return getExceptionTranslator().translate(e);
-	}
-	
-	@ExceptionHandler(Exception.class)
-	public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
-		if (logger.isErrorEnabled()) {
-			logger.error(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage(), e);
-		}
-		return getExceptionTranslator().translate(e);
-	}
-	
-	@ExceptionHandler(ClientRegistrationException.class)
-	public ResponseEntity<OAuth2Exception> handleClientRegistrationException(Exception e) throws Exception {
-		if (logger.isWarnEnabled()) {
-			logger.warn(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
-		}
-		return getExceptionTranslator().translate(new BadClientCredentialsException());
-	}
+    /**
+     * @param principal the currently authentication principal
+     * @return a client id if there is one in the principal
+     */
+    protected String getClientId(Principal principal) {
+        Authentication client = (Authentication) principal;
+        if (!client.isAuthenticated()) {
+            throw new InsufficientAuthenticationException("The client is not authenticated.");
+        }
+        String clientId = client.getName();
+        if (client instanceof OAuth2Authentication oAuth2Authentication) {
+            // Might be a client and user combined authentication
+            clientId = oAuth2Authentication.getOAuth2Request().getClientId();
+        }
+        return clientId;
+    }
 
-	@ExceptionHandler(OAuth2Exception.class)
-	public ResponseEntity<OAuth2Exception> handleException(OAuth2Exception e) throws Exception {
-		if (logger.isWarnEnabled()) {
-			logger.warn(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
-		}
-		return getExceptionTranslator().translate(e);
-	}
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<OAuth2Exception> handleHttpRequestMethodNotSupportedException(HttpRequestMethodNotSupportedException e) throws Exception {
+        if (logger.isInfoEnabled()) {
+            logger.info(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
+        }
+        return getExceptionTranslator().translate(e);
+    }
 
-	private ResponseEntity<OAuth2AccessToken> getResponse(OAuth2AccessToken accessToken) {
-		HttpHeaders headers = new HttpHeaders();
-		headers.set("Cache-Control", "no-store");
-		headers.set("Pragma", "no-cache");
-		headers.set("Content-Type", "application/json;charset=UTF-8");
-		return new ResponseEntity<>(accessToken, headers, HttpStatus.OK);
-	}
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
+        if (logger.isErrorEnabled()) {
+            logger.error(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage(), e);
+        }
+        return getExceptionTranslator().translate(e);
+    }
 
-	private boolean isRefreshTokenRequest(Map<String, String> parameters) {
-		return "refresh_token".equals(parameters.get("grant_type"));
-	}
+    @ExceptionHandler(ClientRegistrationException.class)
+    public ResponseEntity<OAuth2Exception> handleClientRegistrationException(Exception e) throws Exception {
+        if (logger.isWarnEnabled()) {
+            logger.warn(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
+        }
+        return getExceptionTranslator().translate(new BadClientCredentialsException());
+    }
 
-	private boolean isAuthCodeRequest(Map<String, String> parameters) {
-		return "authorization_code".equals(parameters.get(OAuth2Utils.GRANT_TYPE)) && parameters.get("code") != null;
-	}
+    @ExceptionHandler(OAuth2Exception.class)
+    public ResponseEntity<OAuth2Exception> handleException(OAuth2Exception e) throws Exception {
+        if (logger.isWarnEnabled()) {
+            logger.warn(HANDLING_ERROR + e.getClass().getSimpleName() + ", " + e.getMessage());
+        }
+        return getExceptionTranslator().translate(e);
+    }
 
-	public void setOAuth2RequestValidator(OAuth2RequestValidator oAuth2RequestValidator) {
-		this.oAuth2RequestValidator = oAuth2RequestValidator;
-	}
+    private ResponseEntity<OAuth2AccessToken> getResponse(OAuth2AccessToken accessToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Cache-Control", "no-store");
+        headers.set("Pragma", "no-cache");
+        headers.set("Content-Type", "application/json;charset=UTF-8");
+        return new ResponseEntity<>(accessToken, headers, HttpStatus.OK);
+    }
 
-	public void setAllowedRequestMethods(Set<HttpMethod> allowedRequestMethods) {
-		this.allowedRequestMethods = allowedRequestMethods;
-	}
+    private boolean isRefreshTokenRequest(Map<String, String> parameters) {
+        return "refresh_token".equals(parameters.get("grant_type"));
+    }
+
+    private boolean isAuthCodeRequest(Map<String, String> parameters) {
+        return "authorization_code".equals(parameters.get(OAuth2Utils.GRANT_TYPE)) && parameters.get("code") != null;
+    }
+
+    public void setOAuth2RequestValidator(OAuth2RequestValidator oAuth2RequestValidator) {
+        this.oAuth2RequestValidator = oAuth2RequestValidator;
+    }
+
+    public void setAllowedRequestMethods(Set<HttpMethod> allowedRequestMethods) {
+        this.allowedRequestMethods = allowedRequestMethods;
+    }
 }

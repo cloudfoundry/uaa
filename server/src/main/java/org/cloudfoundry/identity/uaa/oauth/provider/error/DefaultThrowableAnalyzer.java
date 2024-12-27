@@ -14,13 +14,13 @@ import javax.servlet.ServletException;
  */
 public final class DefaultThrowableAnalyzer extends ThrowableAnalyzer {
 
-  @Override
-  protected void initExtractorMap() {
-    super.initExtractorMap();
+    @Override
+    protected void initExtractorMap() {
+        super.initExtractorMap();
 
-    registerExtractor(ServletException.class, throwable -> {
-      verifyThrowableHierarchy(throwable, ServletException.class);
-      return ((ServletException) throwable).getRootCause();
-    });
-  }
+        registerExtractor(ServletException.class, throwable -> {
+            verifyThrowableHierarchy(throwable, ServletException.class);
+            return ((ServletException) throwable).getRootCause();
+        });
+    }
 }

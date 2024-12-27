@@ -16,7 +16,7 @@ import java.util.*;
  */
 public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, EnvironmentAware {
 
-    private static Logger logger = LoggerFactory.getLogger(EnvironmentMapFactoryBean.class);
+    private static final Logger logger = LoggerFactory.getLogger(EnvironmentMapFactoryBean.class);
 
     private static final Collection<String> STATIC_PROPERTY_SOURCES = Arrays.asList(
             StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME,
@@ -53,16 +53,14 @@ public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, E
             }
         }
         // Any properties added only in the environment can be picked up here...
-        if (environment instanceof ConfigurableEnvironment) {
-            for (PropertySource<?> source : ((ConfigurableEnvironment) environment).getPropertySources()) {
-                if (source instanceof EnumerablePropertySource && !STATIC_PROPERTY_SOURCES.contains(source.getName())) {
-                    @SuppressWarnings("rawtypes")
-                    EnumerablePropertySource enumerable = (EnumerablePropertySource) source;
+        if (environment instanceof ConfigurableEnvironment configurableEnvironment) {
+            for (PropertySource<?> source : configurableEnvironment.getPropertySources()) {
+                if (source instanceof EnumerablePropertySource enumerable && !STATIC_PROPERTY_SOURCES.contains(source.getName())) {
                     for (String name : enumerable.getPropertyNames()) {
                         Object value = source.getProperty(name);
-                        if (value instanceof String) {
+                        if (value instanceof String string) {
                             // Unresolved placeholders are legal.
-                            value = environment.resolvePlaceholders((String) value);
+                            value = environment.resolvePlaceholders(string);
                         }
                         result.put(name, value);
                     }

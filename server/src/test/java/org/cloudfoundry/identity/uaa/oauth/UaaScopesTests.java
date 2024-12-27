@@ -27,7 +27,7 @@ import static org.junit.Assert.*;
 
 public class UaaScopesTests {
 
-    private UaaScopes uaaScopes = new UaaScopes();
+    private final UaaScopes uaaScopes = new UaaScopes();
 
     @Test
     public void testGetUaaScopes() {

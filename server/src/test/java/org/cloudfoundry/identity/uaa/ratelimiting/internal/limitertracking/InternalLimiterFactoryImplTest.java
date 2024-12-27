@@ -18,35 +18,35 @@ class InternalLimiterFactoryImplTest {
 
     @Test
     void constructorOptionsTest() {
-        RequestsPerWindowSecs requests = RequestsPerWindowSecs.from( "limiterName", "testData", REQUESTS_PER_WINDOW );
+        RequestsPerWindowSecs requests = RequestsPerWindowSecs.from("limiterName", "testData", REQUESTS_PER_WINDOW);
         InternalLimiterFactoryImpl factory = InternalLimiterFactoryImpl.builder()
-                .name( NAME ).windowType( Global ).requestsPerWindow( requests )
+                .name(NAME).windowType(Global).requestsPerWindow(requests)
                 .build();
 
-        assertEquals( REQUESTS_PER_WINDOW, factory.getRequestsPerWindow().toString() );
-        assertEquals( NAME, factory.getName() );
-        assertEquals( Global, factory.getWindowType() );
-        assertTrue( factory.isGlobal() );
+        assertEquals(REQUESTS_PER_WINDOW, factory.getRequestsPerWindow().toString());
+        assertEquals(NAME, factory.getName());
+        assertEquals(Global, factory.getWindowType());
+        assertTrue(factory.isGlobal());
 
         factory = InternalLimiterFactoryImpl.builder()
-                .name( NAME ).windowType( NotGlobal ).requestsPerWindow( requests )
+                .name(NAME).windowType(NotGlobal).requestsPerWindow(requests)
                 .build();
 
-        assertEquals( REQUESTS_PER_WINDOW, factory.getRequestsPerWindow().toString() );
-        assertEquals( NAME, factory.getName() );
-        assertEquals( NotGlobal, factory.getWindowType() );
-        assertFalse( factory.isGlobal() );
+        assertEquals(REQUESTS_PER_WINDOW, factory.getRequestsPerWindow().toString());
+        assertEquals(NAME, factory.getName());
+        assertEquals(NotGlobal, factory.getWindowType());
+        assertFalse(factory.isGlobal());
 
         int windowSecs = factory.getWindowSecs();
-        CompoundKey compoundKey = CompoundKey.from( NAME, factory.getWindowType(), "whatever" );
+        CompoundKey compoundKey = CompoundKey.from(NAME, factory.getWindowType(), "whatever");
 
-        InternalLimiter limiter = factory.newLimiter( compoundKey, mockCurrentTimeSupplier.nowAsInstant() );
+        InternalLimiter limiter = factory.newLimiter(compoundKey, mockCurrentTimeSupplier.nowAsInstant());
 
-        assertEquals( compoundKey, limiter.getCompoundKey() );
-        assertEquals( factory.getInitialRequestsRemaining(), limiter.getRequestsRemaining() );
+        assertEquals(compoundKey, limiter.getCompoundKey());
+        assertEquals(factory.getInitialRequestsRemaining(), limiter.getRequestsRemaining());
 
-        mockCurrentTimeSupplier.add( windowSecs * 1000000000L ); // Nanos
+        mockCurrentTimeSupplier.add(windowSecs * 1000000000L); // Nanos
 
-        assertEquals( mockCurrentTimeSupplier.nowAsInstant(), limiter.getWindowEndExclusive() );
+        assertEquals(mockCurrentTimeSupplier.nowAsInstant(), limiter.getWindowEndExclusive());
     }
 }

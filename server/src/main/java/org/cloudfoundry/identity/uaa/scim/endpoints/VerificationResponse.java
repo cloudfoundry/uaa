@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -15,8 +16,9 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.net.URL;
+
 public class VerificationResponse {
-    @JsonProperty(value="verify_link")
+    @JsonProperty(value = "verify_link")
     private URL verifyLink;
 
     public URL getVerifyLink() {

@@ -81,13 +81,17 @@ class IdTokenCreatorTest {
 
         expDate = new Date(100_000);
         authTime = new Date(500);
-        amr = new HashSet<String>() {{
-            add("mfa");
-            add("ext");
-        }};
-        acr = new HashSet<String>() {{
-            add("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
-        }};
+        amr = new HashSet<>() {
+            {
+                add("mfa");
+                add("ext");
+            }
+        };
+        acr = new HashSet<>() {
+            {
+                add("urn:oasis:names:tc:SAML:2.0:ac:classes:Password");
+            }
+        };
         givenName = "bruce";
         familyName = "denis";
         email = "u@p.i";
@@ -105,12 +109,14 @@ class IdTokenCreatorTest {
         nonce = "becreative";
         grantType = "password";
 
-        scopes = new HashSet<String>() {{
-            add("openid");
-            add("roles");
-            add("profile");
-            add("user_attributes");
-        }};
+        scopes = new HashSet<>() {
+            {
+                add("openid");
+                add("roles");
+                add("profile");
+                add("user_attributes");
+            }
+        };
         origin = "user-origin";
         userName = "username";
 
@@ -157,9 +163,8 @@ class IdTokenCreatorTest {
         clientDetails.setClientId(clientId);
         clientDetails.setClientSecret(clientsecret);
 
-        HashMap<String, String> additionalInfo = new HashMap<String, String>() {{
-            put(TOKEN_SALT, tokensalt);
-        }};
+        HashMap<String, String> additionalInfo = new HashMap<>();
+        additionalInfo.put(TOKEN_SALT, tokensalt);
         clientDetails.setAdditionalInformation(additionalInfo);
         when(mockMultitenantClientServices.loadClientByClientId(clientId, zoneId)).thenReturn(clientDetails);
 

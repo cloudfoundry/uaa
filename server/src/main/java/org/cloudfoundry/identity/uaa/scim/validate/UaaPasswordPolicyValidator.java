@@ -42,7 +42,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     private static final PropertiesMessageResolver messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
 
     public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy,
-                                      final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning) {
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning) {
         this.globalDefaultPolicy = globalDefaultPolicy;
         this.provisioning = provisioning;
     }
@@ -50,7 +50,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     @Override
     public void validate(String password) throws InvalidPasswordException {
         IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        if (idp==null) {
+        if (idp == null) {
             //should never happen
             return;
         }
@@ -63,7 +63,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         }
 
         org.passay.PasswordValidator validator = validator(policy, messageResolver);
-        RuleResult result = validator.validate(new PasswordData((password != null) ? password : ""));
+        RuleResult result = validator.validate(new PasswordData(password != null ? password : ""));
         if (!result.isValid()) {
             List<String> errorMessages = new LinkedList<>(validator.getMessages(result));
             if (!errorMessages.isEmpty()) {

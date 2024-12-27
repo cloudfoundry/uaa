@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -42,8 +43,8 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
 
     public AutologinRequestConverter() {
         setSupportedMediaTypes(Arrays.asList(
-            MediaType.APPLICATION_FORM_URLENCODED,
-            MediaType.APPLICATION_JSON)
+                MediaType.APPLICATION_FORM_URLENCODED,
+                MediaType.APPLICATION_JSON)
         );
     }
 
@@ -56,7 +57,7 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
     public boolean isJsonContent(List<String> contentType) {
         if (contentType != null) {
             for (String s : contentType) {
-                if (s!=null && s.contains(MediaType.APPLICATION_JSON_VALUE)) {
+                if (s != null && s.contains(MediaType.APPLICATION_JSON_VALUE)) {
                     return true;
                 }
             }
@@ -67,14 +68,15 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
     @Override
     @SuppressWarnings({"NullableProblems", "Convert2Diamond"})
     protected AutologinRequest readInternal(Class<? extends AutologinRequest> clazz, HttpInputMessage inputMessage)
-                    throws IOException, HttpMessageNotReadableException {
+            throws IOException, HttpMessageNotReadableException {
 
         AutologinRequest result = new AutologinRequest();
 
         UnaryOperator<String> getValue;
         if (isJsonContent(inputMessage.getHeaders().get(HttpHeaders.CONTENT_TYPE))) {
             Map<String, String> map = JsonUtils.readValue(stringConverter.read(String.class, inputMessage),
-                                                          new TypeReference<Map<String, String>>() {});
+                    new TypeReference<Map<String, String>>() {
+                    });
             if (map == null) {
                 return result;
             }
@@ -91,7 +93,7 @@ public class AutologinRequestConverter extends AbstractHttpMessageConverter<Auto
     @Override
     @SuppressWarnings("NullableProblems")
     protected void writeInternal(AutologinRequest t, HttpOutputMessage outputMessage) throws IOException,
-                    HttpMessageNotWritableException {
+            HttpMessageNotWritableException {
         MultiValueMap<String, String> map = new LinkedMaskingMultiValueMap<>(PASSWORD);
         if (t.getUsername() != null) {
             map.set(USERNAME, t.getUsername());

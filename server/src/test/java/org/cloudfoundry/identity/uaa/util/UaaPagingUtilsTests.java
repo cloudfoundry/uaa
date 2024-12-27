@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -26,7 +27,7 @@ public class UaaPagingUtilsTests {
 
     @Before
     public void createList() {
-        list = new ArrayList<String>();
+        list = new ArrayList<>();
         list.add("one");
         list.add("two");
         list.add("three");

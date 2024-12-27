@@ -7,5 +7,5 @@ public interface LoaderLogger {
 
     void logUnhandledError(Exception e);
 
-    void logUpdate( String msg );
+    void logUpdate(String msg);
 }

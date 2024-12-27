@@ -35,8 +35,8 @@ public class SocketUtils {
     private static final String BC = org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider.PROVIDER_NAME;
 
     public static X509Certificate getSelfCertificate(KeyPair keyPair, String organisation, String orgUnit, String commonName, Date issueDate,
-                                                     long validForSeconds,
-                                                     String signatureAlgorithm)
+            long validForSeconds,
+            String signatureAlgorithm)
             throws CertificateException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
         try {
             Security.addProvider(new org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider());

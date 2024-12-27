@@ -37,9 +37,9 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
     private HttpMethod method;
 
-    private Map<String, String> parameters = new HashMap<String, String>();
+    private Map<String, String> parameters = new HashMap<>();
 
-    private Map<String, List<String>> expectedHeaders = new HashMap<String, List<String>>();
+    private final Map<String, List<String>> expectedHeaders = new HashMap<>();
 
     private String name;
 
@@ -54,8 +54,6 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
     /**
      * The HttpMethod that the request should be made with. Optional (if null,
      * then all values match)
-     *
-     * @param method
      */
     public void setMethod(HttpMethod method) {
         this.method = method;
@@ -87,9 +85,9 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
     @Override
     public boolean matches(HttpServletRequest request) {
         String message = request.getRequestURI() + "'; '" + request.getContextPath() + path + "' with parameters="
-            + parameters + " and headers " + expectedHeaders;
+                + parameters + " and headers " + expectedHeaders;
         if (logger.isTraceEnabled()) {
-            logger.trace("["+name+"] Checking match of request : '" + message);
+            logger.trace("[" + name + "] Checking match of request : '" + message);
         }
 
         if (!request.getRequestURI().startsWith(request.getContextPath() + path)) {
@@ -106,8 +104,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
                 if (!matchesAcceptHeader(requestValue, expectedHeaderEntry.getValue())) {
                     return false;
                 }
-            }
-            else if (!matchesHeader(requestValue, expectedHeaderEntry.getValue())) {
+            } else if (!matchesHeader(requestValue, expectedHeaderEntry.getValue())) {
                 return false;
             }
         }
@@ -120,7 +117,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
         }
 
         if (logger.isDebugEnabled()) {
-            logger.debug("["+name+"]Matched request " + message);
+            logger.debug("[" + name + "]Matched request " + message);
         }
         return true;
     }
@@ -156,10 +153,9 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
     @Override
     public boolean equals(Object obj) {
-        if (!(obj instanceof UaaRequestMatcher)) {
+        if (!(obj instanceof UaaRequestMatcher other)) {
             return false;
         }
-        UaaRequestMatcher other = (UaaRequestMatcher) obj;
         if (!this.path.equals(other.path)) {
             return false;
         }
@@ -169,21 +165,17 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
         }
 
         if (!((this.parameters == null && other.parameters == null) || (this.parameters != null && this.parameters
-                        .equals(other.parameters)))) {
+                .equals(other.parameters)))) {
             return false;
         }
 
         if (!((this.accepts == null && other.accepts == null) || (this.accepts != null && this.accepts
-                        .equals(other.accepts)))) {
+                .equals(other.accepts)))) {
             return false;
         }
 
-        if (!((this.expectedHeaders == null && other.expectedHeaders == null) || (this.expectedHeaders != null && this.expectedHeaders
-                        .equals(other.expectedHeaders)))) {
-            return false;
-        }
-
-        return true;
+        return (this.expectedHeaders == null && other.expectedHeaders == null) || (this.expectedHeaders != null && this.expectedHeaders
+                .equals(other.expectedHeaders));
     }
 
     @Override
@@ -204,7 +196,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        sb.append("UAAPath("+name+") ['").append(path).append("'");
+        sb.append("UAAPath(").append(name).append(") ['").append(path).append("'");
 
         if (accepts != null) {
             sb.append(", ").append(accepts);
@@ -224,6 +216,6 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
 
     @Override
     public void setBeanName(String name) {
-        this.name=name;
+        this.name = name;
     }
 }

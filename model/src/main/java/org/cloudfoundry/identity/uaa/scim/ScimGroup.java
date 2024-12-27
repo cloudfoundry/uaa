@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -73,7 +74,7 @@ public class ScimGroup extends ScimCore<ScimGroup> {
     }
 
     public ScimGroup(String name) {
-        this(null,name,null);
+        this(null, name, null);
     }
 
     public ScimGroup(String id, String displayName, String zoneId) {
@@ -101,26 +102,26 @@ public class ScimGroup extends ScimCore<ScimGroup> {
                     setMembers(new ArrayList<>());
                     break;
                 default:
-                    throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
+                    throw new IllegalArgumentException("Attribute %s cannot be removed using \"Meta.attributes\"".formatted(attribute));
             }
         }
 
         if (patch.getMembers() != null) {
             //remove all members that are in the patch list
             Set<String> patchMemberIds = patch
-                .getMembers()
-                .stream()
-                .map(ScimGroupMember::getMemberId)
-                .collect(Collectors.toSet());
+                    .getMembers()
+                    .stream()
+                    .map(ScimGroupMember::getMemberId)
+                    .collect(Collectors.toSet());
             List<ScimGroupMember> newMembers = new ArrayList<>(getMembers());
             newMembers.removeIf(member -> patchMemberIds.contains(member.getMemberId()));
 
             //add back all members that don't have "delete" as operation
             newMembers.addAll(
-                patch.getMembers()
-                .stream()
-                .filter(member -> !("delete".equalsIgnoreCase(member.getOperation())))
-                .collect(Collectors.toList())
+                    patch.getMembers()
+                            .stream()
+                            .filter(member -> !"delete".equalsIgnoreCase(member.getOperation()))
+                            .toList()
             );
 
             setMembers(newMembers);
@@ -131,13 +132,13 @@ public class ScimGroup extends ScimCore<ScimGroup> {
 
     @Override
     public String toString() {
-        return String.format("(Group id: %s, name: %s, description: %s, created: %s, modified: %s, version: %s, members: %s)",
-                             getId(),
-                             displayName,
-                             description,
-                             getMeta().getCreated(),
-                             getMeta().getLastModified(),
-                             getVersion(),
-                             members);
+        return "(Group id: %s, name: %s, description: %s, created: %s, modified: %s, version: %s, members: %s)".formatted(
+                getId(),
+                displayName,
+                description,
+                getMeta().getCreated(),
+                getMeta().getLastModified(),
+                getVersion(),
+                members);
     }
 }

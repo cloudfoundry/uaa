@@ -3,8 +3,8 @@ apply(plugin: "war")
 description = "Sample resource server for Cloudfoundry Identity Services"
 dependencies {
     Project identityParent = parent.parent
-    Project identityServer = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
-    Project identityModel = identityParent.subprojects.find { it.name.equals("cloudfoundry-identity-model") }
+    Project identityServer = identityParent.subprojects.find { "cloudfoundry-identity-server".equals(it.name) }
+    Project identityModel = identityParent.subprojects.find { "cloudfoundry-identity-model".equals(it.name) }
 
     implementation(identityServer)
     implementation(identityModel)

@@ -25,47 +25,47 @@ import org.springframework.util.MultiValueMap;
  */
 public class ResourceOwnerPasswordAccessTokenProvider extends OAuth2AccessTokenSupport implements AccessTokenProvider {
 
-	private static final String PASSWORD = "password";
+    private static final String PASSWORD = "password";
 
-	public boolean supportsResource(OAuth2ProtectedResourceDetails resource) {
-		return resource instanceof ResourceOwnerPasswordResourceDetails && PASSWORD.equals(resource.getGrantType());
-	}
+    public boolean supportsResource(OAuth2ProtectedResourceDetails resource) {
+        return resource instanceof ResourceOwnerPasswordResourceDetails && PASSWORD.equals(resource.getGrantType());
+    }
 
-	public boolean supportsRefresh(OAuth2ProtectedResourceDetails resource) {
-		return supportsResource(resource);
-	}
+    public boolean supportsRefresh(OAuth2ProtectedResourceDetails resource) {
+        return supportsResource(resource);
+    }
 
-	public OAuth2AccessToken refreshAccessToken(OAuth2ProtectedResourceDetails resource,
-			OAuth2RefreshToken refreshToken, AccessTokenRequest request) throws UserRedirectRequiredException, OAuth2AccessDeniedException {
-		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-		form.add(OAuth2Utils.GRANT_TYPE, "refresh_token");
-		form.add("refresh_token", refreshToken.getValue());
-		return retrieveToken(request, resource, form, new HttpHeaders());
-	}
+    public OAuth2AccessToken refreshAccessToken(OAuth2ProtectedResourceDetails resource,
+            OAuth2RefreshToken refreshToken, AccessTokenRequest request) throws UserRedirectRequiredException, OAuth2AccessDeniedException {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add(OAuth2Utils.GRANT_TYPE, "refresh_token");
+        form.add("refresh_token", refreshToken.getValue());
+        return retrieveToken(request, resource, form, new HttpHeaders());
+    }
 
-	public OAuth2AccessToken obtainAccessToken(OAuth2ProtectedResourceDetails details, AccessTokenRequest request)
-			throws UserRedirectRequiredException, AccessDeniedException, OAuth2AccessDeniedException {
+    public OAuth2AccessToken obtainAccessToken(OAuth2ProtectedResourceDetails details, AccessTokenRequest request)
+            throws UserRedirectRequiredException, AccessDeniedException, OAuth2AccessDeniedException {
 
-		ResourceOwnerPasswordResourceDetails resource = (ResourceOwnerPasswordResourceDetails) details;
-		return retrieveToken(request, resource, getParametersForTokenRequest(resource, request), new HttpHeaders());
+        ResourceOwnerPasswordResourceDetails resource = (ResourceOwnerPasswordResourceDetails) details;
+        return retrieveToken(request, resource, getParametersForTokenRequest(resource, request), new HttpHeaders());
 
-	}
+    }
 
-	private MultiValueMap<String, String> getParametersForTokenRequest(ResourceOwnerPasswordResourceDetails resource, AccessTokenRequest request) {
+    private MultiValueMap<String, String> getParametersForTokenRequest(ResourceOwnerPasswordResourceDetails resource, AccessTokenRequest request) {
 
-		MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
-		form.set(OAuth2Utils.GRANT_TYPE, PASSWORD);
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.set(OAuth2Utils.GRANT_TYPE, PASSWORD);
 
-		form.set("username", resource.getUsername());
-		form.set(PASSWORD, resource.getPassword());
-		form.putAll(request);
+        form.set("username", resource.getUsername());
+        form.set(PASSWORD, resource.getPassword());
+        form.putAll(request);
 
-		if (resource.isScoped()) {
-			form.set(OAuth2Utils.SCOPE, getScopeString(resource));
-		}
+        if (resource.isScoped()) {
+            form.set(OAuth2Utils.SCOPE, getScopeString(resource));
+        }
 
-		return form;
+        return form;
 
-	}
+    }
 
 }

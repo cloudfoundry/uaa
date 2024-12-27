@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -31,7 +32,7 @@ public class PasswordChangeEvent extends AbstractPasswordChangeEvent {
     @Override
     public AuditEvent getAuditEvent() {
         return createAuditRecord(getUser().getId(), AuditEventType.PasswordChangeSuccess,
-                        getOrigin(getPrincipal()), getMessage());
+                getOrigin(getPrincipal()), getMessage());
     }
 
 }

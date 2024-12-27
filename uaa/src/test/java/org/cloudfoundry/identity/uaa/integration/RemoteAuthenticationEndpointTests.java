@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -49,7 +50,7 @@ public class RemoteAuthenticationEndpointTests {
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Test
     public void remoteAuthenticationSucceedsWithCorrectCredentials() {
@@ -64,7 +65,7 @@ public class RemoteAuthenticationEndpointTests {
     public void remoteAuthenticationSucceedsAndCreatesUser() throws Exception {
         String username = new RandomValueStringGenerator().generate();
         String origin = OriginKeys.LOGIN_SERVER;
-        Map<String,Object> info = new HashMap<>();
+        Map<String, Object> info = new HashMap<>();
         info.put("source", "login");
         info.put("add_new", "true");
         info.put(OriginKeys.ORIGIN, origin);
@@ -86,22 +87,22 @@ public class RemoteAuthenticationEndpointTests {
     @Test
     public void validateLdapOrKeystoneOrigin() throws Exception {
         String profiles = System.getProperty("spring.profiles.active");
-        if (profiles!=null && profiles.contains(LDAP)) {
-            validateOrigin("marissa3","ldap3", LDAP, null);
-        } else if (profiles!=null && profiles.contains("keystone")) {
+        if (profiles != null && profiles.contains(LDAP)) {
+            validateOrigin("marissa3", "ldap3", LDAP, null);
+        } else if (profiles != null && profiles.contains("keystone")) {
             validateOrigin("marissa2", "keystone", OriginKeys.KEYSTONE, null);
         } else {
             validateOrigin(testAccounts.getUserName(), testAccounts.getPassword(), OriginKeys.UAA, null);
         }
     }
 
-    public void validateOrigin(String username, String password, String origin, Map<String,Object> info) {
-        ResponseEntity<Map> authResp = authenticate(username,password, info);
+    public void validateOrigin(String username, String password, String origin, Map<String, Object> info) {
+        ResponseEntity<Map> authResp = authenticate(username, password, info);
         assertEquals(HttpStatus.OK, authResp.getStatusCode());
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + getScimReadBearerToken());
-        ResponseEntity<Map> response = serverRunning.getForObject("/Users" + "?filter=userName eq \""+username+"\"&attributes=id,userName,origin", Map.class, headers);
+        ResponseEntity<Map> response = serverRunning.getForObject("/Users" + "?filter=userName eq \"" + username + "\"&attributes=id,userName,origin", Map.class, headers);
         Map<String, Object> results = response.getBody();
         assertEquals(HttpStatus.OK, response.getStatusCode());
 
@@ -125,7 +126,7 @@ public class RemoteAuthenticationEndpointTests {
     private String getScimReadBearerToken() {
         HttpHeaders accessTokenHeaders = new HttpHeaders();
         String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64((testAccounts.getAdminClientId() + ":" + testAccounts.getAdminClientSecret()).getBytes()));
+                + new String(Base64.encodeBase64((testAccounts.getAdminClientId() + ":" + testAccounts.getAdminClientSecret()).getBytes()));
         accessTokenHeaders.add("Authorization", basicDigestHeaderValue);
 
         LinkedMultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -139,7 +140,7 @@ public class RemoteAuthenticationEndpointTests {
     private String getLoginReadBearerToken() {
         HttpHeaders accessTokenHeaders = new HttpHeaders();
         String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64(("login:loginsecret").getBytes()));
+                + new String(Base64.encodeBase64("login:loginsecret".getBytes()));
         accessTokenHeaders.add("Authorization", basicDigestHeaderValue);
 
         LinkedMultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -155,8 +156,7 @@ public class RemoteAuthenticationEndpointTests {
         RestTemplate restTemplate = new RestTemplate();
         // The default java.net client doesn't allow you to handle 4xx responses
         restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
-        if (restTemplate instanceof OAuth2RestTemplate) {
-            OAuth2RestTemplate oAuth2RestTemplate = (OAuth2RestTemplate)restTemplate;
+        if (restTemplate instanceof OAuth2RestTemplate oAuth2RestTemplate) {
             oAuth2RestTemplate.setErrorHandler(new UaaOauth2ErrorHandler(oAuth2RestTemplate.getResource(), HttpStatus.Series.SERVER_ERROR));
         } else {
             restTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
@@ -167,22 +167,22 @@ public class RemoteAuthenticationEndpointTests {
             });
         }
         HttpHeaders headers = new HttpHeaders();
-        if (additionalParams!=null) {
+        if (additionalParams != null) {
             headers.add("Authorization", "Bearer " + getLoginReadBearerToken());
         }
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
-        MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<String, Object>();
+        MultiValueMap<String, Object> parameters = new LinkedMultiValueMap<>();
         parameters.set("username", username);
-        if (password!=null) {
+        if (password != null) {
             parameters.set("password", password);
         }
-        if (additionalParams!=null) {
+        if (additionalParams != null) {
             parameters.setAll(additionalParams);
         }
 
         return restTemplate.exchange(serverRunning.getUrl("/authenticate"),
-                        HttpMethod.POST, new HttpEntity<MultiValueMap<String, Object>>(parameters, headers), Map.class);
+                HttpMethod.POST, new HttpEntity<MultiValueMap<String, Object>>(parameters, headers), Map.class);
     }
 }

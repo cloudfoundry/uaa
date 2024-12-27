@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -25,8 +26,8 @@ import org.junit.Test;
  */
 public class UaaConfigurationTests {
 
-    private YamlConfigurationValidator<UaaConfiguration> validator = new YamlConfigurationValidator<UaaConfiguration>(
-                    new UaaConfiguration.UaaConfigConstructor());
+    private final YamlConfigurationValidator<UaaConfiguration> validator = new YamlConfigurationValidator<>(
+            new UaaConfiguration.UaaConfigConstructor());
 
     private void createValidator(final String yaml) {
         validator.setExceptionIfInvalid(true);
@@ -37,30 +38,33 @@ public class UaaConfigurationTests {
     @Test
     public void validYamlIsOk() throws Exception {
         createValidator(
-            "name: uaa\n" +
-            "issuer.uri: http://foo.com\n" +
-            "oauth:\n" +
-            "  clients:\n" +
-            "    cf:\n" +
-            "      id: cf\n" +
-            "      authorized-grant-types: implicit\n" +
-            "  user:\n" +
-            "    authorities:\n" +
-            "      - openid\n" +
-            "      - scim.me\n" +
-            "  openid:\n" +
-            "    fallbackToAuthcode: false");
+                """
+                name: uaa
+                issuer.uri: http://foo.com
+                oauth:
+                  clients:
+                    cf:
+                      id: cf
+                      authorized-grant-types: implicit
+                  user:
+                    authorities:
+                      - openid
+                      - scim.me
+                  openid:
+                    fallbackToAuthcode: false""");
     }
 
     @Test
     public void validClientIsOk() throws Exception {
         createValidator(
-        "oauth:\n" +
-                        "  clients:\n" +
-                        "    cf:\n" +
-                        "      id: cf\n" +
-                        "      autoapprove: true\n" +
-                        "      authorized-grant-types: implicit\n");
+                """
+                oauth:
+                  clients:
+                    cf:
+                      id: cf
+                      autoapprove: true
+                      authorized-grant-types: implicit
+                """);
         assertTrue(validator.getObject().oauth.clients.containsKey("cf"));
     }
 

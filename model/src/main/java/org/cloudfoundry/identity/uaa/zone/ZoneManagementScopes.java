@@ -17,16 +17,15 @@ package org.cloudfoundry.identity.uaa.zone;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ZoneManagementScopes {
     public static final String ZONE_ID_MATCH = "{zone.id}";
-    public static final String ZONES_ZONE_ID_PREFIX = "zones." ;
-    public static final String ZONES_ZONE_ID_ADMIN = ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + "."+ "admin";
-    public static final String ZONE_SCOPES_SUFFIX ="(admin|read|clients.(admin|read|write)|scim.(create|read|write)|idps.read)$";
-    public static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\."+ZONE_SCOPES_SUFFIX;
-    public static final String[] ZONE_SWITCH_SCOPES = new String[] {
+    public static final String ZONES_ZONE_ID_PREFIX = "zones.";
+    public static final String ZONES_ZONE_ID_ADMIN = ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + "." + "admin";
+    public static final String ZONE_SCOPES_SUFFIX = "(admin|read|clients.(admin|read|write)|scim.(create|read|write)|idps.read)$";
+    public static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\." + ZONE_SCOPES_SUFFIX;
+    public static final String[] ZONE_SWITCH_SCOPES = new String[]{
             ZONES_ZONE_ID_ADMIN,
             "uaa.admin",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".read",
@@ -78,14 +77,14 @@ public class ZoneManagementScopes {
 
     public static List<String> getSystemScopes() {
         return UAA_SCOPES
-            .stream()
-            .filter(s -> !s.startsWith(ZONES_ZONE_ID_PREFIX))
-            .collect(Collectors.toList());
+                .stream()
+                .filter(s -> !s.startsWith(ZONES_ZONE_ID_PREFIX))
+                .toList();
     }
 
     public static String[] getZoneSwitchingScopes(String identityZoneId) {
         String[] result = new String[ZONE_SWITCH_SCOPES.length];
-        for (int i=0; i<result.length; i++) {
+        for (int i = 0; i < result.length; i++) {
             result[i] = ZONE_SWITCH_SCOPES[i].replace(ZONE_ID_MATCH, identityZoneId);
         }
         return result;

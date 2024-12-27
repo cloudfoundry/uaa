@@ -33,108 +33,108 @@ import java.util.Optional;
  */
 public class AuthorizationCodeTokenGranter extends AbstractTokenGranter {
 
-	private static final String GRANT_TYPE = "authorization_code";
+    private static final String GRANT_TYPE = "authorization_code";
 
-	private final AuthorizationCodeServices authorizationCodeServices;
+    private final AuthorizationCodeServices authorizationCodeServices;
 
-	public AuthorizationCodeTokenGranter(AuthorizationServerTokenServices tokenServices,
-			AuthorizationCodeServices authorizationCodeServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
-		this(tokenServices, authorizationCodeServices, clientDetailsService, requestFactory, GRANT_TYPE);
-	}
+    public AuthorizationCodeTokenGranter(AuthorizationServerTokenServices tokenServices,
+            AuthorizationCodeServices authorizationCodeServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
+        this(tokenServices, authorizationCodeServices, clientDetailsService, requestFactory, GRANT_TYPE);
+    }
 
-	protected AuthorizationCodeTokenGranter(AuthorizationServerTokenServices tokenServices, AuthorizationCodeServices authorizationCodeServices,
-			ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory, String grantType) {
-		super(tokenServices, clientDetailsService, requestFactory, grantType);
-		this.authorizationCodeServices = authorizationCodeServices;
-	}
+    protected AuthorizationCodeTokenGranter(AuthorizationServerTokenServices tokenServices, AuthorizationCodeServices authorizationCodeServices,
+            ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory, String grantType) {
+        super(tokenServices, clientDetailsService, requestFactory, grantType);
+        this.authorizationCodeServices = authorizationCodeServices;
+    }
 
-	@Override
-	protected OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest tokenRequest) {
-		return getOAuth2Authentication(client, tokenRequest, authorizationCodeServices, null);
-	}
+    @Override
+    protected OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest tokenRequest) {
+        return getOAuth2Authentication(client, tokenRequest, authorizationCodeServices, null);
+    }
 
-	protected static OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest tokenRequest,
-			AuthorizationCodeServices authorizationCodeServices, PkceValidationService pkceService) {
+    protected static OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest tokenRequest,
+            AuthorizationCodeServices authorizationCodeServices, PkceValidationService pkceService) {
 
-		Map<String, String> parameters = tokenRequest.getRequestParameters();
-		String authorizationCode = parameters.get("code");
-		String redirectUri = parameters.get(OAuth2Utils.REDIRECT_URI);
+        Map<String, String> parameters = tokenRequest.getRequestParameters();
+        String authorizationCode = parameters.get("code");
+        String redirectUri = parameters.get(OAuth2Utils.REDIRECT_URI);
 
-		if (authorizationCode == null) {
-			throw new InvalidRequestException("An authorization code must be supplied.");
-		}
+        if (authorizationCode == null) {
+            throw new InvalidRequestException("An authorization code must be supplied.");
+        }
 
-		OAuth2Authentication storedAuth;
+        OAuth2Authentication storedAuth;
 
-		if (pkceService != null) {
-			/*
-			 * PKCE code verifier parameter length and charset validation
-			 */
-			String codeVerifier = parameters.get(PkceValidationService.CODE_VERIFIER);
-			if (codeVerifier != null && !PkceValidationService.isCodeVerifierParameterValid(codeVerifier)) {
-				throw new InvalidRequestException("Code verifier length must between 43 and 128 and use only [A-Z],[a-z],[0-9],_,.,-,~ characters.");
-			}
-			storedAuth = getStoredCodeAuthentication(authorizationCodeServices, authorizationCode);
-			/*
-			 * PKCE code verifier parameter verification
-			 */
-			try {
-				if (!pkceService.checkAndValidate(storedAuth.getOAuth2Request().getRequestParameters(), codeVerifier, client)) {
-					// has PkceValidation service and validation failed
-					throw new InvalidGrantException("Invalid code verifier: " + codeVerifier);
-				}
-			} catch (PkceValidationException exception) {
-				// during the validation one of the PKCE parameters missing
-				throw new InvalidGrantException("PKCE error: "+ exception.getMessage());
-			}
-			// No pkceService defined or Pkce validation successfully passed
-		} else {
-			storedAuth = getStoredCodeAuthentication(authorizationCodeServices, authorizationCode);
-		}
+        if (pkceService != null) {
+            /*
+             * PKCE code verifier parameter length and charset validation
+             */
+            String codeVerifier = parameters.get(PkceValidationService.CODE_VERIFIER);
+            if (codeVerifier != null && !PkceValidationService.isCodeVerifierParameterValid(codeVerifier)) {
+                throw new InvalidRequestException("Code verifier length must between 43 and 128 and use only [A-Z],[a-z],[0-9],_,.,-,~ characters.");
+            }
+            storedAuth = getStoredCodeAuthentication(authorizationCodeServices, authorizationCode);
+            /*
+             * PKCE code verifier parameter verification
+             */
+            try {
+                if (!pkceService.checkAndValidate(storedAuth.getOAuth2Request().getRequestParameters(), codeVerifier, client)) {
+                    // has PkceValidation service and validation failed
+                    throw new InvalidGrantException("Invalid code verifier: " + codeVerifier);
+                }
+            } catch (PkceValidationException exception) {
+                // during the validation one of the PKCE parameters missing
+                throw new InvalidGrantException("PKCE error: " + exception.getMessage());
+            }
+            // No pkceService defined or Pkce validation successfully passed
+        } else {
+            storedAuth = getStoredCodeAuthentication(authorizationCodeServices, authorizationCode);
+        }
 
-		OAuth2Request pendingOAuth2Request = storedAuth.getOAuth2Request();
-		// https://jira.springsource.org/browse/SECOAUTH-333
-		// This might be null, if the authorization was done without the redirect_uri
-		// parameter
-		String redirectUriApprovalParameter = pendingOAuth2Request.getRequestParameters().get(OAuth2Utils.REDIRECT_URI);
+        OAuth2Request pendingOAuth2Request = storedAuth.getOAuth2Request();
+        // https://jira.springsource.org/browse/SECOAUTH-333
+        // This might be null, if the authorization was done without the redirect_uri
+        // parameter
+        String redirectUriApprovalParameter = pendingOAuth2Request.getRequestParameters().get(OAuth2Utils.REDIRECT_URI);
 
-		if ((redirectUri != null || redirectUriApprovalParameter != null)
-				&& !pendingOAuth2Request.getRedirectUri().equals(redirectUri)) {
-			throw new RedirectMismatchException("Redirect URI mismatch.");
-		}
+        if ((redirectUri != null || redirectUriApprovalParameter != null)
+                && !pendingOAuth2Request.getRedirectUri().equals(redirectUri)) {
+            throw new RedirectMismatchException("Redirect URI mismatch.");
+        }
 
-		String pendingClientId = pendingOAuth2Request.getClientId();
-		String clientId = tokenRequest.getClientId();
-		if (clientId != null && !clientId.equals(pendingClientId)) {
-			// just a sanity check.
-			throw new InvalidClientException("Client ID mismatch");
-		}
-		// Secret is not required in the authorization request, so it won't be available
-		// in the pendingAuthorizationRequest. We do want to check that a secret is
-		// provided
-		// in the token request, but that happens elsewhere.
+        String pendingClientId = pendingOAuth2Request.getClientId();
+        String clientId = tokenRequest.getClientId();
+        if (clientId != null && !clientId.equals(pendingClientId)) {
+            // just a sanity check.
+            throw new InvalidClientException("Client ID mismatch");
+        }
+        // Secret is not required in the authorization request, so it won't be available
+        // in the pendingAuthorizationRequest. We do want to check that a secret is
+        // provided
+        // in the token request, but that happens elsewhere.
 
-		Map<String, String> combinedParameters = new HashMap<>(
-				pendingOAuth2Request.getRequestParameters());
-		// Combine the parameters adding the new ones last so they override if there are
-		// any clashes
-		combinedParameters.putAll(parameters);
+        Map<String, String> combinedParameters = new HashMap<>(
+                pendingOAuth2Request.getRequestParameters());
+        // Combine the parameters adding the new ones last so they override if there are
+        // any clashes
+        combinedParameters.putAll(parameters);
 
-		// Make a new stored request with the combined parameters
-		OAuth2Request finalStoredOAuth2Request = pendingOAuth2Request.createOAuth2Request(combinedParameters);
+        // Make a new stored request with the combined parameters
+        OAuth2Request finalStoredOAuth2Request = pendingOAuth2Request.createOAuth2Request(combinedParameters);
 
-		Authentication userAuth = storedAuth.getUserAuthentication();
+        Authentication userAuth = storedAuth.getUserAuthentication();
 
-		String clientAuthentication = UaaSecurityContextUtils.getClientAuthenticationMethod();
-		if (clientAuthentication != null) {
-			finalStoredOAuth2Request.getExtensions().put(ClaimConstants.CLIENT_AUTH_METHOD, clientAuthentication);
-		}
+        String clientAuthentication = UaaSecurityContextUtils.getClientAuthenticationMethod();
+        if (clientAuthentication != null) {
+            finalStoredOAuth2Request.getExtensions().put(ClaimConstants.CLIENT_AUTH_METHOD, clientAuthentication);
+        }
 
-		return new OAuth2Authentication(finalStoredOAuth2Request, userAuth);
-	}
+        return new OAuth2Authentication(finalStoredOAuth2Request, userAuth);
+    }
 
-	private static OAuth2Authentication getStoredCodeAuthentication(AuthorizationCodeServices authorizationCodeServices, String authorizationCode) {
-		return Optional.ofNullable(authorizationCodeServices.consumeAuthorizationCode(authorizationCode)).orElseThrow(
-				() -> new InvalidGrantException("Invalid authorization code: " + authorizationCode));
-	}
+    private static OAuth2Authentication getStoredCodeAuthentication(AuthorizationCodeServices authorizationCodeServices, String authorizationCode) {
+        return Optional.ofNullable(authorizationCodeServices.consumeAuthorizationCode(authorizationCode)).orElseThrow(
+                () -> new InvalidGrantException("Invalid authorization code: " + authorizationCode));
+    }
 }

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -31,7 +32,7 @@ public class ScimResourceAlreadyExistsException extends ScimException {
         super(message, HttpStatus.CONFLICT);
     }
 
-    public ScimResourceAlreadyExistsException(String message, Map<String,Object> extraInformation) {
+    public ScimResourceAlreadyExistsException(String message, Map<String, Object> extraInformation) {
         super(message, HttpStatus.CONFLICT, extraInformation);
     }
 

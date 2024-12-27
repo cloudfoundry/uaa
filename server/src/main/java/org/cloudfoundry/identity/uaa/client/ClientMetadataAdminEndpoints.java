@@ -33,7 +33,7 @@ public class ClientMetadataAdminEndpoints {
 
     public ClientMetadataAdminEndpoints(final @Qualifier("jdbcClientMetadataProvisioning") ClientMetadataProvisioning clientMetadataProvisioning) {
         this.clientMetadataProvisioning = clientMetadataProvisioning;
-        this.messageConverters = new HttpMessageConverter[] {
+        this.messageConverters = new HttpMessageConverter[]{
                 new ExceptionReportHttpMessageConverter()
         };
     }
@@ -60,7 +60,7 @@ public class ClientMetadataAdminEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientMetadata updateClientMetadata(@RequestBody ClientMetadata clientMetadata,
-                                               @PathVariable("client") String clientId) {
+            @PathVariable("client") String clientId) {
 
         if (StringUtils.hasText(clientMetadata.getClientId())) {
             if (!clientId.equals(clientMetadata.getClientId())) {
@@ -82,7 +82,7 @@ public class ClientMetadataAdminEndpoints {
     public View handleException(ClientMetadataException cme, HttpServletRequest request) {
         logger.error("Unhandled exception in client metadata admin endpoints.", cme);
 
-        boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
+        boolean trace = request.getParameter("trace") != null && !"false".equals(request.getParameter("trace"));
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(cme, trace, cme.getExtraInfo()),
                 cme.getStatus()), messageConverters);
     }

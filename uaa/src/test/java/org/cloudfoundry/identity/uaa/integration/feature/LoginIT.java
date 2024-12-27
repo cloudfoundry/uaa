@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -70,9 +71,10 @@ import static org.springframework.http.HttpMethod.POST;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class LoginIT {
 
-    private final String USER_PASSWORD = "sec3Tas";
+    private static final String USER_PASSWORD = "sec3Tas";
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -95,7 +97,7 @@ public class LoginIT {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -113,9 +115,9 @@ public class LoginIT {
 
         headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
-                                                                 HttpMethod.GET,
-                                                                 new HttpEntity<>(null, headers),
-                                                                 String.class);
+                HttpMethod.GET,
+                new HttpEntity<>(null, headers),
+                String.class);
 
         if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
@@ -127,9 +129,9 @@ public class LoginIT {
 
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         loginResponse = template.exchange(baseUrl + "/login.do",
-                                          HttpMethod.POST,
-                                          new HttpEntity<>(requestBody, headers),
-                                          String.class);
+                HttpMethod.POST,
+                new HttpEntity<>(requestBody, headers),
+                String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         MatcherAssert.assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         MatcherAssert.assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
@@ -155,7 +157,7 @@ public class LoginIT {
         String zoneId = "testzone3";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
@@ -167,7 +169,7 @@ public class LoginIT {
         config.getBranding().setBanner(banner);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
 
-        String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
+        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
         webDriver.get(zoneUrl);
         webDriver.manage().deleteAllCookies();
         webDriver.navigate().refresh();
@@ -190,7 +192,7 @@ public class LoginIT {
         String zoneId = "testzone3";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
@@ -202,7 +204,7 @@ public class LoginIT {
         config.getBranding().setBanner(banner);
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
 
-        String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
+        String zoneUrl = baseUrl.replace("localhost", zoneId + ".localhost");
         webDriver.get(zoneUrl);
         webDriver.manage().deleteAllCookies();
         webDriver.navigate().refresh();
@@ -250,8 +252,8 @@ public class LoginIT {
     @Test
     public void testNoZoneFound() {
         assertTrue("Expected testzone1/2/3/4/doesnotexist.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-        webDriver.get(baseUrl.replace("localhost","testzonedoesnotexist.localhost") + "/login");
-        assertEquals("The subdomain does not map to a valid identity zone.",webDriver.findElement(By.tagName("p")).getText());
+        webDriver.get(baseUrl.replace("localhost", "testzonedoesnotexist.localhost") + "/login");
+        assertEquals("The subdomain does not map to a valid identity zone.", webDriver.findElement(By.tagName("p")).getText());
     }
 
     @Test
@@ -272,7 +274,7 @@ public class LoginIT {
 
         // Verify that the CopyToClipboard function can be executed
         String passcode = webDriver.findElement(By.id("passcode")).getText();
-        ((JavascriptExecutor)webDriver).executeScript("CopyToClipboard",
+        ((JavascriptExecutor) webDriver).executeScript("CopyToClipboard",
                 passcode);
         // Verify that the copybutton can be clicked
         webDriver.findElement(By.id("copybutton")).click();
@@ -302,15 +304,15 @@ public class LoginIT {
             }
 
         });
-        LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
+        LinkedMultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("username", testAccounts.getUserName());
         body.add("password", testAccounts.getPassword());
         HttpHeaders headers = new HttpHeaders();
         headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login.do",
-            HttpMethod.POST,
-            new HttpEntity<>(body, headers),
-            String.class);
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                String.class);
         assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
         assertTrue("CSRF message should be shown", loginResponse.getHeaders().getFirst("Location").contains("invalid_login_request"));
     }
@@ -331,9 +333,9 @@ public class LoginIT {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
-            HttpMethod.GET,
-            new HttpEntity<>(null, headers),
-            String.class);
+                HttpMethod.GET,
+                new HttpEntity<>(null, headers),
+                String.class);
 
         if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
@@ -341,14 +343,14 @@ public class LoginIT {
             }
         }
         String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
-        LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
+        LinkedMultiValueMap<String, String> body = new LinkedMultiValueMap<>();
         body.add("username", testAccounts.getUserName());
         body.add("password", "invalidpassword");
         body.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
         loginResponse = template.exchange(baseUrl + "/login.do",
-            HttpMethod.POST,
-            new HttpEntity<>(body, headers),
-            String.class);
+                HttpMethod.POST,
+                new HttpEntity<>(body, headers),
+                String.class);
         assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
     }
 
@@ -466,14 +468,14 @@ public class LoginIT {
     public void testLoginReloadRetainsFormRedirect() {
 
         String redirectUri = "http://expected.com";
-        webDriver.get(baseUrl + "/oauth/authorize?client_id=test&redirect_uri="+redirectUri);
-        ((JavascriptExecutor)webDriver).executeScript("document.getElementsByName('X-Uaa-Csrf')[0].value=''");
+        webDriver.get(baseUrl + "/oauth/authorize?client_id=test&redirect_uri=" + redirectUri);
+        ((JavascriptExecutor) webDriver).executeScript("document.getElementsByName('X-Uaa-Csrf')[0].value=''");
         webDriver.manage().deleteCookieNamed("JSESSIONID");
 
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         assertThat(webDriver.getCurrentUrl(), Matchers.containsString("/login"));
-        assertThat(webDriver.findElement(By.name("form_redirect_uri")).getAttribute("value"), Matchers.containsString("redirect_uri="+redirectUri));
+        assertThat(webDriver.findElement(By.name("form_redirect_uri")).getAttribute("value"), Matchers.containsString("redirect_uri=" + redirectUri));
 
     }
 
@@ -489,7 +491,7 @@ public class LoginIT {
         String testzone3 = "testzone3";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+                IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
         );
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
@@ -497,7 +499,7 @@ public class LoginIT {
         config.getCorsPolicy().getDefaultConfiguration().setAllowedMethods(
                 List.of(GET.toString(), POST.toString()));
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, testzone3, testzone3, config);
-        String res = baseUrl.replace("localhost", testzone3 +".localhost");
+        String res = baseUrl.replace("localhost", testzone3 + ".localhost");
         webDriver.get(res + "/logout.do");
         webDriver.manage().deleteAllCookies();
         return res;

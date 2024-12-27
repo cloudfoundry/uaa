@@ -867,7 +867,7 @@ public class ClientAdminEndpointsMockMvcTests {
             details[i] = (ClientDetailsModification) createClient(adminToken, null, SECRET, null);
             details[i].setAction(ClientDetailsModification.DELETE);
         }
-        for (int i = (count * 2); i < (count * 3); i++) {
+        for (int i = count * 2; i < (count * 3); i++) {
             details[i] = createBaseClient(null, SECRET, null);
             details[i].setAction(ClientDetailsModification.ADD);
         }
@@ -891,7 +891,7 @@ public class ClientAdminEndpointsMockMvcTests {
             ClientDetails c = getClient(details[i].getClientId());
             assertNull(c);
         }
-        for (int i = (count * 2); i < (count * 3); i++) {
+        for (int i = count * 2; i < (count * 3); i++) {
             ClientDetails c = getClient(details[i].getClientId());
             assertNotNull(c);
             assertNull(c.getRefreshTokenValiditySeconds());
@@ -1950,9 +1950,9 @@ public class ClientAdminEndpointsMockMvcTests {
     @Test
     void testAddNewClientJwtKeyUri() throws Exception {
         String token = testClient.getClientCredentialsOAuthAccessToken(
-            testAccounts.getAdminClientId(),
-            testAccounts.getAdminClientSecret(),
-            "uaa.admin,clients.secret");
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "uaa.admin,clients.secret");
         String id = generator.generate();
         ClientDetails client = createClient(token, id, SECRET, Collections.singleton("client_credentials"));
         ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, null);
@@ -1964,8 +1964,8 @@ public class ClientAdminEndpointsMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
+                .andExpect(status().isOk())
+                .andReturn().getResponse();
 
         ActionResult actionResult = JsonUtils.readValue(response.getContentAsString(), ActionResult.class);
         assertEquals("ok", actionResult.getStatus());
@@ -1980,9 +1980,9 @@ public class ClientAdminEndpointsMockMvcTests {
     @Test
     void testAddNewClientJwtKeyUriButInvalidChange() throws Exception {
         String token = testClient.getClientCredentialsOAuthAccessToken(
-            testAccounts.getAdminClientId(),
-            testAccounts.getAdminClientSecret(),
-            "uaa.admin,clients.secret");
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "uaa.admin,clients.secret");
         String id = generator.generate();
         ClientDetails client = createClient(token, id, SECRET, Collections.singleton("client_credentials"));
         ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, null);
@@ -1994,8 +1994,8 @@ public class ClientAdminEndpointsMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
-            .andExpect(status().isOk())
-            .andReturn().getResponse();
+                .andExpect(status().isOk())
+                .andReturn().getResponse();
 
         ActionResult actionResult = JsonUtils.readValue(response.getContentAsString(), ActionResult.class);
         assertEquals("ok", actionResult.getStatus());
@@ -2013,8 +2013,8 @@ public class ClientAdminEndpointsMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andReturn().getResponse();
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse();
 
         verify(mockApplicationEventPublisher, times(3)).publishEvent(abstractUaaEventCaptor.capture());
         assertEquals(ClientJwtFailureEvent.class, abstractUaaEventCaptor.getValue().getClass());
@@ -2025,9 +2025,9 @@ public class ClientAdminEndpointsMockMvcTests {
     @Test
     void testInvalidClientJwtKeyUri() throws Exception {
         String token = testClient.getClientCredentialsOAuthAccessToken(
-            testAccounts.getAdminClientId(),
-            testAccounts.getAdminClientSecret(),
-            "uaa.admin,clients.secret");
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "uaa.admin,clients.secret");
         String id = generator.generate();
         ClientDetails client = createClient(token, id, SECRET, Collections.singleton("client_credentials"));
         ClientJwtChangeRequest request = new ClientJwtChangeRequest(null, null, null);
@@ -2039,8 +2039,8 @@ public class ClientAdminEndpointsMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
-            .andExpect(status().isBadRequest())
-            .andReturn().getResponse();
+                .andExpect(status().isBadRequest())
+                .andReturn().getResponse();
 
         verify(mockApplicationEventPublisher, times(2)).publishEvent(abstractUaaEventCaptor.capture());
         assertEquals(ClientJwtFailureEvent.class, abstractUaaEventCaptor.getValue().getClass());

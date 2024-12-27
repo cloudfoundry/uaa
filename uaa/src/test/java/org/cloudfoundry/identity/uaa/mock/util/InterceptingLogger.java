@@ -8,7 +8,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 public class InterceptingLogger extends SubstituteLogger {
-    private List<String> messages = new ArrayList<>();
+    private final List<String> messages = new ArrayList<>();
 
     public InterceptingLogger() {
         super("InterceptingLogger", new LinkedList<>(), true);

@@ -10,20 +10,21 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.http.RequestInfo;
 
 import lombok.RequiredArgsConstructor;
 
-public class CallerIdSupplierByTypeFactoryFactory {
+public final class CallerIdSupplierByTypeFactoryFactory {
 
-    private CallerIdSupplierByTypeFactoryFactory(){}
+    private CallerIdSupplierByTypeFactoryFactory() {
+    }
 
-    public static CallerIdSupplierByTypeFactory from( AuthorizationCredentialIdExtractor credentialIdExtractor ) {
-        return (credentialIdExtractor == null) ?
-               new FactoryNoCredentialIdExtractor() :
-               new FactoryWithCredentialIdExtractor( credentialIdExtractor );
+    public static CallerIdSupplierByTypeFactory from(AuthorizationCredentialIdExtractor credentialIdExtractor) {
+        return credentialIdExtractor == null ?
+                new FactoryNoCredentialIdExtractor() :
+                new FactoryWithCredentialIdExtractor( credentialIdExtractor );
     }
 
     private static class FactoryNoCredentialIdExtractor implements CallerIdSupplierByTypeFactory {
         @Override
-        public CallerIdSupplierByType from( RequestInfo request ) {
-            return (request == null) ? NULL_REQUEST_INFO : new NoCredentialIdExtractor( request );
+        public CallerIdSupplierByType from(RequestInfo request) {
+            return request == null ? NULL_REQUEST_INFO : new NoCredentialIdExtractor( request );
         }
     }
 
@@ -34,8 +35,8 @@ public class CallerIdSupplierByTypeFactoryFactory {
         public final AuthorizationCredentialIdExtractor credentialIdExtractor;
 
         @Override
-        public CallerIdSupplierByType from( RequestInfo request ) {
-            return (request == null) ? NULL_REQUEST_INFO : new WithCredentialIdExtractor( request, credentialIdExtractor );
+        public CallerIdSupplierByType from(RequestInfo request) {
+            return request == null ? NULL_REQUEST_INFO : new WithCredentialIdExtractor( request, credentialIdExtractor );
         }
 
         @Override
@@ -47,9 +48,9 @@ public class CallerIdSupplierByTypeFactoryFactory {
     protected static class NoCredentialIdExtractor extends CallerIdSupplierByTypeFactory.NoCallerDetails implements CallerIdSupplierByType {
         private final SupplierWithCaching supplier;
 
-        protected NoCredentialIdExtractor( RequestInfo info ) {
+        protected NoCredentialIdExtractor(RequestInfo info) {
             supplier = new SupplierWithCaching(
-                    () -> stripToNull( info.getClientIP() ) );
+                    () -> stripToNull(info.getClientIP()) );
         }
 
         @Override
@@ -61,10 +62,10 @@ public class CallerIdSupplierByTypeFactoryFactory {
     private static class WithCredentialIdExtractor extends NoCredentialIdExtractor {
         private final SupplierWithCaching supplier;
 
-        public WithCredentialIdExtractor( RequestInfo info, AuthorizationCredentialIdExtractor credentialIdExtractor ) {
-            super( info );
+        public WithCredentialIdExtractor(RequestInfo info, AuthorizationCredentialIdExtractor credentialIdExtractor) {
+            super(info);
             supplier = new SupplierWithCaching(
-                    () -> stripToNull( credentialIdExtractor.mapAuthorizationToCredentialsID( info ) ) );
+                    () -> stripToNull(credentialIdExtractor.mapAuthorizationToCredentialsID(info)) );
         }
 
         @Override

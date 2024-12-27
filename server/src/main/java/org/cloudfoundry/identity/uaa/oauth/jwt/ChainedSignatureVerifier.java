@@ -25,7 +25,7 @@ public class ChainedSignatureVerifier implements Verifier {
     private final List<SignatureVerifier> delegates;
 
     public ChainedSignatureVerifier(JsonWebKeySet<? extends JsonWebKey> keys) {
-        if(keys == null || keys.getKeys() == null || keys.getKeys().isEmpty()) {
+        if (keys == null || keys.getKeys() == null || keys.getKeys().isEmpty()) {
             throw new IllegalArgumentException("keys cannot be null or empty");
         }
         List<SignatureVerifier> ds = new ArrayList<>(keys.getKeys().size());

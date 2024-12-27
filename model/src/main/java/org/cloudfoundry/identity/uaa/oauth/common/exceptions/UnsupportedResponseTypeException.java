@@ -11,12 +11,12 @@ package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 @SuppressWarnings("serial")
 public class UnsupportedResponseTypeException extends OAuth2Exception {
 
-  public UnsupportedResponseTypeException(String msg) {
-    super(msg);
-  }
+    public UnsupportedResponseTypeException(String msg) {
+        super(msg);
+    }
 
-  @Override
-  public String getOAuth2ErrorCode() {
-    return UNSUPPORTED_RESPONSE_TYPE;
-  }
+    @Override
+    public String getOAuth2ErrorCode() {
+        return UNSUPPORTED_RESPONSE_TYPE;
+    }
 }

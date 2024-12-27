@@ -24,46 +24,46 @@ import java.util.List;
  */
 public class CompositeTokenGranter implements TokenGranter {
 
-	private final List<TokenGranter> tokenGranters;
+    private final List<TokenGranter> tokenGranters;
 
-	public CompositeTokenGranter(
-			final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
-			final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
-			final @Qualifier("jdbcClientDetailsService") ClientDetailsService clientDetailsService,
-			final @Qualifier("authorizationCodeServices") AuthorizationCodeServices authorizationCodeServices,
-			final @Qualifier("tokenServices") AuthorizationServerTokenServices tokenServices
-	) {
-		this.tokenGranters = new ArrayList<>();
-		this.tokenGranters.add(new AuthorizationCodeTokenGranter(tokenServices, authorizationCodeServices, clientDetailsService,
-				oAuth2RequestFactory));
-		this.tokenGranters.add(new RefreshTokenGranter(tokenServices, clientDetailsService, oAuth2RequestFactory));
-		this.tokenGranters.add(new ImplicitTokenGranter(tokenServices, clientDetailsService, oAuth2RequestFactory));
-		this.tokenGranters.add(new ClientCredentialsTokenGranter(tokenServices, clientDetailsService, oAuth2RequestFactory));
-		if (authenticationManager != null) {
-			this.tokenGranters.add(new ResourceOwnerPasswordTokenGranter(authenticationManager, tokenServices,
-					clientDetailsService, oAuth2RequestFactory));
-		}
-	}
+    public CompositeTokenGranter(
+            final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
+            final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
+            final @Qualifier("jdbcClientDetailsService") ClientDetailsService clientDetailsService,
+            final @Qualifier("authorizationCodeServices") AuthorizationCodeServices authorizationCodeServices,
+            final @Qualifier("tokenServices") AuthorizationServerTokenServices tokenServices
+    ) {
+        this.tokenGranters = new ArrayList<>();
+        this.tokenGranters.add(new AuthorizationCodeTokenGranter(tokenServices, authorizationCodeServices, clientDetailsService,
+                oAuth2RequestFactory));
+        this.tokenGranters.add(new RefreshTokenGranter(tokenServices, clientDetailsService, oAuth2RequestFactory));
+        this.tokenGranters.add(new ImplicitTokenGranter(tokenServices, clientDetailsService, oAuth2RequestFactory));
+        this.tokenGranters.add(new ClientCredentialsTokenGranter(tokenServices, clientDetailsService, oAuth2RequestFactory));
+        if (authenticationManager != null) {
+            this.tokenGranters.add(new ResourceOwnerPasswordTokenGranter(authenticationManager, tokenServices,
+                    clientDetailsService, oAuth2RequestFactory));
+        }
+    }
 
-	public CompositeTokenGranter(List<TokenGranter> tokenGranters) {
-		this.tokenGranters = tokenGranters != null ? new ArrayList<>(tokenGranters) : new ArrayList<>();
-	}
-	
-	public OAuth2AccessToken grant(String grantType, TokenRequest tokenRequest) {
-		for (TokenGranter granter : tokenGranters) {
-			OAuth2AccessToken grant = granter.grant(grantType, tokenRequest);
-			if (grant!=null) {
-				return grant;
-			}
-		}
-		return null;
-	}
-	
-	public void addTokenGranter(TokenGranter tokenGranter) {
-		if (tokenGranter == null) {
-			throw new IllegalArgumentException("Token granter is null");
-		}
-		tokenGranters.add(tokenGranter);
-	}
+    public CompositeTokenGranter(List<TokenGranter> tokenGranters) {
+        this.tokenGranters = tokenGranters != null ? new ArrayList<>(tokenGranters) : new ArrayList<>();
+    }
+
+    public OAuth2AccessToken grant(String grantType, TokenRequest tokenRequest) {
+        for (TokenGranter granter : tokenGranters) {
+            OAuth2AccessToken grant = granter.grant(grantType, tokenRequest);
+            if (grant != null) {
+                return grant;
+            }
+        }
+        return null;
+    }
+
+    public void addTokenGranter(TokenGranter tokenGranter) {
+        if (tokenGranter == null) {
+            throw new IllegalArgumentException("Token granter is null");
+        }
+        tokenGranters.add(tokenGranter);
+    }
 
 }

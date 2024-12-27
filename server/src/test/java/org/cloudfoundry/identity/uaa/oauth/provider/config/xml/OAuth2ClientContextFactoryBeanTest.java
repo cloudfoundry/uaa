@@ -14,31 +14,31 @@ import static org.junit.Assert.*;
  */
 public class OAuth2ClientContextFactoryBeanTest {
 
-  private OAuth2ClientContextFactoryBean factoryBean;
+    private OAuth2ClientContextFactoryBean factoryBean;
 
-  @Before
-  public void setUp() throws Exception {
-    factoryBean = new OAuth2ClientContextFactoryBean();
-  }
+    @Before
+    public void setUp() throws Exception {
+        factoryBean = new OAuth2ClientContextFactoryBean();
+    }
 
-  @Test
-  public void getObject() throws Exception {
-    OAuth2ClientContext scopedContext = new DefaultOAuth2ClientContext();
-    OAuth2ClientContext bareContext = new DefaultOAuth2ClientContext();
-    factoryBean.setBareContext(bareContext);
-    factoryBean.setScopedContext(scopedContext);
-    assertEquals(scopedContext, factoryBean.getObject());
-    factoryBean.setResource(new ClientCredentialsResourceDetails());
-    assertEquals(bareContext, factoryBean.getObject());
-  }
+    @Test
+    public void getObject() throws Exception {
+        OAuth2ClientContext scopedContext = new DefaultOAuth2ClientContext();
+        OAuth2ClientContext bareContext = new DefaultOAuth2ClientContext();
+        factoryBean.setBareContext(bareContext);
+        factoryBean.setScopedContext(scopedContext);
+        assertEquals(scopedContext, factoryBean.getObject());
+        factoryBean.setResource(new ClientCredentialsResourceDetails());
+        assertEquals(bareContext, factoryBean.getObject());
+    }
 
-  @Test
-  public void getObjectType() {
-    assertEquals(OAuth2ClientContext.class, factoryBean.getObjectType());
-  }
+    @Test
+    public void getObjectType() {
+        assertEquals(OAuth2ClientContext.class, factoryBean.getObjectType());
+    }
 
-  @Test
-  public void isSingleton() {
-    assertTrue(factoryBean.isSingleton());
-  }
+    @Test
+    public void isSingleton() {
+        assertTrue(factoryBean.isSingleton());
+    }
 }

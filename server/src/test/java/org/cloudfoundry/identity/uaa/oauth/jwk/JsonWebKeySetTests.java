@@ -30,92 +30,100 @@ import static org.junit.Assert.assertThrows;
 
 public class JsonWebKeySetTests {
 
-    public static final String singleKeyJson = "{\n" +
-        "    \"alg\": \"RS256\",\n" +
-        "    \"e\": \"AQAB\",\n" +
-        "    \"kid\": \"legacy\",\n" +
-        "    \"kty\": \"RSA\",\n" +
-        "    \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
-        "    \"use\": \"sig\",\n" +
-        "    \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
-        "}";
+    public static final String singleKeyJson = """
+            {
+                "alg": "RS256",
+                "e": "AQAB",
+                "kid": "legacy",
+                "kty": "RSA",
+                "n": "AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P",
+                "use": "sig",
+                "value": "-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----"
+            }\
+            """;
 
-    public static final String unknownKeyJson = "{\n" +
-        "    \"alg\": \"RS256\",\n" +
-        "    \"e\": \"AQAB\",\n" +
-        "    \"kid\": \"legacy\",\n" +
-        "    \"kty\": \"GARBAGE\",\n" +
-        "    \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
-        "    \"use\": \"sig\",\n" +
-        "    \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
-        "}";
+    public static final String unknownKeyJson = """
+            {
+                "alg": "RS256",
+                "e": "AQAB",
+                "kid": "legacy",
+                "kty": "GARBAGE",
+                "n": "AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P",
+                "use": "sig",
+                "value": "-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----"
+            }\
+            """;
 
-    public static final String multiKeyJson = "{\n" +
-        "    \"keys\": [\n" +
-        "        {\n" +
-        "            \"alg\": \"RS256\",\n" +
-        "            \"e\": \"AQAB\",\n" +
-        "            \"kid\": \"legacy\",\n" +
-        "            \"kty\": \"RSA\",\n" +
-        "            \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
-        "            \"use\": \"sig\",\n" +
-        "            \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
-        "        },\n" +
-        "        {\n" +
-        "            \"alg\": \"RS256\",\n" +
-        "            \"e\": \"AQAB\",\n" +
-        "            \"kid\": \"legacy\",\n" +
-        "            \"kty\": \"RSA\",\n" +
-        "            \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
-        "            \"use\": \"sig\",\n" +
-        "            \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
-        "        },\n" +
-        "        {\n" +
-        "            \"alg\": \"HMACSHA256\",\n" +
-        "            \"k\": \"test-mac-key\",\n" +
-        "            \"kid\": \"mac-id\",\n" +
-        "            \"kty\": \"MAC\",\n" +
-        "            \"key_ops\": [\"sign\",\"verify\"]\n" +
-        "        },\n" +
-        "        {\n" +
-        "            \"alg\": \"HS256\",\n" +
-        "            \"k\": \"test-oct-key\",\n" +
-        "            \"kid\": \"oct-id\",\n" +
-        "            \"kty\": \"oct\",\n" +
-        "            \"key_ops\": [\"verify\"]\n" +
-        "        }\n" +
-        "    ]\n" +
-        "}";
+    public static final String multiKeyJson = """
+            {
+                "keys": [
+                    {
+                        "alg": "RS256",
+                        "e": "AQAB",
+                        "kid": "legacy",
+                        "kty": "RSA",
+                        "n": "AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P",
+                        "use": "sig",
+                        "value": "-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----"
+                    },
+                    {
+                        "alg": "RS256",
+                        "e": "AQAB",
+                        "kid": "legacy",
+                        "kty": "RSA",
+                        "n": "AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P",
+                        "use": "sig",
+                        "value": "-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----"
+                    },
+                    {
+                        "alg": "HMACSHA256",
+                        "k": "test-mac-key",
+                        "kid": "mac-id",
+                        "kty": "MAC",
+                        "key_ops": ["sign","verify"]
+                    },
+                    {
+                        "alg": "HS256",
+                        "k": "test-oct-key",
+                        "kid": "oct-id",
+                        "kty": "oct",
+                        "key_ops": ["verify"]
+                    }
+                ]
+            }\
+            """;
 
-    public static final String someUnknownKeysJson = "{\n" +
-        "    \"keys\": [\n" +
-        "        {\n" +
-        "            \"alg\": \"RS256\",\n" +
-        "            \"e\": \"AQAB\",\n" +
-        "            \"kid\": \"legacy\",\n" +
-        "            \"kty\": \"RSA\",\n" +
-        "            \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
-        "            \"use\": \"sig\",\n" +
-        "            \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
-        "        },\n" +
-        "        {\n" +
-        "            \"alg\": \"RS256\",\n" +
-        "            \"e\": \"AQAB\",\n" +
-        "            \"kid\": \"legacy\",\n" +
-        "            \"kty\": \"UNKNOWN1\",\n" +
-        "            \"n\": \"AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P\",\n" +
-        "            \"use\": \"sig\",\n" +
-        "            \"value\": \"-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----\"\n" +
-        "        },\n" +
-        "        {\n" +
-        "            \"alg\": \"HMACSHA256\",\n" +
-        "            \"k\": \"test-mac-key\",\n" +
-        "            \"kid\": \"mac-id\",\n" +
-        "            \"kty\": \"UNKNOWN2\",\n" +
-        "            \"key_ops\": [\"sign\",\"verify\"]\n" +
-        "        }\n" +
-        "    ]\n" +
-        "}";
+    public static final String someUnknownKeysJson = """
+            {
+                "keys": [
+                    {
+                        "alg": "RS256",
+                        "e": "AQAB",
+                        "kid": "legacy",
+                        "kty": "RSA",
+                        "n": "AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P",
+                        "use": "sig",
+                        "value": "-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----"
+                    },
+                    {
+                        "alg": "RS256",
+                        "e": "AQAB",
+                        "kid": "legacy",
+                        "kty": "UNKNOWN1",
+                        "n": "AMcWv4ogKaz625PU5cnCEJSZHZ0pXLumxrzHMSVLLOrHugnJ8nUlnI7NOiP1PlJ9Mirf3pqBsclZV9imE1qG9n_u4xeofF_5kf0EvWCT1jqQKdszlHrSB_CPJbX91A-M7Of03f3jN3YUmgUfB2r1CzTAG6CylQtlU1HGru96r9_P",
+                        "use": "sig",
+                        "value": "-----BEGIN PUBLIC KEY-----\\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\\nspULZVNRxq7veq/fzwIDAQAB\\n-----END PUBLIC KEY-----"
+                    },
+                    {
+                        "alg": "HMACSHA256",
+                        "k": "test-mac-key",
+                        "kid": "mac-id",
+                        "kty": "UNKNOWN2",
+                        "key_ops": ["sign","verify"]
+                    }
+                ]
+            }\
+            """;
 
 
     @Test
@@ -126,13 +134,13 @@ public class JsonWebKeySetTests {
         assertEquals("HMACSHA256", key.getAlgorithm());
 
         assertEquals(
-            "test-mac-key",
-            key.getValue()
+                "test-mac-key",
+                key.getValue()
         );
 
         assertEquals(
-            "test-mac-key",
-            key.getKeyProperties().get("k")
+                "test-mac-key",
+                key.getKeyProperties().get("k")
         );
 
         assertNull(key.getUse());
@@ -147,13 +155,13 @@ public class JsonWebKeySetTests {
         assertEquals("HS256", key.getAlgorithm());
 
         assertEquals(
-            "test-oct-key",
-            key.getValue()
+                "test-oct-key",
+                key.getValue()
         );
 
         assertEquals(
-            "test-oct-key",
-            key.getKeyProperties().get("k")
+                "test-oct-key",
+                key.getKeyProperties().get("k")
         );
 
         assertNull(key.getUse());
@@ -172,8 +180,8 @@ public class JsonWebKeySetTests {
         JsonWebKey key = keys.getKeys().get(0);
         assertEquals("RS256", key.getAlgorithm());
         assertEquals(
-            "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\nspULZVNRxq7veq/fzwIDAQAB\n-----END PUBLIC KEY-----",
-            key.getValue()
+                "-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\nspULZVNRxq7veq/fzwIDAQAB\n-----END PUBLIC KEY-----",
+                key.getValue()
         );
         assertEquals(sig, key.getUse());
         return keys;

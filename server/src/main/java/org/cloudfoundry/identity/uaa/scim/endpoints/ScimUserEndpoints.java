@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.jayway.jsonpath.JsonPathException;
+import lombok.Getter;
 import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.alias.AliasPropertiesInvalidException;
@@ -95,13 +96,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
+import static org.springframework.util.StringUtils.hasLength;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
-
-import lombok.Getter;
 
 /**
  * User provisioning and query endpoints. Implements the core API from the
@@ -172,7 +170,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     ) {
         if (userMaxCount <= 0) {
             throw new IllegalArgumentException(
-                    String.format("Invalid \"userMaxCount\" value (got %d). Should be positive number.", userMaxCount)
+                    "Invalid \"userMaxCount\" value (got %d). Should be positive number.".formatted(userMaxCount)
             );
         }
 
@@ -188,7 +186,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         this.aliasEntitiesEnabled = aliasEntitiesEnabled;
         this.userMaxCount = userMaxCount;
         this.membershipManager = membershipManager;
-        this.messageConverters = new HttpMessageConverter[] {
+        this.messageConverters = new HttpMessageConverter[]{
                 new ExceptionReportHttpMessageConverter()
         };
         this.scimUserService = scimUserService;
@@ -232,7 +230,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     @ResponseBody
     public ScimUser createUser(@RequestBody ScimUser user, HttpServletRequest request, HttpServletResponse response) {
         //default to UAA origin
-        if (isEmpty(user.getOrigin())) {
+        if (!hasLength(user.getOrigin())) {
             user.setOrigin(OriginKeys.UAA);
         }
 
@@ -244,10 +242,10 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         } else {
             //only validate for UAA users
             List<IdentityProvider> idpsForEmailDomain = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveActive(identityZoneManager.getCurrentIdentityZoneId()), user.getEmails().get(0).getValue());
-            idpsForEmailDomain = idpsForEmailDomain.stream().filter(idp -> !idp.getOriginKey().equals(OriginKeys.UAA)).collect(Collectors.toList());
+            idpsForEmailDomain = idpsForEmailDomain.stream().filter(idp -> !idp.getOriginKey().equals(OriginKeys.UAA)).toList();
             if (!idpsForEmailDomain.isEmpty()) {
-                List<String> idpOrigins = idpsForEmailDomain.stream().map(IdentityProvider::getOriginKey).collect(Collectors.toList());
-                throw new ScimException(String.format("The user account is set up for single sign-on. Please use one of these origin(s) : %s", idpOrigins.toString()), HttpStatus.BAD_REQUEST);
+                List<String> idpOrigins = idpsForEmailDomain.stream().map(IdentityProvider::getOriginKey).toList();
+                throw new ScimException("The user account is set up for single sign-on. Please use one of these origin(s) : %s".formatted(idpOrigins.toString()), HttpStatus.BAD_REQUEST);
             }
             passwordValidator.validate(user.getPassword());
         }
@@ -316,7 +314,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         throwWhenUserManagementIsDisallowed(user.getOrigin(), request);
         throwWhenInvalidSelfEdit(user, userId, request, authentication);
 
-        if (etag.equals("NaN")) {
+        if ("NaN".equals(etag)) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
         int version = getVersion(userId, etag);
@@ -349,7 +347,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                               HttpServletResponse response,
                               OAuth2Authentication authentication) {
 
-        if (etag.equals("NaN")) {
+        if ("NaN".equals(etag)) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
 
@@ -437,8 +435,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
                                                                         @RequestParam(value = "redirect_uri") String redirectUri) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication instanceof OAuth2Authentication) {
-            OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
+        if (authentication instanceof OAuth2Authentication oAuth2Authentication) {
 
             if (clientId == null) {
                 clientId = oAuth2Authentication.getOAuth2Request().getClientId();
@@ -478,7 +475,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         while (value.endsWith("\"")) {
             value = value.substring(0, value.length() - 1);
         }
-        if (value.equals("*")) {
+        if ("*".equals(value)) {
             return scimUserProvisioning.retrieve(userId, identityZoneManager.getCurrentIdentityZoneId()).getVersion();
         }
         try {
@@ -511,7 +508,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         List<ScimUser> result;
         Set<String> attributes = StringUtils.commaDelimitedListToSet(attributesCommaSeparated);
         try {
-            result = scimUserProvisioning.query(filter, sortBy, sortOrder.equals("ascending"), identityZoneManager.getCurrentIdentityZoneId());
+            result = scimUserProvisioning.query(filter, sortBy, "ascending".equals(sortOrder), identityZoneManager.getCurrentIdentityZoneId());
             for (ScimUser user : UaaPagingUtils.subList(result, startIndex, count)) {
                 if (attributes.isEmpty() || attributes.stream().anyMatch("groups"::equalsIgnoreCase)) {
                     syncGroups(user);
@@ -620,7 +617,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @ExceptionHandler(UaaException.class)
     public ResponseEntity<UaaException> handleException(UaaException e) {
-        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        logger.info("Handling error: {}, {}", e.getClass().getSimpleName(), e.getMessage());
         if (e instanceof InternalUserManagementDisabledException) {
             throw e;
         }
@@ -629,11 +626,11 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException, InternalUserManagementDisabledException {
-        logger.error("Unhandled exception in SCIM user endpoints. " + t.getMessage());
+        logger.error("Unhandled exception in SCIM user endpoints. {}", t.getMessage());
 
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
-        if (t instanceof ScimException) {
-            e = (ScimException) t;
+        if (t instanceof ScimException exception) {
+            e = exception;
         } else {
             Class<?> clazz = t.getClass();
             for (Class<?> key : statuses.keySet()) {
@@ -646,7 +643,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         incrementErrorCounts(e);
         // User can supply trace=true or just trace (unspecified) to get stack
         // traces
-        boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
+        boolean trace = request.getParameter("trace") != null && !"false".equals(request.getParameter("trace"));
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e, trace, e.getExtraInfo()),
                 e.getStatus()), messageConverters);
     }
@@ -693,9 +690,8 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     private void throwWhenUserManagementIsDisallowed(String origin, HttpServletRequest request) {
         Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
-        if (attr instanceof Boolean) {
-            boolean isUserManagementDisabled = (boolean) attr;
-            if (isUserManagementDisabled && (OriginKeys.UAA.equals(origin) || isEmpty(origin))) {
+        if (attr instanceof Boolean isUserManagementDisabled) {
+            if (isUserManagementDisabled && (OriginKeys.UAA.equals(origin) || !hasLength(origin))) {
                 throw new InternalUserManagementDisabledException(DisableUserManagementSecurityFilter.INTERNAL_USER_CREATION_IS_CURRENTLY_DISABLED);
             }
         }

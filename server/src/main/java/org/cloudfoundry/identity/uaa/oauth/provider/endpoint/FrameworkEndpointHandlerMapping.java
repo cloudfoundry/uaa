@@ -29,142 +29,141 @@ import java.util.Set;
  */
 public class FrameworkEndpointHandlerMapping extends RequestMappingHandlerMapping {
 
-	private static final String REDIRECT = UrlBasedViewResolver.REDIRECT_URL_PREFIX;
+    private static final String REDIRECT = UrlBasedViewResolver.REDIRECT_URL_PREFIX;
 
-	private static final String FORWARD = UrlBasedViewResolver.FORWARD_URL_PREFIX;
+    private static final String FORWARD = UrlBasedViewResolver.FORWARD_URL_PREFIX;
 
-	private Map<String, String> mappings = new HashMap<>();
+    private Map<String, String> mappings = new HashMap<>();
 
-	private String approvalParameter = OAuth2Utils.USER_OAUTH_APPROVAL;
+    private String approvalParameter = OAuth2Utils.USER_OAUTH_APPROVAL;
 
-	private Set<String> paths = new HashSet<>();
+    private final Set<String> paths = new HashSet<>();
 
-	private String prefix;
+    private String prefix;
 
-	/**
-	 * @param prefix the prefix to set
-	 */
-	public void setPrefix(String prefix) {
-		if (!StringUtils.hasText(prefix)) {
-			prefix = "";
-		}
-		else
-			while (prefix.endsWith("/")) {
-				prefix = prefix.substring(0, prefix.lastIndexOf("/"));
-			}
-		this.prefix = prefix;
-	}
-
-	/**
-	 * Custom mappings for framework endpoint paths. The keys in the map are the default framework endpoint path, e.g.
-	 * "/oauth/authorize", and the values are the desired runtime paths.
-	 * 
-	 * @param patternMap the mappings to set
-	 */
-	public void setMappings(Map<String, String> patternMap) {
-		this.mappings = new HashMap<>(patternMap);
-    for (Iterator<String> iterator = mappings.keySet().iterator(); iterator.hasNext(); ) {
-      String key = iterator.next();
-      String result = mappings.get(key);
-      if (result.startsWith(FORWARD)) {
-        result = result.substring(FORWARD.length());
-      }
-      if (result.startsWith(REDIRECT)) {
-        result = result.substring(REDIRECT.length());
-      }
-      mappings.put(key, result);
+    /**
+     * @param prefix the prefix to set
+     */
+    public void setPrefix(String prefix) {
+        if (!StringUtils.hasText(prefix)) {
+            prefix = "";
+        } else {
+            while (prefix.endsWith("/")) {
+                prefix = prefix.substring(0, prefix.lastIndexOf("/"));
+            }
+        }
+        this.prefix = prefix;
     }
-	}
 
-	/**
-	 * @return the mapping from default endpoint paths to custom ones (or the default if no customization is known)
-	 */
-	public String getServletPath(String defaultPath) {
-		return (prefix == null ? "" : prefix) + getPath(defaultPath);
-	}
+    /**
+     * Custom mappings for framework endpoint paths. The keys in the map are the default framework endpoint path, e.g.
+     * "/oauth/authorize", and the values are the desired runtime paths.
+     * 
+     * @param patternMap the mappings to set
+     */
+    public void setMappings(Map<String, String> patternMap) {
+        this.mappings = new HashMap<>(patternMap);
+        for (Iterator<String> iterator = mappings.keySet().iterator(); iterator.hasNext(); ) {
+            String key = iterator.next();
+            String result = mappings.get(key);
+            if (result.startsWith(FORWARD)) {
+                result = result.substring(FORWARD.length());
+            }
+            if (result.startsWith(REDIRECT)) {
+                result = result.substring(REDIRECT.length());
+            }
+            mappings.put(key, result);
+        }
+    }
 
-	/**
-	 * @return the mapping from default endpoint paths to custom ones (or the default if no customization is known)
-	 */
-	public String getPath(String defaultPath) {
-		String result = defaultPath;
-		if (mappings.containsKey(defaultPath)) {
-			result = mappings.get(defaultPath);
-		}
-		return result;
-	}
+    /**
+     * @return the mapping from default endpoint paths to custom ones (or the default if no customization is known)
+     */
+    public String getServletPath(String defaultPath) {
+        return (prefix == null ? "" : prefix) + getPath(defaultPath);
+    }
 
-	public Set<String> getPaths() {
-		return paths;
-	}
+    /**
+     * @return the mapping from default endpoint paths to custom ones (or the default if no customization is known)
+     */
+    public String getPath(String defaultPath) {
+        String result = defaultPath;
+        if (mappings.containsKey(defaultPath)) {
+            result = mappings.get(defaultPath);
+        }
+        return result;
+    }
 
-	/**
-	 * The name of the request parameter that distinguishes a call to approve an authorization. Default is
-	 * {@link OAuth2Utils#USER_OAUTH_APPROVAL}.
-	 * 
-	 * @param approvalParameter the approvalParameter to set
-	 */
-	public void setApprovalParameter(String approvalParameter) {
-		this.approvalParameter = approvalParameter;
-	}
+    public Set<String> getPaths() {
+        return paths;
+    }
 
-	public FrameworkEndpointHandlerMapping() {
-		// Make sure user-supplied mappings take precedence by default (except the resource mapping)
-		setOrder(Ordered.LOWEST_PRECEDENCE - 2);
-	}
+    /**
+     * The name of the request parameter that distinguishes a call to approve an authorization. Default is
+     * {@link OAuth2Utils#USER_OAUTH_APPROVAL}.
+     * 
+     * @param approvalParameter the approvalParameter to set
+     */
+    public void setApprovalParameter(String approvalParameter) {
+        this.approvalParameter = approvalParameter;
+    }
 
-	/**
-	 * Detects &#64;FrameworkEndpoint annotations in handler beans.
-	 * 
-	 * @see RequestMappingHandlerMapping#isHandler(Class)
-	 */
-	@Override
-	protected boolean isHandler(Class<?> beanType) {
-		return AnnotationUtils.findAnnotation(beanType, FrameworkEndpoint.class) != null;
-	}
+    public FrameworkEndpointHandlerMapping() {
+        // Make sure user-supplied mappings take precedence by default (except the resource mapping)
+        setOrder(Ordered.LOWEST_PRECEDENCE - 2);
+    }
 
-	@Override
-	protected RequestMappingInfo getMappingForMethod(Method method, Class<?> handlerType) {
+    /**
+     * Detects &#64;FrameworkEndpoint annotations in handler beans.
+     * 
+     * @see RequestMappingHandlerMapping#isHandler(Class)
+     */
+    @Override
+    protected boolean isHandler(Class<?> beanType) {
+        return AnnotationUtils.findAnnotation(beanType, FrameworkEndpoint.class) != null;
+    }
 
-		RequestMappingInfo defaultMapping = super.getMappingForMethod(method, handlerType);
-		if (defaultMapping == null) {
-			return null;
-		}
+    @Override
+    protected RequestMappingInfo getMappingForMethod(Method method, Class<?> handlerType) {
 
-		Set<String> defaultPatterns = Optional.ofNullable(defaultMapping.getPatternsCondition()).map(PatternsRequestCondition::getPatterns).orElse(Set.of());
-		String[] patterns = new String[defaultPatterns.size()];
+        RequestMappingInfo defaultMapping = super.getMappingForMethod(method, handlerType);
+        if (defaultMapping == null) {
+            return null;
+        }
 
-		int i = 0;
-		for (String pattern : defaultPatterns) {
-			patterns[i] = getPath(pattern);
-			paths.add(pattern);
-			i++;
-		}
-		PatternsRequestCondition patternsInfo = new PatternsRequestCondition(patterns, getUrlPathHelper(),
-				getPathMatcher(), useSuffixPatternMatch(), useTrailingSlashMatch(), getFileExtensions());
+        Set<String> defaultPatterns = Optional.ofNullable(defaultMapping.getPatternsCondition()).map(PatternsRequestCondition::getPatterns).orElse(Set.of());
+        String[] patterns = new String[defaultPatterns.size()];
 
-		ParamsRequestCondition paramsInfo = defaultMapping.getParamsCondition();
-		if (!approvalParameter.equals(OAuth2Utils.USER_OAUTH_APPROVAL) && defaultPatterns.contains("/oauth/authorize")) {
-			String[] params = new String[paramsInfo.getExpressions().size()];
-			Set<NameValueExpression<String>> expressions = paramsInfo.getExpressions();
-			i = 0;
-			for (NameValueExpression<String> expression : expressions) {
-				String param = expression.toString();
-				if (OAuth2Utils.USER_OAUTH_APPROVAL.equals(param)) {
-					params[i] = approvalParameter;
-				}
-				else {
-					params[i] = param;
-				}
-				i++;
-			}
-			paramsInfo = new ParamsRequestCondition(params);
-		}
+        int i = 0;
+        for (String pattern : defaultPatterns) {
+            patterns[i] = getPath(pattern);
+            paths.add(pattern);
+            i++;
+        }
+        PatternsRequestCondition patternsInfo = new PatternsRequestCondition(patterns, getUrlPathHelper(),
+                getPathMatcher(), useSuffixPatternMatch(), useTrailingSlashMatch(), getFileExtensions());
 
-		return new RequestMappingInfo(patternsInfo, defaultMapping.getMethodsCondition(),
-				paramsInfo, defaultMapping.getHeadersCondition(), defaultMapping.getConsumesCondition(),
-				defaultMapping.getProducesCondition(), defaultMapping.getCustomCondition());
+        ParamsRequestCondition paramsInfo = defaultMapping.getParamsCondition();
+        if (!approvalParameter.equals(OAuth2Utils.USER_OAUTH_APPROVAL) && defaultPatterns.contains("/oauth/authorize")) {
+            String[] params = new String[paramsInfo.getExpressions().size()];
+            Set<NameValueExpression<String>> expressions = paramsInfo.getExpressions();
+            i = 0;
+            for (NameValueExpression<String> expression : expressions) {
+                String param = expression.toString();
+                if (OAuth2Utils.USER_OAUTH_APPROVAL.equals(param)) {
+                    params[i] = approvalParameter;
+                } else {
+                    params[i] = param;
+                }
+                i++;
+            }
+            paramsInfo = new ParamsRequestCondition(params);
+        }
 
-	}
+        return new RequestMappingInfo(patternsInfo, defaultMapping.getMethodsCondition(),
+                paramsInfo, defaultMapping.getHeadersCondition(), defaultMapping.getConsumesCondition(),
+                defaultMapping.getProducesCondition(), defaultMapping.getCustomCondition());
+
+    }
 
 }

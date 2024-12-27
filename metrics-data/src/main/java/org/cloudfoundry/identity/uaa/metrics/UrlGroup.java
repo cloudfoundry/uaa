@@ -65,7 +65,7 @@ public class UrlGroup {
     }
 
     @JsonIgnore
-    public Map<String,Object> getMap() {
+    public Map<String, Object> getMap() {
         HashMap<String, Object> map = new HashMap<>();
         map.put("pattern", getPattern());
         map.put("group", getGroup());
@@ -74,11 +74,11 @@ public class UrlGroup {
         return map;
     }
 
-    public static UrlGroup from(Map<String,Object> map) {
+    public static UrlGroup from(Map<String, Object> map) {
         return new UrlGroup()
-            .setPattern((String) map.get("pattern"))
-            .setGroup((String) map.get("group"))
-            .setCategory((String) map.get("category"))
-            .setLimit(((Number) map.get("limit")).longValue());
+                .setPattern((String) map.get("pattern"))
+                .setGroup((String) map.get("group"))
+                .setCategory((String) map.get("category"))
+                .setLimit(((Number) map.get("limit")).longValue());
     }
 }

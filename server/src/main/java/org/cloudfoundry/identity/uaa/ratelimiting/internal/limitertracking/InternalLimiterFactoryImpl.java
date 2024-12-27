@@ -17,12 +17,12 @@ public class InternalLimiterFactoryImpl implements InternalLimiterFactory {
     private final String windowType;
 
     public boolean isGlobal() {
-        return WindowType.GLOBAL.windowType().equals( windowType );
+        return WindowType.GLOBAL.windowType().equals(windowType);
     }
 
     @Builder
-    public InternalLimiterFactoryImpl( RequestsPerWindowSecs requestsPerWindow,
-                                       String windowType, String name ) {
+    public InternalLimiterFactoryImpl(RequestsPerWindowSecs requestsPerWindow,
+            String windowType, String name) {
         this.requestsPerWindow = requestsPerWindow;
         this.windowType = windowType;
         this.name = name;
@@ -30,9 +30,9 @@ public class InternalLimiterFactoryImpl implements InternalLimiterFactory {
 
     @Override
     @Nonnull
-    public InternalLimiter newLimiter( CompoundKey compoundKey, @Nonnull Instant now ) {
+    public InternalLimiter newLimiter(CompoundKey compoundKey, @Nonnull Instant now) {
         return new InternalLimiter( compoundKey, getInitialRequestsRemaining(),
-                                    getWindowEndExclusive( now, getWindowSecs() ) );
+                getWindowEndExclusive(now, getWindowSecs()) );
     }
 
     // package friendly for testing
@@ -47,10 +47,10 @@ public class InternalLimiterFactoryImpl implements InternalLimiterFactory {
 
     public String toString() {
         return getName() + "(" + getWindowType() + (isGlobal() ? "" : ":keyed") + ")"
-               + " @ " + getRequestsPerWindow();
+                + " @ " + getRequestsPerWindow();
     }
 
-    private Instant getWindowEndExclusive( @Nonnull Instant now, int windowSecs ) {
-        return now.plusSeconds( windowSecs );
+    private Instant getWindowEndExclusive(@Nonnull Instant now, int windowSecs) {
+        return now.plusSeconds(windowSecs);
     }
 }

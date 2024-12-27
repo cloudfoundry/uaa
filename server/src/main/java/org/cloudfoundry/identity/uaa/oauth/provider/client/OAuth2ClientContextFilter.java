@@ -33,121 +33,121 @@ import java.util.Optional;
  */
 public class OAuth2ClientContextFilter implements Filter, InitializingBean {
 
-	/**
-	 * Key in request attributes for the current URI in case it is needed by
-	 * rest client code that needs to send a redirect URI to an authorization
-	 * server.
-	 */
-	public static final String CURRENT_URI = "currentUri";
+    /**
+     * Key in request attributes for the current URI in case it is needed by
+     * rest client code that needs to send a redirect URI to an authorization
+     * server.
+     */
+    public static final String CURRENT_URI = "currentUri";
 
-	private ThrowableAnalyzer throwableAnalyzer = new DefaultThrowableAnalyzer();
+    private ThrowableAnalyzer throwableAnalyzer = new DefaultThrowableAnalyzer();
 
-	private RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
+    private RedirectStrategy redirectStrategy = new DefaultRedirectStrategy();
 
-	public void afterPropertiesSet() throws Exception {
-		Assert.notNull(redirectStrategy,
-				"A redirect strategy must be supplied.");
-	}
+    public void afterPropertiesSet() throws Exception {
+        Assert.notNull(redirectStrategy,
+                "A redirect strategy must be supplied.");
+    }
 
-	public void doFilter(ServletRequest servletRequest,
-			ServletResponse servletResponse, FilterChain chain)
-			throws IOException, ServletException {
-		HttpServletRequest request = (HttpServletRequest) servletRequest;
-		HttpServletResponse response = (HttpServletResponse) servletResponse;
-		request.setAttribute(CURRENT_URI, calculateCurrentUri(request));
+    public void doFilter(ServletRequest servletRequest,
+            ServletResponse servletResponse, FilterChain chain)
+            throws IOException, ServletException {
+        HttpServletRequest request = (HttpServletRequest) servletRequest;
+        HttpServletResponse response = (HttpServletResponse) servletResponse;
+        request.setAttribute(CURRENT_URI, calculateCurrentUri(request));
 
-		try {
-			chain.doFilter(servletRequest, servletResponse);
-		} catch (IOException ex) {
-			throw ex;
-		} catch (Exception ex) {
-			// Try to extract a SpringSecurityException from the stacktrace
-			Throwable[] causeChain = throwableAnalyzer.determineCauseChain(ex);
-			UserRedirectRequiredException redirect = (UserRedirectRequiredException) throwableAnalyzer
-					.getFirstThrowableOfType(
-							UserRedirectRequiredException.class, causeChain);
-			if (redirect != null) {
-				redirectUser(redirect, request, response);
-			} else {
-				if (ex instanceof ServletException servletException) {
-					throw servletException;
-				}
-				if (ex instanceof RuntimeException runtimeException) {
-					throw runtimeException;
-				}
-				throw new NestedServletException("Unhandled exception", ex);
-			}
-		}
-	}
+        try {
+            chain.doFilter(servletRequest, servletResponse);
+        } catch (IOException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            // Try to extract a SpringSecurityException from the stacktrace
+            Throwable[] causeChain = throwableAnalyzer.determineCauseChain(ex);
+            UserRedirectRequiredException redirect = (UserRedirectRequiredException) throwableAnalyzer
+                    .getFirstThrowableOfType(
+                            UserRedirectRequiredException.class, causeChain);
+            if (redirect != null) {
+                redirectUser(redirect, request, response);
+            } else {
+                if (ex instanceof ServletException servletException) {
+                    throw servletException;
+                }
+                if (ex instanceof RuntimeException runtimeException) {
+                    throw runtimeException;
+                }
+                throw new NestedServletException("Unhandled exception", ex);
+            }
+        }
+    }
 
-	/**
-	 * Redirect the user according to the specified exception.
-	 * 
-	 * @param e
-	 *            The user redirect exception.
-	 * @param request
-	 *            The request.
-	 * @param response
-	 *            The response.
-	 */
-	protected void redirectUser(UserRedirectRequiredException e,
-			HttpServletRequest request, HttpServletResponse response)
-			throws IOException {
+    /**
+     * Redirect the user according to the specified exception.
+     * 
+     * @param e
+     *            The user redirect exception.
+     * @param request
+     *            The request.
+     * @param response
+     *            The response.
+     */
+    protected void redirectUser(UserRedirectRequiredException e,
+            HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
 
-		String redirectUri = e.getRedirectUri();
-		UriComponentsBuilder builder = UriComponentsBuilder
-				.fromHttpUrl(redirectUri);
-		Map<String, String> requestParams = e.getRequestParams();
-		for (Map.Entry<String, String> param : requestParams.entrySet()) {
-			builder.queryParam(param.getKey(), param.getValue());
-		}
+        String redirectUri = e.getRedirectUri();
+        UriComponentsBuilder builder = UriComponentsBuilder
+                .fromHttpUrl(redirectUri);
+        Map<String, String> requestParams = e.getRequestParams();
+        for (Map.Entry<String, String> param : requestParams.entrySet()) {
+            builder.queryParam(param.getKey(), param.getValue());
+        }
 
-		if (e.getStateKey() != null) {
-			builder.queryParam("state", e.getStateKey());
-		}
+        if (e.getStateKey() != null) {
+            builder.queryParam("state", e.getStateKey());
+        }
 
-		this.redirectStrategy.sendRedirect(request, response, builder.build()
-				.encode().toUriString());
-	}
+        this.redirectStrategy.sendRedirect(request, response, builder.build()
+                .encode().toUriString());
+    }
 
-	/**
-	 * Calculate the current URI given the request.
-	 * 
-	 * @param request
-	 *            The request.
-	 * @return The current uri.
-	 */
-	protected String calculateCurrentUri(HttpServletRequest request) {
-		ServletUriComponentsBuilder builder = ServletUriComponentsBuilder
-				.fromRequest(request);
-		// Now work around SPR-10172...
-		String queryString = request.getQueryString();
-		boolean legalSpaces = queryString != null && queryString.contains("+");
-		if (legalSpaces) {
-			builder.replaceQuery(queryString.replace("+", "%20"));
-		}
-		UriComponents uri = null;
-		try {
-			uri = builder.replaceQueryParam("code").build(true);
-		} catch (IllegalArgumentException ex) {
-			// ignore failures to parse the url (including query string). does't
-			// make sense for redirection purposes anyway.
-			return null;
-		}
-		String query = Optional.ofNullable(uri.getQuery()).orElse("");
-		if (legalSpaces) {
-			query = query.replace("%20", "+");
-		}
-		return UriComponentsBuilder.fromUri(uri.toUri())
-				.replaceQuery(query).build().toString();
-	}
+    /**
+     * Calculate the current URI given the request.
+     * 
+     * @param request
+     *            The request.
+     * @return The current uri.
+     */
+    protected String calculateCurrentUri(HttpServletRequest request) {
+        ServletUriComponentsBuilder builder = ServletUriComponentsBuilder
+                .fromRequest(request);
+        // Now work around SPR-10172...
+        String queryString = request.getQueryString();
+        boolean legalSpaces = queryString != null && queryString.contains("+");
+        if (legalSpaces) {
+            builder.replaceQuery(queryString.replace("+", "%20"));
+        }
+        UriComponents uri = null;
+        try {
+            uri = builder.replaceQueryParam("code").build(true);
+        } catch (IllegalArgumentException ex) {
+            // ignore failures to parse the url (including query string). does't
+            // make sense for redirection purposes anyway.
+            return null;
+        }
+        String query = Optional.ofNullable(uri.getQuery()).orElse("");
+        if (legalSpaces) {
+            query = query.replace("%20", "+");
+        }
+        return UriComponentsBuilder.fromUri(uri.toUri())
+                .replaceQuery(query).build().toString();
+    }
 
-	public void setThrowableAnalyzer(ThrowableAnalyzer throwableAnalyzer) {
-		this.throwableAnalyzer = throwableAnalyzer;
-	}
+    public void setThrowableAnalyzer(ThrowableAnalyzer throwableAnalyzer) {
+        this.throwableAnalyzer = throwableAnalyzer;
+    }
 
-	public void setRedirectStrategy(RedirectStrategy redirectStrategy) {
-		this.redirectStrategy = redirectStrategy;
-	}
+    public void setRedirectStrategy(RedirectStrategy redirectStrategy) {
+        this.redirectStrategy = redirectStrategy;
+    }
 
 }

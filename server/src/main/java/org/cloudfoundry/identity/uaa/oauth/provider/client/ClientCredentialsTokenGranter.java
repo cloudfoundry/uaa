@@ -20,26 +20,26 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  */
 public class ClientCredentialsTokenGranter extends AbstractTokenGranter {
 
-	public ClientCredentialsTokenGranter(AuthorizationServerTokenServices tokenServices,
-			ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
-		this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_CLIENT_CREDENTIALS);
-	}
+    public ClientCredentialsTokenGranter(AuthorizationServerTokenServices tokenServices,
+            ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
+        this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_CLIENT_CREDENTIALS);
+    }
 
-	protected ClientCredentialsTokenGranter(AuthorizationServerTokenServices tokenServices,
-			ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory, String grantType) {
-		super(tokenServices, clientDetailsService, requestFactory, grantType);
-	}
+    protected ClientCredentialsTokenGranter(AuthorizationServerTokenServices tokenServices,
+            ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory, String grantType) {
+        super(tokenServices, clientDetailsService, requestFactory, grantType);
+    }
 
-	@Override
-	public OAuth2AccessToken grant(String grantType, TokenRequest tokenRequest) {
-		OAuth2AccessToken token = super.grant(grantType, tokenRequest);
-		if (token != null) {
-			DefaultOAuth2AccessToken norefresh = new DefaultOAuth2AccessToken(token);
-			// The spec says that client credentials should not be allowed to get a refresh token
-			norefresh.setRefreshToken(null);
-			token = norefresh;
-		}
-		return token;
-	}
+    @Override
+    public OAuth2AccessToken grant(String grantType, TokenRequest tokenRequest) {
+        OAuth2AccessToken token = super.grant(grantType, tokenRequest);
+        if (token != null) {
+            DefaultOAuth2AccessToken norefresh = new DefaultOAuth2AccessToken(token);
+            // The spec says that client credentials should not be allowed to get a refresh token
+            norefresh.setRefreshToken(null);
+            token = norefresh;
+        }
+        return token;
+    }
 
 }

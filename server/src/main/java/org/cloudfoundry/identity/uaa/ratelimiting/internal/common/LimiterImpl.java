@@ -12,29 +12,29 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.CompoundKey;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.Limiter;
 import org.cloudfoundry.identity.uaa.ratelimiting.core.LoggingOption;
 
-public class LimiterImpl implements Limiter {
+public final class LimiterImpl implements Limiter {
     private static final String NOT_LIMITED = "forward   "; // these three constant values should be the same length
-    private static final String LIMITED     = "--LIMIT-- ";
-    private static final String NOT_CALLED  = "noCheck   ";
+    private static final String LIMITED = "--LIMIT-- ";
+    private static final String NOT_CALLED = "noCheck   ";
 
     private final LoggingOption loggingOption;
     private final List<CompoundKey> orderedLimiterKeys;
     private final Boolean[] calledAndLimited;
     private final int[] remaining;
-    private int updateIndex = 0;
+    private int updateIndex;
     private boolean limiting;
     private int indexOfLimiting;
 
-    private LimiterImpl( LoggingOption loggingOption, List<InternalLimiter> limiters ) {
-        this.loggingOption = LoggingOption.deNull( loggingOption );
+    private LimiterImpl(LoggingOption loggingOption, List<InternalLimiter> limiters) {
+        this.loggingOption = LoggingOption.deNull(loggingOption);
         int count = limiters.size();
         // size the arrays and list from the (1-n) InternalLimiter.
         remaining = new int[count];
         calledAndLimited = new Boolean[count];
         orderedLimiterKeys = new ArrayList<>( count );
         // populate the <code>CompoundKeys</code> from the limiters
-        for ( InternalLimiter limiter : limiters ) {
-            orderedLimiterKeys.add( limiter.getCompoundKey() );
+        for (InternalLimiter limiter : limiters) {
+            orderedLimiterKeys.add(limiter.getCompoundKey());
         }
     }
 
@@ -46,33 +46,33 @@ public class LimiterImpl implements Limiter {
      * @param iLimiters     an appropriately ordered (non-empty) list of InternalLimiter(s) (no entries null)
      * @param loggingOption a non-Null enum that indicates the logging approach
      */
-    public static LimiterImpl from( @NotEmpty List<InternalLimiter> iLimiters, @NonNull LoggingOption loggingOption ) {
+    public static LimiterImpl from(@NotEmpty List<InternalLimiter> iLimiters, @NonNull LoggingOption loggingOption) {
         LimiterImpl limiter = new LimiterImpl( loggingOption, iLimiters );
         Iterator<InternalLimiter> it = iLimiters.iterator();
-        it.next().shouldLimit( it, limiter );
+        it.next().shouldLimit(it, limiter);
         return limiter;
     }
 
     @Override
     public String toString() {
-        StringBuilder sb = new StringBuilder().append( "Limiter: " );
-        if ( limiting ) {
+        StringBuilder sb = new StringBuilder().append("Limiter: ");
+        if (limiting) {
             sb.append(LIMITED);
         }
-        for ( int i = 0; i < orderedLimiterKeys.size(); i++ ) {
-            CompoundKey compoundKey = orderedLimiterKeys.get( i );
+        for (int i = 0; i < orderedLimiterKeys.size(); i++) {
+            CompoundKey compoundKey = orderedLimiterKeys.get(i);
             Boolean limited = calledAndLimited[i];
-            sb.append( '\n' );
-            if ( limited == null ) {
+            sb.append('\n');
+            if (limited == null) {
                 sb.append(NOT_CALLED);
-            } else if ( !limited ) {
-                sb.append( NOT_LIMITED );
+            } else if (!limited) {
+                sb.append(NOT_LIMITED);
             } else {
                 sb.append(LIMITED);
             }
-            sb.append( compoundKey );
-            if ( !limiting ) {
-                sb.append( " (" ).append( remaining[i] ).append( ')' );
+            sb.append(compoundKey);
+            if (!limiting) {
+                sb.append(" (").append(remaining[i]).append(')');
             }
         }
         return sb.toString();
@@ -84,14 +84,14 @@ public class LimiterImpl implements Limiter {
     }
 
     @Override
-    public void log( String requestPath, Consumer<String> logger, Instant startTime ) {
-        Instant endTime = (startTime == null) ? null : Instant.now();
-        loggingOption.log( requestPath, logger, startTime, this, endTime );
+    public void log(String requestPath, Consumer<String> logger, Instant startTime) {
+        Instant endTime = startTime == null ? null : Instant.now();
+        loggingOption.log(requestPath, logger, startTime, this, endTime);
     }
 
     @Override
     public CompoundKey getLimitingKey() {
-        return orderedLimiterKeys.get( indexOfLimiting );
+        return orderedLimiterKeys.get(indexOfLimiting);
     }
 
     // package friendly for testing
@@ -103,8 +103,8 @@ public class LimiterImpl implements Limiter {
      * @return the value of <code>limiting</code>
      */
     // package friendly so InternalLimiter can call it!
-    boolean recordLimiting( boolean limiting ) {
-        if ( limiting ) {
+    boolean recordLimiting(boolean limiting) {
+        if (limiting) {
             this.limiting = true;
             indexOfLimiting = updateIndex;
         }
@@ -118,7 +118,7 @@ public class LimiterImpl implements Limiter {
      * @param remaining request (after decrement)
      */
     // package friendly so InternalLimiter can call it!
-    void recordRemaining( int remaining ) {
+    void recordRemaining(int remaining) {
         this.remaining[--updateIndex] = remaining;
     }
 }

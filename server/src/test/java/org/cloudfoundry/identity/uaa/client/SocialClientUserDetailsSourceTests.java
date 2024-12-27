@@ -30,7 +30,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SocialClientUserDetailsSourceTests{
+public class SocialClientUserDetailsSourceTests {
 
     public static final String USER_ID = "user_id";
     public static final String EMAIL = "email";
@@ -49,7 +49,7 @@ public class SocialClientUserDetailsSourceTests{
 
     RestTemplate restTemplate;
     SocialClientUserDetailsSource source;
-    Map<String,String> map;
+    Map<String, String> map;
 
     @Before
     public void setUp() {
@@ -81,15 +81,15 @@ public class SocialClientUserDetailsSourceTests{
 
     @Test
     public void testGetPrincipalUsername() {
-        assertEquals(USERNAME, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
+        assertEquals(USERNAME, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
         map.remove(USERNAME);
         assertEquals(EMAIL, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
         source.setUserInfoUrl("twitter.com");
-        assertEquals(SCREEN_NAME, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
+        assertEquals(SCREEN_NAME, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
         source.setUserInfoUrl("github.com");
-        assertEquals(LOGIN, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
+        assertEquals(LOGIN, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
         source.setUserInfoUrl("run.pivotal.io");
-        assertEquals(USER_NAME, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
+        assertEquals(USER_NAME, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
         map.remove(USER_NAME);
         map.remove(EMAIL);
         assertEquals(ID, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
@@ -97,14 +97,14 @@ public class SocialClientUserDetailsSourceTests{
 
     @Test
     public void testGetPrincipalUserId() {
-        assertEquals(ID, ((SocialClientUserDetails)source.getPrincipal()).getExternalId());
+        assertEquals(ID, ((SocialClientUserDetails) source.getPrincipal()).getExternalId());
         source.setUserInfoUrl("run.pivotal.io");
-        assertEquals(USER_ID, ((SocialClientUserDetails)source.getPrincipal()).getExternalId());
+        assertEquals(USER_ID, ((SocialClientUserDetails) source.getPrincipal()).getExternalId());
     }
 
     @Test
     public void testGetPrincipalFullname() {
-        assertEquals(NAME, ((SocialClientUserDetails)source.getPrincipal()).getFullName());
+        assertEquals(NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
         map.remove(NAME);
         assertEquals(FORMATTED_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
         map.remove(FORMATTED_NAME);
@@ -117,9 +117,9 @@ public class SocialClientUserDetailsSourceTests{
         assertEquals(FIRST_NAME + " " + LAST_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
         map.remove(FIRST_NAME);
         map.remove(LAST_NAME);
-        assertNull(((SocialClientUserDetails)source.getPrincipal()).getFullName());
+        assertNull(((SocialClientUserDetails) source.getPrincipal()).getFullName());
         when(restTemplate.getForObject(anyString(), any())).thenReturn(null);
-        assertNull(((SocialClientUserDetails)source.getPrincipal()).getFullName());
+        assertNull(((SocialClientUserDetails) source.getPrincipal()).getFullName());
     }
 
     @Test

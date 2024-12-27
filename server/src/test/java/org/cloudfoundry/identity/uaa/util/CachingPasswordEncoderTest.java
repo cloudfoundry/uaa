@@ -1,11 +1,10 @@
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -60,19 +59,19 @@ class CachingPasswordEncoderTest {
     @Test
     void matchesButExpires() throws Exception {
         Duration shortTTL = Duration.ofSeconds(1);
-        ReflectionTestUtils.setField(cachingPasswordEncoder, "CACHE_TTL", shortTTL);
-        cachingPasswordEncoder.buildCache();
+        synchronized (CachingPasswordEncoder.class) {
+            CachingPasswordEncoder.DEFAULT_CACHE_TTL = shortTTL;
+            cachingPasswordEncoder = new CachingPasswordEncoder(passwordEncoder);
+            CachingPasswordEncoder.DEFAULT_CACHE_TTL = Duration.ofMinutes(5);
+        }
         String encoded = cachingPasswordEncoder.encode(password);
         String cacheKey = cachingPasswordEncoder.cacheEncode(password);
 
         assertTrue(passwordEncoder.matches(password, encoded));
         assertTrue(cachingPasswordEncoder.matches(password, encoded));
-
-        assertTrue(cachingPasswordEncoder.getOrCreateHashList(cacheKey).size() > 0,
-                "Password is no longer cached when we expected it to be cached");
+        assertFalse(cachingPasswordEncoder.getOrCreateHashList(cacheKey).isEmpty(), "Password is no longer cached when we expected it to be cached");
 
         Thread.sleep(shortTTL.toMillis() + 100);
-
         assertEquals(0, cachingPasswordEncoder.getOrCreateHashList(cacheKey).size(), "Password is still cached when we expected it to be expired");
     }
 
@@ -95,7 +94,7 @@ class CachingPasswordEncoderTest {
 
         int iterations = 10;
 
-        String password = new RandomValueStringGenerator().generate();
+        password = new RandomValueStringGenerator().generate();
         String encodedBCrypt = cachingPasswordEncoder.encode(password);
         PasswordEncoder nonCachingPasswordEncoder = passwordEncoder;
 
@@ -122,23 +121,22 @@ class CachingPasswordEncoderTest {
     }
 
     @Test
-    // TODO: This test takes a long time to run :(
+        // TODO: This test takes a long time to run :(
     void ensureNoMemoryLeak() {
         assertEquals(0, cachingPasswordEncoder.getNumberOfKeys());
         for (int i = 0; i < cachingPasswordEncoder.getMaxKeys(); i++) {
-            String password = new RandomValueStringGenerator().generate();
+            password = new RandomValueStringGenerator().generate();
             for (int j = 0; j < cachingPasswordEncoder.getMaxEncodedPasswords(); j++) {
                 String encoded = cachingPasswordEncoder.encode(password);
                 assertTrue(cachingPasswordEncoder.matches(password, encoded));
             }
         }
         assertEquals(cachingPasswordEncoder.getMaxKeys(), cachingPasswordEncoder.getNumberOfKeys());
-        String password = new RandomValueStringGenerator().generate();
+        password = new RandomValueStringGenerator().generate();
         String encoded = cachingPasswordEncoder.encode(password);
         assertTrue(cachingPasswordEncoder.matches(password, encoded));
         //overflow happened
         assertEquals(1, cachingPasswordEncoder.getNumberOfKeys());
-
 
         for (int j = 1; j < cachingPasswordEncoder.getMaxEncodedPasswords(); j++) {
             encoded = cachingPasswordEncoder.encode(password);

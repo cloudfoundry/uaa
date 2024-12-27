@@ -11,13 +11,13 @@ package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 @SuppressWarnings("serial")
 public class UserDeniedAuthorizationException extends OAuth2Exception {
 
-  public UserDeniedAuthorizationException(String msg) {
-    super(msg);
-  }
+    public UserDeniedAuthorizationException(String msg) {
+        super(msg);
+    }
 
-  @Override
-  public String getOAuth2ErrorCode() {
-    return ACCESS_DENIED;
-  }
+    @Override
+    public String getOAuth2ErrorCode() {
+        return ACCESS_DENIED;
+    }
 
 }

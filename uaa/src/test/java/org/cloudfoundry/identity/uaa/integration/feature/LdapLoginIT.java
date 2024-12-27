@@ -68,7 +68,7 @@ public class LdapLoginIT {
 
     @BeforeClass
     public static void startLocalLdap() {
-        server = InMemoryLdapServer.startLdap(33389);
+        server = InMemoryLdapServer.startLdap();
     }
 
     @AfterClass
@@ -100,14 +100,14 @@ public class LdapLoginIT {
         IntegrationTestUtils.deleteGroup(token, "", baseUrl, groupId);
 
         alertError.ifPresent(msg ->
-                System.err.println(String.format("Failed to log in with error: \"%s\"", msg))
+                System.err.println("Failed to log in with error: \"%s\"".formatted(msg))
         );
     }
 
     @Test
     public void ldapLogin_with_StartTLS() throws Exception {
         Long beforeTest = System.currentTimeMillis();
-        performLdapLogin("testzone2", server.getLdapBaseUrl(), "marissa4", "ldap4");
+        performLdapLogin("testzone2", server.getUrl(), "marissa4", "ldap4");
         Long afterTest = System.currentTimeMillis();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, "testzone2", "marissa4");
@@ -117,7 +117,7 @@ public class LdapLoginIT {
 
     @Test
     public void ldap_login_using_utf8_characters() throws Exception {
-        performLdapLogin("testzone2", server.getLdapBaseUrl(), "\u7433\u8D3A", "koala");
+        performLdapLogin("testzone2", server.getUrl(), "\u7433\u8D3A", "koala");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 
@@ -141,7 +141,7 @@ public class LdapLoginIT {
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() + "@ldaptesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        String groupName = String.format("zones.%s.admin", subdomain);
+        String groupName = "zones.%s.admin".formatted(subdomain);
         String groupId = IntegrationTestUtils.findGroupId(adminClient, baseUrl, groupName);
         IntegrationTestUtils.addMemberToGroup(adminClient, baseUrl, user.getId(), groupId);
 

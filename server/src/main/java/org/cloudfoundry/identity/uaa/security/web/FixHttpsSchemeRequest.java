@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -29,7 +30,7 @@ public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
         logger.debug("Request X-Forwarded-Proto " + super.getHeader("X-Forwarded-Proto"));
 
         if ("http".equals(scheme) &&
-                        "https".equals(super.getHeader("X-Forwarded-Proto"))) {
+                "https".equals(super.getHeader("X-Forwarded-Proto"))) {
             scheme = "https";
         }
         return scheme;
@@ -40,7 +41,7 @@ public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
         int port = super.getServerPort();
         String scheme = super.getScheme();
         if ("http".equals(scheme) &&
-                        "https".equals(super.getHeader("X-Forwarded-Proto"))) {
+                "https".equals(super.getHeader("X-Forwarded-Proto"))) {
             port = 443;
         }
         return port;
@@ -58,8 +59,8 @@ public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
         url.append(scheme);
         url.append("://");
         url.append(getServerName());
-        if ((scheme.equals("http") && (port != 80))
-                        || (scheme.equals("https") && (port != 443))) {
+        if (("http".equals(scheme) && (port != 80))
+                || ("https".equals(scheme) && (port != 443))) {
             url.append(':');
             url.append(port);
         }

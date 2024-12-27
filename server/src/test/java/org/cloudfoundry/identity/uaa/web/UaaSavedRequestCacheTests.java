@@ -83,21 +83,21 @@ public class UaaSavedRequestCacheTests {
         assertNotNull(saved.getParameterMap());
         String[] param1s = saved.getParameterMap().get("param1");
         assertNotNull(param1s);
-        assertArrayEquals(new String[] {"value1", "value12"}, param1s);
+        assertArrayEquals(new String[]{"value1", "value12"}, param1s);
 
         param1s = saved.getParameterValues("param1");
         assertNotNull(param1s);
-        assertArrayEquals(new String[] {"value1", "value12"}, param1s);
+        assertArrayEquals(new String[]{"value1", "value12"}, param1s);
 
-        assertArrayEquals(new String[] {"param1", "param2"}, saved.getParameterNames().toArray(new String[0]));
+        assertArrayEquals(new String[]{"param1", "param2"}, saved.getParameterNames().toArray(new String[0]));
 
         String[] param2 = saved.getParameterMap().get("param2");
         assertNotNull(param2);
-        assertArrayEquals(new String[] {"value2"}, param2);
+        assertArrayEquals(new String[]{"value2"}, param2);
 
         param2 = saved.getParameterValues("param2");
         assertNotNull(param2);
-        assertArrayEquals(new String[] {"value2"}, param2);
+        assertArrayEquals(new String[]{"value2"}, param2);
 
 
     }

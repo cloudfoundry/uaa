@@ -12,7 +12,7 @@ import org.springframework.http.ResponseEntity;
  * Scope: OAuth2 server exceptions
  */
 public interface WebResponseExceptionTranslator<T> {
-	
-	ResponseEntity<T> translate(Exception e) throws Exception;
+
+    ResponseEntity<T> translate(Exception e) throws Exception;
 
 }

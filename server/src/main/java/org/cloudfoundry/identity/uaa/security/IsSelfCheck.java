@@ -33,7 +33,7 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class IsSelfCheck {
 
-    private static Logger logger = LoggerFactory.getLogger(IsSelfCheck.class);
+    private static final Logger logger = LoggerFactory.getLogger(IsSelfCheck.class);
 
     private final RevocableTokenProvisioning tokenProvisioning;
 
@@ -46,33 +46,31 @@ public class IsSelfCheck {
         String idFromUrl = extractIdFromUrl(pathParameterIndex, pathInfo);
         String idFromAuth = extractUserIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
 
-        return idFromAuth!=null &&
-               idFromAuth.equals(idFromUrl);
+        return idFromAuth != null &&
+                idFromAuth.equals(idFromUrl);
     }
 
     protected String extractClientIdFromAuthentication(Authentication authentication) {
-        if (authentication==null) {
+        if (authentication == null) {
             return null;
         }
-        if (authentication instanceof OAuth2Authentication) {
-            OAuth2Authentication a = (OAuth2Authentication)authentication;
+        if (authentication instanceof OAuth2Authentication a) {
             return a.getOAuth2Request().getClientId();
         }
         return null;
     }
 
     protected String extractUserIdFromAuthentication(Authentication authentication) {
-        if (authentication==null) {
+        if (authentication == null) {
             return null;
         }
         if (authentication.getPrincipal() instanceof UaaPrincipal) {
-            return ((UaaPrincipal)authentication.getPrincipal()).getId();
+            return ((UaaPrincipal) authentication.getPrincipal()).getId();
         }
-        if (authentication instanceof OAuth2Authentication) {
-            OAuth2Authentication a = (OAuth2Authentication)authentication;
+        if (authentication instanceof OAuth2Authentication a) {
             if (!a.isClientOnly()) {
                 if (a.getUserAuthentication().getPrincipal() instanceof UaaPrincipal) {
-                    return ((UaaPrincipal)a.getUserAuthentication().getPrincipal()).getId();
+                    return ((UaaPrincipal) a.getUserAuthentication().getPrincipal()).getId();
                 }
             }
         }
@@ -103,7 +101,7 @@ public class IsSelfCheck {
                     return true;
                 }
             } catch (EmptyResultDataAccessException x) {
-                logger.debug("Token not found:"+tokenId);
+                logger.debug("Token not found:" + tokenId);
             }
         }
         return false;
@@ -113,14 +111,14 @@ public class IsSelfCheck {
         String pathInfo = UaaUrlUtils.getRequestPath(request);
         String userIdFromPath = extractIdFromUrl(index, pathInfo);
         String userIdFromAuth = extractUserIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
-        return (hasText(userIdFromPath) && userIdFromPath.equals(userIdFromAuth));
+        return hasText(userIdFromPath) && userIdFromPath.equals(userIdFromAuth);
     }
 
     public boolean isClientTokenRevocationForSelf(HttpServletRequest request, int index) {
         String pathInfo = UaaUrlUtils.getRequestPath(request);
         String clientIdFromPath = extractIdFromUrl(index, pathInfo);
         String clientIdFromAuth = extractClientIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
-        return (hasText(clientIdFromPath) && clientIdFromPath.equals(clientIdFromAuth));
+        return hasText(clientIdFromPath) && clientIdFromPath.equals(clientIdFromAuth);
     }
 
     public boolean isTokenListForAuthenticatedClient(HttpServletRequest request) {

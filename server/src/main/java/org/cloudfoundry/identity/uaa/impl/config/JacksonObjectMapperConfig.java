@@ -11,33 +11,33 @@ import java.util.EnumSet;
 import java.util.Set;
 
 
-public class JacksonObjectMapperConfig {
+public final class JacksonObjectMapperConfig {
 
-  private JacksonObjectMapperConfig() {
-  }
+    private JacksonObjectMapperConfig() {
+    }
 
-  /*
-   * configures Jayway JsonPath parser to work with Jackson
-   */
-  public static void configureJsonPathForJackson() {
-      Configuration.setDefaults(new Configuration.Defaults() {
-      private final JsonProvider jsonProvider = new JacksonJsonProvider();
-      private final MappingProvider mappingProvider = new JacksonMappingProvider();
+    /*
+     * configures Jayway JsonPath parser to work with Jackson
+     */
+    public static void configureJsonPathForJackson() {
+        Configuration.setDefaults(new Configuration.Defaults() {
+            private final JsonProvider jsonProvider = new JacksonJsonProvider();
+            private final MappingProvider mappingProvider = new JacksonMappingProvider();
 
-      @Override
-      public JsonProvider jsonProvider() {
-        return jsonProvider;
-      }
+            @Override
+            public JsonProvider jsonProvider() {
+                return jsonProvider;
+            }
 
-      @Override
-      public MappingProvider mappingProvider() {
-        return mappingProvider;
-      }
+            @Override
+            public MappingProvider mappingProvider() {
+                return mappingProvider;
+            }
 
-      @Override
-      public Set<Option> options() {
-        return EnumSet.noneOf(Option.class);
-      }
-    });
-  }
+            @Override
+            public Set<Option> options() {
+                return EnumSet.noneOf(Option.class);
+            }
+        });
+    }
 }

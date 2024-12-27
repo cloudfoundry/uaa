@@ -22,8 +22,8 @@ public abstract class BaseIdentityProviderValidator implements IdentityProviderC
     @Override
     public void validate(IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
         AbstractIdentityProviderDefinition definition = Optional.ofNullable(provider)
-            .orElseThrow(() -> new IllegalArgumentException("Provider cannot be null"))
-            .getConfig();
+                .orElseThrow(() -> new IllegalArgumentException("Provider cannot be null"))
+                .getConfig();
         validate(definition);
 
     }

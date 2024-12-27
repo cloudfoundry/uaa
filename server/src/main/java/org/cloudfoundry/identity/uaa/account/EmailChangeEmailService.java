@@ -39,11 +39,11 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final IdentityZoneManager identityZoneManager;
 
     EmailChangeEmailService(final TemplateEngine templateEngine,
-                            final MessageService messageService,
-                            final ScimUserProvisioning scimUserProvisioning,
-                            final ExpiringCodeStore codeStore,
-                            final MultitenantClientServices clientDetailsService,
-                            final IdentityZoneManager identityZoneManager) {
+            final MessageService messageService,
+            final ScimUserProvisioning scimUserProvisioning,
+            final ExpiringCodeStore codeStore,
+            final MultitenantClientServices clientDetailsService,
+            final IdentityZoneManager identityZoneManager) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.scimUserProvisioning = scimUserProvisioning;

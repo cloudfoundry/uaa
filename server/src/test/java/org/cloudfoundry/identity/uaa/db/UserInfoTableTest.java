@@ -17,13 +17,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @WithDatabaseContext
 class UserInfoTableTest {
 
-    private static List<TestColumn> TEST_COLUMNS = Arrays.asList(
+    private static List<TestColumn> testColumns = Arrays.asList(
             new TestColumn("user_id", "varchar", 36),
             new TestColumn("info", "longvarchar/mediumtext", 0)
     );
 
     private static boolean testColumn(String name, String type, int size) {
-        return testColumn(TEST_COLUMNS, name, type, size);
+        return testColumn(testColumns, name, type, size);
     }
 
     private static boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
@@ -59,7 +59,7 @@ class UserInfoTableTest {
             }
             rs.close();
             assertTrue(foundTable, "Table " + tableName + " not found!");
-            assertEquals(TEST_COLUMNS.size(), foundColumn, "Table " + tableName + " is missing columns!");
+            assertEquals(testColumns.size(), foundColumn, "Table " + tableName + " is missing columns!");
 
             rs = meta.getIndexInfo(connection.getCatalog(), null, tableName, false, false);
             if (!rs.next()) {

@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
+          xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
 
     <bean id="oauthWebExpressionHandler"
-          class="org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler">
+                    class="org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler">
         <property name="identityZone" ref="uaaIdentityZone"/>
     </bean>
 </beans>

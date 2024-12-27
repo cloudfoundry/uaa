@@ -8,21 +8,21 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
 public class UaaClientDetailsUserDetailsService implements UserDetailsService {
 
-  private final ClientDetailsService clientDetailsService;
+    private final ClientDetailsService clientDetailsService;
 
-  public UaaClientDetailsUserDetailsService(final ClientDetailsService clientDetailsService) {
-    this.clientDetailsService = clientDetailsService;
-  }
-
-  public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-    UaaClientDetails clientDetails;
-    try {
-      clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(username);
-    } catch (NoSuchClientException e) {
-      throw new UsernameNotFoundException(e.getMessage(), e);
+    public UaaClientDetailsUserDetailsService(final ClientDetailsService clientDetailsService) {
+        this.clientDetailsService = clientDetailsService;
     }
-    return new UaaClient(username, clientDetails.getClientSecret(), clientDetails.getAuthorities(), clientDetails.getAdditionalInformation(),
-        clientDetails.getClientJwtConfig());
-  }
+
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        UaaClientDetails clientDetails;
+        try {
+            clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(username);
+        } catch (NoSuchClientException e) {
+            throw new UsernameNotFoundException(e.getMessage(), e);
+        }
+        return new UaaClient(username, clientDetails.getClientSecret(), clientDetails.getAuthorities(), clientDetails.getAdditionalInformation(),
+                clientDetails.getClientJwtConfig());
+    }
 
 }

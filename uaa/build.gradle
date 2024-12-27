@@ -1,4 +1,4 @@
-Project identityServer = parent.subprojects.find { it.name.equals("cloudfoundry-identity-server") }
+Project identityServer = parent.subprojects.find { "cloudfoundry-identity-server".equals(it.name) }
 
 apply(plugin: "war")
 
@@ -15,9 +15,9 @@ jar { enabled = false }
 war { archiveClassifier = '' }
 war { enabled = true }
 
-
 repositories {
     maven { url("https://repo.spring.io/libs-milestone") }
+    maven { url "https://build.shibboleth.net/nexus/content/repositories/releases/" }
 }
 
 description = "UAA"
@@ -49,6 +49,7 @@ dependencies {
     implementation(libraries.braveContextSlf4j)
 
     providedCompile(libraries.tomcatEmbed)
+    implementation(libraries.bouncyCastleFipsProv)
 
     testImplementation(identityServer.sourceSets.test.output)
 
@@ -71,6 +72,7 @@ dependencies {
         exclude(module: "mail")
         exclude(module: "activation")
     }
+    testImplementation(libraries.orgJson)
     testImplementation(libraries.jsonAssert)
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.unboundIdScimSdk) {
@@ -84,9 +86,6 @@ dependencies {
     testImplementation(libraries.springSessionJdbc)
     testImplementation(libraries.springTest)
     testImplementation(libraries.springSecurityLdap)
-    testImplementation(libraries.springSecuritySaml) {
-        exclude(module: "commons-httpclient")
-    }
     testImplementation(libraries.springSecurityTest)
     testImplementation(libraries.springBootStarterMail)
     testImplementation(libraries.mockito)
@@ -95,8 +94,10 @@ dependencies {
     testImplementation(libraries.greenmail)
     testImplementation(libraries.jodaTime)
     testImplementation(libraries.commonsIo)
-    testImplementation(libraries.owaspEsapi)
     testImplementation(libraries.apacheHttpClient)
+    testImplementation(libraries.openSamlApi)
+    testImplementation(libraries.xmlUnit)
+    testImplementation(libraries.awaitility)
 }
 
 ext {
@@ -108,6 +109,19 @@ test {
     exclude("**/*IT.class")
     exclude("**/*Docs.class")
     systemProperty("mock.suite.test", "true")
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Running tests in parallel
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+    // Count available cores. We assume 2 logical cores per physical core.
+    // In case there is only one vCPU, we count 1 full core.
+    var availableCpus = Math.max(Runtime.getRuntime().availableProcessors() / 2, 1.0)
+
+    // We want some amount of parallelism, but it does not make sense to run too many
+    // tests in parallel, see docs/testing. We target 4 tests in parallel at most. If
+    // there are less CPUs available, we use all available CPUs but no more.
+    maxParallelForks = Math.min(availableCpus, 4)
 }
 
 task populateVersionfile {
@@ -158,7 +172,15 @@ generateDocs {
     dependsOn(slate)
 }
 
+//task declarations
+tasks.register('killUaa', Exec) {
+    workingDir '../'
+    executable = 'scripts/kill_uaa.sh'
+}
+
 integrationTest {
+    dependsOn killUaa
+
     filter {
         includeTestsMatching("org.cloudfoundry.identity.uaa.integration.*")
         includeTestsMatching("*IT")

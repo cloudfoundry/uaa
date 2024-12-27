@@ -42,12 +42,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
         if (a instanceof UaaAuthentication) {
             return true;
         }
-
-        if (a != null && a.getPrincipal() instanceof UaaPrincipal) {
-            return true;
-        }
-
-        return false;
+        return a != null && a.getPrincipal() instanceof UaaPrincipal;
     }
 
     @Override
@@ -59,8 +54,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
         }
 
         boolean result = false;
-        if (a instanceof OAuth2Authentication) {
-            OAuth2Authentication oa = (OAuth2Authentication) a;
+        if (a instanceof OAuth2Authentication oa) {
             result = OAuth2ExpressionUtils.hasAnyScope(oa, adminRoles);
         } else {
             result = hasAnyAdminScope(a, adminRoles);
@@ -75,7 +69,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
     }
 
     private boolean hasAnyAdminScope(Authentication a, String... adminRoles) {
-        Set<String> authorites = (a == null ? Collections.<String>emptySet() : AuthorityUtils.authorityListToSet(a.getAuthorities()));
+        Set<String> authorites = a == null ? Collections.emptySet() : AuthorityUtils.authorityListToSet(a.getAuthorities());
         for (String s : adminRoles) {
             if (authorites.contains(s)) {
                 return true;
@@ -100,8 +94,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
     public String getAuthenticationInfo() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
 
-        if (a instanceof OAuth2Authentication) {
-            OAuth2Authentication oauth = ((OAuth2Authentication) a);
+        if (a instanceof OAuth2Authentication oauth) {
 
             String info = getClientId();
             if (!oauth.isClientOnly()) {

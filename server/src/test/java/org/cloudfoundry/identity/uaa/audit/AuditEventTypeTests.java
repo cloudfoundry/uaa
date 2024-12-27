@@ -5,7 +5,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class AuditEventTypeTests {
-    
+
     @Test
     void testAuditEventType() {
         int count = 0;

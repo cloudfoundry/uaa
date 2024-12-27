@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -28,8 +29,8 @@ public class IdentityProviderValidationRequest {
 
     @JsonCreator
     public IdentityProviderValidationRequest(
-        @JsonProperty("provider") IdentityProvider provider,
-        @JsonProperty("credentials") UsernamePasswordAuthentication credentials
+            @JsonProperty("provider") IdentityProvider provider,
+            @JsonProperty("credentials") UsernamePasswordAuthentication credentials
     ) {
         this.provider = provider;
         this.credentials = credentials;
@@ -49,8 +50,8 @@ public class IdentityProviderValidationRequest {
 
         @JsonCreator
         public UsernamePasswordAuthentication(
-            @JsonProperty("username") String username,
-            @JsonProperty("password") String password) {
+                @JsonProperty("username") String username,
+                @JsonProperty("password") String password) {
             this.password = new NonStringPassword(password);
             this.username = username;
         }

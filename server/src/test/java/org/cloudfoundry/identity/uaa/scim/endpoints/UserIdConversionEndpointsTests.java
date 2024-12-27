@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,21 +13,6 @@
  *******************************************************************************/
 
 package org.cloudfoundry.identity.uaa.scim.endpoints;
-
-import static java.util.Collections.singletonList;
-import static java.util.UUID.randomUUID;
-import static java.util.stream.Collectors.toList;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
-import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.mockito.Mockito.lenient;
-import static org.mockito.Mockito.when;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
 
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -44,6 +30,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.AuthorityUtils;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.Collections.singletonList;
+import static java.util.UUID.randomUUID;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Dave Syer
@@ -247,7 +247,7 @@ class UserIdConversionEndpointsTests {
         final boolean lastPageIncomplete = expectedUsers.size() % resultsPerPage != 0;
         final int expectedPages = expectedUsers.size() / resultsPerPage + (lastPageIncomplete ? 1 : 0);
 
-        final Function<Integer, SearchResults<Map<String, Object>>> fetchNextPage = (startIndex) -> {
+        final Function<Integer, SearchResults<Map<String, Object>>> fetchNextPage = startIndex -> {
             final ResponseEntity<Object> response = endpoints.findUsers(
                     filter, "ascending", startIndex, resultsPerPage, includeInactive
             );
@@ -278,7 +278,7 @@ class UserIdConversionEndpointsTests {
         }
 
         // check next page -> should be empty
-        final SearchResults<Map<String, Object>> responseBody = fetchNextPage.apply(currentStartIndex);;
+        final SearchResults<Map<String, Object>> responseBody = fetchNextPage.apply(currentStartIndex);
         assertThat(responseBody.getTotalResults()).isEqualTo(expectedUsers.size());
         assertThat(responseBody.getResources()).isNotNull().isEmpty();
 
@@ -286,7 +286,7 @@ class UserIdConversionEndpointsTests {
                 "id", (Object) scimUser.getId(),
                 "userName", scimUser.getUserName(),
                 "origin", scimUser.getOrigin()
-        )).collect(toList());
+        )).toList();
 
         assertThat(observedUsers).hasSameElementsAs(expectedResponse);
     }

@@ -23,32 +23,32 @@ public class PathFragmentToLimiterMappings {
      * @param selector                        matching selector
      * @param pathFragmentWithLimiterMappings Collection of PathFragment and LimiterMappings pair
      */
-    public PathFragmentToLimiterMappings( BiPredicate<String, String> selector,
-                                          Collection<PathFragmentToLimiterMapping> pathFragmentWithLimiterMappings ) {
+    public PathFragmentToLimiterMappings(BiPredicate<String, String> selector,
+            Collection<PathFragmentToLimiterMapping> pathFragmentWithLimiterMappings) {
         this.selector = selector;
         List<PathFragmentToLimiterMapping> mutable = new ArrayList<>( pathFragmentWithLimiterMappings );
-        Collections.sort( mutable );
-        ordered = mutable.toArray( new PathFragmentToLimiterMapping[0] );
+        Collections.sort(mutable);
+        ordered = mutable.toArray(new PathFragmentToLimiterMapping[0]);
         List<IntPair> orderedIndexes = new ArrayList<>( mutable.size() );
         IntPair prev = null;
-        for ( int i = 0; i < ordered.length; i++ ) {
+        for (int i = 0; i < ordered.length; i++) {
             PathFragmentToLimiterMapping pftp = ordered[i];
             IntPair ip = new IntPair( pftp.getPathFragment().length(), i );
-            if ( !ip.equals( prev ) ) {
-                orderedIndexes.add( prev = ip );
+            if (!ip.equals(prev)) {
+                orderedIndexes.add(prev = ip);
             }
         }
-        lengthOrderedIndexes = orderedIndexes.toArray( new IntPair[0] );
+        lengthOrderedIndexes = orderedIndexes.toArray(new IntPair[0]);
     }
 
     // package friendly for Testing
-    PathFragmentToLimiterMappings( BiPredicate<String, String> selector,
-                                   PathFragmentToLimiterMapping... pathFragmentWithLimiterMappings ) {
-        this( selector, Arrays.asList( pathFragmentWithLimiterMappings ) );
+    PathFragmentToLimiterMappings(BiPredicate<String, String> selector,
+            PathFragmentToLimiterMapping... pathFragmentWithLimiterMappings) {
+        this(selector, Arrays.asList(pathFragmentWithLimiterMappings));
     }
 
     public boolean isEmpty() {
-        return (0 == count());
+        return 0 == count();
     }
 
     public int count() {
@@ -56,24 +56,24 @@ public class PathFragmentToLimiterMappings {
     }
 
     public Stream<PathFragmentToLimiterMapping> stream() {
-        return Arrays.stream( ordered );
+        return Arrays.stream(ordered);
     }
 
-    public LimiterMapping get( String servletPath ) {
+    public LimiterMapping get(String servletPath) {
         // Longest to Shortest pathFragments - finding the match that is longest!
-        for ( int i = findStartingOrderIndex( servletPath ); i < ordered.length; i++ ) {
+        for (int i = findStartingOrderIndex(servletPath); i < ordered.length; i++) {
             PathFragmentToLimiterMapping pftp = ordered[i];
-            if ( selector.test( servletPath, pftp.getPathFragment() ) ) {
+            if (selector.test(servletPath, pftp.getPathFragment())) {
                 return pftp.getLimiterMapping();
             }
         }
         return null;
     }
 
-    private int findStartingOrderIndex( String servletPath ) {
+    private int findStartingOrderIndex(String servletPath) {
         int maxLength = servletPath.length();
-        for ( IntPair pair : lengthOrderedIndexes ) {
-            if ( pair.length <= maxLength ) {
+        for (IntPair pair : lengthOrderedIndexes) {
+            if (pair.length <= maxLength) {
                 return pair.index;
             }
         }

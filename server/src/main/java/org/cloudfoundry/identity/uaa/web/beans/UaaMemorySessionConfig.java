@@ -17,7 +17,7 @@ import org.springframework.session.config.annotation.web.http.EnableSpringHttpSe
 @EnableScheduling
 public class UaaMemorySessionConfig extends UaaSessionConfig {
 
-    private final static Logger logger = LoggerFactory.getLogger(UaaMemorySessionConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(UaaMemorySessionConfig.class);
 
     public static class MemoryConfigured implements Condition {
         @Override

@@ -28,7 +28,7 @@ class CodeStoreEndpointsTests {
     private CodeStoreEndpoints codeStoreEndpoints;
     private ExpiringCodeStore spiedExpiringCodeStore;
     private AtomicLong currentTime;
-    private final String EMPTY_JSON = "{}";
+    private static final String EMPTY_JSON = "{}";
     private String currentIdentityZoneId;
 
     @BeforeEach

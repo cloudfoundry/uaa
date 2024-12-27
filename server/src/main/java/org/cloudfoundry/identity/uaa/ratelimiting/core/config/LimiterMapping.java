@@ -19,21 +19,21 @@ public class LimiterMapping {
     private final RequestsPerWindowSecs global;
     private final List<PathSelector> pathSelectors;
 
-    public LimiterMapping( String name,
-                           String withCallerCredentialsID, String withCallerRemoteAddressID, String withoutCallerID,
-                           String global, List<String> pathSelectors ) {
-        this.name = StringUtils.stripToNull( name );
-        this.global = RequestsPerWindowSecs.from( name, "global", global ); // ...from() can throw Exceptions
-        this.withCallerCredentialsID = RequestsPerWindowSecs.from( name, "withCallerCredentialsID", withCallerCredentialsID );
-        this.withCallerRemoteAddressID = RequestsPerWindowSecs.from( name, "withCallerRemoteAddressID", withCallerRemoteAddressID );
-        this.withoutCallerID = RequestsPerWindowSecs.from( name, "withoutCallerID", withoutCallerID );
-        this.pathSelectors = PathSelector.listFrom( name, pathSelectors ); // can throw Exceptions
+    public LimiterMapping(String name,
+            String withCallerCredentialsID, String withCallerRemoteAddressID, String withoutCallerID,
+            String global, List<String> pathSelectors) {
+        this.name = StringUtils.stripToNull(name);
+        this.global = RequestsPerWindowSecs.from(name, "global", global); // ...from() can throw Exceptions
+        this.withCallerCredentialsID = RequestsPerWindowSecs.from(name, "withCallerCredentialsID", withCallerCredentialsID);
+        this.withCallerRemoteAddressID = RequestsPerWindowSecs.from(name, "withCallerRemoteAddressID", withCallerRemoteAddressID);
+        this.withoutCallerID = RequestsPerWindowSecs.from(name, "withoutCallerID", withoutCallerID);
+        this.pathSelectors = PathSelector.listFrom(name, pathSelectors); // can throw Exceptions
 
-        if ( (withCallerCredentialsID() == null) && (withCallerRemoteAddressID() == null)
-             && (withoutCallerID() == null) && (global() == null) ) {
+        if ((withCallerCredentialsID() == null) && (withCallerRemoteAddressID() == null)
+                && (withoutCallerID() == null) && (global() == null)) {
             throw new RateLimitingConfigException( "No limits (" +
-                                                   "'withCallerCredentialsID', 'withCallerRemoteAddressID', 'withoutCallerID', " +
-                                                   "or 'global') from Rate Limiting configuration with name: " + name );
+                    "'withCallerCredentialsID', 'withCallerRemoteAddressID', 'withoutCallerID', " +
+                    "or 'global') from Rate Limiting configuration with name: " + name );
         }
     }
 
@@ -73,7 +73,7 @@ public class LimiterMapping {
     }
 
     public int limitsCount() {
-        return ObjectUtils.countNonNull( withCallerCredentialsID, withCallerRemoteAddressID, withoutCallerID, global );
+        return ObjectUtils.countNonNull(withCallerCredentialsID, withCallerRemoteAddressID, withoutCallerID, global);
     }
 
     public static Builder builder() {
@@ -88,48 +88,48 @@ public class LimiterMapping {
         private String global;
         private final List<String> pathSelectors = new ArrayList<>();
 
-        public Builder name( String name ) {
+        public Builder name(String name) {
             this.name = name;
             return this;
         }
 
-        public Builder withCallerCredentialsID( String withCallerCredentialsID ) {
+        public Builder withCallerCredentialsID(String withCallerCredentialsID) {
             this.withCallerCredentialsID = withCallerCredentialsID;
             return this;
         }
 
-        public Builder withCallerRemoteAddressID( String withCallerRemoteAddressID ) {
+        public Builder withCallerRemoteAddressID(String withCallerRemoteAddressID) {
             this.withCallerRemoteAddressID = withCallerRemoteAddressID;
             return this;
         }
 
-        public Builder withoutCallerID( String withoutCallerID ) {
+        public Builder withoutCallerID(String withoutCallerID) {
             this.withoutCallerID = withoutCallerID;
             return this;
         }
 
-        public Builder global( String global ) {
+        public Builder global(String global) {
             this.global = global;
             return this;
         }
 
-        public Builder pathSelectors( String... pathSelectors ) {
-            return pathSelectors( Arrays.asList( pathSelectors ) );
+        public Builder pathSelectors(String... pathSelectors) {
+            return pathSelectors(Arrays.asList(pathSelectors));
         }
 
-        public Builder pathSelectors( List<String> pathSelectors ) {
-            this.pathSelectors.addAll( pathSelectors );
+        public Builder pathSelectors(List<String> pathSelectors) {
+            this.pathSelectors.addAll(pathSelectors);
             return this;
         }
 
-        public Builder pathSelector( String pathSelector ) {
-            this.pathSelectors.add( pathSelector );
+        public Builder pathSelector(String pathSelector) {
+            this.pathSelectors.add(pathSelector);
             return this;
         }
 
         public LimiterMapping build() {
             return new LimiterMapping( name, withCallerCredentialsID, withCallerRemoteAddressID, withoutCallerID, global,
-                                       pathSelectors );
+                    pathSelectors );
         }
     }
 }

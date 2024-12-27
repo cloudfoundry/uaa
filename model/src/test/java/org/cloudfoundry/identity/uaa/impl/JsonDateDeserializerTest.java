@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -25,7 +26,7 @@ import java.util.Date;
 public class JsonDateDeserializerTest {
 
     String testDateString = "2017-07-07T23:25:01.297Z";
-    Exception exceptionOccured = null;
+    Exception exceptionOccured;
 
     @Test
     public void testParsing() throws IOException, ParseException {
@@ -41,7 +42,7 @@ public class JsonDateDeserializerTest {
             threadArray[i] = new Thread(() -> {
                 try {
                     Date d = JsonDateDeserializer.getDate(testDateString, new JsonLocation(null, 22, 0, 0));
-                    if(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime() != d.getTime())
+                    if (new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").parse(testDateString).getTime() != d.getTime())
                     {
                         throw new Exception("Unexpected date");
                     }

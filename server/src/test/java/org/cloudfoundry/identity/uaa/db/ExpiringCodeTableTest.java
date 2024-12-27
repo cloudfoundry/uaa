@@ -17,7 +17,7 @@ import static org.junit.Assert.assertTrue;
 @WithDatabaseContext
 class ExpiringCodeTableTest {
 
-    private static List<TestColumn> TEST_COLUMNS = Arrays.asList(
+    private static List<TestColumn> testColumns = Arrays.asList(
             new TestColumn("code", "varchar/nvarchar", 255),
             new TestColumn("expiresat", "bigint/int8", -1),
             new TestColumn("data", "longtext/mediumtext/nvarchar", -1),
@@ -26,7 +26,7 @@ class ExpiringCodeTableTest {
     );
 
     private static boolean testColumn(String name, String type, int size) {
-        return testColumn(TEST_COLUMNS, name, type, size);
+        return testColumn(testColumns, name, type, size);
     }
 
     private static boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
@@ -59,7 +59,7 @@ class ExpiringCodeTableTest {
             }
             rs.close();
             assertTrue("Table " + tableName + " not found!", foundTable);
-            assertEquals("Table " + tableName + " is missing columns!", TEST_COLUMNS.size(), foundColumn);
+            assertEquals("Table " + tableName + " is missing columns!", testColumns.size(), foundColumn);
         }
     }
 

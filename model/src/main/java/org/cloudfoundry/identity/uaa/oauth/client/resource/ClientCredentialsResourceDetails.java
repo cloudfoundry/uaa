@@ -9,14 +9,14 @@ package org.cloudfoundry.identity.uaa.oauth.client.resource;
  * Scope: OAuth2 client
  */
 public class ClientCredentialsResourceDetails extends BaseOAuth2ProtectedResourceDetails {
-	
-	public ClientCredentialsResourceDetails() {
-		setGrantType("client_credentials");
-	}
-	
-	@Override
-	public boolean isClientOnly() {
-		return true;
-	}
+
+    public ClientCredentialsResourceDetails() {
+        setGrantType("client_credentials");
+    }
+
+    @Override
+    public boolean isClientOnly() {
+        return true;
+    }
 
 }

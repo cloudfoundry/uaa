@@ -10,7 +10,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 
 public class TokenEndpointBuilder {
-    private final static Logger logger = LoggerFactory.getLogger(TokenEndpointBuilder.class);
+    private static final Logger logger = LoggerFactory.getLogger(TokenEndpointBuilder.class);
     private final String issuer;
 
     public TokenEndpointBuilder(@Value("${issuer.uri}") final String issuerUrlBase) throws Exception {

@@ -20,7 +20,7 @@ public class DefaultSerializationStrategy implements SerializationStrategy {
 
     public byte[] serialize(Object state) {
         try (ByteArrayOutputStream bos = new ByteArrayOutputStream(512);
-            ObjectOutputStream oos = new ObjectOutputStream(bos)){
+            ObjectOutputStream oos = new ObjectOutputStream(bos)) {
             oos.writeObject(state);
             oos.flush();
             return bos.toByteArray();

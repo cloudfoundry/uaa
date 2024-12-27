@@ -12,12 +12,12 @@ import org.cloudfoundry.identity.uaa.ratelimiting.internal.limitertracking.Limit
 public class RateLimiterImpl implements RateLimiter {
     private final LimiterManager manager;
 
-    public RateLimiterImpl( LimiterManager manager ) {
+    public RateLimiterImpl(LimiterManager manager) {
         this.manager = manager;
     }
 
     public RateLimiterImpl() {
-        this( LimiterManagerImpl.SINGLETON.getInstance() );
+        this(LimiterManagerImpl.SINGLETON.getInstance());
     }
 
     @Override
@@ -26,12 +26,12 @@ public class RateLimiterImpl implements RateLimiter {
     }
 
     @Override
-    public Limiter checkRequest( HttpServletRequest request ) {
-        return getLimiter( RequestInfoImpl.from( request ) );
+    public Limiter checkRequest(HttpServletRequest request) {
+        return getLimiter(RequestInfoImpl.from(request));
     }
 
     // package friendly for testing
-    Limiter getLimiter( RequestInfo info ) {
-        return manager.getLimiter( info ); // should NOT be null
+    Limiter getLimiter(RequestInfo info) {
+        return manager.getLimiter(info); // should NOT be null
     }
 }

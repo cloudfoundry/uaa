@@ -1,13 +1,14 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.google.common.annotations.VisibleForTesting;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.codec.Utf8;
 import org.springframework.security.crypto.keygen.KeyGenerators;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -18,7 +19,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 
 import static org.springframework.security.crypto.util.EncodingUtils.concatenate;
 
@@ -28,25 +28,30 @@ import static org.springframework.security.crypto.util.EncodingUtils.concatenate
  */
 public class CachingPasswordEncoder implements PasswordEncoder {
 
+    private static final int ITERATIONS = 25;
+    private static final int MAX_KEYS = 1000;
+    private static final int MAX_ENCODED_PASSWORDS = 5;
+
+    @VisibleForTesting
+    static Duration DEFAULT_CACHE_TTL = Duration.ofMinutes(5L);
+
     private final MessageDigest messageDigest;
     private final byte[] secret;
     private final byte[] salt;
 
-    private final int ITERATIONS = 25;
-    private final int MAX_KEYS = 1000;
-    private final int MAX_ENCODED_PASSWORDS = 5;
-    private final Duration CACHE_TTL = Duration.ofMinutes(5L);
-
-    private volatile Cache<CharSequence, Set<String>> cache = null;
+    private final Cache<CharSequence, Set<String>> cache;
 
     private final PasswordEncoder passwordEncoder;
 
     CachingPasswordEncoder(final PasswordEncoder passwordEncoder) throws NoSuchAlgorithmException {
         this.passwordEncoder = passwordEncoder;
-        this.messageDigest = MessageDigest.getInstance("SHA-256");
-        this.secret = Utf8.encode(new RandomValueStringGenerator().generate());
-        this.salt = KeyGenerators.secureRandom().generateKey();
-        buildCache();
+        messageDigest = MessageDigest.getInstance("SHA-256");
+        secret = Utf8.encode(new RandomValueStringGenerator().generate());
+        salt = KeyGenerators.secureRandom().generateKey();
+        cache = Caffeine.newBuilder()
+                .expireAfterWrite(DEFAULT_CACHE_TTL)
+                .maximumSize(MAX_KEYS)
+                .build();
     }
 
     @Override
@@ -66,7 +71,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     Set<String> getOrCreateHashList(String cacheKey) {
         Set<String> result = cache.getIfPresent(cacheKey);
         if (result == null) {
-            if (cache.size() >= MAX_KEYS) {
+            if (cache.estimatedSize() >= MAX_KEYS) {
                 cache.invalidateAll();
             }
             cache.put(cacheKey, Collections.synchronizedSet(new LinkedHashSet<>()));
@@ -77,7 +82,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     private boolean internalMatches(String cacheKey, CharSequence rawPassword, String encodedPassword) {
         Set<String> cacheValue = cache.getIfPresent(cacheKey);
         boolean result = false;
-        List<String> searchList = (cacheValue != null ? new ArrayList<>(cacheValue) : Collections.emptyList());
+        List<String> searchList = cacheValue != null ? new ArrayList<>(cacheValue) : Collections.emptyList();
         for (String encoded : searchList) {
             if (hashesEquals(encoded, encodedPassword)) {
                 return true;
@@ -87,8 +92,8 @@ public class CachingPasswordEncoder implements PasswordEncoder {
             result = true;
             cacheValue = getOrCreateHashList(cacheKey);
             if (cacheValue != null) {
-                //this list should never grow very long.
-                //Only if you store multiple versions of the same password more than once
+                // This list should never grow very long.
+                // Only if you store multiple versions of the same password more than once
                 if (cacheValue.size() >= MAX_ENCODED_PASSWORDS) {
                     cacheValue.clear();
                 }
@@ -97,7 +102,6 @@ public class CachingPasswordEncoder implements PasswordEncoder {
         }
         return result;
     }
-
 
     String cacheEncode(CharSequence rawPassword) {
         byte[] digest = digest(rawPassword);
@@ -142,16 +146,10 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     }
 
     long getNumberOfKeys() {
-        return cache.size();
+        return cache.estimatedSize();
     }
 
     ConcurrentMap<CharSequence, Set<String>> asMap() {
         return cache.asMap();
-    }
-
-    void buildCache() {
-        cache = CacheBuilder.newBuilder()
-                .expireAfterWrite(CACHE_TTL.getSeconds(), TimeUnit.SECONDS)
-                .build();
     }
 }

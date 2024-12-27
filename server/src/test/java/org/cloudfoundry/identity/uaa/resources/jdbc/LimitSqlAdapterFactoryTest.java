@@ -14,7 +14,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static java.util.Collections.EMPTY_LIST;
+import static java.util.Collections.emptyList;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 @ExtendWith(SpringProfileCleanupExtension.class)
@@ -26,7 +26,7 @@ class LimitSqlAdapterFactoryTest {
         public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
             return Stream.of(
                     Arguments.of(null, HsqlDbLimitSqlAdapter.class),
-                    Arguments.of(EMPTY_LIST, HsqlDbLimitSqlAdapter.class),
+                    Arguments.of(emptyList(), HsqlDbLimitSqlAdapter.class),
 
                     Arguments.of(Collections.singletonList("hsqldb"), HsqlDbLimitSqlAdapter.class),
                     Arguments.of(Arrays.asList("hsqldb", "default"), HsqlDbLimitSqlAdapter.class),

@@ -75,13 +75,13 @@ class UserInfoTest {
             int count = 10000;
             List<String> roleList1 = new ArrayList<>(count);
             List<String> roleList2 = new ArrayList<>(count);
-            for (int i=1; i <= count; i++ ) {
+            for (int i = 1; i <= count; i++) {
                 roleList1.add("groups".concat(Integer.toString(i)));
             }
-            for (int i=count; 0 < i; i-- ) {
+            for (int i = count; 0 < i; i--) {
                 roleList2.add("groups".concat(Integer.toString(i)));
             }
-            for (int i=1; i <= count; i++ ) {
+            for (int i = 1; i <= count; i++) {
                 roleList2.add("groups".concat(Integer.toString(i)));
             }
             // When

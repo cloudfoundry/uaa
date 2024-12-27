@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -34,9 +35,9 @@ import org.junit.Test;
  */
 public class OAuth2ClientAuthenticationFilterTests {
 
-    private SocialClientUserDetailsSource filter = new SocialClientUserDetailsSource();
+    private final SocialClientUserDetailsSource filter = new SocialClientUserDetailsSource();
 
-    private OAuth2ClientContext context = new DefaultOAuth2ClientContext();
+    private final OAuth2ClientContext context = new DefaultOAuth2ClientContext();
 
     private void setUpContext(String tokenName) {
         String accessToken = System.getProperty(tokenName);

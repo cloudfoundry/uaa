@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -34,7 +35,7 @@ public class UserAuthenticationSuccessEvent extends AbstractUaaAuthenticationEve
     public AuditEvent getAuditEvent() {
         Assert.notNull(user, "UaaUser cannot be null");
         return createAuditRecord(user.getId(), AuditEventType.UserAuthenticationSuccess,
-                        getOrigin(getAuthenticationDetails()), user.getUsername());
+                getOrigin(getAuthenticationDetails()), user.getUsername());
     }
 
     public UaaUser getUser() {

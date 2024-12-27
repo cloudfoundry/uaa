@@ -26,9 +26,9 @@ public class CurrentUserCookieRequestFilter extends OncePerRequestFilter {
 
     public static final String CURRENT_USER_COOKIE_ERROR = "current_user_cookie_error";
     private final Rfc6265CookieProcessor rfc6265CookieProcessor;
-    private Logger logger = LoggerFactory.getLogger(CurrentUserCookieRequestFilter.class);
+    private final Logger logger = LoggerFactory.getLogger(CurrentUserCookieRequestFilter.class);
 
-    private CurrentUserCookieFactory currentUserCookieFactory;
+    private final CurrentUserCookieFactory currentUserCookieFactory;
 
     public CurrentUserCookieRequestFilter(CurrentUserCookieFactory currentUserCookieFactory) {
         this.currentUserCookieFactory = currentUserCookieFactory;
@@ -74,7 +74,7 @@ public class CurrentUserCookieRequestFilter extends OncePerRequestFilter {
     private boolean isAuthenticated() {
         Authentication authentication = getContext().getAuthentication();
         return authentication != null &&
-                authentication instanceof UaaAuthentication &&
-                ((UaaAuthentication)authentication).isAuthenticated();
+                authentication instanceof UaaAuthentication ua &&
+                ua.isAuthenticated();
     }
 }

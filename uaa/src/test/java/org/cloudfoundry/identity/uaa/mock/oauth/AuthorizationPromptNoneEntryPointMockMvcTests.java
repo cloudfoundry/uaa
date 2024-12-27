@@ -107,7 +107,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
                 get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
                         .session(session)
         )
-                .andExpect(redirectedUrl("http://example.com/with/path.html#error=interaction_required"));
+        .andExpect(redirectedUrl("http://example.com/with/path.html#error=interaction_required"));
     }
 
     @Test
@@ -133,7 +133,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
                     get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
                             .session(session)
             )
-                    .andExpect(status().isFound())
+            .andExpect(status().isFound())
                     .andReturn();
 
             String redirectUrl = result.getResponse().getRedirectedUrl();
@@ -168,7 +168,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
                     get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/with/path.html")
                             .session(session)
             )
-                    .andExpect(status().is3xxRedirection())
+            .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("http://example.com/with/path.html#error=internal_server_error"));
         } finally {
             ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", openIdSessionStateCalculator);
@@ -184,7 +184,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
                 get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&prompt=none&redirect_uri=no good uri")
                         .session(session)
         )
-                .andExpect(status().is4xxClientError());
+        .andExpect(status().is4xxClientError());
     }
 
     @Test
@@ -196,7 +196,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
                 get("/oauth/authorize?response_type=token&scope=openid&client_id=ant&redirect_uri=http://example.com/with/path.html")
                         .session(session)
         )
-                .andReturn();
+        .andReturn();
         assertThat(result.getResponse().getRedirectedUrl(), not(containsString("session_state")));
     }
 
@@ -205,7 +205,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
         MvcResult result = mockMvc.perform(
                 get("/oauth/authorize?response_type=id_token&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/**")
         )
-                .andReturn();
+        .andReturn();
         assertThat(result.getResponse().getRedirectedUrl(), containsString("error=login_required"));
         assertThat(result.getResponse().getRedirectedUrl(), containsString("session_state"));
     }
@@ -229,7 +229,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
         MvcResult result = mockMvc.perform(
                 get("/oauth/authorize?response_type=code&scope=openid&client_id=ant&prompt=none&redirect_uri=http://example.com/**")
         )
-                .andReturn();
+        .andReturn();
         assertThat(result.getResponse().getRedirectedUrl(), containsString("login_required"));
         assertThat(result.getResponse().getRedirectedUrl(), containsString("session_state"));
     }

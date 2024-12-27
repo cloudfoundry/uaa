@@ -48,8 +48,8 @@ public class TestUaaUrlBuilderTest {
     @Test
     public void stringingItAllTogether() {
         String url = builder.withScheme("http")
-                            .withPath("/oauth/authorize")
-                            .withSubdomain("my-zone").build();
+                .withPath("/oauth/authorize")
+                .withSubdomain("my-zone").build();
         Assert.assertEquals("http://my-zone.uaa.foo.cf.com/oauth/authorize", url);
     }
 

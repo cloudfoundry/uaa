@@ -137,8 +137,12 @@ public class JsonWebKey {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof JsonWebKey)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof JsonWebKey)) {
+            return false;
+        }
         JsonWebKey that = (JsonWebKey) o;
         return getKid() != null ? (getKid().equals(that.getKid())) : (that.getKid() == null && getKeyProperties().equals(that.getKeyProperties()));
     }
@@ -173,7 +177,7 @@ public class JsonWebKey {
 
     public Set<KeyOperation> getKeyOps() {
         List<String> result = (List<String>) getKeyProperties().get(JWKParameterNames.KEY_OPS);
-        if (result==null) {
+        if (result == null) {
             result = Collections.emptyList();
         }
         return result.stream().map(KeyOperation::valueOf).collect(Collectors.toSet());

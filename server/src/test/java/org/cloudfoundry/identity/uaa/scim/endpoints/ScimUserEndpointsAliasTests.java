@@ -199,7 +199,7 @@ class ScimUserEndpointsAliasTests {
             final MockHttpServletRequest req = new MockHttpServletRequest();
             final MockHttpServletResponse res = new MockHttpServletResponse();
             final IllegalStateException exception = assertThrows(IllegalStateException.class, () ->
-                scimUserEndpoints.createUser(user, req, res)
+                    scimUserEndpoints.createUser(user, req, res)
             );
             assertThat(exception.getMessage()).isEqualTo("The persisted user is not present after handling the alias.");
         }
@@ -276,20 +276,20 @@ class ScimUserEndpointsAliasTests {
         @Test
         void shouldThrow_IfAliasIsLocked() {
             when(scimUserAliasHandler.aliasPropertiesAreValid(originalUser, existingOriginalUser))
-                .thenReturn(true);
+                    .thenReturn(true);
             when(transactionTemplate.execute(any())).then(invocationOnMock -> {
                 throw new OptimisticLockingFailureException("The alias is locked.");
             });
 
             final ScimResourceConflictException exception = assertThrows(ScimResourceConflictException.class, () ->
-                scimUserEndpoints.updateUser(
-                    originalUser,
-                    originalUser.getId(),
-                    "*",
-                    new MockHttpServletRequest(),
-                    new MockHttpServletResponse(),
-                    null
-                )
+                    scimUserEndpoints.updateUser(
+                            originalUser,
+                            originalUser.getId(),
+                            "*",
+                            new MockHttpServletRequest(),
+                            new MockHttpServletResponse(),
+                            null
+                    )
             );
             assertThat(exception.getMessage()).isEqualTo("The alias is locked.");
             assertThat(exception.getStatus()).isEqualTo(HttpStatus.CONFLICT);
@@ -522,10 +522,10 @@ class ScimUserEndpointsAliasTests {
                 ScimUser originalUser = buildScimUser("123456789", "uaa");
                 when(scimUserProvisioning.retrieve(any(), any())).thenReturn(originalUser);
                 final ScimUser response = scimUserEndpoints.deleteUser(
-                    "12345678",
-                    null,
-                    new MockHttpServletRequest(),
-                    new MockHttpServletResponse()
+                        "12345678",
+                        null,
+                        new MockHttpServletRequest(),
+                        new MockHttpServletResponse()
                 );
 
                 assertScimUsersAreEqual(response, originalUser);

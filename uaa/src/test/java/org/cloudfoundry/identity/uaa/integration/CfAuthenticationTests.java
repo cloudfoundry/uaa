@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -42,7 +43,7 @@ public class CfAuthenticationTests {
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     private MultiValueMap<String, String> params;
 
@@ -51,7 +52,7 @@ public class CfAuthenticationTests {
     @Before
     public void init() {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
-        params = new LinkedMultiValueMap<String, String>();
+        params = new LinkedMultiValueMap<>();
         params.set("client_id", resource.getClientId());
         params.set("redirect_uri", resource.getRedirectUri(new DefaultAccessTokenRequest()));
         params.set("response_type", "token");
@@ -62,11 +63,11 @@ public class CfAuthenticationTests {
     @Test
     public void testDefaultScopes() {
         params.set(
-                        "credentials",
-                        String.format("{\"username\":\"%s\",\"password\":\"%s\"}", testAccounts.getUserName(),
-                                        testAccounts.getPassword()));
+                "credentials",
+                "{\"username\":\"%s\",\"password\":\"%s\"}".formatted(testAccounts.getUserName(),
+                        testAccounts.getPassword()));
         ResponseEntity<Void> response = serverRunning.postForResponse(serverRunning.getAuthorizationUri(), headers,
-                        params);
+                params);
         assertEquals(HttpStatus.FOUND, response.getStatusCode());
         String location = response.getHeaders().getLocation().toString();
         assertTrue("Not authenticated (no access token): " + location, location.contains("access_token"));
@@ -75,12 +76,12 @@ public class CfAuthenticationTests {
     @Test
     public void testInvalidScopes() {
         params.set(
-                        "credentials",
-                        String.format("{\"username\":\"%s\",\"password\":\"%s\"}", testAccounts.getUserName(),
-                                        testAccounts.getPassword()));
+                "credentials",
+                "{\"username\":\"%s\",\"password\":\"%s\"}".formatted(testAccounts.getUserName(),
+                        testAccounts.getPassword()));
         params.set("scope", "read");
         ResponseEntity<Void> response = serverRunning.postForResponse(serverRunning.getAuthorizationUri(), headers,
-                        params);
+                params);
         assertEquals(HttpStatus.FOUND, response.getStatusCode());
         String location = response.getHeaders().getLocation().toString();
         // System.err.println(location);

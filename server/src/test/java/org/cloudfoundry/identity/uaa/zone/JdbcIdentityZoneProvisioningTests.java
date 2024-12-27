@@ -187,7 +187,7 @@ class JdbcIdentityZoneProvisioningTests {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         assertThrows(ZoneDoesNotExistsException.class,
-            () -> jdbcIdentityZoneProvisioning.update(identityZone));
+                () -> jdbcIdentityZoneProvisioning.update(identityZone));
     }
 
     @Test

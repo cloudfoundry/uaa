@@ -6,11 +6,11 @@ public class NonStringPassword {
     private final char[] password;
 
     public NonStringPassword(String password) {
-        this.password = (password == null) ? null : password.toCharArray();
+        this.password = password == null ? null : password.toCharArray();
     }
 
     @JsonProperty("password")
     public String getPassword() {
-        return (password == null) ? null : new String(password);
+        return password == null ? null : new String(password);
     }
 }

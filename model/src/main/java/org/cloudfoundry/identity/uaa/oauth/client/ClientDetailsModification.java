@@ -27,22 +27,23 @@ public class ClientDetailsModification extends UaaClientDetails {
 
     public ClientDetailsModification(ClientDetails prototype) {
         super(prototype);
-        if (prototype instanceof UaaClientDetails) {
-            UaaClientDetails baseClientDetails = (UaaClientDetails)prototype;
+        if (prototype instanceof UaaClientDetails baseClientDetails) {
             this.setAdditionalInformation(baseClientDetails.getAdditionalInformation());
-            if (baseClientDetails.getAutoApproveScopes()!=null) {
+            if (baseClientDetails.getAutoApproveScopes() != null) {
                 this.setAutoApproveScopes(baseClientDetails.getAutoApproveScopes());
             }
         }
-        if (prototype instanceof ClientDetailsModification) {
-            this.action = ((ClientDetailsModification) prototype).getAction();
-            this.setApprovalsDeleted(((ClientDetailsModification) prototype).isApprovalsDeleted());
+        if (prototype instanceof ClientDetailsModification modification) {
+            this.action = modification.getAction();
+            this.setApprovalsDeleted(modification.isApprovalsDeleted());
         }
     }
 
     @JsonGetter("action")
     private String getActionForSerialization() {
-        if(action.equals(NONE)) return null;
+        if (action.equals(NONE)) {
+            return null;
+        }
         return getAction();
     }
 
@@ -61,13 +62,13 @@ public class ClientDetailsModification extends UaaClientDetails {
         if (valid(action)) {
             this.action = action;
         } else {
-            throw new IllegalArgumentException("Invalid action:"+action);
+            throw new IllegalArgumentException("Invalid action:" + action);
         }
     }
 
     @JsonIgnore
     public boolean isApprovalsDeleted() {
-        if (getAdditionalInformation().get(ClientConstants.APPROVALS_DELETED)!=null) {
+        if (getAdditionalInformation().get(ClientConstants.APPROVALS_DELETED) != null) {
             return Boolean.TRUE.equals(getAdditionalInformation().get(ClientConstants.APPROVALS_DELETED));
         }
         return false;
@@ -80,10 +81,10 @@ public class ClientDetailsModification extends UaaClientDetails {
 
     @JsonIgnore
     private boolean valid(String action) {
-        return (ADD.equals(action)
-            ||  UPDATE.equals(action)
-            || DELETE.equals(action)
-            || UPDATE_SECRET.equals(action)
-            || SECRET.equals(action));
+        return ADD.equals(action)
+                || UPDATE.equals(action)
+                || DELETE.equals(action)
+                || UPDATE_SECRET.equals(action)
+                || SECRET.equals(action);
     }
 }

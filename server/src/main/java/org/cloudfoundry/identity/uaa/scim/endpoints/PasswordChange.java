@@ -5,7 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Date;
 
 public class PasswordChange {
-    public PasswordChange() {}
+    public PasswordChange() {
+    }
 
     public PasswordChange(String userId, String username, Date passwordModifiedTime, String clientId, String redirectUri) {
         this.userId = userId;

@@ -16,20 +16,20 @@ import static org.mockito.Mockito.mock;
 public class DynamicLdapAuthenticationManagerTest {
 
     LdapIdentityProviderDefinition ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-        "ldap://localhost:389/",
-        "cn=admin,ou=Users,dc=test,dc=com",
-        "adminsecret",
-        "dc=test,dc=com",
-        "cn={0}",
-        "ou=scopes,dc=test,dc=com",
-        "member={0}",
-        "mail",
-        null,
-        false,
-        true,
-        true,
-        100,
-        true);
+            "ldap://localhost:389/",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "ou=scopes,dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            100,
+            true);
 
     @Test
     public void testGetLdapAuthenticationManager() {
@@ -37,15 +37,15 @@ public class DynamicLdapAuthenticationManagerTest {
         ScimGroupProvisioning scimGroupProvisioning = mock(ScimGroupProvisioning.class);
         LdapLoginAuthenticationManager ldapLoginAuthenticationManager = mock(LdapLoginAuthenticationManager.class);
         AuthenticationManager manager =
-            new DynamicLdapAuthenticationManager(ldapIdentityProviderDefinition,
-                scimGroupExternalMembershipManager,
-                scimGroupProvisioning,
-                ldapLoginAuthenticationManager)
-            .getLdapAuthenticationManager();
+                new DynamicLdapAuthenticationManager(ldapIdentityProviderDefinition,
+                        scimGroupExternalMembershipManager,
+                        scimGroupProvisioning,
+                        ldapLoginAuthenticationManager)
+                        .getLdapAuthenticationManager();
         assertNotNull(manager);
         assertTrue(manager instanceof ChainedAuthenticationManager);
-        ChainedAuthenticationManager chainedAuthenticationManager = (ChainedAuthenticationManager)manager;
-        ProviderManager providerManager = (ProviderManager)chainedAuthenticationManager.getDelegates()[0].getAuthenticationManager();
+        ChainedAuthenticationManager chainedAuthenticationManager = (ChainedAuthenticationManager) manager;
+        ProviderManager providerManager = (ProviderManager) chainedAuthenticationManager.getDelegates()[0].getAuthenticationManager();
         assertEquals(1, providerManager.getProviders().size());
         assertTrue(providerManager.getProviders().get(0) instanceof LdapAuthenticationProvider);
     }

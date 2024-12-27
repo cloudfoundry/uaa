@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -36,9 +37,9 @@ import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
     private final Rfc6265CookieProcessor rfc6265CookieProcessor;
-    private SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
-    private CurrentUserCookieFactory currentUserCookieFactory;
-    private Logger logger = LoggerFactory.getLogger(AccountSavingAuthenticationSuccessHandler.class);
+    private final SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
+    private final CurrentUserCookieFactory currentUserCookieFactory;
+    private final Logger logger = LoggerFactory.getLogger(AccountSavingAuthenticationSuccessHandler.class);
 
     @Autowired
     public AccountSavingAuthenticationSuccessHandler(SavedRequestAwareAuthenticationSuccessHandler redirectingHandler, CurrentUserCookieFactory currentUserCookieFactory) {
@@ -57,12 +58,12 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
 
     public void setSavedAccountOptionCookie(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IllegalArgumentException {
         Object principal = authentication.getPrincipal();
-        if(!(principal instanceof UaaPrincipal)) {
+        if (!(principal instanceof UaaPrincipal)) {
             throw new IllegalArgumentException("Unrecognized authentication principle.");
         }
 
         UaaPrincipal uaaPrincipal = (UaaPrincipal) principal;
-        if(IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
+        if (IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()) {
             SavedAccountOption savedAccountOption = new SavedAccountOption();
             savedAccountOption.setEmail(uaaPrincipal.getEmail());
             savedAccountOption.setOrigin(uaaPrincipal.getOrigin());
@@ -73,7 +74,7 @@ public class AccountSavingAuthenticationSuccessHandler implements Authentication
             savedAccountCookie.setHttpOnly(true);
             savedAccountCookie.setSecure(request.isSecure());
             // cookie expires in a year
-            savedAccountCookie.setMaxAge(365*24*60*60);
+            savedAccountCookie.setMaxAge(365 * 24 * 60 * 60);
 
             response.addCookie(savedAccountCookie);
         }

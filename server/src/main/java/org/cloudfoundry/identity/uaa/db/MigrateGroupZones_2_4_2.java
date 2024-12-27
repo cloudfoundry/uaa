@@ -23,5 +23,6 @@ import org.flywaydb.core.api.migration.Context;
 public class MigrateGroupZones_2_4_2 extends BaseJavaMigration {
 
     @Override
-    public void migrate(Context context) {}
+    public void migrate(Context context) {
+    }
 }

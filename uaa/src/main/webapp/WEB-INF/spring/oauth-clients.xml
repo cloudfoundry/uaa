@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
+          xsi:schemaLocation="http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
         <constructor-arg ref="nonCachingPasswordEncoder"/>
         <constructor-arg name="defaultOverride" value="${oauth.client.override:true}"/>
         <constructor-arg name="clientsToDelete"
-                         value="#{@config['delete']==null ? null : @config['delete']['clients']}"/>
+                              value="#{@config['delete']==null ? null : @config['delete']['clients']}"/>
         <constructor-arg name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}"/>
         <constructor-arg name="autoApproveClients"
-                         value="#{@applicationProperties.containsKey('oauth.client.autoapprove') ? @config['oauth']['client']['autoapprove'] : 'cf'}"/>
+                              value="#{@applicationProperties.containsKey('oauth.client.autoapprove') ? @config['oauth']['client']['autoapprove'] : 'cf'}"/>
     </bean>
 
     <beans profile="default">
@@ -17,7 +17,7 @@
             <constructor-arg ref="nonCachingPasswordEncoder"/>
             <constructor-arg name="defaultOverride" value="${oauth.client.override:true}"/>
             <constructor-arg name="clientsToDelete"
-                             value="#{@config['delete']==null ? null : @config['delete']['clients']}"/>
+                                        value="#{@config['delete']==null ? null : @config['delete']['clients']}"/>
             <constructor-arg name="clients">
                 <map>
                     <entry key="admin">
@@ -25,7 +25,7 @@
                             <entry key="authorized-grant-types" value="client_credentials"/>
                             <entry key="scope" value="uaa.none"/>
                             <entry key="authorities"
-                                   value="uaa.admin,clients.read,clients.write,clients.secret,clients.trust,scim.read,scim.write,clients.admin"/>
+                                                                                value="uaa.admin,clients.read,clients.write,clients.secret,clients.trust,scim.read,scim.write,clients.admin"/>
                             <entry key="secret" value="adminsecret"/>
                             <entry key="jwks" value="{&quot;alg&quot;:&quot;RS256&quot;,&quot;e&quot;:&quot;AQAB&quot;,&quot;kid&quot;:&quot;cUiuzP1rw1zm9MV8F0vtrws7BLc&quot;,&quot;kty&quot;:&quot;RSA&quot;,&quot;n&quot;:&quot;rWuIqrVV8kuqeorvRuLio1_pdQm_z7HZJKIcCD5SQqGO0AsKyf1xa5TPzHM0lqEh2GcPTer4u7MYQZzXAAvzOsSaTmgSlenLKDYCDZy2bwOjK0izVLbJwYqiiqyiMGhKeWsYokyDNoYaefjz8izDrp47XDHnwC2eeyJ43cE8GP0JJXRyxIPFecO8rfpe3AzTrHszJ9lPSX9E8QGppSFmcnUDUQYDRipNMzXXp2FHdR7T2MZkvxzjFhVSSMiaDTmAca-Wv_Uct2HpOfC3IuKSy1jpu8yr_GT6aBsDkt1XC1iARuFf9dE83R39oNgvVMICPjeWgNoyhK-ddQAUnRDeqw&quot;}"/>
                         </map>
@@ -35,7 +35,7 @@
                             <entry key="secret" value=""/>
                             <entry key="authorized-grant-types" value="implicit,password,refresh_token"/>
                             <entry key="scope"
-                                   value="uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write"/>
+                                                                                value="uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write"/>
                             <entry key="redirect-uri" value="http://localhost:8080/**,http://localhost:7000/**"/>
                             <entry key="authorities" value="uaa.none"/>
                             <entry key="autoapprove" value="true"/>
@@ -45,9 +45,9 @@
                         <map>
                             <entry key="secret" value="appclientsecret"/>
                             <entry key="authorized-grant-types"
-                                   value="password,implicit,authorization_code,client_credentials,refresh_token"/>
+                                                                                value="password,implicit,authorization_code,client_credentials,refresh_token"/>
                             <entry key="scope"
-                                   value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme"/>
+                                                                                value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme"/>
                             <entry key="authorities" value="uaa.resource"/>
                             <entry key="autoapprove">
                                 <list>
@@ -64,9 +64,9 @@
                         <map>
                             <entry key="secret" value="appclient|secret!"/>
                             <entry key="authorized-grant-types"
-                                   value="password,implicit,authorization_code,client_credentials,refresh_token"/>
+                                                                                value="password,implicit,authorization_code,client_credentials,refresh_token"/>
                             <entry key="scope"
-                                   value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme"/>
+                                                                                value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme"/>
                             <entry key="authorities" value="uaa.resource"/>
                             <entry key="autoapprove">
                                 <list>
@@ -86,7 +86,7 @@
                             <entry key="authorized-grant-types" value="client_credentials,authorization_code"/>
                             <entry key="redirect-uri" value="http://localhost/**"/>
                             <entry key="authorities"
-                                   value="oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write"/>
+                                                                                value="oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write"/>
                             <entry key="autoapprove" value="true"/>
                             <entry key="allowpublic" value="true"/>
                         </map>
@@ -111,14 +111,14 @@
                         <map>
                             <entry key="secret" value="identitysecret"/>
                             <entry key="authorized-grant-types"
-                                   value="authorization_code,client_credentials,refresh_token,password"/>
+                                                                                value="authorization_code,client_credentials,refresh_token,password"/>
                             <entry key="scope"
-                                   value="cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write"/>
+                                                                                value="cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write"/>
                             <entry key="authorities"
-                                   value="scim.zones,zones.read,cloud_controller.read,uaa.resource,zones.write"/>
+                                                                                value="scim.zones,zones.read,cloud_controller.read,uaa.resource,zones.write"/>
                             <entry key="autoapprove" value="true"/>
                             <entry key="redirect-uri"
-                                   value="http://localhost/*,http://localhost:8080/**,http://oidcloginit.localhost:8080/uaa/**"/>
+                                                                                value="http://localhost/*,http://localhost:8080/**,http://oidcloginit.localhost:8080/uaa/**"/>
                         </map>
                     </entry>
                     <entry key="oauth_showcase_authorization_code">
@@ -178,7 +178,7 @@
                     <entry key="oauth_showcase_saml2_bearer">
                         <map>
                             <entry key="authorized-grant-types"
-                                   value="password,urn:ietf:params:oauth:grant-type:saml2-bearer"/>
+                                                                                value="password,urn:ietf:params:oauth:grant-type:saml2-bearer"/>
                             <entry key="scope" value="openid,uaa.user"/>
                             <entry key="secret" value="secret"/>
                         </map>
@@ -186,7 +186,7 @@
                     <entry key="some_client_that_contains_redirect_uri_matching_request_param">
                         <map>
                             <entry key="authorized-grant-types"
-                                   value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin"/>
+                                                                                value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin"/>
                             <entry key="scope" value="openid"/>
                             <entry key="authorities" value="uaa.resource"/>
                             <entry key="redirect-uri" value="http://redirect.localhost"/>
@@ -233,7 +233,7 @@
                     <entry key="client_with_jwks_trust">
                         <map>
                             <entry key="authorized-grant-types"
-                                   value="authorization_code,client_credentials,refresh_token,password"/>
+                                                                                value="authorization_code,client_credentials,refresh_token,password"/>
                             <entry key="scope" value="openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write"/>
                             <entry key="authorities" value="password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource"/>
                             <entry key="autoapprove" value="true"/>
@@ -244,7 +244,7 @@
                     <entry key="client_with_allowpublic_and_jwks_uri_trust">
                         <map>
                             <entry key="authorized-grant-types"
-                                   value="authorization_code,client_credentials,refresh_token,password,urn:ietf:params:oauth:grant-type:jwt-bearer"/>
+                                                                                value="authorization_code,client_credentials,refresh_token,password,urn:ietf:params:oauth:grant-type:jwt-bearer"/>
                             <entry key="scope" value="openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write"/>
                             <entry key="authorities" value="password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource"/>
                             <entry key="autoapprove" value="true"/>

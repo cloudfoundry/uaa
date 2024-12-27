@@ -494,7 +494,7 @@ class ClientAdminBootstrapTests {
             clients.put(clientId, map);
 
             doThrow(new ClientAlreadyExistsException("Planned"))
-                .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
+                    .when(multitenantJdbcClientDetailsService).addClientDetails(any(ClientDetails.class), anyString());
             clientAdminBootstrap.afterPropertiesSet();
             verify(multitenantJdbcClientDetailsService, times(1)).addClientDetails(any(ClientDetails.class), anyString());
             ArgumentCaptor<ClientDetails> captor = ArgumentCaptor.forClass(ClientDetails.class);
@@ -557,13 +557,21 @@ class ClientAdminBootstrapTests {
         @SuppressWarnings("unchecked")
         void overrideClientWithYaml() {
             @SuppressWarnings("rawtypes")
-            Map fooBeforeClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: somevalue\n"
-                    + "access-token-validity: 100\nredirect-uri: http://localhost/callback\n"
-                    + "authorized-grant-types: client_credentials", Map.class);
+            Map fooBeforeClient = new Yaml().loadAs("""
+                    id: foo
+                    override: true
+                    secret: somevalue
+                    access-token-validity: 100
+                    redirect-uri: http://localhost/callback
+                    authorized-grant-types: client_credentials""", Map.class);
             @SuppressWarnings("rawtypes")
-            Map barBeforeClient = new Yaml().loadAs("id: bar\noverride: true\nsecret: somevalue\n"
-                    + "access-token-validity: 100\nredirect-uri: http://localhost/callback\n"
-                    + "authorized-grant-types: client_credentials", Map.class);
+            Map barBeforeClient = new Yaml().loadAs("""
+                    id: bar
+                    override: true
+                    secret: somevalue
+                    access-token-validity: 100
+                    redirect-uri: http://localhost/callback
+                    authorized-grant-types: client_credentials""", Map.class);
             clients.put("foo", fooBeforeClient);
             clients.put("bar", barBeforeClient);
             clientAdminBootstrap.afterPropertiesSet();

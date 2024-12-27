@@ -23,52 +23,52 @@ public class SourcedFile {
         this.source = source;
     }
 
-    public static SourcedFile locateAndLoadLocalFile( String name, String... dirs ) {
-        if ( (name == null) || name.isBlank() ) {
+    public static SourcedFile locateAndLoadLocalFile(String name, String... dirs) {
+        if ((name == null) || name.isBlank()) {
             return null;
         }
-        for ( String dir : dirs ) {
-            dir = StringUtils.stripToEmpty( dir );
-            if ( dir.startsWith( "/" ) ) {
-                InputStream is = getFileInputStream( dir, name );
-                if ( is != null ) {
-                    return loadFile( is, "file(" + dir + "/" + name + ")" );
+        for (String dir : dirs) {
+            dir = StringUtils.stripToEmpty(dir);
+            if (dir.startsWith("/")) {
+                InputStream is = getFileInputStream(dir, name);
+                if (is != null) {
+                    return loadFile(is, "file(" + dir + "/" + name + ")");
                 }
             }
         }
-        return loadFile( getFileInputStreamFromResources( name ), "resource file(/" + name + ")" );
+        return loadFile(getFileInputStreamFromResources(name), "resource file(/" + name + ")");
     }
 
     // packageFriendly for Testing
-    static SourcedFile loadFile( InputStream is, String source ) {
-        if ( is == null ) {
+    static SourcedFile loadFile(InputStream is, String source) {
+        if (is == null) {
             return null;
         }
         StringBuilder sb = new StringBuilder();
-        try ( InputStreamReader streamReader = new InputStreamReader( is, StandardCharsets.UTF_8 );
-              BufferedReader reader = new BufferedReader( streamReader ) ) {
+        try (InputStreamReader streamReader = new InputStreamReader( is, StandardCharsets.UTF_8 );
+              BufferedReader reader = new BufferedReader( streamReader )) {
 
-            for ( String line; (line = reader.readLine()) != null; ) {
-                sb.append( line ).append( '\n' );
+            for (String line; (line = reader.readLine()) != null; ) {
+                sb.append(line).append('\n');
             }
-        } catch ( IOException e ) {
+        } catch (IOException e) {
             throw new IllegalStateException( "Unable to read " + source, e );
         }
         String str = sb.toString();
         return str.isEmpty() ? null : new SourcedFile( str, source );
     }
 
-    private static InputStream getFileInputStreamFromResources( String name ) {
-        return SourcedFile.class.getClassLoader().getResourceAsStream( "/" + name );
+    private static InputStream getFileInputStreamFromResources(String name) {
+        return SourcedFile.class.getClassLoader().getResourceAsStream("/" + name);
     }
 
-    private static InputStream getFileInputStream( String dir, String name ) {
+    private static InputStream getFileInputStream(String dir, String name) {
         try {
-            File file = FileSystems.getDefault().getPath( dir, name ).toFile();
-            if ( file.isFile() ) {
+            File file = FileSystems.getDefault().getPath(dir, name).toFile();
+            if (file.isFile()) {
                 return new FileInputStream( file );
             }
-        } catch ( IOException ignore ) {
+        } catch (IOException ignore) {
             // ignore!
         }
         return null;

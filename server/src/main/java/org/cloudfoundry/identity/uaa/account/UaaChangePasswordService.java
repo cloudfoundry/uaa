@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -73,10 +74,10 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
     private UaaUser getUaaUser(ScimUser scimUser) {
         Date today = new Date();
         return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", scimUser.getPrimaryEmail(), null,
-            scimUser.getGivenName(),
-            scimUser.getFamilyName(), today, today,
-            scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
-            scimUser.getPasswordLastModified());
+                scimUser.getGivenName(),
+                scimUser.getFamilyName(), today, today,
+                scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
+                scimUser.getPasswordLastModified());
     }
 
     @Override
@@ -85,7 +86,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
     }
 
     protected void publish(ApplicationEvent event) {
-        if (publisher!=null) {
+        if (publisher != null) {
             publisher.publishEvent(event);
         }
     }

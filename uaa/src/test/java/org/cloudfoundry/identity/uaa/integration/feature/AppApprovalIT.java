@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -63,7 +64,8 @@ public class AppApprovalIT {
     public RestOperations restTemplate;
 
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -82,22 +84,22 @@ public class AppApprovalIT {
 
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
 
     @Test
     public void testApprovingAnApp() {
         ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
-            HttpMethod.GET,
-            null,
-            new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
-            },
-            "cloud_controller.read");
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
+                },
+                "cloud_controller.read");
         ScimGroup group = getGroups.getBody().getResources().stream().findFirst().get();
 
         group.setDescription("Read about your clouds.");
@@ -165,11 +167,11 @@ public class AppApprovalIT {
     @Test
     public void testScopeDescriptions() {
         ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
-            HttpMethod.GET,
-            null,
-            new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
-            },
-            "cloud_controller.read");
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
+                },
+                "cloud_controller.read");
         ScimGroup group = getGroups.getBody().getResources().stream().findFirst().get();
 
         group.setDescription("Read about <b>your</b> clouds.");
@@ -209,7 +211,6 @@ public class AppApprovalIT {
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.className("alert-error")).getText(), IntegrationTestUtils.RegexMatcher.matchesRegex("^Invalid redirect (.*) did not match one of the registered values"));
     }
-
 
 
 }

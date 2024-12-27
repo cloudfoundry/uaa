@@ -333,7 +333,7 @@ class JdbcRevocableTokenProvisioningTest {
 
     @Test
     public void testUpsertWithoutExisting() {
-    	try {
+        try {
             jdbcRevocableTokenProvisioning.retrieve(revocableToken.getTokenId(), "uaa");
             fail("Revocable token should not exist.");
         } catch (EmptyResultDataAccessException e) {

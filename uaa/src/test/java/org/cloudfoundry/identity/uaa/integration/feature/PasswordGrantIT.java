@@ -70,11 +70,11 @@ public class PasswordGrantIT {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
 
@@ -90,9 +90,9 @@ public class PasswordGrantIT {
         postBody.add("password", testAccounts.getPassword());
 
         ResponseEntity<Void> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
-            HttpMethod.POST,
-            new HttpEntity<>(postBody, headers),
-            Void.class);
+                HttpMethod.POST,
+                new HttpEntity<>(postBody, headers),
+                Void.class);
 
         Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
     }
@@ -145,7 +145,7 @@ public class PasswordGrantIT {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+            headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
             postBody.add("grant_type", "password");
@@ -172,7 +172,7 @@ public class PasswordGrantIT {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+            headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
             postBody.add("grant_type", "password");
@@ -227,7 +227,7 @@ public class PasswordGrantIT {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+            headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
             postBody.add("grant_type", "password");
@@ -288,9 +288,9 @@ public class PasswordGrantIT {
 
         try {
             restOperations.exchange(baseUrl + "/oauth/token",
-                HttpMethod.POST,
-                new HttpEntity<>(postBody, headers),
-                Void.class);
+                    HttpMethod.POST,
+                    new HttpEntity<>(postBody, headers),
+                    Void.class);
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.FORBIDDEN, e.getStatusCode());
         }

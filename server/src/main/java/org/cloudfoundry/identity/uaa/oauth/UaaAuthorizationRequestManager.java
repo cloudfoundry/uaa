@@ -68,16 +68,16 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     private final SecurityContextAccessor securityContextAccessor;
 
-    private UaaUserDatabase uaaUserDatabase;
+    private final UaaUserDatabase uaaUserDatabase;
 
-    private IdentityProviderProvisioning providerProvisioning;
+    private final IdentityProviderProvisioning providerProvisioning;
     private final IdentityZoneManager identityZoneManager;
 
     public UaaAuthorizationRequestManager(final MultitenantClientServices clientDetailsService,
-                                          final SecurityContextAccessor securityContextAccessor,
-                                          final UaaUserDatabase userDatabase,
-                                          final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
-                                          final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager) {
+            final SecurityContextAccessor securityContextAccessor,
+            final UaaUserDatabase userDatabase,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
+            final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager) {
         this.clientDetailsService = clientDetailsService;
         this.securityContextAccessor = securityContextAccessor;
         this.uaaUserDatabase = userDatabase;
@@ -126,15 +126,15 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     public AuthorizationRequest createAuthorizationRequest(Map<String, String> authorizationParameters) {
 
         String clientId = authorizationParameters.get("client_id");
-        UaaClientDetails clientDetails = (UaaClientDetails)clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
+        UaaClientDetails clientDetails = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
         String state = authorizationParameters.get(OAuth2Utils.STATE);
         String redirectUri = authorizationParameters.get(OAuth2Utils.REDIRECT_URI);
         if (scopes == null || scopes.isEmpty()) {
-                // The default for a user token is the requestedScopes registered with the client
-                scopes = clientDetails.getScope();
+            // The default for a user token is the requestedScopes registered with the client
+            scopes = clientDetails.getScope();
         }
 
         if (securityContextAccessor.isUser()) {
@@ -151,14 +151,14 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         clientDetails.setResourceIds(resourceIds);
         Map<String, String> actualParameters = new HashMap<>(authorizationParameters);
         AuthorizationRequest request = new AuthorizationRequest(
-            actualParameters, clientId,
-            scopes.isEmpty()?null:scopes,
-            null,
-            null,
-            false,
-            state,
-            redirectUri,
-            responseTypes
+                actualParameters, clientId,
+                scopes.isEmpty() ? null : scopes,
+                null,
+                null,
+                false,
+                state,
+                redirectUri,
+                responseTypes
         );
         if (!scopes.isEmpty()) {
             request.setScope(scopes);
@@ -192,24 +192,24 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     }
 
     protected void checkClientIdpAuthorization(UaaClientDetails client, UaaUser user) {
-        List<String> allowedProviders = (List<String>)client.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+        List<String> allowedProviders = (List<String>) client.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
 
 
-        if (allowedProviders==null) {
+        if (allowedProviders == null) {
             //null means any providers - no allowed providers means that we always allow it (backwards compatible)
             return;
-        } else if (allowedProviders.isEmpty()){
-            throw new UnauthorizedClientException ("Client is not authorized for any identity providers.");
+        } else if (allowedProviders.isEmpty()) {
+            throw new UnauthorizedClientException("Client is not authorized for any identity providers.");
         }
 
         try {
             IdentityProvider<AbstractIdentityProviderDefinition> provider = providerProvisioning.retrieveByOrigin(user.getOrigin(), user.getZoneId());
-            if (provider==null || !allowedProviders.contains(provider.getOriginKey())) {
+            if (provider == null || !allowedProviders.contains(provider.getOriginKey())) {
                 throw new DisallowedIdpException("Client is not authorized for specified user's identity provider.");
             }
         } catch (EmptyResultDataAccessException x) {
             //this should not happen...but if it does
-            throw new UnauthorizedClientException ("User does not belong to a valid identity provider.");
+            throw new UnauthorizedClientException("User does not belong to a valid identity provider.");
         }
     }
 
@@ -224,8 +224,8 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
      */
     @SuppressWarnings("java:S1874")
     private Set<String> checkUserScopes(Set<String> requestedScopes,
-                                        Collection<? extends GrantedAuthority> authorities,
-                                        ClientDetails clientDetails) {
+            Collection<? extends GrantedAuthority> authorities,
+            ClientDetails clientDetails) {
         Set<String> allowed = new LinkedHashSet<>(AuthorityUtils.authorityListToSet(authorities));
         // Add in all default requestedScopes
         Collection<String> defaultScopes = IdentityZoneHolder.get().getConfig().getUserConfig().getDefaultGroups();
@@ -277,14 +277,13 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         Set<String> resourceIds = new LinkedHashSet<>();
         //at a minimum - the resourceIds should contain the client this is intended for
         //http://openid.net/specs/openid-connect-core-1_0.html#IDToken
-        if (clientDetails.getClientId()!=null) {
+        if (clientDetails.getClientId() != null) {
             resourceIds.add(clientDetails.getClientId());
         }
         for (String scope : scopes) {
             if (scopeToResource.containsKey(scope)) {
                 resourceIds.add(scopeToResource.get(scope));
-            }
-            else if (scope.contains(scopeSeparator) && !scope.endsWith(scopeSeparator) && !scope.equals("uaa.none")) {
+            } else if (scope.contains(scopeSeparator) && !scope.endsWith(scopeSeparator) && !"uaa.none".equals(scope)) {
                 String id = scope.substring(0, scope.lastIndexOf(scopeSeparator));
                 resourceIds.add(id);
             }
@@ -324,7 +323,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
     protected Set<String> extractScopes(Map<String, String> requestParameters, ClientDetails clientDetails) {
         boolean clientCredentials = GRANT_TYPE_CLIENT_CREDENTIALS.equals(requestParameters.get(GRANT_TYPE));
         Set<String> scopes = OAuth2Utils.parseParameterList(requestParameters.get(OAuth2Utils.SCOPE));
-        if ((scopes == null || scopes.isEmpty())) {
+        if (scopes == null || scopes.isEmpty()) {
             // If no scopes are specified in the incoming data, use the default values registered with the client
             // (the spec allows us to choose between this option and rejecting the request completely, so we'll take the
             // least obnoxious choice as a default).
@@ -350,8 +349,8 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         if (securityContextAccessor.isUser()) {
             String userId = securityContextAccessor.getUserId();
             Collection<? extends GrantedAuthority> authorities = uaaUserDatabase != null ?
-                uaaUserDatabase.retrieveUserById(userId).getAuthorities() :
-                securityContextAccessor.getAuthorities();
+                    uaaUserDatabase.retrieveUserById(userId).getAuthorities() :
+                    securityContextAccessor.getAuthorities();
             for (GrantedAuthority a : authorities) {
                 scopes.add(a.getAuthority());
             }
@@ -361,12 +360,13 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     public TokenRequest createTokenRequest(AuthorizationRequest authorizationRequest, String grantType) {
         return new TokenRequest(authorizationRequest.getRequestParameters(), authorizationRequest.getClientId(),
-            authorizationRequest.getScope(), grantType);
+                authorizationRequest.getScope(), grantType);
     }
 
     public class UaaTokenRequest extends TokenRequest {
         private Set<String> resourceIds;
         private Set<String> responseTypes;
+
         public UaaTokenRequest(Map<String, String> requestParameters, String clientId, Collection<String> scope, String grantType, Set<String> resourceIds) {
             super(requestParameters, clientId, scope, grantType);
             this.resourceIds = resourceIds;
@@ -381,34 +381,37 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
                 request.getExtensions().put(ClaimConstants.CLIENT_AUTH_METHOD, clientAuthentication);
             }
             return new OAuth2Request(
-                request.getRequestParameters(),
-                client.getClientId(),
-                client.getAuthorities(),
-                true, request.getScope(),
-                resourceIds,
-                request.getRedirectUri(),
-                responseTypes,
-                request.getExtensions());
+                    request.getRequestParameters(),
+                    client.getClientId(),
+                    client.getAuthorities(),
+                    true, request.getScope(),
+                    resourceIds,
+                    request.getRedirectUri(),
+                    responseTypes,
+                    request.getExtensions());
         }
 
         @Override
         public int hashCode() {
             final int prime = 31;
             int result = super.hashCode();
-            result = prime * result + ((resourceIds == null) ? 0 : resourceIds.hashCode());
-            result = prime * result + ((responseTypes == null) ? 0 : responseTypes.hashCode());
+            result = prime * result + (resourceIds == null ? 0 : resourceIds.hashCode());
+            result = prime * result + (responseTypes == null ? 0 : responseTypes.hashCode());
             return result;
         }
 
         @Override
         public boolean equals(Object obj) {
-            if (this == obj)
+            if (this == obj) {
                 return true;
-            if (obj == null || getClass() != obj.getClass())
+            }
+            if (obj == null || getClass() != obj.getClass()) {
                 return false;
+            }
             UaaTokenRequest other = (UaaTokenRequest) obj;
-            if (!Objects.equals(resourceIds, other.resourceIds))
+            if (!Objects.equals(resourceIds, other.resourceIds)) {
                 return false;
+            }
             return Objects.equals(responseTypes, other.responseTypes);
         }
     }

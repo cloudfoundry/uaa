@@ -13,27 +13,26 @@ import org.springframework.security.core.userdetails.UserDetails;
 import javax.naming.directory.Attributes;
 import javax.naming.ldap.LdapName;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserMapper.SUBSTITUTE_MAIL_ATTR_NAME;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-public class ExtendedLdapUserMapperTest  {
+public class ExtendedLdapUserMapperTest {
 
     private Attributes attrs;
     private DirContextAdapter adapter;
     private ExtendedLdapUserMapper mapper;
     private Collection<GrantedAuthority> authorities;
-    private String UAA_MANAGER;
 
     @Before
     public void setUp() {
         attrs = new NameAwareAttributes();
-        authorities = Collections.<GrantedAuthority>emptyList();
+        authorities = emptyList();
         mapper = new ExtendedLdapUserMapper();
     }
 
@@ -52,7 +51,7 @@ public class ExtendedLdapUserMapperTest  {
         result = mapper.configureMailAttribute("marissa", records);
         assertEquals(SUBSTITUTE_MAIL_ATTR_NAME, result);
 
-        records.put("mail", new String[] {"marissa@test.org"});
+        records.put("mail", new String[]{"marissa@test.org"});
         result = mapper.configureMailAttribute("marissa", records);
         assertEquals("mail", result);
     }
@@ -90,7 +89,7 @@ public class ExtendedLdapUserMapperTest  {
     private ExtendedLdapUserImpl getExtendedLdapUser() {
         UserDetails userDetails = mapper.mapUserFromContext(adapter, "marissa", authorities);
         assertThat(userDetails instanceof ExtendedLdapUserImpl, is(true));
-        return (ExtendedLdapUserImpl)userDetails;
+        return (ExtendedLdapUserImpl) userDetails;
     }
 
     @Test

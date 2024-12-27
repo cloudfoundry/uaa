@@ -13,7 +13,7 @@ public interface Limiter {
     boolean shouldLimit();
 
     @SuppressWarnings("unused")
-    default void log( String requestPath, Consumer<String> logger, Instant startTime ) {
+    default void log(String requestPath, Consumer<String> logger, Instant startTime) {
         // default is don't log!
     }
 

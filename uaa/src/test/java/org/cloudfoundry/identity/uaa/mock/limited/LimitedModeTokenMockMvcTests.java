@@ -61,21 +61,21 @@ public class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
     @Test
     void check_token_while_limited() throws Exception {
         UaaClientDetails client = setUpClients(generator.generate().toLowerCase(),
-                                                "uaa.resource,clients.read",
-                                                "",
-                                                "client_credentials",
-                                                true);
+                "uaa.resource,clients.read",
+                "",
+                "client_credentials",
+                true);
         String token = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, client.getClientId(), SECRET, null, null, true);
         mockMvc.perform(
-            post("/check_token")
-                .param("token", token)
-                .header(AUTHORIZATION,
-                        "Basic " + new String(Base64.encode((client.getClientId() + ":" + SECRET).getBytes())))
+                post("/check_token")
+                        .param("token", token)
+                        .header(AUTHORIZATION,
+                                "Basic " + new String(Base64.encode((client.getClientId() + ":" + SECRET).getBytes())))
         )
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.scope").value(containsInAnyOrder("clients.read", "uaa.resource")))
-            .andExpect(jsonPath("$.client_id").value(client.getClientId()))
-            .andExpect(jsonPath("$.jti").value(token));
+        .andExpect(status().isOk())
+                .andExpect(jsonPath("$.scope").value(containsInAnyOrder("clients.read", "uaa.resource")))
+                .andExpect(jsonPath("$.client_id").value(client.getClientId()))
+                .andExpect(jsonPath("$.jti").value(token));
     }
 
     private boolean isLimitedMode() {

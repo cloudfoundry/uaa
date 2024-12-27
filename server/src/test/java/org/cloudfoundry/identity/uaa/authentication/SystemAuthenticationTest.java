@@ -26,7 +26,7 @@ import static org.junit.Assert.assertTrue;
 
 public class SystemAuthenticationTest {
 
-    private SystemAuthentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
+    private final SystemAuthentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
 
     @Test
     public void getAuthorities() {

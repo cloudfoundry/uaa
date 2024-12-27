@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -62,7 +63,7 @@ public class PasswordIT {
         MultiValueMap<String, String> headers = new LinkedMaskingMultiValueMap<>();
         RestTemplate restTemplate = getPostTemplate(headers);
         RequestEntity requestEntity = getRequestEntity(headers,
-            "/oauth/token?client_id=client_with_bcrypt_prefix&client_secret=password&grant_type=client_credentials");
+                "/oauth/token?client_id=client_with_bcrypt_prefix&client_secret=password&grant_type=client_credentials");
         ResponseEntity<Void> responseEntity = restTemplate.exchange(requestEntity, Void.class);
 
         assertEquals("Status 200 expected", 200, responseEntity.getStatusCodeValue());
@@ -74,12 +75,12 @@ public class PasswordIT {
         headers.add("Authorization", "Basic YWRtaW4lMDA6YWRtaW5zZWNyZXQ=");
         RestTemplate restTemplate = getPostTemplate(headers);
         RequestEntity requestEntity = getRequestEntity(headers,
-            "/oauth/token?grant_type=client_credentials");
+                "/oauth/token?grant_type=client_credentials");
         try {
             restTemplate.exchange(requestEntity, Void.class);
-        } catch( HttpClientErrorException ex) {
+        } catch (HttpClientErrorException ex) {
             assertEquals("Status 401 expected, but received: " + ex.getStatusCode().value()
-                + " with description " + ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).get(0), 401, ex.getStatusCode().value());
+                    + " with description " + ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).get(0), 401, ex.getStatusCode().value());
             return;
         }
         fail("not expected");

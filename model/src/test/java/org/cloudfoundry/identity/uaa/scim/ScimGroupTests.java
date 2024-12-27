@@ -35,7 +35,7 @@ public class ScimGroupTests {
 
     @Before
     public void setUp() {
-        group = new ScimGroup("id","name","zoneId");
+        group = new ScimGroup("id", "name", "zoneId");
         group.setDescription("description");
 
         patch = new ScimGroup();
@@ -69,15 +69,15 @@ public class ScimGroupTests {
     }
 
     @Test
-    public void testPatch(){
+    public void testPatch() {
         group.patch(patch);
         assertEquals(patch.getId(), group.getId());
-        assertEquals("NewName",group.getDisplayName());
+        assertEquals("NewName", group.getDisplayName());
         assertEquals("NewDescription", group.getDescription());
     }
 
     @Test
-    public void testPatchZoneIdFails(){
+    public void testPatchZoneIdFails() {
         group.setZoneId("uaa");
         patch.setZoneId("zoneid");
 
@@ -91,7 +91,7 @@ public class ScimGroupTests {
     }
 
     @Test
-    public void testPatchDeleteMetaAttributes(){
+    public void testPatchDeleteMetaAttributes() {
         assertEquals("description", group.getDescription());
         String[] attributes = new String[]{"description"};
         patch.getMeta().setAttributes(attributes);
@@ -105,7 +105,7 @@ public class ScimGroupTests {
 
 
     @Test
-    public void testDropDisplayName(){
+    public void testDropDisplayName() {
         patch.setDisplayName("NewDisplayName");
         group.setDisplayName("display");
         assertEquals("display", group.getDisplayName());
@@ -121,27 +121,27 @@ public class ScimGroupTests {
 
     @Test(expected = IllegalArgumentException.class)
     public void cant_drop_zone_id() {
-        patch.getMeta().setAttributes(new String[] {"zoneID"});
+        patch.getMeta().setAttributes(new String[]{"zoneID"});
         group.patch(patch);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void cant_drop_id() {
-        patch.getMeta().setAttributes(new String[] {"id"});
+        patch.getMeta().setAttributes(new String[]{"id"});
         group.patch(patch);
     }
 
     @Test
-    public void testDropAllMembers(){
+    public void testDropAllMembers() {
         group.setMembers(Arrays.asList(member1, member2, member3));
         assertEquals(3, group.getMembers().size());
-        patch.getMeta().setAttributes(new String[] {"members"});
+        patch.getMeta().setAttributes(new String[]{"members"});
         group.patch(patch);
         assertEquals(0, group.getMembers().size());
     }
 
     @Test
-    public void testDropOneMembers(){
+    public void testDropOneMembers() {
         group.setMembers(Arrays.asList(member1, member2, member3));
         ScimGroupMember member = new ScimGroupMember(member1.getMemberId());
         member.setOperation("DELETE");

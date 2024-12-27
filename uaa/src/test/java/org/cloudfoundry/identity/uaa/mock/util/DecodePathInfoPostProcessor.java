@@ -16,7 +16,7 @@ import org.springframework.web.util.WebUtils;
 
 public class DecodePathInfoPostProcessor  implements RequestPostProcessor {
 
-    private static Logger logger = LoggerFactory.getLogger(DecodePathInfoPostProcessor.class);
+    private static final Logger logger = LoggerFactory.getLogger(DecodePathInfoPostProcessor.class);
 
     @Override
     public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {

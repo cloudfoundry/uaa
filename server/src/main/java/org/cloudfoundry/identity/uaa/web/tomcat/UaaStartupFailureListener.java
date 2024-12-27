@@ -14,7 +14,7 @@ import java.util.stream.Stream;
 
 public class UaaStartupFailureListener implements LifecycleListener {
 
-    private Predicate<Container> containerFailed = container -> {
+    private final Predicate<Container> containerFailed = container -> {
         if (container.getState() != LifecycleState.STARTED) {
             return true;
         }
@@ -27,8 +27,7 @@ public class UaaStartupFailureListener implements LifecycleListener {
         String eventType = event.getType();
         Lifecycle lifecycle = event.getLifecycle();
 
-        if (lifecycle instanceof Server && eventType.equals(Lifecycle.AFTER_START_EVENT)) {
-            Server server = (Server) lifecycle;
+        if (lifecycle instanceof Server server && eventType.equals(Lifecycle.AFTER_START_EVENT)) {
 
             if (Stream.of(server.findServices()).map(Service::getContainer).anyMatch(containerFailed)) {
                 try {

@@ -25,44 +25,42 @@ public class IdTokenSerializationTest {
 
     @Before
     public void setup() {
-        Set<String> amr = new HashSet<String>() {{
-            add("amr1");
-            add("amr2");
-        }};
+        Set<String> amr = new HashSet<>();
+        amr.add("amr1");
+        amr.add("amr2");
 
-        Set<String> acr = new HashSet<String>() {{
-            add("acr1");
-            add("acr2");
-        }};
+        Set<String> acr = new HashSet<>();
+        acr.add("acr1");
+        acr.add("acr2");
 
         DateTimeUtils.setCurrentMillisFixed(1000L);
 
         idToken = new IdToken(
-            "sub",
-            newArrayList("aud"),
-            "iss",
-            DateTime.now().toDate(),
-            DateTime.now().toDate(),
-            DateTime.now().toDate(),
-            amr,
-            acr,
-            "azp",
-            "givenname",
-            "familyname",
-            1123l,
-            "123",
-            new HashSet<>(),
-            new HashMap<>(),
-            true,
-            "nonce",
-            "email",
-            "client_id",
-            "grant_type",
-            "username",
-            "myzid",
-            "origin",
-            "some-uuid",
-            "revSig");
+                "sub",
+                newArrayList("aud"),
+                "iss",
+                DateTime.now().toDate(),
+                DateTime.now().toDate(),
+                DateTime.now().toDate(),
+                amr,
+                acr,
+                "azp",
+                "givenname",
+                "familyname",
+                1123l,
+                "123",
+                new HashSet<>(),
+                new HashMap<>(),
+                true,
+                "nonce",
+                "email",
+                "client_id",
+                "grant_type",
+                "username",
+                "myzid",
+                "origin",
+                "some-uuid",
+                "revSig");
     }
 
     @After
@@ -103,31 +101,31 @@ public class IdTokenSerializationTest {
     @Test
     public void testSerializingIdToken_omitNullValues() {
         idToken = new IdToken(
-            "sub",
-            newArrayList("aud"),
-            "iss",
-            DateTime.now().toDate(),
-            DateTime.now().toDate(),
-            null,
-            null,
-            null,
-            "azp",
-            null,
-            null,
-            1123l,
-            null,
-            new HashSet<>(),
-            new HashMap<>(),
-            null,
-            null,
-            "",
-            "",
-            null,
-            null,
-            null,
-            null,
-            null,
-            null);
+                "sub",
+                newArrayList("aud"),
+                "iss",
+                DateTime.now().toDate(),
+                DateTime.now().toDate(),
+                null,
+                null,
+                null,
+                "azp",
+                null,
+                null,
+                1123l,
+                null,
+                new HashSet<>(),
+                new HashMap<>(),
+                null,
+                null,
+                "",
+                "",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null);
 
         String idTokenJsonString = JsonUtils.writeValueAsString(idToken);
 

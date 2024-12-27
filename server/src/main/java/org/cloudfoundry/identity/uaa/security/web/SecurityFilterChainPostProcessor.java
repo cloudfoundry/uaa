@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -44,7 +45,7 @@ import java.util.Map.Entry;
 /**
  * Post processor which injects an additional filter at the head
  * of each security filter chain.
- *
+ * <p/>
  * If the requireHttps property is set, and a non HTTP request is received (as
  * determined by the absence of the <tt>httpsHeader</tt>) the filter will either
  * redirect with a 301 or send an error code to the client.
@@ -53,19 +54,18 @@ import java.util.Map.Entry;
  * those serving browser clients). Clients in this list will also receive an
  * HSTS response header, as defined in
  * http://tools.ietf.org/html/draft-ietf-websec-strict-transport-sec-14.
- *
+ * <p/>
  * HTTP requests from any other clients will receive a JSON error message.
- *
+ * <p/>
  * The filter also wraps calls to the <tt>getRemoteAddr</tt> to give a more
  * accurate value for the remote client IP,
  * making use of the <tt>clientAddrHeader</tt> if available in the request.
  *
- *
  * @author Luke Taylor
  */
 @ManagedResource(
-    objectName="cloudfoundry.identity:name=FilterChainProcessor",
-    description = "Ability to dump requests through JMX"
+        objectName = "cloudfoundry.identity:name=FilterChainProcessor",
+        description = "Ability to dump requests through JMX"
 )
 public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     public static class ReasonPhrase {
@@ -87,14 +87,14 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     }
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
-    private boolean requireHttps = false;
+    private boolean requireHttps;
     private List<String> redirectToHttps = Collections.emptyList();
     private List<String> ignore = Collections.emptyList();
-    private boolean dumpRequests = false;
+    private boolean dumpRequests;
     private int httpsPort;
 
     private Map<Class<? extends Exception>, ReasonPhrase> errorMap = new HashMap<>();
-    private Map<FilterPosition,Filter> additionalFilters;
+    private Map<FilterPosition, Filter> additionalFilters;
 
     public void setErrorMap(Map<Class<? extends Exception>, ReasonPhrase> errorMap) {
         this.errorMap = errorMap;
@@ -106,23 +106,22 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        if (bean instanceof SecurityFilterChain && !ignore.contains(beanName)) {
+        if (bean instanceof SecurityFilterChain fc && !ignore.contains(beanName)) {
             logger.info("Processing security filter chain " + beanName);
 
-            SecurityFilterChain fc = (SecurityFilterChain) bean;
-
-            Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
-            fc.getFilters().add(0, uaaFilter);
             if (additionalFilters != null) {
                 for (Entry<FilterPosition, Filter> entry : additionalFilters.entrySet()) {
                     int position = entry.getKey().getPosition(fc);
                     if (position > fc.getFilters().size()) {
                         fc.getFilters().add(entry.getValue());
                     } else {
-                        fc.getFilters().add(position,entry.getValue());
+                        fc.getFilters().add(position, entry.getValue());
                     }
                 }
             }
+
+            Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
+            fc.getFilters().add(0, uaaFilter);
         }
 
         return bean;
@@ -175,7 +174,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
      * at the position given by the entry key (or the end of the chain if the key &gt; size).
      * @param additionalFilters
      */
-    public void setAdditionalFilters(Map<FilterPosition,Filter> additionalFilters) {
+    public void setAdditionalFilters(Map<FilterPosition, Filter> additionalFilters) {
         this.additionalFilters = additionalFilters;
     }
 
@@ -189,7 +188,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
         @Override
         public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException,
-                        ServletException {
+                ServletException {
             HttpServletRequest request = (HttpServletRequest) req;
             HttpServletResponse response = (HttpServletResponse) res;
 
@@ -243,7 +242,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
         @Override
         public void doFilter(ServletRequest req, ServletResponse res, FilterChain chain) throws IOException,
-                        ServletException {
+                ServletException {
             HttpServletRequest request = (HttpServletRequest) req;
             HttpServletResponse response = (HttpServletResponse) res;
 
@@ -257,20 +256,20 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
             }
             try {
                 chain.doFilter(request, response);
-            }catch (Exception x) {
+            } catch (Exception x) {
                 logger.error("Uncaught Exception:", x);
                 if (req.getAttribute("javax.servlet.error.exception") == null) {
                     req.setAttribute("javax.servlet.error.exception", x);
                 }
                 ReasonPhrase reasonPhrase = getErrorMap().get(x.getClass());
-                if (null==reasonPhrase) {
+                if (null == reasonPhrase) {
                     for (Class<? extends Exception> clazz : getErrorMap().keySet()) {
                         if (clazz.isAssignableFrom(x.getClass())) {
                             reasonPhrase = getErrorMap().get(clazz);
                             break;
                         }
                     }
-                    if (null==reasonPhrase) {
+                    if (null == reasonPhrase) {
                         reasonPhrase = new ReasonPhrase(HttpStatus.INTERNAL_SERVER_ERROR.value(), HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase());
                     }
                 }
@@ -303,6 +302,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
         public void destroy() {
         }
     }
+
     public static class FilterPosition {
         enum PLACEMENT {
             POSITION,
@@ -330,7 +330,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
         public int getPosition(SecurityFilterChain chain) {
             int index = chain.getFilters().size();
-            if (clazz!=null) {
+            if (clazz != null) {
                 int pos = 0;
                 for (Filter f : chain.getFilters()) {
                     if (clazz.equals(f.getClass())) {
@@ -344,7 +344,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
             switch (placement) {
                 case POSITION: return position;
                 case BEFORE: return index;
-                case AFTER: return Math.min(chain.getFilters().size(), index+1);
+                case AFTER: return Math.min(chain.getFilters().size(), index + 1);
             }
             return index;
         }

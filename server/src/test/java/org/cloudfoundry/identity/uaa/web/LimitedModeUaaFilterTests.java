@@ -156,7 +156,9 @@ public class LimitedModeUaaFilterTests {
         filter.setStatusFile(spy);
         assertTrue(filter.isEnabled());
         statusFile.delete();
-        for (int i = 0; i < 10; i++) assertTrue(filter.isEnabled());
+        for (int i = 0; i < 10; i++) {
+            assertTrue(filter.isEnabled());
+        }
         time.set(time.get() + STATUS_INTERVAL_MS + 10);
         assertFalse(filter.isEnabled());
         verify(spy, times(2)).exists();

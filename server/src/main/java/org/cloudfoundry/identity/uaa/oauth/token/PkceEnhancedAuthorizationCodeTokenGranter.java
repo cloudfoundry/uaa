@@ -11,9 +11,9 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
 public class PkceEnhancedAuthorizationCodeTokenGranter extends AuthorizationCodeTokenGranter {
-    
+
     private final AuthorizationCodeServices authorizationCodeServices;
-    
+
     private PkceValidationService pkceValidationService;
 
     public PkceEnhancedAuthorizationCodeTokenGranter(AuthorizationServerTokenServices tokenServices,
@@ -28,12 +28,12 @@ public class PkceEnhancedAuthorizationCodeTokenGranter extends AuthorizationCode
         return getOAuth2Authentication(client, tokenRequest, authorizationCodeServices, pkceValidationService);
     }
 
-	public PkceValidationService getPkceValidationService() {
-		return pkceValidationService;
-	}
+    public PkceValidationService getPkceValidationService() {
+        return pkceValidationService;
+    }
 
-	public void setPkceValidationService(PkceValidationService pkceValidationService) {
-		this.pkceValidationService = pkceValidationService;
-	}
+    public void setPkceValidationService(PkceValidationService pkceValidationService) {
+        this.pkceValidationService = pkceValidationService;
+    }
 
 }

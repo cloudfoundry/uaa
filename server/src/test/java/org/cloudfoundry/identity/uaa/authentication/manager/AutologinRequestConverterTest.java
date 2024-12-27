@@ -23,87 +23,87 @@ import static org.mockito.Mockito.when;
 
 class AutologinRequestConverterTest {
 
-  private final List<String> jsonMediaType = List.of( MediaType.APPLICATION_JSON_VALUE );
-  private final List<String> htmlMediaType = List.of( MediaType.APPLICATION_XHTML_XML_VALUE );
+    private final List<String> jsonMediaType = List.of(MediaType.APPLICATION_JSON_VALUE);
+    private final List<String> htmlMediaType = List.of(MediaType.APPLICATION_XHTML_XML_VALUE);
 
-  private AutologinRequest autologinRequest;
+    private AutologinRequest autologinRequest;
 
-  private AutologinRequestConverter autologinRequestConverter;
+    private AutologinRequestConverter autologinRequestConverter;
 
-  private HttpInputMessage inputMessage;
+    private HttpInputMessage inputMessage;
 
-  private HttpHeaders httpHeaders;
+    private HttpHeaders httpHeaders;
 
-  @BeforeEach
-  void setUp() {
-    autologinRequest = new AutologinRequest();
-    autologinRequestConverter = new AutologinRequestConverter();
-    inputMessage = mock(HttpInputMessage.class);
-    httpHeaders = mock(HttpHeaders.class);
-    when(inputMessage.getHeaders()).thenReturn(httpHeaders);
-  }
+    @BeforeEach
+    void setUp() {
+        autologinRequest = new AutologinRequest();
+        autologinRequestConverter = new AutologinRequestConverter();
+        inputMessage = mock(HttpInputMessage.class);
+        httpHeaders = mock(HttpHeaders.class);
+        when(inputMessage.getHeaders()).thenReturn(httpHeaders);
+    }
 
-  @Test
-  void supports() {
-    Object newObject = new Object();
-    assertFalse(autologinRequestConverter.supports(newObject.getClass()));
-    assertTrue(autologinRequestConverter.supports(autologinRequest.getClass()));
-  }
+    @Test
+    void supports() {
+        Object newObject = new Object();
+        assertFalse(autologinRequestConverter.supports(newObject.getClass()));
+        assertTrue(autologinRequestConverter.supports(autologinRequest.getClass()));
+    }
 
-  @Test
-  void isJsonContent() {
-    assertTrue(autologinRequestConverter.isJsonContent(jsonMediaType));
-    assertFalse(autologinRequestConverter.isJsonContent(htmlMediaType));
-  }
+    @Test
+    void isJsonContent() {
+        assertTrue(autologinRequestConverter.isJsonContent(jsonMediaType));
+        assertFalse(autologinRequestConverter.isJsonContent(htmlMediaType));
+    }
 
-  @Test
-  void readInternalNoJson() throws IOException {
-    AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
-    assertNotNull(autologin);
-  }
+    @Test
+    void readInternalNoJson() throws IOException {
+        AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
+        assertNotNull(autologin);
+    }
 
-  @Test
-  void readInternalFromJson() throws IOException {
-    InputStream inputStream = new ByteArrayInputStream("{ \"username\": \"user\",\"password\": \"pwd\" }".getBytes( StandardCharsets.UTF_8 ));
-    when(httpHeaders.get(HttpHeaders.CONTENT_TYPE)).thenReturn(jsonMediaType);
-    when(inputMessage.getBody()).thenReturn(inputStream);
-    AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
-    assertNotNull(autologin);
-    assertEquals("user", autologin.getUsername());
-    assertEquals("pwd", autologin.getPassword());
-  }
+    @Test
+    void readInternalFromJson() throws IOException {
+        InputStream inputStream = new ByteArrayInputStream("{ \"username\": \"user\",\"password\": \"pwd\" }".getBytes(StandardCharsets.UTF_8));
+        when(httpHeaders.get(HttpHeaders.CONTENT_TYPE)).thenReturn(jsonMediaType);
+        when(inputMessage.getBody()).thenReturn(inputStream);
+        AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
+        assertNotNull(autologin);
+        assertEquals("user", autologin.getUsername());
+        assertEquals("pwd", autologin.getPassword());
+    }
 
-  @Test
-  void readInternalFromJsonButNull() throws IOException {
-    when(httpHeaders.get(HttpHeaders.CONTENT_TYPE)).thenReturn(jsonMediaType);
-    when(inputMessage.getBody()).thenReturn(null);
-    AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
-    assertNotNull(autologin);
-    assertNull(autologin.getUsername());
-    assertNull(autologin.getPassword());
-  }
+    @Test
+    void readInternalFromJsonButNull() throws IOException {
+        when(httpHeaders.get(HttpHeaders.CONTENT_TYPE)).thenReturn(jsonMediaType);
+        when(inputMessage.getBody()).thenReturn(null);
+        AutologinRequest autologin = autologinRequestConverter.readInternal(autologinRequest.getClass(), inputMessage);
+        assertNotNull(autologin);
+        assertNull(autologin.getUsername());
+        assertNull(autologin.getPassword());
+    }
 
-  @Test
-  void writeInternal() throws IOException {
-    OutputStream outputStream = mock(OutputStream.class);
-    HttpOutputMessage outputMessage = mock(HttpOutputMessage.class);
-    when(outputMessage.getHeaders()).thenReturn(httpHeaders);
-    when(outputMessage.getBody()).thenReturn(outputStream);
-    autologinRequest.setPassword("pwd");
-    autologinRequest.setUsername("user");
-    autologinRequestConverter.writeInternal(autologinRequest, outputMessage);
-    verify(outputMessage, times(2)).getHeaders();
-    verify(outputMessage, times(1)).getBody();
-  }
+    @Test
+    void writeInternal() throws IOException {
+        OutputStream outputStream = mock(OutputStream.class);
+        HttpOutputMessage outputMessage = mock(HttpOutputMessage.class);
+        when(outputMessage.getHeaders()).thenReturn(httpHeaders);
+        when(outputMessage.getBody()).thenReturn(outputStream);
+        autologinRequest.setPassword("pwd");
+        autologinRequest.setUsername("user");
+        autologinRequestConverter.writeInternal(autologinRequest, outputMessage);
+        verify(outputMessage, times(2)).getHeaders();
+        verify(outputMessage, times(1)).getBody();
+    }
 
-  @Test
-  void writeInternalNoValuesInAutoLoginRequest() throws IOException {
-    OutputStream outputStream = mock(OutputStream.class);
-    HttpOutputMessage outputMessage = mock(HttpOutputMessage.class);
-    when(outputMessage.getHeaders()).thenReturn(httpHeaders);
-    when(outputMessage.getBody()).thenReturn(outputStream);
-    autologinRequestConverter.writeInternal(autologinRequest, outputMessage);
-    verify(outputMessage, times(2)).getHeaders();
-    verify(outputMessage, times(1)).getBody();
-  }
+    @Test
+    void writeInternalNoValuesInAutoLoginRequest() throws IOException {
+        OutputStream outputStream = mock(OutputStream.class);
+        HttpOutputMessage outputMessage = mock(HttpOutputMessage.class);
+        when(outputMessage.getHeaders()).thenReturn(httpHeaders);
+        when(outputMessage.getBody()).thenReturn(outputStream);
+        autologinRequestConverter.writeInternal(autologinRequest, outputMessage);
+        verify(outputMessage, times(2)).getHeaders();
+        verify(outputMessage, times(1)).getBody();
+    }
 }

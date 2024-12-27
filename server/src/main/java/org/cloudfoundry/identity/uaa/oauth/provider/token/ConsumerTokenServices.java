@@ -9,7 +9,7 @@ package org.cloudfoundry.identity.uaa.oauth.provider.token;
  * Scope: OAuth2 server
  */
 public interface ConsumerTokenServices {
-	
-	boolean revokeToken(String tokenValue);
+
+    boolean revokeToken(String tokenValue);
 
 }

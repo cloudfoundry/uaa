@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -36,8 +37,8 @@ public class JdbcAuditService implements UaaAuditService {
     @Override
     public List<AuditEvent> find(String principalId, long after, String zoneId) {
         return template.query("select event_type, principal_id, origin, event_data, created, identity_zone_id from sec_audit where " +
-            "principal_id=? and identity_zone_id=? and created > ? order by created desc", new AuditEventRowMapper(), principalId
-            , zoneId, new Timestamp(after));
+                "principal_id=? and identity_zone_id=? and created > ? order by created desc", new AuditEventRowMapper(), principalId
+        , zoneId, new Timestamp(after));
     }
 
     @Override
@@ -49,8 +50,8 @@ public class JdbcAuditService implements UaaAuditService {
         data = data == null ? "" : data;
         data = data.length() > 255 ? data.substring(0, 255) : data;
         template.update("insert into sec_audit (principal_id, event_type, origin, event_data, identity_zone_id) values (?,?,?,?,?)",
-                        auditEvent.getPrincipalId(), auditEvent.getType().getCode(), origin,
-                        data, zoneId);
+                auditEvent.getPrincipalId(), auditEvent.getType().getCode(), origin,
+                data, zoneId);
     }
 
     private class AuditEventRowMapper implements RowMapper<AuditEvent> {
@@ -63,7 +64,7 @@ public class JdbcAuditService implements UaaAuditService {
             long time = rs.getTimestamp(5).getTime();
             String identityZoneId = nullSafeTrim(rs.getString(6));
             return new AuditEvent(eventType, principalId, origin,
-                            data, time, identityZoneId, null, null);
+                    data, time, identityZoneId, null, null);
         }
     }
 

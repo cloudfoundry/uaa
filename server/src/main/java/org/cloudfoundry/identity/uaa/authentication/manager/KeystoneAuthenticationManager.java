@@ -41,13 +41,13 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
     @Override
     protected boolean evaluateResponse(Authentication authentication, ResponseEntity<Map> response) {
         boolean v2 = true;
-        Map<String, Object> map = (Map<String, Object>)response.getBody().get("access");
-        if (map==null) {
+        Map<String, Object> map = (Map<String, Object>) response.getBody().get("access");
+        if (map == null) {
             v2 = false;
-            map = (Map<String, Object>)response.getBody().get("token");
+            map = (Map<String, Object>) response.getBody().get("token");
         }
-        Map<String, Object> user = (Map<String, Object>)map.get("user");
-        return (authentication.getPrincipal().toString().equals(user.get(v2?"username":"name")));
+        Map<String, Object> user = (Map<String, Object>) map.get("user");
+        return authentication.getPrincipal().toString().equals(user.get(v2 ? "username" : "name"));
     }
 
     @Override
@@ -57,7 +57,7 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
         } else if (getRemoteUrl() != null && getRemoteUrl().contains("/v3")) {
             return new KeystoneV3AuthenticationRequest("", username, password);
         } else {
-            throw new UnsupportedOperationException("Unable to determine API version:"+ getRemoteUrl());
+            throw new UnsupportedOperationException("Unable to determine API version:" + getRemoteUrl());
         }
 
     }
@@ -67,7 +67,7 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
     }
 
     // Manual creation, but must support JSON serialization - does NOT support direct binding from JSON (no default constructors)
-    public static class KeystoneV2AuthenticationRequest implements KeystoneAuthenticationRequest{
+    public static class KeystoneV2AuthenticationRequest implements KeystoneAuthenticationRequest {
         private final KeystoneAuthentication auth;
 
         public KeystoneV2AuthenticationRequest(String tenant, String username, String password) {
@@ -116,7 +116,7 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
     }
 
     // Manual creation, but must support JSON serialization - does NOT support direct binding from JSON (no default constructors)
-    public static class KeystoneV3AuthenticationRequest implements KeystoneAuthenticationRequest{
+    public static class KeystoneV3AuthenticationRequest implements KeystoneAuthenticationRequest {
         private final KeystoneIdentity identity;
 
         public KeystoneV3AuthenticationRequest(String domain, String username, String password) {
@@ -143,7 +143,7 @@ public class KeystoneAuthenticationManager extends RestAuthenticationManager {
 
         @SuppressWarnings({"FieldCanBeLocal", "unused"})
         public static class KeystoneAuthentication {
-            private final String[] methods = new String[] {"password"};
+            private final String[] methods = new String[]{"password"};
             private final String domain; // No getter and no toString? assuming needed for JSON object
             private final KeystoneCredentials credentials;
 

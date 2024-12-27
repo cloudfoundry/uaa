@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -29,7 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenExcepti
 /**
  *
  */
-public class ScopeAuthenticationManager implements AuthenticationManager{
+public class ScopeAuthenticationManager implements AuthenticationManager {
 
     private boolean throwOnNotAuthenticated = true;
     private List<String> requiredScopes;
@@ -52,8 +53,8 @@ public class ScopeAuthenticationManager implements AuthenticationManager{
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        if (authentication instanceof OAuth2Authentication) {
-            OAuth2Request creq = ((OAuth2Authentication) authentication).getOAuth2Request();
+        if (authentication instanceof OAuth2Authentication auth2Authentication) {
+            OAuth2Request creq = auth2Authentication.getOAuth2Request();
             List<String> scopes = dedup(creq.getScope());
             int matches = 0;
             int requiredMatches = getRequiredScopes().size();
@@ -62,7 +63,7 @@ public class ScopeAuthenticationManager implements AuthenticationManager{
                     matches++;
                 }
             }
-            if (matches==requiredMatches) {
+            if (matches == requiredMatches) {
                 authentication.setAuthenticated(true);
                 return authentication;
             } else if (isThrowOnNotAuthenticated()) {

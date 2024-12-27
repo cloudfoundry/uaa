@@ -194,12 +194,12 @@ public class ApprovalTests {
 
     @Test
     public void testExpiry() {
-        int THIRTY_MINTUES = 30 * 60 * 1000;
+        int thirtyMintues = 30 * 60 * 1000;
         assertTrue(new Approval()
                 .setUserId("u1")
                 .setClientId("c1")
                 .setScope("s1")
-                .setExpiresAt(Approval.timeFromNow(THIRTY_MINTUES))
+                .setExpiresAt(Approval.timeFromNow(thirtyMintues))
                 .setStatus(Approval.ApprovalStatus.APPROVED).isActiveAsOf(new Date()));
         int expiresIn = -1;
         assertFalse(new Approval()

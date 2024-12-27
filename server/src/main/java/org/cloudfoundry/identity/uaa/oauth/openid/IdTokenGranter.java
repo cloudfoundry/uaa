@@ -22,8 +22,8 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 public class IdTokenGranter {
     private static final Logger logger = LoggerFactory.getLogger(IdTokenGranter.class);
 
-    private final String REQUIRED_OPENID_SCOPE = "openid";
-    private final List<String> GRANT_TYPES_THAT_MAY_GET_ID_TOKENS = Lists.newArrayList(
+    private static final String REQUIRED_OPENID_SCOPE = "openid";
+    private final List<String> grantTypesThatMayGetIdTokens = Lists.newArrayList(
             GRANT_TYPE_AUTHORIZATION_CODE,
             GRANT_TYPE_PASSWORD,
             GRANT_TYPE_IMPLICIT,
@@ -36,11 +36,11 @@ public class IdTokenGranter {
     }
 
     public boolean shouldSendIdToken(UaaUser user,
-                                     UaaClientDetails clientDetails,
-                                     Set<String> requestedScopes,
-                                     String requestedGrantType
+            UaaClientDetails clientDetails,
+            Set<String> requestedScopes,
+            String requestedGrantType
     ) {
-        if (null == user || !GRANT_TYPES_THAT_MAY_GET_ID_TOKENS.contains(requestedGrantType)) {
+        if (null == user || !grantTypesThatMayGetIdTokens.contains(requestedGrantType)) {
             return false;
         }
 
@@ -67,8 +67,8 @@ public class IdTokenGranter {
         // If the requester specified the scope parameter in their /oauth/token request,
         // this list must contain openid.
         if (requestedScopes != null &&
-            !requestedScopes.isEmpty() &&
-            !requestedScopes.contains(REQUIRED_OPENID_SCOPE)) {
+                !requestedScopes.isEmpty() &&
+                !requestedScopes.contains(REQUIRED_OPENID_SCOPE)) {
             logger.info("an ID token was requested but 'openid' is missing from the requested scopes");
             return false;
         }

@@ -14,7 +14,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 
 public class MigrationTestRunner {
-    private Flyway flyway;
+    private final Flyway flyway;
 
     public MigrationTestRunner(Flyway flyway) {
         this.flyway = flyway;

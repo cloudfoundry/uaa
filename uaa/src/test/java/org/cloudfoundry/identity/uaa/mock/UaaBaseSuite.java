@@ -18,7 +18,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 
 public class UaaBaseSuite {
-    private static volatile boolean suiteActive = false;
+    private static volatile boolean suiteActive;
 
     /**
      *

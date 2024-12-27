@@ -67,12 +67,12 @@ class UaaAuthenticationDetailsTest {
     void testDoesNotSaveUsernamePasswordRequestParameters() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         String[] filteredKeys = {"Username", "username", "Password", "password", "Passcode", "passcode"};
-        for(String key : filteredKeys) {
+        for (String key : filteredKeys) {
             request.addParameter(key, "value");
         }
 
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(request, null);
-        for(String key : filteredKeys) {
+        for (String key : filteredKeys) {
             assertNull(details.getParameterMap().get(key));
         }
     }

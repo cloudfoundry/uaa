@@ -26,21 +26,23 @@ public class EncryptionKeyService {
 
         List<EncryptionKey> keysWithoutPassphrase = encryptionKeys.stream()
                 .filter(encryptionKey -> UaaStringUtils.isNullOrEmpty(encryptionKey.getPassphrase()))
-                .collect(Collectors.toList());
+                .toList();
         if (!keysWithoutPassphrase.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
-              String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[%s] is undefined",
-                      keysWithoutPassphrase.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
-              )
+                    "UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[%s] is undefined".formatted(
+                            keysWithoutPassphrase.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
+                    )
             );
         }
 
-        List<EncryptionKey> invalidLengthKeys = encryptionKeys.stream().filter(encryptionKey -> encryptionKey.getPassphrase().length() < 8).collect(Collectors.toList());
+        List<EncryptionKey> invalidLengthKeys = encryptionKeys.stream()
+                .filter(encryptionKey -> encryptionKey.getPassphrase().length() < 8)
+                .toList();
         if (!invalidLengthKeys.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
-              String.format("The required length of the encryption passphrases for [%s] need to be at least 8 characters long.",
-                      invalidLengthKeys.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
-              )
+                    "The required length of the encryption passphrases for [%s] need to be at least 8 characters long.".formatted(
+                            invalidLengthKeys.stream().map(s -> "label=" + s.getLabel()).collect(Collectors.joining(", "))
+                    )
             );
         }
 
@@ -55,22 +57,22 @@ public class EncryptionKeyService {
         }
         if (!duplicateKeyLabels.isEmpty()) {
             throw new NoActiveEncryptionKeyProvided(
-              String.format("UAA cannot be started as multiple keys have the same label in uaa.encryption.encryption_keys/[%s]",
-                      duplicateKeyLabels.stream().map(s -> "label=" + s).collect(Collectors.joining(", "))
-              )
+                    "UAA cannot be started as multiple keys have the same label in uaa.encryption.encryption_keys/[%s]".formatted(
+                            duplicateKeyLabels.stream().map(s -> "label=" + s).collect(Collectors.joining(", "))
+                    )
             );
         }
 
         this.encryptionKeys = encryptionKeys;
         activeKey =
-          encryptionKeys.stream()
-            .filter(v -> v.getLabel().equals(activeKeyLabel))
-            .findFirst()
-            .orElseGet(() -> {
-                throw new NoActiveEncryptionKeyProvided(
-                  String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined", activeKeyLabel)
-                );
-            });
+                encryptionKeys.stream()
+                        .filter(v -> v.getLabel().equals(activeKeyLabel))
+                        .findFirst()
+                        .orElseGet(() -> {
+                            throw new NoActiveEncryptionKeyProvided(
+                                    "UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined".formatted(activeKeyLabel)
+                            );
+                        });
     }
 
     public EncryptionKey getActiveKey() {

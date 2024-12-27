@@ -121,7 +121,7 @@ public class DefaultLdapAuthoritiesPopulator implements LdapAuthoritiesPopulator
     /**
      * The base DN from which the search for group membership should be performed
      */
-    private String groupSearchBase;
+    private final String groupSearchBase;
 
     /**
      * The pattern to be used for the user search. {0} is the user's DN
@@ -200,7 +200,7 @@ public class DefaultLdapAuthoritiesPopulator implements LdapAuthoritiesPopulator
             roles.add(defaultRole);
         }
 
-        List<GrantedAuthority> result = new ArrayList<GrantedAuthority>(roles.size());
+        List<GrantedAuthority> result = new ArrayList<>(roles.size());
         result.addAll(roles);
 
         return result;
@@ -208,10 +208,10 @@ public class DefaultLdapAuthoritiesPopulator implements LdapAuthoritiesPopulator
 
     public Set<GrantedAuthority> getGroupMembershipRoles(String userDn, String username) {
         if (getGroupSearchBase() == null) {
-            return new HashSet<GrantedAuthority>();
+            return new HashSet<>();
         }
 
-        Set<GrantedAuthority> authorities = new HashSet<GrantedAuthority>();
+        Set<GrantedAuthority> authorities = new HashSet<>();
 
         if (logger.isDebugEnabled()) {
             logger.debug("Searching for roles for user '" + username + "', DN = " + "'" + userDn + "', with filter "
@@ -219,7 +219,7 @@ public class DefaultLdapAuthoritiesPopulator implements LdapAuthoritiesPopulator
         }
 
         Set<String> userRoles = getLdapTemplate().searchForSingleAttributeValues(getGroupSearchBase(), groupSearchFilter,
-            new String[]{userDn, username}, groupRoleAttribute);
+                new String[]{userDn, username}, groupRoleAttribute);
 
         if (logger.isDebugEnabled()) {
             logger.debug("Roles from search: " + userRoles);

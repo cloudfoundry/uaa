@@ -25,63 +25,63 @@ import static org.mockito.Mockito.when;
  */
 public class ClientDetailsServiceBeanDefinitionParserTest {
 
-  private ClientDetailsServiceBeanDefinitionParser parser;
-  private Element element;
-  private Element clientElement = mock(Element.class);
-  private ParserContext parserContext;
-  BeanDefinitionBuilder builder;
-  NodeList nodeList;
-  private XmlReaderContext xmlReaderContext;
+    private ClientDetailsServiceBeanDefinitionParser parser;
+    private Element element;
+    private Element clientElement = mock(Element.class);
+    private ParserContext parserContext;
+    BeanDefinitionBuilder builder;
+    NodeList nodeList;
+    private XmlReaderContext xmlReaderContext;
 
-  @Before
-  public void setup() {
-    parser = new ClientDetailsServiceBeanDefinitionParser();
-    element = mock(Element.class);
-    clientElement = mock(Element.class);
-    builder = mock(BeanDefinitionBuilder.class);
-    parserContext = mock(ParserContext.class);
-    nodeList = mock(NodeList.class);
-    xmlReaderContext = mock(XmlReaderContext.class);
-    when(parserContext.getReaderContext()).thenReturn(xmlReaderContext);
-    when(parserContext.getRegistry()).thenReturn(mock(BeanDefinitionRegistry.class));
-    when(element.getChildNodes()).thenReturn(nodeList);
-  }
+    @Before
+    public void setup() {
+        parser = new ClientDetailsServiceBeanDefinitionParser();
+        element = mock(Element.class);
+        clientElement = mock(Element.class);
+        builder = mock(BeanDefinitionBuilder.class);
+        parserContext = mock(ParserContext.class);
+        nodeList = mock(NodeList.class);
+        xmlReaderContext = mock(XmlReaderContext.class);
+        when(parserContext.getReaderContext()).thenReturn(xmlReaderContext);
+        when(parserContext.getRegistry()).thenReturn(mock(BeanDefinitionRegistry.class));
+        when(element.getChildNodes()).thenReturn(nodeList);
+    }
 
-  @Test
-  public void getBeanClass() {
-    assertEquals(InMemoryClientDetailsService.class, parser.getBeanClass(element));
-  }
+    @Test
+    public void getBeanClass() {
+        assertEquals(InMemoryClientDetailsService.class, parser.getBeanClass(element));
+    }
 
-  @Test
-  public void doParseNothing() {
-    when(nodeList.getLength()).thenReturn(0);
-    parser.doParse(element, parserContext, builder);
-    verify(builder, times(1)).addPropertyValue(anyString(), any(Object.class));
-  }
+    @Test
+    public void doParseNothing() {
+        when(nodeList.getLength()).thenReturn(0);
+        parser.doParse(element, parserContext, builder);
+        verify(builder, times(1)).addPropertyValue(anyString(), any(Object.class));
+    }
 
-  @Test
-  public void doParseNoClientId() {
-    when(nodeList.getLength()).thenReturn(1);
-    when(nodeList.item(0)).thenReturn(clientElement);
-    when(clientElement.getNodeName()).thenReturn("client");
-    when(clientElement.getAttribute("client-id")).thenReturn(null);
-    parser.doParse(element, parserContext, builder);
-    verify(builder, times(1)).addPropertyValue(anyString(), any(Object.class));
-    verify(xmlReaderContext).error("A client id must be supplied with the definition of a client.", clientElement);
-  }
+    @Test
+    public void doParseNoClientId() {
+        when(nodeList.getLength()).thenReturn(1);
+        when(nodeList.item(0)).thenReturn(clientElement);
+        when(clientElement.getNodeName()).thenReturn("client");
+        when(clientElement.getAttribute("client-id")).thenReturn(null);
+        parser.doParse(element, parserContext, builder);
+        verify(builder, times(1)).addPropertyValue(anyString(), any(Object.class));
+        verify(xmlReaderContext).error("A client id must be supplied with the definition of a client.", clientElement);
+    }
 
-  @Test
-  public void doParseClientAttributes() {
-    when(nodeList.getLength()).thenReturn(1);
-    when(nodeList.item(0)).thenReturn(clientElement);
-    when(clientElement.getNodeName()).thenReturn("client");
-    when(clientElement.getAttribute("client-id")).thenReturn("client-id");
-    when(clientElement.getAttribute("secret")).thenReturn("secret");
-    when(clientElement.getAttribute("access-token-validity")).thenReturn("access-token-validity");
-    when(clientElement.getAttribute("refresh-token-validity")).thenReturn("refresh-token-validity");
-    when(clientElement.getAttribute("redirect-uri")).thenReturn("redirect-uri");
-    parser.doParse(element, parserContext, builder);
-    verify(builder, times(1)).addPropertyValue(anyString(), any(Object.class));
-    verify(xmlReaderContext, never()).error("A client id must be supplied with the definition of a client.", clientElement);
-  }
+    @Test
+    public void doParseClientAttributes() {
+        when(nodeList.getLength()).thenReturn(1);
+        when(nodeList.item(0)).thenReturn(clientElement);
+        when(clientElement.getNodeName()).thenReturn("client");
+        when(clientElement.getAttribute("client-id")).thenReturn("client-id");
+        when(clientElement.getAttribute("secret")).thenReturn("secret");
+        when(clientElement.getAttribute("access-token-validity")).thenReturn("access-token-validity");
+        when(clientElement.getAttribute("refresh-token-validity")).thenReturn("refresh-token-validity");
+        when(clientElement.getAttribute("redirect-uri")).thenReturn("redirect-uri");
+        parser.doParse(element, parserContext, builder);
+        verify(builder, times(1)).addPropertyValue(anyString(), any(Object.class));
+        verify(xmlReaderContext, never()).error("A client id must be supplied with the definition of a client.", clientElement);
+    }
 }

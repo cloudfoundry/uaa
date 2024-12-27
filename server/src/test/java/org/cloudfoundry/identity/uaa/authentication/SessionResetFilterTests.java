@@ -65,57 +65,57 @@ public class SessionResetFilterTests {
     @Before
     public void setUpFilter() {
 
-        yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
+        yesterday = new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24));
 
         addUsersToInMemoryDb();
 
         UaaPrincipal principal = new UaaPrincipal(user);
 
-        authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
+        authentication = new UaaAuthentication(principal, null, Collections.emptyList(), null, true, System.currentTimeMillis());
 
         chain = mock(FilterChain.class);
         request = mock(HttpServletRequest.class);
         response = mock(HttpServletResponse.class);
         session = mock(HttpSession.class);
         when(request.getSession(anyBoolean())).thenReturn(session);
-        filter = new SessionResetFilter(new DefaultRedirectStrategy(),"/login", userDatabase);
+        filter = new SessionResetFilter(new DefaultRedirectStrategy(), "/login", userDatabase);
     }
 
     private void addUsersToInMemoryDb() {
         user = new UaaUser(
-            "user-id",
-            "username",
-            "password",
-            "email",
-            Collections.EMPTY_LIST,
-            "given name",
-            "family name",
-            yesterday,
-            yesterday,
-            OriginKeys.UAA,
-            null,
-            true,
-            IdentityZone.getUaaZoneId(),
-            "salt",
-            yesterday
+                "user-id",
+                "username",
+                "password",
+                "email",
+                Collections.emptyList(),
+                "given name",
+                "family name",
+                yesterday,
+                yesterday,
+                OriginKeys.UAA,
+                null,
+                true,
+                IdentityZone.getUaaZoneId(),
+                "salt",
+                yesterday
         );
 
         userWithNoPasswordModification = new UaaUser(
-            "user-id-1",
-            "username-1",
-            "password",
-            "email",
-            Collections.EMPTY_LIST,
-            "given name",
-            "family name",
-            yesterday,
-            yesterday,
-            OriginKeys.UAA,
-            null,
-            true,
-            IdentityZone.getUaaZoneId(),
-            "salt",
-            null
+                "user-id-1",
+                "username-1",
+                "password",
+                "email",
+                Collections.emptyList(),
+                "given name",
+                "family name",
+                yesterday,
+                yesterday,
+                OriginKeys.UAA,
+                null,
+                true,
+                IdentityZone.getUaaZoneId(),
+                "salt",
+                null
         );
 
         List<UaaUser> users = new ArrayList<>();
@@ -139,7 +139,7 @@ public class SessionResetFilterTests {
 
     @Test
     public void testNoUAAAuthenticationPresent() throws Exception {
-        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken("test","test");
+        UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken("test", "test");
         SecurityContextHolder.getContext().setAuthentication(authenticationToken);
         filter.doFilterInternal(request, response, chain);
         verify(chain, times(1)).doFilter(request, response);
@@ -150,7 +150,7 @@ public class SessionResetFilterTests {
     @Test
     public void passwordNotModifiedDoesNotCheckAuthTime() throws Exception {
         UaaPrincipal principal = new UaaPrincipal(userWithNoPasswordModification);
-        Authentication authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
+        Authentication authentication = new UaaAuthentication(principal, null, Collections.emptyList(), null, true, System.currentTimeMillis());
         SecurityContextHolder.getContext().setAuthentication(authentication);
         filter.doFilterInternal(request, response, chain);
         verify(chain, times(1)).doFilter(request, response);
@@ -207,7 +207,7 @@ public class SessionResetFilterTests {
     }
 
     protected long dropMilliSeconds(long time) {
-        return ( time / 1000l ) * 1000l;
+        return (time / 1000l) * 1000l;
     }
 
     protected void setFieldValue(String fieldname, Object value, Object object) {

@@ -54,7 +54,6 @@ public class LoginPagePerformanceMockMvcTest {
     private MockMvc mockMvc;
 
 
-
     private File originalLimitedModeStatusFile;
 
     @MockBean
@@ -65,7 +64,7 @@ public class LoginPagePerformanceMockMvcTest {
             @Autowired WebApplicationContext webApplicationContext,
             @Autowired MockMvc mockMvc,
             @Autowired LimitedModeUaaFilter limitedModeUaaFilter
-    )  {
+    ) {
         generator = new AlphanumericRandomValueStringGenerator();
         this.webApplicationContext = webApplicationContext;
         this.mockMvc = mockMvc;
@@ -120,7 +119,7 @@ public class LoginPagePerformanceMockMvcTest {
 
         StopWatch stopWatch = new StopWatch();
         stopWatch.start();
-        for (int i = 0; i <1000; i++) {
+        for (int i = 0; i < 1000; i++) {
             MvcResult mvcResult = mockMvc.perform(get("/login")
                     .with(cookieCsrf())
                     .header("Accept", TEXT_HTML)

@@ -5,10 +5,10 @@
     is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:mvc="http://www.springframework.org/schema/mvc"
-       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-    xsi:schemaLocation="http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:mvc="http://www.springframework.org/schema/mvc"
+          xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+          xsi:schemaLocation="http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
         http://www.springframework.org/schema/security/oauth2 https://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
         http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
@@ -19,7 +19,7 @@
     <http pattern="/js/**" security="none" xmlns="http://www.springframework.org/schema/security" />
 
     <http name="apiDefaultFilter" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-        xmlns="http://www.springframework.org/schema/security" use-expressions="false">
+                    xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <access-denied-handler error-page="/denied"/>
         <intercept-url pattern="/info" access="IS_AUTHENTICATED_ANONYMOUSLY" />
         <intercept-url pattern="/apps" access="scope=cloud_controller.read" />
@@ -44,12 +44,12 @@
     <authentication-manager xmlns="http://www.springframework.org/schema/security" />
 
     <bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint"
-        xmlns="http://www.springframework.org/schema/beans">
+                    xmlns="http://www.springframework.org/schema/beans">
         <constructor-arg value="${auth.url}" />
     </bean>
 
     <bean id="propertyPlaceholderConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
-        xmlns="http://www.springframework.org/schema/beans">
+                    xmlns="http://www.springframework.org/schema/beans">
         <property name="location">
             <value>classpath:/application.properties</value>
         </property>
@@ -63,16 +63,16 @@
 
     <bean id="contentTypeFilter" class="org.cloudfoundry.identity.api.web.ContentTypeFilter">
         <!--<property name="mediaTypes">-->
-            <!--<map>-->
-                <!--<entry key="/apps" value="application/json" />-->
-                <!--<entry key="/info" value="application/json" />-->
-            <!--</map>-->
+        <!--<map>-->
+        <!--<entry key="/apps" value="application/json" />-->
+        <!--<entry key="/info" value="application/json" />-->
+        <!--</map>-->
         <!--</property>-->
     </bean>
 
     <!-- We are faking out the cloud controller for demo purposes, so copy his resource id -->
     <oauth:resource-server id="oauth2ServiceFilter" resource-id="cloud_controller"
-        token-services-ref="tokenServices" />
+                    token-services-ref="tokenServices" />
 
     <mvc:annotation-driven />
 
@@ -80,11 +80,11 @@
 
     <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
         <!--<property name="mediaTypes">-->
-            <!--<map>-->
-                <!--<entry key="json" value="application/json" />-->
-                <!--<entry key="xml" value="application/xml" />-->
-                <!--<entry key="html" value="test/html" />-->
-            <!--</map>-->
+        <!--<map>-->
+        <!--<entry key="json" value="application/json" />-->
+        <!--<entry key="xml" value="application/xml" />-->
+        <!--<entry key="html" value="test/html" />-->
+        <!--</map>-->
         <!--</property>-->
         <property name="viewResolvers">
             <bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">

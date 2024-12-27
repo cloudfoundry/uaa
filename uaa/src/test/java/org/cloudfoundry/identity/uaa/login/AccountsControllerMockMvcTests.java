@@ -2,9 +2,9 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.lang3.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
@@ -66,18 +66,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
+import static org.springframework.util.StringUtils.hasLength;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
 
 @DefaultTestContext
 class AccountsControllerMockMvcTests {
 
-    private final String LOGIN_REDIRECT = "/login?success=verify_success";
-    private final String USER_PASSWORD = "secr3T";
+    private static final String LOGIN_REDIRECT = "/login?success=verify_success";
+    private static final String USER_PASSWORD = "secr3T";
+    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String userEmail;
     private MockMvcTestClient mockMvcTestClient;
-    private AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
-
     @Autowired
     private WebApplicationContext webApplicationContext;
     @Autowired
@@ -368,7 +367,7 @@ class AccountsControllerMockMvcTests {
         assertThat(message.getMessage().getHeader("From"), hasItemInArray(subdomain + "zone <admin@localhost>"));
         assertFalse(message.getContentString().contains("Cloud Foundry"));
         assertFalse(message.getContentString().contains("Pivotal"));
-        assertFalse(isEmpty(link));
+        assertTrue(hasLength(link));
         assertTrue(link.contains(subdomain + ".localhost"));
 
         mockMvc.perform(get("/verify_user")
@@ -418,7 +417,7 @@ class AccountsControllerMockMvcTests {
 
         FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
         String link = mockMvcTestClient.extractLink(message.getContentString());
-        assertFalse(isEmpty(link));
+        assertTrue(hasLength(link));
         assertTrue(link.contains(subdomain + ".localhost"));
 
         mockMvc.perform(get("/verify_user")

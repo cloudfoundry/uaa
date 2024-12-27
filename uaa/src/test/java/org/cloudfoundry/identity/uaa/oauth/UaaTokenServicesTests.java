@@ -540,7 +540,7 @@ class UaaTokenServicesTests {
         }
 
         @ParameterizedTest
-        @ValueSource(ints = { 3600, 24*3600*15, Integer.MAX_VALUE })
+        @ValueSource(ints = {3600, 24 * 3600 * 15, Integer.MAX_VALUE})
         void validExpClaim(int validitySeconds) {
             RefreshTokenCreator refreshTokenCreator = createRefreshTokenCreator(
                     validitySeconds);
@@ -555,7 +555,7 @@ class UaaTokenServicesTests {
         }
 
         @ParameterizedTest
-        @ValueSource(ints = { -3600, Integer.MIN_VALUE })
+        @ValueSource(ints = {-3600, Integer.MIN_VALUE})
         void invalidExpClaim(int validitySeconds) {
             RefreshTokenCreator refreshTokenCreator = createRefreshTokenCreator(
                     validitySeconds);
@@ -580,6 +580,7 @@ class UaaTokenServicesTests {
                                 public Integer getValiditySeconds(String clientId) {
                                     return validitySeconds;
                                 }
+
                                 public Integer getZoneValiditySeconds() {
                                     return 2592000;
                                 }
@@ -590,9 +591,9 @@ class UaaTokenServicesTests {
     }
 
     private OAuth2Authentication constructUserAuthenticationFromAuthzRequest(AuthorizationRequest authzRequest,
-                                                                             String userId,
-                                                                             String userOrigin,
-                                                                             GrantedAuthority... authorities
+            String userId,
+            String userOrigin,
+            GrantedAuthority... authorities
     ) {
         UaaUser uaaUser = jdbcUaaUserDatabase.retrieveUserByName(userId, userOrigin);
         UaaPrincipal principal = new UaaPrincipal(uaaUser);
@@ -627,7 +628,7 @@ class UaaTokenServicesTests {
 
     private boolean waitForClient(String clientId, int max) {
         int retry = 0;
-        while(retry++ < max) {
+        while (retry++ < max) {
             try {
                 jdbcClientDetailsService.loadClientByClientId(clientId);
                 return true;

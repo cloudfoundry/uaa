@@ -91,7 +91,7 @@ public final class ScimUtils {
 
             return new URL(url);
         } catch (MalformedURLException mfue) {
-            logger.error(String.format("Unexpected error creating user verification URL from %s", url), mfue);
+            logger.error("Unexpected error creating user verification URL from %s".formatted(url), mfue);
         }
         throw new IllegalStateException();
     }

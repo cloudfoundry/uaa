@@ -57,7 +57,7 @@ public class PasswordChangeRequiredFilterTests {
         entryPoint = mock(AuthenticationEntryPoint.class);
         chain = mock(FilterChain.class);
         filter = new PasswordChangeRequiredFilter(
-            entryPoint
+                entryPoint
         );
         session = new MockHttpSession();
         SessionUtils.setPasswordChangeRequired(session, false);

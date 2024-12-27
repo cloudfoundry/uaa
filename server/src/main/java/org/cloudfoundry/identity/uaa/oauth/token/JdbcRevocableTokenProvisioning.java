@@ -1,10 +1,10 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
@@ -15,40 +15,39 @@ import java.sql.SQLException;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
 import static org.springframework.util.StringUtils.isEmpty;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 
-    private final static String REFRESH_TOKEN_RESPONSE_TYPE = REFRESH_TOKEN.toString();
-    private final static String FIELDS = "token_id,client_id,user_id,format,response_type,issued_at,expires_at,scope,data,identity_zone_id";
-    private final static String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',') + 1, FIELDS.lastIndexOf(',')).replace(",", "=?,") + "=?";
-    private final static String TABLE = "revocable_tokens";
+    private static final String REFRESH_TOKEN_RESPONSE_TYPE = REFRESH_TOKEN.toString();
+    private static final String FIELDS = "token_id,client_id,user_id,format,response_type,issued_at,expires_at,scope,data,identity_zone_id";
+    private static final String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',') + 1, FIELDS.lastIndexOf(',')).replace(",", "=?,") + "=?";
+    private static final String TABLE = "revocable_tokens";
     private static final String SELECT = "SELECT ";
     private static final String FROM = " FROM ";
-    private final static String GET_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
-    private final static String GET_COUNT_QUERY = "SELECT COUNT(*) FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
-    private final static String GET_BY_USER_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE user_id=? AND identity_zone_id=?";
-    private final static String GET_BY_CLIENT_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE client_id=? AND identity_zone_id=?";
-    private final static String UPDATE_QUERY = "UPDATE " + TABLE + " SET " + UPDATE_FIELDS + " WHERE token_id=? and identity_zone_id=?";
-    private final static String INSERT_QUERY = "INSERT INTO " + TABLE + " (" + FIELDS + ") VALUES (?,?,?,?,?,?,?,?,?,?)";
-    private final static String DELETE_QUERY = "DELETE FROM " + TABLE + " WHERE token_id=? and identity_zone_id=?";
-    private final static String DELETE_REFRESH_TOKEN_QUERY = "DELETE FROM " + TABLE + " WHERE user_id=? AND client_id=? AND response_type='" + REFRESH_TOKEN_RESPONSE_TYPE + "' AND identity_zone_id=?";
-    private final static String DELETE_BY_CLIENT_QUERY = "DELETE FROM " + TABLE + " WHERE client_id = ? AND identity_zone_id=?";
-    private final static String DELETE_BY_USER_QUERY = "DELETE FROM " + TABLE + " WHERE user_id = ? AND identity_zone_id=?";
-    private final static String DELETE_BY_ZONE_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=?";
+    private static final String GET_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
+    private static final String GET_COUNT_QUERY = "SELECT COUNT(*) FROM " + TABLE + " WHERE token_id=? AND identity_zone_id=?";
+    private static final String GET_BY_USER_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE user_id=? AND identity_zone_id=?";
+    private static final String GET_BY_CLIENT_QUERY = "SELECT " + FIELDS + " FROM " + TABLE + " WHERE client_id=? AND identity_zone_id=?";
+    private static final String UPDATE_QUERY = "UPDATE " + TABLE + " SET " + UPDATE_FIELDS + " WHERE token_id=? and identity_zone_id=?";
+    private static final String INSERT_QUERY = "INSERT INTO " + TABLE + " (" + FIELDS + ") VALUES (?,?,?,?,?,?,?,?,?,?)";
+    private static final String DELETE_QUERY = "DELETE FROM " + TABLE + " WHERE token_id=? and identity_zone_id=?";
+    private static final String DELETE_REFRESH_TOKEN_QUERY = "DELETE FROM " + TABLE + " WHERE user_id=? AND client_id=? AND response_type='" + REFRESH_TOKEN_RESPONSE_TYPE + "' AND identity_zone_id=?";
+    private static final String DELETE_BY_CLIENT_QUERY = "DELETE FROM " + TABLE + " WHERE client_id = ? AND identity_zone_id=?";
+    private static final String DELETE_BY_USER_QUERY = "DELETE FROM " + TABLE + " WHERE user_id = ? AND identity_zone_id=?";
+    private static final String DELETE_BY_ZONE_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=?";
 
-    private final static Logger logger = LoggerFactory.getLogger(JdbcRevocableTokenProvisioning.class);
+    private static final Logger logger = LoggerFactory.getLogger(JdbcRevocableTokenProvisioning.class);
     private final RowMapper<RevocableToken> rowMapper;
     private final JdbcTemplate template;
     private final LimitSqlAdapter limitSqlAdapter;
     private TimeService timeService;
 
-    private AtomicLong lastExpiredCheck = new AtomicLong(0);
+    private final AtomicLong lastExpiredCheck = new AtomicLong(0);
     private Duration maxExpirationRuntime = Duration.ofMillis(2500L);
-    private final static Duration EXPIRATION_CHECK_INTERVAL = Duration.ofSeconds(30);
+    private static final Duration EXPIRATION_CHECK_INTERVAL = Duration.ofSeconds(30);
 
     public JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate,
                                           LimitSqlAdapter limitSqlAdapter,
@@ -209,7 +208,9 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         if (isEmpty(clientId)) {
             throw new NullPointerException("Client ID can not be null when retrieving tokens.");
         }
-        return getUserTokens(userId, zoneId).stream().filter(r -> clientId.equals(r.getClientId())).collect(Collectors.toList());
+        return getUserTokens(userId, zoneId).stream()
+                .filter(r -> clientId.equals(r.getClientId()))
+                .toList();
     }
 
     @Override

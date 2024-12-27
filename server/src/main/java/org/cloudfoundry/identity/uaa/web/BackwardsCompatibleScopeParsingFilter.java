@@ -37,7 +37,7 @@ public class BackwardsCompatibleScopeParsingFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        chain.doFilter(new ScopeRewriteRequestWrapper((HttpServletRequest)request), response);
+        chain.doFilter(new ScopeRewriteRequestWrapper((HttpServletRequest) request), response);
     }
 
     @Override
@@ -75,7 +75,7 @@ public class BackwardsCompatibleScopeParsingFilter implements Filter {
         public String[] getParameterValues(String name) {
             String[] values = super.getParameterValues(name);
             if ("scope".equals(name)) {
-                for (int i=0; values!=null && i<values.length; i++) {
+                for (int i = 0; values != null && i < values.length; i++) {
                     values[i] = translateScope(values[i]);
                 }
             }

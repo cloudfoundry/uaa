@@ -27,7 +27,7 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class RateLimiterConfigConfiguration {
-    private final Log logger = LogFactory.getLog( RateLimiterConfigConfiguration.class );
+    private final Log logger = LogFactory.getLog(RateLimiterConfigConfiguration.class);
 
     protected final boolean rateLimiting;
 
@@ -38,17 +38,17 @@ public class RateLimiterConfigConfiguration {
     private static final LoaderLogger DEFAULT_LOGGER = new LoaderLogger() {
 
         @Override
-        public void logError( RateLimitingConfigException e ) {
+        public void logError(RateLimitingConfigException e) {
             //Fallback instance, no logging implemented
         }
 
         @Override
-        public void logUnhandledError( Exception e ) {
+        public void logUnhandledError(Exception e) {
             //Fallback instance, no logging implemented
         }
 
         @Override
-        public void logUpdate( String msg ) {
+        public void logUpdate(String msg) {
             //Fallback instance, no logging implemented
         }
     };
@@ -56,39 +56,39 @@ public class RateLimiterConfigConfiguration {
     @Bean
     public RateLimitingConfigInitializer loader() {
         AuthorizationCredentialIdExtractorErrorLogger errLogger =
-                e -> logger.error( "AuthorizationCredentialIdExtractor", e );
+                e -> logger.error("AuthorizationCredentialIdExtractor", e);
         return new RateLimitingConfigInitializer(rateLimiting, Optional.ofNullable(loaderLogger()).orElse(DEFAULT_LOGGER), InitialConfig.SINGLETON.getInstance(), LimiterManagerImpl.SINGLETON.getInstance(), new CredentialIdTypeJWT( errLogger ), new CredentialIdTypeJWTjsonField( errLogger ));
     }
 
     protected LoaderLogger loaderLogger() {
         AtomicReference<String> sourceReference = new AtomicReference<>();
-        logger.info( "RateLimiting initializing (wd: " + System.getProperty( "user.dir" ) );
+        logger.info("RateLimiting initializing (wd: " + System.getProperty("user.dir"));
         return new LoaderLogger() {
 
             @Override
-            public void logError( RateLimitingConfigException e ) {
-                logger.error( messageWith( "", e ), e );
+            public void logError(RateLimitingConfigException e) {
+                logger.error(messageWith("", e), e);
             }
 
             @Override
-            public void logUnhandledError( Exception e ) {
-                logger.error( messageWith( " (unhandled)", e ), e );
+            public void logUnhandledError(Exception e) {
+                logger.error(messageWith(" (unhandled)", e), e);
             }
 
             @Override
-            public void logUpdate( String msg ) {
-                logger.info( msg );
+            public void logUpdate(String msg) {
+                logger.info(msg);
             }
 
-            private String messageWith( String typePLus, Exception e ) {
+            private String messageWith(String typePLus, Exception e) {
                 StringBuilder sb = new StringBuilder();
-                sb.append( RateLimiterConfigConfiguration.class.getSimpleName() ).append( typePLus ).append( ": " );
-                String eMessage = (e == null) ? "-No Exception-" : Optional.ofNullable(e.getMessage()).orElse("-No Message-");
-                String reference = Optional.ofNullable(sourceReference.get()).orElse("-No sourceReference-" );
-                if ( !eMessage.contains( reference ) ) {
-                    sb.append( reference ).append( " | " );
+                sb.append(RateLimiterConfigConfiguration.class.getSimpleName()).append(typePLus).append(": ");
+                String eMessage = e == null ? "-No Exception-" : Optional.ofNullable(e.getMessage()).orElse("-No Message-");
+                String reference = Optional.ofNullable(sourceReference.get()).orElse("-No sourceReference-");
+                if (!eMessage.contains(reference)) {
+                    sb.append(reference).append(" | ");
                 }
-                return sb.append( eMessage ).toString();
+                return sb.append(eMessage).toString();
             }
         };
     }

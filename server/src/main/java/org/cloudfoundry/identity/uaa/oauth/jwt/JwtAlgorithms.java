@@ -24,38 +24,38 @@ public class JwtAlgorithms {
     public static final String DEFAULT_HMAC = "HMACSHA256";
     public static final String DEFAULT_EC = "SHA256withECDSA";
     public static final String DEFAULT_RSA = "SHA256withRSA";
-    private static final Map<String,String> sigAlgs = new HashMap<String,String>();
-    private static final Map<String,String> javaToSigAlgs = new HashMap<String,String>();
-    private static final Map<String,String> keyAlgs = new HashMap<String,String>();
-    private static final Map<String,String> javaToKeyAlgs = new HashMap<String,String>();
+    private static final Map<String, String> sigAlgs = new HashMap<>();
+    private static final Map<String, String> javaToSigAlgs = new HashMap<>();
+    private static final Map<String, String> keyAlgs = new HashMap<>();
+    private static final Map<String, String> javaToKeyAlgs = new HashMap<>();
 
     static {
         sigAlgs.put("HS256", DEFAULT_HMAC);
-        sigAlgs.put("HS384" , "HMACSHA384");
-        sigAlgs.put("HS512" , "HMACSHA512");
-        sigAlgs.put("RS256" , DEFAULT_RSA);
-        sigAlgs.put("RS384" , "SHA384withRSA");
-        sigAlgs.put("RS512" , "SHA512withRSA");
-        sigAlgs.put("PS256" , "SHA256withRSAandMGF1");
-        sigAlgs.put("PS384" , "SHA384withRSAandMGF1");
-        sigAlgs.put("PS512" , "SHA512withRSAandMGF1");
-        sigAlgs.put("ES256" , DEFAULT_EC);
-        sigAlgs.put("ES256K" , DEFAULT_EC);
-        sigAlgs.put("ES384" , "SHA384withECDSA");
-        sigAlgs.put("ES512" , "SHA512withECDSA");
+        sigAlgs.put("HS384", "HMACSHA384");
+        sigAlgs.put("HS512", "HMACSHA512");
+        sigAlgs.put("RS256", DEFAULT_RSA);
+        sigAlgs.put("RS384", "SHA384withRSA");
+        sigAlgs.put("RS512", "SHA512withRSA");
+        sigAlgs.put("PS256", "SHA256withRSAandMGF1");
+        sigAlgs.put("PS384", "SHA384withRSAandMGF1");
+        sigAlgs.put("PS512", "SHA512withRSAandMGF1");
+        sigAlgs.put("ES256", DEFAULT_EC);
+        sigAlgs.put("ES256K", DEFAULT_EC);
+        sigAlgs.put("ES384", "SHA384withECDSA");
+        sigAlgs.put("ES512", "SHA512withECDSA");
 
-        keyAlgs.put("RSA1_5" , "RSA/ECB/PKCS1Padding");
+        keyAlgs.put("RSA1_5", "RSA/ECB/PKCS1Padding");
 
-        for(Map.Entry<String,String> e: sigAlgs.entrySet()) {
+        for (Map.Entry<String, String> e : sigAlgs.entrySet()) {
             javaToSigAlgs.put(e.getValue(), e.getKey());
         }
-        for(Map.Entry<String,String> e: keyAlgs.entrySet()) {
+        for (Map.Entry<String, String> e : keyAlgs.entrySet()) {
             javaToKeyAlgs.put(e.getValue(), e.getKey());
         }
 
     }
 
-    public static String sigAlgJava(String sigAlg){
+    public static String sigAlgJava(String sigAlg) {
         String alg = sigAlgs.get(sigAlg);
 
         if (alg == null) {
@@ -65,7 +65,7 @@ public class JwtAlgorithms {
         return alg;
     }
 
-    public static String sigAlg(String javaName){
+    public static String sigAlg(String javaName) {
         String alg = JWSAlgorithm.parse(javaName).getName();
 
         if (alg == null) {

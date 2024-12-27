@@ -58,7 +58,7 @@ public class HttpHeadersFilterRequestWrapper extends HttpServletRequestWrapper {
     @Override
     public Enumeration<String> getHeaderNames() {
         List<String> headerNames = Collections.list(super.getHeaderNames());
-        headerNames.removeIf(header -> shouldFilter(header));
+        headerNames.removeIf(this::shouldFilter);
         return Collections.enumeration(headerNames);
     }
 }

@@ -26,7 +26,7 @@ public interface InternalLimiterFactoriesSupplier {
      * @param info used to extract the <code>path</code> and supply caller IDs based on the available <code>InternalLimiterFactory</code>
      * @return LinkedHashMapMap (ordered iteration) of <code>InternalLimiterFactory</code> by <code>compoundKey</code>, in locking order (non-Global -> Global)
      */
-    LinkedHashMap<CompoundKey, InternalLimiterFactory> factoryMapFor( RequestInfo info );
+    LinkedHashMap<CompoundKey, InternalLimiterFactory> factoryMapFor(RequestInfo info);
 
     @NotNull
     default LoggingOption getLoggingOption() {
@@ -47,7 +47,7 @@ public interface InternalLimiterFactoriesSupplier {
 
     InternalLimiterFactoriesSupplier NOOP = info -> null;
 
-    static InternalLimiterFactoriesSupplier deNull( InternalLimiterFactoriesSupplier supplier ) {
-        return (supplier != null) ? supplier : NOOP;
+    static InternalLimiterFactoriesSupplier deNull(InternalLimiterFactoriesSupplier supplier) {
+        return supplier != null ? supplier : NOOP;
     }
 }

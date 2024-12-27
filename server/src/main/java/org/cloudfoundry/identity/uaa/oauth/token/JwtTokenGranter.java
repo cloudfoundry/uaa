@@ -18,24 +18,24 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 public class JwtTokenGranter extends AbstractTokenGranter {
     final DefaultSecurityContextAccessor defaultSecurityContextAccessor;
 
-    protected JwtTokenGranter(AuthorizationServerTokenServices tokenServices,
-                              MultitenantClientServices clientDetailsService,
-                              OAuth2RequestFactory requestFactory) {
+    public JwtTokenGranter(AuthorizationServerTokenServices tokenServices,
+            MultitenantClientServices clientDetailsService,
+            OAuth2RequestFactory requestFactory) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_JWT_BEARER);
         defaultSecurityContextAccessor = new DefaultSecurityContextAccessor();
     }
 
     protected Authentication validateRequest(TokenRequest request) {
         if (defaultSecurityContextAccessor.isUser()) {
-            if( request == null ||
-                request.getRequestParameters() == null ||
-                request.getRequestParameters().isEmpty()) {
+            if (request == null ||
+                    request.getRequestParameters() == null ||
+                    request.getRequestParameters().isEmpty()) {
                 throw new InvalidGrantException("Missing token request object");
             }
-            if(request.getRequestParameters().get("grant_type") == null) {
+            if (request.getRequestParameters().get("grant_type") == null) {
                 throw new InvalidGrantException("Missing grant type");
             }
-            if(!GRANT_TYPE_JWT_BEARER.equals(request.getRequestParameters().get("grant_type"))) {
+            if (!GRANT_TYPE_JWT_BEARER.equals(request.getRequestParameters().get("grant_type"))) {
                 throw new InvalidGrantException("Invalid grant type");
             }
         } else {

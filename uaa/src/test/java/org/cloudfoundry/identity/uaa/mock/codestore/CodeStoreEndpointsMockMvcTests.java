@@ -43,9 +43,9 @@ class CodeStoreEndpointsMockMvcTests {
 
     @BeforeEach
     void setUp(@Autowired JdbcTemplate jdbcTemplate,
-               @Autowired JdbcExpiringCodeStore jdbcExpiringCodeStore,
-               @Autowired MockMvc mockMvc,
-               @Autowired TestClient testClient) throws Exception {
+            @Autowired JdbcExpiringCodeStore jdbcExpiringCodeStore,
+            @Autowired MockMvc mockMvc,
+            @Autowired TestClient testClient) throws Exception {
         this.jdbcTemplate = jdbcTemplate;
         this.jdbcExpiringCodeStore = jdbcExpiringCodeStore;
         this.mockMvc = mockMvc;

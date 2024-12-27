@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -24,9 +25,9 @@ public class ExternalGroupAuthorizationEvent extends AuthEvent {
         return externalAuthorities;
     }
 
-    private Collection<? extends GrantedAuthority> externalAuthorities;
+    private final Collection<? extends GrantedAuthority> externalAuthorities;
 
-    private boolean addGroups = false;
+    private final boolean addGroups;
 
     public ExternalGroupAuthorizationEvent(UaaUser user, boolean userModified, Collection<? extends GrantedAuthority> externalAuthorities, boolean addGroups) {
         super(user, userModified);

@@ -8,12 +8,12 @@ import static org.junit.Assert.assertNotNull;
 
 class RateLimitStatusControllerTest {
 
-  RateLimitStatusController rateLimitStatusController = new RateLimitStatusController();
+    RateLimitStatusController rateLimitStatusController = new RateLimitStatusController();
 
-  @Test
-  void rateLimitStatus() {
-    String responseEntity = rateLimitStatusController.rateLimitStatus();
-    assertNotNull(responseEntity);
-    assertThat(responseEntity, containsString("\"status\" : \"DISABLED\""));
-  }
+    @Test
+    void rateLimitStatus() {
+        String responseEntity = rateLimitStatusController.rateLimitStatus();
+        assertNotNull(responseEntity);
+        assertThat(responseEntity, containsString("\"status\" : \"DISABLED\""));
+    }
 }

@@ -125,7 +125,7 @@ class ForcePasswordChangeControllerMockMvcTest {
                     .with(cookieCsrf());
             mockMvc.perform(validPost)
                     .andExpect(status().isFound())
-                    .andExpect(redirectedUrl(("/force_password_change_completed")));
+                    .andExpect(redirectedUrl("/force_password_change_completed"));
             assertTrue(((SecurityContext) ((HttpSession) session).getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).getAuthentication().isAuthenticated());
             assertFalse(SessionUtils.isPasswordChangeRequired(session));
 
@@ -148,7 +148,7 @@ class ForcePasswordChangeControllerMockMvcTest {
         @BeforeEach
         void setup() {
             identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaaZoneId());
-            cleanIdpDefinition = ((UaaIdentityProviderDefinition) identityProvider.getConfig());
+            cleanIdpDefinition = (UaaIdentityProviderDefinition) identityProvider.getConfig();
         }
 
         @AfterEach
@@ -221,7 +221,7 @@ class ForcePasswordChangeControllerMockMvcTest {
                     get("/")
                             .session(session)
             )
-                    .andExpect(status().isFound())
+            .andExpect(status().isFound())
                     .andExpect(redirectedUrl("/force_password_change"));
 
             MockHttpServletRequestBuilder validPost = post("/force_password_change")
@@ -232,7 +232,7 @@ class ForcePasswordChangeControllerMockMvcTest {
 
             mockMvc.perform(validPost)
                     .andExpect(status().isFound())
-                    .andExpect(redirectedUrl(("/force_password_change_completed")));
+                    .andExpect(redirectedUrl("/force_password_change_completed"));
 
             mockMvc.perform(get("/force_password_change_completed")
                     .session(session))
@@ -262,7 +262,7 @@ class ForcePasswordChangeControllerMockMvcTest {
         validPost.with(cookieCsrf());
         mockMvc.perform(validPost)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl(("http://localhost/login")));
+                .andExpect(redirectedUrl("http://localhost/login"));
     }
 
 

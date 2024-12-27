@@ -62,7 +62,8 @@ public class SessionLossDuringOauthFlowIT {
     public RestOperations restTemplate;
 
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -81,22 +82,22 @@ public class SessionLossDuringOauthFlowIT {
 
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
 
     @Test
     public void testApprovingAnApp() {
         ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
-            HttpMethod.GET,
-            null,
-            new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
-            },
-            "cloud_controller.read");
+                HttpMethod.GET,
+                null,
+                new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
+                },
+                "cloud_controller.read");
         ScimGroup group = getGroups.getBody().getResources().stream().findFirst().get();
 
         group.setDescription("Read about your clouds.");
@@ -146,8 +147,6 @@ public class SessionLossDuringOauthFlowIT {
 
         Assert.assertEquals("Sample Home Page", webDriver.findElement(By.cssSelector("h1")).getText());
     }
-
-
 
 
 }

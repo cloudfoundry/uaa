@@ -22,8 +22,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class HealthzEndpoint {
     private static Logger logger = LoggerFactory.getLogger(HealthzEndpoint.class);
-    private volatile boolean stopping = false;
-    private volatile Boolean wasLastConnectionSuccessful = null;
+    private volatile boolean stopping;
+    private volatile Boolean wasLastConnectionSuccessful;
     private DataSource dataSource;
 
     public HealthzEndpoint(

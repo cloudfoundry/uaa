@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.AfterAllCallback;
 import org.junit.jupiter.api.extension.BeforeAllCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 
+import javax.validation.constraints.NotNull;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
@@ -24,7 +25,14 @@ import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InMemoryLdapServer implements Closeable {
+/**
+ * In-memory LDAP server that runs on a random port, so that it avoids port collisions.
+ * <p>
+ * Can be run with or without TLS. Start a server with {@link InMemoryLdapServer#startLdap()}
+ * or {@link InMemoryLdapServer#startLdapWithTls(File keystore)}, then obtain the URL of the
+ * running LDAP server with {@link InMemoryLdapServer#getUrl()}.
+ */
+public final class InMemoryLdapServer implements Closeable {
     private static final String JAVAX_NET_SSL_TRUST_STORE = "javax.net.ssl.trustStore";
 
     private static final String[] DEFAULT_ROOTS = {
@@ -41,37 +49,32 @@ public class InMemoryLdapServer implements Closeable {
             InMemoryLdapServer.class.getClassLoader().getResource("ldap_init.ldif");
 
     private InMemoryDirectoryServer directoryServer;
-    private final int port;
 
-    private boolean tlsEnabled;
-    private int tlsPort;
-    private File keyStore;
-    private File trustStore;
+    private final boolean tlsEnabled;
+    private final File keyStore;
 
-    public static InMemoryLdapServer startLdap(int port) {
-        return startLdapWithTls(port, 0, null);
-    }
-
-    public static InMemoryLdapServer startLdapWithTls(int port, int tlsPort, File keyStore) {
-        InMemoryLdapServer server = new InMemoryLdapServer(port);
-        if (keyStore != null) {
-          server.configureStartTLS(tlsPort, keyStore, new File(TRUST_STORE_URL.getFile()));
-        }
+    public static InMemoryLdapServer startLdap() {
+        InMemoryLdapServer server = new InMemoryLdapServer();
         server.start();
         server.applyChangesFromLDIF(LDAP_INIT_LIDF_URL);
         return server;
     }
 
-    private InMemoryLdapServer(int port) {
-        this.tlsEnabled = false;
-        this.port = port;
+    public static InMemoryLdapServer startLdapWithTls(@NotNull File keyStore) {
+        InMemoryLdapServer server = new InMemoryLdapServer(keyStore);
+        server.start();
+        server.applyChangesFromLDIF(LDAP_INIT_LIDF_URL);
+        return server;
     }
 
-    private void configureStartTLS(int tlsPort, File keyStore, File trustStore) {
+    private InMemoryLdapServer() {
+        this.tlsEnabled = false;
+        this.keyStore = null;
+    }
+
+    private InMemoryLdapServer(File keyStore) {
         this.tlsEnabled = true;
-        this.tlsPort = tlsPort;
         this.keyStore = keyStore;
-        this.trustStore = trustStore;
     }
 
     public void start() {
@@ -92,12 +95,18 @@ public class InMemoryLdapServer implements Closeable {
         }
     }
 
-    public String getLdapBaseUrl() {
-        return "ldap://localhost:" + port;
+    /**
+     * Get the URL of the running LDAP server.
+     *
+     * @return -
+     */
+    public String getUrl() {
+        var scheme = this.tlsEnabled ? "ldaps" : "ldap";
+        return "%s://localhost:%s".formatted(scheme, getBoundPort());
     }
 
-    public String getLdapSBaseUrl() {
-        return "ldaps://localhost:" + tlsPort;
+    private Integer getBoundPort() {
+        return this.directoryServer.getListenPort();
     }
 
     public void stop() {
@@ -116,7 +125,6 @@ public class InMemoryLdapServer implements Closeable {
         InMemoryDirectoryServerConfig config = new InMemoryDirectoryServerConfig(DEFAULT_ROOTS);
 
         List<InMemoryListenerConfig> listenerConfigs = new ArrayList<>();
-        listenerConfigs.add(InMemoryListenerConfig.createLDAPConfig("LDAP", port));
         config.setEnforceSingleStructuralObjectClass(false);
         config.setEnforceAttributeSyntaxCompliance(true);
         config.setSchema(null);
@@ -128,18 +136,20 @@ public class InMemoryLdapServer implements Closeable {
                     : null;
             final SSLUtil serverSSLUtil = new SSLUtil(
                     keyStoreKeyManager,
-                    new TrustStoreTrustManager(trustStore)
+                    new TrustStoreTrustManager(TRUST_STORE_URL.getFile())
             );
 
             listenerConfigs.add(
                     InMemoryListenerConfig.createLDAPSConfig(
                             "LDAPS",
                             null,
-                            tlsPort,
+                            0,
                             serverSSLUtil.createSSLServerSocketFactory(),
                             clientSSLUtil.createSSLSocketFactory()
                     )
             );
+        } else {
+            listenerConfigs.add(InMemoryListenerConfig.createLDAPConfig("LDAP", 0));
         }
 
         config.setListenerConfigs(listenerConfigs);

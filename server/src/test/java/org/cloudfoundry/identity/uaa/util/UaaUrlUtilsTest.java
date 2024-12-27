@@ -16,13 +16,23 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 
@@ -558,7 +568,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void validateValidSubdomains() {
-         validSubdomains.forEach(testString -> assertTrue(UaaUrlUtils.isValidSubdomain(testString)));
+        validSubdomains.forEach(testString -> assertTrue(UaaUrlUtils.isValidSubdomain(testString)));
     }
 
     @Test
@@ -704,7 +714,6 @@ class UaaUrlUtilsTest {
     }
 
     private static List<String> convertToHttps(List<String> urls) {
-        return urls.stream().map(url -> url.replace("http:", "https:")).collect(Collectors.toList());
+        return urls.stream().map(url -> url.replace("http:", "https:")).toList();
     }
-
 }

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -53,7 +54,7 @@ public class CheckTokenEndpointIntegrationTests {
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
@@ -64,8 +65,8 @@ public class CheckTokenEndpointIntegrationTests {
         BasicCookieStore cookies = new BasicCookieStore();
 
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
-                        .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
-                        .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
+                .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
+                .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
         ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), getHeaders(cookies));
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
@@ -73,7 +74,7 @@ public class CheckTokenEndpointIntegrationTests {
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
 
@@ -82,7 +83,7 @@ public class CheckTokenEndpointIntegrationTests {
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
         // should be directed to the login screen...
@@ -103,7 +104,7 @@ public class CheckTokenEndpointIntegrationTests {
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
 
@@ -111,7 +112,7 @@ public class CheckTokenEndpointIntegrationTests {
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
         if (response.getStatusCode() == HttpStatus.OK) {
@@ -124,14 +125,13 @@ public class CheckTokenEndpointIntegrationTests {
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();
-        }
-        else {
+        } else {
             // Token cached so no need for second approval
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = response.getHeaders().getLocation().toString();
         }
         assertTrue("Wrong location: " + location,
-                        location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
+                location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
 
         formData.clear();
         formData.add("client_id", resource.getClientId());
@@ -140,17 +140,18 @@ public class CheckTokenEndpointIntegrationTests {
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
 
-        @SuppressWarnings("unchecked") OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
+        @SuppressWarnings("unchecked")
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
 
         HttpHeaders headers = new HttpHeaders();
-        formData = new LinkedMultiValueMap<String, String>();
+        formData = new LinkedMultiValueMap<>();
         headers.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         formData.add("token", accessToken.getValue());
 
         tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
@@ -168,7 +169,7 @@ public class CheckTokenEndpointIntegrationTests {
 
     @Test
     public void testUnauthorized() {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -184,7 +185,7 @@ public class CheckTokenEndpointIntegrationTests {
 
     @Test
     public void testForbidden() {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Basic " + new String(Base64.encode("cf:".getBytes(UTF_8))));
@@ -203,7 +204,7 @@ public class CheckTokenEndpointIntegrationTests {
     public void testInvalidScope() {
         OAuth2AccessToken accessToken = getAdminToken();
 
-        String requestBody = String.format("token=%s&scopes=%s", accessToken.getValue(), "uaa.resource%");
+        String requestBody = "token=%s&scopes=%s".formatted(accessToken.getValue(), "uaa.resource%");
 
         HttpHeaders headers = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
@@ -225,11 +226,11 @@ public class CheckTokenEndpointIntegrationTests {
     public void testValidPasswordGrant() {
         OAuth2AccessToken accessToken = getUserToken(null);
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         HttpHeaders tokenHeaders = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         formData.add("token", accessToken.getValue());
 
         @SuppressWarnings("rawtypes")
@@ -249,11 +250,11 @@ public class CheckTokenEndpointIntegrationTests {
     public void testAddidionalAttributes() {
         OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":\"domain\\\\group1\",\"external_id\":\"abcd1234\"}}");
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         HttpHeaders tokenHeaders = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         formData.add("token", accessToken.getValue());
 
         @SuppressWarnings("rawtypes")
@@ -273,11 +274,11 @@ public class CheckTokenEndpointIntegrationTests {
     public void testInvalidAddidionalAttributes() {
         OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":true,\"external_id\":{\"nested_group\":true,\"nested_id\":1234}} }");
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         HttpHeaders tokenHeaders = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         formData.add("token", accessToken.getValue());
 
         @SuppressWarnings("rawtypes")
@@ -317,8 +318,8 @@ public class CheckTokenEndpointIntegrationTests {
         formData.set("response_type", "token");
         formData.set("grant_type", "password");
         formData.set("token_format", "jwt");
-        if(optAdditionAttributes != null) {
-           formData.set("authorities", optAdditionAttributes);
+        if (optAdditionAttributes != null) {
+            formData.set("authorities", optAdditionAttributes);
         }
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));

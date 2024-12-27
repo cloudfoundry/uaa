@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -14,7 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 public class AutologinResponse {
 
-    private String code;
+    private final String code;
 
     public AutologinResponse(String code) {
         this.code = code;

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -19,7 +20,7 @@ public class PasswordChangeRequiredException extends InteractionRequiredExceptio
 
     private final UaaAuthentication authentication;
 
-    public PasswordChangeRequiredException (UaaAuthentication authentication, String msg) {
+    public PasswordChangeRequiredException(UaaAuthentication authentication, String msg) {
         super(msg);
         this.authentication = authentication;
     }

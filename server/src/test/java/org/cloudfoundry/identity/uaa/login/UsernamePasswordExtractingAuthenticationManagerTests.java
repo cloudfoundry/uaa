@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -34,10 +35,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
  */
 public class UsernamePasswordExtractingAuthenticationManagerTests {
 
-    private AuthenticationManager delegate = Mockito.mock(AuthenticationManager.class);
+    private final AuthenticationManager delegate = Mockito.mock(AuthenticationManager.class);
 
-    private UsernamePasswordExtractingAuthenticationManager manager = new UsernamePasswordExtractingAuthenticationManager(
-                    delegate);
+    private final UsernamePasswordExtractingAuthenticationManager manager = new UsernamePasswordExtractingAuthenticationManager(
+            delegate);
 
     @Before
     public void setUp() {
@@ -52,9 +53,9 @@ public class UsernamePasswordExtractingAuthenticationManagerTests {
     @Test
     public void testAuthenticate() {
         Authentication expected = new TestingAuthenticationToken("bar", "foo",
-                        AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
+                AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
         Mockito.when(delegate.authenticate(ArgumentMatchers.any(UsernamePasswordAuthenticationToken.class)))
-                        .thenReturn(expected);
+                .thenReturn(expected);
         Authentication output = manager.authenticate(new TestingAuthenticationToken("foo", "bar"));
         assertSame(expected, output);
     }
@@ -62,9 +63,9 @@ public class UsernamePasswordExtractingAuthenticationManagerTests {
     @Test
     public void testUsernamePassword() {
         Authentication expected = new UsernamePasswordAuthenticationToken("bar", "foo",
-                        AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
+                AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
         Mockito.when(delegate.authenticate(ArgumentMatchers.any(UsernamePasswordAuthenticationToken.class)))
-                        .thenReturn(expected);
+                .thenReturn(expected);
         Authentication output = manager.authenticate(expected);
         assertSame(expected, output);
     }

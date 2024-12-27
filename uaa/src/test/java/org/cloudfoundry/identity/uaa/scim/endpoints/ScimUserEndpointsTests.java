@@ -502,7 +502,7 @@ class ScimUserEndpointsTests {
         ScimGroupMember m2 = scimGroupMembershipManager.addMember(g1.getId(), m1, identityZone.getId());
         assertEquals(1, scimGroupMembershipManager.getMembers(g1.getId(), false, identityZone.getId()).size());
         scimUserEndpoints.deleteUser(newUser.getId(), Integer.toString(newUser.getMeta().getVersion()),
-            new MockHttpServletRequest(), new MockHttpServletResponse());
+                new MockHttpServletRequest(), new MockHttpServletResponse());
         assertEquals(0, scimGroupMembershipManager.getMembers(g1.getId(), false, identityZone.getId()).size());
     }
 

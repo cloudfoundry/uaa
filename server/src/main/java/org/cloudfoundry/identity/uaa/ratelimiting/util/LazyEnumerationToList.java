@@ -13,19 +13,19 @@ public class LazyEnumerationToList<T> implements Supplier<List<T>> {
     private List<T> value;
     private boolean vPopulated;
 
-    public LazyEnumerationToList( Supplier<Enumeration<T>> supplier ) {
+    public LazyEnumerationToList(Supplier<Enumeration<T>> supplier) {
         this.supplier = supplier;
     }
 
-    public LazyEnumerationToList( Enumeration<T> values ) {
+    public LazyEnumerationToList(Enumeration<T> values) {
         supplier = null;
         ivPopulated = true;
         intermediateValue = values;
     }
 
     public boolean hasValue() {
-        if ( !ivPopulated ) {
-            intermediateValue = (supplier != null) ? supplier.get() : null;
+        if (!ivPopulated) {
+            intermediateValue = supplier != null ? supplier.get() : null;
             ivPopulated = true;
         }
         return intermediateValue != null;
@@ -33,8 +33,8 @@ public class LazyEnumerationToList<T> implements Supplier<List<T>> {
 
     @Override
     public List<T> get() {
-        if ( !vPopulated ) {
-            value = hasValue() ? Collections.list( intermediateValue ) : Collections.emptyList();
+        if (!vPopulated) {
+            value = hasValue() ? Collections.list(intermediateValue) : Collections.emptyList();
             vPopulated = true;
         }
         return value;

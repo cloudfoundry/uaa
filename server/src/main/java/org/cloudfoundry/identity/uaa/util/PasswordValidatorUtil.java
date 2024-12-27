@@ -32,7 +32,8 @@ import java.util.Properties;
 
 public final class PasswordValidatorUtil {
 
-    private PasswordValidatorUtil() {}
+    private PasswordValidatorUtil() {
+    }
 
     public static PropertiesMessageResolver messageResolver(String messagesResourcePath) {
         final Properties props = new Properties();
@@ -48,21 +49,21 @@ public final class PasswordValidatorUtil {
 
 
     public static PasswordValidator validator(GenericPasswordPolicy<?> policy,
-                                              MessageResolver messageResolver) {
+            MessageResolver messageResolver) {
         List<Rule> rules = new ArrayList<>();
 
         //length is always a rule. We do not allow blank password
         int minLength = Math.max(1, policy.getMinLength());
-        int maxLength = policy.getMaxLength()>0 ? policy.getMaxLength() : Integer.MAX_VALUE;
+        int maxLength = policy.getMaxLength() > 0 ? policy.getMaxLength() : Integer.MAX_VALUE;
         rules.add(new LengthRule(minLength, maxLength));
 
-        if (policy.getRequireUpperCaseCharacter()>0) {
+        if (policy.getRequireUpperCaseCharacter() > 0) {
             rules.add(new CharacterRule(EnglishCharacterData.UpperCase, policy.getRequireUpperCaseCharacter()));
         }
-        if (policy.getRequireLowerCaseCharacter()>0) {
+        if (policy.getRequireLowerCaseCharacter() > 0) {
             rules.add(new CharacterRule(EnglishCharacterData.LowerCase, policy.getRequireLowerCaseCharacter()));
         }
-        if (policy.getRequireDigit()>0) {
+        if (policy.getRequireDigit() > 0) {
             rules.add(new CharacterRule(EnglishCharacterData.Digit, policy.getRequireDigit()));
         }
         if (policy.getRequireSpecialCharacter() > 0) {

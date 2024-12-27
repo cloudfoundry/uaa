@@ -20,22 +20,22 @@ public class CredentialIdTypeJWTjsonField extends CredentialIdTypeAbstractJWT {
     }
 
     @Override
-    public AuthorizationCredentialIdExtractor factory( String keyTypeParameters ) {
+    public AuthorizationCredentialIdExtractor factory(String keyTypeParameters) {
         // 'JWT:Claims:email'
-        String[] sectionAndField = StringUtils.stripToEmpty( keyTypeParameters ).split( ":" );
+        String[] sectionAndField = StringUtils.stripToEmpty(keyTypeParameters).split(":");
         String errorMsg;
-        if ( sectionAndField.length != 2 ) {
+        if (sectionAndField.length != 2) {
             errorMsg = sectionAndField.length + " values";
         } else {
-            int section = Section.sectionNumberFrom( sectionAndField[0], 1 );
+            int section = Section.sectionNumberFrom(sectionAndField[0], 1);
             String fieldName = sectionAndField[1].trim();
-            if ( !fieldName.isEmpty() ) {
+            if (!fieldName.isEmpty()) {
                 return new SectionFieldJWT( section, errorLogger, fieldName );
             }
             errorMsg = "NO field Name (after the ':')";
         }
         throw new RateLimitingConfigException( "Expected exactly two values to configure a JWTjsonField's" +
-                                               " section and field name, but got " + errorMsg + " from: " + keyTypeParameters );
+                " section and field name, but got " + errorMsg + " from: " + keyTypeParameters );
     }
 
     static class SectionFieldJWT extends SectionJWT {
@@ -43,33 +43,33 @@ public class CredentialIdTypeJWTjsonField extends CredentialIdTypeAbstractJWT {
         private final AuthorizationCredentialIdExtractorErrorLogger errorLogger;
         private final String field;
 
-        public SectionFieldJWT( int section,
-                                AuthorizationCredentialIdExtractorErrorLogger errorLogger,
-                                String field ) {
-            super( section );
+        public SectionFieldJWT(int section,
+                AuthorizationCredentialIdExtractorErrorLogger errorLogger,
+                String field) {
+            super(section);
             this.errorLogger = errorLogger;
             this.field = field;
         }
 
         @Override
-        protected String from( JWTparts jp ) {
-            String section = super.from( jp ); // Base64 encoded section
-            if ( section == null ) {
+        protected String from(JWTparts jp) {
+            String section = super.from(jp); // Base64 encoded section
+            if (section == null) {
                 return null;
             }
             String valueFound = null;
             try {
-                String json = decodeSection( section, this );
-                Map<?, ?> map = mapper.readValue( json, Map.class );
-                Object value = map.get( field );
-                if ( value != null ) {
+                String json = decodeSection(section, this);
+                Map<?, ?> map = mapper.readValue(json, Map.class);
+                Object value = map.get(field);
+                if (value != null) {
                     valueFound = value.toString();
                 }
             }
-            catch ( JsonProcessingException | RuntimeException e ) {
-                errorLogger.log( e );
+            catch (JsonProcessingException | RuntimeException e) {
+                errorLogger.log(e);
             }
-            return (valueFound == null) ? null : ("|" + valueFound + "|");
+            return valueFound == null ? null : ("|" + valueFound + "|");
         }
 
         @Override

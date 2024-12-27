@@ -39,12 +39,12 @@ import static org.springframework.restdocs.request.RequestDocumentation.requestP
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
-    private final String GROUP_ID_DESC = "The globally unique group ID";
-    private final String ORIGIN_DESC = "Unique alias of the identity provider";
-    private final String SCHEMAS_DESC = "`[\"urn:scim:schemas:core:1.0\"]`";
-    private final String VERSION_DESC = "The version of the group entity";
-    private final String DISPLAY_NAME_DESC = "The identifier specified upon creation of the group, unique within the identity zone";
-    private final String EXTERNAL_GROUP_DESCRIPTION = "The identifier for the group in external identity provider that needs to be mapped to internal UAA groups";
+    private static final String GROUP_ID_DESC = "The globally unique group ID";
+    private static final String ORIGIN_DESC = "Unique alias of the identity provider";
+    private static final String SCHEMAS_DESC = "`[\"urn:scim:schemas:core:1.0\"]`";
+    private static final String VERSION_DESC = "The version of the group entity";
+    private static final String DISPLAY_NAME_DESC = "The identifier specified upon creation of the group, unique within the identity zone";
+    private static final String EXTERNAL_GROUP_DESCRIPTION = "The identifier for the group in external identity provider that needs to be mapped to internal UAA groups";
 
     private static final HeaderDescriptor AUTHORIZATION_HEADER = headerWithName("Authorization").description("Bearer token with authorization for `scim.write` scope");
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
@@ -53,14 +53,14 @@ class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
     private final ParameterDescriptor externalGroup = parameterWithName("externalGroup").required().description(EXTERNAL_GROUP_DESCRIPTION);
 
     private final Snippet responseFields = responseFields(
-        fieldWithPath("groupId").description(GROUP_ID_DESC),
-        fieldWithPath("externalGroup").description(EXTERNAL_GROUP_DESCRIPTION),
-        fieldWithPath("displayName").description(DISPLAY_NAME_DESC),
-        fieldWithPath("origin").description(ORIGIN_DESC),
-        fieldWithPath("meta.version").description(VERSION_DESC),
-        fieldWithPath("meta.created").description("The time the group mapping was created"),
-        fieldWithPath("meta.lastModified").description("The time the group mapping was last updated"),
-        fieldWithPath("schemas").description(SCHEMAS_DESC)
+            fieldWithPath("groupId").description(GROUP_ID_DESC),
+            fieldWithPath("externalGroup").description(EXTERNAL_GROUP_DESCRIPTION),
+            fieldWithPath("displayName").description(DISPLAY_NAME_DESC),
+            fieldWithPath("origin").description(ORIGIN_DESC),
+            fieldWithPath("meta.version").description(VERSION_DESC),
+            fieldWithPath("meta.created").description("The time the group mapping was created"),
+            fieldWithPath("meta.lastModified").description("The time the group mapping was last updated"),
+            fieldWithPath("schemas").description(SCHEMAS_DESC)
     );
     private final ParameterDescriptor origin = parameterWithName("origin").required().description(ORIGIN_DESC);
 
@@ -97,11 +97,11 @@ class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
 
         createExternalGroupMappingHelper(group)
                 .andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                requestHeader, requestFields, responseFields));
+                        requestHeader, requestFields, responseFields));
     }
 
     @Test
-    void deleteExternalGroupMapping() throws Exception  {
+    void deleteExternalGroupMapping() throws Exception {
         ScimGroup group = new ScimGroup();
         group.setDisplayName("Group For Testing Deleting External Group Mapping");
         group = createGroup(mockMvc, scimWriteToken, group);
@@ -120,14 +120,14 @@ class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
         );
 
         MockHttpServletRequestBuilder delete =
-            delete(
-                "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}",
-                group.getId(),
-                scimGroupExternalMember.getExternalGroup(),
-                scimGroupExternalMember.getOrigin()
-            )
+                delete(
+                        "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}",
+                        group.getId(),
+                        scimGroupExternalMember.getExternalGroup(),
+                        scimGroupExternalMember.getOrigin()
+                )
                 .header("Authorization", "Bearer " + scimWriteToken)
-                .with(new DecodePathInfoPostProcessor());
+                        .with(new DecodePathInfoPostProcessor());
 
         mockMvc.perform(delete)
                 .andExpect(status().isOk())
@@ -137,7 +137,7 @@ class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void deleteExternalGroupMappingUsingName() throws Exception  {
+    void deleteExternalGroupMappingUsingName() throws Exception {
         ScimGroup group = new ScimGroup();
         group.setDisplayName("Group For Testing Deleting External Group Mapping By Name");
         group = createGroup(mockMvc, scimWriteToken, group);
@@ -156,14 +156,14 @@ class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
         );
 
         MockHttpServletRequestBuilder delete =
-            delete(
-                "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}",
-                group.getDisplayName(),
-                scimGroupExternalMember.getExternalGroup(),
-                scimGroupExternalMember.getOrigin()
-            )
+                delete(
+                        "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}",
+                        group.getDisplayName(),
+                        scimGroupExternalMember.getExternalGroup(),
+                        scimGroupExternalMember.getOrigin()
+                )
                 .header("Authorization", "Bearer " + scimWriteToken)
-                .with(new DecodePathInfoPostProcessor());
+                        .with(new DecodePathInfoPostProcessor());
 
         mockMvc.perform(delete)
                 .andExpect(status().isOk())
@@ -207,17 +207,17 @@ class ScimExternalGroupMappingsEndpointDocs extends EndpointDocs {
         );
 
         MockHttpServletRequestBuilder get = get("/Groups/External")
-            .header("Authorization", "Bearer " + scimReadToken)
-            .param("startIndex", "1")
-            .param("count", "50")
-            .param("origin", OriginKeys.LDAP)
-            .param("externalGroup", "")
-            .param("filter", "");
+                .header("Authorization", "Bearer " + scimReadToken)
+                .param("startIndex", "1")
+                .param("count", "50")
+                .param("origin", OriginKeys.LDAP)
+                .param("externalGroup", "")
+                .param("filter", "");
 
         mockMvc.perform(get)
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                         requestParameters, requestHeaders, responseFields));
+                        requestParameters, requestHeaders, responseFields));
     }
 
     private ResultActions createExternalGroupMappingHelper(ScimGroup group) throws Exception {

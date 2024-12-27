@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
+          xsi:schemaLocation="http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd">
 
     <http name="checkTokenSecurity" pattern="/check_token" create-session="stateless"
-          entry-point-ref="basicAuthenticationEntryPoint"
-          authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
-          xmlns="http://www.springframework.org/schema/security">
+                    entry-point-ref="basicAuthenticationEntryPoint"
+                    authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+                    xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="hasAuthority('uaa.resource')"/>
         <anonymous enabled="false"/>
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER"/>
@@ -15,9 +15,9 @@
     </http>
 
     <http name="introspectSecurity" pattern="/introspect" create-session="stateless"
-          entry-point-ref="basicAuthenticationEntryPoint"
-          authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
-          xmlns="http://www.springframework.org/schema/security">
+                    entry-point-ref="basicAuthenticationEntryPoint"
+                    authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+                    xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="hasAuthority('uaa.resource')"/>
         <anonymous enabled="false"/>
         <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>
@@ -29,9 +29,9 @@
 
 
     <http name="tokenKeySecurity" pattern="/token_key**" create-session="stateless"
-          entry-point-ref="basicAuthenticationEntryPoint"
-          authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
-          xmlns="http://www.springframework.org/schema/security">
+                    entry-point-ref="basicAuthenticationEntryPoint"
+                    authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+                    xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="isAnonymous() or isFullyAuthenticated()"/>
         <anonymous enabled="true"/>
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER"/>
@@ -40,9 +40,9 @@
     </http>
 
     <http name="clientInfoSecurity" pattern="/clientinfo" create-session="stateless"
-          entry-point-ref="basicAuthenticationEntryPoint"
-          authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
-          xmlns="http://www.springframework.org/schema/security">
+                    entry-point-ref="basicAuthenticationEntryPoint"
+                    authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+                    xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
         <anonymous enabled="false"/>
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER"/>
@@ -51,9 +51,9 @@
     </http>
 
     <http name="ratelimitSecurity" pattern="/RateLimitingStatus**" create-session="stateless"
-          entry-point-ref="basicAuthenticationEntryPoint"
-          authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
-          xmlns="http://www.springframework.org/schema/security">
+                    entry-point-ref="basicAuthenticationEntryPoint"
+                    authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
+                    xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="hasAuthority('uaa.admin')"/>
         <anonymous enabled="false"/>
         <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER"/>

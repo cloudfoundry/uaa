@@ -23,29 +23,29 @@ import static org.mockito.Mockito.when;
  * Scope: Test class
  */
 public class CheckTokenEndpointTest {
-	private CheckTokenEndpoint checkTokenEndpoint;
+    private CheckTokenEndpoint checkTokenEndpoint;
 
-	@Before
-	public void setUp() {
-		ResourceServerTokenServices resourceServerTokenServices = mock(ResourceServerTokenServices.class);
-		OAuth2AccessToken accessToken = mock(OAuth2AccessToken.class);
-		OAuth2Authentication authentication = mock(OAuth2Authentication.class);
-		when(resourceServerTokenServices.readAccessToken(anyString())).thenReturn(accessToken);
-		when(accessToken.isExpired()).thenReturn(false);
-		when(accessToken.getValue()).thenReturn("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c");
-		when(resourceServerTokenServices.loadAuthentication(accessToken.getValue())).thenReturn(authentication);
-		this.checkTokenEndpoint = new CheckTokenEndpoint(resourceServerTokenServices, new TimeServiceImpl());
+    @Before
+    public void setUp() {
+        ResourceServerTokenServices resourceServerTokenServices = mock(ResourceServerTokenServices.class);
+        OAuth2AccessToken accessToken = mock(OAuth2AccessToken.class);
+        OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+        when(resourceServerTokenServices.readAccessToken(anyString())).thenReturn(accessToken);
+        when(accessToken.isExpired()).thenReturn(false);
+        when(accessToken.getValue()).thenReturn("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c");
+        when(resourceServerTokenServices.loadAuthentication(accessToken.getValue())).thenReturn(authentication);
+        this.checkTokenEndpoint = new CheckTokenEndpoint(resourceServerTokenServices, new TimeServiceImpl());
 
-		AccessTokenConverter accessTokenConverter = mock(AccessTokenConverter.class);
-		when(accessTokenConverter.convertAccessToken(accessToken, authentication)).thenReturn(new HashMap());
-	}
+        AccessTokenConverter accessTokenConverter = mock(AccessTokenConverter.class);
+        when(accessTokenConverter.convertAccessToken(accessToken, authentication)).thenReturn(new HashMap());
+    }
 
-	// gh-1070
-	@Test
-	public void checkTokenWhenTokenValidThenReturnActiveAttribute() throws Exception {
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setParameter("token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c");
-		Claims claims = this.checkTokenEndpoint.checkToken(request);
-		assertNotNull(claims);
-	}
+    // gh-1070
+    @Test
+    public void checkTokenWhenTokenValidThenReturnActiveAttribute() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("token", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c");
+        Claims claims = this.checkTokenEndpoint.checkToken(request);
+        assertNotNull(claims);
+    }
 }

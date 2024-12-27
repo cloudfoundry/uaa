@@ -36,7 +36,7 @@ class ClientDetailsSupportsExtendedAuthoritesAndScopes {
                 int columnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName) && (scopeColumnName.equalsIgnoreCase(rscolumnName)
                         || authoritiesColumnName.equalsIgnoreCase(rscolumnName))) {
-                    assertTrue(columnSize > 4000, String.format("Table: %s Column: %s should be over 4000 chars", rstableName, rscolumnName));
+                    assertTrue(columnSize > 4000, "Table: %s Column: %s should be over 4000 chars".formatted(rstableName, rscolumnName));
                     foundTable = true;
                     if (scopeColumnName.equalsIgnoreCase(rscolumnName)) {
                         foundColumnScope = true;
@@ -45,8 +45,8 @@ class ClientDetailsSupportsExtendedAuthoritesAndScopes {
                     }
 
                     String columnType = rs.getString("TYPE_NAME");
-                    assertNotNull(String.format("Table: %s Column: %s should have a column type", rstableName, rscolumnName), columnType);
-                    assertThat(String.format("Table: %s Column: %s should be text, longtext, nvarchar or clob", rstableName, rscolumnName), columnType.toLowerCase(), isIn(Arrays.asList("text", "longtext", "nvarchar", "clob")));
+                    assertNotNull("Table: %s Column: %s should have a column type".formatted(rstableName, rscolumnName), columnType);
+                    assertThat("Table: %s Column: %s should be text, longtext, nvarchar or clob".formatted(rstableName, rscolumnName), columnType.toLowerCase(), isIn(Arrays.asList("text", "longtext", "nvarchar", "clob")));
                 }
             }
             rs.close();

@@ -41,7 +41,7 @@ public class FixFailedBackportMigrations_4_0_4  extends BaseJavaMigration {
 
     private static final Logger logger = LoggerFactory.getLogger(FixFailedBackportMigrations_4_0_4.class);
 
-    private String type;
+    private final String type;
 
     private final Map<String, String> scripts;
     private final String checkExistsSql = "SELECT count(*) FROM schema_version WHERE version = ?";
@@ -73,7 +73,7 @@ public class FixFailedBackportMigrations_4_0_4  extends BaseJavaMigration {
             int count = template.queryForObject(checkExistsSql, Integer.class, script.getKey());
             if (count == 0) {
                 String path = "org/cloudfoundry/identity/uaa/db/" + type + "/" + script.getValue();
-                logger.info(String.format("[4.0.4] Adding script for version %s with path %s", script.getKey(), path));
+                logger.info("[4.0.4] Adding script for version %s with path %s".formatted(script.getKey(), path));
                 populator.addScript(new ClassPathResource(path));
                 run = true;
             }

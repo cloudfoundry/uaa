@@ -35,7 +35,7 @@ import static org.junit.Assert.fail;
 
 public class RestrictUaaScopesClientValidatorTest {
 
-    List<String> goodScopes = Arrays.asList("openid","uaa.resource","uaa.none");
+    List<String> goodScopes = Arrays.asList("openid", "uaa.resource", "uaa.none");
     List<String> badScopes = new UaaScopes().getUaaScopes();
     RestrictUaaScopesClientValidator validator = new RestrictUaaScopesClientValidator(new UaaScopes());
 
@@ -43,26 +43,26 @@ public class RestrictUaaScopesClientValidatorTest {
     public void testValidate() {
         List<ClientDetailsValidator.Mode> restrictModes = Arrays.asList(CREATE, MODIFY);
         List<ClientDetailsValidator.Mode> nonRestrictModes = Collections.singletonList(DELETE);
-        UaaClientDetails client = new UaaClientDetails("clientId","","","client_credentials,password","");
+        UaaClientDetails client = new UaaClientDetails("clientId", "", "", "client_credentials,password", "");
 
         for (String s : badScopes) {
             client.setScope(Collections.singletonList(s));
             validateClient(restrictModes, nonRestrictModes, client, s);
-            client.setScope(Collections.EMPTY_LIST);
+            client.setScope(Collections.emptyList());
             client.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority(s)));
             validateClient(restrictModes, nonRestrictModes, client, s);
-            client.setAuthorities(Collections.EMPTY_LIST);
+            client.setAuthorities(Collections.emptyList());
         }
 
         for (String s : goodScopes) {
             List<ClientDetailsValidator.Mode> goodmodes = new LinkedList<>(restrictModes);
             goodmodes.addAll(nonRestrictModes);
             client.setScope(Collections.singletonList(s));
-            validateClient(Collections.EMPTY_LIST, goodmodes, client, s);
-            client.setScope(Collections.EMPTY_LIST);
+            validateClient(Collections.emptyList(), goodmodes, client, s);
+            client.setScope(Collections.emptyList());
             client.setAuthorities(Collections.singletonList(new SimpleGrantedAuthority(s)));
-            validateClient(Collections.EMPTY_LIST, goodmodes, client, s);
-            client.setAuthorities(Collections.EMPTY_LIST);
+            validateClient(Collections.emptyList(), goodmodes, client, s);
+            client.setAuthorities(Collections.emptyList());
         }
 
     }
@@ -71,7 +71,7 @@ public class RestrictUaaScopesClientValidatorTest {
         for (ClientDetailsValidator.Mode m : restrictModes) {
             try {
                 validator.validate(client, m);
-                fail("Scope:"+s+" should not be valid during "+m+" mode.");
+                fail("Scope:" + s + " should not be valid during " + m + " mode.");
             } catch (InvalidClientDetailsException x) {
                 //expected
             }
@@ -80,7 +80,7 @@ public class RestrictUaaScopesClientValidatorTest {
             try {
                 validator.validate(client, m);
             } catch (InvalidClientDetailsException x) {
-                fail("Scope:"+s+" should be valid during "+m+" mode.");
+                fail("Scope:" + s + " should be valid during " + m + " mode.");
             }
         }
     }

@@ -23,15 +23,19 @@ public class EncryptionKeyServiceTest {
     @Before
     public void setup() {
         encryptionKeys = new ArrayList<>();
-        encryptionKeys.add(new EncryptionKeyService.EncryptionKey() {{
-            put("label", "active-key");
-            put("passphrase", "some-passphrase");
-        }});
+        encryptionKeys.add(new EncryptionKeyService.EncryptionKey() {
+            {
+                put("label", "active-key");
+                put("passphrase", "some-passphrase");
+            }
+        });
 
-        encryptionKeys.add(new EncryptionKeyService.EncryptionKey() {{
-            put("label", "active-key2");
-            put("passphrase", "some-passphrase2");
-        }});
+        encryptionKeys.add(new EncryptionKeyService.EncryptionKey() {
+            {
+                put("label", "active-key2");
+                put("passphrase", "some-passphrase2");
+            }
+        });
 
         encryptionKeyService = new EncryptionKeyService("active-key", encryptionKeys);
     }
@@ -53,7 +57,7 @@ public class EncryptionKeyServiceTest {
     public void shouldThrowErrorIfActiveEncryptionKeyHasNotBeenProvided() {
         String activeKeyLabel = "active-key" + System.currentTimeMillis();
         expectedException.expect(NoActiveEncryptionKeyProvided.class);
-        expectedException.expectMessage(String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined", activeKeyLabel));
+        expectedException.expectMessage("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s] is undefined".formatted(activeKeyLabel));
 
         encryptionKeyService = new EncryptionKeyService(activeKeyLabel, new ArrayList<>());
     }
@@ -67,7 +71,7 @@ public class EncryptionKeyServiceTest {
     @Test
     public void shouldNotThrowErrorIfNoActiveKeyLabelIsProvided() {
         encryptionKeyService =
-            new EncryptionKeyService(null, null);
+                new EncryptionKeyService(null, null);
         assertNull(encryptionKeyService.getActiveKey());
     }
 
@@ -76,16 +80,22 @@ public class EncryptionKeyServiceTest {
         expectedException.expect(NoActiveEncryptionKeyProvided.class);
         expectedException.expectMessage("The required length of the encryption passphrases for [label=key-1, label=key-2] need to be at least 8 characters long.");
 
-        encryptionKeyService = new EncryptionKeyService("key-1", Lists.newArrayList(new EncryptionKeyService.EncryptionKey() {{
-            put("label", "key-1");
-            put("passphrase", "a");
-        }}, new EncryptionKeyService.EncryptionKey() {{
-            put("label", "key-2");
-            put("passphrase", "aaaaaaa");
-        }}, new EncryptionKeyService.EncryptionKey() {{
-            put("label", "key-3");
-            put("passphrase", "aaaaaaaa");
-        }}));
+        encryptionKeyService = new EncryptionKeyService("key-1", Lists.newArrayList(new EncryptionKeyService.EncryptionKey() {
+            {
+                put("label", "key-1");
+                put("passphrase", "a");
+            }
+        }, new EncryptionKeyService.EncryptionKey() {
+            {
+                put("label", "key-2");
+                put("passphrase", "aaaaaaa");
+            }
+        }, new EncryptionKeyService.EncryptionKey() {
+            {
+                put("label", "key-3");
+                put("passphrase", "aaaaaaaa");
+            }
+        }));
     }
 
     @Test
@@ -93,10 +103,9 @@ public class EncryptionKeyServiceTest {
         expectedException.expect(NoActiveEncryptionKeyProvided.class);
         expectedException.expectMessage("UAA cannot be started as multiple keys have the same label in uaa.encryption.encryption_keys/[label=key-1]");
 
-        EncryptionKeyService.EncryptionKey key1 = new EncryptionKeyService.EncryptionKey() {{
-            put("label", "key-1");
-            put("passphrase", Strings.repeat("a", 8));
-        }};
+        EncryptionKeyService.EncryptionKey key1 = new EncryptionKeyService.EncryptionKey();
+        key1.put("label", "key-1");
+        key1.put("passphrase", Strings.repeat("a", 8));
 
         encryptionKeyService = new EncryptionKeyService("key-1", Lists.newArrayList(key1, key1));
     }
@@ -108,7 +117,7 @@ public class EncryptionKeyServiceTest {
 
         expectedException.expect(NoActiveEncryptionKeyProvided.class);
         expectedException.expectMessage(
-          String.format("UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s, label=%s] is undefined", key2, key3)
+                "UAA cannot be started as encryption key passphrase for uaa.encryption.encryption_keys/[label=%s, label=%s] is undefined".formatted(key2, key3)
         );
 
         EncryptionKeyService.EncryptionKey activeEncryptionKey = new EncryptionKeyService.EncryptionKey();
@@ -125,7 +134,7 @@ public class EncryptionKeyServiceTest {
         encryptionKey3.put("passphrase", "");
 
         encryptionKeyService =
-          new EncryptionKeyService("key1", Lists.newArrayList(activeEncryptionKey, encryptionKey2, encryptionKey3));
+                new EncryptionKeyService("key1", Lists.newArrayList(activeEncryptionKey, encryptionKey2, encryptionKey3));
     }
 
     @Test

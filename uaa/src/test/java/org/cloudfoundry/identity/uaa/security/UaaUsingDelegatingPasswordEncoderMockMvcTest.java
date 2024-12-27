@@ -68,7 +68,7 @@ class UaaUsingDelegatingPasswordEncoderMockMvcTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-        "client_id_with_no_password"
+            "client_id_with_no_password"
     })
     void tryToGetTokenWithEmtpyPasswordFails(String clientId) throws Exception {
         mockMvc.perform(post("/oauth/token")
@@ -77,7 +77,7 @@ class UaaUsingDelegatingPasswordEncoderMockMvcTest {
                 .param("client_id", clientId)
                 .param("client_secret", "")
                 .param("grant_type", "client_credentials"))
-            .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

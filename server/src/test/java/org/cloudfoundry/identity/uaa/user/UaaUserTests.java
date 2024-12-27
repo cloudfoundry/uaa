@@ -63,7 +63,8 @@ class UaaUserTests {
 
             @Test
             void defaultsUsernameToUnknownWhenNoEmailPresent() {
-                UaaUser user = UaaUser.createWithDefaults(u -> {});
+                UaaUser user = UaaUser.createWithDefaults(u -> {
+                });
                 assertThat(user, is(aUaaUser().withUsername(UaaUser.DEFAULT_USER_NAME)));
             }
         }

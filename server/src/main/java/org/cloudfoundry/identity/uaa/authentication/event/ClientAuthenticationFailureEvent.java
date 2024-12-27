@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -17,10 +18,10 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
-public class ClientAuthenticationFailureEvent extends AbstractUaaAuthenticationEvent{
+public class ClientAuthenticationFailureEvent extends AbstractUaaAuthenticationEvent {
 
-    private String clientId;
-    private AuthenticationException ex;
+    private final String clientId;
+    private final AuthenticationException ex;
 
     public ClientAuthenticationFailureEvent(Authentication authentication, AuthenticationException ex, String zoneId) {
         super(authentication, zoneId);
@@ -31,7 +32,7 @@ public class ClientAuthenticationFailureEvent extends AbstractUaaAuthenticationE
     @Override
     public AuditEvent getAuditEvent() {
         return createAuditRecord(clientId, AuditEventType.ClientAuthenticationFailure,
-            getOrigin(getAuthenticationDetails()), ex.getMessage());
+                getOrigin(getAuthenticationDetails()), ex.getMessage());
     }
 
     public String getClientId() {

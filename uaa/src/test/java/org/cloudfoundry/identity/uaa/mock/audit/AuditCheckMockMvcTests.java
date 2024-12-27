@@ -10,24 +10,46 @@ import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.audit.*;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
+import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
+import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.AuditListener;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.event.*;
+import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.event.AbstractClientAdminEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.*;
+import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
+import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
+import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -51,9 +73,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Utf8;
-import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
-import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -64,27 +83,48 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.security.MessageDigest;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static java.lang.String.format;
 import static java.util.stream.Collectors.joining;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.*;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.RegexMatcher.matchesRegex;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.httpBearer;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.startsWith;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-import static org.springframework.http.HttpHeaders.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.Base64Utils.encode;
 
 @DefaultTestContext
@@ -100,7 +140,7 @@ class AuditCheckMockMvcTests {
     @Autowired
     @Qualifier("uaaUserDatabaseAuthenticationManager")
     private AuthzAuthenticationManager mgr;
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
+    private final RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
     private String adminToken;
     private UaaAuditService mockAuditService;
     private AuditListener auditListener;
@@ -186,14 +226,12 @@ class AuditCheckMockMvcTests {
         UaaClientDetails client = new UaaClientDetails(clientId, resource, scopes, grantTypes, authorities);
         client.setClientSecret(clientSecret);
 
-        mockMvc.perform(
-                post("/oauth/clients")
-                        .header(AUTHORIZATION, "Bearer " + adminToken)
-                        .header(ACCEPT, APPLICATION_JSON_VALUE)
-                        .header(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-                        .content(JsonUtils.writeValueAsString(client))
-        )
-                .andExpect(status().isCreated());
+        mockMvc.perform(post("/oauth/clients")
+                .header(AUTHORIZATION, "Bearer " + adminToken)
+                .header(ACCEPT, APPLICATION_JSON_VALUE)
+                .header(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                .content(JsonUtils.writeValueAsString(client))
+        ).andExpect(status().isCreated());
         assertSingleAuditEventFiredWith(ClientCreateSuccess, new String[]{"scope1", "scope2", "scope3"}, new String[]{"uaa.resource", "uaa.admin"});
 
         resetAuditTestReceivers();
@@ -201,14 +239,12 @@ class AuditCheckMockMvcTests {
         client.setScope(Arrays.asList("scope4", "scope5"));
         client.setAuthorities(Arrays.asList(new SimpleGrantedAuthority("authority1"), new SimpleGrantedAuthority("authority2")));
 
-        mockMvc.perform(
-                put("/oauth/clients/" + clientId)
-                        .header(AUTHORIZATION, "Bearer " + adminToken)
-                        .header(ACCEPT, APPLICATION_JSON_VALUE)
-                        .header(CONTENT_TYPE, APPLICATION_JSON_VALUE)
-                        .content(JsonUtils.writeValueAsString(client))
-        )
-                .andExpect(status().isOk());
+        mockMvc.perform(put("/oauth/clients/" + clientId)
+                .header(AUTHORIZATION, "Bearer " + adminToken)
+                .header(ACCEPT, APPLICATION_JSON_VALUE)
+                .header(CONTENT_TYPE, APPLICATION_JSON_VALUE)
+                .content(JsonUtils.writeValueAsString(client))
+        ).andExpect(status().isOk());
         assertSingleAuditEventFiredWith(ClientUpdateSuccess, new String[]{"scope4", "scope5"}, new String[]{"authority1", "authority2"});
     }
 
@@ -290,7 +326,8 @@ class AuditCheckMockMvcTests {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/login?error=login_failure"));
 
-        assertNumberOfAuditEventsReceived(3);
+        // When the profile is ldap, an extra event is emitted
+        assertNumberOfAuditEventsReceived(greaterThanOrEqualTo(3));
 
         IdentityProviderAuthenticationFailureEvent idpAuthFailEvent = (IdentityProviderAuthenticationFailureEvent) testListener.getEvents().get(0);
         assertEquals(testUser.getUserName(), idpAuthFailEvent.getUsername());
@@ -417,7 +454,8 @@ class AuditCheckMockMvcTests {
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().string("{\"error\":\"authentication failed\"}"));
 
-        assertNumberOfAuditEventsReceived(3);
+        // When the profile is ldap, an extra event is emitted
+        assertNumberOfAuditEventsReceived(greaterThanOrEqualTo(3));
 
         IdentityProviderAuthenticationFailureEvent event1 = (IdentityProviderAuthenticationFailureEvent) testListener.getEvents().get(0);
         UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent) testListener.getEvents().get(1);
@@ -484,7 +522,8 @@ class AuditCheckMockMvcTests {
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/login?error=login_failure"));
 
-        assertNumberOfAuditEventsReceived(2);
+        // When the profile is ldap, an extra event is emitted
+        assertNumberOfAuditEventsReceived(greaterThanOrEqualTo(2));
 
         UserNotFoundEvent event1 = (UserNotFoundEvent) testListener.getEvents().get(0);
         assertTrue(event1.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
@@ -600,10 +639,12 @@ class AuditCheckMockMvcTests {
                 .contentType(MediaType.APPLICATION_JSON)
                 .session(session)
                 .header("Authorization", "Bearer " + marissaToken)
-                .content("{\n" +
-                        "  \"password\": \"Koala2\",\n" +
-                        "  \"oldPassword\": \"invalid\"\n" +
-                        "}");
+                .content("""
+                        {
+                          "password": "Koala2",
+                          "oldPassword": "invalid"
+                        }\
+                        """);
 
         resetAuditTestReceivers();
         mockMvc.perform(changePasswordPut).andExpect(status().isUnauthorized());
@@ -666,7 +707,7 @@ class AuditCheckMockMvcTests {
     @Test
     void clientAuthenticationSuccess() throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64(("login:loginsecret").getBytes()));
+                + new String(Base64.encodeBase64("login:loginsecret".getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
@@ -686,7 +727,7 @@ class AuditCheckMockMvcTests {
     @Test
     void clientAuthenticationFailure() throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64(("login:loginsecretwrong").getBytes()));
+                + new String(Base64.encodeBase64("login:loginsecretwrong".getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
@@ -706,7 +747,7 @@ class AuditCheckMockMvcTests {
     @Test
     void clientAuthenticationFailureClientNotFound() throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64(("login2:loginsecret").getBytes()));
+                + new String(Base64.encodeBase64("login2:loginsecret".getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
@@ -791,7 +832,7 @@ class AuditCheckMockMvcTests {
 
         ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
-        String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
+        String logMessage = "[\"user_id=%s\",\"username=%s\"]".formatted(
                 createdUser.getId(),
                 scimUser.getUserName());
         assertLogMessageWithSession(testLogger.getLatestMessage(),
@@ -853,14 +894,14 @@ class AuditCheckMockMvcTests {
             ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(zoneSeeder.getIdentityZoneId())
                     .stream().filter(dbUser -> dbUser.getUserName().equals(scimUser.getUserName())).findFirst().get();
 
-            String logMessage = format(" ('[\"user_id=%s\",\"username=%s\"]'): ",
+            String logMessage = " ('[\"user_id=%s\",\"username=%s\"]'): ".formatted(
                     createdUser.getId(),
                     scimUser.getUserName());
             String actualLogMessage = testLogger.getLatestMessage();
             assertThat(actualLogMessage, startsWith(UserCreatedEvent.toString() + " "));
-            assertThat(actualLogMessage, containsString(format("principal=%s,", createdUser.getId())));
+            assertThat(actualLogMessage, containsString("principal=%s,".formatted(createdUser.getId())));
             assertThat(actualLogMessage, containsString(logMessage));
-            assertThat(actualLogMessage, containsString(format(", identityZoneId=[%s]", zoneSeeder.getIdentityZoneId())));
+            assertThat(actualLogMessage, containsString(", identityZoneId=[%s]".formatted(zoneSeeder.getIdentityZoneId())));
             assertThat(actualLogMessage, matchesRegex(".*origin=\\[.*sessionId=<SESSION>.*\\].*"));
         }
 
@@ -895,14 +936,14 @@ class AuditCheckMockMvcTests {
 
             assertNumberOfAuditEventsReceived(2);
 
-            String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
+            String logMessage = "[\"user_id=%s\",\"username=%s\"]".formatted(
                     scimUser.getId(),
                     scimUser.getUserName());
             String actualLogMessage = testLogger.getLatestMessage();
             assertThat(actualLogMessage, startsWith(UserDeletedEvent.toString() + " "));
-            assertThat(actualLogMessage, containsString(format("principal=%s,", scimUser.getId())));
-            assertThat(actualLogMessage, containsString(format(" ('%s'): ", logMessage)));
-            assertThat(actualLogMessage, containsString(format(", identityZoneId=[%s]", zoneSeeder.getIdentityZoneId())));
+            assertThat(actualLogMessage, containsString("principal=%s,".formatted(scimUser.getId())));
+            assertThat(actualLogMessage, containsString(" ('%s'): ".formatted(logMessage)));
+            assertThat(actualLogMessage, containsString(", identityZoneId=[%s]".formatted(zoneSeeder.getIdentityZoneId())));
             assertThat(actualLogMessage, matchesRegex(".*origin=\\[.*sessionId=<SESSION>.*\\].*"));
         }
 
@@ -950,7 +991,7 @@ class AuditCheckMockMvcTests {
         ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(identityZoneManager.getCurrentIdentityZoneId())
                 .stream().filter(dbUser -> dbUser.getUserName().equals(username)).findFirst().get();
 
-        String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
+        String logMessage = "[\"user_id=%s\",\"username=%s\"]".formatted(
                 createdUser.getId(),
                 username);
 
@@ -1018,7 +1059,7 @@ class AuditCheckMockMvcTests {
             assertEquals(UserModifiedEvent, userModifiedEvent.getAuditEvent().getType());
             assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
-            String logMessage = format("[\"user_id=%s\",\"username=%s\"]", scimUser.getId(), scimUser.getUserName());
+            String logMessage = "[\"user_id=%s\",\"username=%s\"]".formatted(scimUser.getId(), scimUser.getUserName());
             assertLogMessageWithSession(testLogger.getLatestMessage(),
                     UserModifiedEvent,
                     scimUser.getId(),
@@ -1047,7 +1088,7 @@ class AuditCheckMockMvcTests {
             assertEquals(UserDeletedEvent, userDeletedEvent.getAuditEvent().getType());
             assertTrue(userDeletedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
-            String logMessage = format("[\"user_id=%s\",\"username=%s\"]",
+            String logMessage = "[\"user_id=%s\",\"username=%s\"]".formatted(
                     scimUser.getId(),
                     scimUser.getUserName());
             assertLogMessageWithSession(testLogger.getLatestMessage(),
@@ -1062,7 +1103,10 @@ class AuditCheckMockMvcTests {
                 testAccounts.getAdminClientSecret(),
                 "uaa.admin,scim.write");
 
-        String username = "jacob", firstName = "Jacob", lastName = "Gyllenhammar", email = "jacob@gyllenhammar.non";
+        String username = "jacob";
+        String firstName = "Jacob";
+        String lastName = "Gyllenhammar";
+        String email = "jacob@gyllenhammar.non";
         ScimUser user = new ScimUser();
         user.setPassword("password");
         user.setUserName(username);
@@ -1099,7 +1143,7 @@ class AuditCheckMockMvcTests {
         assertTrue(userModifiedEvent.getAuditEvent().getOrigin().contains("sessionId=<SESSION>"));
 
         assertLogMessageWithSession(testLogger.getLatestMessage(),
-                UserVerifiedEvent, user.getId(), format("[\"user_id=%s\",\"username=%s\"]", user.getId(), username));
+                UserVerifiedEvent, user.getId(), "[\"user_id=%s\",\"username=%s\"]".formatted(user.getId(), username));
     }
 
     @Test
@@ -1180,7 +1224,7 @@ class AuditCheckMockMvcTests {
                         GroupModifiedEvent.GroupInfo.class)
         );
 
-        verifyGroupAuditData(group, groupMemberIds, GroupCreatedEvent);
+        verifyGroupAuditData(groupMemberIds, GroupCreatedEvent);
 
         assertGroupMembershipLogMessage(testLogger.getLatestMessage(),
                 GroupCreatedEvent, group.getDisplayName(), group.getId(), jacob.getId(), emily.getId());
@@ -1213,7 +1257,7 @@ class AuditCheckMockMvcTests {
         assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), groupMemberIds),
                 JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
-        verifyGroupAuditData(group, groupMemberIds, GroupModifiedEvent);
+        verifyGroupAuditData(groupMemberIds, GroupModifiedEvent);
 
         assertGroupMembershipLogMessage(testLogger.getLatestMessage(),
                 GroupModifiedEvent, group.getDisplayName(), group.getId(), jacob.getId(), emily.getId(), jonas.getId());
@@ -1239,7 +1283,7 @@ class AuditCheckMockMvcTests {
         assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), groupMemberIds),
                 JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
-        verifyGroupAuditData(group, groupMemberIds, GroupDeletedEvent);
+        verifyGroupAuditData(groupMemberIds, GroupDeletedEvent);
 
         assertGroupMembershipLogMessage(testLogger.getLatestMessage(),
                 GroupDeletedEvent, group.getDisplayName(), group.getId(), jacob.getId(), emily.getId(), jonas.getId());
@@ -1258,10 +1302,10 @@ class AuditCheckMockMvcTests {
         return user;
     }
 
-    private void verifyGroupAuditData(ScimGroup group, String[] groupMemberIds, AuditEventType eventType) {
+    private void verifyGroupAuditData(String[] groupMemberIds, AuditEventType eventType) {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
-        List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType() == eventType).collect(Collectors.toList());
+        List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType() == eventType).toList();
         assertNotNull(auditEvents);
         assertEquals(1, auditEvents.size());
         AuditEvent auditEvent = auditEvents.get(0);
@@ -1330,8 +1374,12 @@ class AuditCheckMockMvcTests {
     }
 
     private void assertNumberOfAuditEventsReceived(int expectedEventCount) {
-        assertEquals(expectedEventCount, testListener.getEventCount());
-        assertEquals(expectedEventCount, testLogger.getMessageCount());
+        assertNumberOfAuditEventsReceived(equalTo(expectedEventCount));
+    }
+
+    private void assertNumberOfAuditEventsReceived(org.hamcrest.Matcher<Integer> matcher) {
+        assertThat(testListener.getEventCount(), matcher);
+        assertThat(testLogger.getMessageCount(), matcher);
     }
 
     private void assertSingleAuditEventFiredWith(AuditEventType expectedEventType, String[] expectedScopes, String[] expectedAuthorities) {
@@ -1340,7 +1388,7 @@ class AuditCheckMockMvcTests {
     }
 
     private void assertSingleClientAdminAuditEventFiredWith(AuditEventType expectedEventType, String[] expectedScopes, String[] expectedAuthorities) {
-        List<AbstractUaaEvent> events = testListener.getEvents().stream().filter(e -> e instanceof AbstractClientAdminEvent).collect(Collectors.toList());
+        List<AbstractUaaEvent> events = testListener.getEvents().stream().filter(AbstractClientAdminEvent.class::isInstance).toList();
         assertNotNull(events);
         assertEquals(1, events.size());
 
@@ -1350,7 +1398,7 @@ class AuditCheckMockMvcTests {
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
         verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
 
-        List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType() == expectedEventType).collect(Collectors.toList());
+        List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType() == expectedEventType).toList();
         assertNotNull(auditEvents);
         assertEquals(1, auditEvents.size());
 
@@ -1375,31 +1423,31 @@ class AuditCheckMockMvcTests {
         String message = testLogger.getLatestMessage();
         assertThat(message, startsWith(expectedEventType.toString()));
         String commaSeparatedQuotedScopes = Arrays.stream(expectedScopes).map(s -> "\"" + s + "\"").collect(joining(","));
-        assertThat(message, containsString(format("\"scopes\":[%s]", commaSeparatedQuotedScopes)));
+        assertThat(message, containsString("\"scopes\":[%s]".formatted(commaSeparatedQuotedScopes)));
 
         String commaSeparatedQuotedAuthorities = Arrays.stream(expectedAuthorities).map(s -> "\"" + s + "\"").collect(joining(","));
-        assertThat(message, containsString(format("\"authorities\":[%s]", commaSeparatedQuotedAuthorities)));
+        assertThat(message, containsString("\"authorities\":[%s]".formatted(commaSeparatedQuotedAuthorities)));
     }
 
     private void assertLogMessageWithSession(String actualLogMessage, AuditEventType expectedAuditEventType, String expectedPrincipal, String expectedUserName) {
         assertThat(actualLogMessage, startsWith(expectedAuditEventType.toString() + " "));
-        assertThat(actualLogMessage, containsString(format("principal=%s,", expectedPrincipal)));
-        assertThat(actualLogMessage, containsString(format(" ('%s'): ", expectedUserName)));
+        assertThat(actualLogMessage, containsString("principal=%s,".formatted(expectedPrincipal)));
+        assertThat(actualLogMessage, containsString(" ('%s'): ".formatted(expectedUserName)));
         assertThat(actualLogMessage, containsString(", identityZoneId=[uaa]"));
         assertThat(actualLogMessage, matchesRegex(".*origin=\\[.*sessionId=<SESSION>.*\\].*"));
     }
 
     private static void assertLogMessageWithoutSession(String actualLogMessage, AuditEventType expectedAuditEventType, String expectedPrincipal, String expectedUserName) {
         assertThat(actualLogMessage, startsWith(expectedAuditEventType.toString() + " "));
-        assertThat(actualLogMessage, containsString(format("principal=%s,", expectedPrincipal)));
-        assertThat(actualLogMessage, containsString(format(" ('%s'): ", expectedUserName)));
+        assertThat(actualLogMessage, containsString("principal=%s,".formatted(expectedPrincipal)));
+        assertThat(actualLogMessage, containsString(" ('%s'): ".formatted(expectedUserName)));
         assertThat(actualLogMessage, containsString(", identityZoneId=[uaa]"));
         assertThat(actualLogMessage, not(containsString("sessionId")));
     }
 
     private static void assertGroupMembershipLogMessage(String actualLogMessage, AuditEventType expectedEventType, String expectedGroupDisplayName, String expectedGroupId, String... expectedUserIds) {
         assertThat(actualLogMessage, startsWith(expectedEventType.toString() + " "));
-        assertThat(actualLogMessage, containsString(format("principal=%s,", expectedGroupId)));
+        assertThat(actualLogMessage, containsString("principal=%s,".formatted(expectedGroupId)));
         assertThat(actualLogMessage, not(containsString("sessionId")));
 
         Pattern groupLogPattern = Pattern.compile(" \\('\\{\"group_name\":\"" + Pattern.quote(expectedGroupDisplayName) + "\",\"members\":\\[(.*?)]}'\\): ");

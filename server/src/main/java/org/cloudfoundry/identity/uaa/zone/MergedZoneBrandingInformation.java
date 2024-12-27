@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 
-public class MergedZoneBrandingInformation implements BrandingInformationSource {
+public final class MergedZoneBrandingInformation implements BrandingInformationSource {
 
     private MergedZoneBrandingInformation() {
 
@@ -35,7 +35,7 @@ public class MergedZoneBrandingInformation implements BrandingInformationSource 
 
     public String getInlinedBase64PngLogo() {
         String logo = getProductLogo();
-        if ( logo != null ) {
+        if (logo != null) {
             logo = "data:image/png;base64," + logo;
         }
         return logo;

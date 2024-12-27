@@ -31,7 +31,8 @@ import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.util.StringUtils.hasLength;
 
 public abstract class UaaUrlUtils {
-    private UaaUrlUtils() {}
+    private UaaUrlUtils() {
+    }
 
     /** Pattern that matches valid subdomains.
     *  According to https://tools.ietf.org/html/rfc3986#section-3.2.2
@@ -112,10 +113,9 @@ public abstract class UaaUrlUtils {
 
         for (String pattern : ofNullable(redirectUris).orElse(emptyList())) {
             if (matcher.match(pattern, requestedRedirectUri)) {
-                if ( (!pattern.contains("*") && !pattern.contains("?")) || matchHost(pattern, requestedRedirectUri, matcher)) {
+                if ((!pattern.contains("*") && !pattern.contains("?")) || matchHost(pattern, requestedRedirectUri, matcher)) {
                     return requestedRedirectUri;
-                }
-                else {
+                } else {
                     s_logger.warn(
                             "The URI pattern matched but the hostname pattern did not. Denying the requested redirect URI: whitelisted-pattern='{}' requested-redirect-uri='{}'",
                             pattern, requestedRedirectUri);
@@ -156,7 +156,9 @@ public abstract class UaaUrlUtils {
             hostnameFromPattern = currentToken;
             break;
         }
-        if (hostnameFromPattern == null) return false;
+        if (hostnameFromPattern == null) {
+            return false;
+        }
 
         int colonLocation = hostnameFromPattern.indexOf(':');
         if (colonLocation > 0) {
@@ -224,7 +226,7 @@ public abstract class UaaUrlUtils {
     public static String addFragmentComponent(String urlString, String component) {
         URI uri = URI.create(urlString);
         UriComponentsBuilder builder = UriComponentsBuilder.fromUri(uri);
-        builder.fragment(hasText(uri.getFragment()) ? ( uri.getFragment() + "&" + component ) : component);
+        builder.fragment(hasText(uri.getFragment()) ? (uri.getFragment() + "&" + component) : component);
         return builder.build().toUriString();
     }
 
@@ -234,7 +236,7 @@ public abstract class UaaUrlUtils {
         }
 
         subdomain = subdomain.trim();
-        subdomain = subdomain.endsWith(".") ? subdomain : ( subdomain + "." );
+        subdomain = subdomain.endsWith(".") ? subdomain : (subdomain + ".");
 
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(url);
         builder.host(subdomain + builder.build().getHost());
@@ -244,7 +246,7 @@ public abstract class UaaUrlUtils {
     public static String getSubdomain(String subdomain) {
         if (hasText(subdomain)) {
             subdomain = subdomain.trim();
-            subdomain = subdomain.endsWith(".") ? subdomain : ( subdomain + "." );
+            subdomain = subdomain.endsWith(".") ? subdomain : (subdomain + ".");
         }
         return subdomain;
     }
@@ -271,7 +273,7 @@ public abstract class UaaUrlUtils {
             pathInfo = UaaStringUtils.EMPTY_STRING;
         }
 
-        return String.format("%s%s", servletPath, pathInfo);
+        return "%s%s".formatted(servletPath, pathInfo);
     }
 
     public static boolean uriHasMatchingHost(String uri, String hostname) {

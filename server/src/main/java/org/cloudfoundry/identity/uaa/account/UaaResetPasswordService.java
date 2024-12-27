@@ -49,16 +49,16 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private final ExpiringCodeStore expiringCodeStore;
     private final PasswordValidator passwordValidator;
     private final MultitenantClientServices clientDetailsService;
-    private ResourcePropertySource resourcePropertySource;
+    private final ResourcePropertySource resourcePropertySource;
     private final IdentityZoneManager identityZoneManager;
     private ApplicationEventPublisher publisher;
 
     public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning,
-                                   ExpiringCodeStore expiringCodeStore,
-                                   PasswordValidator passwordValidator,
-                                   MultitenantClientServices clientDetailsService,
-                                   ResourcePropertySource resourcePropertySource,
-                                   IdentityZoneManager identityZoneManager) {
+            ExpiringCodeStore expiringCodeStore,
+            PasswordValidator passwordValidator,
+            MultitenantClientServices clientDetailsService,
+            ResourcePropertySource resourcePropertySource,
+            IdentityZoneManager identityZoneManager) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
         this.passwordValidator = passwordValidator;
@@ -170,7 +170,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private boolean isUserModified(ScimUser user, String userName, Date passwordLastModified) {
         boolean modified = false;
         if (userName != null) {
-            modified = !(userName.equals(user.getUserName()));
+            modified = !userName.equals(user.getUserName());
         }
         if (passwordLastModified != null && (!modified)) {
             modified = user.getPasswordLastModified().getTime() != passwordLastModified.getTime();

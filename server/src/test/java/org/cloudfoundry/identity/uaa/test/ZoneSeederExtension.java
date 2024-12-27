@@ -8,7 +8,7 @@ import java.util.*;
 
 public class ZoneSeederExtension implements AfterEachCallback, ParameterResolver, BeforeTestExecutionCallback {
 
-    private Map<Object, ZoneSeeder> zoneSeeders = new HashMap<>();
+    private final Map<Object, ZoneSeeder> zoneSeeders = new HashMap<>();
 
     @Override
     public void afterEach(ExtensionContext extensionContext) {

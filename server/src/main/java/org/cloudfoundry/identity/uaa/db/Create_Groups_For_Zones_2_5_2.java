@@ -32,7 +32,7 @@ import java.util.UUID;
 
 public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
 
-    private static Logger logger = LoggerFactory.getLogger(Create_Groups_For_Zones_2_5_2.class);
+    private static final Logger logger = LoggerFactory.getLogger(Create_Groups_For_Zones_2_5_2.class);
 
     protected abstract String getIdentifierQuoteChar();
 
@@ -45,10 +45,10 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
         //duplicate all existing groups across zones
         List<String> zones = jdbcTemplate.queryForList("SELECT id FROM identity_zone WHERE id <> 'uaa'", String.class);
 
-        String groupCreateSQL = String.format("INSERT INTO %s (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)", quotedGroupsIdentifier);
+        String groupCreateSQL = "INSERT INTO %s (id,displayName,created,lastModified,version,identity_zone_id) VALUES (?,?,?,?,?,?)".formatted(quotedGroupsIdentifier);
         Map<String, Map<String, String>> zoneIdToGroupNameToGroupId = new HashMap<>();
 
-        String selectQuery = String.format("SELECT displayName FROM %s WHERE identity_zone_id = 'uaa'",  quotedGroupsIdentifier);
+        String selectQuery = "SELECT displayName FROM %s WHERE identity_zone_id = 'uaa'".formatted(quotedGroupsIdentifier);
         List<String> groups = jdbcTemplate.queryForList(selectQuery, String.class);
         for (String zoneId : zones) {
             Map<String, String> groupNameToGroupId = new HashMap<>();
@@ -60,13 +60,13 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
                 }
                 String id = UUID.randomUUID().toString();
                 jdbcTemplate.update(
-                    groupCreateSQL,
-                    id,
-                    displayName,
-                    now,
-                    now,
-                    0,
-                    zoneId);
+                        groupCreateSQL,
+                        id,
+                        displayName,
+                        now,
+                        now,
+                        0,
+                        zoneId);
                 groupNameToGroupId.put(displayName, id);
             }
         }
@@ -74,20 +74,20 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
     }
 
     private void convertAllUserMembershipsFromOtherZones(JdbcTemplate jdbcTemplate, String quotedGroupsIdentifier, Map<String, Map<String, String>> zoneIdToGroupNameToGroupId) {
-        String userSQL = String.format("SELECT gm.group_id, gm.member_id, g.displayName, u.identity_zone_id FROM group_membership gm, %s g, "
-            + "users u WHERE gm.member_type='USER' AND gm.member_id = u.id AND gm.group_id = g.id AND u.identity_zone_id <> 'uaa'", quotedGroupsIdentifier);
-        List<Map<String,Object>> userMembers = jdbcTemplate.queryForList(userSQL);
+        String userSQL = ("SELECT gm.group_id, gm.member_id, g.displayName, u.identity_zone_id FROM group_membership gm, %s g, "
+                + "users u WHERE gm.member_type='USER' AND gm.member_id = u.id AND gm.group_id = g.id AND u.identity_zone_id <> 'uaa'").formatted(quotedGroupsIdentifier);
+        List<Map<String, Object>> userMembers = jdbcTemplate.queryForList(userSQL);
         for (Map<String, Object> userRow : userMembers) {
             String zoneId = (String) userRow.get("identity_zone_id");
             String displayName = (String) userRow.get("displayName");
-            String memberId = (String)userRow.get("member_id");
-            String oldGroupId = (String)userRow.get("group_id");
+            String memberId = (String) userRow.get("member_id");
+            String oldGroupId = (String) userRow.get("group_id");
             Map<String, String> groupNameToGroupId = zoneIdToGroupNameToGroupId.get(zoneId);
-            if (groupNameToGroupId==null) {
+            if (groupNameToGroupId == null) {
                 //this zone doesnt exist anymore. delete the row
                 int count = jdbcTemplate.update("DELETE FROM group_membership WHERE group_id=? AND member_id=?", oldGroupId, memberId);
-                if (count!=1) {
-                    logger.error("Unable to delete membership for non existent zone(group:"+oldGroupId+", member:"+memberId+")");
+                if (count != 1) {
+                    logger.error("Unable to delete membership for non existent zone(group:" + oldGroupId + ", member:" + memberId + ")");
                 }
             } else {
                 String groupId = groupNameToGroupId.get(displayName);
@@ -97,7 +97,7 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
                         logger.error("Unable to update group membership for migrated zone(old group:" + oldGroupId + ", member:" + memberId + ", new group:" + groupId + ")");
                     }
                 } else {
-                    logger.error("Will not migrate (old group:" + oldGroupId + ", member:" + memberId + ", new group:" + groupId + "). Incorrectly mapped zones group? ("+displayName+")");
+                    logger.error("Will not migrate (old group:" + oldGroupId + ", member:" + memberId + ", new group:" + groupId + "). Incorrectly mapped zones group? (" + displayName + ")");
                 }
             }
         }

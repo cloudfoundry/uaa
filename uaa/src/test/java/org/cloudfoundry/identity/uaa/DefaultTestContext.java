@@ -25,7 +25,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
-@ActiveProfiles("default")
 @WebAppConfiguration
 @ContextConfiguration(classes = {
         SpringServletTestConfig.class,
@@ -37,10 +36,7 @@ public @interface DefaultTestContext {
 @ImportResource(locations = {"file:./src/main/webapp/WEB-INF/spring-servlet.xml"})
 @PropertySource(value = "classpath:integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
 class SpringServletTestConfig {
-    @Bean
-    public static PropertySourcesPlaceholderConfigurer properties() {
-        return new PropertySourcesPlaceholderConfigurer();
-    }
+
 }
 
 class TestClientAndMockMvcTestConfig {

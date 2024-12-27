@@ -23,7 +23,7 @@ import org.cloudfoundry.identity.uaa.ratelimiting.util.NanoTimeSupplier;
 import org.cloudfoundry.identity.uaa.ratelimiting.util.Singleton;
 
 public class LimiterManagerImpl implements LimiterManager,
-                                           LimiterFactorySupplierUpdatable {
+        LimiterFactorySupplierUpdatable {
     public static final Singleton<LimiterManagerImpl> SINGLETON =
             new Singleton<>( () -> new LimiterManagerImpl( null ) );
 
@@ -43,14 +43,14 @@ public class LimiterManagerImpl implements LimiterManager,
     }
 
     @Override
-    public Limiter getLimiter( RequestInfo info ) {
+    public Limiter getLimiter(RequestInfo info) {
         // Due to the volatile nature of limiterFactorySupplier - all work should occur from a single reference to it!
         InternalLimiterFactoriesSupplier supplier = getFactorySupplier();
-        return createLimiter( generateLimiterList( info, supplier ), supplier.getLoggingOption() );
+        return createLimiter(generateLimiterList(info, supplier), supplier.getLoggingOption());
     }
 
     @Override
-    public void update( @NonNull RateLimitingFactoriesSupplierWithStatus supplierAndStatus ) {
+    public void update(@NonNull RateLimitingFactoriesSupplierWithStatus supplierAndStatus) {
         this.supplierAndStatus = supplierAndStatus;
     }
 
@@ -75,14 +75,14 @@ public class LimiterManagerImpl implements LimiterManager,
      * </ul>
      */
     // package protected for testing
-    List<InternalLimiter> generateLimiterList( RequestInfo info, InternalLimiterFactoriesSupplier supplier ) {
-        Map<CompoundKey, InternalLimiterFactory> factoryMap = supplier.factoryMapFor( info );
-        if ( (factoryMap == null) || factoryMap.isEmpty() ) { // null (NOOP version); empty (special scenario)
+    List<InternalLimiter> generateLimiterList(RequestInfo info, InternalLimiterFactoriesSupplier supplier) {
+        Map<CompoundKey, InternalLimiterFactory> factoryMap = supplier.factoryMapFor(info);
+        if ((factoryMap == null) || factoryMap.isEmpty()) { // null (NOOP version); empty (special scenario)
             return null; //NOSONAR
         }
         List<InternalLimiter> limiters = new ArrayList<>( factoryMap.size() );
-        for ( Map.Entry<CompoundKey, InternalLimiterFactory> entry : factoryMap.entrySet() ) { // Priority/Lock order!
-            limiters.add( limiterByCompoundKey.get( entry.getKey(), entry.getValue(), expirationBuckets ) );
+        for (Map.Entry<CompoundKey, InternalLimiterFactory> entry : factoryMap.entrySet()) { // Priority/Lock order!
+            limiters.add(limiterByCompoundKey.get(entry.getKey(), entry.getValue(), expirationBuckets));
         }
         return limiters;
     }
@@ -98,16 +98,16 @@ public class LimiterManagerImpl implements LimiterManager,
      * @return either <code>Limiter.FORWARD_REQUEST</code> or a <code>LimiterImpl</code>
      */
     // package protected for testing
-    Limiter createLimiter( List<InternalLimiter> limiters, @NonNull LoggingOption loggingOption ) { // null or not empty
-        return limiters == null ? Limiter.FORWARD_REQUEST : LimiterImpl.from( limiters, loggingOption );
+    Limiter createLimiter(List<InternalLimiter> limiters, @NonNull LoggingOption loggingOption) { // null or not empty
+        return limiters == null ? Limiter.FORWARD_REQUEST : LimiterImpl.from(limiters, loggingOption);
     }
 
     @Override
     public synchronized void startBackgroundProcessing() {
-        if ( backgroundThread == null ) {
+        if (backgroundThread == null) {
             backgroundThread = new Thread( expirationBuckets );
-            backgroundThread.setName( "LimiterExpirationProcess" );
-            backgroundThread.setDaemon( true );
+            backgroundThread.setName("LimiterExpirationProcess");
+            backgroundThread.setDaemon(true);
             backgroundThread.start();
         }
     }
@@ -115,26 +115,26 @@ public class LimiterManagerImpl implements LimiterManager,
     @Override
     public synchronized void shutdownBackgroundProcessing() {
         expirationBuckets.die();
-        if ( backgroundThread != null ) {
+        if (backgroundThread != null) {
             backgroundThread.interrupt();
             backgroundThread = null;
         }
     }
 
     // package protected for testing
-    LimiterManagerImpl( NanoTimeSupplier currentTimeSupplier ) {
-        currentTimeSupplier = NanoTimeSupplier.deNull( currentTimeSupplier );
+    LimiterManagerImpl(NanoTimeSupplier currentTimeSupplier) {
+        currentTimeSupplier = NanoTimeSupplier.deNull(currentTimeSupplier);
         limiterByCompoundKey = new LimiterByCompoundKey( currentTimeSupplier );
         expirationBuckets = new ExpirationBuckets( currentTimeSupplier, limiterByCompoundKey,
-                                                   RequestsPerWindowSecs.MAX_WINDOW_SECONDS );
+                RequestsPerWindowSecs.MAX_WINDOW_SECONDS );
         supplierAndStatus = RateLimitingFactoriesSupplierWithStatus.builder()
-                .supplier( InternalLimiterFactoriesSupplier.NOOP )
-                .status( RateLimiterStatus.builder()
-                                 .current( RateLimiterStatus.Current.builder()
-                                                   .status( RateLimiterStatus.CurrentStatus.DISABLED )
-                                                   .asOf( TimeUnit.NANOSECONDS.toMillis(currentTimeSupplier.now()))
-                                                   .build() )
-                                 .build() )
+                .supplier(InternalLimiterFactoriesSupplier.NOOP)
+                .status(RateLimiterStatus.builder()
+                        .current(RateLimiterStatus.Current.builder()
+                                .status(RateLimiterStatus.CurrentStatus.DISABLED)
+                                .asOf(TimeUnit.NANOSECONDS.toMillis(currentTimeSupplier.now()))
+                                .build())
+                        .build())
                 .build();
     }
 

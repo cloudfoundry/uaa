@@ -304,7 +304,7 @@ class CorsFilterNonDefaultZoneTests {
         assertEquals("example.com", response.getHeaderValue("Access-Control-Allow-Origin"));
         assertEquals("GET, POST, PUT, DELETE", response.getHeaderValue("Access-Control-Allow-Methods"));
         MatcherAssert.assertThat(new CorsFilter(mockIdentityZoneManager, false).
-                splitCommaDelimitedString((String)response.getHeaderValue("Access-Control-Allow-Headers")), containsInAnyOrder("Authorization"));
+                splitCommaDelimitedString((String) response.getHeaderValue("Access-Control-Allow-Headers")), containsInAnyOrder("Authorization"));
         assertEquals("187000", response.getHeaderValue("Access-Control-Max-Age"));
     }
 
@@ -424,14 +424,14 @@ class CorsFilterNonDefaultZoneTests {
                 PUT.toString(), DELETE.toString());
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedMethods(allowedMethods);
 
-        List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout\\.do$" ));
+        List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout\\.do$"));
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedUris(allowedUris);
 
-        List<String> allowedOrigins = new ArrayList<String>(Collections.singletonList("example.com$"));
+        List<String> allowedOrigins = new ArrayList<>(Collections.singletonList("example.com$"));
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedOrigins(allowedOrigins);
 
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedHeaders(
-                Arrays.asList("Accept", "Authorization","X-Requested-With"));
+                Arrays.asList("Accept", "Authorization", "X-Requested-With"));
 
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setMaxAge(187000);
 
@@ -442,12 +442,12 @@ class CorsFilterNonDefaultZoneTests {
         List<String> allowedMethods = List.of(GET.toString(), POST.toString(),
                 PUT.toString(), DELETE.toString());
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedMethods(allowedMethods);
-        List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout\\.do$" ));
+        List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout\\.do$"));
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedUris(allowedUris);
-        List<String> allowedOrigins = new ArrayList<String>(Collections.singletonList("example.com$"));
+        List<String> allowedOrigins = new ArrayList<>(Collections.singletonList("example.com$"));
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedOrigins(allowedOrigins);
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedHeaders(
-                Arrays.asList("Accept", "Authorization","X-Requested-With"));
+                Arrays.asList("Accept", "Authorization", "X-Requested-With"));
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setMaxAge(187000);
         identityZone.getConfig().getCorsPolicy().getDefaultConfiguration().setAllowedCredentials(true);
     }

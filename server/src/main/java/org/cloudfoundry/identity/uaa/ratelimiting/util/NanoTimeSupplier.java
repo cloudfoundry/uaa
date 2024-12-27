@@ -13,8 +13,8 @@ public interface NanoTimeSupplier {
 
     NanoTimeSupplier SYSTEM = System::nanoTime;
 
-    static NanoTimeSupplier deNull( NanoTimeSupplier instance ) {
-        return (null != instance) ? instance : SYSTEM;
+    static NanoTimeSupplier deNull(NanoTimeSupplier instance) {
+        return null != instance ? instance : SYSTEM;
     }
 
     class Mock implements NanoTimeSupplier {
@@ -25,28 +25,28 @@ public interface NanoTimeSupplier {
             return epochNano;
         }
 
-        public void set( Instant instant ) {
+        public void set(Instant instant) {
             epochNano = instant.getNano();
         }
 
-        public void add( long millis ) {
+        public void add(long millis) {
             epochNano += millis;
         }
 
-        public void add( Duration duration ) {
-            add( duration.toNanos() );
+        public void add(Duration duration) {
+            add(duration.toNanos());
         }
 
-        public Mock( long epochNano ) {
+        public Mock(long epochNano) {
             this.epochNano = epochNano;
         }
 
-        public Mock( Instant instant ) {
-            this( TimeUnit.MILLISECONDS.toNanos(instant.toEpochMilli()) );
+        public Mock(Instant instant) {
+            this(TimeUnit.MILLISECONDS.toNanos(instant.toEpochMilli()));
         }
 
         public Mock() {
-            this( System.nanoTime() );
+            this(System.nanoTime());
         }
     }
 }

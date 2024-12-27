@@ -76,19 +76,19 @@ public class IdleTimerTests {
     public void concurrency_test() throws Exception {
         final CountDownLatch latch = new CountDownLatch(THREAD_COUNT);
         Thread[] threads = new Thread[THREAD_COUNT];
-        for (int i = 0; i< THREAD_COUNT; i++) {
+        for (int i = 0; i < THREAD_COUNT; i++) {
             threads[i] = new Thread(() -> {
-               for (int loop = 0; loop< LOOP_COUNT; loop++) {
-                   try {
-                       timer.startRequest();
-                   } finally {
-                       timer.endRequest();
-                   }
-               }
-               latch.countDown();
+                for (int loop = 0; loop < LOOP_COUNT; loop++) {
+                    try {
+                        timer.startRequest();
+                    } finally {
+                        timer.endRequest();
+                    }
+                }
+                latch.countDown();
             });
         }
-        for (int i = 0; i< THREAD_COUNT; i++) {
+        for (int i = 0; i < THREAD_COUNT; i++) {
             threads[i].start();
         }
         latch.await();

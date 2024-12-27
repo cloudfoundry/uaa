@@ -12,6 +12,6 @@ import org.springframework.http.client.ClientHttpRequest;
  * Scope: OAuth2 client
  */
 public interface OAuth2RequestAuthenticator {
-	void authenticate(OAuth2ProtectedResourceDetails resource, OAuth2ClientContext clientContext, ClientHttpRequest request);
+    void authenticate(OAuth2ProtectedResourceDetails resource, OAuth2ClientContext clientContext, ClientHttpRequest request);
 
 }

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -47,7 +48,7 @@ public class ClientInfoEndpoint {
         String clientId = principal.getName();
         UaaClientDetails client = new UaaClientDetails(clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId()));
         client.setClientSecret(null);
-        client.setAdditionalInformation(Collections.<String, Object> emptyMap());
+        client.setAdditionalInformation(Collections.<String, Object>emptyMap());
         return client;
     }
 }

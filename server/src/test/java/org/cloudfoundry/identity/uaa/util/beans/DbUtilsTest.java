@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.util.beans;
 
-import org.hsqldb.persist.HsqlDatabaseProperties;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
@@ -34,7 +33,7 @@ class DbUtilsTest {
 
     @Test
     void canQuoteHsqldbIdentifiers() throws SQLException {
-        when(databaseMetaData.getDatabaseProductName()).thenReturn(HsqlDatabaseProperties.PRODUCT_NAME);
+        when(databaseMetaData.getURL()).thenReturn("jdbc:hsqldb:mem:uaa");
 
         String quotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
 
@@ -43,8 +42,8 @@ class DbUtilsTest {
 
     @Test
     void canCacheForHsqldb() throws SQLException {
-        when(databaseMetaData.getDatabaseProductName())
-                .thenReturn(HsqlDatabaseProperties.PRODUCT_NAME, "SHOULD NOT SEE THIS");
+        when(databaseMetaData.getURL())
+                .thenReturn("jdbc:hsqldb:mem:uaa", "SHOULD NOT SEE THIS");
         dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
 
         String subsequentQuotedIdentifier = dbUtils.getQuotedIdentifier(IDENTIFIER_NAME, jdbcTemplate);
@@ -57,8 +56,8 @@ class DbUtilsTest {
     class nonHsqldbTests {
         @BeforeEach
         void setup() throws SQLException {
-            when(databaseMetaData.getDatabaseProductName())
-                    .thenReturn("Anything but" + HsqlDatabaseProperties.PRODUCT_NAME);
+            when(databaseMetaData.getURL())
+                    .thenReturn("Anything but the h-s-q-l-d-b");
         }
 
         @Test

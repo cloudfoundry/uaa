@@ -19,8 +19,8 @@ import static org.springframework.util.StringUtils.hasText;
 public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityProviderValidator {
 
     private static final Set<String> oAuthStandardParameters = Set.of("redirect_uri", "code", "client_id", "client_secret", "response_type",
-        "grant_type", "code_verifier", "client_assertion", "client_assertion_type", "code_challenge", "code_challenge_method", "nonce", "state",
-        "scope", "assertion", "subject_token", "actor_token", "username", "password");
+            "grant_type", "code_verifier", "client_assertion", "client_assertion_type", "code_challenge", "code_challenge_method", "nonce", "state",
+            "scope", "assertion", "subject_token", "actor_token", "username", "password");
 
     @Override
     public void validate(AbstractIdentityProviderDefinition definition) {
@@ -53,7 +53,7 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
             }
 
             if (Optional.ofNullable(oidcIdentityProviderDefinition.getAdditionalAuthzParameters()).orElse(Collections.emptyMap())
-                .keySet().stream().anyMatch(ExternalOAuthIdentityProviderConfigValidator::isOAuthStandardParameter)) {
+                    .keySet().stream().anyMatch(ExternalOAuthIdentityProviderConfigValidator::isOAuthStandardParameter)) {
                 errors.add("No OAuth standard parameters allowed in section additionalAuthzParameters");
             }
             hasKeyConfigured = oidcIdentityProviderDefinition.getJwtClientAuthentication() != null;
@@ -68,7 +68,7 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
             if (!ClientAuthentication.isMethodSupported(authMethod)) {
                 errors.add("Relying Party Authentication Method must be set to either " + String.join(" or ", ClientAuthentication.UAA_SUPPORTED_METHODS));
             } else if (!ClientAuthentication.isAuthMethodEqual(ClientAuthentication.getCalculatedMethod(authMethod, def.getRelyingPartySecret() != null, hasKeyConfigured), (getAuthMethod(definition)))) {
-                errors.add(String.format("Relying Party Authentication Method [%s] does not match with expected on [%s]", authMethod, getAuthMethod(definition)));
+                errors.add("Relying Party Authentication Method [%s] does not match with expected on [%s]".formatted(authMethod, getAuthMethod(definition)));
             }
         } else {
             if (!ClientAuthentication.isValidMethod(def.getAuthMethod(), def.getRelyingPartySecret() != null, hasKeyConfigured)) {
@@ -95,7 +95,7 @@ public class ExternalOAuthIdentityProviderConfigValidator extends BaseIdentityPr
         if (definition instanceof AbstractExternalOAuthIdentityProviderDefinition<?> abstractExternalOAuthIdentityProviderDefinition) {
             if (abstractExternalOAuthIdentityProviderDefinition.getRelyingPartySecret() == null) {
                 if (abstractExternalOAuthIdentityProviderDefinition instanceof OIDCIdentityProviderDefinition oidcIdentityProviderDefinition &&
-                    oidcIdentityProviderDefinition.getJwtClientAuthentication() != null) {
+                        oidcIdentityProviderDefinition.getJwtClientAuthentication() != null) {
                     return ClientAuthentication.PRIVATE_KEY_JWT;
                 }
             } else {

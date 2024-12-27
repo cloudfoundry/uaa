@@ -97,7 +97,7 @@ public class ScimUserBootstrap implements
     }
 
     private void deleteUsers(@NotNull List<String> deleteList) {
-        if (deleteList.size() == 0) {
+        if (deleteList.isEmpty()) {
             return;
         }
         StringBuilder filter = new StringBuilder();
@@ -211,8 +211,8 @@ public class ScimUserBootstrap implements
 
     @Override
     public void onApplicationEvent(ApplicationEvent event) {
-        if (event instanceof AuthEvent) {
-            onApplicationEvent((AuthEvent) event);
+        if (event instanceof AuthEvent authEvent) {
+            onApplicationEvent(authEvent);
         } else if (event instanceof ContextRefreshedEvent) {
             List<String> deleteMe = ofNullable(usersToDelete).orElse(emptyList());
             try {
@@ -239,8 +239,7 @@ public class ScimUserBootstrap implements
             }
             return;
         }
-        if (event instanceof ExternalGroupAuthorizationEvent) {
-            ExternalGroupAuthorizationEvent exEvent = (ExternalGroupAuthorizationEvent) event;
+        if (event instanceof ExternalGroupAuthorizationEvent exEvent) {
             //delete previous membership relation ships
             String origin = exEvent.getUser().getOrigin();
             if (!OriginKeys.UAA.equals(origin)) {
@@ -279,7 +278,7 @@ public class ScimUserBootstrap implements
             return;
         }
         logger.debug("Adding to group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName), IdentityZoneHolder.get().getId());
+        List<ScimGroup> g = scimGroupProvisioning.query("displayName eq \"%s\"".formatted(gName), IdentityZoneHolder.get().getId());
         ScimGroup group;
         if ((g == null || g.isEmpty()) && (!addGroup)) {
             logger.debug("No group found with name:" + gName + ". Group membership will not be added.");
@@ -304,7 +303,7 @@ public class ScimUserBootstrap implements
             return;
         }
         logger.debug("Removing membership of group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query(String.format("displayName eq \"%s\"", gName), IdentityZoneHolder.get().getId());
+        List<ScimGroup> g = scimGroupProvisioning.query("displayName eq \"%s\"".formatted(gName), IdentityZoneHolder.get().getId());
         ScimGroup group;
         if (g == null || g.isEmpty()) {
             return;

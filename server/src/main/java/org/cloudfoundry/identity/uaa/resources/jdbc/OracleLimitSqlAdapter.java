@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -18,7 +19,7 @@ public class OracleLimitSqlAdapter implements LimitSqlAdapter {
     public String getLimitSql(String sql, int index, int size) {
         index++; // Oracle "rownum" is 1 based
         return "select * from (select a.*, ROWNUM rnum from (" + sql + ") a where rownum <= " + index + size
-                        + ") where rnum >= " + index;
+                + ") where rnum >= " + index;
     }
 
     @Override

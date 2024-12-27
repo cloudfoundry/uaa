@@ -28,7 +28,7 @@ public class CommaSeparatedScopesMapper implements GrantedAuthoritiesMapper {
     public Collection<? extends GrantedAuthority> mapAuthorities(Collection<? extends GrantedAuthority> authorities) {
         ArrayList<GrantedAuthority> result = new ArrayList<>();
         for (GrantedAuthority authority : authorities) {
-            LdapAuthority ldapAuthority = (LdapAuthority)authority;
+            LdapAuthority ldapAuthority = (LdapAuthority) authority;
             for (String scope : StringUtils.commaDelimitedListToSet(authority.getAuthority())) {
                 LdapAuthority a = new LdapAuthority(scope, ldapAuthority.getDn(), ldapAuthority.getAttributes());
                 result.add(a);

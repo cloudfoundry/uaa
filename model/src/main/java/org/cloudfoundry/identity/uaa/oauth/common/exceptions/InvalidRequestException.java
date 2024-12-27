@@ -11,12 +11,12 @@ package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 @SuppressWarnings("serial")
 public class InvalidRequestException extends ClientAuthenticationException {
 
-	public InvalidRequestException(String msg) {
-		super(msg);
-	}
+    public InvalidRequestException(String msg) {
+        super(msg);
+    }
 
-	@Override
-	public String getOAuth2ErrorCode() {
-		return INVALID_REQUEST;
-	}
+    @Override
+    public String getOAuth2ErrorCode() {
+        return INVALID_REQUEST;
+    }
 }

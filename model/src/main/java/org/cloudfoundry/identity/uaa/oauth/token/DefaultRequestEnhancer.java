@@ -19,19 +19,19 @@ import java.util.Set;
  */
 public class DefaultRequestEnhancer implements RequestEnhancer {
 
-	private Set<String> parameterIncludes = Collections.emptySet();
-	
-	public void setParameterIncludes(Collection<String> parameterIncludes) {
-		this.parameterIncludes = new LinkedHashSet<>(parameterIncludes);
-	}
+    private Set<String> parameterIncludes = Collections.emptySet();
 
-	@Override
-	public void enhance(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form, HttpHeaders headers) {
-		for (String include : parameterIncludes) {
-			if (request.containsKey(include)) {
-				form.set(include, request.getFirst(include));
-			}
-		}
-	}
+    public void setParameterIncludes(Collection<String> parameterIncludes) {
+        this.parameterIncludes = new LinkedHashSet<>(parameterIncludes);
+    }
+
+    @Override
+    public void enhance(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form, HttpHeaders headers) {
+        for (String include : parameterIncludes) {
+            if (request.containsKey(include)) {
+                form.set(include, request.getFirst(include));
+            }
+        }
+    }
 
 }

@@ -43,8 +43,8 @@ public class TokenValidationServiceTest {
     private RevocableTokenProvisioning revocableTokenProvisioning;
     private Map<String, Object> header;
     private JWSSigner signer;
-    private String userId = "asdf-bfdsajk-asdfjsa";
-    private String clientId = "myclient";
+    private final String userId = "asdf-bfdsajk-asdfjsa";
+    private final String clientId = "myclient";
     private Map<String, Object> content;
 
     @Before
@@ -119,7 +119,7 @@ public class TokenValidationServiceTest {
     @Test
     public void validationFails_whenClientNotFound() {
         expectedException.expect(InvalidTokenException.class);
-        expectedException.expectMessage("Invalid client ID "+clientId);
+        expectedException.expectMessage("Invalid client ID " + clientId);
 
         when(mockMultitenantClientServices.loadClientByClientId(clientId, IdentityZoneHolder.get().getId())).thenThrow(NoSuchClientException.class);
         String accessToken = UaaTokenUtils.constructToken(header, content, signer);

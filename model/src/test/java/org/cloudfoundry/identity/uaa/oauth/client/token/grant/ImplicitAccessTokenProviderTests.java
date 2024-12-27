@@ -33,77 +33,77 @@ import static org.junit.Assert.assertTrue;
  */
 public class ImplicitAccessTokenProviderTests {
 
-	@Rule
-	public ExpectedException expected = ExpectedException.none();
+    @Rule
+    public ExpectedException expected = ExpectedException.none();
 
-	private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
+    private final MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
 
-	private ImplicitAccessTokenProvider provider = new ImplicitAccessTokenProvider() {
-		@Override
-		protected OAuth2AccessToken retrieveToken(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource,
-				MultiValueMap<String, String> form, HttpHeaders headers) {
-			params.putAll(form);
-			return new DefaultOAuth2AccessToken("FOO");
-		}
-	};
+    private final ImplicitAccessTokenProvider provider = new ImplicitAccessTokenProvider() {
+        @Override
+        protected OAuth2AccessToken retrieveToken(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource,
+                MultiValueMap<String, String> form, HttpHeaders headers) {
+            params.putAll(form);
+            return new DefaultOAuth2AccessToken("FOO");
+        }
+    };
 
-	private ImplicitResourceDetails resource = new ImplicitResourceDetails();
+    private final ImplicitResourceDetails resource = new ImplicitResourceDetails();
 
-	@Test(expected = IllegalStateException.class)
-	public void testRedirectNotSpecified() throws Exception {
-		AccessTokenRequest request = new DefaultAccessTokenRequest();
-		provider.obtainAccessToken(resource, request);
-	}
+    @Test(expected = IllegalStateException.class)
+    public void testRedirectNotSpecified() throws Exception {
+        AccessTokenRequest request = new DefaultAccessTokenRequest();
+        provider.obtainAccessToken(resource, request);
+    }
 
-	@Test
-	public void supportsResource() {
-		assertTrue(provider.supportsResource(new ImplicitResourceDetails()));
-	}
+    @Test
+    public void supportsResource() {
+        assertTrue(provider.supportsResource(new ImplicitResourceDetails()));
+    }
 
-	@Test
-	public void supportsRefresh() {
-		assertFalse(provider.supportsRefresh(new ImplicitResourceDetails()));
-	}
+    @Test
+    public void supportsRefresh() {
+        assertFalse(provider.supportsRefresh(new ImplicitResourceDetails()));
+    }
 
-	@Test
-	public void refreshAccessToken() {
-		assertNull(provider.refreshAccessToken(new ImplicitResourceDetails(), new DefaultOAuth2RefreshToken(""), new DefaultAccessTokenRequest(
-				Collections.emptyMap())));
-	}
+    @Test
+    public void refreshAccessToken() {
+        assertNull(provider.refreshAccessToken(new ImplicitResourceDetails(), new DefaultOAuth2RefreshToken(""), new DefaultAccessTokenRequest(
+                Collections.emptyMap())));
+    }
 
-	@Test
-	public void testImplicitResponseExtractor() throws IOException {
-		assertNull(provider.getResponseExtractor().extractData(new MockClientHttpResponse(new byte[0], 200)));
-	}
+    @Test
+    public void testImplicitResponseExtractor() throws IOException {
+        assertNull(provider.getResponseExtractor().extractData(new MockClientHttpResponse(new byte[0], 200)));
+    }
 
-	@Test
-	public void obtainAccessToken() {
-		ImplicitResourceDetails details = new ImplicitResourceDetails();
-		details.setScope(Set.of("openid").stream().toList());
-		assertFalse(details.isClientOnly());
-		assertNotNull(provider.obtainAccessToken(details, new DefaultAccessTokenRequest(Map.of("scope", new String[]{ "x" }, "redirect_uri",
-				new String[]{ "x" }, "client_id", new String[]{ "x" }))));
-	}
+    @Test
+    public void obtainAccessToken() {
+        ImplicitResourceDetails details = new ImplicitResourceDetails();
+        details.setScope(Set.of("openid").stream().toList());
+        assertFalse(details.isClientOnly());
+        assertNotNull(provider.obtainAccessToken(details, new DefaultAccessTokenRequest(Map.of("scope", new String[]{"x"}, "redirect_uri",
+                new String[]{"x"}, "client_id", new String[]{"x"}))));
+    }
 
-	@Test
-	public void obtainAccessTokenNoRecdirect() {
-		ImplicitResourceDetails details = new ImplicitResourceDetails();
-		details.setScope(Set.of("openid").stream().toList());
-		assertFalse(details.isClientOnly());
-		expected.expect(IllegalStateException.class);
-		assertNotNull(provider.obtainAccessToken(details, new DefaultAccessTokenRequest(Map.of("scope", new String[]{ "x" }, "client_id", new String[]{ "x" }))));
-	}
+    @Test
+    public void obtainAccessTokenNoRecdirect() {
+        ImplicitResourceDetails details = new ImplicitResourceDetails();
+        details.setScope(Set.of("openid").stream().toList());
+        assertFalse(details.isClientOnly());
+        expected.expect(IllegalStateException.class);
+        assertNotNull(provider.obtainAccessToken(details, new DefaultAccessTokenRequest(Map.of("scope", new String[]{"x"}, "client_id", new String[]{"x"}))));
+    }
 
-	@Test
-	public void testGetAccessTokenRequest() throws Exception {
-		AccessTokenRequest request = new DefaultAccessTokenRequest();
-		resource.setClientId("foo");
-		resource.setAccessTokenUri("http://localhost/oauth/authorize");
-		resource.setPreEstablishedRedirectUri("https://anywhere.com");
-		assertEquals("FOO", provider.obtainAccessToken(resource, request).getValue());
-		assertEquals("foo", params.getFirst("client_id"));
-		assertEquals("token", params.getFirst("response_type"));
-		assertEquals("https://anywhere.com", params.getFirst("redirect_uri"));
-	}
+    @Test
+    public void testGetAccessTokenRequest() throws Exception {
+        AccessTokenRequest request = new DefaultAccessTokenRequest();
+        resource.setClientId("foo");
+        resource.setAccessTokenUri("http://localhost/oauth/authorize");
+        resource.setPreEstablishedRedirectUri("https://anywhere.com");
+        assertEquals("FOO", provider.obtainAccessToken(resource, request).getValue());
+        assertEquals("foo", params.getFirst("client_id"));
+        assertEquals("token", params.getFirst("response_type"));
+        assertEquals("https://anywhere.com", params.getFirst("redirect_uri"));
+    }
 
 }

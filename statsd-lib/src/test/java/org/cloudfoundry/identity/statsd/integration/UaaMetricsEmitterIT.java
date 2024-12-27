@@ -32,7 +32,7 @@ class UaaMetricsEmitterIT {
     private static DatagramPacket receivePacket;
     private static Map<String, String> firstBatch;
 
-    private static List<String> METRIC_FRAGMENTS = Arrays.asList(
+    private static final List<String> METRIC_FRAGMENTS = Arrays.asList(
             "uaa.audit_service.user_authentication_count",
             "uaa.audit_service.principal_not_found_count",
             "uaa.audit_service.client_authentication_failure_count",

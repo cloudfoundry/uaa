@@ -51,166 +51,195 @@ import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isNotEmpty;
 
 public class JwtClientAuthentication {
 
-  public static final String GRANT_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
-  public static final String CLIENT_ASSERTION = "client_assertion";
-  public static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
-  private static final Pattern DYNAMIC_VALUE_PARAMETER_PATTERN = Pattern.compile("^\\$\\{(?<name>[\\w.\\-]++)(:++(?<default>[\\w:./=+\\-]++)*+)?}$");
+    public static final String GRANT_TYPE = "urn:ietf:params:oauth:client-assertion-type:jwt-bearer";
+    public static final String CLIENT_ASSERTION = "client_assertion";
+    public static final String CLIENT_ASSERTION_TYPE = "client_assertion_type";
+    private static final Pattern DYNAMIC_VALUE_PARAMETER_PATTERN = Pattern.compile("^\\$\\{(?<name>[\\w.\\-]++)(:++(?<default>[\\w:./=+\\-]++)*+)?}$");
 
-  // no signature check with invalid algorithms
-  private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
-  private static final Set<String> JWT_REQUIRED_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
-      ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI);
+    // no signature check with invalid algorithms
+    private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
+    private static final Set<String> JWT_REQUIRED_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
+            ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI);
 
-  private final KeyInfoService keyInfoService;
-  private final OidcMetadataFetcher oidcMetadataFetcher;
+    private final KeyInfoService keyInfoService;
+    private final OidcMetadataFetcher oidcMetadataFetcher;
 
-  public JwtClientAuthentication(
-      KeyInfoService keyInfoService) {
-    this(keyInfoService, null);
-  }
-
-  public JwtClientAuthentication(KeyInfoService keyInfoService, OidcMetadataFetcher oidcMetadataFetcher) {
-    this.keyInfoService = keyInfoService;
-    this.oidcMetadataFetcher = oidcMetadataFetcher;
-  }
-
-  public String getClientAssertion(OIDCIdentityProviderDefinition config) {
-    HashMap<String, String> jwtClientConfiguration = Optional.ofNullable(getJwtClientConfigurationElements(config.getJwtClientAuthentication())).orElse(new HashMap<>());
-    String issuer = readJwtClientOption(jwtClientConfiguration.get("iss"), config.getRelyingPartyId());
-    String audience = readJwtClientOption(jwtClientConfiguration.get("aud"), config.getTokenUrl().toString());
-    String kid = readJwtClientOption(jwtClientConfiguration.get("kid"), keyInfoService.getActiveKey().keyId());
-    Claims claims = new Claims();
-    claims.setAud(Arrays.asList(audience));
-    claims.setSub(config.getRelyingPartyId());
-    claims.setIss(issuer);
-    claims.setJti(UUID.randomUUID().toString().replace("-", ""));
-    claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
-    claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
-    KeyInfo signingKeyInfo = loadKeyInfo(keyInfoService, jwtClientConfiguration, kid);
-    return signingKeyInfo.verifierCertificate().isPresent() ?
-        JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
-        JwtHelper.encode(claims.getClaimMap(), signingKeyInfo).getEncoded();
-  }
-
-  public MultiValueMap<String, String> getClientAuthenticationParameters(MultiValueMap<String, String> params, OIDCIdentityProviderDefinition config) {
-    if (Objects.isNull(config) || Objects.isNull(getJwtClientConfigurationElements(config.getJwtClientAuthentication()))) {
-      return params;
+    public JwtClientAuthentication(
+            KeyInfoService keyInfoService) {
+        this(keyInfoService, null);
     }
-    if (!params.containsKey("client_id")) {
-      params.add("client_id", config.getRelyingPartyId());
-    }
-    params.add(CLIENT_ASSERTION_TYPE, GRANT_TYPE);
-    params.add(CLIENT_ASSERTION, getClientAssertion(config));
-    return params;
-  }
 
-  private static HashMap<String, String> getJwtClientConfigurationElements(Object jwtClientAuthentication) {
-    HashMap<String, String> jwtClientConfiguration = null;
-    if (jwtClientAuthentication instanceof Boolean && ((boolean) jwtClientAuthentication)) {
-      jwtClientConfiguration = new HashMap<>();
-    } else if (jwtClientAuthentication instanceof HashMap) {
-      jwtClientConfiguration = (HashMap<String, String>) jwtClientAuthentication;
+    public JwtClientAuthentication(KeyInfoService keyInfoService, OidcMetadataFetcher oidcMetadataFetcher) {
+        this.keyInfoService = keyInfoService;
+        this.oidcMetadataFetcher = oidcMetadataFetcher;
     }
-    return jwtClientConfiguration;
-  }
 
-  public boolean validateClientJwt(Map<String, String[]> requestParameters, ClientJwtConfiguration clientJwtConfiguration, String clientId) {
-    if (GRANT_TYPE.equals(UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION_TYPE)))) {
-      try {
-        String clientAssertion = UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION));
-        if (!clientId.equals(getClientId(clientAssertion))) {
-          throw new BadCredentialsException("Wrong client_assertion");
+    public String getClientAssertion(final OIDCIdentityProviderDefinition config) {
+        return getClientAssertion(config, false);
+    }
+
+    public String getClientAssertion(
+            OIDCIdentityProviderDefinition config,
+            final boolean allowDynamicValueLookupInCustomZone
+    ) {
+        HashMap<String, String> jwtClientConfiguration = Optional.ofNullable(getJwtClientConfigurationElements(config.getJwtClientAuthentication())).orElse(new HashMap<>());
+        String subject = readJwtClientOption(jwtClientConfiguration.get("sub"), config.getRelyingPartyId(), allowDynamicValueLookupInCustomZone);
+        String issuer = readJwtClientOption(jwtClientConfiguration.get("iss"), config.getRelyingPartyId(), allowDynamicValueLookupInCustomZone);
+        String audience = readJwtClientOption(jwtClientConfiguration.get("aud"), config.getTokenUrl().toString(), allowDynamicValueLookupInCustomZone);
+        String kid = readJwtClientOption(jwtClientConfiguration.get("kid"), keyInfoService.getActiveKey().keyId(), allowDynamicValueLookupInCustomZone);
+        Claims claims = new Claims();
+        claims.setAud(Arrays.asList(audience));
+        claims.setSub(subject);
+        claims.setIss(issuer);
+        claims.setJti(UUID.randomUUID().toString().replace("-", ""));
+        claims.setIat((int) Instant.now().minusSeconds(120).getEpochSecond());
+        claims.setExp(Instant.now().plusSeconds(300).getEpochSecond());
+        KeyInfo signingKeyInfo = loadKeyInfo(keyInfoService, jwtClientConfiguration, kid, allowDynamicValueLookupInCustomZone);
+        return signingKeyInfo.verifierCertificate().isPresent() ?
+                JwtHelper.encodePlusX5t(claims.getClaimMap(), signingKeyInfo, signingKeyInfo.verifierCertificate().orElseThrow()).getEncoded() :
+                JwtHelper.encode(claims.getClaimMap(), signingKeyInfo).getEncoded();
+    }
+
+    public MultiValueMap<String, String> getClientAuthenticationParameters(
+            final MultiValueMap<String, String> params,
+            final OIDCIdentityProviderDefinition config
+    ) {
+        return getClientAuthenticationParameters(params, config, false);
+    }
+
+    public MultiValueMap<String, String> getClientAuthenticationParameters(
+            MultiValueMap<String, String> params,
+            OIDCIdentityProviderDefinition config,
+            final boolean allowDynamicValueLookupInCustomZone
+    ) {
+        if (Objects.isNull(config) || Objects.isNull(getJwtClientConfigurationElements(config.getJwtClientAuthentication()))) {
+            return params;
         }
-        return clientId.equals(validateClientJWToken(JWTParser.parse(clientAssertion), oidcMetadataFetcher == null ? new JWKSet() :
-            JWKSet.parse(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration).getKeySetMap()),
-            clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
-      } catch (ParseException | URISyntaxException | OidcMetadataFetchingException e) {
-        throw new BadCredentialsException("Bad client_assertion", e);
-      }
+        if (!params.containsKey("client_id")) {
+            params.add("client_id", config.getRelyingPartyId());
+        }
+        params.add(CLIENT_ASSERTION_TYPE, GRANT_TYPE);
+        params.add(CLIENT_ASSERTION, getClientAssertion(config, allowDynamicValueLookupInCustomZone));
+        return params;
     }
-    return false;
-  }
 
-  public static String getClientId(String clientAssertion) {
-    try {
-      JWTClaimsSet clientToken = clientAssertion != null ? JWTParser.parse(clientAssertion).getJWTClaimsSet() : null;
-      if (clientToken != null && clientToken.getSubject() != null && clientToken.getIssuer() != null &&
-          clientToken.getSubject().equals(clientToken.getIssuer()) && clientToken.getAudience() != null && clientToken.getJWTID() != null &&
-          clientToken.getExpirationTime() != null) {
-        // required claims, e.g. https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
-        return clientToken.getSubject();
-      }
-      throw new BadCredentialsException("Bad credentials");
-    } catch (ParseException e) {
-      throw new BadCredentialsException("Bad client_assertion", e);
+    private static HashMap<String, String> getJwtClientConfigurationElements(Object jwtClientAuthentication) {
+        HashMap<String, String> jwtClientConfiguration = null;
+        if (jwtClientAuthentication instanceof Boolean boolean1 && boolean1) {
+            jwtClientConfiguration = new HashMap<>();
+        } else if (jwtClientAuthentication instanceof HashMap) {
+            jwtClientConfiguration = (HashMap<String, String>) jwtClientAuthentication;
+        }
+        return jwtClientConfiguration;
     }
-  }
 
-  private JWTClaimsSet validateClientJWToken(JWT jwtAssertion, JWKSet jwkSet, String expectedClientId, String expectedAud) {
-    Algorithm algorithm = jwtAssertion.getHeader().getAlgorithm();
-    if (algorithm == null || NOT_SUPPORTED_ALGORITHMS.contains(algorithm) || !(algorithm instanceof JWSAlgorithm)) {
-      throw new BadCredentialsException("Bad client_assertion algorithm");
+    public boolean validateClientJwt(Map<String, String[]> requestParameters, ClientJwtConfiguration clientJwtConfiguration, String clientId) {
+        if (GRANT_TYPE.equals(UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION_TYPE)))) {
+            try {
+                String clientAssertion = UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION));
+                if (!clientId.equals(getClientId(clientAssertion))) {
+                    throw new BadCredentialsException("Wrong client_assertion");
+                }
+                return clientId.equals(validateClientJWToken(JWTParser.parse(clientAssertion), oidcMetadataFetcher == null ? new JWKSet() :
+                                JWKSet.parse(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration).getKeySetMap()),
+                        clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
+            } catch (ParseException | URISyntaxException | OidcMetadataFetchingException e) {
+                throw new BadCredentialsException("Bad client_assertion", e);
+            }
+        }
+        return false;
     }
-    JWKSource<SecurityContext> keySource = new ImmutableJWKSet<>(jwkSet);
-    JWSKeySelector<SecurityContext> keySelector = new JWSVerificationKeySelector<>((JWSAlgorithm) algorithm, keySource);
-    ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
-    jwtProcessor.setJWSKeySelector(keySelector);
 
-    JWTClaimsSet.Builder claimSetBuilder = new JWTClaimsSet.Builder().issuer(expectedClientId).subject(expectedClientId);
-    jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(expectedAud, claimSetBuilder.build(), JWT_REQUIRED_CLAIMS));
-
-    try {
-      return jwtProcessor.process(jwtAssertion, null);
-    } catch (BadJWSException | BadJWTException jwtException) { // signature failed
-      throw new BadCredentialsException("Unauthorized client_assertion", jwtException);
-    } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
-      throw new BadCredentialsException("Untrusted client_assertion", e);
+    public static String getClientId(String clientAssertion) {
+        try {
+            JWTClaimsSet clientToken = clientAssertion != null ? JWTParser.parse(clientAssertion).getJWTClaimsSet() : null;
+            if (clientToken != null && clientToken.getSubject() != null && clientToken.getIssuer() != null &&
+                    clientToken.getSubject().equals(clientToken.getIssuer()) && clientToken.getAudience() != null && clientToken.getJWTID() != null &&
+                    clientToken.getExpirationTime() != null) {
+                // required claims, e.g. https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+                return clientToken.getSubject();
+            }
+            throw new BadCredentialsException("Bad credentials");
+        } catch (ParseException e) {
+            throw new BadCredentialsException("Bad client_assertion", e);
+        }
     }
-  }
 
-  private static KeyInfo loadKeyInfo(KeyInfoService keyInfoService, HashMap<String, String> jwtClientConfiguration, String kid) {
-    KeyInfo keyInfo;
-    String signingKey = readJwtClientOption(jwtClientConfiguration.get("key"), null);
-    if (signingKey == null) {
-      keyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
-    } else {
-      String signingAlg = readJwtClientOption(jwtClientConfiguration.get("alg"), JWSAlgorithm.RS256.getName());
-      String signingCert = readJwtClientOption(jwtClientConfiguration.get("cert"), null);
-      keyInfo = KeyInfoBuilder.build(kid, signingKey, UaaStringUtils.DEFAULT_UAA_URL, signingAlg, signingCert);
+    private JWTClaimsSet validateClientJWToken(JWT jwtAssertion, JWKSet jwkSet, String expectedClientId, String expectedAud) {
+        Algorithm algorithm = jwtAssertion.getHeader().getAlgorithm();
+        if (algorithm == null || NOT_SUPPORTED_ALGORITHMS.contains(algorithm) || !(algorithm instanceof JWSAlgorithm)) {
+            throw new BadCredentialsException("Bad client_assertion algorithm");
+        }
+        JWKSource<SecurityContext> keySource = new ImmutableJWKSet<>(jwkSet);
+        JWSKeySelector<SecurityContext> keySelector = new JWSVerificationKeySelector<>((JWSAlgorithm) algorithm, keySource);
+        ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
+        jwtProcessor.setJWSKeySelector(keySelector);
+
+        JWTClaimsSet.Builder claimSetBuilder = new JWTClaimsSet.Builder().issuer(expectedClientId).subject(expectedClientId);
+        jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(expectedAud, claimSetBuilder.build(), JWT_REQUIRED_CLAIMS));
+
+        try {
+            return jwtProcessor.process(jwtAssertion, null);
+        } catch (BadJWSException | BadJWTException jwtException) { // signature failed
+            throw new BadCredentialsException("Unauthorized client_assertion", jwtException);
+        } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
+            throw new BadCredentialsException("Untrusted client_assertion", e);
+        }
     }
-    return keyInfo;
-  }
 
-  private static String readJwtClientOption(String jwtClientOption, String defaultOption) {
-    String value;
-    if (isNotEmpty(jwtClientOption)) {
-      // check if dynamic value means, a reference to another section in uaa yaml is defined
-      Matcher matcher = getDynamicValueMatcher(jwtClientOption);
-      if (matcher.find()) {
-        value = Optional.ofNullable(getDynamicValue(matcher)).orElse(getDefaultValue(matcher));
-      } else {
-        value = jwtClientOption;
-      }
-    } else {
-      value = defaultOption;
+    private static KeyInfo loadKeyInfo(
+            KeyInfoService keyInfoService,
+            HashMap<String, String> jwtClientConfiguration,
+            String kid,
+            final boolean allowDynamicValueLookupInCustomZone
+    ) {
+        KeyInfo keyInfo;
+        String signingKey = readJwtClientOption(jwtClientConfiguration.get("key"), null, allowDynamicValueLookupInCustomZone);
+        if (signingKey == null) {
+            keyInfo = Optional.ofNullable(keyInfoService.getKey(kid)).orElseThrow(() -> new BadCredentialsException("Missing requested signing key"));
+        } else {
+            String signingAlg = readJwtClientOption(jwtClientConfiguration.get("alg"), JWSAlgorithm.RS256.getName(), allowDynamicValueLookupInCustomZone);
+            String signingCert = readJwtClientOption(jwtClientConfiguration.get("cert"), null, allowDynamicValueLookupInCustomZone);
+            keyInfo = KeyInfoBuilder.build(kid, signingKey, UaaStringUtils.DEFAULT_UAA_URL, signingAlg, signingCert);
+        }
+        return keyInfo;
     }
-    return value;
-  }
 
-  private static Matcher getDynamicValueMatcher(String value) {
-    return DYNAMIC_VALUE_PARAMETER_PATTERN.matcher(value);
-  }
-
-  private static String getDynamicValue(Matcher m) {
-    ApplicationContext applicationContext = ApplicationContextProvider.getApplicationContext();
-    /* return a reference from application environment only if in default zone */
-    if (applicationContext == null || !(new IdentityZoneManagerImpl().isCurrentZoneUaa())) {
-      return null;
+    private static String readJwtClientOption(
+            String jwtClientOption,
+            String defaultOption,
+            final boolean allowDynamicValueLookupInCustomZone
+    ) {
+        String value;
+        if (isNotEmpty(jwtClientOption)) {
+            // check if dynamic value means, a reference to another section in uaa yaml is defined
+            Matcher matcher = getDynamicValueMatcher(jwtClientOption);
+            if (matcher.find()) {
+                value = Optional.ofNullable(getDynamicValue(matcher, allowDynamicValueLookupInCustomZone)).orElse(getDefaultValue(matcher));
+            } else {
+                value = jwtClientOption;
+            }
+        } else {
+            value = defaultOption;
+        }
+        return value;
     }
-    return Optional.ofNullable(applicationContext.getEnvironment().getProperty(m.group("name"))).orElseThrow( () -> new BadCredentialsException("Missing referenced signing entry"));
-  }
 
-  private static String getDefaultValue(Matcher m) {
-    return m.group("default");
-  }
+    private static Matcher getDynamicValueMatcher(String value) {
+        return DYNAMIC_VALUE_PARAMETER_PATTERN.matcher(value);
+    }
+
+    private static String getDynamicValue(Matcher m, final boolean allowLookupInCustomZone) {
+        ApplicationContext applicationContext = ApplicationContextProvider.getApplicationContext();
+        /* return a reference from application environment only if in default zone */
+        final boolean isLookupAllowedInCurrentZone = new IdentityZoneManagerImpl().isCurrentZoneUaa() || allowLookupInCustomZone;
+        if (applicationContext == null || !isLookupAllowedInCurrentZone) {
+            return null;
+        }
+        return Optional.ofNullable(applicationContext.getEnvironment().getProperty(m.group("name"))).orElseThrow(() -> new BadCredentialsException("Missing referenced signing entry"));
+    }
+
+    private static String getDefaultValue(Matcher m) {
+        return m.group("default");
+    }
 }

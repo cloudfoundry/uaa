@@ -55,41 +55,42 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     void test_user_managed_token() throws Exception {
-        String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
-        UaaClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
+        String recipientId = "recipientClient" + new RandomValueStringGenerator().generate();
+        UaaClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password," + GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"), 50000);
 
-        String requestorId = "requestingClient"+new RandomValueStringGenerator().generate();
-        UaaClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password,"+GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI,
+        String requestorId = "requestingClient" + new RandomValueStringGenerator().generate();
+        UaaClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password," + GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"));
 
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
         setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String requestorToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc,
-                                                                     requestorId,
-                                                                     SECRET,
-                                                                     username,
-                                                                     SECRET,
-                                                                     "uaa.user");
+                requestorId,
+                SECRET,
+                username,
+                SECRET,
+                "uaa.user");
 
         String response = mockMvc.perform(
-            post("/oauth/token")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer "+requestorToken)
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_USER_TOKEN)
-                .param(OAuth2Utils.CLIENT_ID, recipientId)
-                .param(OAuth2Utils.SCOPE, "test.scope")
-                .param("expires_in", "44000")
+                post("/oauth/token")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requestorToken)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_USER_TOKEN)
+                        .param(OAuth2Utils.CLIENT_ID, recipientId)
+                        .param(OAuth2Utils.SCOPE, "test.scope")
+                        .param("expires_in", "44000")
         )
-            .andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString();
+        .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
 
-        Map<String,Object> result = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {});
+        Map<String, Object> result = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {
+        });
 
-        String refreshToken = (String)result.get(REFRESH_TOKEN);
+        String refreshToken = (String) result.get(REFRESH_TOKEN);
         assertNotNull(refreshToken);
         assertThat(refreshToken.length(), lessThanOrEqualTo(36));
         assertEquals("test.scope", result.get("scope"));
@@ -99,119 +100,120 @@ class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
         assertEquals(recipientId, token.getClientId());
 
         response = mockMvc.perform(
-            post("/oauth/token")
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
-                .param(REFRESH_TOKEN, refreshToken)
-                .param(OAuth2Utils.CLIENT_ID, recipientId)
-                .param(CLIENT_SECRET, SECRET)
+                post("/oauth/token")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                        .param(REFRESH_TOKEN, refreshToken)
+                        .param(OAuth2Utils.CLIENT_ID, recipientId)
+                        .param(CLIENT_SECRET, SECRET)
         )
-            .andDo(print())
-            .andExpect(status().isOk())
-            .andReturn().getResponse().getContentAsString();
-        result = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {});
+        .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        result = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {
+        });
     }
 
     @Test
     void test_client_credentials_token() throws Exception {
-        String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
-        UaaClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
+        String recipientId = "recipientClient" + new RandomValueStringGenerator().generate();
+        UaaClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password," + GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"), 50000);
 
-        String requestorId = "requestingClient"+new RandomValueStringGenerator().generate();
-        UaaClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "client_credentials,"+GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI,
+        String requestorId = "requestingClient" + new RandomValueStringGenerator().generate();
+        UaaClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "client_credentials," + GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"));
 
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
         setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String requestorToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
-            mockMvc,
-            requestorId,
-            SECRET,
-            "uaa.user",
-            null,
-            true);
+                mockMvc,
+                requestorId,
+                SECRET,
+                "uaa.user",
+                null,
+                true);
 
         mockMvc.perform(
-            post("/oauth/token")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer "+requestorToken)
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_USER_TOKEN)
-                .param(OAuth2Utils.CLIENT_ID, recipientId)
-                .param(OAuth2Utils.SCOPE, "test.scope")
-                .param("expires_in", "44000")
+                post("/oauth/token")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requestorToken)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_USER_TOKEN)
+                        .param(OAuth2Utils.CLIENT_ID, recipientId)
+                        .param(OAuth2Utils.SCOPE, "test.scope")
+                        .param("expires_in", "44000")
         )
-            .andExpect(status().isUnauthorized())
-            .andExpect(content().string(containsString("\"Authentication containing a user is required\"")));
+        .andExpect(status().isUnauthorized())
+                .andExpect(content().string(containsString("\"Authentication containing a user is required\"")));
     }
 
     @Test
     void test_invalid_grant_type() throws Exception {
-        String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
-        UaaClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
+        String recipientId = "recipientClient" + new RandomValueStringGenerator().generate();
+        UaaClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password," + GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"), 50000);
 
-        String requestorId = "requestingClient"+new RandomValueStringGenerator().generate();
+        String requestorId = "requestingClient" + new RandomValueStringGenerator().generate();
         UaaClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI,
                 Collections.singletonList("uaa"));
 
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";
         setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());
 
         String requestorToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc,
-                                                                     requestorId,
-                                                                     SECRET,
-                                                                     username,
-                                                                     SECRET,
-                                                                     "uaa.user");
+                requestorId,
+                SECRET,
+                username,
+                SECRET,
+                "uaa.user");
 
         mockMvc.perform(
-            post("/oauth/token")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer "+requestorToken)
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_USER_TOKEN)
-                .param(OAuth2Utils.CLIENT_ID, recipientId)
-                .param(OAuth2Utils.SCOPE, "test.scope")
-                .param("expires_in", "44000")
+                post("/oauth/token")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + requestorToken)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_USER_TOKEN)
+                        .param(OAuth2Utils.CLIENT_ID, recipientId)
+                        .param(OAuth2Utils.SCOPE, "test.scope")
+                        .param("expires_in", "44000")
         )
-            .andExpect(status().isUnauthorized())
-            .andExpect(content().string(containsString("\"Unauthorized grant type\"")));
+        .andExpect(status().isUnauthorized())
+                .andExpect(content().string(containsString("\"Unauthorized grant type\"")));
     }
 
     @Test
     void test_create_client_with_user_token_grant() throws Exception {
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
-            mockMvc,
-            "admin",
-            "adminsecret",
-            "uaa.admin",
-            null,
-            true
+                mockMvc,
+                "admin",
+                "adminsecret",
+                "uaa.admin",
+                null,
+                true
         );
 
         UaaClientDetails client = new UaaClientDetails(
-            generator.generate(),
-            null,
-            "openid,uaa.user,tokens.",
-            TokenConstants.GRANT_TYPE_USER_TOKEN,
-            null,
-            "http://redirect.uri"
+                generator.generate(),
+                null,
+                "openid,uaa.user,tokens.",
+                TokenConstants.GRANT_TYPE_USER_TOKEN,
+                null,
+                "http://redirect.uri"
         );
         client.setClientSecret(SECRET);
         mockMvc.perform(
-            post("/oauth/clients")
-                .header(HttpHeaders.AUTHORIZATION, "Bearer "+adminToken)
-                .accept(MediaType.APPLICATION_JSON)
-                .contentType(MediaType.APPLICATION_JSON_VALUE)
-                .content(JsonUtils.writeValueAsString(client))
+                post("/oauth/clients")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + adminToken)
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON_VALUE)
+                        .content(JsonUtils.writeValueAsString(client))
         )
-            .andExpect(status().isCreated());
+        .andExpect(status().isCreated());
 
     }
 

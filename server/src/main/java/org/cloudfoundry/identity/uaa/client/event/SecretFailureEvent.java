@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -33,7 +34,7 @@ public class SecretFailureEvent extends AbstractClientAdminEvent {
 
     @Override
     public AuditEventType getAuditEventType() {
-        return (getClient() == null) ? AuditEventType.SecretChangeFailure : AuditEventType.SecretChangeFailure;
+        return getClient() == null ? AuditEventType.SecretChangeFailure : AuditEventType.SecretChangeFailure;
     }
 
 }

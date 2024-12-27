@@ -9,8 +9,8 @@ import org.cloudfoundry.identity.uaa.ratelimiting.core.config.exception.RateLimi
 
 import lombok.RequiredArgsConstructor;
 
-public class RequestsPerWindowSecs {
-    public static final int MAX_WINDOW_SECONDS = (int)Duration.ofMinutes( 30 ).toSeconds();
+public final class RequestsPerWindowSecs {
+    public static final int MAX_WINDOW_SECONDS = (int) Duration.ofMinutes(30).toSeconds();
     static final int MIN_WINDOW_SECONDS = 1; // also the default
     static final String INVALID_REQUESTS_PREFIX = "Requests (before the 'r/') must ";
     static final String INVALID_WINDOW_PREFIX = "Window seconds (between the 'r/' and ending 's') must ";
@@ -39,17 +39,17 @@ public class RequestsPerWindowSecs {
         return windowSecs;
     }
 
-    public static RequestsPerWindowSecs from( String name, String what, String data ) {
-        data = StringUtils.stripToEmpty( data ).toLowerCase();
+    public static RequestsPerWindowSecs from(String name, String what, String data) {
+        data = StringUtils.stripToEmpty(data).toLowerCase();
         return data.isEmpty() ? null : new Parser( name, what, data ).parse();
     }
 
     // package friendly for testing
-    static String formatOn( String name, String what, String data ) {
+    static String formatOn(String name, String what, String data) {
         return "; on: " + name + " '" + what + "' from('" + data + "')";
     }
 
-    private RequestsPerWindowSecs( int requests, int window ) {
+    private RequestsPerWindowSecs(int requests, int window) {
         maxRequestsPerWindow = requests;
         windowSecs = window;
     }
@@ -59,16 +59,16 @@ public class RequestsPerWindowSecs {
 
     @Override
     public String toString() {
-        return format( maxRequestsPerWindow, windowSecs );
+        return format(maxRequestsPerWindow, windowSecs);
     }
 
-    public static String format( int maxRequestsPerWindow, int windowSecs ) {
+    public static String format(int maxRequestsPerWindow, int windowSecs) {
         StringBuilder sb = new StringBuilder();
-        sb.append( maxRequestsPerWindow ).append( "r/" );
-        if ( windowSecs != 1 ) {
-            sb.append( windowSecs );
+        sb.append(maxRequestsPerWindow).append("r/");
+        if (windowSecs != 1) {
+            sb.append(windowSecs);
         }
-        sb.append( 's' );
+        sb.append('s');
         return sb.toString();
     }
 
@@ -78,37 +78,37 @@ public class RequestsPerWindowSecs {
         private final String what;
         private final String data;
 
-        private void validateRequest( Integer requests ) {
-            if ( requests < 0 ) {
-                throw problem( INVALID_REQUESTS_PREFIX + "be at least zero (0), but got '" + requests + "'" );
+        private void validateRequest(Integer requests) {
+            if (requests < 0) {
+                throw problem(INVALID_REQUESTS_PREFIX + "be at least zero (0), but got '" + requests + "'");
             }
         }
 
-        private void validateWindow( Integer window ) {
-            if ( window < MIN_WINDOW_SECONDS ) {
-                throw problem( INVALID_WINDOW_PREFIX + "be at least (" + MIN_WINDOW_SECONDS + "), but got '" + window + "'" );
+        private void validateWindow(Integer window) {
+            if (window < MIN_WINDOW_SECONDS) {
+                throw problem(INVALID_WINDOW_PREFIX + "be at least (" + MIN_WINDOW_SECONDS + "), but got '" + window + "'");
             }
-            if ( window > MAX_WINDOW_SECONDS ) {
-                throw problem( INVALID_WINDOW_PREFIX + "not exceed (" + MAX_WINDOW_SECONDS + "), but got '" + window + "'" );
+            if (window > MAX_WINDOW_SECONDS) {
+                throw problem(INVALID_WINDOW_PREFIX + "not exceed (" + MAX_WINDOW_SECONDS + "), but got '" + window + "'");
             }
         }
 
         public RequestsPerWindowSecs parse() {
-            int at = data.indexOf( "r/" );
-            if ( (at != -1) && data.endsWith( "s" ) ) {
-                Integer requests = parseNoException( data.substring( 0, at ), null );
-                Integer window = parseNoException( data.substring( at + 2, data.length() - 1 ), MIN_WINDOW_SECONDS );
-                if ( (requests != null) && (window != null) ) {
-                    validateRequest( requests );
-                    validateWindow( window );
+            int at = data.indexOf("r/");
+            if ((at != -1) && data.endsWith("s")) {
+                Integer requests = parseNoException(data.substring(0, at), null);
+                Integer window = parseNoException(data.substring(at + 2, data.length() - 1), MIN_WINDOW_SECONDS);
+                if ((requests != null) && (window != null)) {
+                    validateRequest(requests);
+                    validateWindow(window);
                     return new RequestsPerWindowSecs( requests, window );
                 }
             }
-            throw problem( INVALID_FORMAT );
+            throw problem(INVALID_FORMAT);
         }
 
-        private RateLimitingConfigException problem( String text ) {
-            return new RateLimitingConfigException( text + formatOn( name, what, data ) );
+        private RateLimitingConfigException problem(String text) {
+            return new RateLimitingConfigException( text + formatOn(name, what, data) );
         }
     }
 }

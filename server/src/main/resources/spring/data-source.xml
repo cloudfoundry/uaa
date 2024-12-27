@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns="http://www.springframework.org/schema/beans"
-       xmlns:tx="http://www.springframework.org/schema/tx"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xsi:schemaLocation="
+          xmlns="http://www.springframework.org/schema/beans"
+          xmlns:tx="http://www.springframework.org/schema/tx"
+          xmlns:util="http://www.springframework.org/schema/util"
+          xsi:schemaLocation="
        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd
        http://www.springframework.org/schema/tx https://www.springframework.org/schema/tx/spring-tx.xsd">
@@ -62,7 +62,7 @@
                 <property name="methodMappings">
                     <map>
                         <entry key="spring.application:type=DataSource,name=dataSource"
-                               value="getMaxIdle,getMaxActive,getNumIdle,getNumActive"/>
+                                                                      value="getMaxIdle,getMaxActive,getNumIdle,getNumActive"/>
                     </map>
                 </property>
             </bean>
@@ -84,6 +84,6 @@
 
     <bean id="useCaseInsensitiveQueries" class="java.lang.Boolean" factory-method="valueOf">
         <constructor-arg
-                value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
+                              value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
     </bean>
 </beans>

@@ -87,11 +87,11 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             "g.id",
             "external_id");
 
-    private static Logger logger = LoggerFactory.getLogger(SimpleSearchQueryConverter.class);
+    private static final Logger logger = LoggerFactory.getLogger(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
 
-    private boolean dbCaseInsensitive = false;
-    private AlphanumericRandomValueStringGenerator randomStringGenerator;
+    private boolean dbCaseInsensitive;
+    private final AlphanumericRandomValueStringGenerator randomStringGenerator;
 
     public SimpleSearchQueryConverter() {
         randomStringGenerator = new AlphanumericRandomValueStringGenerator();
@@ -274,11 +274,11 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     }
 
     private String comparisonClause(SCIMFilter filter,
-                                    String comparator,
-                                    Map<String, Object> values,
-                                    String valuePrefix,
-                                    String valueSuffix,
-                                    String paramPrefix) {
+            String comparator,
+            Map<String, Object> values,
+            String valuePrefix,
+            String valueSuffix,
+            String paramPrefix) {
         String pName = getParamName(values, paramPrefix);
         String paramName = ":" + pName;
         if (filter.getFilterValue() == null) {
@@ -292,6 +292,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
                     case "password":
                     case "salt":
                         value = "";
+                        break;
                     default:
                         break;
                 }
@@ -338,8 +339,8 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     private Object getStringOrDate(String s) {
         try {
-            DateFormat TIMESTAMP_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-            return TIMESTAMP_FORMAT.parse(s);
+            DateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            return timestampFormat.parse(s);
         } catch (ParseException x) {
             return s;
         }
@@ -351,6 +352,6 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     }
 
     public String getJoinName() {
-        return (mapper instanceof JoinAttributeNameMapper joinAttributeNameMapper) ? joinAttributeNameMapper.getName() : UaaStringUtils.EMPTY_STRING;
+        return mapper instanceof JoinAttributeNameMapper joinAttributeNameMapper ? joinAttributeNameMapper.getName() : UaaStringUtils.EMPTY_STRING;
     }
 }

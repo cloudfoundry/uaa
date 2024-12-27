@@ -19,24 +19,24 @@ import org.w3c.dom.Element;
  */
 public abstract class ProviderBeanDefinitionParser extends AbstractBeanDefinitionParser {
 
-	@Override
-	protected AbstractBeanDefinition parseInternal(Element element, ParserContext parserContext) {
+    @Override
+    protected AbstractBeanDefinition parseInternal(Element element, ParserContext parserContext) {
 
-		String tokenServicesRef = element.getAttribute("token-services-ref");
-		String serializerRef = element.getAttribute("serialization-service-ref");
+        String tokenServicesRef = element.getAttribute("token-services-ref");
+        String serializerRef = element.getAttribute("serialization-service-ref");
 
-		if (!StringUtils.hasText(tokenServicesRef)) {
-			tokenServicesRef = "oauth2TokenServices";
-			BeanDefinitionBuilder tokenServices = BeanDefinitionBuilder.rootBeanDefinition(DefaultTokenServices.class);
-			AbstractBeanDefinition tokenStore = BeanDefinitionBuilder.rootBeanDefinition(InMemoryTokenStore.class).getBeanDefinition();
-			tokenServices.addPropertyValue("tokenStore", tokenStore);
-			parserContext.getRegistry().registerBeanDefinition(tokenServicesRef, tokenServices.getBeanDefinition());
-		}
+        if (!StringUtils.hasText(tokenServicesRef)) {
+            tokenServicesRef = "oauth2TokenServices";
+            BeanDefinitionBuilder tokenServices = BeanDefinitionBuilder.rootBeanDefinition(DefaultTokenServices.class);
+            AbstractBeanDefinition tokenStore = BeanDefinitionBuilder.rootBeanDefinition(InMemoryTokenStore.class).getBeanDefinition();
+            tokenServices.addPropertyValue("tokenStore", tokenStore);
+            parserContext.getRegistry().registerBeanDefinition(tokenServicesRef, tokenServices.getBeanDefinition());
+        }
 
-		return parseEndpointAndReturnFilter(element, parserContext, tokenServicesRef, serializerRef);
-	}
+        return parseEndpointAndReturnFilter(element, parserContext, tokenServicesRef, serializerRef);
+    }
 
-	protected abstract AbstractBeanDefinition parseEndpointAndReturnFilter(Element element, ParserContext parserContext,
-			String tokenServicesRef, String serializerRef);
+    protected abstract AbstractBeanDefinition parseEndpointAndReturnFilter(Element element, ParserContext parserContext,
+            String tokenServicesRef, String serializerRef);
 
 }

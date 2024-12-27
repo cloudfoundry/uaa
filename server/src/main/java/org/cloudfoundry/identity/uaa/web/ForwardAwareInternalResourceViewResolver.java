@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -44,10 +45,10 @@ public class ForwardAwareInternalResourceViewResolver extends InternalResourceVi
     protected View createView(String viewName, Locale locale) throws Exception {
         View view = super.createView(viewName, locale);
         if (viewName.startsWith(FORWARD_URL_PREFIX) || viewName.startsWith(REDIRECT_URL_PREFIX)) {
-            if (view instanceof AbstractView) {
+            if (view instanceof AbstractView abstractView) {
                 MediaType requestedMediaType = getRequestedMediaType();
                 if (requestedMediaType != null) {
-                    ((AbstractView) view).setContentType(requestedMediaType.toString());
+                    abstractView.setContentType(requestedMediaType.toString());
                 }
             }
         }

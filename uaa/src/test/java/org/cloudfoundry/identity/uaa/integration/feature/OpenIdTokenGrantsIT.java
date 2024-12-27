@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -61,11 +62,11 @@ import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_O
 public class OpenIdTokenGrantsIT {
 
 
-
     @Autowired
     TestAccounts testAccounts;
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -89,15 +90,15 @@ public class OpenIdTokenGrantsIT {
     private String secret = "secr3T";
 
     private String[] aud = {"scim", "openid", "cloud_controller", "password", "cf", "uaa"};
-    private String[] openid = new String[] {"openid"};
+    private String[] openid = new String[]{"openid"};
 
     @Before
     public void setUp() {
-        ((RestTemplate)restOperations).setRequestFactory(new IntegrationTestUtils.StatelessRequestFactory());
+        ((RestTemplate) restOperations).setRequestFactory(new IntegrationTestUtils.StatelessRequestFactory());
         ClientCredentialsResourceDetails clientCredentials =
-            getClientCredentialsResource(new String[] {"scim.write"}, testAccounts.getAdminClientId(), testAccounts.getAdminClientSecret());
+                getClientCredentialsResource(new String[]{"scim.write"}, testAccounts.getAdminClientId(), testAccounts.getAdminClientSecret());
         client = IntegrationTestUtils.getClientCredentialsTemplate(clientCredentials);
-        user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com",true);
+        user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com", true);
     }
 
     @Before
@@ -105,21 +106,21 @@ public class OpenIdTokenGrantsIT {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
 
     private ClientCredentialsResourceDetails getClientCredentialsResource(String[] scope, String clientId,
-                                                                         String clientSecret) {
-        return IntegrationTestUtils.getClientCredentialsResource(baseUrl,scope,clientId,clientSecret);
+            String clientSecret) {
+        return IntegrationTestUtils.getClientCredentialsResource(baseUrl, scope, clientId, clientSecret);
     }
 
     private ScimUser createUser(String username, String firstName, String lastName,
-                                                String email, boolean verified) {
+            String email, boolean verified) {
         return IntegrationTestUtils.createUser(client, baseUrl, username, firstName, lastName, email, verified);
     }
 
@@ -137,10 +138,10 @@ public class OpenIdTokenGrantsIT {
         postBody.add("password", secret);
 
         ResponseEntity<Void> responseEntity = restOperations.exchange(
-            baseUrl + "/oauth/authorize",
-            HttpMethod.POST,
-            new HttpEntity<>(postBody, headers),
-            Void.class
+                baseUrl + "/oauth/authorize",
+                HttpMethod.POST,
+                new HttpEntity<>(postBody, headers),
+                Void.class
         );
 
         assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
@@ -157,20 +158,20 @@ public class OpenIdTokenGrantsIT {
 
         String[] scopes = UriUtils.decode(params.getFirst("scope"), "UTF-8").split(" ");
         assertThat(Arrays.asList(scopes), containsInAnyOrder(
-            "scim.userids",
-            "password.write",
-            "cloud_controller.write",
-            "openid",
-            "cloud_controller.read",
-            "uaa.user"
+                "scim.userids",
+                "password.write",
+                "cloud_controller.write",
+                "openid",
+                "cloud_controller.read",
+                "uaa.user"
         ));
 
         validateToken("access_token", params.toSingleValueMap(), scopes, aud);
-        validateToken("id_token", params.toSingleValueMap(), openid, new String[] {"cf"});
+        validateToken("id_token", params.toSingleValueMap(), openid, new String[]{"cf"});
     }
 
     private void validateToken(String paramName, Map params, String[] scopes, String[] aud) {
-        Map<String, Object> claims = UaaTokenUtils.getClaims((String)params.get(paramName), Map.class);
+        Map<String, Object> claims = UaaTokenUtils.getClaims((String) params.get(paramName), Map.class);
 
         assertThat(claims.get("jti"), is(params.get("jti")));
         assertThat(claims.get("client_id"), is("cf"));
@@ -183,7 +184,7 @@ public class OpenIdTokenGrantsIT {
     @Test
     public void testPasswordGrant() {
         String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64(("cf:").getBytes()));
+                + new String(Base64.encodeBase64("cf:".getBytes()));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -198,9 +199,9 @@ public class OpenIdTokenGrantsIT {
         postBody.add("password", secret);
 
         ResponseEntity<Map> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
-            HttpMethod.POST,
-            new HttpEntity<>(postBody, headers),
-            Map.class);
+                HttpMethod.POST,
+                new HttpEntity<>(postBody, headers),
+                Map.class);
 
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
 
@@ -208,38 +209,38 @@ public class OpenIdTokenGrantsIT {
 
         assertNotNull(params.get("jti"));
         assertEquals("bearer", params.get("token_type"));
-        assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
+        assertThat((Integer) params.get("expires_in"), Matchers.greaterThan(40000));
 
-        String[] scopes = UriUtils.decode((String)params.get("scope"), "UTF-8").split(" ");
+        String[] scopes = UriUtils.decode((String) params.get("scope"), "UTF-8").split(" ");
         assertThat(Arrays.asList(scopes), containsInAnyOrder(
-            "scim.userids",
-            "password.write",
-            "cloud_controller.write",
-            "openid",
-            "cloud_controller.read",
-            "uaa.user"
+                "scim.userids",
+                "password.write",
+                "cloud_controller.write",
+                "openid",
+                "cloud_controller.read",
+                "uaa.user"
         ));
 
         validateToken("access_token", params, scopes, aud);
-        validateToken("id_token", params, openid, new String[] {"cf"});
+        validateToken("id_token", params, openid, new String[]{"cf"});
     }
 
     @Test
     public void testOpenIdHybridFlowIdTokenAndCode() {
-        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
-        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token", "code")), ".+access_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token", "code")), ".+access_token=.+code=.+");
     }
 
     @Test
     public void testOpenIdHybridFlowIdTokenAndTokenAndCode() {
-        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
-        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token", "id_token", "code")), ".+access_token=.+id_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("token", "id_token", "code")), ".+access_token=.+id_token=.+code=.+");
     }
 
     @Test
     public void testOpenIdHybridFlowIdTokenAndToken() {
-        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
-        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token", "code")), ".+id_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndCode(new HashSet<>(Arrays.asList("id_token", "code")), ".+id_token=.+code=.+");
     }
 
     private void doOpenIdHybridFlowIdTokenAndCode(Set<String> responseTypes, String responseTypeMatcher) {
@@ -260,18 +261,18 @@ public class OpenIdTokenGrantsIT {
         String clientSecret = "appclientsecret";
         String redirectUri = "http://localhost:8080/app/";
         String uri = baseUrl +
-                     "/oauth/authorize?response_type={response_type}&"+
-                     "state={state}&client_id={client_id}&redirect_uri={redirect_uri}";
+                "/oauth/authorize?response_type={response_type}&" +
+                "state={state}&client_id={client_id}&redirect_uri={redirect_uri}";
 
         ResponseEntity<Void> result = restOperations.exchange(
-            uri,
-            HttpMethod.GET,
-            new HttpEntity<>(null, getHeaders(cookies)),
-            Void.class,
-            responseType,
-            state,
-            clientId,
-            redirectUri
+                uri,
+                HttpMethod.GET,
+                new HttpEntity<>(null, getHeaders(cookies)),
+                Void.class,
+                responseType,
+                state,
+                clientId,
+                redirectUri
         );
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
@@ -279,15 +280,15 @@ public class OpenIdTokenGrantsIT {
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
 
         ResponseEntity<String> response = restOperations.exchange(
-            location,
-            HttpMethod.GET,
-            new HttpEntity<>(null, getHeaders(cookies)),
-            String.class);
+                location,
+                HttpMethod.GET,
+                new HttpEntity<>(null, getHeaders(cookies)),
+                String.class);
         // should be directed to the login screen...
         assertTrue(response.getBody().contains("/login.do"));
         assertTrue(response.getBody().contains("username"));
@@ -297,7 +298,7 @@ public class OpenIdTokenGrantsIT {
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
 
@@ -314,21 +315,21 @@ public class OpenIdTokenGrantsIT {
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
 
 
         location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         response = restOperations.exchange(
-            location,
-            HttpMethod.GET,
-            new HttpEntity<>(null, getHeaders(cookies)),
-            String.class);
+                location,
+                HttpMethod.GET,
+                new HttpEntity<>(null, getHeaders(cookies)),
+                String.class);
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
         if (response.getStatusCode() == HttpStatus.OK) {
@@ -341,14 +342,13 @@ public class OpenIdTokenGrantsIT {
             result = restOperations.exchange(baseUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, getHeaders(cookies)), Void.class);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
-        }
-        else {
+        } else {
             // Token cached so no need for second approval
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = UriUtils.decode(response.getHeaders().getLocation().toString(), "UTF-8");
         }
         assertTrue("Wrong location: " + location,
-            location.matches(redirectUri + responseTypeMatcher));
+                location.matches(redirectUri + responseTypeMatcher));
 
         formData.clear();
         formData.add("client_id", clientId);
@@ -357,11 +357,11 @@ public class OpenIdTokenGrantsIT {
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+                + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         tokenHeaders.set("Authorization", basicDigestHeaderValue);
 
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> tokenResponse = restOperations.exchange(baseUrl+"/oauth/token", HttpMethod.POST, new HttpEntity<>(formData, tokenHeaders), Map.class);
+        ResponseEntity<Map> tokenResponse = restOperations.exchange(baseUrl + "/oauth/token", HttpMethod.POST, new HttpEntity<>(formData, tokenHeaders), Map.class);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
         @SuppressWarnings("unchecked")
         Map<String, String> body = tokenResponse.getBody();

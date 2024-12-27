@@ -9,13 +9,13 @@ import static java.util.Optional.ofNullable;
 
 public class TokenValidityResolver {
     public static final int DEFAULT_TO_GLOBAL_POLICY = -1;
-    private int globalTokenValiditySeconds;
+    private final int globalTokenValiditySeconds;
     private TimeService timeService;
-    private ClientTokenValidity clientTokenValidity;
+    private final ClientTokenValidity clientTokenValidity;
 
     public TokenValidityResolver(ClientTokenValidity clientTokenValidity,
-                                 int globalTokenValiditySeconds,
-                                 TimeService timeService) {
+            int globalTokenValiditySeconds,
+            TimeService timeService) {
         this.clientTokenValidity = clientTokenValidity;
         this.globalTokenValiditySeconds = globalTokenValiditySeconds;
         this.timeService = timeService;
@@ -23,9 +23,9 @@ public class TokenValidityResolver {
 
     public Date resolve(String clientId) {
         Integer tokenValiditySeconds = ofNullable(
-            clientTokenValidity.getValiditySeconds(clientId)
+                clientTokenValidity.getValiditySeconds(clientId)
         ).orElse(
-            clientTokenValidity.getZoneValiditySeconds()
+                clientTokenValidity.getZoneValiditySeconds()
         );
 
         if (tokenValiditySeconds == DEFAULT_TO_GLOBAL_POLICY) {

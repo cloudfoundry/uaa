@@ -431,12 +431,12 @@ class InvitationsEndpointMockMvcTests {
     }
 
     private static InvitationsResponse sendRequestWithTokenAndReturnResponse(WebApplicationContext webApplicationContext,
-                                                                             MockMvc mockMvc,
-                                                                             String token,
-                                                                             String subdomain,
-                                                                             String clientId,
-                                                                             String redirectUri,
-                                                                             String... emails) throws Exception {
+            MockMvc mockMvc,
+            String token,
+            String subdomain,
+            String clientId,
+            String redirectUri,
+            String... emails) throws Exception {
         return MockMvcUtils.sendRequestWithTokenAndReturnResponse(webApplicationContext,
                 mockMvc, token, subdomain, clientId, redirectUri, emails);
     }

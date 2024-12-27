@@ -10,7 +10,7 @@ import java.nio.charset.StandardCharsets;
 public class CurrentUserCookieFactory {
     public String CURRENT_USER_COOKIE_NAME = "Current-User";
     private final boolean secure;
-    private int sessionTimeout;
+    private final int sessionTimeout;
 
     public CurrentUserCookieFactory(int sessionTimeout, boolean secure) {
         this.sessionTimeout = sessionTimeout;

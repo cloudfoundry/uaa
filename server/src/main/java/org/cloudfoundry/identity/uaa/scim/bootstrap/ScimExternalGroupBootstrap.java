@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -51,10 +52,10 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
         this.addNonExistingGroups = addNonExistingGroups;
     }
 
-    private boolean addNonExistingGroups = false;
+    private boolean addNonExistingGroups;
 
     public ScimExternalGroupBootstrap(ScimGroupProvisioning scimGroupProvisioning,
-                    ScimGroupExternalMembershipManager externalMembershipManager) {
+            ScimGroupExternalMembershipManager externalMembershipManager) {
         this.scimGroupProvisioning = scimGroupProvisioning;
         this.externalMembershipManager = externalMembershipManager;
     }
@@ -65,15 +66,15 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
 
 
     protected ScimGroup addGroup(String groupName) {
-        ScimGroup group = new ScimGroup(null,groupName,IdentityZoneHolder.get().getId());
+        ScimGroup group = new ScimGroup(null, groupName, IdentityZoneHolder.get().getId());
         try {
             return getScimGroupProvisioning().create(group, IdentityZoneHolder.get().getId());
         } catch (ScimResourceAlreadyExistsException x) {
-            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, groupName, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
-            if (groups != null && groups.size() > 0) {
+            List<ScimGroup> groups = getScimGroupProvisioning().query(GROUP_BY_NAME_AND_ZONE_FILTER.formatted(groupName, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
+            if (groups != null && !groups.isEmpty()) {
                 return groups.get(0);
             } else {
-                throw new RuntimeException("Unable to create or return group with name:"+groupName);
+                throw new RuntimeException("Unable to create or return group with name:" + groupName);
             }
         }
     }
@@ -88,12 +89,12 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
                     if (internalGroups != null) {
                         internalGroups.removeAll(Collections.singleton(null));
                         for (String internalGroup : internalGroups) {
-                            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, internalGroup, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
+                            List<ScimGroup> groups = getScimGroupProvisioning().query(GROUP_BY_NAME_AND_ZONE_FILTER.formatted(internalGroup, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
 
-                            if (groups == null || groups.size() == 0 && isAddNonExistingGroups()) {
+                            if (groups == null || groups.isEmpty() && isAddNonExistingGroups()) {
                                 groups = new ArrayList<>();
                                 groups.add(addGroup(internalGroup));
-                            } else if (groups == null || groups.size() == 0 && !isAddNonExistingGroups()) {
+                            } else if (groups == null || groups.isEmpty() && !isAddNonExistingGroups()) {
                                 continue;
                             }
                             addGroupMap(groups.get(0).getId(), externalGroup, origin);

@@ -67,9 +67,9 @@ public class ResetPasswordController {
 
     @RequestMapping(value = "/forgot_password", method = RequestMethod.GET)
     public String forgotPasswordPage(Model model,
-                                     @RequestParam(required = false, value = "client_id") String clientId,
-                                     @RequestParam(required = false, value = "redirect_uri") String redirectUri,
-                                     HttpServletResponse response) {
+            @RequestParam(required = false, value = "client_id") String clientId,
+            @RequestParam(required = false, value = "redirect_uri") String redirectUri,
+            HttpServletResponse response) {
         if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
@@ -80,7 +80,7 @@ public class ResetPasswordController {
 
     @RequestMapping(value = "/forgot_password.do", method = RequestMethod.POST)
     public String forgotPassword(Model model, @RequestParam("username") String username, @RequestParam(value = "client_id", defaultValue = "") String clientId,
-                                 @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
+            @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
         if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
@@ -156,7 +156,7 @@ public class ResetPasswordController {
 
     @RequestMapping(value = "/email_sent", method = RequestMethod.GET)
     public String emailSentPage(@ModelAttribute("code") String code,
-                                HttpServletResponse response) {
+            HttpServletResponse response) {
         response.addHeader("Content-Security-Policy", "frame-ancestors 'none'");
         return "email_sent";
     }
@@ -168,8 +168,8 @@ public class ResetPasswordController {
 
     @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = {"code"})
     public String resetPasswordPage(Model model,
-                                    HttpServletResponse response,
-                                    @RequestParam("code") String code) {
+            HttpServletResponse response,
+            @RequestParam("code") String code) {
 
         ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code, IdentityZoneHolder.get().getId()));
         if (expiringCode == null) {
@@ -213,13 +213,13 @@ public class ResetPasswordController {
 
     @RequestMapping(value = "/reset_password.do", method = RequestMethod.POST)
     public void resetPassword(Model model,
-                              @RequestParam("code") String code,
-                              @RequestParam("email") String email,
-                              @RequestParam("password") String password,
-                              @RequestParam("password_confirmation") String passwordConfirmation,
-                              HttpServletRequest request,
-                              HttpServletResponse response,
-                              HttpSession session) {
+            @RequestParam("code") String code,
+            @RequestParam("email") String email,
+            @RequestParam("password") String password,
+            @RequestParam("password_confirmation") String passwordConfirmation,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            HttpSession session) {
 
 
     }

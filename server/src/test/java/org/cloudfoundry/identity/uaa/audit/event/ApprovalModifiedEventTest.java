@@ -18,11 +18,11 @@ class ApprovalModifiedEventTest {
     @Test
     void testAuditEvent() {
         Approval approval = new Approval()
-            .setUserId("mruser")
-            .setClientId("app")
-            .setScope("cloud_controller.read")
-            .setExpiresAt(Approval.timeFromNow(1000))
-            .setStatus(Approval.ApprovalStatus.APPROVED);
+                .setUserId("mruser")
+                .setClientId("app")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(Approval.timeFromNow(1000))
+                .setStatus(Approval.ApprovalStatus.APPROVED);
 
         ApprovalModifiedEvent event = new ApprovalModifiedEvent(approval, null);
 

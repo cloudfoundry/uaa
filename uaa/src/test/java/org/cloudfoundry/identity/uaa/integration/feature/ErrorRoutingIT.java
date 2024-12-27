@@ -67,7 +67,7 @@ public class ErrorRoutingIT {
     }
 
     private String CallErrorPageAndCheckHttpStatusCode(String errorPath, String method, int codeExpected) throws IOException {
-        HttpURLConnection cn = (HttpURLConnection)new URL(baseUrl + errorPath).openConnection();
+        HttpURLConnection cn = (HttpURLConnection) new URL(baseUrl + errorPath).openConnection();
         cn.setRequestMethod(method);
         cn.setRequestProperty("Accept", "text/html");
         // connection initiate
@@ -85,11 +85,11 @@ public class ErrorRoutingIT {
         }
 
         StringBuffer sb = new StringBuffer();
-        int BUFFER=4096;
+        int BUFFER = 4096;
         char[] buffer = new char[4096];
         int charsRead = 0;
         try {
-            while ( (charsRead  = reader.read(buffer, 0, BUFFER)) != -1) {
+            while ((charsRead = reader.read(buffer, 0, BUFFER)) != -1) {
                 sb.append(buffer, 0, charsRead);
             }
         } catch (IOException ie) {

@@ -12,8 +12,8 @@ import org.springframework.web.client.RestOperations;
  */
 public interface RestTemplateHolder {
 
-	void setRestTemplate(RestOperations restTemplate);
+    void setRestTemplate(RestOperations restTemplate);
 
-	RestOperations getRestTemplate();
+    RestOperations getRestTemplate();
 
 }

@@ -13,6 +13,6 @@ import org.springframework.util.MultiValueMap;
  * Scope: OAuth2 client
  */
 public interface RequestEnhancer {
-		void enhance(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form,
-			HttpHeaders headers);
+    void enhance(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form,
+            HttpHeaders headers);
 }

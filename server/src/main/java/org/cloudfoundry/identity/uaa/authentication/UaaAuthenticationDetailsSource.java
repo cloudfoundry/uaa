@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -20,7 +21,7 @@ import org.springframework.security.authentication.AuthenticationDetailsSource;
  * @author Luke Taylor
  */
 public class UaaAuthenticationDetailsSource implements
-                AuthenticationDetailsSource<HttpServletRequest, UaaAuthenticationDetails> {
+        AuthenticationDetailsSource<HttpServletRequest, UaaAuthenticationDetails> {
     @Override
     public UaaAuthenticationDetails buildDetails(HttpServletRequest context) {
         return new UaaAuthenticationDetails(context);

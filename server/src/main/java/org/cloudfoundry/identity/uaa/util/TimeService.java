@@ -24,7 +24,11 @@ public interface TimeService {
         return System.currentTimeMillis();
     }
 
-    default Date getCurrentDate() { return new Date(getCurrentTimeMillis()); }
+    default Date getCurrentDate() {
+        return new Date(getCurrentTimeMillis());
+    }
 
-    default Instant getCurrentInstant() { return Instant.now(); }
+    default Instant getCurrentInstant() {
+        return Instant.now();
+    }
 }

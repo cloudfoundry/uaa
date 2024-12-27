@@ -91,7 +91,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         checkFilter(filter);
 
         // get all users for the given filter and the current page
-        final boolean ascending = sortOrder.equalsIgnoreCase("ascending");
+        final boolean ascending = "ascending".equalsIgnoreCase(sortOrder);
         final List<ScimUser> filteredUsers;
         if (includeInactive) {
             filteredUsers = scimUserProvisioning.query(

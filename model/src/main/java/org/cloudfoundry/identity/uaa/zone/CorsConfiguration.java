@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -51,7 +52,7 @@ public class CorsConfiguration {
 
     private List<String> allowedMethods = Collections.singletonList(GET.toString());
 
-    private boolean allowedCredentials = false;
+    private boolean allowedCredentials;
 
     private int maxAge = 1728000;
 

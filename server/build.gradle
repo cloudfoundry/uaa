@@ -23,19 +23,15 @@ dependencies {
     implementation(libraries.springSecurityWeb)
     implementation(libraries.springSecurityConfig)
     implementation(libraries.springBootStarterMail)
-    implementation(libraries.owaspEsapi) {
-        transitive = false
-    }
-    implementation(libraries.springSecuritySaml) {
-        exclude(module: "bcprov-ext-jdk15on")
-        exclude(module: "xalan")
-    }
+    implementation(libraries.openSamlApi)
+    implementation(libraries.springSecuritySamlServiceProvider)
     implementation(libraries.jodaTime)
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 
-    implementation(libraries.bouncyCastleProv)
-    implementation(libraries.bouncyCastlePkix)
+    implementation(libraries.bouncyCastleFipsProv)
+    implementation(libraries.bouncyCastleTlsFips)
+    implementation(libraries.bouncyCastlePkixFips)
 
     implementation(libraries.guava)
 
@@ -69,6 +65,7 @@ dependencies {
     implementation(libraries.hsqldb)
 
     implementation(libraries.snakeyaml)
+    implementation(libraries.velocity)
 
     implementation(libraries.springWebMvc)
     implementation(libraries.springSecurityLdap)
@@ -80,9 +77,6 @@ dependencies {
     }
 
     implementation(libraries.passay)
-
-    implementation(libraries.velocity)
-    implementation(libraries.xerces)
 
     implementation(libraries.slf4jImpl)
     implementation(libraries.log4jCore)
@@ -112,6 +106,8 @@ dependencies {
 
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.guavaTestLib)
+    testImplementation(libraries.xmlUnit)
+    testImplementation(libraries.awaitility)
 
     implementation(libraries.commonsIo)
 }
@@ -119,11 +115,17 @@ dependencies {
 configurations.all {
     exclude(group: "org.beanshell", module: "bsh-core")
     exclude(group: "org.apache-extras.beanshell", module: "bsh")
-    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
-    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
     exclude(group: "com.fasterxml.woodstox", module: "woodstox-core")
     exclude(group: "commons-beanutils", module: "commons-beanutils")
     exclude(group: "commons-collections", module: "commons-collections")
+
+    // Exclude non-FIPS bouncycastle libs, and use Shadow library for FIPS compliance
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcutil-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk18on")
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk18on")
+    exclude(group: "org.bouncycastle", module: "bcutil-jdk18on")
 }
 
 jar {

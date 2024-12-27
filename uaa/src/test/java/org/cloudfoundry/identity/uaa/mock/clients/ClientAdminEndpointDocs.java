@@ -53,73 +53,73 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
     private static final String clientIdDescription = "Client identifier, unique within identity zone";
 
     private static final FieldDescriptor[] idempotentFields = new FieldDescriptor[]{
-        fieldWithPath("client_id").required().description(clientIdDescription),
-        fieldWithPath("authorized_grant_types").optional(null).description("List of grant types that can be used to obtain a token with this client. Can include `authorization_code`, `password`, `implicit`, and/or `client_credentials`."),
-        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. Null/Empty value is forbidden."),
-        fieldWithPath("scope").optional("uaa.none").type(ARRAY).description("Scopes allowed for the client"),
-        fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
-        fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
-        fieldWithPath("autoapprove").optional(Collections.emptySet()).type(Arrays.asList(BOOLEAN, ARRAY)).description("Scopes that do not require user approval"),
-        fieldWithPath("allowpublic").optional(false).type(BOOLEAN).description("If true, allow to omit client_secret for authorization_code flow in combination with PKCE"),
-        fieldWithPath("access_token_validity").optional(null).type(NUMBER).description("time in seconds to access token expiration after it is issued"),
-        fieldWithPath("refresh_token_validity").optional(null).type(NUMBER).description("time in seconds to refresh token expiration after it is issued"),
-        fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
-        fieldWithPath(ClientConstants.CLIENT_NAME).optional(null).type(STRING).description("A human readable name for the client"),
-        fieldWithPath(ClientConstants.TOKEN_SALT).optional(null).type(STRING).description("A random string used to generate the client's revokation key. Change this value to revoke all active tokens for the client"),
-        fieldWithPath(ClientConstants.CREATED_WITH).optional(null).type(STRING).description("What scope the bearer token had when client was created"),
-        fieldWithPath(ClientConstants.APPROVALS_DELETED).optional(null).type(BOOLEAN).description("Were the approvals deleted for the client, and an audit event sent"),
-        fieldWithPath(ClientConstants.REQUIRED_USER_GROUPS).optional(null).type(ARRAY).description("A list of group names. If a user doesn't belong to all the required groups, the user will not be authenticated and no tokens will be issued to this client for that user. If this field is not set, authentication and token issuance will proceed normally."),
+            fieldWithPath("client_id").required().description(clientIdDescription),
+            fieldWithPath("authorized_grant_types").optional(null).description("List of grant types that can be used to obtain a token with this client. Can include `authorization_code`, `password`, `implicit`, and/or `client_credentials`."),
+            fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. Null/Empty value is forbidden."),
+            fieldWithPath("scope").optional("uaa.none").type(ARRAY).description("Scopes allowed for the client"),
+            fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
+            fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
+            fieldWithPath("autoapprove").optional(Collections.emptySet()).type(Arrays.asList(BOOLEAN, ARRAY)).description("Scopes that do not require user approval"),
+            fieldWithPath("allowpublic").optional(false).type(BOOLEAN).description("If true, allow to omit client_secret for authorization_code flow in combination with PKCE"),
+            fieldWithPath("access_token_validity").optional(null).type(NUMBER).description("time in seconds to access token expiration after it is issued"),
+            fieldWithPath("refresh_token_validity").optional(null).type(NUMBER).description("time in seconds to refresh token expiration after it is issued"),
+            fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
+            fieldWithPath(ClientConstants.CLIENT_NAME).optional(null).type(STRING).description("A human readable name for the client"),
+            fieldWithPath(ClientConstants.TOKEN_SALT).optional(null).type(STRING).description("A random string used to generate the client's revokation key. Change this value to revoke all active tokens for the client"),
+            fieldWithPath(ClientConstants.CREATED_WITH).optional(null).type(STRING).description("What scope the bearer token had when client was created"),
+            fieldWithPath(ClientConstants.APPROVALS_DELETED).optional(null).type(BOOLEAN).description("Were the approvals deleted for the client, and an audit event sent"),
+            fieldWithPath(ClientConstants.REQUIRED_USER_GROUPS).optional(null).type(ARRAY).description("A list of group names. If a user doesn't belong to all the required groups, the user will not be authenticated and no tokens will be issued to this client for that user. If this field is not set, authentication and token issuance will proceed normally."),
     };
 
     private static final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{
-        fieldWithPath("clientId").required().description(clientIdDescription),
-        fieldWithPath("oldSecret").constrained("Optional if authenticated as an admin client. Required otherwise.").type(STRING).description("A valid client secret before updating"),
-        fieldWithPath("secret").required().description("The new client secret"),
-        fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `"+ADD+"`, the new `secret` will be added to the existing one and if the change mode is set to `"+DELETE+"`, the old secret will be deleted to support secret rotation. Currently only two client secrets are supported at any given time.")
+            fieldWithPath("clientId").required().description(clientIdDescription),
+            fieldWithPath("oldSecret").constrained("Optional if authenticated as an admin client. Required otherwise.").type(STRING).description("A valid client secret before updating"),
+            fieldWithPath("secret").required().description("The new client secret"),
+            fieldWithPath("changeMode").optional(UPDATE).type(STRING).description("If change mode is set to `" + ADD + "`, the new `secret` will be added to the existing one and if the change mode is set to `" + DELETE + "`, the old secret will be deleted to support secret rotation. Currently only two client secrets are supported at any given time.")
     };
 
     private static final FieldDescriptor[] clientJwtChangeFields = new FieldDescriptor[]{
-        fieldWithPath("client_id").required().description(clientIdDescription),
-        fieldWithPath("jwks").constrained("Optional only, if jwks_uri is used. Required otherwise.").type(STRING).description("A valid JSON string according JSON Web Key Set standard, see [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517), e.g. content of /token_keys endpoint from UAA"),
-        fieldWithPath("jwks_uri").constrained("Optional only, if jwks is used. Required otherwise.").type(STRING).description("A valid URI to token keys endpoint. Must be compliant to jwks_uri from [OpenID Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html)."),
-        fieldWithPath("kid").constrained("Optional only, if a single JWK should be deleted, else ignored.").type(STRING).description("If change mode is set to `"+ClientJwtChangeRequest.ChangeMode.DELETE+"`, it specifies `the id of the key` that will be deleted. The kid parameter is only applicable when jwks configuration is used."),
-        fieldWithPath("changeMode").optional(ClientJwtChangeRequest.ChangeMode.ADD).type(STRING).description("If change mode is set to `"+ClientJwtChangeRequest.ChangeMode.ADD+"`, the new `JWKS` will be added to the existing configuration and if the change mode is set to `"+ClientJwtChangeRequest.ChangeMode.DELETE+"`, the old `JWKS` will be deleted. The option `"+ClientJwtChangeRequest.ChangeMode.UPDATE+"` enables changes to the complete trust setting and allows switching between `JWKS` and `JWKS_URI`.")
+            fieldWithPath("client_id").required().description(clientIdDescription),
+            fieldWithPath("jwks").constrained("Optional only, if jwks_uri is used. Required otherwise.").type(STRING).description("A valid JSON string according JSON Web Key Set standard, see [RFC 7517](https://www.rfc-editor.org/rfc/rfc7517), e.g. content of /token_keys endpoint from UAA"),
+            fieldWithPath("jwks_uri").constrained("Optional only, if jwks is used. Required otherwise.").type(STRING).description("A valid URI to token keys endpoint. Must be compliant to jwks_uri from [OpenID Discovery](https://openid.net/specs/openid-connect-discovery-1_0.html)."),
+            fieldWithPath("kid").constrained("Optional only, if a single JWK should be deleted, else ignored.").type(STRING).description("If change mode is set to `" + ClientJwtChangeRequest.ChangeMode.DELETE + "`, it specifies `the id of the key` that will be deleted. The kid parameter is only applicable when jwks configuration is used."),
+            fieldWithPath("changeMode").optional(ClientJwtChangeRequest.ChangeMode.ADD).type(STRING).description("If change mode is set to `" + ClientJwtChangeRequest.ChangeMode.ADD + "`, the new `JWKS` will be added to the existing configuration and if the change mode is set to `" + ClientJwtChangeRequest.ChangeMode.DELETE + "`, the old `JWKS` will be deleted. The option `" + ClientJwtChangeRequest.ChangeMode.UPDATE + "` enables changes to the complete trust setting and allows switching between `JWKS` and `JWKS_URI`.")
     };
 
     @BeforeEach
     void setup() throws Exception {
         clientAdminToken = testClient.getClientCredentialsOAuthAccessToken(
-            "admin",
-            "adminsecret",
-            "uaa.admin clients.admin clients.secret");
+                "admin",
+                "adminsecret",
+                "uaa.admin clients.admin clients.secret");
     }
 
     @Test
     void createClient() throws Exception {
         Snippet requestFields = requestFields(
-            (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
-                new FieldDescriptor[]{clientSecretField, secondaryClientSecretField}
-            ));
+                (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
+                        new FieldDescriptor[]{clientSecretField, secondaryClientSecretField}
+                ));
 
         Snippet responseFields = responseFields(
-            (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
-                new FieldDescriptor[]{
-                    lastModifiedField
-                }
-            ));
+                (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
+                        new FieldDescriptor[]{
+                                lastModifiedField
+                        }
+                ));
 
         ResultActions resultActions = createClientHelper();
 
         resultActions.andDo(document("{ClassName}/{methodName}",
-            preprocessRequest(prettyPrint()),
-            preprocessResponse(prettyPrint()),
-            requestHeaders(
-                authorizationHeader,
-                IDENTITY_ZONE_ID_HEADER,
-                IDENTITY_ZONE_SUBDOMAIN_HEADER
-            ),
-            requestFields,
-            responseFields
+                preprocessRequest(prettyPrint()),
+                preprocessResponse(prettyPrint()),
+                requestHeaders(
+                        authorizationHeader,
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                requestFields,
+                responseFields
         ));
     }
 
@@ -128,43 +128,43 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(get("/oauth/clients")
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .param("filter", String.format("client_id eq \"%s\"", createdClientDetails.getClientId()))
-            .param("sortBy", "client_id")
-            .param("sortOrder", "descending")
-            .param("startIndex", "1")
-            .param("count", "10")
-            .accept(APPLICATION_JSON));
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .param("filter", "client_id eq \"%s\"".formatted(createdClientDetails.getClientId()))
+                .param("sortBy", "client_id")
+                .param("sortOrder", "descending")
+                .param("startIndex", "1")
+                .param("count", "10")
+                .accept(APPLICATION_JSON));
 
         Snippet requestParameters = requestParameters(
-            parameterWithName("filter").optional("client_id pr").type(STRING).description("SCIM filter for querying clients"),
-            parameterWithName("sortBy").optional("client_id").type(STRING).description("Field to sort results by"),
-            parameterWithName("sortOrder").optional("ascending").type(STRING).description("Sort results in `ascending` or `descending` order"),
-            parameterWithName("startIndex").optional("1").type(NUMBER).description("Index of the first result on which to begin the page"),
-            parameterWithName("count").optional("100").type(NUMBER).description("Number of results per page")
+                parameterWithName("filter").optional("client_id pr").type(STRING).description("SCIM filter for querying clients"),
+                parameterWithName("sortBy").optional("client_id").type(STRING).description("Field to sort results by"),
+                parameterWithName("sortOrder").optional("ascending").type(STRING).description("Sort results in `ascending` or `descending` order"),
+                parameterWithName("startIndex").optional("1").type(NUMBER).description("Index of the first result on which to begin the page"),
+                parameterWithName("count").optional("100").type(NUMBER).description("Number of results per page")
         );
 
         Snippet responseFields = responseFields(
-            (FieldDescriptor[]) ArrayUtils.addAll(
-                subFields("resources[]", (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{lastModifiedField})),
-                new FieldDescriptor[]{
-                    fieldWithPath("startIndex").description("Index of the first result on this page"),
-                    fieldWithPath("itemsPerPage").description("Number of results per page"),
-                    fieldWithPath("totalResults").description("Total number of results that matched the query"),
-                    fieldWithPath("schemas").description("`[\"urn:scim:schemas:core:1.0\"]`")
-                }
-            )
+                (FieldDescriptor[]) ArrayUtils.addAll(
+                        subFields("resources[]", (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{lastModifiedField})),
+                        new FieldDescriptor[]{
+                                fieldWithPath("startIndex").description("Index of the first result on this page"),
+                                fieldWithPath("itemsPerPage").description("Number of results per page"),
+                                fieldWithPath("totalResults").description("Total number of results that matched the query"),
+                                fieldWithPath("schemas").description("`[\"urn:scim:schemas:core:1.0\"]`")
+                        }
+                )
         );
 
         resultActions.andDo(document("{ClassName}/{methodName}",
-            preprocessResponse(prettyPrint()),
-            requestHeaders(
-                headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.{zone.id}.admin`"),
-                IDENTITY_ZONE_ID_HEADER,
-                IDENTITY_ZONE_SUBDOMAIN_HEADER
-            ),
-            requestParameters,
-            responseFields
+                preprocessResponse(prettyPrint()),
+                requestHeaders(
+                        headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.{zone.id}.admin`"),
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                requestParameters,
+                responseFields
         ));
     }
 
@@ -178,21 +178,21 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         );
 
         resultActions.andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
-            pathParameters(
-                parameterWithName("client_id").required().description(clientIdDescription)
-            ),
-            requestHeaders(
-                headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.{zone.id}.admin`"),
-                IDENTITY_ZONE_ID_HEADER,
-                IDENTITY_ZONE_SUBDOMAIN_HEADER
-            ),
-            responseFields(
-                (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
-                    new FieldDescriptor[]{
-                        lastModifiedField
-                    }
+                pathParameters(
+                        parameterWithName("client_id").required().description(clientIdDescription)
+                ),
+                requestHeaders(
+                        headerWithName("Authorization").description("Bearer token containing `clients.read`, `clients.admin` or `zones.{zone.id}.admin`"),
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
+                ),
+                responseFields(
+                        (FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
+                                new FieldDescriptor[]{
+                                        lastModifiedField
+                                }
+                        )
                 )
-            )
         ));
     }
 
@@ -207,29 +207,29 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         updatedClientDetails.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
 
         ResultActions resultActions = mockMvc.perform(put("/oauth/clients/{client_id}", createdClientDetails.getClientId())
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .contentType(APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
-            .content(writeValueAsString(updatedClientDetails)))
-            .andExpect(status().isOk());
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(writeValueAsString(updatedClientDetails)))
+                .andExpect(status().isOk());
 
         Snippet requestFields = requestFields(idempotentFields);
 
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
                 new FieldDescriptor[]{
-                    lastModifiedField
+                        lastModifiedField
                 }
-            )
+        )
         );
 
         resultActions.andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("client_id").required().description(clientIdDescription)
+                        parameterWithName("client_id").required().description(clientIdDescription)
                 ),
                 requestHeaders(
-                    authorizationHeader,
-                    IDENTITY_ZONE_ID_HEADER,
-                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        authorizationHeader,
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields,
                 responseFields)
@@ -241,26 +241,26 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(put("/oauth/clients/{client_id}/secret", createdClientDetails.getClientId())
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .contentType(APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
-            .content(writeValueAsString(map(
-                entry("clientId", createdClientDetails.getClientId()),
-                entry("secret", "new_secret")
-            ))))
-            .andExpect(status().isOk());
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(writeValueAsString(map(
+                        entry("clientId", createdClientDetails.getClientId()),
+                        entry("secret", "new_secret")
+                ))))
+                .andExpect(status().isOk());
 
         resultActions.andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("client_id").required().description(clientIdDescription)
+                        parameterWithName("client_id").required().description(clientIdDescription)
                 ),
                 requestHeaders(
-                    authorizationHeader,
-                    IDENTITY_ZONE_ID_HEADER,
-                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        authorizationHeader,
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields(secretChangeFields)
-            )
+        )
         );
     }
 
@@ -273,22 +273,22 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
                 .content(writeValueAsString(map(
-                    entry("client_id", createdClientDetails.getClientId()),
-                    entry("jwks_uri", "http://localhost:8080/uaa/token_keys")
+                        entry("client_id", createdClientDetails.getClientId()),
+                        entry("jwks_uri", "http://localhost:8080/uaa/token_keys")
                 ))))
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
 
         resultActions.andDo(document("{ClassName}/{methodName}", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("client_id").required().description(clientIdDescription)
+                        parameterWithName("client_id").required().description(clientIdDescription)
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token containing `clients.trust`, `clients.admin` or `zones.{zone.id}.admin`"),
-                    IDENTITY_ZONE_ID_HEADER,
-                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        headerWithName("Authorization").description("Bearer token containing `clients.trust`, `clients.admin` or `zones.{zone.id}.admin`"),
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 requestFields(clientJwtChangeFields)
-            )
+        )
         );
     }
 
@@ -297,22 +297,22 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         ClientDetails createdClientDetails = JsonUtils.readValue(createClientHelper().andReturn().getResponse().getContentAsString(), UaaClientDetails.class);
 
         ResultActions resultActions = mockMvc.perform(delete("/oauth/clients/{client_id}", createdClientDetails.getClientId())
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .accept(APPLICATION_JSON));
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .accept(APPLICATION_JSON));
 
         resultActions.andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("client_id").required().description(clientIdDescription)
+                        parameterWithName("client_id").required().description(clientIdDescription)
                 ),
                 requestHeaders(
-                    authorizationHeader,
-                    IDENTITY_ZONE_ID_HEADER,
-                    IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        authorizationHeader,
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
                 ),
                 responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields,
-                    new FieldDescriptor[]{
-                        lastModifiedField
-                    }
+                        new FieldDescriptor[]{
+                                lastModifiedField
+                        }
                 )))
         );
     }
@@ -326,41 +326,41 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         UaaClientDetails createdClientDetails2 = createBasicClientWithAdditionalInformation(scopes);
 
         ResultActions createResultActions = mockMvc.perform(post("/oauth/clients/tx")
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(Arrays.asList(createdClientDetails1, createdClientDetails2)))
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .accept(APPLICATION_JSON));
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(Arrays.asList(createdClientDetails1, createdClientDetails2)))
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .accept(APPLICATION_JSON));
 
         FieldDescriptor[] fieldsNoSecret = subFields("[]", idempotentFields);
         FieldDescriptor[] fieldsWithSecret = (FieldDescriptor[]) ArrayUtils.addAll(
-            fieldsNoSecret,
-            subFields("[]", clientSecretField)
+                fieldsNoSecret,
+                subFields("[]", clientSecretField)
         );
         FieldDescriptor[] fieldsWithSecretAndAction = (FieldDescriptor[]) ArrayUtils.addAll(
-            fieldsWithSecret,
-            subFields("[]", actionField)
+                fieldsWithSecret,
+                subFields("[]", actionField)
         );
 
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(
-            fieldsNoSecret,
-            subFields("[]", lastModifiedField)
+                fieldsNoSecret,
+                subFields("[]", lastModifiedField)
         ));
         Snippet responseFieldsWithAction = responseFields((FieldDescriptor[]) ArrayUtils.addAll(
-            fieldsNoSecret,
-            subFields("[]", lastModifiedField, actionField)
+                fieldsNoSecret,
+                subFields("[]", lastModifiedField, actionField)
         ));
         createResultActions
-            .andExpect(status().isCreated())
-            .andDo(document("{ClassName}/createClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(
-                        authorizationHeader,
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    requestFields(fieldsWithSecret),
-                    responseFields
+                .andExpect(status().isCreated())
+                .andDo(document("{ClassName}/createClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
+                        requestHeaders(
+                                authorizationHeader,
+                                IDENTITY_ZONE_ID_HEADER,
+                                IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        ),
+                        requestFields(fieldsWithSecret),
+                        responseFields
                 )
-            );
+                );
 
         //UPDATE
 
@@ -368,73 +368,73 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         createdClientDetails2.getAuthorities().add(new SimpleGrantedAuthority("new.authority"));
 
         ResultActions updateResultActions = mockMvc.perform(put("/oauth/clients/tx")
-            .contentType(APPLICATION_JSON)
-            .content("[" + serializeExcludingProperties(createdClientDetails1, "client_secret", "lastModified") + "," + serializeExcludingProperties(createdClientDetails2, "client_secret", "lastModified") + "]")
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .accept(APPLICATION_JSON));
+                .contentType(APPLICATION_JSON)
+                .content("[" + serializeExcludingProperties(createdClientDetails1, "client_secret", "lastModified") + "," + serializeExcludingProperties(createdClientDetails2, "client_secret", "lastModified") + "]")
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .accept(APPLICATION_JSON));
 
         updateResultActions
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/updateClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(
-                        authorizationHeader,
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    requestFields(fieldsNoSecret),
-                    responseFields
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/updateClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
+                        requestHeaders(
+                                authorizationHeader,
+                                IDENTITY_ZONE_ID_HEADER,
+                                IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        ),
+                        requestFields(fieldsNoSecret),
+                        responseFields
                 )
-            );
+                );
 
         // CHANGE SECRET
 
         Map<String, Object> client1SecretChange = map(
-            entry("clientId", createdClientDetails1.getClientId()),
-            entry("secret", "new_secret")
+                entry("clientId", createdClientDetails1.getClientId()),
+                entry("secret", "new_secret")
         );
 
         Map<String, Object> client2SecretChange = map(
-            entry("clientId", createdClientDetails2.getClientId()),
-            entry("secret", "new_secret")
+                entry("clientId", createdClientDetails2.getClientId()),
+                entry("secret", "new_secret")
         );
 
         String content = JsonUtils.writeValueAsString(new Object[]{client1SecretChange, client2SecretChange});
         ResultActions secretResultActions = mockMvc.perform(post("/oauth/clients/tx/secret")
-            .contentType(APPLICATION_JSON)
-            .content(content)
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .accept(APPLICATION_JSON));
+                .contentType(APPLICATION_JSON)
+                .content(content)
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .accept(APPLICATION_JSON));
 
         secretResultActions
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/secretClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(
-                        authorizationHeader,
-                        IDENTITY_ZONE_ID_HEADER,
-                        IDENTITY_ZONE_SUBDOMAIN_HEADER
-                    ),
-                    requestFields(subFields("[]", secretChangeFields)),
-                    responseFields((FieldDescriptor[]) ArrayUtils.addAll(
-                        fieldsNoSecret,
-                        subFields("[]",
-                            lastModifiedField,
-                            fieldWithPath("approvals_deleted").description("Indicates whether the approvals associated with the client were deleted as a result of this action")
-                        )
-                    ))
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/secretClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
+                        requestHeaders(
+                                authorizationHeader,
+                                IDENTITY_ZONE_ID_HEADER,
+                                IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        ),
+                        requestFields(subFields("[]", secretChangeFields)),
+                        responseFields((FieldDescriptor[]) ArrayUtils.addAll(
+                                fieldsNoSecret,
+                                subFields("[]",
+                                        lastModifiedField,
+                                        fieldWithPath("approvals_deleted").description("Indicates whether the approvals associated with the client were deleted as a result of this action")
+                                )
+                        ))
                 )
-            );
+                );
 
         // BATCH
 
         Map<String, Object> modify1 = map(
-            entry("action", ClientDetailsModification.SECRET),
-            entry("client_id", createdClientDetails1.getClientId()),
-            entry("client_secret", "new_secret")
+                entry("action", ClientDetailsModification.SECRET),
+                entry("client_id", createdClientDetails1.getClientId()),
+                entry("client_secret", "new_secret")
         );
 
         Map<String, Object> modify2 = map(
-            entry("action", ClientDetailsModification.DELETE),
-            entry("client_id", createdClientDetails2.getClientId())
+                entry("action", ClientDetailsModification.DELETE),
+                entry("client_id", createdClientDetails2.getClientId())
         );
 
         UaaClientDetails createdClientDetails3 = createBasicClientWithAdditionalInformation(scopes);
@@ -442,44 +442,44 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
         modify3.setAction(ClientDetailsModification.ADD);
 
         ResultActions modifyResultActions = mockMvc.perform(post("/oauth/clients/tx/modify")
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(new Object[]{modify1, modify2, modify3}))
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .accept(APPLICATION_JSON));
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(new Object[]{modify1, modify2, modify3}))
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .accept(APPLICATION_JSON));
 
         modifyResultActions
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/modifyClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                requestHeaders(
-                    authorizationHeader,
-                    IDENTITY_ZONE_ID_HEADER,
-                    IDENTITY_ZONE_SUBDOMAIN_HEADER
-                ),
-                requestFields(fieldsWithSecretAndAction),
-                responseFieldsWithAction
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/modifyClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
+                        requestHeaders(
+                                authorizationHeader,
+                                IDENTITY_ZONE_ID_HEADER,
+                                IDENTITY_ZONE_SUBDOMAIN_HEADER
+                        ),
+                        requestFields(fieldsWithSecretAndAction),
+                        responseFieldsWithAction
                 )
-            );
+                );
 
 
         //DELETE
 
         ResultActions deleteResultActions = mockMvc.perform(post("/oauth/clients/tx/delete")
-            .contentType(APPLICATION_JSON)
-            .content("[{\"client_id\":\"" + createdClientDetails1.getClientId() + "\"},{\"client_id\":\"" + createdClientDetails3.getClientId() + "\"}]")
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .accept(APPLICATION_JSON));
+                .contentType(APPLICATION_JSON)
+                .content("[{\"client_id\":\"" + createdClientDetails1.getClientId() + "\"},{\"client_id\":\"" + createdClientDetails3.getClientId() + "\"}]")
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .accept(APPLICATION_JSON));
 
         deleteResultActions
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/deleteClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
-                    requestHeaders(authorizationHeader, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER),
-                    requestFields(fieldWithPath("[].client_id").required().description(clientIdDescription)),
-                    responseFields((FieldDescriptor[]) ArrayUtils.addAll(
-                        fieldsNoSecret,
-                        subFields("[]", lastModifiedField, fieldWithPath("approvals_deleted").description("Indicates whether the approvals associated with the client were deleted as a result of this action"))
-                    ))
+                .andExpect(status().isOk())
+                .andDo(document("{ClassName}/deleteClientTx", preprocessRequest(prettyPrint()), preprocessResponse(prettyPrint()),
+                        requestHeaders(authorizationHeader, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER),
+                        requestFields(fieldWithPath("[].client_id").required().description(clientIdDescription)),
+                        responseFields((FieldDescriptor[]) ArrayUtils.addAll(
+                                fieldsNoSecret,
+                                subFields("[]", lastModifiedField, fieldWithPath("approvals_deleted").description("Indicates whether the approvals associated with the client were deleted as a result of this action"))
+                        ))
                 )
-            );
+                );
     }
 
     private UaaClientDetails createBasicClientWithAdditionalInformation(List<String> scopes) {
@@ -490,13 +490,13 @@ class ClientAdminEndpointDocs extends AdminClientCreator {
 
     private ResultActions createClientHelper() throws Exception {
         return mockMvc.perform(post("/oauth/clients")
-            .header("Authorization", "Bearer " + clientAdminToken)
-            .contentType(APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
-            .content(writeValueAsString(
-                createBasicClientWithAdditionalInformation(Arrays.asList("clients.read", "clients.write"))
-            )))
-            .andExpect(status().isCreated());
+                .header("Authorization", "Bearer " + clientAdminToken)
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(writeValueAsString(
+                        createBasicClientWithAdditionalInformation(Arrays.asList("clients.read", "clients.write"))
+                )))
+                .andExpect(status().isCreated());
     }
 
     private Map<String, Object> additionalInfo() {

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -19,7 +20,7 @@ import java.util.Arrays;
 
 public abstract class ScimCore<T extends ScimCore> {
 
-    public static final String[] SCHEMAS = new String[] { "urn:scim:schemas:core:1.0" };
+    public static final String[] SCHEMAS = new String[]{"urn:scim:schemas:core:1.0"};
 
     private String id;
 
@@ -88,11 +89,9 @@ public abstract class ScimCore<T extends ScimCore> {
 
     @Override
     public boolean equals(Object o) {
-        if (o instanceof ScimCore) {
-            ScimCore other = (ScimCore) o;
+        if (o instanceof ScimCore other) {
             return id.equals(other.id);
-        } else if (o instanceof String) {
-            String otherId = (String) o;
+        } else if (o instanceof String otherId) {
             return id.equals(otherId);
         }
         return false;

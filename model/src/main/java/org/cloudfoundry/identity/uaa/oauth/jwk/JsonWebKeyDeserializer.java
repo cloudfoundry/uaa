@@ -32,7 +32,7 @@ public class JsonWebKeyDeserializer extends JsonDeserializer<JsonWebKey> {
     public JsonWebKey deserialize(JsonParser p, DeserializationContext ctxt) {
         JsonNode node = JsonUtils.readTree(p);
         String kty = node.get(JWKParameterNames.KEY_TYPE).asText("Unknown");
-        if(Arrays.stream(JsonWebKey.KeyType.values()).noneMatch(knownKeyType -> knownKeyType.name().equals(kty))) {
+        if (Arrays.stream(JsonWebKey.KeyType.values()).noneMatch(knownKeyType -> knownKeyType.name().equals(kty))) {
             return null;
         }
         return new JsonWebKey(JsonUtils.getNodeAsMap(node));

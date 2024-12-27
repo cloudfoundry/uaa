@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -80,7 +81,7 @@ public class CfScimUserEndpointIntegrationTests {
         user.setPassword("Passwo3d124!");
 
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(usersEndpoint), user,
-                        ScimUser.class);
+                ScimUser.class);
 
         joe = newuser.getBody();
         assertEquals(JOE, joe.getUserName());
@@ -90,22 +91,22 @@ public class CfScimUserEndpointIntegrationTests {
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
-                        .exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
-                                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
-                                        Void.class, joe.getId());
+                .exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
+                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
+                        Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
 
         // The implicit grant for cf requires extra parameters in the
         // authorization request
         context.setParameters(Collections.singletonMap("credentials",
-                        testAccounts.getJsonCredentials(joe.getUserName(), "Passwo3d")));
+                testAccounts.getJsonCredentials(joe.getUserName(), "Passwo3d")));
 
     }
 
     @Before
     public void setUp() {
-        ((RestTemplate)serverRunning.getRestTemplate()).setErrorHandler(
-            new UaaOauth2ErrorHandler(context.getResource(), HttpStatus.Series.SERVER_ERROR)
+        ((RestTemplate) serverRunning.getRestTemplate()).setErrorHandler(
+                new UaaOauth2ErrorHandler(context.getResource(), HttpStatus.Series.SERVER_ERROR)
         );
     }
 
@@ -114,7 +115,7 @@ public class CfScimUserEndpointIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "\"" + version + "\"");
         return client.exchange(serverRunning.getUrl(usersEndpoint + "/{id}"), HttpMethod.DELETE, new HttpEntity<Void>(
-                        headers), Map.class, id);
+                headers), Map.class, id);
     }
 
     @Test
@@ -127,9 +128,9 @@ public class CfScimUserEndpointIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         RestOperations client = serverRunning.getRestTemplate();
         ResponseEntity<Void> result = client
-                        .exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
-                                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
-                                        Void.class, joe.getId());
+                .exchange(serverRunning.getUrl(usersEndpoint) + "/{id}/password",
+                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
+                        Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
 
     }
@@ -140,7 +141,7 @@ public class CfScimUserEndpointIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         RestOperations client = serverRunning.getRestTemplate();
         ResponseEntity<Void> result = client.exchange(serverRunning.getUrl("/userinfo"), HttpMethod.GET,
-                        new HttpEntity<Void>(null, headers), Void.class, joe.getId());
+                new HttpEntity<Void>(null, headers), Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
 
     }

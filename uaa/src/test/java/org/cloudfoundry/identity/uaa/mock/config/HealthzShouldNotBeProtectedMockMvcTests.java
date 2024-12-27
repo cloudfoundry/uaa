@@ -19,6 +19,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import java.util.stream.Stream;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -31,7 +32,7 @@ class HealthzShouldNotBeProtectedMockMvcTests {
     private MockMvc mockMvc;
 
     @BeforeEach
-    void setUp(
+    void beforeEach(
             @Autowired SecurityFilterChainPostProcessor securityFilterChainPostProcessor,
             @Autowired MockMvc mockMvc
     ) {
@@ -41,7 +42,7 @@ class HealthzShouldNotBeProtectedMockMvcTests {
     }
 
     @AfterEach
-    void tearDown() {
+    void afterEach() {
         chainPostProcessor.setRequireHttps(originalRequireHttps);
     }
 
@@ -62,27 +63,8 @@ class HealthzShouldNotBeProtectedMockMvcTests {
     class WithHttpsRequired {
 
         @BeforeEach
-        void setUp() {
+        void beforeEach() {
             chainPostProcessor.setRequireHttps(true);
-        }
-
-        @DefaultTestContext
-        @Nested
-        class WithHttpPortSetToNonDefaultValue {
-            @BeforeEach
-            void setUp() {
-                chainPostProcessor.setHttpsPort(9998);
-            }
-
-            @Test
-            void redirectedRequestsGoToTheConfiguredPort() throws Exception {
-                MockHttpServletRequestBuilder getRequest = get("/login")
-                        .accept(MediaType.TEXT_HTML);
-
-                mockMvc.perform(getRequest)
-                        .andExpect(status().is3xxRedirection())
-                        .andExpect(header().string("Location", "https://localhost:9998/login"));
-            }
         }
 
         @ParameterizedTest
@@ -112,6 +94,25 @@ class HealthzShouldNotBeProtectedMockMvcTests {
                     .andExpect(status().is3xxRedirection())
                     .andExpect(header().string("Location", "https://localhost/saml/metadata"));
         }
+
+        @DefaultTestContext
+        @Nested
+        class WithHttpPortSetToNonDefaultValue {
+            @BeforeEach
+            void setUp() {
+                chainPostProcessor.setHttpsPort(9998);
+            }
+
+            @Test
+            void redirectedRequestsGoToTheConfiguredPort() throws Exception {
+                MockHttpServletRequestBuilder getRequest = get("/login")
+                        .accept(MediaType.TEXT_HTML);
+
+                mockMvc.perform(getRequest)
+                        .andExpect(status().is3xxRedirection())
+                        .andExpect(header().string("Location", "https://localhost:9998/login"));
+            }
+        }
     }
 
     @DefaultTestContext
@@ -119,7 +120,7 @@ class HealthzShouldNotBeProtectedMockMvcTests {
     class WithHttpsNotRequired {
 
         @BeforeEach
-        void setUp() {
+        void beforeEach() {
             chainPostProcessor.setRequireHttps(false);
         }
 
@@ -146,6 +147,7 @@ class HealthzShouldNotBeProtectedMockMvcTests {
                     .accept(MediaType.ALL);
 
             mockMvc.perform(getRequest)
+                    .andDo(print())
                     .andExpect(status().isOk());
         }
     }

@@ -35,86 +35,86 @@ import static org.mockito.Mockito.when;
  */
 public class TokenEndpointAuthenticationFilterTests {
 
-	private MockHttpServletRequest request = new MockHttpServletRequest();
+    private final MockHttpServletRequest request = new MockHttpServletRequest();
 
-	private MockHttpServletResponse response = new MockHttpServletResponse();
+    private final MockHttpServletResponse response = new MockHttpServletResponse();
 
-	private MockFilterChain chain = new MockFilterChain();
+    private final MockFilterChain chain = new MockFilterChain();
 
-	private AuthenticationManager authenticationManager = Mockito.mock(AuthenticationManager.class);
-	
-	private UaaClientDetails client = new UaaClientDetails("foo", "resource", "scope", "authorization_code",
-			"ROLE_CLIENT");
+    private final AuthenticationManager authenticationManager = Mockito.mock(AuthenticationManager.class);
 
-	private ClientDetailsService clientDetailsService = new ClientDetailsService() {
-		public ClientDetails loadClientByClientId(String clientId) throws OAuth2Exception {
-			return client;
-		}
-	};
-	
-	private OAuth2RequestFactory oAuth2RequestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
+    private final UaaClientDetails client = new UaaClientDetails("foo", "resource", "scope", "authorization_code",
+            "ROLE_CLIENT");
 
-	@Before
-	public void init() {
-		SecurityContextHolder.clearContext();
-		SecurityContextHolder.getContext().setAuthentication(
-				new UsernamePasswordAuthenticationToken("client", "secret", AuthorityUtils
-						.commaSeparatedStringToAuthorityList("ROLE_CLIENT")));
-	}
+    private final ClientDetailsService clientDetailsService = new ClientDetailsService() {
+        public ClientDetails loadClientByClientId(String clientId) throws OAuth2Exception {
+            return client;
+        }
+    };
 
-	@After
-	public void close() {
-		SecurityContextHolder.clearContext();
-	}
+    private final OAuth2RequestFactory oAuth2RequestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
 
-	@Test
-	public void testPasswordGrant() throws Exception {
-		request.setParameter("grant_type", "password");
-		request.setParameter("client_id", "foo");
-		when(authenticationManager.authenticate(Mockito.<Authentication> any())).thenReturn(
-				new UsernamePasswordAuthenticationToken("foo", "bar", AuthorityUtils
-						.commaSeparatedStringToAuthorityList("ROLE_USER")));
-		TokenEndpointAuthenticationFilter filter = new TokenEndpointAuthenticationFilter(authenticationManager, oAuth2RequestFactory);
-		filter.doFilter(request, response, chain);
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		assertTrue(authentication instanceof OAuth2Authentication);
-		assertTrue(authentication.isAuthenticated());
-	}
+    @Before
+    public void init() {
+        SecurityContextHolder.clearContext();
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("client", "secret", AuthorityUtils
+                        .commaSeparatedStringToAuthorityList("ROLE_CLIENT")));
+    }
 
-	@Test
-	public void testPasswordGrantWithUnAuthenticatedClient() throws Exception {
-		SecurityContextHolder.getContext().setAuthentication(
-				new UsernamePasswordAuthenticationToken("client", "secret"));
-		request.setParameter("grant_type", "password");
-		when(authenticationManager.authenticate(Mockito.<Authentication> any())).thenReturn(
-				new UsernamePasswordAuthenticationToken("foo", "bar", AuthorityUtils
-						.commaSeparatedStringToAuthorityList("ROLE_USER")));
-		TokenEndpointAuthenticationFilter filter = new TokenEndpointAuthenticationFilter(authenticationManager, oAuth2RequestFactory);
-		filter.doFilter(request, response, chain);
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		assertTrue(authentication instanceof OAuth2Authentication);
-		assertFalse(authentication.isAuthenticated());
-	}
+    @After
+    public void close() {
+        SecurityContextHolder.clearContext();
+    }
 
-	@Test
-	public void testNoGrantType() throws Exception {
-		TokenEndpointAuthenticationFilter filter = new TokenEndpointAuthenticationFilter(authenticationManager, oAuth2RequestFactory);
-		filter.doFilter(request, response, chain);
-		// Just the client
-		assertTrue(SecurityContextHolder.getContext().getAuthentication() instanceof UsernamePasswordAuthenticationToken);
-	}
+    @Test
+    public void testPasswordGrant() throws Exception {
+        request.setParameter("grant_type", "password");
+        request.setParameter("client_id", "foo");
+        when(authenticationManager.authenticate(Mockito.any())).thenReturn(
+                new UsernamePasswordAuthenticationToken("foo", "bar", AuthorityUtils
+                        .commaSeparatedStringToAuthorityList("ROLE_USER")));
+        TokenEndpointAuthenticationFilter filter = new TokenEndpointAuthenticationFilter(authenticationManager, oAuth2RequestFactory);
+        filter.doFilter(request, response, chain);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertTrue(authentication instanceof OAuth2Authentication);
+        assertTrue(authentication.isAuthenticated());
+    }
 
-	@Test
-	public void testFilterException() throws Exception {
-		SecurityContextHolder.getContext().setAuthentication(
-				new UsernamePasswordAuthenticationToken("client", "secret"));
-		request.setParameter("grant_type", "password");
-		TokenEndpointAuthenticationFilter filter = new TokenEndpointAuthenticationFilter(authenticationManager, oAuth2RequestFactory);
-		filter.setAuthenticationDetailsSource(new WebAuthenticationDetailsSource());
-		filter.setAuthenticationEntryPoint(new OAuth2AuthenticationEntryPoint());
-		when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException(""));
-		filter.doFilter(request, response, chain);
-		Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-		assertNull(authentication);
-	}
+    @Test
+    public void testPasswordGrantWithUnAuthenticatedClient() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("client", "secret"));
+        request.setParameter("grant_type", "password");
+        when(authenticationManager.authenticate(Mockito.any())).thenReturn(
+                new UsernamePasswordAuthenticationToken("foo", "bar", AuthorityUtils
+                        .commaSeparatedStringToAuthorityList("ROLE_USER")));
+        TokenEndpointAuthenticationFilter filter = new TokenEndpointAuthenticationFilter(authenticationManager, oAuth2RequestFactory);
+        filter.doFilter(request, response, chain);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertTrue(authentication instanceof OAuth2Authentication);
+        assertFalse(authentication.isAuthenticated());
+    }
+
+    @Test
+    public void testNoGrantType() throws Exception {
+        TokenEndpointAuthenticationFilter filter = new TokenEndpointAuthenticationFilter(authenticationManager, oAuth2RequestFactory);
+        filter.doFilter(request, response, chain);
+        // Just the client
+        assertTrue(SecurityContextHolder.getContext().getAuthentication() instanceof UsernamePasswordAuthenticationToken);
+    }
+
+    @Test
+    public void testFilterException() throws Exception {
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("client", "secret"));
+        request.setParameter("grant_type", "password");
+        TokenEndpointAuthenticationFilter filter = new TokenEndpointAuthenticationFilter(authenticationManager, oAuth2RequestFactory);
+        filter.setAuthenticationDetailsSource(new WebAuthenticationDetailsSource());
+        filter.setAuthenticationEntryPoint(new OAuth2AuthenticationEntryPoint());
+        when(authenticationManager.authenticate(any())).thenThrow(new BadCredentialsException(""));
+        filter.doFilter(request, response, chain);
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        assertNull(authentication);
+    }
 }

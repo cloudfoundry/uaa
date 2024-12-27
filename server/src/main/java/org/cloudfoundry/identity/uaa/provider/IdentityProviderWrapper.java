@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.provider;
 public class IdentityProviderWrapper<T extends AbstractIdentityProviderDefinition> {
     final IdentityProvider<T> provider;
     boolean override = true;
+
     public IdentityProviderWrapper(IdentityProvider<T> provider) {
         this.provider = provider;
     }

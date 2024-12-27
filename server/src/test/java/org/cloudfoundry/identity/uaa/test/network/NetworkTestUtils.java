@@ -51,7 +51,7 @@ public class NetworkTestUtils {
     static RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     public static File getKeystore(Date issueDate,
-                                   long validityDays) throws Exception {
+            long validityDays) throws Exception {
         File directory = new File(System.getProperty("java.io.tmpdir"));
         String filename = generator.generate() + ".jks";
         return getKeystore(directory, filename, issueDate, validityDays);
@@ -59,32 +59,32 @@ public class NetworkTestUtils {
 
 
     public static File getKeystore(File directory,
-                                   String filename,
-                                   Date issueDate,
-                                   long validityDays) throws Exception {
+            String filename,
+            Date issueDate,
+            long validityDays) throws Exception {
         return getKeystore(directory,
-          filename,
-          1024,
-          commonName,
-          organizationalUnit,
-          organization,
+                filename,
+                1024,
+                commonName,
+                organizationalUnit,
+                organization,
                 issueDate,
-          validityDays,
-          alias,
-          keyPass);
+                validityDays,
+                alias,
+                keyPass);
 
     }
 
     public static File getKeystore(File directory,
-                                   String filename,
-                                   int keysize,
-                                   String commonName,
-                                   String organizationalUnit,
-                                   String organization,
-                                   Date issueDate,
-                                   long validityDays,
-                                   String keyAlias,
-                                   String keyPass) throws Exception {
+            String filename,
+            int keysize,
+            String commonName,
+            String organizationalUnit,
+            String organization,
+            Date issueDate,
+            long validityDays,
+            String keyAlias,
+            String keyPass) throws Exception {
 
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, null);
@@ -160,7 +160,7 @@ public class NetworkTestUtils {
         private final int status;
         private final HttpHeaders headers;
         private final String responseBody;
-        private volatile boolean wasInvoked = false;
+        private volatile boolean wasInvoked;
 
         public SimpleHttpResponseHandler(int status, HttpHeaders headers, String responseBody) {
             this.status = status;

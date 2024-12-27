@@ -26,48 +26,48 @@ import static org.mockito.Mockito.when;
  */
 public class ImplicitTokenGranterTests {
 
-  private ImplicitTokenGranter implicitTokenGranter;
-  private AuthorizationServerTokenServices tokenServices;
-  private ClientDetailsService clientDetailsService;
-  private OAuth2RequestFactory requestFactory;
-  private TokenRequest tokenRequest;
-  private OAuth2Request oauth2Request;
-  private ImplicitTokenRequest implicitTokenRequest;
+    private ImplicitTokenGranter implicitTokenGranter;
+    private AuthorizationServerTokenServices tokenServices;
+    private ClientDetailsService clientDetailsService;
+    private OAuth2RequestFactory requestFactory;
+    private TokenRequest tokenRequest;
+    private OAuth2Request oauth2Request;
+    private ImplicitTokenRequest implicitTokenRequest;
 
-  @Before
-  public void setUp() {
-    tokenServices = mock(AuthorizationServerTokenServices.class);
-    clientDetailsService = mock(ClientDetailsService.class);
-    requestFactory = mock(OAuth2RequestFactory.class);
-    tokenRequest = mock(TokenRequest.class);
-    oauth2Request = mock(OAuth2Request.class);
-    implicitTokenGranter = new ImplicitTokenGranter(tokenServices, clientDetailsService, requestFactory);
-    implicitTokenRequest = new ImplicitTokenRequest(tokenRequest, oauth2Request);
-  }
+    @Before
+    public void setUp() {
+        tokenServices = mock(AuthorizationServerTokenServices.class);
+        clientDetailsService = mock(ClientDetailsService.class);
+        requestFactory = mock(OAuth2RequestFactory.class);
+        tokenRequest = mock(TokenRequest.class);
+        oauth2Request = mock(OAuth2Request.class);
+        implicitTokenGranter = new ImplicitTokenGranter(tokenServices, clientDetailsService, requestFactory);
+        implicitTokenRequest = new ImplicitTokenRequest(tokenRequest, oauth2Request);
+    }
 
-  @After
-  public void cleanup() {
-    SecurityContextHolder.clearContext();
-  }
+    @After
+    public void cleanup() {
+        SecurityContextHolder.clearContext();
+    }
 
-  @Test
-  public void getOAuth2Authentication() {
-    Authentication authentication = mock(Authentication.class);
-    when(authentication.isAuthenticated()).thenReturn(true);
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-    implicitTokenGranter.getOAuth2Authentication(mock(ClientDetails.class), implicitTokenRequest);
-  }
+    @Test
+    public void getOAuth2Authentication() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        implicitTokenGranter.getOAuth2Authentication(mock(ClientDetails.class), implicitTokenRequest);
+    }
 
-  @Test(expected = InsufficientAuthenticationException.class)
-  public void getOAuth2AuthenticationException() {
-    Authentication authentication = mock(Authentication.class);
-    when(authentication.isAuthenticated()).thenReturn(false);
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-    implicitTokenGranter.getOAuth2Authentication(mock(ClientDetails.class), implicitTokenRequest);
-  }
+    @Test(expected = InsufficientAuthenticationException.class)
+    public void getOAuth2AuthenticationException() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(false);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        implicitTokenGranter.getOAuth2Authentication(mock(ClientDetails.class), implicitTokenRequest);
+    }
 
-  @Test
-  public void setImplicitGrantService() {
-    implicitTokenGranter.setImplicitGrantService(null);
-  }
+    @Test
+    public void setImplicitGrantService() {
+        implicitTokenGranter.setImplicitGrantService(null);
+    }
 }

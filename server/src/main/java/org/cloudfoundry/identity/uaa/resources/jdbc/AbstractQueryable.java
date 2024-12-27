@@ -30,8 +30,8 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
     private int pageSize = 200;
 
     protected AbstractQueryable(final NamedParameterJdbcTemplate namedParameterJdbcTemplate,
-                                final JdbcPagingListFactory pagingListFactory,
-                                final RowMapper<T> rowMapper) {
+            final JdbcPagingListFactory pagingListFactory,
+            final RowMapper<T> rowMapper) {
         this.namedParameterJdbcTemplate = namedParameterJdbcTemplate;
         this.pagingListFactory = pagingListFactory;
         this.rowMapper = rowMapper;

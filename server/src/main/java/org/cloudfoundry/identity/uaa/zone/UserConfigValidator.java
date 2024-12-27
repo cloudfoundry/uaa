@@ -2,7 +2,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import java.util.Set;
 
-public class UserConfigValidator {
+public final class UserConfigValidator {
 
     // add a private constructor to hide the implicit public one
     private UserConfigValidator() {

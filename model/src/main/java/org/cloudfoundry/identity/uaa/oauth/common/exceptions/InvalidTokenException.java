@@ -11,21 +11,21 @@ package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 @SuppressWarnings("serial")
 public class InvalidTokenException extends ClientAuthenticationException {
 
-	public InvalidTokenException(String msg, Throwable t) {
-		super(msg, t);
-	}
+    public InvalidTokenException(String msg, Throwable t) {
+        super(msg, t);
+    }
 
-	public InvalidTokenException(String msg) {
-		super(msg);
-	}
+    public InvalidTokenException(String msg) {
+        super(msg);
+    }
 
-	@Override
-	public int getHttpErrorCode() {
-		return 401;
-	}
+    @Override
+    public int getHttpErrorCode() {
+        return 401;
+    }
 
-	@Override
-	public String getOAuth2ErrorCode() {
-		return INVALID_TOKEN;
-	}
+    @Override
+    public String getOAuth2ErrorCode() {
+        return INVALID_TOKEN;
+    }
 }

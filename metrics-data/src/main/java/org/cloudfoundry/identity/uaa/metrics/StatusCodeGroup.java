@@ -16,11 +16,11 @@
 package org.cloudfoundry.identity.uaa.metrics;
 
 public enum StatusCodeGroup {
-    INFORMATIONAL("1xx",1),
-    SUCCESS("2xx",2),
-    REDIRECT("3xx",3),
-    CLIENT_ERROR("4xx",4),
-    SERVER_ERROR("5xx",5);
+    INFORMATIONAL("1xx", 1),
+    SUCCESS("2xx", 2),
+    REDIRECT("3xx", 3),
+    CLIENT_ERROR("4xx", 4),
+    SERVER_ERROR("5xx", 5);
 
     private final String name;
     private final int value;

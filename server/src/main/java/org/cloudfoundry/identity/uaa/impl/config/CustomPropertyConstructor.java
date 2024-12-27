@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -31,7 +32,7 @@ import java.util.Map;
  * @author Luke Taylor
  */
 public class CustomPropertyConstructor extends Constructor {
-    private final Map<Class<?>, Map<String, Property>> properties = new HashMap<Class<?>, Map<String, Property>>();
+    private final Map<Class<?>, Map<String, Property>> properties = new HashMap<>();
     private final PropertyUtils propertyUtils = new PropertyUtils();
     private final Map<Class<?>, AliasSupportingTypeDescription> typeDescriptions = new HashMap<>();
 

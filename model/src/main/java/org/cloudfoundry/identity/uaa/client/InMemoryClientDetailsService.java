@@ -20,27 +20,27 @@ import java.util.Optional;
  */
 public class InMemoryClientDetailsService implements ClientDetailsService {
 
-  private Map<String, UaaClientDetails> clientDetailsStore = new HashMap<>();
+    private Map<String, UaaClientDetails> clientDetailsStore = new HashMap<>();
 
-  public UaaClientDetails loadClientByClientId(String clientId) throws ClientRegistrationException {
-    UaaClientDetails details = clientDetailsStore.get(clientId);
-    if (details == null) {
-      throw new NoSuchClientException("No client with requested id");
+    public UaaClientDetails loadClientByClientId(String clientId) throws ClientRegistrationException {
+        UaaClientDetails details = clientDetailsStore.get(clientId);
+        if (details == null) {
+            throw new NoSuchClientException("No client with requested id");
+        }
+        return details;
     }
-    return details;
-  }
 
-  protected void addClientDetails(ClientDetails clientDetails) throws ClientAlreadyExistsException {
-    String clientId = Optional.ofNullable(clientDetails).orElseThrow(() -> new ClientRegistrationException("No details")).getClientId();
-    UaaClientDetails details = clientDetailsStore.get(clientId);
-    if (details != null) {
-      throw new ClientAlreadyExistsException("Client with this id exists aleady");
+    protected void addClientDetails(ClientDetails clientDetails) throws ClientAlreadyExistsException {
+        String clientId = Optional.ofNullable(clientDetails).orElseThrow(() -> new ClientRegistrationException("No details")).getClientId();
+        UaaClientDetails details = clientDetailsStore.get(clientId);
+        if (details != null) {
+            throw new ClientAlreadyExistsException("Client with this id exists aleady");
+        }
+        clientDetailsStore.put(clientId, new UaaClientDetails(clientDetails));
     }
-    clientDetailsStore.put(clientId, new UaaClientDetails(clientDetails));
-  }
 
-  public void setClientDetailsStore(Map<String, ? extends UaaClientDetails> clientDetailsStore) {
-    this.clientDetailsStore = new HashMap<>(clientDetailsStore);
-  }
+    public void setClientDetailsStore(Map<String, ? extends UaaClientDetails> clientDetailsStore) {
+        this.clientDetailsStore = new HashMap<>(clientDetailsStore);
+    }
 
 }

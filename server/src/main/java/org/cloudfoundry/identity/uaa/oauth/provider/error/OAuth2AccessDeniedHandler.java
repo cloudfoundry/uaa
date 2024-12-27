@@ -19,9 +19,9 @@ import java.io.IOException;
  */
 public class OAuth2AccessDeniedHandler extends AbstractOAuth2SecurityExceptionHandler implements AccessDeniedHandler {
 
-	public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException authException)
-			throws IOException, ServletException {
-		doHandle(request, response, authException);
-	}
+    public void handle(HttpServletRequest request, HttpServletResponse response, AccessDeniedException authException)
+            throws IOException, ServletException {
+        doHandle(request, response, authException);
+    }
 
 }

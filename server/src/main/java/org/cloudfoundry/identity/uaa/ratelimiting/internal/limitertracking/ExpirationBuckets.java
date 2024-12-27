@@ -15,8 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ExpirationBuckets implements CompoundKeyExpirationAdder,
-                                          Runnable {
-    private static final Logger log = LoggerFactory.getLogger( ExpirationBuckets.class );
+        Runnable {
+    private static final Logger log = LoggerFactory.getLogger(ExpirationBuckets.class);
     private static final long EXPIRATION_WAIT = 300000000L;
     private final NanoTimeSupplier currentTimeSupplier;
     private final CompoundKeyPurger compoundKeyPurger;
@@ -24,30 +24,30 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
     private final long buckets; // need long version for efficient bounds checking
     private final List<CompoundKey>[] expirationsBucketRing;
     private ExpirationBucketMapping ebm;
-    private volatile boolean wereDying = false;
+    private volatile boolean wereDying;
 
-    public ExpirationBuckets( NanoTimeSupplier currentTimeSupplier, CompoundKeyPurger compoundKeyPurger,
-                              int minimumBuckets ) {
+    public ExpirationBuckets(NanoTimeSupplier currentTimeSupplier, CompoundKeyPurger compoundKeyPurger,
+            int minimumBuckets) {
         this.currentTimeSupplier = currentTimeSupplier;
         this.compoundKeyPurger = compoundKeyPurger;
-        int bucketsInternal = powerOf2atLeast( minimumBuckets + 2 ); // need extra two (seconds)
+        int bucketsInternal = powerOf2atLeast(minimumBuckets + 2); // need extra two (seconds)
         this.buckets = bucketsInternal; // long version for efficient bounds checking
         wrapAroundMask = bucketsInternal - 1;
         //noinspection unchecked
         expirationsBucketRing = new List[bucketsInternal];
-        for ( int i = 0; i < expirationsBucketRing.length; i++ ) {
-            expirationsBucketRing[i] = Collections.synchronizedList( new LinkedList<>() ); // Cheap adding!
+        for (int i = 0; i < expirationsBucketRing.length; i++) {
+            expirationsBucketRing[i] = Collections.synchronizedList(new LinkedList<>()); // Cheap adding!
         }
         // provide ebm with purging 'tail' being two seconds behind available adding offsets
         ebm = new ExpirationBucketMapping( 0,
-                                           currentSecondNow() - 2,
-                                           wrapAroundMask );
+                currentSecondNow() - 2,
+                wrapAroundMask );
     }
 
     @Override
-    public void addCompoundKeyExpiration( CompoundKey compoundKey, long expirationSecond ) {
-        List<CompoundKey> bucket = getBucket( expirationSecond );
-        bucket.add( compoundKey );
+    public void addCompoundKeyExpiration(CompoundKey compoundKey, long expirationSecond) {
+        List<CompoundKey> bucket = getBucket(expirationSecond);
+        bucket.add(compoundKey);
     }
 
     public void die() {
@@ -57,22 +57,22 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
     // public for testing
     public void processExpirations() {
         long secondToPurge = currentSecondNow() - 2; // purge two seconds behind possible adds!
-        purge( getBucket( secondToPurge ), compoundKeyPurger, secondToPurge );
-        updateBucketBase( secondToPurge );
+        purge(getBucket(secondToPurge), compoundKeyPurger, secondToPurge);
+        updateBucketBase(secondToPurge);
     }
 
     @SuppressWarnings({"BusyWait"})
     @Override
     public void run() {
-        while ( !wereDying ) {
+        while (!wereDying) {
             try {
                 TimeUnit.NANOSECONDS.sleep(EXPIRATION_WAIT);
                 processExpirations();
             }
-            catch ( InterruptedException e ) { //NOSONAR
+            catch (InterruptedException e) { //NOSONAR
                 // As it is a Daemon, ignore InterruptedException
             }
-            catch ( RuntimeException e ) {
+            catch (RuntimeException e) {
                 log.error(e.getMessage(), e); // Log everything else
             }
         }
@@ -92,43 +92,43 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
         return ebm;
     }
 
-    private synchronized void updateBucketBase( long secondJustPurged ) {
-        if ( ebm.currentRingBucketBaseSecond < secondJustPurged ) { // Can move base forward
+    private synchronized void updateBucketBase(long secondJustPurged) {
+        if (ebm.currentRingBucketBaseSecond < secondJustPurged) { // Can move base forward
             ebm = ebm.increment();
         }
     }
 
-    synchronized List<CompoundKey> getBucket( long secondOfInterest ) {
+    synchronized List<CompoundKey> getBucket(long secondOfInterest) {
         long secondsOffset = secondOfInterest - ebm.currentRingBucketBaseSecond;
-        if ( (secondsOffset < 0) || (buckets <= secondsOffset) ) {
+        if ((secondsOffset < 0) || (buckets <= secondsOffset)) {
             throw new BucketRingBoundsException( ebm, buckets, secondOfInterest );
         }
-        int offset = constrainBucketOffset( ebm.currentRingBucketBaseOffset + (int)secondsOffset );
+        int offset = constrainBucketOffset(ebm.currentRingBucketBaseOffset + (int) secondsOffset);
         return expirationsBucketRing[offset];
     }
 
-    private int constrainBucketOffset( int offset ) {
+    private int constrainBucketOffset(int offset) {
         // Binary And-ing causes wrapping (only works on "Powers Of TWO")!
-        return (offset & wrapAroundMask);
+        return offset & wrapAroundMask;
     }
 
-    private static int powerOf2atLeast( int minimum ) {
+    private static int powerOf2atLeast(int minimum) {
         int powerOf2 = 16; // minimum buckets
-        while ( powerOf2 < minimum ) {
+        while (powerOf2 < minimum) {
             powerOf2 += powerOf2;
-            if ( powerOf2 < 0 ) { // wrapped to negative?
+            if (powerOf2 < 0) { // wrapped to negative?
                 throw new IllegalStateException( "Unable to generate an integer power of two as large as: " + minimum );
             }
         }
         return powerOf2;
     }
 
-    public static class BucketRingBoundsException extends IllegalStateException {
-        private BucketRingBoundsException( ExpirationBucketMapping ebm, long buckets, long secondOfInterest ) {
-            super( "Second requested outside of current BucketRing window: " +
-                   ebm.currentRingBucketBaseSecond +
-                   " <= " + secondOfInterest + " < " +
-                   (ebm.currentRingBucketBaseSecond + buckets) );
+    public static final class BucketRingBoundsException extends IllegalStateException {
+        private BucketRingBoundsException(ExpirationBucketMapping ebm, long buckets, long secondOfInterest) {
+            super("Second requested outside of current BucketRing window: " +
+                    ebm.currentRingBucketBaseSecond +
+                    " <= " + secondOfInterest + " < " +
+                    (ebm.currentRingBucketBaseSecond + buckets));
         }
     }
 
@@ -142,14 +142,14 @@ public class ExpirationBuckets implements CompoundKeyExpirationAdder,
 
         ExpirationBucketMapping increment() {
             return new ExpirationBucketMapping( wrapAroundMask & (currentRingBucketBaseOffset + 1),
-                                                currentRingBucketBaseSecond + 1,
-                                                wrapAroundMask );
+                    currentRingBucketBaseSecond + 1,
+                    wrapAroundMask );
         }
     }
 
-    public void purge( List<CompoundKey> keys, CompoundKeyPurger compoundKeyPurger, long secondToPurge ) {
-        for ( CompoundKey compoundKey : keys ) {
-            compoundKeyPurger.removeCompoundKey( compoundKey, secondToPurge );
+    public void purge(List<CompoundKey> keys, CompoundKeyPurger compoundKeyPurger, long secondToPurge) {
+        for (CompoundKey compoundKey : keys) {
+            compoundKeyPurger.removeCompoundKey(compoundKey, secondToPurge);
         }
         keys.clear();
     }

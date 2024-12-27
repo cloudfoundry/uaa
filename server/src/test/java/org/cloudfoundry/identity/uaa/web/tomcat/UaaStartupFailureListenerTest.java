@@ -60,7 +60,7 @@ class UaaStartupFailureListenerTest {
         @Test
         void rethrowsAnyExceptions() throws LifecycleException {
             doThrow(new LifecycleException()).when(server).stop();
-            assertThrows(RuntimeException.class, ()-> listener.lifecycleEvent(mockLifecycleEvent(server, Lifecycle.AFTER_START_EVENT)));
+            assertThrows(RuntimeException.class, () -> listener.lifecycleEvent(mockLifecycleEvent(server, Lifecycle.AFTER_START_EVENT)));
             verify(server, times(1)).stop();
             verify(server, times(0)).destroy();
         }
@@ -77,7 +77,7 @@ class UaaStartupFailureListenerTest {
     private Server mockServer(Service service)
     {
         Server mockServer = mock(Server.class);
-        when(mockServer.findServices()).thenReturn(new Service[]{ service });
+        when(mockServer.findServices()).thenReturn(new Service[]{service});
         return mockServer;
     }
 

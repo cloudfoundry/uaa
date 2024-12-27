@@ -17,15 +17,15 @@ public class RefreshTokenRequestData {
     public final Map<String, Object> externalAttributes;
 
     public RefreshTokenRequestData(String grantType,
-                                   Set<String> scopes,
-                                   Set<String> authenticationMethods,
-                                   String authorities,
-                                   Set<String> resourceIds,
-                                   String clientId,
-                                   boolean revocable,
-                                   Date authTime,
-                                   Set<String> acr,
-                                   Map<String, Object> externalAttributes) {
+            Set<String> scopes,
+            Set<String> authenticationMethods,
+            String authorities,
+            Set<String> resourceIds,
+            String clientId,
+            boolean revocable,
+            Date authTime,
+            Set<String> acr,
+            Map<String, Object> externalAttributes) {
         this.grantType = grantType;
         this.scopes = scopes;
         this.authenticationMethods = authenticationMethods;

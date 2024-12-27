@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -35,7 +36,7 @@ import javax.servlet.http.HttpServletRequest;
  */
 public class ContentTypeFilter implements Filter {
 
-    private Map<String, String> mediaTypes = new HashMap<String, String>();
+    private Map<String, String> mediaTypes = new HashMap<>();
 
     /**
      * Maps the paths that should be matched to specific media types. The paths
@@ -58,7 +59,7 @@ public class ContentTypeFilter implements Filter {
      */
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
-                    ServletException {
+            ServletException {
         HttpServletRequest httpServletRequest = (HttpServletRequest) request;
 
         for (String path : mediaTypes.keySet()) {

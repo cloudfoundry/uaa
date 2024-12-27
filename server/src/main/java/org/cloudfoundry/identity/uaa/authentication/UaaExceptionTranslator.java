@@ -30,8 +30,8 @@ public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslato
         if (status == HttpStatus.UNAUTHORIZED.value() && (e instanceof InvalidClientException)) {
             headers.set("WWW-Authenticate", "Basic error=\"unauthorized\", error_description=\"Bad credentials\"");
         }
-        return new ResponseEntity<OAuth2Exception>(e, headers,
-            HttpStatus.valueOf(status));
+        return new ResponseEntity<>(e, headers,
+                HttpStatus.valueOf(status));
 
     }
 

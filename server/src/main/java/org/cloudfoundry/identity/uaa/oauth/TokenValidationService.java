@@ -19,17 +19,17 @@ import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildAc
 import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildRefreshTokenValidator;
 
 public class TokenValidationService {
-    private RevocableTokenProvisioning revocableTokenProvisioning;
-    private TokenEndpointBuilder tokenEndpointBuilder;
-    private UaaUserDatabase userDatabase;
-    private MultitenantClientServices multitenantClientServices;
-    private KeyInfoService keyInfoService;
+    private final RevocableTokenProvisioning revocableTokenProvisioning;
+    private final TokenEndpointBuilder tokenEndpointBuilder;
+    private final UaaUserDatabase userDatabase;
+    private final MultitenantClientServices multitenantClientServices;
+    private final KeyInfoService keyInfoService;
 
     public TokenValidationService(RevocableTokenProvisioning revocableTokenProvisioning,
-                                  TokenEndpointBuilder tokenEndpointBuilder,
-                                  UaaUserDatabase userDatabase,
-                                  MultitenantClientServices multitenantClientServices,
-                                  KeyInfoService keyInfoService) {
+            TokenEndpointBuilder tokenEndpointBuilder,
+            UaaUserDatabase userDatabase,
+            MultitenantClientServices multitenantClientServices,
+            KeyInfoService keyInfoService) {
         this.revocableTokenProvisioning = revocableTokenProvisioning;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.userDatabase = userDatabase;

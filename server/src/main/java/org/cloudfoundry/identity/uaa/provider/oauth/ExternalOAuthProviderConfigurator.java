@@ -29,10 +29,12 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.toSet;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
@@ -52,7 +54,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
             final UaaRandomStringUtil uaaRandomStringUtil,
             final @Qualifier("identityZoneProvisioning") IdentityZoneProvisioning identityZoneProvisioning,
             final IdentityZoneManager identityZoneManager
-        ) {
+    ) {
         this.providerProvisioning = providerProvisioning;
         this.oidcMetadataFetcher = oidcMetadataFetcher;
         this.uaaRandomStringUtil = uaaRandomStringUtil;
@@ -108,7 +110,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
             uriBuilder.queryParam("nonce", nonceGenerator.generate());
 
             Map<String, String> additionalParameters = ofNullable(((OIDCIdentityProviderDefinition) definition).getAdditionalAuthzParameters()).orElse(emptyMap());
-            additionalParameters.keySet().stream().forEach(e -> uriBuilder.queryParam(e, additionalParameters.get(e)));
+            additionalParameters.keySet().forEach(e -> uriBuilder.queryParam(e, additionalParameters.get(e)));
         }
 
         return uriBuilder.build().toUriString();
@@ -147,7 +149,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         } else {
             idzConfig = identityZoneProvisioning.retrieve(zoneId).getConfig();
         }
-        return (idzConfig == null || Optional.of(idzConfig.getUserConfig()).map(UserConfig::isAllowOriginLoop).orElse(true)) ? 1 : 0;
+        return idzConfig == null || Optional.of(idzConfig.getUserConfig()).map(UserConfig::isAllowOriginLoop).orElse(true) ? 1 : 0;
     }
 
     @Override
@@ -179,24 +181,45 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         return retrieveAll(true, zoneId);
     }
 
+    @Override
+    public List<IdentityProvider> retrieveActiveByTypes(final String zoneId, final String... types) {
+        if (types == null || types.length == 0) {
+            return emptyList();
+        }
+
+        // intersect passed types with "oidc1.0" and "oauth2.0"
+        final Set<String> filteredTypes = Arrays.stream(types)
+                .filter(type -> OIDC10.equals(type) || OAUTH20.equals(type))
+                .collect(toSet());
+        if (filteredTypes.isEmpty()) {
+            return emptyList();
+        }
+
+        final List<IdentityProvider> idps = providerProvisioning.retrieveActiveByTypes(
+                zoneId,
+                filteredTypes.toArray(new String[0])
+        );
+        return overlayConfigurationsOfOidcIdps(idps);
+    }
+
     public IdentityProvider retrieveByIssuer(String issuer, String zoneId) throws IncorrectResultSizeDataAccessException {
         IdentityProvider issuedProvider = null;
         int originLoopCheckDone = -1;
         try {
             issuedProvider = retrieveByExternId(issuer, OIDC10, zoneId);
             if (issuedProvider != null && issuedProvider.isActive()
-                && issuedProvider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> oAuthIdentityProviderDefinition
-                && oAuthIdentityProviderDefinition.getIssuer().equals(issuer)) {
+                    && issuedProvider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition<?> oAuthIdentityProviderDefinition
+                    && oAuthIdentityProviderDefinition.getIssuer().equals(issuer)) {
                 return issuedProvider;
             }
         } catch (EmptyResultDataAccessException e) {
             originLoopCheckDone = isOriginLoopAllowed(zoneId, originLoopCheckDone);
             if (originLoopCheckDone == 0) {
-                throw new IncorrectResultSizeDataAccessException(String.format("No provider with unique issuer[%s] found", issuer), 1, 0, e);
+                throw new IncorrectResultSizeDataAccessException("No provider with unique issuer[%s] found".formatted(issuer), 1, 0, e);
             }
         }
         if (isOriginLoopAllowed(zoneId, originLoopCheckDone) == 0 && issuedProvider == null) {
-            throw new IncorrectResultSizeDataAccessException(String.format("Active provider with unique issuer[%s] not found", issuer), 1);
+            throw new IncorrectResultSizeDataAccessException("Active provider with unique issuer[%s] not found".formatted(issuer), 1);
         }
         List<IdentityProvider> providers = retrieveAll(true, zoneId)
                 .stream()
@@ -204,9 +227,9 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
                         issuer.equals(((OIDCIdentityProviderDefinition) p.getConfig()).getIssuer()))
                 .toList();
         if (providers.isEmpty()) {
-            throw new IncorrectResultSizeDataAccessException(String.format("Active provider with issuer[%s] not found", issuer), 1);
+            throw new IncorrectResultSizeDataAccessException("Active provider with issuer[%s] not found".formatted(issuer), 1);
         } else if (providers.size() > 1) {
-            throw new IncorrectResultSizeDataAccessException(String.format("Duplicate providers with issuer[%s] not found", issuer), 1);
+            throw new IncorrectResultSizeDataAccessException("Duplicate providers with issuer[%s] not found".formatted(issuer), 1);
         }
         return providers.get(0);
     }
@@ -214,22 +237,30 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
     @Override
     public List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId) {
         final List<String> types = Arrays.asList(OAUTH20, OIDC10);
-        List<IdentityProvider> providers = providerProvisioning.retrieveAll(activeOnly, zoneId);
-        List<IdentityProvider> overlayedProviders = new ArrayList<>();
-        ofNullable(providers).orElse(emptyList()).stream()
+        final List<IdentityProvider> providers = Optional.ofNullable(
+                providerProvisioning.retrieveAll(activeOnly, zoneId)
+        ).orElse(emptyList());
+        final List<IdentityProvider> oauthAndOidcProviders = providers.stream()
                 .filter(p -> types.contains(p.getType()))
-                .forEach(p -> {
-                    if (p.getType().equals(OIDC10)) {
-                        try {
-                            OIDCIdentityProviderDefinition overlayedDefinition = overlay((OIDCIdentityProviderDefinition) p.getConfig());
-                            p.setConfig(overlayedDefinition);
-                        } catch (Exception e) {
-                            LOGGER.error("Identity provider excluded from login page due to a problem.", e);
-                            return;
-                        }
-                    }
-                    overlayedProviders.add(p);
-                });
+                .toList();
+        return overlayConfigurationsOfOidcIdps(oauthAndOidcProviders);
+    }
+
+    private List<IdentityProvider> overlayConfigurationsOfOidcIdps(final List<IdentityProvider> providers) {
+        final List<IdentityProvider> overlayedProviders = new ArrayList<>();
+        providers.forEach(p -> {
+            if (p.getType().equals(OIDC10)) {
+                try {
+                    final OIDCIdentityProviderDefinition overlayedDefinition = overlay(
+                            (OIDCIdentityProviderDefinition) p.getConfig());
+                    p.setConfig(overlayedDefinition);
+                } catch (final Exception e) {
+                    LOGGER.error("Identity provider excluded from login page due to a problem.", e);
+                    return;
+                }
+            }
+            overlayedProviders.add(p);
+        });
         return overlayedProviders;
     }
 

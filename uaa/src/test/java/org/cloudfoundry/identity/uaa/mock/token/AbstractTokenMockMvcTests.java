@@ -293,7 +293,7 @@ public abstract class AbstractTokenMockMvcTests {
 
     protected void waitForClient(String clientId, int max) throws InterruptedException {
         int retry = 0;
-        while(retry++ < max) {
+        while (retry++ < max) {
             try {
                 clientDetailsService.loadClientByClientId(clientId);
                 break;

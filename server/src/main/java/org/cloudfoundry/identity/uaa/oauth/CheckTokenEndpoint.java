@@ -3,6 +3,10 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.error.ParameterParsingException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.DefaultWebResponseExceptionTranslator;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.WebResponseExceptionTranslator;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.ResourceServerTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
@@ -16,10 +20,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
-import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
-import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
-import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
-import org.cloudfoundry.identity.uaa.oauth.provider.error.DefaultWebResponseExceptionTranslator;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static org.springframework.util.StringUtils.commaDelimitedListToSet;
@@ -63,10 +62,10 @@ public class CheckTokenEndpoint implements InitializingBean {
         this.timeService = timeService;
     }
 
-    private Boolean allowQueryString = null;
+    private Boolean allowQueryString;
 
     public boolean isAllowQueryString() {
-        return (allowQueryString == null) ? true : allowQueryString;
+        return allowQueryString == null ? true : allowQueryString;
     }
 
     @Autowired
@@ -83,7 +82,7 @@ public class CheckTokenEndpoint implements InitializingBean {
     @RequestMapping(value = "/check_token", method = POST)
     @ResponseBody
     @Deprecated
-    public Claims checkToken(@RequestParam(name = "token",  required = false, defaultValue = "") String value,
+    public Claims checkToken(@RequestParam(name = "token", required = false, defaultValue = "") String value,
                              @RequestParam(name = "scopes", required = false, defaultValue = "") List<String> scopes,
                              HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
 
@@ -117,7 +116,9 @@ public class CheckTokenEndpoint implements InitializingBean {
 
         Claims response = UaaTokenUtils.getClaimsFromTokenString(token.getValue());
 
-        List<String> claimScopes = Optional.ofNullable(response.getScope()).orElse(emptyList()).stream().map(String::toLowerCase).collect(Collectors.toList());
+        List<String> claimScopes = Optional.ofNullable(response.getScope()).orElse(emptyList()).stream()
+                .map(String::toLowerCase)
+                .toList();
 
         List<String> missingScopes = new ArrayList<>();
         for (String expectedScope : scopes) {

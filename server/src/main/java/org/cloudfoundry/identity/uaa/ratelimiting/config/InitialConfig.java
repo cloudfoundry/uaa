@@ -24,7 +24,7 @@ import lombok.Setter;
 
 @Getter
 public class InitialConfig {
-    public static final List<String> ENVIRONMENT_CONFIG_LOCAL_DIRS = List.of( "CLOUDFOUNDRY_CONFIG_PATH", "UAA_CONFIG_PATH", "RateLimiterConfigDir" );
+    public static final List<String> ENVIRONMENT_CONFIG_LOCAL_DIRS = List.of("CLOUDFOUNDRY_CONFIG_PATH", "UAA_CONFIG_PATH", "RateLimiterConfigDir");
     public static final String LOCAL_CONFIG_FILE = "uaa.yml";
 
     public static final Singleton<InitialConfig> SINGLETON =
@@ -35,8 +35,8 @@ public class InitialConfig {
     private final RateLimitingFactoriesSupplierWithStatus configurationWithStatus;
 
     // packageFriendly for Testing
-    InitialConfig( Exception initialError, YamlConfigFileDTO localConfigFileDTO,
-                   RateLimitingFactoriesSupplierWithStatus configurationWithStatus ) {
+    InitialConfig(Exception initialError, YamlConfigFileDTO localConfigFileDTO,
+            RateLimitingFactoriesSupplierWithStatus configurationWithStatus) {
         this.initialError = initialError;
         this.localConfigFileDTO = localConfigFileDTO;
         this.configurationWithStatus = configurationWithStatus;
@@ -48,11 +48,11 @@ public class InitialConfig {
 
     // packageFriendly for Testing
     static InitialConfig create() {
-        return create( locateAndLoadLocalConfigFile(), NanoTimeSupplier.SYSTEM );
+        return create(locateAndLoadLocalConfigFile(), NanoTimeSupplier.SYSTEM);
     }
 
     private static SourcedFile locateAndLoadLocalConfigFile() {
-        return clean( SourcedFile.locateAndLoadLocalFile( LOCAL_CONFIG_FILE, getLocalConfigDirs( ENVIRONMENT_CONFIG_LOCAL_DIRS, InitialConfig::getEnvOrProperty) ) );
+        return clean(SourcedFile.locateAndLoadLocalFile(LOCAL_CONFIG_FILE, getLocalConfigDirs(ENVIRONMENT_CONFIG_LOCAL_DIRS, InitialConfig::getEnvOrProperty)));
     }
 
     private static String getEnvOrProperty(String key) {
@@ -65,25 +65,25 @@ public class InitialConfig {
     }
 
     // packageFriendly for Testing
-    static String[] getLocalConfigDirs( List<String> dirProxies, UnaryOperator<String> unProxyFunction ) {
+    static String[] getLocalConfigDirs(List<String> dirProxies, UnaryOperator<String> unProxyFunction) {
         return dirProxies.stream()
-                .map( StringUtils::stripToNull ).filter( Objects::nonNull )
-                .map( unProxyFunction )
-                .map( StringUtils::stripToNull ).filter( Objects::nonNull )
-                .toArray( String[]::new );
+                .map(StringUtils::stripToNull).filter(Objects::nonNull)
+                .map(unProxyFunction)
+                .map(StringUtils::stripToNull).filter(Objects::nonNull)
+                .toArray(String[]::new);
     }
 
     // packageFriendly for Testing
-    static SourcedFile clean( SourcedFile sourcedFile ) {
-        if ( sourcedFile == null ) {
+    static SourcedFile clean(SourcedFile sourcedFile) {
+        if (sourcedFile == null) {
             return null;
         }
-        String str = BindYaml.removeLeadingEmptyDocuments( sourcedFile.getBody() );
+        String str = BindYaml.removeLeadingEmptyDocuments(sourcedFile.getBody());
         return str.isEmpty() ? null : new SourcedFile( str, sourcedFile.getSource() );
     }
 
     // packageFriendly for Testing
-    static InitialConfig create( SourcedFile localConfigFile, NanoTimeSupplier currentTimeSupplier ) {
+    static InitialConfig create(SourcedFile localConfigFile, NanoTimeSupplier currentTimeSupplier) {
         // Leave everything disabled!
         if (localConfigFile == null) {
             return new InitialConfig( null, null, RateLimitingFactoriesSupplierWithStatus.NO_RATE_LIMITING );
@@ -96,24 +96,24 @@ public class InitialConfig {
         String sourcedFrom = localConfigFile.getSource();
         BindYaml<UaaYamlConfigFileDTO> bindYaml = new BindYaml<>( UaaYamlConfigFileDTO.class, sourcedFrom );
         try {
-            dto = parseFile( bindYaml, localConfigFile.getBody() );
+            dto = parseFile(bindYaml, localConfigFile.getBody());
             currentStatus = CurrentStatus.PENDING;
-        } catch ( YamlRateLimitingConfigException e ) {
+        } catch (YamlRateLimitingConfigException e) {
             error = e;
             errorMsg = e.getMessage();
         }
 
-        long now = TimeUnit.NANOSECONDS.toMillis(NanoTimeSupplier.deNull( currentTimeSupplier ).now());
+        long now = TimeUnit.NANOSECONDS.toMillis(NanoTimeSupplier.deNull(currentTimeSupplier).now());
 
-        Current current = Current.builder().status( currentStatus ).asOf( now ).error( errorMsg ).build();
+        Current current = Current.builder().status(currentStatus).asOf(now).error(errorMsg).build();
 
         RateLimitingFactoriesSupplierWithStatus configurationWithStatus =
                 RateLimitingFactoriesSupplierWithStatus.builder()
-                        .supplier( InternalLimiterFactoriesSupplier.NOOP )
-                        .status( RateLimiterStatus.builder()
-                                         .current( current )
-                                         .fromSource( sourcedFrom )
-                                         .build() )
+                        .supplier(InternalLimiterFactoriesSupplier.NOOP)
+                        .status(RateLimiterStatus.builder()
+                                .current(current)
+                                .fromSource(sourcedFrom)
+                                .build())
                         .build();
         ExtendedYamlConfigFileDTO yaml = dto == null ? null : dto.getRatelimit();
 
@@ -121,8 +121,8 @@ public class InitialConfig {
     }
 
     // packageFriendly for Testing
-    static UaaYamlConfigFileDTO parseFile( BindYaml<UaaYamlConfigFileDTO> bindYaml, String fileText ) {
-        return bindYaml.bind( fileText );
+    static UaaYamlConfigFileDTO parseFile(BindYaml<UaaYamlConfigFileDTO> bindYaml, String fileText) {
+        return bindYaml.bind(fileText);
     }
 
     @Getter

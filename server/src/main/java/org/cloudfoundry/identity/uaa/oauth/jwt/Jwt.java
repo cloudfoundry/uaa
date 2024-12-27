@@ -16,8 +16,12 @@ import com.nimbusds.jwt.JWTClaimsSet;
 
 public interface Jwt {
     String getClaims();
+
     JWTClaimsSet getClaimSet();
+
     String getEncoded();
+
     void verifySignature(Verifier verifier);
+
     HeaderParameters getHeader();
 }

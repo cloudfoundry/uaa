@@ -5,7 +5,7 @@ import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerato
 public class AlphanumericRandomValueStringGenerator extends RandomValueStringGenerator {
     private static final char[] DEFAULT_CODEC =
             "1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"
-            .toCharArray();
+                    .toCharArray();
 
     public AlphanumericRandomValueStringGenerator() {
         super(DEFAULT_CODEC, 6);

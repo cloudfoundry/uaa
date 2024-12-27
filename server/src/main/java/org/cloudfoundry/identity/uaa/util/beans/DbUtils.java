@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.util.beans;
 
 import org.cloudfoundry.identity.uaa.error.UaaDBException;
-import org.hsqldb.persist.HsqlDatabaseProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -58,12 +57,12 @@ public class DbUtils {
     public synchronized String getQuotedIdentifier(String identifier, JdbcTemplate jdbcTemplate)
             throws SQLException {
 
-      if (cachedQuoteCharacter.isPresent()) {
+        if (cachedQuoteCharacter.isPresent()) {
             switch (cachedQuoteCharacter.get()) {
                 case DOUBLE_QUOTE:
-                    return String.format("%c%s%c", DOUBLE_QUOTE, identifier, DOUBLE_QUOTE);
+                    return "%c%s%c".formatted(DOUBLE_QUOTE, identifier, DOUBLE_QUOTE);
                 case BACKTICK:
-                    return String.format("%c%s%c", BACKTICK, identifier, BACKTICK);
+                    return "%c%s%c".formatted(BACKTICK, identifier, BACKTICK);
                 case NONE:
                     return identifier;
                 default:
@@ -77,23 +76,19 @@ public class DbUtils {
     }
 
     private QuoteCharacter computeQuoteCharacter(JdbcTemplate jdbcTemplate) throws SQLException {
-        DatabaseMetaData metaData;
         try {
-            metaData = metaDataExtractor.extractDatabaseMetaData(
-                    jdbcTemplate.getDataSource()
-            );
+            var metaData = metaDataExtractor.extractDatabaseMetaData(jdbcTemplate.getDataSource());
+            if (metaData.getURL().startsWith("jdbc:hsqldb:")) {
+                // HSQL's databasemetadata's getIdentifierQuoteString returns double quotes, which is incorrect
+                // So we override with the value that actually works with HSQL db
+                return QuoteCharacter.NONE;
+            }
+            return QuoteCharacter.valueOf(getIdentifierQuoteChar(metaData));
         } catch (MetaDataAccessException ex) {
             s_logger.error("Failed to extract DatabaseMetaData, aborting");
             throw new UaaDBException("Failed to extract DatabaseMetaData", ex);
         }
 
-        if (HsqlDatabaseProperties.PRODUCT_NAME.equals(metaData.getDatabaseProductName())) {
-            // HSQL's databasemetadata's getIdentifierQuoteString returns double quotes, which is incorrect
-            // So we override with the value that actually works with HSQL db
-            return QuoteCharacter.NONE;
-        } else {
-            return QuoteCharacter.valueOf(getIdentifierQuoteChar(metaData));
-        }
     }
 
     private static char getIdentifierQuoteChar(DatabaseMetaData metaData) throws SQLException {

@@ -12,12 +12,12 @@ import static org.junit.Assert.assertEquals;
  * Scope: Test class
  */
 public class DefaultWebResponseExceptionTranslatorTests {
-	private WebResponseExceptionTranslator<OAuth2Exception> translator = new DefaultWebResponseExceptionTranslator();
+    private final WebResponseExceptionTranslator<OAuth2Exception> translator = new DefaultWebResponseExceptionTranslator();
 
-	@Test
-	public void translateWhenGeneralExceptionThenReturnInternalServerError() throws Exception {
-		String errorMessage = "An error message that contains sensitive information that should not be exposed to the caller.";
-		ResponseEntity<OAuth2Exception> response = this.translator.translate(new Exception(errorMessage));
-		assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(), response.getBody().getMessage());
-	}
+    @Test
+    public void translateWhenGeneralExceptionThenReturnInternalServerError() throws Exception {
+        String errorMessage = "An error message that contains sensitive information that should not be exposed to the caller.";
+        ResponseEntity<OAuth2Exception> response = this.translator.translate(new Exception(errorMessage));
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(), response.getBody().getMessage());
+    }
 }

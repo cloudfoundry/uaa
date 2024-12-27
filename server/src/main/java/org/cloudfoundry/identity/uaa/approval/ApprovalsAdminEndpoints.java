@@ -74,26 +74,26 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
     @RequestMapping(value = "/approvals", method = RequestMethod.GET)
     @ResponseBody
     public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String ignored,
-                                       @RequestParam(required = false, defaultValue = "1") int startIndex,
-                                       @RequestParam(required = false, defaultValue = "100") int count) {
+            @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @RequestParam(required = false, defaultValue = "100") int count) {
         String userId = getCurrentUserId();
         logger.debug("Fetching all approvals for user: " + userId);
         List<Approval> input = approvalStore.getApprovalsForUser(userId, IdentityZoneHolder.get().getId());
         List<Approval> approvals = UaaPagingUtils.subList(input, startIndex, count);
 
         // Find the clients for these approvals
-        Set<String> clientIds = new HashSet<String>();
+        Set<String> clientIds = new HashSet<>();
         for (Approval approval : approvals) {
             clientIds.add(approval.getClientId());
         }
 
         // Find the auto approved scopes for these clients
-        Map<String, Set<String>> clientAutoApprovedScopes = new HashMap<String, Set<String>>();
+        Map<String, Set<String>> clientAutoApprovedScopes = new HashMap<>();
         for (String clientId : clientIds) {
             UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
 
             Set<String> autoApproved = client.getAutoApproveScopes();
-            Set<String> autoApprovedScopes = new HashSet<String>();
+            Set<String> autoApprovedScopes = new HashSet<>();
             if (autoApproved != null) {
                 if (autoApproved.contains("true")) {
                     autoApprovedScopes.addAll(client.getScope());
@@ -105,7 +105,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
             clientAutoApprovedScopes.put(clientId, autoApprovedScopes);
         }
 
-        List<Approval> filteredApprovals = new ArrayList<Approval>();
+        List<Approval> filteredApprovals = new ArrayList<>();
         // Remove auto approved scopes
         for (Approval approval : approvals) {
             if (!(clientAutoApprovedScopes.containsKey(approval.getClientId())
@@ -134,7 +134,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
                 logger.warn("Error[2] {} attempting to update approvals for {}",
-                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId()));
+                        UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId()));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
             } else {
@@ -157,7 +157,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         for (Approval approval : approvals) {
             if (StringUtils.hasText(approval.getUserId()) && !isValidUser(approval.getUserId())) {
                 logger.warn("Error[1] {} attemting to update approvals for {}.",
-                    UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId()));
+                        UaaStringUtils.getCleanedUserControlString(currentUserId), UaaStringUtils.getCleanedUserControlString(approval.getUserId()));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                         HttpStatus.UNAUTHORIZED.value());
             } else {
@@ -186,7 +186,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
         String userId = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: {} and client {}",
-            UaaStringUtils.getCleanedUserControlString(userId), UaaStringUtils.getCleanedUserControlString(clientId));
+                UaaStringUtils.getCleanedUserControlString(userId), UaaStringUtils.getCleanedUserControlString(clientId));
         approvalStore.revokeApprovalsForClientAndUser(clientId, userId, IdentityZoneHolder.get().getId());
         return new ActionResult("ok", "Approvals of user " + userId + " and client " + clientId + " revoked");
     }
@@ -199,7 +199,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
 
     @ExceptionHandler
     public View handleException(Exception t) {
-        UaaException e = t instanceof UaaException ? (UaaException) t : new UaaException("Unexpected error",
+        UaaException e = t instanceof UaaException ue ? ue : new UaaException("Unexpected error",
                 "Error accessing user's approvals", HttpStatus.INTERNAL_SERVER_ERROR.value());
         Class<?> clazz = t.getClass();
         for (Class<?> key : statuses.keySet()) {

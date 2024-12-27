@@ -17,8 +17,8 @@ public class YamlLoggingOption {
      *
      * @return null if <code>yamlCredentialID</code> is null or blank.
      */
-    public static YamlLoggingOption from( String yamlLoggingOption ) {
-        yamlLoggingOption = StringUtils.stripToNull( yamlLoggingOption );
-        return (yamlLoggingOption == null) ? null : new YamlLoggingOption( yamlLoggingOption );
+    public static YamlLoggingOption from(String yamlLoggingOption) {
+        yamlLoggingOption = StringUtils.stripToNull(yamlLoggingOption);
+        return yamlLoggingOption == null ? null : new YamlLoggingOption( yamlLoggingOption );
     }
 }

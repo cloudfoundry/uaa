@@ -4,7 +4,7 @@
     This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
     is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 <web-app xmlns="http://java.sun.com/xml/ns/j2ee" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd" version="2.4">
+          xsi:schemaLocation="http://java.sun.com/xml/ns/j2ee http://java.sun.com/xml/ns/j2ee/web-app_2_4.xsd" version="2.4">
 
     <filter>
         <filter-name>springSecurityFilterChain</filter-name>

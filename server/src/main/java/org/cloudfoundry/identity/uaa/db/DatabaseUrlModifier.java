@@ -22,7 +22,7 @@ public class DatabaseUrlModifier {
     private int connectTimeoutSeconds = 10;
 
     public DatabaseUrlModifier(Vendor databaseType, String url) {
-        if (databaseType==null) {
+        if (databaseType == null) {
             throw new NullPointerException();
         }
 
@@ -46,15 +46,17 @@ public class DatabaseUrlModifier {
         StringBuilder result = new StringBuilder(url);
         switch (getDatabaseType()) {
             case mysql : {
-                appendParameter(result, "connectTimeout", getConnectTimeoutSeconds()*1000);
+                appendParameter(result, "connectTimeout", getConnectTimeoutSeconds() * 1000);
                 break;
             }
             case postgresql : {
                 appendParameter(result, "connectTimeout", getConnectTimeoutSeconds());
                 break;
             }
-            case hsqldb : {break;}
-            default : throw new IllegalStateException("Unrecognized database: "+ databaseType);
+            case hsqldb : {
+                break;
+            }
+            default : throw new IllegalStateException("Unrecognized database: " + databaseType);
         }
         return result.toString();
     }

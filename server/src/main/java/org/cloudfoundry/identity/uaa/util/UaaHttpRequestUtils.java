@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -12,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
@@ -42,11 +44,14 @@ import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
+import javax.servlet.http.HttpServletRequest;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -55,7 +60,7 @@ import static java.util.Arrays.stream;
 
 public abstract class UaaHttpRequestUtils {
 
-    private static Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
+    private static final Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
         return createRequestFactory(getClientBuilder(skipSslValidation, 10, 5, 0), timeout);
@@ -76,8 +81,8 @@ public abstract class UaaHttpRequestUtils {
 
     protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
         HttpClientBuilder builder = HttpClients.custom()
-            .useSystemProperties()
-            .setRedirectStrategy(new DefaultRedirectStrategy());
+                .useSystemProperties()
+                .setRedirectStrategy(new DefaultRedirectStrategy());
         PoolingHttpClientConnectionManager cm;
         if (skipSslValidation) {
             SSLContext sslContext = getNonValidatingSslContext();
@@ -85,7 +90,7 @@ public abstract class UaaHttpRequestUtils {
             final String[] supportedCipherSuites = split(System.getProperty("https.cipherSuites"));
             HostnameVerifier hostnameVerifierCopy = new NoopHostnameVerifier();
             SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(sslContext, supportedProtocols, supportedCipherSuites, hostnameVerifierCopy);
-            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory> create()
+            Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
                     .register("https", sslSocketFactory)
                     .register("http", PlainConnectionSocketFactory.getSocketFactory())
                     .build();
@@ -116,8 +121,8 @@ public abstract class UaaHttpRequestUtils {
 
     public static String paramsToQueryString(Map<String, String[]> parameterMap) {
         return parameterMap.entrySet().stream()
-          .flatMap(param -> stream(param.getValue()).map(value -> param.getKey() + "=" + encodeParameter(value)))
-          .collect(Collectors.joining("&"));
+                .flatMap(param -> stream(param.getValue()).map(value -> param.getKey() + "=" + encodeParameter(value)))
+                .collect(Collectors.joining("&"));
     }
 
     private static String encodeParameter(String value) {
@@ -127,9 +132,9 @@ public abstract class UaaHttpRequestUtils {
     public static boolean isAcceptedInvitationAuthentication() {
         try {
             RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
-            if (attr!=null) {
+            if (attr != null) {
                 Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
-                if (result!=null) {
+                if (result != null) {
                     return result;
                 }
             }
@@ -151,7 +156,8 @@ public abstract class UaaHttpRequestUtils {
             this.connectionKeepAliveMax = connectionKeepAliveMax;
         }
 
-        @Override public long getKeepAliveDuration(HttpResponse httpResponse, HttpContext httpContext) {
+        @Override
+        public long getKeepAliveDuration(HttpResponse httpResponse, HttpContext httpContext) {
             HeaderElementIterator elementIterator = new BasicHeaderElementIterator(httpResponse.headerIterator(HTTP.CONN_KEEP_ALIVE));
             long result = connectionKeepAliveMax;
 
@@ -178,5 +184,28 @@ public abstract class UaaHttpRequestUtils {
             return null;
         }
         return stream(s.split(",")).map(String::trim).toList().toArray(String[]::new);
+    }
+
+    public static Map<String, String> getCredentials(HttpServletRequest request, List<String> parameterNames) {
+        Map<String, String> credentials = new HashMap<>();
+
+        for (String paramName : parameterNames) {
+            String value = request.getParameter(paramName);
+            if (value != null) {
+                if (value.startsWith("{")) {
+                    try {
+                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
+                                new TypeReference<>() {
+                                });
+                        credentials.putAll(jsonCredentials);
+                    } catch (JsonUtils.JsonUtilException e) {
+                        logger.warn("Unknown format of value for request param: {}. Ignoring.", paramName);
+                    }
+                } else {
+                    credentials.put(paramName, value);
+                }
+            }
+        }
+        return credentials;
     }
 }

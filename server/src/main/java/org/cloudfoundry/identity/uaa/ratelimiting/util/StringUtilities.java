@@ -6,63 +6,64 @@ import java.util.function.Supplier;
 
 import lombok.RequiredArgsConstructor;
 
-public class StringUtilities {
+public final class StringUtilities {
 
-    private StringUtilities(){}
+    private StringUtilities() {
+    }
 
-    public static String toErrorMsg( Exception e ) {
-        if ( e == null ) {
+    public static String toErrorMsg(Exception e) {
+        if (e == null) {
             return null;
         }
-        String msg = stripToNull( e.getMessage() );
-        return (msg != null) ? msg : e.getClass().getSimpleName();
+        String msg = stripToNull(e.getMessage());
+        return msg != null ? msg : e.getClass().getSimpleName();
     }
 
-    public static String options( String labelSingularButPluralWithAnS, Object[] validOptions ) {
-        return options( labelSingularButPluralWithAnS, labelSingularButPluralWithAnS + "s", validOptions );
+    public static String options(String labelSingularButPluralWithAnS, Object[] validOptions) {
+        return options(labelSingularButPluralWithAnS, labelSingularButPluralWithAnS + "s", validOptions);
     }
 
-    public static String options( String labelSingular, String labelPlural, Object[] validOptions ) {
-        switch ( count( validOptions ) ) {
+    public static String options(String labelSingular, String labelPlural, Object[] validOptions) {
+        switch (count(validOptions)) {
             case 0:
                 return "no " + labelPlural;
             case 1:
-                return "the " + labelSingular + " is: " + options( validOptions );
+                return "the " + labelSingular + " is: " + options(validOptions);
             default:
-                return "the " + labelPlural + " are: " + options( validOptions );
+                return "the " + labelPlural + " are: " + options(validOptions);
         }
     }
 
-    public static String options( Object[] validOptions ) {
-        return (0 == count( validOptions )) ? "" : optionsNotEmpty( validOptions );
+    public static String options(Object[] validOptions) {
+        return 0 == count(validOptions) ? "" : optionsNotEmpty(validOptions);
     }
 
-    private static int count( Object[] array ) {
-        return (array == null) ? 0 : array.length;
+    private static int count(Object[] array) {
+        return array == null ? 0 : array.length;
     }
 
-    private static String optionsNotEmpty( Object[] validOptions ) {
+    private static String optionsNotEmpty(Object[] validOptions) {
         StringBuilder sb = new StringBuilder();
-        if ( validOptions.length > 1 ) {
-            for ( int i = validOptions.length; --i > 0; ) {
-                append( sb, validOptions[i] ).append( ", " );
+        if (validOptions.length > 1) {
+            for (int i = validOptions.length; --i > 0; ) {
+                append(sb, validOptions[i]).append(", ");
             }
-            sb.append( "or " );
+            sb.append("or ");
         }
-        return append( sb, validOptions[0] ).toString();
+        return append(sb, validOptions[0]).toString();
     }
 
-    private static StringBuilder append( StringBuilder sb, Object value ) {
-        if ( value == null ) {
-            return sb.append( "null" );
+    private static StringBuilder append(StringBuilder sb, Object value) {
+        if (value == null) {
+            return sb.append("null");
         }
         boolean wasString = value instanceof String;
         String str = value.toString();
-        if ( str == null ) {
-            return sb.append( value.getClass().getSimpleName() );
+        if (str == null) {
+            return sb.append(value.getClass().getSimpleName());
         }
         String wrapper = wasString ? "'" : "";
-        return sb.append( wrapper ).append( str ).append( wrapper );
+        return sb.append(wrapper).append(str).append(wrapper);
     }
 
     /**
@@ -76,7 +77,7 @@ public class StringUtilities {
 
         @Override
         public String get() {
-            if ( !populated ) {
+            if (!populated) {
                 populated = true;
                 value = supplier.get();
             }

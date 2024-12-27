@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -27,16 +28,16 @@ import static java.util.Collections.emptyMap;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
-implements Cloneable {
+        implements Cloneable {
     private URL discoveryUrl;
-    private boolean passwordGrantEnabled = false;
-    private boolean setForwardHeader = false;
+    private boolean passwordGrantEnabled;
+    private boolean setForwardHeader;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<Prompt> prompts = null;
+    private List<Prompt> prompts;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Object jwtClientAuthentication;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private Map<String, String> additionalAuthzParameters = null;
+    private Map<String, String> additionalAuthzParameters;
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -85,7 +86,7 @@ implements Cloneable {
     }
 
     public void setAdditionalAuthzParameters(final Map<String, String> additonalAuthzParameters) {
-        this.additionalAuthzParameters = new HashMap<>(additonalAuthzParameters!=null?additonalAuthzParameters: emptyMap());
+        this.additionalAuthzParameters = new HashMap<>(additonalAuthzParameters != null ? additonalAuthzParameters : emptyMap());
     }
 
     @Override
@@ -95,16 +96,30 @@ implements Cloneable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
-        if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
-        if (this.setForwardHeader != that.setForwardHeader) return false;
-        if (!Objects.equals(this.jwtClientAuthentication, that.jwtClientAuthentication)) return false;
-        if (!Objects.equals(this.additionalAuthzParameters, that.additionalAuthzParameters)) return false;
+        if (this.passwordGrantEnabled != that.passwordGrantEnabled) {
+            return false;
+        }
+        if (this.setForwardHeader != that.setForwardHeader) {
+            return false;
+        }
+        if (!Objects.equals(this.jwtClientAuthentication, that.jwtClientAuthentication)) {
+            return false;
+        }
+        if (!Objects.equals(this.additionalAuthzParameters, that.additionalAuthzParameters)) {
+            return false;
+        }
         return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }

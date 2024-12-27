@@ -15,7 +15,8 @@ import java.util.regex.PatternSyntaxException;
 @Component
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
 
-    public GeneralIdentityZoneConfigurationValidator() {}
+    public GeneralIdentityZoneConfigurationValidator() {
+    }
 
     @Override
     public IdentityZoneConfiguration validate(IdentityZone zone, IdentityZoneValidator.Mode mode) throws InvalidIdentityZoneConfigurationException {
@@ -26,9 +27,9 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                 SamlConfig samlConfig;
                 if ((samlConfig = config.getSamlConfig()) != null && samlConfig.getKeys().size() > 0) {
                     String activeKeyId = samlConfig.getActiveKeyId();
-                    if ((activeKeyId == null || samlConfig.getKeys().get(activeKeyId) == null)) {
+                    if (activeKeyId == null || samlConfig.getKeys().get(activeKeyId) == null) {
 
-                        throw new InvalidIdentityZoneConfigurationException(String.format("Invalid SAML active key ID: '%s'. Couldn't find any matching keys.", activeKeyId));
+                        throw new InvalidIdentityZoneConfigurationException("Invalid SAML active key ID: '%s'. Couldn't find any matching keys.".formatted(activeKeyId));
                     }
 
                     for (Map.Entry<String, SamlKey> entry : samlConfig.getKeys().entrySet()) {
@@ -43,7 +44,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     }
                 }
             } catch (GeneralSecurityException ex) {
-                throw new InvalidIdentityZoneConfigurationException(String.format("There is a security problem with the SAML SP Key configuration for key '%s'.", currentKeyId), ex);
+                throw new InvalidIdentityZoneConfigurationException("There is a security problem with the SAML SP Key configuration for key '%s'.".formatted(currentKeyId), ex);
             }
 
             TokenPolicy tokenPolicy = config.getTokenPolicy();
@@ -90,7 +91,7 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                 try {
                     Pattern.compile(UaaStringUtils.getCleanedUserControlString(uri));
                 } catch (PatternSyntaxException patternSyntaxException) {
-                    throw new InvalidIdentityZoneConfigurationException(String.format("Invalid value in %s: '%s'.", fieldName, uri), patternSyntaxException);
+                    throw new InvalidIdentityZoneConfigurationException("Invalid value in %s: '%s'.".formatted(fieldName, uri), patternSyntaxException);
                 }
             }
         }
@@ -98,9 +99,9 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
 
     private void failIfPartialCertKeyInfo(String samlSpCert, String samlSpKey, String samlSpkeyPassphrase) throws InvalidIdentityZoneConfigurationException {
         if ((samlSpCert == null && samlSpKey == null && samlSpkeyPassphrase == null) ||
-                (samlSpCert != null && samlSpKey != null && samlSpkeyPassphrase != null)) {
+                (samlSpCert != null && samlSpKey != null)) {
             return;
         }
-        throw new InvalidIdentityZoneConfigurationException("Identity zone cannot be udpated with partial Saml CertKey config.", null);
+        throw new InvalidIdentityZoneConfigurationException("Identity zone cannot be updated with partial Saml CertKey config.", null);
     }
 }

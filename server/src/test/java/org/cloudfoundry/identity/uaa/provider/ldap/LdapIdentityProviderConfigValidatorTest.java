@@ -58,7 +58,7 @@ public class LdapIdentityProviderConfigValidatorTest {
         ldap.setType(LDAP);
         ldap.setOriginKey("other");
         exception.expect(IllegalArgumentException.class);
-        exception.expectMessage(String.format("LDAP provider originKey must be set to '%s'", LDAP));
+        exception.expectMessage("LDAP provider originKey must be set to '%s'".formatted(LDAP));
         validator.validate(ldap);
     }
 

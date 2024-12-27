@@ -27,7 +27,7 @@ public class IntegrationTestUtils {
         assertNotNull(message);
 
         String[] parts = message.split("[:|]");
-        assertTrue(parts[2].equals("g") || parts[2].equals("c"));
+        assertTrue("g".equals(parts[2]) || "c".equals(parts[2]));
 
         return Long.valueOf(parts[1]);
     }

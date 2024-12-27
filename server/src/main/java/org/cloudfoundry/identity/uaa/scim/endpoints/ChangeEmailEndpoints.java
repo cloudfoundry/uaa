@@ -96,7 +96,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
             String redirectLocation = null;
             String clientId = data.get("client_id");
 
-            if (clientId != null && !clientId.equals("")) {
+            if (clientId != null && !"".equals(clientId)) {
                 ClientDetails clientDetails = clientDetailsService.retrieve(clientId, identityZoneManager.getCurrentIdentityZoneId());
                 redirectLocation = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
             }

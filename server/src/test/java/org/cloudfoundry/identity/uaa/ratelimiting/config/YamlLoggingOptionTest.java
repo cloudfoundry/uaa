@@ -8,10 +8,10 @@ class YamlLoggingOptionTest {
 
     @Test
     void from() {
-        assertNull( YamlLoggingOption.from( null ) );
-        assertNull( YamlLoggingOption.from( "  " ) ); // a little testing to imply usage of StringUtils.normalizeToNull
-        YamlLoggingOption option = YamlLoggingOption.from( " Fred " );
-        assertNotNull( option );
-        assertEquals( "Fred", option.getValue() );
+        assertNull(YamlLoggingOption.from(null));
+        assertNull(YamlLoggingOption.from("  ")); // a little testing to imply usage of StringUtils.normalizeToNull
+        YamlLoggingOption option = YamlLoggingOption.from(" Fred ");
+        assertNotNull(option);
+        assertEquals("Fred", option.getValue());
     }
 }

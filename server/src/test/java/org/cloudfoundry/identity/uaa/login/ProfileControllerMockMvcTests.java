@@ -96,9 +96,9 @@ class ProfileControllerMockMvcTests {
 
         @Bean
         ProfileController profileController(ApprovalStore approvalsService,
-                                            MultitenantClientServices clientDetailsService,
-                                            SecurityContextAccessor securityContextAccessor,
-                                            IdentityZoneManager identityZoneManager) {
+                MultitenantClientServices clientDetailsService,
+                SecurityContextAccessor securityContextAccessor,
+                IdentityZoneManager identityZoneManager) {
             return new ProfileController(approvalsService, clientDetailsService, securityContextAccessor, identityZoneManager);
         }
     }

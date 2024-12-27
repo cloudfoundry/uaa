@@ -64,10 +64,10 @@ public class ZoneSeeder {
     private final JdbcScimGroupProvisioning jdbcScimGroupProvisioning;
     private final JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
 
-    private boolean alreadySeeded = false;
-    private List<AfterSeedCallback> afterSeedCallbacks = new ArrayList<>();
+    private boolean alreadySeeded;
+    private final List<AfterSeedCallback> afterSeedCallbacks = new ArrayList<>();
 
-    private boolean disableInternalUserManagement = false;
+    private boolean disableInternalUserManagement;
 
     private final List<ClientDetails> clientDetailsToCreate = new ArrayList<>();
     private final HashMap<ScimUser, List<String>> usersInGroupsToCreate = new HashMap<>();

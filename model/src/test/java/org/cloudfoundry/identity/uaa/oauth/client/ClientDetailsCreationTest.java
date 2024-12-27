@@ -7,14 +7,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ClientDetailsCreationTest {
 
-  ClientDetailsCreation clientDetailsCreation = new ClientDetailsCreation();
+    ClientDetailsCreation clientDetailsCreation = new ClientDetailsCreation();
 
-  @Test
-  void testRequestSerialization() {
-    clientDetailsCreation.setJsonWebKeyUri("https://uri.domain.net");
-    clientDetailsCreation.setJsonWebKeySet("{}");
-    String jsonRequest = JsonUtils.writeValueAsString(clientDetailsCreation);
-    ClientDetailsCreation request = JsonUtils.readValue(jsonRequest, ClientDetailsCreation.class);
-    assertEquals(clientDetailsCreation, request);
-  }
+    @Test
+    void testRequestSerialization() {
+        clientDetailsCreation.setJsonWebKeyUri("https://uri.domain.net");
+        clientDetailsCreation.setJsonWebKeySet("{}");
+        String jsonRequest = JsonUtils.writeValueAsString(clientDetailsCreation);
+        ClientDetailsCreation request = JsonUtils.readValue(jsonRequest, ClientDetailsCreation.class);
+        assertEquals(clientDetailsCreation, request);
+    }
 }

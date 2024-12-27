@@ -8,7 +8,7 @@ import org.hamcrest.Description;
 
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
 
-public class JsonMatcher extends BaseMatcher<String> {
+public final class JsonMatcher extends BaseMatcher<String> {
 
     private final ObjectMapper mapper;
 
@@ -21,7 +21,7 @@ public class JsonMatcher extends BaseMatcher<String> {
         return new JsonMatcher(expectedJson);
     }
 
-    private String expectedJson;
+    private final String expectedJson;
     private JsonProcessingException jsonException;
 
     private JsonMatcher(String expectedJson) {

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -82,7 +83,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     public void createRestTemplate() {
 
         ClientCredentialsResourceDetails clientCredentials =
-            getClientCredentialsResource(new String[] {"oauth.login"}, "login", "loginsecret");
+                getClientCredentialsResource(new String[]{"oauth.login"}, "login", "loginsecret");
         loginClient = new OAuth2RestTemplate(clientCredentials);
         loginClient.setRequestFactory(new StatelessRequestFactory());
         loginClient.setErrorHandler(new OAuth2ErrorHandler(clientCredentials) {
@@ -97,7 +98,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             }
         });
 
-        client = (RestTemplate)serverRunning.getRestTemplate();
+        client = (RestTemplate) serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
             @Override
@@ -109,7 +110,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             public void handleError(ClientHttpResponse response) {
             }
         });
-        user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com",true).getBody();
+        user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com", true).getBody();
     }
 
     @Test
@@ -130,9 +131,9 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
 
         ResponseEntity<Map> responseEntity = loginClient.exchange(serverRunning.getBaseUrl() + "/oauth/token",
-            HttpMethod.POST,
-            new HttpEntity<>(postBody, headers),
-            Map.class);
+                HttpMethod.POST,
+                new HttpEntity<>(postBody, headers),
+                Map.class);
 
         assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
 
@@ -140,46 +141,46 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
         assertNotNull(params.get("jti"));
         assertEquals("bearer", params.get("token_type"));
-        assertThat((Integer)params.get("expires_in"), Matchers.greaterThan(40000));
+        assertThat((Integer) params.get("expires_in"), Matchers.greaterThan(40000));
 
-        String[] scopes = UriUtils.decode((String)params.get("scope"), "UTF-8").split(" ");
+        String[] scopes = UriUtils.decode((String) params.get("scope"), "UTF-8").split(" ");
         assertThat(Arrays.asList(scopes), containsInAnyOrder(
-            "scim.userids",
-            "password.write",
-            "cloud_controller.write",
-            "openid",
-            "cloud_controller.read"
+                "scim.userids",
+                "password.write",
+                "cloud_controller.write",
+                "openid",
+                "cloud_controller.read"
         ));
     }
 
     @Test
     public void testOpenIdHybridFlowIdTokenAndCode() {
         //non approved
-        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token", "code")), ".+access_token=.+code=.+");
         //approved
-        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token", "code")), ".+access_token=.+code=.+");
         //approved using login client
-        doOpenIdHybridFlowForLoginClient(new HashSet<>(Arrays.asList("token","code")), ".+access_token=.+code=.+");
+        doOpenIdHybridFlowForLoginClient(new HashSet<>(Arrays.asList("token", "code")), ".+access_token=.+code=.+");
     }
 
     @Test
     public void testOpenIdHybridFlowIdTokenAndTokenAndCode() {
         //non approved
-        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token", "id_token", "code")), ".+access_token=.+id_token=.+code=.+");
         //approved
-        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("token", "id_token", "code")), ".+access_token=.+id_token=.+code=.+");
         //approved using login client
-        doOpenIdHybridFlowForLoginClient(new HashSet<>(Arrays.asList("token","id_token", "code")), ".+access_token=.+id_token=.+code=.+");
+        doOpenIdHybridFlowForLoginClient(new HashSet<>(Arrays.asList("token", "id_token", "code")), ".+access_token=.+id_token=.+code=.+");
     }
 
     @Test
     public void testOpenIdHybridFlowIdTokenAndToken() {
         //non approved
-        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("id_token", "code")), ".+id_token=.+code=.+");
         //approved
-        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
+        doOpenIdHybridFlowIdTokenAndReturnCode(new HashSet<>(Arrays.asList("id_token", "code")), ".+id_token=.+code=.+");
         //approved using login client
-        doOpenIdHybridFlowForLoginClient(new HashSet<>(Arrays.asList("id_token","code")), ".+id_token=.+code=.+");
+        doOpenIdHybridFlowForLoginClient(new HashSet<>(Arrays.asList("id_token", "code")), ".+id_token=.+code=.+");
     }
 
     @Test
@@ -190,8 +191,8 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String state = new RandomValueStringGenerator().generate();
         String clientId = resource.getClientId();
         String redirectUri = resource.getPreEstablishedRedirectUri();
-        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
-                "state={state}&client_id={client_id}&redirect_uri={redirect_uri}").replace("localhost","testzonedoesnotexist.localhost");
+        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&" +
+                "state={state}&client_id={client_id}&redirect_uri={redirect_uri}").replace("localhost", "testzonedoesnotexist.localhost");
         RestTemplate restTemplate = serverRunning.createRestTemplate();
 
         ResponseEntity<Void> result = restTemplate.exchange(uri,
@@ -218,8 +219,8 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String state = new RandomValueStringGenerator().generate();
         String clientId = resource.getClientId();
         String redirectUri = resource.getPreEstablishedRedirectUri();
-        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
-                "state={state}&client_id={client_id}&redirect_uri={redirect_uri}").replace("localhost","testzoneinactive.localhost");
+        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&" +
+                "state={state}&client_id={client_id}&redirect_uri={redirect_uri}").replace("localhost", "testzoneinactive.localhost");
         RestTemplate restTemplate = serverRunning.createRestTemplate();
 
         ResponseEntity<Void> result = restTemplate.exchange(uri,
@@ -252,18 +253,18 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String clientId = resource.getClientId();
         String redirectUri = resource.getPreEstablishedRedirectUri();
         String clientSecret = resource.getClientSecret();
-        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
-            "state={state}&client_id={client_id}&redirect_uri={redirect_uri}");
+        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&" +
+                "state={state}&client_id={client_id}&redirect_uri={redirect_uri}");
         RestTemplate restTemplate = serverRunning.createRestTemplate();
 
         ResponseEntity<Void> result = restTemplate.exchange(uri,
-            HttpMethod.GET,
-            new HttpEntity<Void>(null, getHeaders(cookies)),
-            Void.class,
-            responseType,
-            state,
-            clientId,
-            redirectUri);
+                HttpMethod.GET,
+                new HttpEntity<Void>(null, getHeaders(cookies)),
+                Void.class,
+                responseType,
+                state,
+                clientId,
+                redirectUri);
 
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
@@ -271,7 +272,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
 
@@ -279,7 +280,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
         // should be directed to the login screen...
@@ -287,7 +288,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         assertTrue(response.getBody().contains("username"));
         assertTrue(response.getBody().contains("password"));
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", user.getUserName());
         formData.add("password", "s3Cret");
         formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(response.getBody()));
@@ -300,20 +301,20 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         if (result.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : result.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
 
         location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         //response = serverRunning.getForString(location, headers);
         response = restTemplate.exchange(location,
-            HttpMethod.GET,
-            new HttpEntity<>(null, getHeaders(cookies)),
-            String.class);
+                HttpMethod.GET,
+                new HttpEntity<>(null, getHeaders(cookies)),
+                String.class);
         if (response.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : response.getHeaders().get("Set-Cookie")) {
                 int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
+                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
             }
         }
         if (response.getStatusCode() == HttpStatus.OK) {
@@ -326,14 +327,13 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
-        }
-        else {
+        } else {
             // Token cached so no need for second approval
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = UriUtils.decode(response.getHeaders().getLocation().toString(), "UTF-8");
         }
         assertTrue("Wrong location: " + location,
-            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher));
+                location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher));
 
         String code = location.split("code=")[1].split("&")[0];
         exchangeCodeForToken(clientId, redirectUri, clientSecret, code, formData);
@@ -360,26 +360,26 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String clientId = resource.getClientId();
         String redirectUri = resource.getPreEstablishedRedirectUri();
         String clientSecret = resource.getClientSecret();
-        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
-            "state={state}&client_id={client_id}&client_secret={clientSecret}&redirect_uri={redirect_uri}&source=login&user_id={userId}&add_new=false");
+        String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&" +
+                "state={state}&client_id={client_id}&client_secret={clientSecret}&redirect_uri={redirect_uri}&source=login&user_id={userId}&add_new=false");
 
         HttpEntity<Void> request = new HttpEntity<>(null, headers);
         ResponseEntity<Map> result = loginClient.exchange(
-            serverRunning.getUrl(uri),
-            HttpMethod.POST,
-            request,
-            Map.class,
-            responseType,
-            state,
-            clientId,
-            clientSecret,
-            redirectUri,
-            user.getId());
+                serverRunning.getUrl(uri),
+                HttpMethod.POST,
+                request,
+                Map.class,
+                responseType,
+                state,
+                clientId,
+                clientSecret,
+                redirectUri,
+                user.getId());
 
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         assertTrue("Wrong location: " + location,
-            location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher));
+                location.matches(resource.getPreEstablishedRedirectUri() + responseTypeMatcher));
 
 
     }
@@ -392,7 +392,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         formData.add("code", value);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",
-            testAccounts.getAuthorizationHeader(clientId, clientSecret));
+                testAccounts.getAuthorizationHeader(clientId, clientSecret));
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
@@ -404,7 +404,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     private ResponseEntity<ScimUser> createUser(String username, String firstName, String lastName,
-                    String email, boolean verified) {
+            String email, boolean verified) {
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstName, lastName));
@@ -418,7 +418,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
     }
 
     private ClientCredentialsResourceDetails getClientCredentialsResource(String[] scope, String clientId,
-                                                                          String clientSecret) {
+            String clientSecret) {
         ClientCredentialsResourceDetails resource = new ClientCredentialsResourceDetails();
         resource.setClientId(clientId);
         resource.setClientSecret(clientSecret);
@@ -427,7 +427,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
             resource.setScope(Arrays.asList(scope));
         }
         resource.setClientAuthenticationScheme(AuthenticationScheme.header);
-        resource.setAccessTokenUri(serverRunning.getBaseUrl()+"/oauth/token");
+        resource.setAccessTokenUri(serverRunning.getBaseUrl() + "/oauth/token");
         return resource;
     }
 
@@ -435,10 +435,10 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         @Override
         public HttpClient getHttpClient() {
             return HttpClientBuilder.create()
-                .useSystemProperties()
-                .disableRedirectHandling()
-                .disableCookieManagement()
-                .build();
+                    .useSystemProperties()
+                    .disableRedirectHandling()
+                    .disableCookieManagement()
+                    .build();
         }
     }
 

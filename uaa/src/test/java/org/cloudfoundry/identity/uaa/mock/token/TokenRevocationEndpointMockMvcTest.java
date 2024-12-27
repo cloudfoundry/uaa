@@ -56,7 +56,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                     "clients.write",
                     "openid",
                     "client_credentials,password"
-                    , true
+            , true
             );
 
 
@@ -348,7 +348,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 get("/oauth/clients")
                         .header("Authorization", "Bearer " + readClientsToken)
         )
-                .andExpect(status().isUnauthorized())
+        .andExpect(status().isUnauthorized())
                 .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
 
     }
@@ -400,7 +400,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 get("/userinfo")
                         .header("Authorization", "Bearer " + userInfoToken)
         )
-                .andExpect(status().isUnauthorized())
+        .andExpect(status().isUnauthorized())
                 .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
     }
 
@@ -440,7 +440,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
         mockMvc.perform(
                 get("/userinfo").header("Authorization", "Bearer " + userInfoToken)
         )
-                .andExpect(status().isUnauthorized())
+        .andExpect(status().isUnauthorized())
                 .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
     }
 
@@ -523,7 +523,7 @@ public class TokenRevocationEndpointMockMvcTest extends AbstractTokenMockMvcTest
                 get("/userinfo")
                         .header("Authorization", "Bearer " + client1UserToken)
         )
-                .andExpect(status().isUnauthorized())
+        .andExpect(status().isUnauthorized())
                 .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
 
 

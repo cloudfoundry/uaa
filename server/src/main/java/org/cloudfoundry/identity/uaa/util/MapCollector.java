@@ -9,7 +9,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-public class MapCollector<T,K,V> implements Collector<T, HashMap<K, V>, HashMap<K, V>> {
+public class MapCollector<T, K, V> implements Collector<T, HashMap<K, V>, HashMap<K, V>> {
 
     private final Function<T, K> keyMapper;
     private final Function<T, V> valueMapper;
@@ -32,7 +32,9 @@ public class MapCollector<T,K,V> implements Collector<T, HashMap<K, V>, HashMap<
 
     @Override
     public BinaryOperator<HashMap<K, V>> combiner() {
-        return (left, right) -> { throw new IllegalStateException(String.format("Duplicate key %s", left)); };
+        return (left, right) -> {
+            throw new IllegalStateException("Duplicate key %s".formatted(left));
+        };
     }
 
     @Override

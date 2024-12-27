@@ -32,7 +32,7 @@ public class ProcessLdapPropertiesTest {
 
     @Test
     public void testProcess() throws Exception {
-        Map<String,String> properties = new HashMap<>();
+        Map<String, String> properties = new HashMap<>();
         ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false, LDAP_TLS_NONE);
         assertNull(process.process(properties).get(LDAP_SOCKET_FACTORY));
         assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.process(properties).get(LDAP_SSL_SOCKET_FACTORY));
@@ -48,7 +48,7 @@ public class ProcessLdapPropertiesTest {
 
     @Test
     public void process_whenSslValidationIsEnabled() throws Exception {
-        Map<String,String> properties = new HashMap<>();
+        Map<String, String> properties = new HashMap<>();
         ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false, LDAP_TLS_NONE);
         assertNull(process.process(properties).get(LDAP_SOCKET_FACTORY));
         assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.process(properties).get(LDAP_SSL_SOCKET_FACTORY));

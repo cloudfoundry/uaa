@@ -15,44 +15,44 @@ class CallerIdSupplierByTypeFactoryFactoryTest {
     private static final String FAKE_JWT = "123.456.789";
     private static final String FAKE_CLIENT_IP = "987.654.321.230";
 
-    RequestInfo mockRequestInfo = Mockito.mock( RequestInfo.class );
-    AuthorizationCredentialIdExtractor mockExtractor = Mockito.mock( AuthorizationCredentialIdExtractor.class );
+    RequestInfo mockRequestInfo = Mockito.mock(RequestInfo.class);
+    AuthorizationCredentialIdExtractor mockExtractor = Mockito.mock(AuthorizationCredentialIdExtractor.class);
 
     @Test
     void from() {
-        checkNoCredentialIdExtractor( CallerIdSupplierByTypeFactoryFactory.from( null ) );
-        checkWithCredentialIdExtractor( CallerIdSupplierByTypeFactoryFactory.from( mockExtractor ) );
+        checkNoCredentialIdExtractor(CallerIdSupplierByTypeFactoryFactory.from(null));
+        checkWithCredentialIdExtractor(CallerIdSupplierByTypeFactoryFactory.from(mockExtractor));
     }
 
-    private void checkNoCredentialIdExtractor( CallerIdSupplierByTypeFactory factory ) {
-        assertEquals( "FactoryNoCredentialIdExtractor", factory.getClass().getSimpleName() );
-        CallerIdSupplierByType callerIdSupplier = checkRequestInfoPaths( factory );
-        assertEquals( "NoCredentialIdExtractor", callerIdSupplier.getClass().getSimpleName() );
+    private void checkNoCredentialIdExtractor(CallerIdSupplierByTypeFactory factory) {
+        assertEquals("FactoryNoCredentialIdExtractor", factory.getClass().getSimpleName());
+        CallerIdSupplierByType callerIdSupplier = checkRequestInfoPaths(factory);
+        assertEquals("NoCredentialIdExtractor", callerIdSupplier.getClass().getSimpleName());
 
-        assertNull( callerIdSupplier.getCallerCredentialsID() );
+        assertNull(callerIdSupplier.getCallerCredentialsID());
     }
 
-    private void checkWithCredentialIdExtractor( CallerIdSupplierByTypeFactory factory ) {
-        when( mockExtractor.mapAuthorizationToCredentialsID( any() ) ).thenReturn( FAKE_JWT );
+    private void checkWithCredentialIdExtractor(CallerIdSupplierByTypeFactory factory) {
+        when(mockExtractor.mapAuthorizationToCredentialsID(any())).thenReturn(FAKE_JWT);
 
-        assertEquals( "FactoryWithCredentialIdExtractor", factory.getClass().getSimpleName() );
-        CallerIdSupplierByType callerIdSupplier = checkRequestInfoPaths( factory );
-        assertEquals( "WithCredentialIdExtractor", callerIdSupplier.getClass().getSimpleName() );
+        assertEquals("FactoryWithCredentialIdExtractor", factory.getClass().getSimpleName());
+        CallerIdSupplierByType callerIdSupplier = checkRequestInfoPaths(factory);
+        assertEquals("WithCredentialIdExtractor", callerIdSupplier.getClass().getSimpleName());
 
-        assertEquals( FAKE_JWT, callerIdSupplier.getCallerCredentialsID() );
+        assertEquals(FAKE_JWT, callerIdSupplier.getCallerCredentialsID());
     }
 
-    private CallerIdSupplierByType checkRequestInfoPaths( CallerIdSupplierByTypeFactory factory ) {
-        CallerIdSupplierByType callerIdSupplier = factory.from( null );
-        assertSame( CallerIdSupplierByTypeFactory.NULL_REQUEST_INFO, callerIdSupplier );
-        assertNull( callerIdSupplier.getCallerCredentialsID() );
-        assertNull( callerIdSupplier.getCallerRemoteAddressID() );
+    private CallerIdSupplierByType checkRequestInfoPaths(CallerIdSupplierByTypeFactory factory) {
+        CallerIdSupplierByType callerIdSupplier = factory.from(null);
+        assertSame(CallerIdSupplierByTypeFactory.NULL_REQUEST_INFO, callerIdSupplier);
+        assertNull(callerIdSupplier.getCallerCredentialsID());
+        assertNull(callerIdSupplier.getCallerRemoteAddressID());
 
-        callerIdSupplier = factory.from( mockRequestInfo );
-        when( mockRequestInfo.getAuthorizationHeader() ).thenReturn( "Bearer " + FAKE_JWT );
-        when( mockRequestInfo.getClientIP() ).thenReturn( FAKE_CLIENT_IP );
+        callerIdSupplier = factory.from(mockRequestInfo);
+        when(mockRequestInfo.getAuthorizationHeader()).thenReturn("Bearer " + FAKE_JWT);
+        when(mockRequestInfo.getClientIP()).thenReturn(FAKE_CLIENT_IP);
 
-        assertEquals( FAKE_CLIENT_IP, callerIdSupplier.getCallerRemoteAddressID() );
+        assertEquals(FAKE_CLIENT_IP, callerIdSupplier.getCallerRemoteAddressID());
 
         return callerIdSupplier;
     }

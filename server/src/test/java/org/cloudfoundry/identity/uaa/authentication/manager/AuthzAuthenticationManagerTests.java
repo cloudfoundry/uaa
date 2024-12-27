@@ -71,7 +71,7 @@ class AuthzAuthenticationManagerTests {
     private UaaUserDatabase db;
     private ApplicationEventPublisher publisher;
     private static final String PASSWORD = "password";
-    private UaaUser user = null;
+    private UaaUser user;
     private PasswordEncoder encoder = new PasswordEncoderConfig().nonCachingPasswordEncoder();
     private String loginServerUserName = "loginServerUser".toLowerCase();
     private IdentityProviderProvisioning providerProvisioning;

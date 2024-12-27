@@ -42,7 +42,7 @@ public class ChangeEmailController {
 
     @RequestMapping(value = "/change_email", method = RequestMethod.GET)
     public String changeEmailPage(Model model, @RequestParam(value = "client_id", required = false) String clientId,
-                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
+            @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
         model.addAttribute("email", ((UaaPrincipal) securityContext.getAuthentication().getPrincipal()).getEmail());
         model.addAttribute("client_id", clientId);
@@ -52,9 +52,9 @@ public class ChangeEmailController {
 
     @RequestMapping(value = "/change_email.do", method = RequestMethod.POST)
     public String changeEmail(Model model, @Valid @ModelAttribute("newEmail") ValidEmail newEmail, BindingResult result,
-                              @RequestParam(required = false, value = "client_id") String clientId,
-                              @RequestParam(required = false, value = "redirect_uri") String redirectUri,
-                              RedirectAttributes redirectAttributes, HttpServletResponse response) {
+            @RequestParam(required = false, value = "client_id") String clientId,
+            @RequestParam(required = false, value = "redirect_uri") String redirectUri,
+            RedirectAttributes redirectAttributes, HttpServletResponse response) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
 
         if (result.hasErrors()) {
@@ -88,7 +88,7 @@ public class ChangeEmailController {
 
     @RequestMapping(value = "/verify_email", method = RequestMethod.GET)
     public String verifyEmail(Model model, @RequestParam("code") String code, RedirectAttributes redirectAttributes,
-                              HttpServletResponse httpServletResponse, HttpServletRequest request) {
+            HttpServletResponse httpServletResponse, HttpServletRequest request) {
         Map<String, String> response;
 
         try {

@@ -5,11 +5,11 @@
     is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
-       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-       xmlns:mvc="http://www.springframework.org/schema/mvc"
-       xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
-       xmlns:sec="http://www.springframework.org/schema/security"
-    xsi:schemaLocation="
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xmlns:mvc="http://www.springframework.org/schema/mvc"
+          xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
+          xmlns:sec="http://www.springframework.org/schema/security"
+          xsi:schemaLocation="
         http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
         http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
@@ -21,7 +21,7 @@
     <sec:http name="appFilterFavIcon" pattern="/square-logo.png" security="none" />
 
     <http name="appFilterApps" pattern="/apps.*" request-matcher="regex" xmlns="http://www.springframework.org/schema/security"
-        entry-point-ref="loginEntryPoint" disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager">
+                    entry-point-ref="loginEntryPoint" disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager">
         <intercept-url pattern="/apps.*" access="hasRole('cloud_controller.read')" />
         <anonymous enabled="false" />
         <custom-filter ref="oauth2ClientFilter" before="PRE_AUTH_FILTER" />
@@ -30,8 +30,8 @@
     </http>
 
     <http name="appFilterDefault" xmlns="http://www.springframework.org/schema/security" entry-point-ref="loginEntryPoint"
-        disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager"
-        security-context-repository-ref="securityContextRepository">
+                    disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager"
+                    security-context-repository-ref="securityContextRepository">
         <intercept-url pattern="/**" access="isFullyAuthenticated()" />
         <logout logout-success-url="/logout" />
         <anonymous enabled="false" />
@@ -91,9 +91,9 @@
 
     <bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
         <!--<property name="mediaTypes">-->
-            <!--<map>-->
-                <!--<entry key="json" value="application/json" />-->
-            <!--</map>-->
+        <!--<map>-->
+        <!--<entry key="json" value="application/json" />-->
+        <!--</map>-->
         <!--</property>-->
         <property name="defaultViews">
             <bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
@@ -122,7 +122,7 @@
 
     <!--define an oauth 2 resource for api access -->
     <oauth:resource id="uaa" type="authorization_code" client-id="${CLIENT_ID:app}" client-secret="${CLIENT_SECRET:appclientsecret}"
-        access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" />
+                    access-token-uri="${accessTokenUri}" user-authorization-uri="${userAuthorizationUri}" />
 
     <oauth:web-expression-handler id="oauthWebExpressionHandler" />
 

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -23,7 +24,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-
+import lombok.Getter;
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;
@@ -44,6 +45,7 @@ import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsDate;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsInt;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.getNodeAsString;
 
+@Getter
 @JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)
 public class IdentityProvider<T extends AbstractIdentityProviderDefinition> implements EntityWithAlias {
@@ -70,7 +72,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     @NotNull
     private String type;
     private T config;
-    private int version = 0;
+    private int version;
     private Date created = new Date();
     @JsonProperty("last_modified")
     private Date lastModified = new Date();
@@ -78,45 +80,32 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     private String identityZoneId;
     private String aliasId;
     private String aliasZid;
-    public Date getCreated() {
-        return created;
-    }
+    @JsonIgnore
+    private boolean serializeConfigRaw;
 
-    public IdentityProvider setCreated(Date created) {
+    public IdentityProvider<T> setCreated(Date created) {
         this.created = created;
         return this;
     }
 
-    public Date getLastModified() {
-        return lastModified;
-    }
-
-    public IdentityProvider setLastModified(Date lastModified) {
+    public IdentityProvider<T> setLastModified(Date lastModified) {
         this.lastModified = lastModified;
         return this;
     }
 
-    public IdentityProvider setVersion(int version) {
+    public IdentityProvider<T> setVersion(int version) {
         this.version = version;
         return this;
     }
 
-    public int getVersion() {
-        return version;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public IdentityProvider setName(String name) {
+    public IdentityProvider<T> setName(String name) {
         this.name = name;
         return this;
     }
 
-    @Override
-    public String getId() {
-        return id;
+    public IdentityProvider<T> setId(String id) {
+        this.id = id;
+        return this;
     }
 
     @Override
@@ -124,104 +113,73 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         return getIdentityZoneId();
     }
 
-    public IdentityProvider setId(String id) {
-        this.id = id;
-        return this;
-    }
-
-    public T getConfig() {
-        return config;
-    }
-
-    public IdentityProvider setConfig(T config) {
-        if (config == null) {
-            this.type = UNKNOWN;
-        } else {
-            Class clazz = config.getClass();
-            if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = SAML;
+    public IdentityProvider<T> setConfig(T config) {
+        this.type = UNKNOWN;
+        if (config != null) {
+            this.type = determineType(config.getClass());
+            if (SAML.equals(this.type)) {
                 if (StringUtils.hasText(getOriginKey())) {
                     ((SamlIdentityProviderDefinition) config).setIdpEntityAlias(getOriginKey());
                 }
                 if (StringUtils.hasText(getIdentityZoneId())) {
                     ((SamlIdentityProviderDefinition) config).setZoneId(getIdentityZoneId());
                 }
-            } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = UAA;
-            } else if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = OAUTH20;
-            } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = OIDC10;
-            } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = LDAP;
-            } else if (KeystoneIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = KEYSTONE;
-            } else if (AbstractIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = UNKNOWN;
-            } else {
-                throw new IllegalArgumentException("Unknown identity provider configuration type:" + clazz.getName());
             }
         }
         this.config = config;
         return this;
     }
 
-    public String getOriginKey() {
-        return originKey;
+    private static String determineType(Class<? extends AbstractIdentityProviderDefinition> clazz) {
+        if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return SAML;
+        } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return UAA;
+        } else if (RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return OAUTH20;
+        } else if (OIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return OIDC10;
+        } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return LDAP;
+        } else if (KeystoneIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return KEYSTONE;
+        } else if (AbstractIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            return UNKNOWN;
+        } else {
+            throw new IllegalArgumentException("Unknown identity provider configuration type:" + clazz.getName());
+        }
     }
 
-    public IdentityProvider setOriginKey(String originKey) {
+    public IdentityProvider<T> setOriginKey(String originKey) {
         this.originKey = originKey;
-        if (config != null && config instanceof SamlIdentityProviderDefinition) {
-            ((SamlIdentityProviderDefinition) config).setIdpEntityAlias(originKey);
+        if (config != null && config instanceof SamlIdentityProviderDefinition definition) {
+            definition.setIdpEntityAlias(originKey);
         }
 
         return this;
     }
 
-    public String getType() {
-        return type;
-    }
-
-    public IdentityProvider setType(String type) {
+    public IdentityProvider<T> setType(String type) {
         this.type = type;
         return this;
     }
 
-    public boolean isActive() {
-        return active;
-    }
-
-    public IdentityProvider setActive(boolean active) {
+    public IdentityProvider<T> setActive(boolean active) {
         this.active = active;
         return this;
     }
 
-    public String getIdentityZoneId() {
-        return identityZoneId;
-    }
-
-    public IdentityProvider setIdentityZoneId(String identityZoneId) {
+    public IdentityProvider<T> setIdentityZoneId(String identityZoneId) {
         this.identityZoneId = identityZoneId;
-        if (config != null && config instanceof SamlIdentityProviderDefinition) {
-            ((SamlIdentityProviderDefinition) config).setZoneId(identityZoneId);
+        if (config != null && config instanceof SamlIdentityProviderDefinition definition) {
+            definition.setZoneId(identityZoneId);
         }
         return this;
-    }
-
-    @Override
-    public String getAliasId() {
-        return aliasId;
     }
 
     @Override
     public void setAliasId(String aliasId) {
         this.aliasId = aliasId;
-    }
-
-    @Override
-    public String getAliasZid() {
-        return aliasZid;
     }
 
     @Override
@@ -233,63 +191,80 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((config == null) ? 0 : config.hashCode());
-        result = prime * result + ((created == null) ? 0 : created.hashCode());
-        result = prime * result + ((id == null) ? 0 : id.hashCode());
-        result = prime * result + ((lastModified == null) ? 0 : lastModified.hashCode());
-        result = prime * result + ((name == null) ? 0 : name.hashCode());
-        result = prime * result + ((originKey == null) ? 0 : originKey.hashCode());
-        result = prime * result + ((type == null) ? 0 : type.hashCode());
-        result = prime * result + ((aliasId == null) ? 0 : aliasId.hashCode());
-        result = prime * result + ((aliasZid == null) ? 0 : aliasZid.hashCode());
+        result = prime * result + (config == null ? 0 : config.hashCode());
+        result = prime * result + (created == null ? 0 : created.hashCode());
+        result = prime * result + (id == null ? 0 : id.hashCode());
+        result = prime * result + (lastModified == null ? 0 : lastModified.hashCode());
+        result = prime * result + (name == null ? 0 : name.hashCode());
+        result = prime * result + (originKey == null ? 0 : originKey.hashCode());
+        result = prime * result + (type == null ? 0 : type.hashCode());
+        result = prime * result + (aliasId == null ? 0 : aliasId.hashCode());
+        result = prime * result + (aliasZid == null ? 0 : aliasZid.hashCode());
         result = prime * result + version;
         return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         IdentityProvider other = (IdentityProvider) obj;
         if (config == null) {
-            if (other.config != null)
+            if (other.config != null) {
                 return false;
-        } else if (!config.equals(other.config))
+            }
+        } else if (!config.equals(other.config)) {
             return false;
+        }
         if (created == null) {
-            if (other.created != null)
+            if (other.created != null) {
                 return false;
-        } else if (!created.equals(other.created))
+            }
+        } else if (!created.equals(other.created)) {
             return false;
+        }
         if (id == null) {
-            if (other.id != null)
+            if (other.id != null) {
                 return false;
-        } else if (!id.equals(other.id))
+            }
+        } else if (!id.equals(other.id)) {
             return false;
+        }
         if (lastModified == null) {
-            if (other.lastModified != null)
+            if (other.lastModified != null) {
                 return false;
-        } else if (!lastModified.equals(other.lastModified))
+            }
+        } else if (!lastModified.equals(other.lastModified)) {
             return false;
+        }
         if (name == null) {
-            if (other.name != null)
+            if (other.name != null) {
                 return false;
-        } else if (!name.equals(other.name))
+            }
+        } else if (!name.equals(other.name)) {
             return false;
+        }
         if (originKey == null) {
-            if (other.originKey != null)
+            if (other.originKey != null) {
                 return false;
-        } else if (!originKey.equals(other.originKey))
+            }
+        } else if (!originKey.equals(other.originKey)) {
             return false;
+        }
         if (type == null) {
-            if (other.type != null)
+            if (other.type != null) {
                 return false;
-        } else if (!type.equals(other.type))
+            }
+        } else if (!type.equals(other.type)) {
             return false;
+        }
         if (aliasId == null) {
             if (other.aliasId != null) {
                 return false;
@@ -304,9 +279,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
         } else if (!aliasZid.equals(other.aliasZid)) {
             return false;
         }
-        if (version != other.version)
-            return false;
-        return true;
+        return version == other.version;
     }
 
     @Override
@@ -342,13 +315,6 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
 
         sb.append('}');
         return sb.toString();
-    }
-
-    private boolean serializeConfigRaw;
-
-    @JsonIgnore
-    public boolean isSerializeConfigRaw() {
-        return serializeConfigRaw;
     }
 
     @JsonIgnore
@@ -446,8 +412,5 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> impl
             result.setAliasZid(getNodeAsString(node, FIELD_ALIAS_ZID, null));
             return result;
         }
-
-
     }
-
 }

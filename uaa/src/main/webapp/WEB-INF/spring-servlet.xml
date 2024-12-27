@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xmlns:sec="http://www.springframework.org/schema/security"
-       xmlns:util="http://www.springframework.org/schema/util"
-       xmlns:mvc="http://www.springframework.org/schema/mvc"
-       xmlns:context="http://www.springframework.org/schema/context"
-       xsi:schemaLocation="
+          xmlns:sec="http://www.springframework.org/schema/security"
+          xmlns:util="http://www.springframework.org/schema/util"
+          xmlns:mvc="http://www.springframework.org/schema/mvc"
+          xmlns:context="http://www.springframework.org/schema/context"
+          xsi:schemaLocation="
        http://www.springframework.org/schema/security https://www.springframework.org/schema/security/spring-security.xsd
        http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
        http://www.springframework.org/schema/mvc https://www.springframework.org/schema/mvc/spring-mvc.xsd
        http://www.springframework.org/schema/context https://www.springframework.org/schema/context/spring-context.xsd
        http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
-    <context:annotation-config />
+    <context:annotation-config/>
     <context:component-scan base-package="org.cloudfoundry.identity.uaa"/>
 
     <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
@@ -28,8 +28,8 @@
     </bean>
 
     <bean name="contentNegotiationManager"
-          primary="true"
-          class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+                    primary="true"
+                    class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
         <property name="favorPathExtension" value="false"/>
         <property name="favorParameter" value="true"/>
         <property name="mediaTypes">
@@ -42,9 +42,9 @@
     </bean>
 
     <bean id="backwardsCompatibleScopeParameter"
-          class="org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter"/>
+                    class="org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter"/>
     <bean id="disableIdTokenResponseFilter"
-          class="org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter">
+                    class="org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter">
         <constructor-arg index="0" value="${oauth.id_token.disable:false}"/>
         <constructor-arg index="1">
             <list>
@@ -62,6 +62,7 @@
     <sec:http name="secFilterOpen03" pattern="/info" security="none"/>
     <sec:http name="secFilterOpen04" pattern="/password/**" security="none"/>
     <sec:http name="secFilterOpen05Healthz" pattern="/healthz/**" security="none"/>
+    <sec:http name="secFilterOpen06SAMLMetadata" pattern="/saml/metadata/**" security="none"/>
     <sec:http name="secFilterOpen06" pattern="/saml/web/**" security="none"/>
     <sec:http name="secFilterOpen07" pattern="/vendor/**" security="none"/>
     <!--<sec:http pattern="/login" security="none" />-->
@@ -82,33 +83,33 @@
 
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg
-                value="org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
+                              value="org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
     <bean id="utf8ConversionFilter" class="org.cloudfoundry.identity.uaa.authentication.UTF8ConversionFilter"/>
     <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter">
         <property name="corsAllowedUris"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
+                              value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['default']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['default']['allowed']['uris']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['default']['allowed']['uris']}"/>
 
         <property name="corsAllowedOrigins"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
+                              value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['default']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['default']['allowed']['origins']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['default']['allowed']['origins']}"/>
 
         <property name="corsAllowedHeaders"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
+                              value="#{@config['cors']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
                            @config['cors']['default']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
                            @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
                            @config['cors']['default']['allowed']['headers']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
                            @config['cors']['default']['allowed']['headers']}"/>
 
         <property name="corsAllowedMethods"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
+                              value="#{@config['cors']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
                            @config['cors']['default']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
                            @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
                            @config['cors']['default']['allowed']['methods']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE','PATCH') :
@@ -116,41 +117,41 @@
 
 
         <property name="corsAllowedCredentials"
-                  value="#{@config['cors']==null ? false :
+                              value="#{@config['cors']==null ? false :
                            @config['cors']['default']==null ? false :
                            @config['cors']['default']['allowed']==null ? false :
                            @config['cors']['default']['allowed']['credentials']==null ? false :
                            @config['cors']['default']['allowed']['credentials']}"/>
 
         <property name="corsMaxAge"
-                  value="#{@config['cors']==null ? 1728000 :
+                              value="#{@config['cors']==null ? 1728000 :
                            @config['cors']['default']==null ? 1728000 :
                            @config['cors']['default']['max_age']==null ? 1728000 :
                            @config['cors']['default']['max_age']}"/>
 
         <property name="corsXhrAllowedUris"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
+                              value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['xhr']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['xhr']['allowed']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['xhr']['allowed']['uris']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['xhr']['allowed']['uris']}"/>
 
         <property name="corsXhrAllowedOrigins"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
+                              value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['xhr']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['xhr']['allowed']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['xhr']['allowed']['origins']==null ? T(java.util.Arrays).asList('.*') :
                            @config['cors']['xhr']['allowed']['origins']}"/>
 
         <property name="corsXhrAllowedHeaders"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
+                              value="#{@config['cors']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
                            @config['cors']['xhr']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
                            @config['cors']['xhr']['allowed']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
                            @config['cors']['xhr']['allowed']['headers']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
                            @config['cors']['xhr']['allowed']['headers']}"/>
 
         <property name="corsXhrAllowedMethods"
-                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
+                              value="#{@config['cors']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
                            @config['cors']['xhr']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
                            @config['cors']['xhr']['allowed']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
                            @config['cors']['xhr']['allowed']['methods']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
@@ -158,14 +159,14 @@
 
 
         <property name="corsXhrAllowedCredentials"
-                  value="#{@config['cors']==null ? true :
+                              value="#{@config['cors']==null ? true :
                            @config['cors']['xhr']==null ? true :
                            @config['cors']['xhr']['allowed']==null ? true :
                            @config['cors']['xhr']['allowed']['credentials']==null ? true :
                            @config['cors']['xhr']['allowed']['credentials']}"/>
 
         <property name="corsXhrMaxAge"
-                  value="#{@config['cors']==null ? 1728000 :
+                              value="#{@config['cors']==null ? 1728000 :
                            @config['cors']['xhr']==null ? 1728000 :
                            @config['cors']['xhr']['max_age']==null ? 1728000 :
                            @config['cors']['xhr']['max_age']}"/>
@@ -176,7 +177,7 @@
     </bean>
 
     <bean id="sessionFixationProtectionStrategy"
-          class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy"/>
+                    class="org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy"/>
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="dumpRequests" value="${dump_requests:false}"/>
@@ -185,6 +186,7 @@
         <property name="redirectToHttps">
             <list>
                 <value>uiSecurity</value>
+                <value>secFilterOpen06SAMLMetadata</value>
             </list>
         </property>
         <property name="ignore">
@@ -205,33 +207,41 @@
         <property name="additionalFilters">
             <map>
                 <entry value-ref="tracingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}"/>
                 <entry value-ref="metricsFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}"/>
                 <entry value-ref="headerFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
                 <entry value-ref="contentSecurityPolicyFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
                 <entry value-ref="utf8ConversionFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(4)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
                 <entry value-ref="limitedModeUaaFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(5)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}"/>
                 <entry value-ref="identityZoneResolvingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(6)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(7)}"/>
                 <entry value-ref="corsFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(7)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(8)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(8)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(9)}"/>
+                <entry value-ref="saml2WebSsoAuthenticationRequestFilter"
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(10)}"/>
+                <entry value-ref="saml2WebSsoAuthenticationFilter"
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(11)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
+                <entry value-ref="saml2LogoutRequestFilter"
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
+                <entry value-ref="saml2LogoutResponseFilter"
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter))}"/>
                 <entry value-ref="userManagementSecurityFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter))}"/>
                 <entry value-ref="userManagementFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
                 <entry value-ref="sessionResetFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
+                                                  key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
             </map>
         </property>
     </bean>
@@ -246,11 +256,11 @@
 
     <bean id="headerFilter" class="org.cloudfoundry.identity.uaa.web.HeaderFilter">
         <constructor-arg
-                value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
+                              value="#{@config['servlet']==null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers'] == null ? @defaultFilteredHeaders : @config['servlet']['filtered-headers']}"/>
     </bean>
 
     <bean id="contentSecurityPolicyFilter"
-          class="org.cloudfoundry.identity.uaa.security.web.ContentSecurityPolicyFilter">
+                    class="org.cloudfoundry.identity.uaa.security.web.ContentSecurityPolicyFilter">
         <constructor-arg value="#{@config['csp']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
                                   @config['csp']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
                                   @config['csp']['script-src']==null ? T(java.util.Arrays).asList(&quot;'self'&quot;) :
@@ -263,7 +273,7 @@
     </bean>
 
     <bean id="userManagementSecurityFilter"
-          class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter"/>
+                    class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter"/>
 
     <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter"/>
 
@@ -276,7 +286,7 @@
             </set>
         </property>
         <property name="additionalInternalHostnames"
-                  value="#{@config['zones']==null ? null : @config['zones']['internal']==null ? null : @config['zones']['internal']['hostnames']}"/>
+                              value="#{@config['zones']==null ? null : @config['zones']['internal']==null ? null : @config['zones']['internal']['hostnames']}"/>
     </bean>
 
     <bean id="sessionResetFilter" class="org.cloudfoundry.identity.uaa.authentication.SessionResetFilter">
@@ -302,34 +312,34 @@
         <constructor-arg name="minLength" value="${oauth.client.secret.policy.global.minLength:0}"/>
         <constructor-arg name="maxLength" value="${oauth.client.secret.policy.global.maxLength:255}"/>
         <constructor-arg name="requireUpperCaseCharacter"
-                         value="${oauth.client.secret.policy.global.requireUpperCaseCharacter:0}"/>
+                              value="${oauth.client.secret.policy.global.requireUpperCaseCharacter:0}"/>
         <constructor-arg name="requireLowerCaseCharacter"
-                         value="${oauth.client.secret.policy.global.requireLowerCaseCharacter:0}"/>
+                              value="${oauth.client.secret.policy.global.requireLowerCaseCharacter:0}"/>
         <constructor-arg name="requireDigit" value="${oauth.client.secret.policy.global.requireDigit:0}"/>
         <constructor-arg name="requireSpecialCharacter"
-                         value="${oauth.client.secret.policy.global.requireSpecialCharacter:0}"/>
+                              value="${oauth.client.secret.policy.global.requireSpecialCharacter:0}"/>
         <constructor-arg name="expireSecretInMonths" value="0"/>
     </bean>
 
     <bean id="defaultUaaClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
         <constructor-arg name="minLength"
-                         value="${oauth.client.secret.policy.minLength:#{globalClientSecretPolicy.getMinLength()}}"/>
+                              value="${oauth.client.secret.policy.minLength:#{globalClientSecretPolicy.getMinLength()}}"/>
         <constructor-arg name="maxLength"
-                         value="${oauth.client.secret.policy.maxLength:#{globalClientSecretPolicy.getMaxLength()}}"/>
+                              value="${oauth.client.secret.policy.maxLength:#{globalClientSecretPolicy.getMaxLength()}}"/>
         <constructor-arg name="requireUpperCaseCharacter"
-                         value="${oauth.client.secret.policy.requireUpperCaseCharacter:#{globalClientSecretPolicy.getRequireUpperCaseCharacter()}}"/>
+                              value="${oauth.client.secret.policy.requireUpperCaseCharacter:#{globalClientSecretPolicy.getRequireUpperCaseCharacter()}}"/>
         <constructor-arg name="requireLowerCaseCharacter"
-                         value="${oauth.client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
+                              value="${oauth.client.secret.policy.requireLowerCaseCharacter:#{globalClientSecretPolicy.getRequireLowerCaseCharacter()}}"/>
         <constructor-arg name="requireDigit"
-                         value="${oauth.client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
+                              value="${oauth.client.secret.policy.requireDigit:#{globalClientSecretPolicy.getRequireDigit()}}"/>
         <constructor-arg name="requireSpecialCharacter"
-                         value="${oauth.client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
+                              value="${oauth.client.secret.policy.requireSpecialCharacter:#{globalClientSecretPolicy.getRequireSpecialCharacter()}}"/>
         <constructor-arg name="expireSecretInMonths" value="0"/>
     </bean>
 
 
     <bean id="zoneAwareClientSecretPolicyValidator"
-          class="org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator">
+                    class="org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator">
         <constructor-arg ref="globalClientSecretPolicy"/>
     </bean>
 
@@ -359,17 +369,17 @@
     </bean>
 
     <bean id="authenticationDetailsSource"
-          class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource"/>
+                    class="org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource"/>
 
     <bean id="basicAuthenticationEntryPoint"
-          class="org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint">
+                    class="org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint">
         <property name="realmName" value="UAA/client"/>
         <property name="typeName" value="Basic"/>
         <property name="exceptionTranslator" ref="accountNotVerifiedExceptionTranslator"/>
     </bean>
 
     <bean id="accountNotVerifiedExceptionTranslator"
-          class="org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator"/>
+                    class="org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator"/>
 
     <bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
         <constructor-arg>
@@ -383,7 +393,6 @@
         </constructor-arg>
     </bean>
 
-    <import resource="spring/saml-providers.xml"/>
     <import resource="classpath:spring/login-ui.xml"/>
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint"/>
@@ -404,13 +413,13 @@
         <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
             <constructor-arg name="name" value="passcode"/>
             <constructor-arg name="text"
-                             value="Temporary Authentication Code ( Get one at ${login.entityBaseURL:http://localhost:8080/uaa}/passcode )"/>
+                                        value="Temporary Authentication Code ( Get one at ${login.entityBaseURL:http://localhost:8080/uaa}/passcode )"/>
             <constructor-arg name="type" value="password"/>
         </bean>
     </util:list>
 
     <bean id="externalOAuthProviderConfigurator"
-          class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator">
+                    class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthProviderConfigurator">
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
     </bean>
 
@@ -435,18 +444,18 @@
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
         <property name="defaultLockoutPolicy" ref="userLockoutPolicy"/>
         <property name="disableInternalUserManagement"
-                  value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
+                              value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
         <property name="samlProviders" ref="bootstrapMetaDataProviders"/>
         <property name="oauthIdpDefinitions" ref="oauthIdpDefinitions"/>
         <property name="originsToDelete"
-                  value="#{@config['delete']==null ? null : @config['delete']['identityProviders']}"/>
+                              value="#{@config['delete']==null ? null : @config['delete']['identityProviders']}"/>
     </bean>
 
     <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIDPWrapperFactoryBean">
         <constructor-arg name="definitions"
-                         value="#{@config['login']==null ? null :
+                              value="#{@config['login']==null ? null :
                            @config['login']['oauth']==null ? null :
                            @config['login']['oauth']['providers']}"/>
     </bean>
@@ -462,7 +471,7 @@
     </bean>
 
     <bean id="identityZoneConfigurationBootstrap"
-          class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
+                    class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <property name="validator" ref="identityZoneValidator"/>
         <property name="clientSecretPolicy" ref="defaultUaaClientSecretPolicy"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
@@ -472,7 +481,7 @@
         <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}"/>
         <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}"/>
         <property name="logoutRedirectWhitelist"
-                  value="#{@config['logout']==null ? null :
+                              value="#{@config['logout']==null ? null :
                            @config['logout']['redirect']==null ? null :
                            @config['logout']['redirect']['parameter']==null ? null :
                            @config['logout']['redirect']['parameter']['whitelist']}"/>
@@ -486,16 +495,18 @@
         <property name="samlSpCertificate" value="${login.serviceProviderCertificate:#{null}}"/>
         <property name="activeKeyId" value="${login.saml.activeKeyId:#{null}}"/>
         <property name="samlKeys"
-                  value="#{@config['login']==null ? null :
+                              value="#{@config['login']==null ? null :
                            @config['login']['saml']==null ? null :
                            @config['login']['saml']['keys']}"/>
         <property name="disableSamlInResponseToCheck" value="${login.saml.disableInResponseToCheck:false}"/>
+        <property name="samlWantAssertionSigned" value="${login.saml.wantAssertionSigned:true}"/>
+        <property name="samlRequestSigned" value="${login.saml.signRequest:true}"/>
         <property name="defaultUserConfig" ref="defaultUserConfig"/>
         <property name="defaultIdentityProvider" value="${login.defaultIdentityProvider:#{null}}"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr"
-          class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
+                    class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <property name="userDatabase" ref="userDatabase"/>
         <property name="origin" value="ldap"/>
     </bean>
@@ -505,7 +516,7 @@
     </bean>
 
     <bean id="autologinAuthenticationManager"
-          class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager">
+                    class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager">
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="userDatabase" ref="userDatabase"/>
@@ -514,15 +525,14 @@
     <bean id="limitedModeUaaFilter" class="org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter">
         <property name="statusFile" value="${uaa.limitedFunctionality.statusFile:#{null}}"/>
         <property name="permittedEndpoints"
-                  value="#{@config['uaa']==null ? null :
+                              value="#{@config['uaa']==null ? null :
                            @config['uaa']['limitedFunctionality']==null ? null :
                            @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
                            @config['uaa']['limitedFunctionality']['whitelist']['endpoints']}"/>
         <property name="permittedMethods"
-                  value="#{@config['uaa']==null ? null :
+                              value="#{@config['uaa']==null ? null :
                            @config['uaa']['limitedFunctionality']==null ? null :
                            @config['uaa']['limitedFunctionality']['whitelist']==null ? null :
                            @config['uaa']['limitedFunctionality']['whitelist']['methods']}"/>
     </bean>
-
 </beans>

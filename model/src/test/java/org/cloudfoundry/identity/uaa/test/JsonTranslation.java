@@ -53,16 +53,16 @@ public abstract class JsonTranslation<T> {
     }
 
     private void validate() {
-        assertThat(String.format("subject cannot be null, did you forget to call %s::setUp?", JsonTranslation.class.getSimpleName()),
+        assertThat("subject cannot be null, did you forget to call %s::setUp?".formatted(JsonTranslation.class.getSimpleName()),
                 this.subject, not(nullValue()));
-        assertThat(String.format("subjectClass cannot be null, did you forget to call %s::setUp?", JsonTranslation.class.getSimpleName()),
+        assertThat("subjectClass cannot be null, did you forget to call %s::setUp?".formatted(JsonTranslation.class.getSimpleName()),
                 this.subjectClass, not(nullValue()));
     }
 
     @Test
     void toJson() throws JsonProcessingException {
         validate();
-        assertThat(String.format("file <%s/%s> must exist on classpath", subjectClass.getPackage().getName().replace(".", "/"), jsonFileName),
+        assertThat("file <%s/%s> must exist on classpath".formatted(subjectClass.getPackage().getName().replace(".", "/"), jsonFileName),
                 subjectClass.getResourceAsStream(jsonFileName),
                 notNullValue());
 
@@ -74,7 +74,7 @@ public abstract class JsonTranslation<T> {
     @Test
     void fromJson() throws IOException {
         validate();
-        assertThat(String.format("file <%s/%s> must exist on classpath", subjectClass.getPackage().getName().replace(".", "/"), jsonFileName),
+        assertThat("file <%s/%s> must exist on classpath".formatted(subjectClass.getPackage().getName().replace(".", "/"), jsonFileName),
                 subjectClass.getResourceAsStream(jsonFileName),
                 notNullValue());
 
@@ -88,7 +88,7 @@ public abstract class JsonTranslation<T> {
     @Test
     void withNullFields_checkIsEmptyJson() throws IllegalAccessException, InstantiationException, JsonProcessingException {
         assumeTrue(EXPECT_EMPTY_JSON.equals(withAllNullFields),
-                String.format("To configure this test, use %s instead of %s", EXPECT_EMPTY_JSON, withAllNullFields));
+                "To configure this test, use %s instead of %s".formatted(EXPECT_EMPTY_JSON, withAllNullFields));
         validate();
 
         String actual = objectMapper.writeValueAsString(subjectClass.newInstance());
@@ -99,12 +99,12 @@ public abstract class JsonTranslation<T> {
     @Test
     void withNullFields_compareToFile() throws JsonProcessingException, IllegalAccessException, InstantiationException {
         assumeTrue(EXPECT_NULLS_IN_JSON.equals(withAllNullFields),
-                String.format("To configure this test, use %s instead of %s", EXPECT_NULLS_IN_JSON, withAllNullFields));
+                "To configure this test, use %s instead of %s".formatted(EXPECT_NULLS_IN_JSON, withAllNullFields));
         validate();
 
         String fileName = subjectClass.getSimpleName() + "-nulls.json";
 
-        assertThat(String.format("file <%s/%s> must exist on classpath, or choose a different %s", subjectClass.getPackage().getName().replace(".", "/"), fileName, WithAllNullFields.class.getSimpleName()),
+        assertThat("file <%s/%s> must exist on classpath, or choose a different %s".formatted(subjectClass.getPackage().getName().replace(".", "/"), fileName, WithAllNullFields.class.getSimpleName()),
                 subjectClass.getResourceAsStream(fileName),
                 notNullValue());
 

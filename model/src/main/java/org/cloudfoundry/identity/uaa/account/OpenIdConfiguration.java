@@ -56,7 +56,7 @@ public class OpenIdConfiguration {
             "aud", "zid", "grant_type", "user_id", "azp", "scope", "exp", "iat", "jti", "rev_sig", "cid", "given_name", "family_name", "phone_number", "email"};
 
     @JsonProperty("claims_parameter_supported")
-    private boolean claimsParameterSupported = false;
+    private boolean claimsParameterSupported;
 
     @JsonProperty("service_documentation")
     private String serviceDocumentation = "http://docs.cloudfoundry.org/api/uaa/";

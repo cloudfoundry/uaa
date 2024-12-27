@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -40,9 +41,9 @@ import java.util.Set;
  */
 public class YamlConfigurationValidator<T> implements FactoryBean<T>, InitializingBean, EnvironmentAware {
 
-    private static Logger logger = LoggerFactory.getLogger(YamlConfigurationValidator.class);
+    private static final Logger logger = LoggerFactory.getLogger(YamlConfigurationValidator.class);
 
-    private Constructor constructor;
+    private final Constructor constructor;
 
     private boolean exceptionIfInvalid;
 
@@ -130,7 +131,7 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
         if (Arrays.asList(environment.getActiveProfiles()).contains("strict")) {
             this.exceptionIfInvalid = true;
         }
-            
+
     }
 
 }

@@ -42,7 +42,7 @@ public class AssertThrowsWithMessage {
             }
         }
 
-        String message = String.format("Expected %s to be thrown, but nothing was thrown.", getCanonicalName(expectedType));
+        String message = "Expected %s to be thrown, but nothing was thrown.".formatted(getCanonicalName(expectedType));
         throw new AssertionFailedError(message);
     }
 
@@ -51,13 +51,13 @@ public class AssertThrowsWithMessage {
     // Sure wish they weren't private! :)
 
     static String buildPrefix(String message) {
-        return (StringUtils.isNotBlank(message) ? message + " ==> " : "");
+        return StringUtils.isNotBlank(message) ? message + " ==> " : "";
     }
 
     static String getCanonicalName(Class<?> clazz) {
         try {
             String canonicalName = clazz.getCanonicalName();
-            return (canonicalName != null ? canonicalName : clazz.getName());
+            return canonicalName != null ? canonicalName : clazz.getName();
         } catch (Throwable t) {
             return clazz.getName();
         }
@@ -68,8 +68,8 @@ public class AssertThrowsWithMessage {
     }
 
     private static String toString(Object obj) {
-        if (obj instanceof Class) {
-            return getCanonicalName((Class<?>) obj);
+        if (obj instanceof Class<?> class1) {
+            return getCanonicalName(class1);
         }
         return StringUtils.nullSafeToString(obj);
     }
@@ -78,24 +78,24 @@ public class AssertThrowsWithMessage {
         String expectedString = toString(expected);
         String actualString = toString(actual);
         if (expectedString.equals(actualString)) {
-            return String.format("expected: %s but was: %s", formatClassAndValue(expected, expectedString),
+            return "expected: %s but was: %s".formatted(formatClassAndValue(expected, expectedString),
                     formatClassAndValue(actual, actualString));
         }
-        return String.format("expected: <%s> but was: <%s>", expectedString, actualString);
+        return "expected: <%s> but was: <%s>".formatted(expectedString, actualString);
     }
 
     private static String formatClassAndValue(Object value, String valueString) {
         String classAndHash = getClassName(value) + toHash(value);
         // if it's a class, there's no need to repeat the class name contained in the valueString.
-        return (value instanceof Class ? "<" + classAndHash + ">" : classAndHash + "<" + valueString + ">");
+        return value instanceof Class ? "<" + classAndHash + ">" : classAndHash + "<" + valueString + ">";
     }
 
     private static String toHash(Object obj) {
-        return (obj == null ? "" : "@" + Integer.toHexString(System.identityHashCode(obj)));
+        return obj == null ? "" : "@" + Integer.toHexString(System.identityHashCode(obj));
     }
 
     private static String getClassName(Object obj) {
-        return (obj == null ? "null"
-                : obj instanceof Class ? getCanonicalName((Class<?>) obj) : obj.getClass().getName());
+        return obj == null ? "null"
+                : obj instanceof Class<?> c ? getCanonicalName(c) : obj.getClass().getName();
     }
 }

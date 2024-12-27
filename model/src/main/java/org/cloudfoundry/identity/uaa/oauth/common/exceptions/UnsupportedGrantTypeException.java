@@ -11,12 +11,12 @@ package org.cloudfoundry.identity.uaa.oauth.common.exceptions;
 @SuppressWarnings("serial")
 public class UnsupportedGrantTypeException extends OAuth2Exception {
 
-  public UnsupportedGrantTypeException(String msg) {
-    super(msg);
-  }
+    public UnsupportedGrantTypeException(String msg) {
+        super(msg);
+    }
 
-  @Override
-  public String getOAuth2ErrorCode() {
-    return UNSUPPORTED_GRANT_TYPE;
-  }
+    @Override
+    public String getOAuth2ErrorCode() {
+        return UNSUPPORTED_GRANT_TYPE;
+    }
 }

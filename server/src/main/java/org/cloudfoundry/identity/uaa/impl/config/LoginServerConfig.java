@@ -12,10 +12,9 @@ public class LoginServerConfig {
 
     @Bean
     public MessageService messageService(EmailService emailService, NotificationsService notificationsService, Environment environment) {
-        if (environment.getProperty("notifications.url") != null && !environment.getProperty("notifications.url").equals("")) {
+        if (environment.getProperty("notifications.url") != null && !"".equals(environment.getProperty("notifications.url"))) {
             return notificationsService;
-        }
-        else {
+        } else {
             return emailService;
         }
     }

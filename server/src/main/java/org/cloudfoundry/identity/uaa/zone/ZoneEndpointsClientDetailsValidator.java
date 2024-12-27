@@ -24,7 +24,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 @Component("zoneEndpointsClientDetailsValidator")
 public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidator {
 
-    private final String REQUIRED_SCOPE = "zones.write";
+    private static final String REQUIRED_SCOPE = "zones.write";
     private final ClientSecretValidator clientSecretValidator;
 
     public ZoneEndpointsClientDetailsValidator(

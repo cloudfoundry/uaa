@@ -13,9 +13,9 @@ import static org.mockito.Mockito.mock;
  */
 public class WebExpressionHandlerBeanDefinitionParserTest {
 
-  @Test
-  public void getBeanClass() {
-    WebExpressionHandlerBeanDefinitionParser parser = new WebExpressionHandlerBeanDefinitionParser();
-    assertEquals(OAuth2WebSecurityExpressionHandler.class, parser.getBeanClass(mock(Element.class)));
-  }
+    @Test
+    public void getBeanClass() {
+        WebExpressionHandlerBeanDefinitionParser parser = new WebExpressionHandlerBeanDefinitionParser();
+        assertEquals(OAuth2WebSecurityExpressionHandler.class, parser.getBeanClass(mock(Element.class)));
+    }
 }

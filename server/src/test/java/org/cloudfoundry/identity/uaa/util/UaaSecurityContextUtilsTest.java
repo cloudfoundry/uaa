@@ -18,31 +18,31 @@ import static org.mockito.Mockito.when;
 
 class UaaSecurityContextUtilsTest {
 
-  private OAuth2Request auth2Request;
+    private OAuth2Request auth2Request;
 
-  @BeforeEach
-  void setUp() {
-    OAuth2Authentication authentication = mock(OAuth2Authentication.class);
-    SecurityContextHolder.getContext().setAuthentication(authentication);
-    auth2Request = mock(OAuth2Request.class);
-    when(auth2Request.getExtensions()).thenReturn(new HashMap<>());
-    when(authentication.getOAuth2Request()).thenReturn(auth2Request);
-  }
+    @BeforeEach
+    void setUp() {
+        OAuth2Authentication authentication = mock(OAuth2Authentication.class);
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        auth2Request = mock(OAuth2Request.class);
+        when(auth2Request.getExtensions()).thenReturn(new HashMap<>());
+        when(authentication.getOAuth2Request()).thenReturn(auth2Request);
+    }
 
-  @Test
-  void getNoClientAuthenticationMethod() {
-    assertNull(UaaSecurityContextUtils.getClientAuthenticationMethod());
-  }
+    @Test
+    void getNoClientAuthenticationMethod() {
+        assertNull(UaaSecurityContextUtils.getClientAuthenticationMethod());
+    }
 
-  @Test
-  void getNullClientAuthenticationMethod() {
-    SecurityContextHolder.getContext().setAuthentication(null);
-    assertNull(UaaSecurityContextUtils.getClientAuthenticationMethod());
-  }
+    @Test
+    void getNullClientAuthenticationMethod() {
+        SecurityContextHolder.getContext().setAuthentication(null);
+        assertNull(UaaSecurityContextUtils.getClientAuthenticationMethod());
+    }
 
-  @Test
-  void getClientAuthenticationMethod() {
-    when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
-    assertEquals(CLIENT_AUTH_NONE, UaaSecurityContextUtils.getClientAuthenticationMethod());
-  }
+    @Test
+    void getClientAuthenticationMethod() {
+        when(auth2Request.getExtensions()).thenReturn(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, CLIENT_AUTH_NONE));
+        assertEquals(CLIENT_AUTH_NONE, UaaSecurityContextUtils.getClientAuthenticationMethod());
+    }
 }

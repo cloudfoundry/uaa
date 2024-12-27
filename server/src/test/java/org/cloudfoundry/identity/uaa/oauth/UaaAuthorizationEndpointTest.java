@@ -57,9 +57,9 @@ public class UaaAuthorizationEndpointTest {
     private OpenIdSessionStateCalculator openIdSessionStateCalculator;
     private PkceValidationService pkceValidationService;
 
-    private HashMap<String, Object> model = new HashMap<>();
-    private SimpleSessionStatus sessionStatus = new SimpleSessionStatus();
-    private UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken("foo", "bar", Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")));
+    private final HashMap<String, Object> model = new HashMap<>();
+    private final SimpleSessionStatus sessionStatus = new SimpleSessionStatus();
+    private final UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken("foo", "bar", Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")));
 
     @Before
     public void setup() {
@@ -69,7 +69,7 @@ public class UaaAuthorizationEndpointTest {
 
         PlainPkceVerifier plainPkceVerifier = new PlainPkceVerifier();
         S256PkceVerifier s256PkceVerifier = new S256PkceVerifier();
-        Map<String,PkceVerifier> pkceVerifiers = new HashMap<String,PkceVerifier>();
+        Map<String, PkceVerifier> pkceVerifiers = new HashMap<>();
         pkceVerifiers.put(plainPkceVerifier.getCodeChallengeMethod(), plainPkceVerifier);
         pkceVerifiers.put(s256PkceVerifier.getCodeChallengeMethod(), s256PkceVerifier);
         pkceValidationService = new PkceValidationService(pkceVerifiers);
@@ -142,7 +142,7 @@ public class UaaAuthorizationEndpointTest {
     public void testBuildRedirectURI_doesNotIncludeSessionStateWhenNotPromptNone() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest();
         authorizationRequest.setRedirectUri("http://example.com/somepath");
-        authorizationRequest.setResponseTypes(new HashSet<String>() {
+        authorizationRequest.setResponseTypes(new HashSet<>() {
             {
                 add("code");
                 add("token");
@@ -176,7 +176,7 @@ public class UaaAuthorizationEndpointTest {
     public void buildRedirectURI_includesSessionStateForPromptEqualsNone() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest();
         authorizationRequest.setRedirectUri("http://example.com/somepath");
-        authorizationRequest.setRequestParameters(new HashMap<String, String>() {
+        authorizationRequest.setRequestParameters(new HashMap<>() {
             {
                 put("prompt", "none");
             }
@@ -335,31 +335,31 @@ public class UaaAuthorizationEndpointTest {
 
     @Test(expected = InvalidRequestException.class)
     public void testShortCodeChallengeParameter() throws Exception {
-    	Map<String, String> parameters = new HashMap<String, String>();
-    	parameters.put(PkceValidationService.CODE_CHALLENGE, "ShortCodeChallenge");
-    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put(PkceValidationService.CODE_CHALLENGE, "ShortCodeChallenge");
+        uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
     }
-    
+
     @Test(expected = InvalidRequestException.class)
     public void testLongCodeChallengeParameter() throws Exception {
-    	Map<String, String> parameters = new HashMap<String, String>();
-    	parameters.put(PkceValidationService.CODE_CHALLENGE, "LongCodeChallenge12346574382823193700987654321326352173528351287635126532123452534234254323254325325325432342532532254325432532532");
-    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put(PkceValidationService.CODE_CHALLENGE, "LongCodeChallenge12346574382823193700987654321326352173528351287635126532123452534234254323254325325325432342532532254325432532532");
+        uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
     }
-    
+
     @Test(expected = InvalidRequestException.class)
     public void testForbiddenCodeChallengeParameter() throws Exception {
-    	Map<String, String> parameters = new HashMap<String, String>();
-    	parameters.put(PkceValidationService.CODE_CHALLENGE, "#ForbiddenCodeChallenge098765445647544743211234657438282319370#");
-    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put(PkceValidationService.CODE_CHALLENGE, "#ForbiddenCodeChallenge098765445647544743211234657438282319370#");
+        uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
     }
-    
+
     @Test(expected = InvalidRequestException.class)
     public void testUnsupportedCodeChallengeMethodParameter() throws Exception {
-    	Map<String, String> parameters = new HashMap<String, String>();
-    	parameters.put(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE);
-    	parameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, "unsupportedMethod");
-    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE);
+        parameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, "unsupportedMethod");
+        uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
     }
 
     @Test
@@ -370,7 +370,7 @@ public class UaaAuthorizationEndpointTest {
     }
 
     private AuthorizationRequest getAuthorizationRequest(String clientId, String redirectUri, String state,
-                                                         String scope, Set<String> responseTypes) {
+            String scope, Set<String> responseTypes) {
         HashMap<String, String> parameters = new HashMap<>();
         parameters.put(OAuth2Utils.CLIENT_ID, clientId);
         if (redirectUri != null) {

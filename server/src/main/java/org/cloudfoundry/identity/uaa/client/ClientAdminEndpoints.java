@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -85,15 +86,13 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static java.lang.String.format;
-
 /**
  * Controller for listing and manipulating OAuth2 clients.
  */
 @Controller
 @ManagedResource(
-    objectName="cloudfoundry.identity:name=ClientEndpoint",
-    description = "UAA Oauth Clients API Metrics"
+        objectName = "cloudfoundry.identity:name=ClientEndpoint",
+        description = "UAA Oauth Clients API Metrics"
 )
 public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
@@ -120,17 +119,17 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     private ApplicationEventPublisher publisher;
 
     public ClientAdminEndpoints(final SecurityContextAccessor securityContextAccessor,
-                                final @Qualifier("clientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
-                                final @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
-                                final @Qualifier("jdbcClientDetailsService") ResourceMonitor<ClientDetails> clientDetailsResourceMonitor,
-                                final @Qualifier("approvalStore") ApprovalStore approvalStore,
-                                final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientRegistrationService,
-                                final @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
-                                final @Value("${clientMaxCount:500}") int clientMaxCount) {
+            final @Qualifier("clientDetailsValidator") ClientDetailsValidator clientDetailsValidator,
+            final @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
+            final @Qualifier("jdbcClientDetailsService") ResourceMonitor<ClientDetails> clientDetailsResourceMonitor,
+            final @Qualifier("approvalStore") ApprovalStore approvalStore,
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientRegistrationService,
+            final @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
+            final @Value("${clientMaxCount:500}") int clientMaxCount) {
 
         if (clientMaxCount <= 0) {
             throw new IllegalArgumentException(
-                    format("Invalid \"clientMaxCount\" value (got %d). Should be positive number.", clientMaxCount)
+                    "Invalid \"clientMaxCount\" value (got %d). Should be positive number.".formatted(clientMaxCount)
             );
         }
 
@@ -244,18 +243,18 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseBody
     @Transactional
     public ClientDetails[] createClientDetailsTx(@RequestBody UaaClientDetails[] clients) {
-        if (clients==null || clients.length==0) {
+        if (clients == null || clients.length == 0) {
             throw new NoSuchClientException("Message body does not contain any clients.");
         }
         ClientDetails[] results = new ClientDetails[clients.length];
-        for (int i=0; i<clients.length; i++) {
+        for (int i = 0; i < clients.length; i++) {
             results[i] = clientDetailsValidator.validate(clients[i], Mode.CREATE);
         }
         return doInsertClientDetails(results);
     }
 
     protected ClientDetails[] doInsertClientDetails(ClientDetails[] details) {
-        for (int i=0; i<details.length; i++) {
+        for (int i = 0; i < details.length; i++) {
             details[i] = clientDetailsService.create(details[i], IdentityZoneHolder.get().getId());
             details[i] = removeSecret(details[i]);
         }
@@ -267,15 +266,15 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @Transactional
     @ResponseBody
     public ClientDetails[] updateClientDetailsTx(@RequestBody UaaClientDetails[] clients) {
-        if (clients==null || clients.length==0) {
+        if (clients == null || clients.length == 0) {
             throw new InvalidClientDetailsException("No clients specified for update.");
         }
         ClientDetails[] details = new ClientDetails[clients.length];
-        for (int i=0; i<clients.length; i++) {
+        for (int i = 0; i < clients.length; i++) {
             ClientDetails client = clients[i];
             ClientDetails existing = getClientDetails(client.getClientId());
-            if (existing==null) {
-                throw new NoSuchClientException("Client "+client.getClientId()+" does not exist");
+            if (existing == null) {
+                throw new NoSuchClientException("Client " + client.getClientId() + " does not exist");
             } else {
                 details[i] = syncWithExisting(existing, client);
             }
@@ -286,7 +285,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     protected ClientDetails[] doProcessUpdates(ClientDetails[] details) {
         ClientDetails[] result = new ClientDetails[details.length];
-        for (int i=0; i<result.length; i++) {
+        for (int i = 0; i < result.length; i++) {
             clientRegistrationService.updateClientDetails(details[i], IdentityZoneHolder.get().getId());
             clientUpdates.incrementAndGet();
             result[i] = removeSecret(details[i]);
@@ -299,7 +298,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails updateRestrictedClientDetails(@RequestBody UaaClientDetails client,
-                                                       @PathVariable("client") String clientId) throws Exception {
+            @PathVariable("client") String clientId) throws Exception {
         restrictedScopesValidator.validate(client, Mode.MODIFY);
         return updateClientDetails(client, clientId);
     }
@@ -308,13 +307,13 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails updateClientDetails(@RequestBody UaaClientDetails client,
-                    @PathVariable("client") String clientId) {
+            @PathVariable("client") String clientId) {
         Assert.state(clientId.equals(client.getClientId()),
-                        format("The client id (%s) does not match the URL (%s)", client.getClientId(), clientId));
+                "The client id (%s) does not match the URL (%s)".formatted(client.getClientId(), clientId));
         ClientDetails details = client;
         try {
             ClientDetails existing = getClientDetails(clientId);
-            if (existing==null) {
+            if (existing == null) {
                 logger.warn("Couldn't fetch client config, null, for client_id: " + clientId);
             } else {
                 details = syncWithExisting(existing, client);
@@ -343,7 +342,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseBody
     public ClientDetails[] removeClientDetailsTx(@RequestBody UaaClientDetails[] details) {
         ClientDetails[] result = new ClientDetails[details.length];
-        for (int i=0; i<result.length; i++) {
+        for (int i = 0; i < result.length; i++) {
             result[i] = clientDetailsService.retrieve(details[i].getClientId(), IdentityZoneHolder.get().getId());
         }
         return doProcessDeletes(result);
@@ -355,7 +354,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ResponseBody
     public ClientDetailsModification[] modifyClientDetailsTx(@RequestBody ClientDetailsModification[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
-        for (int i=0; i<result.length; i++) {
+        for (int i = 0; i < result.length; i++) {
             if (ClientDetailsModification.ADD.equals(details[i].getAction())) {
                 ClientDetails client = clientDetailsValidator.validate(details[i], Mode.CREATE);
                 clientRegistrationService.addClientDetails(client, IdentityZoneHolder.get().getId());
@@ -393,7 +392,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
     private boolean updateClientSecret(ClientDetailsModification detail) {
-        boolean deleteApprovals = !(authenticateClient(detail.getClientId(), detail.getClientSecret()));
+        boolean deleteApprovals = !authenticateClient(detail.getClientId(), detail.getClientSecret());
         if (deleteApprovals) {
             clientRegistrationService.updateClientSecret(detail.getClientId(), detail.getClientSecret(), IdentityZoneHolder.get().getId());
             deleteApprovals(detail.getClientId());
@@ -410,9 +409,9 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     public ClientDetailsModification[] changeSecretTx(@RequestBody SecretChangeRequest[] change) {
 
         ClientDetailsModification[] clientDetails = new ClientDetailsModification[change.length];
-        String clientId=null;
+        String clientId = null;
         try {
-            for (int i=0; i<change.length; i++) {
+            for (int i = 0; i < change.length; i++) {
                 clientId = change[i].getClientId();
                 clientDetails[i] = new ClientDetailsModification(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
                 boolean oldPasswordOk = authenticateClient(clientId, change[i].getOldSecret());
@@ -433,7 +432,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
-        for (int i=0; i<details.length; i++) {
+        for (int i = 0; i < details.length; i++) {
             publish(new EntityDeletedEvent<>(details[i], SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
             clientDeletes.incrementAndGet();
             result[i] = removeSecret(details[i]);
@@ -449,18 +448,18 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> listClientDetails(
-                    @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
-                    @RequestParam(required = false, defaultValue = "client_id pr") String filter,
-                    @RequestParam(required = false, defaultValue = "client_id") String sortBy,
-                    @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
-                    @RequestParam(required = false, defaultValue = "1") int startIndex,
-                    @RequestParam(required = false, defaultValue = "100") int count) {
+            @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
+            @RequestParam(required = false, defaultValue = "client_id pr") String filter,
+            @RequestParam(required = false, defaultValue = "client_id") String sortBy,
+            @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+            @RequestParam(required = false, defaultValue = "1") int startIndex,
+            @RequestParam(required = false, defaultValue = "100") int count) {
 
         if (count > clientMaxCount) {
             count = clientMaxCount;
         }
 
-        List<ClientDetails> result = new ArrayList<ClientDetails>();
+        List<ClientDetails> result = new ArrayList<>();
         List<ClientDetails> clients;
         try {
             clients = clientDetailsService.query(filter, sortBy, "ascending".equalsIgnoreCase(sortOrder), IdentityZoneHolder.get().getId());
@@ -470,7 +469,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         } catch (IllegalArgumentException e) {
             String msg = "Invalid filter expression: [" + filter + "]";
             if (StringUtils.hasText(sortBy)) {
-                msg += " [" +sortBy+"]";
+                msg += " [" + sortBy + "]";
             }
             throw new UaaException(msg, HttpStatus.BAD_REQUEST.value());
         }
@@ -480,19 +479,19 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
             return new SearchResults<>(Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI), result, startIndex, count,
-                clients.size());
+                    clients.size());
         }
 
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(result, startIndex, count, clients.size(), attributes,
-                            attributeNameMapper, Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI));
+                    attributeNameMapper, Collections.singletonList(SCIM_CLIENTS_SCHEMA_URI));
         } catch (SpelParseException e) {
             throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]",
-                            HttpStatus.BAD_REQUEST.value());
+                    HttpStatus.BAD_REQUEST.value());
         } catch (SpelEvaluationException e) {
             throw new UaaException("Invalid attributes: [" + attributesCommaSeparated + "]",
-                            HttpStatus.BAD_REQUEST.value());
+                    HttpStatus.BAD_REQUEST.value());
         }
     }
 
@@ -514,9 +513,9 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
 
         ActionResult result;
-        switch (change.getChangeMode()){
+        switch (change.getChangeMode()) {
             case ADD :
-                if(!validateCurrentClientSecretAdd(clientDetails.getClientSecret())) {
+                if (!validateCurrentClientSecretAdd(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client secret is either empty or client already has two secrets.");
                 }
                 clientDetailsValidator.getClientSecretValidator().validate(change.getSecret());
@@ -525,7 +524,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 break;
 
             case DELETE :
-                if(!validateCurrentClientSecretDelete(clientDetails.getClientSecret())) {
+                if (!validateCurrentClientSecretDelete(clientDetails.getClientSecret())) {
                     throw new InvalidClientDetailsException("client secret is either empty or client has only one secret.");
                 }
 
@@ -561,7 +560,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
 
         ActionResult result;
-        switch (change.getChangeMode()){
+        switch (change.getChangeMode()) {
             case ADD :
                 if (change.getChangeValue() != null) {
                     clientRegistrationService.addClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId(), false);
@@ -612,14 +611,14 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     @ExceptionHandler(NoSuchClientException.class)
     public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
         incrementErrorCounts(e);
-        return new ResponseEntity<Void>(HttpStatus.NOT_FOUND);
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
     @ExceptionHandler(ClientAlreadyExistsException.class)
     public ResponseEntity<InvalidClientDetailsException> handleClientAlreadyExists(ClientAlreadyExistsException e) {
         incrementErrorCounts(e);
         return new ResponseEntity<>(new InvalidClientDetailsException(e.getMessage()),
-                        HttpStatus.CONFLICT);
+                HttpStatus.CONFLICT);
     }
 
     private void incrementErrorCounts(Exception e) {
@@ -637,7 +636,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         if (!securityContextAccessor.isAdmin() && !securityContextAccessor.getScopes().contains("clients.admin")) {
             if (!clientId.equals(currentClientId)) {
                 logger.warn("Client with id " + currentClientId + " attempting to change password for client "
-                                + clientId);
+                        + clientId);
                 throw new IllegalStateException("Bad request. Not permitted to change another client's secret");
             }
 
@@ -650,14 +649,14 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
     private boolean authenticateClient(String clientId, String clientSecret) {
-        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(clientId,clientSecret);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(clientId, clientSecret);
         try {
             HttpServletRequest curRequest =
-                ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
+                    ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes()).getRequest();
             if (curRequest != null) {
                 authentication.setDetails(new UaaAuthenticationDetails(curRequest, clientId));
             }
-        }catch (IllegalStateException x) {
+        } catch (IllegalStateException x) {
             //ignore - means no thread bound request found
         }
         try {
@@ -666,7 +665,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         } catch (AuthenticationException e) {
             return false;
         } catch (Exception e) {
-            logger.debug("Unable to authenticate/validate "+clientId, e);
+            logger.debug("Unable to authenticate/validate " + clientId, e);
             return false;
         }
     }
@@ -682,15 +681,13 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     private ClientDetails syncWithExisting(ClientDetails existing, ClientDetails input) {
         UaaClientDetails details = new UaaClientDetails(input);
-        if (input instanceof UaaClientDetails) {
-            UaaClientDetails baseInput = (UaaClientDetails)input;
-            if (baseInput.getAutoApproveScopes()!=null) {
+        if (input instanceof UaaClientDetails baseInput) {
+            if (baseInput.getAutoApproveScopes() != null) {
                 details.setAutoApproveScopes(baseInput.getAutoApproveScopes());
             } else {
-                details.setAutoApproveScopes(new HashSet<String>());
-                if (existing instanceof UaaClientDetails) {
-                    UaaClientDetails existingDetails = (UaaClientDetails)existing;
-                    if (existingDetails.getAutoApproveScopes()!=null) {
+                details.setAutoApproveScopes(new HashSet<>());
+                if (existing instanceof UaaClientDetails existingDetails) {
+                    if (existingDetails.getAutoApproveScopes() != null) {
                         for (String scope : existingDetails.getAutoApproveScopes()) {
                             details.getAutoApproveScopes().add(scope);
                         }
@@ -722,7 +719,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
             details.setScope(existing.getScope());
         }
 
-        Map<String, Object> additionalInformation = new HashMap<String, Object>(existing.getAdditionalInformation());
+        Map<String, Object> additionalInformation = new HashMap<>(existing.getAdditionalInformation());
         additionalInformation.putAll(input.getAdditionalInformation());
         for (String key : Collections.unmodifiableSet(additionalInformation.keySet())) {
             if (additionalInformation.get(key) == null) {
@@ -738,7 +735,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
     public void publish(ApplicationEvent event) {
-        if (publisher!=null) {
+        if (publisher != null) {
             publisher.publishEvent(event);
         }
     }

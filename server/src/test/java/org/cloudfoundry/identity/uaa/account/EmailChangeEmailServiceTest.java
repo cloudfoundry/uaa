@@ -127,7 +127,7 @@ class EmailChangeEmailServiceTest {
         verify(mockEmailService).sendMessage(
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
-                eq(String.format("%s Email change verification", zoneName)),
+                eq("%s Email change verification".formatted(zoneName)),
                 contains("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>")
         );
     }
@@ -361,7 +361,7 @@ class EmailChangeEmailServiceTest {
 
         String emailBody = emailBodyArgument.getValue();
 
-        assertThat(emailBody, containsString(String.format("A request has been made to change the email for %s from %s to %s", zoneName, "user@example.com", "new@example.com")));
+        assertThat(emailBody, containsString("A request has been made to change the email for %s from %s to %s".formatted(zoneName, "user@example.com", "new@example.com")));
         assertThat(emailBody, containsString("<a href=\"http://test.localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
         assertThat(emailBody, containsString("Thank you,<br />\n    " + zoneName));
     }

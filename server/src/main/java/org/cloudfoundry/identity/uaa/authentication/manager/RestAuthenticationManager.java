@@ -57,12 +57,11 @@ public class RestAuthenticationManager implements AuthenticationManager {
 
     private RestOperations restTemplate = new RestTemplate();
 
-    private static String DEFAULT_LOGIN_URL = "http://uaa.cloudfoundry.com/authenticate";
+    private static final String DEFAULT_LOGIN_URL = "http://uaa.cloudfoundry.com/authenticate";
 
     private String remoteUrl = DEFAULT_LOGIN_URL;
 
-    private boolean nullPassword = false;
-
+    private boolean nullPassword;
 
 
     /**
@@ -108,10 +107,10 @@ public class RestAuthenticationManager implements AuthenticationManager {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = restTemplate.exchange(remoteUrl, HttpMethod.POST,
-                        new HttpEntity<Object>(getParameters(username, (String) authentication.getCredentials()), headers), Map.class);
+                new HttpEntity<Object>(getParameters(username, (String) authentication.getCredentials()), headers), Map.class);
 
         if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
-            if (evaluateResponse(authentication,response)) {
+            if (evaluateResponse(authentication, response)) {
                 logger.info("Successful authentication request for " + authentication.getName());
                 return new UsernamePasswordAuthenticationToken(username, nullPassword ? null : "", UaaAuthority.USER_AUTHORITIES);
             }
@@ -122,7 +121,7 @@ public class RestAuthenticationManager implements AuthenticationManager {
             logger.info("Internal error from UAA. Please Check the UAA logs.");
         } else {
             logger.error("Unexpected status code " + response.getStatusCode() + " from the UAA." +
-                            " Is a compatible version running?");
+                    " Is a compatible version running?");
         }
         throw new RuntimeException("Could not authenticate with remote server");
     }
@@ -133,7 +132,7 @@ public class RestAuthenticationManager implements AuthenticationManager {
     }
 
     protected Object getParameters(String username, String password) {
-        MultiValueMap<String, Object> parameters = new LinkedMaskingMultiValueMap<String, Object>("password");
+        MultiValueMap<String, Object> parameters = new LinkedMaskingMultiValueMap<>("password");
         parameters.set("username", username);
         parameters.set("password", password);
         return parameters;

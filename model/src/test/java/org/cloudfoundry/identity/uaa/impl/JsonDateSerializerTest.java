@@ -13,7 +13,7 @@ import java.util.Date;
 
 public class JsonDateSerializerTest {
 
-    Exception exceptionOccured = null;
+    Exception exceptionOccured;
 
     @Test
     public void testFormatting() throws IOException {
@@ -22,7 +22,7 @@ public class JsonDateSerializerTest {
         JsonGenerator gen = new JsonFactory().createGenerator(bos);
         new JsonDateSerializer().serialize(now, gen, null);
         gen.close();
-        Assert.assertEquals(String.format("\"%s\"", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(now)),
+        Assert.assertEquals("\"%s\"".formatted(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(now)),
                 bos.toString());
     }
 
@@ -38,7 +38,7 @@ public class JsonDateSerializerTest {
                     JsonGenerator gen = new JsonFactory().createGenerator(bos);
                     new JsonDateSerializer().serialize(now, gen, null);
                     gen.close();
-                    if (!String.format("\"%s\"", new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(now))
+                    if (!"\"%s\"".formatted(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").format(now))
                             .equals(bos.toString())) {
                         throw new Exception("Unexpected date");
                     }

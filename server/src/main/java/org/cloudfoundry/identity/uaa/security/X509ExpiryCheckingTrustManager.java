@@ -34,8 +34,8 @@ public class X509ExpiryCheckingTrustManager implements X509TrustManager {
             tmf.init((KeyStore) null);
             X509TrustManager x509Tm = null;
             for (TrustManager tm : tmf.getTrustManagers()) {
-                if (tm instanceof X509TrustManager) {
-                    x509Tm = (X509TrustManager) tm;
+                if (tm instanceof X509TrustManager manager) {
+                    x509Tm = manager;
                     break;
                 }
             }

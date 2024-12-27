@@ -18,9 +18,10 @@ import static com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonInclude(Include.NON_NULL)
 public class RateLimiterStatus {
-    public static final RateLimiterStatus NO_RATE_LIMITING = noRateLimiting( TimeUnit.NANOSECONDS.toMillis(NanoTimeSupplier.SYSTEM.now()) );
+    public static final RateLimiterStatus NO_RATE_LIMITING = noRateLimiting(TimeUnit.NANOSECONDS.toMillis(NanoTimeSupplier.SYSTEM.now()));
 
-    public enum CurrentStatus {DISABLED, PENDING, ACTIVE}
+    public enum CurrentStatus {DISABLED, PENDING, ACTIVE
+    }
 
     @Getter
     @ToString
@@ -34,9 +35,9 @@ public class RateLimiterStatus {
         private final Integer limiterMappings; // null on start state
 
         @Builder
-        public Current( CurrentStatus status, long asOf, String error, String credentialIdExtractor, String loggingLevel, Integer limiterMappings ) {
+        public Current(CurrentStatus status, long asOf, String error, String credentialIdExtractor, String loggingLevel, Integer limiterMappings) {
             this.status = status;
-            this.asOf = toISO8601ZtoSec( asOf );
+            this.asOf = toISO8601ZtoSec(asOf);
             this.error = error;
             this.credentialIdExtractor = credentialIdExtractor;
             this.loggingLevel = loggingLevel;
@@ -48,7 +49,7 @@ public class RateLimiterStatus {
     private final String fromSource; // null on DISABLED -- local file or http/https url
 
     @Builder(toBuilder = true)
-    public RateLimiterStatus( Current current, String fromSource ) {
+    public RateLimiterStatus(Current current, String fromSource) {
         this.current = current;
         this.fromSource = fromSource;
     }
@@ -70,48 +71,48 @@ public class RateLimiterStatus {
 
     public String toString() {
         String json = generatedJson;
-        if ( json == null ) {
+        if (json == null) {
             try {
-                json = OM.writerWithDefaultPrettyPrinter().writeValueAsString( this );
+                json = OM.writerWithDefaultPrettyPrinter().writeValueAsString(this);
             }
-            catch ( JsonProcessingException e ) {
+            catch (JsonProcessingException e) {
                 json = "JsonProcessingException (" + e.getMessage() + "): "
-                       + "current: " + current
-                       + "fromSource: " + fromSource;
+                        + "current: " + current
+                        + "fromSource: " + fromSource;
             }
             generatedJson = json;
         }
         return json;
     }
 
-    public static RateLimiterStatus create( InternalLimiterFactoriesSupplier supplier, String error,
-                                            long asOf, String fromSource ) {
-        Current.CurrentBuilder currentBuilder = Current.builder().error( error ).asOf( asOf );
+    public static RateLimiterStatus create(InternalLimiterFactoriesSupplier supplier, String error,
+            long asOf, String fromSource) {
+        Current.CurrentBuilder currentBuilder = Current.builder().error(error).asOf(asOf);
 
-        if ( (supplier == null) || supplier.isSupplierNOOP() ) {
-            currentBuilder = currentBuilder.status( CurrentStatus.DISABLED );
+        if ((supplier == null) || supplier.isSupplierNOOP()) {
+            currentBuilder = currentBuilder.status(CurrentStatus.DISABLED);
         } else {
-            currentBuilder = currentBuilder.status( CurrentStatus.ACTIVE )
-                    .loggingLevel( supplier.getLoggingOption().toString() )
-                    .credentialIdExtractor( supplier.getCallerCredentialsIdSupplierDescription() );
+            currentBuilder = currentBuilder.status(CurrentStatus.ACTIVE)
+                    .loggingLevel(supplier.getLoggingOption().toString())
+                    .credentialIdExtractor(supplier.getCallerCredentialsIdSupplierDescription());
             int count = supplier.getLimiterMappings();
-            if ( count > 0 ) {
-                currentBuilder = currentBuilder.limiterMappings( count );
+            if (count > 0) {
+                currentBuilder = currentBuilder.limiterMappings(count);
             }
         }
-        return builder().current( currentBuilder.build() )
-                .fromSource( fromSource ).build();
+        return builder().current(currentBuilder.build())
+                .fromSource(fromSource).build();
     }
 
     // public for Testing
-    public static String toISO8601ZtoSec( Long now ) {
-        return (now == null) ? null :
-               Instant.ofEpochMilli( now ).truncatedTo( ChronoUnit.SECONDS ).toString();
+    public static String toISO8601ZtoSec(Long now) {
+        return now == null ? null :
+                Instant.ofEpochMilli(now).truncatedTo(ChronoUnit.SECONDS).toString();
     }
 
     // public for Testing
-    public static RateLimiterStatus noRateLimiting( long now ) {
-        return builder().current( Current.builder().status( CurrentStatus.DISABLED ).asOf( now ).build() ).build();
+    public static RateLimiterStatus noRateLimiting(long now) {
+        return builder().current(Current.builder().status(CurrentStatus.DISABLED).asOf(now).build()).build();
     }
 
     private static final ObjectMapper OM = new ObjectMapper();

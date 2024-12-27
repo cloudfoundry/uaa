@@ -14,8 +14,8 @@ import com.nimbusds.jose.util.Base64;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jose.util.X509CertUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
-import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -39,8 +39,8 @@ import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
 public class KeyInfo {
     private final boolean isAsymmetric;
-    private JWSSigner signer;
-    private SignatureVerifier verifier;
+    private final JWSSigner signer;
+    private final SignatureVerifier verifier;
     private final String keyId;
     private final String keyUrl;
     private final String verifierKey;
@@ -52,6 +52,7 @@ public class KeyInfo {
     public KeyInfo(String keyId, String signingKey, String keyUrl) {
         this(keyId, signingKey, keyUrl, null, null);
     }
+
     public KeyInfo(String keyId, String signingKey, String keyUrl, String sigAlg, String signingCert) {
         this.keyId = keyId;
         this.keyUrl = validateAndConstructTokenKeyUrl(keyUrl);
@@ -130,40 +131,39 @@ public class KeyInfo {
         result.put(JWKParameterNames.PUBLIC_KEY_USE, JsonWebKey.KeyUse.sig.name());
         result.put(HeaderParameterNames.KEY_ID, this.keyId);
         result.put(JWKParameterNames.KEY_TYPE, type.name());
-        if (this.isAsymmetric) {
-            // X509 releated values from JWK spec
-            if (this.verifierCertificate.isPresent()) {
-                X509Certificate x509Certificate = verifierCertificate.get();
-                if (x509Certificate != null) {
-                    byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
-                    result.put(HeaderParameterNames.X_509_CERT_CHAIN, Collections.singletonList(Base64.encode(encoded).toString()));
-                    result.put(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-1"));
-                    result.put(HeaderParameterNames.X_509_CERT_SHA_256_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-256"));
-                }
-            }
-            if (type == RSA) {
-                RSAPublicKey rsaKey;
-                try {
-                    result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
-                    rsaKey = jwk.toRSAKey().toRSAPublicKey();
-                } catch (JOSEException e) {
-                    throw new IllegalArgumentException(e);
-                }
-                String n = Base64URL.encode(rsaKey.getModulus()).toString();
-                String e = Base64URL.encode(rsaKey.getPublicExponent()).toString();
-                result.put(JWKParameterNames.RSA_MODULUS, n);
-                result.put(JWKParameterNames.RSA_EXPONENT, e);
-            } else if (type == EC) {
-                result.putAll(jwk.toJSONObject());
-            }
-            return result;
-        } else {
+        if (!this.isAsymmetric) {
             result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
             return result;
         }
+        // X509 releated values from JWK spec
+        if (this.verifierCertificate.isPresent()) {
+            X509Certificate x509Certificate = verifierCertificate.get();
+            if (x509Certificate != null) {
+                byte[] encoded = JwtHelper.getX509CertEncoded(x509Certificate);
+                result.put(HeaderParameterNames.X_509_CERT_CHAIN, Collections.singletonList(Base64.encode(encoded).toString()));
+                result.put(HeaderParameterNames.X_509_CERT_SHA_1_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-1"));
+                result.put(HeaderParameterNames.X_509_CERT_SHA_256_THUMBPRINT, JwtHelper.getX509CertThumbprint(encoded, "SHA-256"));
+            }
+        }
+        if (type == RSA) {
+            RSAPublicKey rsaKey;
+            try {
+                result.put(JsonWebKey.PUBLIC_KEY_VALUE, this.verifierKey);
+                rsaKey = jwk.toRSAKey().toRSAPublicKey();
+            } catch (JOSEException e) {
+                throw new IllegalArgumentException(e);
+            }
+            String n = Base64URL.encode(rsaKey.getModulus()).toString();
+            String e = Base64URL.encode(rsaKey.getPublicExponent()).toString();
+            result.put(JWKParameterNames.RSA_MODULUS, n);
+            result.put(JWKParameterNames.RSA_EXPONENT, e);
+        } else if (type == EC) {
+            result.putAll(jwk.toJSONObject());
+        }
+        return result;
     }
 
-    public String algorithm()  {
+    public String algorithm() {
         return algorithm;
     }
 
@@ -186,7 +186,9 @@ public class KeyInfo {
                 x509Certificate.checkValidity();
                 return Optional.of(x509Certificate);
             }
-        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) { } // ignore
+        } catch (RuntimeException | CertificateExpiredException | CertificateNotYetValidException e) {
+            // ignore
+        }
         return Optional.empty();
     }
 }

@@ -8,7 +8,7 @@ public interface LimiterFactorySupplierUpdatable {
      *
      * @param configWithStatus not null - but InternalLimiterFactoriesSupplier may be the NOOP version (NOT limiting)
      */
-    void update( @NonNull RateLimitingFactoriesSupplierWithStatus configWithStatus );
+    void update(@NonNull RateLimitingFactoriesSupplierWithStatus configWithStatus);
 
     default void startBackgroundProcessing() {
     }

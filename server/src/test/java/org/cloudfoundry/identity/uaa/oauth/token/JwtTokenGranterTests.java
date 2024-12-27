@@ -65,27 +65,27 @@ public class JwtTokenGranterTests {
 
         authentication = mock(UaaOauth2Authentication.class);
         UaaUser user = new UaaUser("id",
-                                   "username",
-                                   null,
-                                   "user@user.org",
-                                   Collections.emptyList(),
-                                   "Firstname",
-                                   "lastName",
-                                   new Date(),
-                                   new Date(),
-                                   OriginKeys.OIDC10,
-                                   null,
-                                   true,
-                                   IdentityZoneHolder.get().getId(),
-                                   "salt",
-                                   new Date()
+                "username",
+                null,
+                "user@user.org",
+                Collections.emptyList(),
+                "Firstname",
+                "lastName",
+                new Date(),
+                new Date(),
+                OriginKeys.OIDC10,
+                null,
+                true,
+                IdentityZoneHolder.get().getId(),
+                "salt",
+                new Date()
         );
         uaaAuthentication = new UaaAuthentication(
-            new UaaPrincipal(user), Collections.emptyList(), null
+                new UaaPrincipal(user), Collections.emptyList(), null
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        client = new UaaClientDetails("clientID",null,"uaa.user",GRANT_TYPE_JWT_BEARER, null);
+        client = new UaaClientDetails("clientID", null, "uaa.user", GRANT_TYPE_JWT_BEARER, null);
         when(clientDetailsService.loadClientByClientId(eq(client.getClientId()), anyString())).thenReturn(client);
         requestParameters = new HashMap<>();
         requestParameters.put(OAuth2Utils.CLIENT_ID, client.getClientId());

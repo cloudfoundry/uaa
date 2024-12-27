@@ -232,7 +232,7 @@ class ScimUserLookupMockMvcTests {
     }
 
     private MockHttpServletRequestBuilder getIdLookupRequest(String token, String username, String operator) {
-        String filter = String.format("username %s \"%s\"", operator, username);
+        String filter = "username %s \"%s\"".formatted(operator, username);
         return getIdLookupRequest(token, filter, 1, 100);
     }
 
@@ -246,7 +246,7 @@ class ScimUserLookupMockMvcTests {
     }
 
     private MockHttpServletRequestBuilder getUsernameLookupRequest(String token, String id) {
-        String filter = String.format("id eq \"%s\"", id);
+        String filter = "id eq \"%s\"".formatted(id);
         return post("/ids/Users")
                 .header("Authorization", "Bearer " + token)
                 .accept(APPLICATION_JSON)

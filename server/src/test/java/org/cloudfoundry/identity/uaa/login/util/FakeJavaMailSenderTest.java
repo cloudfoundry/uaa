@@ -29,7 +29,7 @@ public class FakeJavaMailSenderTest {
         FakeJavaMailSender sender = new FakeJavaMailSender();
         sender.setMaxMessages(100);
         MimeMessage m = sender.createMimeMessage();
-        for (int i=0; i<200; i++) {
+        for (int i = 0; i < 200; i++) {
             sender.send(m);
         }
 
@@ -47,7 +47,7 @@ public class FakeJavaMailSenderTest {
         FakeJavaMailSender sender = new FakeJavaMailSender();
         sender.setMaxMessages(-1);
         MimeMessage m = sender.createMimeMessage();
-        for (int i=0; i<200; i++) {
+        for (int i = 0; i < 200; i++) {
             sender.send(m);
         }
 

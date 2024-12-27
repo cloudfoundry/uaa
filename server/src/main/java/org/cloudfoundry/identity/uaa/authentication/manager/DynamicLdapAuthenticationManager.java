@@ -25,19 +25,19 @@ import java.nio.file.ProviderNotFoundException;
 
 public class DynamicLdapAuthenticationManager implements AuthenticationManager {
     private final LdapIdentityProviderDefinition definition;
-    private ClassPathXmlApplicationContext context = null;
-    private ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
-    private ScimGroupProvisioning scimGroupProvisioning;
-    private LdapLoginAuthenticationManager ldapLoginAuthenticationManager;
+    private ClassPathXmlApplicationContext context;
+    private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
+    private final ScimGroupProvisioning scimGroupProvisioning;
+    private final LdapLoginAuthenticationManager ldapLoginAuthenticationManager;
     private AuthenticationManager manager;
     private AuthenticationManager ldapManagerActual;
     private ApplicationEventPublisher eventPublisher;
 
 
     public DynamicLdapAuthenticationManager(LdapIdentityProviderDefinition definition,
-                                            ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
-                                            ScimGroupProvisioning scimGroupProvisioning,
-                                            LdapLoginAuthenticationManager ldapLoginAuthenticationManager) {
+            ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
+            ScimGroupProvisioning scimGroupProvisioning,
+            LdapLoginAuthenticationManager ldapLoginAuthenticationManager) {
         this.definition = definition;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
@@ -49,13 +49,13 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
     }
 
     public synchronized AuthenticationManager getLdapAuthenticationManager() throws BeansException {
-        if (definition==null) {
+        if (definition == null) {
             return null;
         }
-        if (manager!=null) {
+        if (manager != null) {
             return manager;
         }
-        if (context==null) {
+        if (context == null) {
             ConfigurableEnvironment environment = LdapUtils.getLdapConfigurationEnvironment(definition);
             //create parent BeanFactory to inject singletons from the parent
             DefaultListableBeanFactory parentBeanFactory = new DefaultListableBeanFactory();
@@ -66,7 +66,7 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             parent.refresh();
 
             //create the context that holds LDAP
-            context = new ClassPathXmlApplicationContext(new String[] {"ldap-integration.xml"}, false, parent);
+            context = new ClassPathXmlApplicationContext(new String[]{"ldap-integration.xml"}, false, parent);
             context.setEnvironment(environment);
             EnvironmentPropertiesFactoryBean factoryBean = new EnvironmentPropertiesFactoryBean();
             factoryBean.setEnvironment(environment);
@@ -75,16 +75,16 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             placeholderConfigurer.setLocalOverride(true);
             context.addBeanFactoryPostProcessor(placeholderConfigurer);
             context.refresh();
-            ldapManagerActual = (AuthenticationManager)context.getBean("ldapAuthenticationManager");
-            AuthenticationManager shadowUserManager = (AuthenticationManager)context.getBean("ldapLoginAuthenticationMgr");
+            ldapManagerActual = (AuthenticationManager) context.getBean("ldapAuthenticationManager");
+            AuthenticationManager shadowUserManager = (AuthenticationManager) context.getBean("ldapLoginAuthenticationMgr");
 
             //chain the LDAP with the shadow account creation manager
             ChainedAuthenticationManager chainedAuthenticationManager = new ChainedAuthenticationManager();
             ChainedAuthenticationManager.AuthenticationManagerConfiguration config1 =
-                new ChainedAuthenticationManager.AuthenticationManagerConfiguration(ldapManagerActual, null);
+                    new ChainedAuthenticationManager.AuthenticationManagerConfiguration(ldapManagerActual, null);
             ChainedAuthenticationManager.AuthenticationManagerConfiguration config2 =
-                new ChainedAuthenticationManager.AuthenticationManagerConfiguration(shadowUserManager, "ifPreviousTrue");
-            chainedAuthenticationManager.setDelegates(new ChainedAuthenticationManager.AuthenticationManagerConfiguration[] {config1, config2});
+                    new ChainedAuthenticationManager.AuthenticationManagerConfiguration(shadowUserManager, "ifPreviousTrue");
+            chainedAuthenticationManager.setDelegates(new ChainedAuthenticationManager.AuthenticationManagerConfiguration[]{config1, config2});
             manager = chainedAuthenticationManager;
         }
 
@@ -103,7 +103,7 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         AuthenticationManager manager = getLdapAuthenticationManager();
-        if (manager!=null) {
+        if (manager != null) {
             try {
                 return manager.authenticate(authentication);
             } catch (BadCredentialsException e) {

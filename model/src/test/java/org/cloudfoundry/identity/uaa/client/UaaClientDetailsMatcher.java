@@ -12,8 +12,12 @@ public interface UaaClientDetailsMatcher extends Matcher<UaaClientDetails> {
     }
 
     UaaClientDetailsMatcher withClientId(String expected);
+
     UaaClientDetailsMatcher withClientSecret(String expected);
+
     UaaClientDetailsMatcher withScope(Matcher<Iterable<?>> expected);
+
     UaaClientDetailsMatcher withResourceIds(Matcher<Iterable<?>> expected);
+
     UaaClientDetailsMatcher withAdditionalInformation(Matcher<?> expected);
 }

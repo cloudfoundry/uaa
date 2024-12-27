@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -21,8 +22,8 @@ import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
  */
 public interface LockoutPolicyRetriever {
     LockoutPolicy getLockoutPolicy();
-    
+
     LockoutPolicy getDefaultLockoutPolicy();
-    
+
     void setDefaultLockoutPolicy(LockoutPolicy defaultLockoutPolicy);
 }

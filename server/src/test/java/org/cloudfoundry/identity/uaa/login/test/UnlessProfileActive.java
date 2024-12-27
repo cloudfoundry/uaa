@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -18,5 +19,6 @@ package org.cloudfoundry.identity.uaa.login.test;
 @java.lang.annotation.Target({java.lang.annotation.ElementType.TYPE, java.lang.annotation.ElementType.METHOD})
 public @interface UnlessProfileActive {
     java.lang.String value() default "";
+
     java.lang.String[] values() default {};
 }

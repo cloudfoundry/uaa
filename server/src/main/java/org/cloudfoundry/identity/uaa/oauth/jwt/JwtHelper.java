@@ -46,7 +46,7 @@ import java.util.Optional;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class JwtHelper {
+public final class JwtHelper {
     private JwtHelper() {
 
     }
@@ -86,6 +86,7 @@ public class JwtHelper {
             throw new IllegalArgumentException(e);
         }
     }
+
     public static String getX509CertThumbprint(byte[] derEncodedCert, String alg) {
         try {
             MessageDigest sha256 = MessageDigest.getInstance(alg);
@@ -102,7 +103,7 @@ public class JwtHelper {
  * <p>
  * Handles the JSON parsing and serialization.
  */
-class JwtHeaderHelper {
+final class JwtHeaderHelper {
     private JwtHeaderHelper() {
 
     }
@@ -112,7 +113,7 @@ class JwtHeaderHelper {
         try {
             jwtHeader = Header.parse(new Base64URL(header));
         } catch (ParseException e) {
-          throw new IllegalArgumentException(e);
+            throw new IllegalArgumentException(e);
         }
         return new JwtHeader(JsonUtils.convertValue(jwtHeader.toJSONObject(), HeaderParameters.class));
     }
@@ -181,7 +182,7 @@ class JwtImpl implements Jwt {
             throw new InsufficientAuthenticationException("Unable to decode expected id_token");
         }
         try {
-            this.parsedJwtObject =  JWTParser.parse(token);
+            this.parsedJwtObject = JWTParser.parse(token);
             this.claimsSet = parsedJwtObject.getJWTClaimsSet();
             this.header = new JwtHeader(JsonUtils.convertValue(parsedJwtObject.getHeader().toJSONObject(), HeaderParameters.class));
         } catch (ParseException e) {
@@ -190,6 +191,7 @@ class JwtImpl implements Jwt {
         this.signedJwsObject = null;
         this.signature = null;
     }
+
     /**
      * Validates a signature contained in the 'signature' segment.
      *
@@ -211,7 +213,7 @@ class JwtImpl implements Jwt {
                     last = e;
                 }
             }
-            throw (last instanceof RuntimeException runtimeException) ? runtimeException : new RuntimeException(last);
+            throw last instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(last);
         }
         throw new InvalidSignatureException("Signature validation failed");
     }
@@ -260,7 +262,7 @@ class JwtImpl implements Jwt {
             return jwtProcessor.process(jwtAssertion, null);
         } catch (BadJWSException | BadJWTException jwtException) { // signature failed
             throw new InvalidSignatureException("Unauthorized token", jwtException);
-        } catch (KeyLengthException ke ) {
+        } catch (KeyLengthException ke) {
             return UaaMacSigner.verify(jwtAssertion.getParsedString(), jwkSet);
         } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
             throw new InvalidSignatureException("Untrusted token", e);

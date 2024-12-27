@@ -41,14 +41,4 @@ public class CompositeToken extends DefaultOAuth2AccessToken {
     public CompositeToken(OAuth2AccessToken accessToken) {
         super(accessToken);
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        return obj != null && toString().equals(obj.toString());
-    }
-
-    @Override
-    public int hashCode() {
-        return toString().hashCode();
-    }
 }

@@ -20,15 +20,24 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class UserInfoEndpointTests {
 
@@ -37,44 +46,44 @@ class UserInfoEndpointTests {
     private static final String ID = "12345";
 
     private static final UaaUser user = new UaaUser(new UaaUserPrototype()
-        .withId(ID)
-        .withPhoneNumber("8505551234")
-        .withUsername("olds")
-        .withPassword("")
-        .withEmail("olds@vmware.com")
-        .withFamilyName("Olds")
-        .withGivenName("Dale")
-        .withCreated(new Date())
-        .withModified(new Date())
-        .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-        .withOrigin(OriginKeys.UAA)
-        .withExternalId("externalId")
-        .withVerified(false)
-        .withZoneId(IdentityZoneHolder.get().getId())
-        .withSalt("12345")
-        .withPasswordLastModified(new Date())
-        .withLastLogonSuccess(1000L)
-        .withPreviousLogonSuccess(1000L));
+            .withId(ID)
+            .withPhoneNumber("8505551234")
+            .withUsername("olds")
+            .withPassword("")
+            .withEmail("olds@vmware.com")
+            .withFamilyName("Olds")
+            .withGivenName("Dale")
+            .withCreated(new Date())
+            .withModified(new Date())
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+            .withOrigin(OriginKeys.UAA)
+            .withExternalId("externalId")
+            .withVerified(false)
+            .withZoneId(IdentityZoneHolder.get().getId())
+            .withSalt("12345")
+            .withPasswordLastModified(new Date())
+            .withLastLogonSuccess(1000L)
+            .withPreviousLogonSuccess(1000L));
 
     private static final UaaUser verifiedUser = new UaaUser(new UaaUserPrototype()
-        .withId(ID + "v")
-        .withPhoneNumber("8505551234")
-        .withUsername("somename")
-        .withPassword("")
-        .withEmail("comr@dstal.in")
-        .withVerified(true)
-        .withFamilyName("Olds")
-        .withGivenName("Dale")
-        .withCreated(new Date())
-        .withModified(new Date())
-        .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-        .withOrigin(OriginKeys.UAA)
-        .withExternalId("externalId")
-        .withZoneId(IdentityZoneHolder.get().getId())
-        .withSalt("12345")
-        .withPasswordLastModified(new Date())
-        .withLastLogonSuccess(1000L)
-        .withPreviousLogonSuccess(1000L));
+            .withId(ID + "v")
+            .withPhoneNumber("8505551234")
+            .withUsername("somename")
+            .withPassword("")
+            .withEmail("comr@dstal.in")
+            .withVerified(true)
+            .withFamilyName("Olds")
+            .withGivenName("Dale")
+            .withCreated(new Date())
+            .withModified(new Date())
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+            .withOrigin(OriginKeys.UAA)
+            .withExternalId("externalId")
+            .withZoneId(IdentityZoneHolder.get().getId())
+            .withSalt("12345")
+            .withPasswordLastModified(new Date())
+            .withLastLogonSuccess(1000L)
+            .withPreviousLogonSuccess(1000L));
 
     private InMemoryUaaUserDatabase userDatabase;
     private UserInfoEndpoint endpoint;
@@ -90,8 +99,8 @@ class UserInfoEndpointTests {
         customAttributes.add(SINGLE_VALUE, "value3");
         roles = Arrays.asList("group1", "group1");
         info = new UserInfo()
-            .setUserAttributes(customAttributes)
-            .setRoles(roles);
+                .setUserAttributes(customAttributes)
+                .setRoles(roles);
         userDatabase.storeUserInfo(ID, info);
     }
 
@@ -99,7 +108,7 @@ class UserInfoEndpointTests {
     void sunnyDay() {
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
-            "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
+                "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
 
         UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
                 "openid")), authentication));
@@ -118,7 +127,7 @@ class UserInfoEndpointTests {
     void verifiedUser() {
         UaaUser user = userDatabase.retrieveUserByName("somename", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "somename",
-            "comr@dstal.in", new HashSet<>(Collections.singletonList("openid")));
+                "comr@dstal.in", new HashSet<>(Collections.singletonList("openid")));
 
         UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
                 "openid")), authentication));
@@ -132,7 +141,7 @@ class UserInfoEndpointTests {
         user.setPreviousLogonTime(null);
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
-            "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
+                "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
 
         UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
                 "openid")), authentication));
@@ -144,9 +153,9 @@ class UserInfoEndpointTests {
     void sunnyDay_WithCustomAttributes() {
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(
-            user.getId(),
-            "olds",
-            "olds@vmware.com"
+                user.getId(),
+                "olds",
+                "olds@vmware.com"
         );
         OAuth2Request request = createOauthRequest(Arrays.asList(USER_ATTRIBUTES, "openid", ROLES));
         UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(request, authentication));
@@ -176,7 +185,7 @@ class UserInfoEndpointTests {
     @Test
     void missingUser() {
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("nonexist-id", "Dale",
-            "olds@vmware.com");
+                "olds@vmware.com");
         assertThrows(UsernameNotFoundException.class,
                 () -> endpoint.loginInfo(
                         new OAuth2Authentication(createOauthRequest(
@@ -187,7 +196,7 @@ class UserInfoEndpointTests {
     private static OAuth2Request createOauthRequest(final List<String> scopes) {
         return new OAuth2Request(Collections.emptyMap(),
                 "clientId",
-                scopes.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList()),
+                scopes.stream().map(SimpleGrantedAuthority::new).toList(),
                 true,
                 new HashSet<>(scopes),
                 Collections.emptySet(),

@@ -35,8 +35,8 @@ public class LoginClientParametersAuthenticationFilter extends AbstractClientPar
     public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) {
         if (loginInfo.isEmpty()) {
             throw new BadCredentialsException("Request does not contain credentials.");
-        } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {
-            logger.debug("Insufficient resources to perform client authentication. AuthMgr:"+
+        } else if (clientAuthenticationManager == null || loginInfo.get(CLIENT_ID) == null) {
+            logger.debug("Insufficient resources to perform client authentication. AuthMgr:" +
                     clientAuthenticationManager + "; clientId:" + UaaStringUtils.getCleanedUserControlString(clientId));
             throw new BadCredentialsException("Request does not contain client credentials.");
         } else {

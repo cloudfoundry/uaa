@@ -2,12 +2,12 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -25,7 +25,6 @@ import java.util.regex.Pattern;
 
 import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
-import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toMap;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUri;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -52,7 +51,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             ClientRedirectUriPattern clientRedirectUri = new ClientRedirectUriPattern(normalizedClientRedirect);
 
             if (!clientRedirectUri.isValidRedirect()) {
-                logger.error(String.format("Invalid redirect uri: %s", normalizedClientRedirect));
+                logger.error("Invalid redirect uri: %s".formatted(normalizedClientRedirect));
                 return false;
             }
 
@@ -65,7 +64,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
             return super.redirectMatches(normalizedRequestedRedirect, normalizedClientRedirect);
         } catch (IllegalArgumentException e) {
             logger.error(
-                    String.format("Could not validate whether requestedRedirect (%s) matches clientRedirectUri (%s)",
+                    "Could not validate whether requestedRedirect (%s) matches clientRedirectUri (%s)".formatted(
                             requestedRedirect,
                             clientRedirect),
                     e);
@@ -83,7 +82,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
 
         List<String> invalidUrls = registeredRedirectUris.stream()
                 .filter(url -> !UaaUrlUtils.isValidRegisteredRedirectUrl(url))
-                .collect(toList());
+                .toList();
 
         if (!invalidUrls.isEmpty()) {
             throw new RedirectMismatchException("Client registration contains invalid redirect_uri: " + invalidUrls);
@@ -104,13 +103,13 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         // when the standard Spring library class disagrees (i.e. when it acts more strictly).
         registeredRedirectUris.stream()
                 .filter(registeredRedirectUri ->
-                                registeredRedirectUri.contains(LEGACY_PORT_WILDCAR) ||
+                        registeredRedirectUri.contains(LEGACY_PORT_WILDCAR) ||
                                 (requestedRedirect != null &&
-                                this.redirectMatches(requestedRedirect, registeredRedirectUri) &&
-                                !specCompliantRedirectMatcher.redirectMatches(requestedRedirect, registeredRedirectUri))
+                                        this.redirectMatches(requestedRedirect, registeredRedirectUri) &&
+                                        !specCompliantRedirectMatcher.redirectMatches(requestedRedirect, registeredRedirectUri))
                 )
                 .forEach(registeredRedirectUri ->
-                        logger.warn(String.format(MSG_TEMPLATE, clientId,
+                        logger.warn(MSG_TEMPLATE.formatted(clientId,
                                 redactSensitiveInformation(requestedRedirect), registeredRedirectUri)
                         )
                 );
@@ -151,7 +150,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         MultiValueMap<String, String> originalParams = builder.build().getQueryParams();
         Map<String, List<String>> redactedParams = originalParams.entrySet()
                 .stream()
-                .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(v -> "REDACTED").collect(toList())))
+                .map(e -> new SimpleEntry<>(e.getKey(), e.getValue().stream().map(v -> "REDACTED").toList()))
                 .collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
 
         builder.replaceQueryParams(new LinkedMultiValueMap<>(redactedParams));
@@ -202,7 +201,7 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
 
         private Matcher redirectMatcher;
         private boolean isValidRedirect = true;
-        private boolean hasWildcardPort = false;
+        private boolean hasWildcardPort;
         private AntPathMatcher matcher;
         private String redirectUri;
 
@@ -242,12 +241,12 @@ public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.
         }
 
         boolean match(URI requestedRedirect) {
-            if(hasWildcardPort) {
-                 if(requestedRedirect.getPort() > 0) {
-                     return matcher.match(redirectUri, requestedRedirect.toString().replace(String.valueOf(requestedRedirect.getPort()), WILDCARD_PORT));
-                 } else {
-                     return matcher.match(redirectUri.replace(WILDCARD_PORT_PATTERN, StringUtils.EMPTY), requestedRedirect.toString());
-                 }
+            if (hasWildcardPort) {
+                if (requestedRedirect.getPort() > 0) {
+                    return matcher.match(redirectUri, requestedRedirect.toString().replace(String.valueOf(requestedRedirect.getPort()), WILDCARD_PORT));
+                } else {
+                    return matcher.match(redirectUri.replace(WILDCARD_PORT_PATTERN, StringUtils.EMPTY), requestedRedirect.toString());
+                }
             }
             return matcher.match(redirectUri, requestedRedirect.toString());
         }

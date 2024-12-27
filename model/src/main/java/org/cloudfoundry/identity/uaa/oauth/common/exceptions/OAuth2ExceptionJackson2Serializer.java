@@ -17,27 +17,27 @@ import java.util.Map.Entry;
  */
 public class OAuth2ExceptionJackson2Serializer extends StdSerializer<OAuth2Exception> {
 
-	public OAuth2ExceptionJackson2Serializer(Class vc) {
-		super(vc);
-	}
+    public OAuth2ExceptionJackson2Serializer(Class vc) {
+        super(vc);
+    }
 
-  public OAuth2ExceptionJackson2Serializer() {
+    public OAuth2ExceptionJackson2Serializer() {
         super(OAuth2Exception.class);
     }
 
-	@Override
-	public void serialize(OAuth2Exception value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
+    @Override
+    public void serialize(OAuth2Exception value, JsonGenerator jgen, SerializerProvider provider) throws IOException {
         jgen.writeStartObject();
-		jgen.writeStringField(OAuth2Exception.ERROR, value.getOAuth2ErrorCode());
-		jgen.writeStringField(OAuth2Exception.DESCRIPTION, value.getMessage());
-		if (value.getAdditionalInformation()!=null) {
-			for (Entry<String, String> entry : value.getAdditionalInformation().entrySet()) {
-				String key = entry.getKey();
-				String add = entry.getValue();
-				jgen.writeStringField(key, add);				
-			}
-		}
+        jgen.writeStringField(OAuth2Exception.ERROR, value.getOAuth2ErrorCode());
+        jgen.writeStringField(OAuth2Exception.DESCRIPTION, value.getMessage());
+        if (value.getAdditionalInformation() != null) {
+            for (Entry<String, String> entry : value.getAdditionalInformation().entrySet()) {
+                String key = entry.getKey();
+                String add = entry.getValue();
+                jgen.writeStringField(key, add);
+            }
+        }
         jgen.writeEndObject();
-	}
+    }
 
 }

@@ -18,20 +18,20 @@ import org.w3c.dom.Element;
  */
 public class ClientBeanDefinitionParser extends AbstractBeanDefinitionParser {
 
-	@Override
-	protected AbstractBeanDefinition parseInternal(Element element, ParserContext parserContext) {
+    @Override
+    protected AbstractBeanDefinition parseInternal(Element element, ParserContext parserContext) {
 
-		String redirectStrategyRef = element.getAttribute("redirect-strategy-ref");
+        String redirectStrategyRef = element.getAttribute("redirect-strategy-ref");
 
-		BeanDefinitionBuilder clientContextFilterBean = BeanDefinitionBuilder
-				.rootBeanDefinition(OAuth2ClientContextFilter.class);
+        BeanDefinitionBuilder clientContextFilterBean = BeanDefinitionBuilder
+                .rootBeanDefinition(OAuth2ClientContextFilter.class);
 
-		if (StringUtils.hasText(redirectStrategyRef)) {
-			clientContextFilterBean.addPropertyReference("redirectStrategy", redirectStrategyRef);
-		}
+        if (StringUtils.hasText(redirectStrategyRef)) {
+            clientContextFilterBean.addPropertyReference("redirectStrategy", redirectStrategyRef);
+        }
 
-		return clientContextFilterBean.getBeanDefinition();
+        return clientContextFilterBean.getBeanDefinition();
 
-	}
+    }
 
 }

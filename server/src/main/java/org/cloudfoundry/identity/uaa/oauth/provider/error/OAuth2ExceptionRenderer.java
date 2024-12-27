@@ -13,5 +13,5 @@ import org.springframework.web.context.request.ServletWebRequest;
  * Scope: OAuth2 server exceptions
  */
 public interface OAuth2ExceptionRenderer {
-	void handleHttpEntityResponse(HttpEntity<?> responseEntity, ServletWebRequest webRequest) throws Exception;
+    void handleHttpEntityResponse(HttpEntity<?> responseEntity, ServletWebRequest webRequest) throws Exception;
 }

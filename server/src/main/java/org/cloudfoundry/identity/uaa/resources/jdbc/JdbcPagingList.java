@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -43,7 +44,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
     private final int size;
 
-    private int start = 0;
+    private int start;
 
     private List<E> current;
 
@@ -60,17 +61,17 @@ public class JdbcPagingList<E> extends AbstractList<E> {
     private final LimitSqlAdapter limitSqlAdapter;
 
     public JdbcPagingList(JdbcTemplate jdbTemplate, LimitSqlAdapter limitSqlAdapter, String sql, RowMapper<E> mapper,
-                    int pageSize) {
-        this(jdbTemplate, limitSqlAdapter, sql, Collections.<String, Object> emptyMap(), mapper, pageSize);
+            int pageSize) {
+        this(jdbTemplate, limitSqlAdapter, sql, Collections.<String, Object>emptyMap(), mapper, pageSize);
     }
 
     public JdbcPagingList(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter, String sql, Map<String, ?> args,
-                    RowMapper<E> mapper, int pageSize) {
+            RowMapper<E> mapper, int pageSize) {
         this(new NamedParameterJdbcTemplate(jdbcTemplate), limitSqlAdapter, sql, args, mapper, pageSize);
     }
 
     public JdbcPagingList(NamedParameterJdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter, String sql,
-                    Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
+            Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
         this.parameterJdbcTemplate = jdbcTemplate;
         this.sql = sql;
         this.args = args;
@@ -108,7 +109,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
     private String getCountSql(String sql) {
         String result = UaaStringUtils.getValidatedString(sql);
         if (result.toLowerCase().startsWith("select") && result.toLowerCase().contains(" from ")) {
-            result = String.format("select count(*) %s", result.substring(result.toLowerCase().indexOf(" from ")));
+            result = "select count(*) %s".formatted(result.substring(result.toLowerCase().indexOf(" from ")));
         }
         int orderByPos = result.toLowerCase().lastIndexOf("order by");
         if (orderByPos >= 0) {
@@ -166,9 +167,9 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
         private final Iterator<T> iterator;
 
-        private boolean polled = false;
+        private boolean polled;
 
-        private boolean hasNext = false;
+        private boolean hasNext;
 
         private T next;
 

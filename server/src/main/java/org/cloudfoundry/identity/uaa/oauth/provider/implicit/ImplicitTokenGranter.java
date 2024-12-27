@@ -26,33 +26,33 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  */
 public class ImplicitTokenGranter extends AbstractTokenGranter {
 
-	public ImplicitTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
-		this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_IMPLICIT);
-	}
+    public ImplicitTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
+        this(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_IMPLICIT);
+    }
 
-	protected ImplicitTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService,
-			OAuth2RequestFactory requestFactory, String grantType) {
-		super(tokenServices, clientDetailsService, requestFactory, grantType);
-	}
+    protected ImplicitTokenGranter(AuthorizationServerTokenServices tokenServices, ClientDetailsService clientDetailsService,
+            OAuth2RequestFactory requestFactory, String grantType) {
+        super(tokenServices, clientDetailsService, requestFactory, grantType);
+    }
 
-	@Override
-	protected OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest clientToken) {
+    @Override
+    protected OAuth2Authentication getOAuth2Authentication(ClientDetails client, TokenRequest clientToken) {
 
-		Authentication userAuth = SecurityContextHolder.getContext().getAuthentication();
-		if (userAuth==null || !userAuth.isAuthenticated()) {
-			throw new InsufficientAuthenticationException("There is no currently logged in user");
-		}
-		Assert.state(clientToken instanceof ImplicitTokenRequest, "An ImplicitTokenRequest is required here. Caller needs to wrap the TokenRequest.");
-		
-		OAuth2Request requestForStorage = ((ImplicitTokenRequest)clientToken).getOAuth2Request();
-		
-		return new OAuth2Authentication(requestForStorage, userAuth);
+        Authentication userAuth = SecurityContextHolder.getContext().getAuthentication();
+        if (userAuth == null || !userAuth.isAuthenticated()) {
+            throw new InsufficientAuthenticationException("There is no currently logged in user");
+        }
+        Assert.state(clientToken instanceof ImplicitTokenRequest, "An ImplicitTokenRequest is required here. Caller needs to wrap the TokenRequest.");
 
-	}
-	
-	@SuppressWarnings("deprecation")
-	public void setImplicitGrantService(ImplicitGrantService service) {
-		// not in use
-	}
+        OAuth2Request requestForStorage = ((ImplicitTokenRequest) clientToken).getOAuth2Request();
+
+        return new OAuth2Authentication(requestForStorage, userAuth);
+
+    }
+
+    @SuppressWarnings("deprecation")
+    public void setImplicitGrantService(ImplicitGrantService service) {
+        // not in use
+    }
 
 }

@@ -11,7 +11,7 @@ import static org.junit.Assert.assertTrue;
 
 public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers<OAuth2AccessToken> {
 
-    private String key;
+    private final String key;
 
     public OAuth2AccessTokenMatchers(String key, Matcher<?> value) {
         super(value);
@@ -98,7 +98,7 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
     }
 
     public static Matcher<OAuth2AccessToken> validFor(Matcher<?> validFor) {
-        return new AbstractOAuth2AccessTokenMatchers<OAuth2AccessToken>(validFor) {
+        return new AbstractOAuth2AccessTokenMatchers<>(validFor) {
 
             @Override
             protected boolean matchesSafely(OAuth2AccessToken token) {
