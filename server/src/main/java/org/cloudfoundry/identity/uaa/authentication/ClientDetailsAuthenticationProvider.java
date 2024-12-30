@@ -71,10 +71,10 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                         setAuthenticationMethod(authentication, CLIENT_AUTH_NONE);
                         break;
                     } else if (isPrivateKeyJwt(authentication.getDetails())) {
+                        setAuthenticationMethod(authentication, CLIENT_AUTH_PRIVATE_KEY_JWT);
                         if (!validatePrivateKeyJwt(authentication.getDetails(), uaaClient)) {
                             error = new BadCredentialsException("Bad client_assertion type");
                         }
-                        setAuthenticationMethod(authentication, CLIENT_AUTH_PRIVATE_KEY_JWT);
                         break;
                     }
                 } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {

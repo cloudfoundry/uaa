@@ -566,7 +566,13 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                     clientRegistrationService.addClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId(), false);
                     result = new ActionResult("ok", "Client jwt configuration is added");
                 } else {
-                    result = new ActionResult("ok", "No key added");
+                    if (change.isFederated()) {
+                        clientRegistrationService.addClientJwtCredential(client_id, change.getFederation(),
+                                IdentityZoneHolder.get().getId(), false);
+                        result = new ActionResult("ok", "Federated client jwt configuration is added");
+                    } else {
+                        result = new ActionResult("ok", "No key added");
+                    }
                 }
                 break;
 
@@ -575,7 +581,13 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                     clientRegistrationService.deleteClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId());
                     result = new ActionResult("ok", "Client jwt configuration is deleted");
                 } else {
-                    result = new ActionResult("ok", "No key deleted");
+                    if (change.isFederated()) {
+                        clientRegistrationService.deleteClientJwtCredential(client_id, change.getFederation(),
+                                IdentityZoneHolder.get().getId());
+                        result = new ActionResult("ok", "Federated client jwt configuration is deleted");
+                    } else {
+                        result = new ActionResult("ok", "No key deleted");
+                    }
                 }
                 break;
 

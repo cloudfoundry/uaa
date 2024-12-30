@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 import com.nimbusds.jose.Algorithm;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
 import com.nimbusds.jose.jwk.source.JWKSource;
@@ -23,22 +24,32 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoBuilder;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.beans.ApplicationContextProvider;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetchingException;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.springframework.context.ApplicationContext;
+import org.springframework.dao.DataRetrievalFailureException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.ObjectUtils;
+import org.springframework.web.util.UriComponentsBuilder;
 
+import java.net.MalformedURLException;
 import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -63,15 +74,17 @@ public class JwtClientAuthentication {
 
     private final KeyInfoService keyInfoService;
     private final OidcMetadataFetcher oidcMetadataFetcher;
+    private final ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
 
     public JwtClientAuthentication(
             KeyInfoService keyInfoService) {
-        this(keyInfoService, null);
+        this(keyInfoService, null, null);
     }
 
-    public JwtClientAuthentication(KeyInfoService keyInfoService, OidcMetadataFetcher oidcMetadataFetcher) {
+    public JwtClientAuthentication(KeyInfoService keyInfoService, OidcMetadataFetcher oidcMetadataFetcher, ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager) {
         this.keyInfoService = keyInfoService;
         this.oidcMetadataFetcher = oidcMetadataFetcher;
+        this.externalOAuthAuthenticationManager = externalOAuthAuthenticationManager;
     }
 
     public String getClientAssertion(final OIDCIdentityProviderDefinition config) {
@@ -125,7 +138,7 @@ public class JwtClientAuthentication {
 
     private static HashMap<String, String> getJwtClientConfigurationElements(Object jwtClientAuthentication) {
         HashMap<String, String> jwtClientConfiguration = null;
-        if (jwtClientAuthentication instanceof Boolean boolean1 && boolean1) {
+        if (jwtClientAuthentication instanceof Boolean boolean1 && boolean1.booleanValue()) {
             jwtClientConfiguration = new HashMap<>();
         } else if (jwtClientAuthentication instanceof HashMap) {
             jwtClientConfiguration = (HashMap<String, String>) jwtClientAuthentication;
@@ -137,35 +150,121 @@ public class JwtClientAuthentication {
         if (GRANT_TYPE.equals(UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION_TYPE)))) {
             try {
                 String clientAssertion = UaaStringUtils.getSafeParameterValue(requestParameters.get(CLIENT_ASSERTION));
-                if (!clientId.equals(getClientId(clientAssertion))) {
+                JWT clientJWT = parseClientAssertion(clientAssertion);
+                JWTClaimsSet clientClaims = parseClientJWT(clientJWT);
+                if (!clientId.equals(getClientId(clientClaims))) {
+                    // check if we found trust for private_key_jwt with RFC 7523
+                    ClientJwtCredential jwtFederation = getClientJwtFederation(clientJwtConfiguration, clientClaims);
+                    if (jwtFederation != null) {
+                        return validateFederatedClientWT(clientJWT, clientClaims, jwtFederation);
+                    }
                     throw new BadCredentialsException("Wrong client_assertion");
                 }
-                return clientId.equals(validateClientJWToken(JWTParser.parse(clientAssertion), oidcMetadataFetcher == null ? new JWKSet() :
+                // validate token according to private_key_jwt with OIDC
+                return clientId.equals(validateClientJWToken(clientJWT, oidcMetadataFetcher == null ? new JWKSet() :
                                 JWKSet.parse(oidcMetadataFetcher.fetchWebKeySet(clientJwtConfiguration).getKeySetMap()),
-                        clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
-            } catch (ParseException | URISyntaxException | OidcMetadataFetchingException e) {
+                        clientId, clientId, keyInfoService.getTokenEndpointUrl()).getSubject());
+            } catch (ParseException | URISyntaxException | InvalidTokenException | OidcMetadataFetchingException e) {
                 throw new BadCredentialsException("Bad client_assertion", e);
             }
         }
         return false;
     }
 
+    private static ClientJwtCredential getClientJwtFederation(ClientJwtConfiguration clientJwtConfiguration,
+                                                              JWTClaimsSet clientClaims) {
+        if (clientJwtConfiguration.getClientJwtCredentials() == null) {
+            return null;
+        }
+        return clientJwtConfiguration.getClientJwtCredentials().stream().filter(e -> e.isValid() &&
+                e.getSubject().equals(clientClaims.getSubject()) &&
+                e.getIssuer().equals(clientClaims.getIssuer()) &&
+                isAudienceSupported(e.getAudience(), clientClaims.getAudience())).findFirst().orElse(null);
+    }
+
+    private static boolean isAudienceSupported(String audience, List<String> audList) {
+        return audience == null || ObjectUtils.isEmpty(audList) || audList.contains(audience);
+    }
+
+    private static JWT parseClientAssertion(String clientAssertion) throws ParseException {
+        return JWTParser.parse(clientAssertion);
+    }
+
+    private static JWTClaimsSet parseClientJWT(JWT clientJWT) throws ParseException {
+        return clientJWT != null ? clientJWT.getJWTClaimsSet() : null;
+    }
+
+    private static String getClientId(JWTClaimsSet clientToken) {
+        if (clientToken != null && clientToken.getSubject() != null && clientToken.getIssuer() != null &&
+                clientToken.getSubject().equals(clientToken.getIssuer()) && clientToken.getAudience() != null && clientToken.getJWTID() != null &&
+                clientToken.getExpirationTime() != null) {
+            // required claims, e.g. https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
+            return clientToken.getSubject();
+        }
+        return null;
+    }
+
     public static String getClientId(String clientAssertion) {
         try {
-            JWTClaimsSet clientToken = clientAssertion != null ? JWTParser.parse(clientAssertion).getJWTClaimsSet() : null;
-            if (clientToken != null && clientToken.getSubject() != null && clientToken.getIssuer() != null &&
-                    clientToken.getSubject().equals(clientToken.getIssuer()) && clientToken.getAudience() != null && clientToken.getJWTID() != null &&
-                    clientToken.getExpirationTime() != null) {
-                // required claims, e.g. https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication
-                return clientToken.getSubject();
-            }
-            throw new BadCredentialsException("Bad credentials");
+            return getClientId(parseClientJWT(parseClientAssertion(clientAssertion)));
         } catch (ParseException e) {
             throw new BadCredentialsException("Bad client_assertion", e);
         }
     }
 
-    private JWTClaimsSet validateClientJWToken(JWT jwtAssertion, JWKSet jwkSet, String expectedClientId, String expectedAud) {
+    private boolean validateFederatedClientWT(JWT jwtAssertion, JWTClaimsSet clientClaims, ClientJwtCredential jwtFederation) throws OidcMetadataFetchingException, ParseException {
+        try {
+            JWKSet jwkSet = retrieveJwkSet(clientClaims);
+            String expectedAud = jwtFederation.getAudience() != null ? jwtFederation.getAudience() : keyInfoService.getTokenEndpointUrl();
+            return validateClientJWToken(jwtAssertion, jwkSet, clientClaims.getSubject(), clientClaims.getIssuer(), expectedAud) != null;
+        } catch (MalformedURLException | IllegalArgumentException | URISyntaxException e) {
+            return false;
+        }
+    }
+
+    private JWKSet getUaaJWKSet() throws ParseException {
+        Map<String, KeyInfo> keyInfoMap = keyInfoService.getKeys();
+        List<JWK> jwkList = new ArrayList<>(keyInfoMap.size());
+        for (KeyInfo entry : keyInfoMap.values()) {
+            jwkList.add(JWK.parse(entry.getJwkMap()));
+        }
+        return new JWKSet(jwkList);
+    }
+
+    private JWKSet getTrustedJwksSet(JWTClaimsSet clientClaims) throws OidcMetadataFetchingException, ParseException, MalformedURLException {
+        OIDCIdentityProviderDefinition def = null;
+        try {
+            IdentityProvider<?> idp = externalOAuthAuthenticationManager.retrieveRegisteredIdentityProviderByIssuer(clientClaims.getIssuer());
+            if (idp.getConfig() instanceof OIDCIdentityProviderDefinition oidcDefinition) {
+                def = oidcDefinition;
+            }
+        } catch (DataRetrievalFailureException dataRetrievalFailureException) {
+            // ignore, but retrieve trust by OIDC complaint issuer
+        }
+        if (def == null) {
+            def = new OIDCIdentityProviderDefinition();
+            def.setIssuer(clientClaims.getIssuer());
+            def.setSkipSslValidation(false);
+            // Allow only OIDC complaint issuer and create from it the so-called discovery URL, e.g. https://openid.net/specs/openid-connect-discovery-1_0.html
+            def.setDiscoveryUrl(UriComponentsBuilder.fromHttpUrl(clientClaims.getIssuer()).scheme("https").path("/.well-known/openid-configuration").build().toUri().toURL());
+            oidcMetadataFetcher.fetchMetadataAndUpdateDefinition(def);
+        }
+        // fetch Json Web Key Set now from trusted OIDCIdentityProviderDefinition or online
+        return JWKSet.parse(externalOAuthAuthenticationManager.getTokenKeyFromOAuth(def).getKeySetMap());
+    }
+
+    private JWKSet retrieveJwkSet(JWTClaimsSet clientClaims) throws MalformedURLException, OidcMetadataFetchingException, ParseException {
+        if (externalOAuthAuthenticationManager.idTokenWasIssuedByTheUaa(clientClaims.getIssuer())) {
+            return getUaaJWKSet();
+        } else {
+            return getTrustedJwksSet(clientClaims);
+        }
+    }
+
+    private JWTClaimsSet validateClientJWToken(JWT jwtAssertion, JWKSet jwkSet, String expectedSub, String expectIss, String expectedAud) {
+        if (ObjectUtils.isEmpty(jwkSet) || jwkSet.isEmpty()) {
+            throw new BadCredentialsException("Bad empty jwk_set");
+        }
         Algorithm algorithm = jwtAssertion.getHeader().getAlgorithm();
         if (algorithm == null || NOT_SUPPORTED_ALGORITHMS.contains(algorithm) || !(algorithm instanceof JWSAlgorithm)) {
             throw new BadCredentialsException("Bad client_assertion algorithm");
@@ -175,7 +274,7 @@ public class JwtClientAuthentication {
         ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
         jwtProcessor.setJWSKeySelector(keySelector);
 
-        JWTClaimsSet.Builder claimSetBuilder = new JWTClaimsSet.Builder().issuer(expectedClientId).subject(expectedClientId);
+        JWTClaimsSet.Builder claimSetBuilder = new JWTClaimsSet.Builder().issuer(expectIss).subject(expectedSub);
         jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(expectedAud, claimSetBuilder.build(), JWT_REQUIRED_CLAIMS));
 
         try {

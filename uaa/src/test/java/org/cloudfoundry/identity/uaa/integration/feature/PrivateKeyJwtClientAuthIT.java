@@ -112,6 +112,41 @@ public class PrivateKeyJwtClientAuthIT {
     }
 
     @Test
+    public void testClientCredentialGrantWithClientUsingPrivateKeyJwtAndExpectValidTokenFromAnotherClient() {
+        // Given, client with jwks trusted keys
+        String usedClientId = "client_with_jwks_trust";
+        Map<String, Object> expectedClaims = Map.of(
+                "client_auth_method", "private_key_jwt",
+                "client_id", usedClientId,
+                "sub", usedClientId,
+                "zid", "uaa",
+                "iss", "http://localhost:8080/uaa/oauth/token",
+                "grant_type", "client_credentials"
+        );
+        // When
+        String accessToken = getClientCredentialsGrantToken(usedClientId, "access_token", OK);
+        // Then
+        assertNotNull(accessToken);
+        assertThat(getTokenClaims(accessToken)).containsAllEntriesOf(expectedClaims);
+        assertThat(getTokenClaims(accessToken)).doesNotContainKeys("user_name", "origin");
+        // Given
+        usedClientId = "client_federated_jwt_trust";
+        expectedClaims = Map.of(
+                "client_auth_method", "private_key_jwt",
+                "client_id", usedClientId,
+                "sub", usedClientId,
+                "zid", "uaa",
+                "iss", "http://localhost:8080/uaa/oauth/token",
+                "grant_type", "client_credentials"
+        );
+        // When
+        accessToken = getClientCredentialsGrantTokenFromJwt(usedClientId, accessToken, "access_token", OK);
+        // Then
+        assertNotNull(accessToken);
+        assertThat(getTokenClaims(accessToken)).containsAllEntriesOf(expectedClaims);
+    }
+
+    @Test
     public void testClientCredentialGrantWithClientUsingPrivateKeyJwtUriAndExpectValidToken() {
         // Given, client with jwks_uri keys
         String usedClientId = "client_with_allowpublic_and_jwks_uri_trust";
@@ -266,26 +301,30 @@ public class PrivateKeyJwtClientAuthIT {
     }
 
     private String getClientCredentialsGrantToken(String clientId, String returnToken, HttpStatus expected) {
-        return getToken(clientId, returnToken, expected, "client_credentials", null, null, null, null);
+        return getToken(clientId, null, returnToken, expected, "client_credentials", null, null, null, null);
+    }
+
+    private String getClientCredentialsGrantTokenFromJwt(String clientId, String clientJwt, String returnToken, HttpStatus expected) {
+        return getToken(clientId, clientJwt, returnToken, expected, "client_credentials", null, null, null, null);
     }
 
     private String getPasswordGrantToken(String clientId, String returnToken, HttpStatus expected) {
-        return getToken(clientId, returnToken, expected, "password", testAccounts.getUserName(), testAccounts.getPassword(), null, null);
+        return getToken(clientId, null, returnToken, expected, "password", testAccounts.getUserName(), testAccounts.getPassword(), null, null);
     }
 
     private String getPasswordProxyGrantToken(String clientId, String returnToken, String origin, HttpStatus expected) {
-        return getToken(clientId, returnToken, expected, "password", testAccounts.getUserName(), testAccounts.getPassword(), "login_hint", "{\"origin\":\"" + origin + "\"}");
+        return getToken(clientId, null, returnToken, expected, "password", testAccounts.getUserName(), testAccounts.getPassword(), "login_hint", "{\"origin\":\"" + origin + "\"}");
     }
 
     private String getRefreshGrantToken(String clientId, String refreshTokenValue, String returnToken, HttpStatus expected) {
-        return getToken(clientId, returnToken, expected, "refresh_token", null, null, "refresh_token", refreshTokenValue);
+        return getToken(clientId, null, returnToken, expected, "refresh_token", null, null, "refresh_token", refreshTokenValue);
     }
 
     private String getJwtBearerGrantToken(String clientId, String bearerToken, String returnToken, HttpStatus expected) {
-        return getToken(clientId, returnToken, expected, "urn:ietf:params:oauth:grant-type:jwt-bearer", null, null, "assertion", bearerToken);
+        return getToken(clientId, null, returnToken, expected, "urn:ietf:params:oauth:grant-type:jwt-bearer", null, null, "assertion", bearerToken);
     }
 
-    private String getToken(String clientId, String returnToken, HttpStatus expected, String grantType, String userName, String password, String extraKey, String extraValue) {
+    private String getToken(String clientId, String clientToken, String returnToken, HttpStatus expected, String grantType, String userName, String password, String extraKey, String extraValue) {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
@@ -298,11 +337,14 @@ public class PrivateKeyJwtClientAuthIT {
         if (password != null) {
             postBody.add("password", password);
         }
+        if (clientId != null && clientToken != null) {
+            postBody.add("client_id", clientId);
+        }
         if (extraKey != null && extraValue != null) {
             postBody.add(extraKey, extraValue);
         }
         postBody.add("token_format", "jwt");
-        postBody.add(JwtClientAuthentication.CLIENT_ASSERTION, testClient.createClientJwt(clientId, jwtTokenSigningKeyId, jwtTokenSigningKey));
+        postBody.add(JwtClientAuthentication.CLIENT_ASSERTION, clientToken != null ? clientToken : testClient.createClientJwt(clientId, jwtTokenSigningKeyId, jwtTokenSigningKey));
         postBody.add(JwtClientAuthentication.CLIENT_ASSERTION_TYPE, JwtClientAuthentication.GRANT_TYPE);
 
         ResponseEntity<Map> responseEntity;

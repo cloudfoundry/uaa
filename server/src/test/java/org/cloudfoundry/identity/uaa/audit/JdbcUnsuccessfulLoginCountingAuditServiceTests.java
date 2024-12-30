@@ -29,7 +29,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @WithDatabaseContext
-class JdbcUnsuccessfulLoginCountingAuditServiceTests {
+class       JdbcUnsuccessfulLoginCountingAuditServiceTests {
 
     private JdbcUnsuccessfulLoginCountingAuditService auditService;
 

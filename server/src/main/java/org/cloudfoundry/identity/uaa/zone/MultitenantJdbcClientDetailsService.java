@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.common.util.DefaultJdbcListFactory;
 import org.cloudfoundry.identity.uaa.oauth.common.util.JdbcListFactory;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
@@ -307,6 +308,18 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
     }
 
     @Override
+    public void addClientJwtCredential(String clientId, ClientJwtCredential keyConfig, String zoneId, boolean overwrite)
+            throws NoSuchClientException {
+        UaaClientDetails uaaUaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
+        ClientJwtConfiguration existingConfig = uaaUaaClientDetails != null ? ClientJwtConfiguration.readValue(uaaUaaClientDetails) : null;
+        ClientJwtConfiguration clientJwtConfiguration = new ClientJwtConfiguration(List.of(keyConfig));
+        ClientJwtConfiguration result = ClientJwtConfiguration.merge(existingConfig, clientJwtConfiguration, overwrite);
+        if (result != null) {
+            updateClientJwtConfig(clientId, JsonUtils.writeValueAsString(result), zoneId);
+        }
+    }
+
+    @Override
     public void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
         ClientJwtConfiguration clientJwtConfiguration;
         if (UaaUrlUtils.isUrl(keyConfig)) {
@@ -320,6 +333,17 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
             updateClientJwtConfig(clientId, result != null ? JsonUtils.writeValueAsString(result) : null, zoneId);
         } else {
             throw new InvalidClientDetailsException("Invalid jwt configuration configuration");
+        }
+    }
+
+    @Override
+    public void deleteClientJwtCredential(String clientId, ClientJwtCredential keyConfig, String zoneId) throws NoSuchClientException {
+        UaaClientDetails uaaUaaClientDetails = (UaaClientDetails) loadClientByClientId(clientId, zoneId);
+        ClientJwtConfiguration existingConfig = uaaUaaClientDetails != null ? ClientJwtConfiguration.readValue(uaaUaaClientDetails) : null;
+        ClientJwtConfiguration clientJwtConfiguration = new ClientJwtConfiguration(List.of(keyConfig));
+        ClientJwtConfiguration result = ClientJwtConfiguration.delete(existingConfig, clientJwtConfiguration);
+        if (result != null) {
+            updateClientJwtConfig(clientId, JsonUtils.writeValueAsString(result), zoneId);
         }
     }
 

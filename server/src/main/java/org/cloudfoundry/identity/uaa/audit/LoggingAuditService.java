@@ -114,6 +114,10 @@ public class LoggingAuditService implements UaaAuditService {
             logMessage = "%s, authenticationType=[%s]".formatted(logMessage, auditEvent.getAuthenticationType());
         }
 
+        if (auditEvent.getDescription() != null) {
+            logMessage = "%s, detailedDescription=[%s]".formatted(logMessage, auditEvent.getDescription());
+        }
+
         log(logMessage);
     }
 

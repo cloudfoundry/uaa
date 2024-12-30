@@ -253,6 +253,17 @@
                             <entry key="jwks_uri" value="http://localhost:8080/uaa/token_keys"/>
                         </map>
                     </entry>
+                    <entry key="client_federated_jwt_trust">
+                        <map>
+                            <entry key="authorized-grant-types"
+                                   value="authorization_code,client_credentials,refresh_token,password,urn:ietf:params:oauth:grant-type:jwt-bearer"/>
+                            <entry key="scope" value="openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write"/>
+                            <entry key="authorities" value="password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource"/>
+                            <entry key="autoapprove" value="true"/>
+                            <entry key="redirect-uri" value="http://localhost/*,http://localhost:8080/**,http://localhost:7000/**"/>
+                            <entry key="jwt_creds" value="[{&quot;iss&quot;:&quot;http://localhost:8080/uaa/oauth/token&quot;,&quot;sub&quot;:&quot;client_with_jwks_trust&quot;,&quot;aud&quot;:&quot;client_with_jwks_trust&quot;}]"/>
+                        </map>
+                    </entry>
                 </map>
             </constructor-arg>
         </bean>

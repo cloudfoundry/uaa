@@ -627,6 +627,32 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
+    void testChangeFederatedJwtConfig() {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
+        UaaClientDetails client = createClient("client_credentials");
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest("admin", "http://localhost:8080/uaa/token_key", null);
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+                HttpMethod.PUT, new HttpEntity<>(def, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        def = new ClientJwtChangeRequest();
+        def.setIss("http://localhost:8080/uaa");
+        def.setSub("client-admin-id");
+        def.setClientId("admin");
+
+        result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+                HttpMethod.PUT, new HttpEntity<>(def, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
     void testChangeJwtConfigNoAuthorization() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
         UaaClientDetails client = createClient("client_credentials");

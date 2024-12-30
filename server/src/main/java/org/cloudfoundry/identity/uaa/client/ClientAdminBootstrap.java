@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import static java.util.Optional.ofNullable;
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWT_CREDS;
 import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS;
 import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS_URI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -20,6 +21,7 @@ import java.util.Set;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.authentication.SystemAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -202,22 +204,27 @@ public class ClientAdminBootstrap implements
                 client.getAuthorizedGrantTypes().add(GRANT_TYPE_REFRESH_TOKEN);
             }
             for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
-                    "redirect-uri", "secret", "id", "override", "access-token-validity",
-                    "refresh-token-validity", "show-on-homepage", "app-launch-url", "app-icon", JWKS, JWKS_URI)) {
+                    "redirect-uri", "secret", "id", "override", "access-token-validity", "refresh-token-validity",
+                    "show-on-homepage", "app-launch-url", "app-icon", JWKS, JWKS_URI, JWT_CREDS)) {
                 info.remove(key);
             }
 
             client.setAdditionalInformation(info);
 
+            ClientJwtConfiguration keyConfig = null;
             if (map.get(JWKS_URI) instanceof String || map.get(JWKS) instanceof String) {
                 String jwksUri = (String) map.get(JWKS_URI);
                 String jwks = (String) map.get(JWKS);
-                ClientJwtConfiguration keyConfig = ClientJwtConfiguration.parse(jwksUri, jwks);
-                if (keyConfig != null && keyConfig.getCleanString() != null) {
-                    keyConfig.writeValue(client);
-                } else {
-                    throw new InvalidClientDetailsException("Client jwt configuration invalid syntax. ClientID: " + client.getClientId());
+                keyConfig = ClientJwtConfiguration.parse(jwksUri, jwks);
+                writeJwtClientConfiguration(keyConfig, client);
+            }
+
+            if (map.get(JWT_CREDS) instanceof String jwt_creds) {
+                if (keyConfig == null) {
+                    keyConfig = new ClientJwtConfiguration();
                 }
+                keyConfig.addJwtCredentials(ClientJwtCredential.parse(jwt_creds));
+                writeJwtClientConfiguration(keyConfig, client);
             }
 
             try {
@@ -248,6 +255,14 @@ public class ClientAdminBootstrap implements
 
             ClientMetadata clientMetadata = buildClientMetadata(map, clientId);
             clientMetadataProvisioning.update(clientMetadata, IdentityZone.getUaaZoneId());
+        }
+    }
+
+    private static void writeJwtClientConfiguration(ClientJwtConfiguration keyConfig, UaaClientDetails client) {
+        if (keyConfig != null && keyConfig.getCleanString() != null) {
+            keyConfig.writeValue(client);
+        } else {
+            throw new InvalidClientDetailsException("Client jwt configuration invalid syntax. ClientID: " + client.getClientId());
         }
     }
 

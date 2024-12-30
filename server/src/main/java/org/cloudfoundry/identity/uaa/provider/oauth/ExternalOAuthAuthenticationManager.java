@@ -120,7 +120,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
     private final OidcMetadataFetcher oidcMetadataFetcher;
-
     private TokenEndpointBuilder tokenEndpointBuilder;
     private final KeyInfoService keyInfoService;
 
@@ -180,7 +179,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    private IdentityProvider retrieveRegisteredIdentityProviderByIssuer(String issuer) {
+    public IdentityProvider retrieveRegisteredIdentityProviderByIssuer(String issuer) {
         return ((ExternalOAuthProviderConfigurator) getProviderProvisioning()).retrieveByIssuer(issuer, IdentityZoneHolder.get().getId());
     }
 
@@ -190,7 +189,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         });
     }
 
-    private boolean idTokenWasIssuedByTheUaa(String issuer) {
+    public boolean idTokenWasIssuedByTheUaa(String issuer) {
         return issuer.equals(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
     }
 
@@ -677,7 +676,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 .toList();
     }
 
-    private JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractExternalOAuthIdentityProviderDefinition config) {
+    public JsonWebKeySet<JsonWebKey> getTokenKeyFromOAuth(AbstractExternalOAuthIdentityProviderDefinition config) {
 
         String tokenKey = config.getTokenKey();
         if (StringUtils.hasText(tokenKey)) {

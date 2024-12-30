@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
@@ -1115,6 +1116,45 @@ class ClientAdminEndpointsTests {
         change.setJsonWebKeyUri(null);
         result = endpoints.changeClientJwt(detail.getClientId(), change);
         assertEquals("No key added", result.getMessage());
+    }
+
+    @Test
+    void testAddAndDeleteClientJwtFederated() {
+        when(mockSecurityContextAccessor.getClientId()).thenReturn("bar");
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        when(mockSecurityContextAccessor.isAdmin()).thenReturn(true);
+
+        when(clientDetailsService.retrieve(detail.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(detail);
+
+        ClientJwtChangeRequest change = new ClientJwtChangeRequest();
+        change.setIss("https://any.domain.net");
+        change.setSub("domain-client-id");
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.ADD);
+
+        ActionResult result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Federated client jwt configuration is added", result.getMessage());
+        verify(clientRegistrationService, times(1)).addClientJwtCredential(detail.getClientId(), new ClientJwtCredential("domain-client-id", "https://any.domain.net", null), IdentityZoneHolder.get().getId(), false);
+
+        change.setJsonWebKeyUri(null);
+        change.setSub(null);
+        change.setIss(null);
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("No key added", result.getMessage());
+
+        change.setIss("https://any.domain.net");
+        change.setSub("domain-client-id");
+        change.setChangeMode(ClientJwtChangeRequest.ChangeMode.DELETE);
+
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("Federated client jwt configuration is deleted", result.getMessage());
+        verify(clientRegistrationService, times(1)).deleteClientJwtCredential(detail.getClientId(), new ClientJwtCredential("domain-client-id", "https://any.domain.net", null), IdentityZoneHolder.get().getId());
+
+        change.setSub(null);
+        change.setIss(null);
+
+        result = endpoints.changeClientJwt(detail.getClientId(), change);
+        assertEquals("No key deleted", result.getMessage());
+
     }
 
     @Test

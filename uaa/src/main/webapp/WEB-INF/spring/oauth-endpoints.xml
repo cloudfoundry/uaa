@@ -228,6 +228,7 @@
                     class="org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication">
         <constructor-arg name="keyInfoService" ref="keyInfoService"/>
         <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
+        <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>
     </bean>
 
     <bean id="clientAuthenticationProvider"

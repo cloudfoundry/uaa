@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.DELETE;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.UPDATE;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -13,7 +15,9 @@ public class ClientJwtChangeRequest {
 
     public static final String JWKS_URI = "jwks_uri";
     public static final String JWKS = "jwks";
-    public static final String FED_CREDS = "fed_creds";
+    public static final String ISS = "iss";
+    public static final String SUB = "sub";
+    public static final String AUD = "aud";
 
     public enum ChangeMode {
         UPDATE,
@@ -28,8 +32,13 @@ public class ClientJwtChangeRequest {
     private String jsonWebKeySet;
     @JsonProperty("client_id")
     private String clientId;
-    @JsonProperty("fed_creds")
-    private String federatedCredentialSet;
+    @JsonProperty(ISS)
+    private String iss;
+    @JsonProperty(SUB)
+    private String sub;
+    @JsonProperty(AUD)
+    private String aud;
+
     private ChangeMode changeMode = ADD;
 
     public ClientJwtChangeRequest() {
@@ -81,12 +90,28 @@ public class ClientJwtChangeRequest {
         this.keyId = keyId;
     }
 
-    public String getFederatedCredentialSet() {
-        return this.federatedCredentialSet;
+    public String getIss() {
+        return this.iss;
     }
 
-    public void setFederatedCredentialSet(final String federatedCredentialSet) {
-        this.federatedCredentialSet = federatedCredentialSet;
+    public void setIss(final String iss) {
+        this.iss = iss;
+    }
+
+    public String getSub() {
+        return this.sub;
+    }
+
+    public void setSub(final String sub) {
+        this.sub = sub;
+    }
+
+    public String getAud() {
+        return this.aud;
+    }
+
+    public void setAud(final String aud) {
+        this.aud = aud;
     }
 
     public String getChangeValue() {
@@ -95,5 +120,16 @@ public class ClientJwtChangeRequest {
             return keyId;
         }
         return jsonWebKeyUri != null ? jsonWebKeyUri : jsonWebKeySet;
+    }
+
+    @JsonIgnore
+    public boolean isFederated() {
+        return ((changeMode == ADD || changeMode == UPDATE) && iss != null && sub != null) ||
+                (changeMode == DELETE && (iss != null || sub != null));
+    }
+
+    @JsonIgnore
+    public ClientJwtCredential getFederation() {
+        return ClientJwtCredential.builder().issuer(iss).subject(sub).audience(aud).build();
     }
 }

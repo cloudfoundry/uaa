@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientRegistrationService;
 import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
@@ -40,7 +41,11 @@ interface MultitenantClientSecretService {
 
     void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException;
 
+    void addClientJwtCredential(String clientId, ClientJwtCredential keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException;
+
     void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException;
+
+    void deleteClientJwtCredential(String clientId, ClientJwtCredential keyConfig, String zoneId) throws NoSuchClientException;
 }
 
 public abstract class MultitenantClientServices implements

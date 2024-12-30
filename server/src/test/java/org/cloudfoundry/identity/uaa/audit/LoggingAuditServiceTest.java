@@ -37,7 +37,7 @@ class LoggingAuditServiceTest {
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         verify(mockLogger).info(stringCaptor.capture());
         String logMessage = stringCaptor.getValue();
-        assertThat(logMessage, is("PasswordChangeFailure ('theData'): principal=thePrincipalId, origin=[theOrigin], identityZoneId=[theZoneId], authenticationType=[theAuthType]"));
+        assertThat(logMessage, is("PasswordChangeFailure ('theData'): principal=thePrincipalId, origin=[theOrigin], identityZoneId=[theZoneId], authenticationType=[theAuthType], detailedDescription=[theDescription]"));
     }
 
     @Test
@@ -49,7 +49,7 @@ class LoggingAuditServiceTest {
         ArgumentCaptor<String> stringCaptor = ArgumentCaptor.forClass(String.class);
         verify(mockLogger).info(stringCaptor.capture());
         String logMessage = stringCaptor.getValue();
-        assertThat(logMessage, is("PasswordChangeFailure ('theData'): principal=thePrincipalId, origin=[theOrigin], identityZoneId=[theZoneId]"));
+        assertThat(logMessage, is("PasswordChangeFailure ('theData'): principal=thePrincipalId, origin=[theOrigin], identityZoneId=[theZoneId], detailedDescription=[theDescription]"));
     }
 
     @Test
