@@ -2216,10 +2216,29 @@ instead of secret based client authentication. See details for client authentica
 The authentication with a client JWT (parameter client_assertion) is similar to the user authentication with a user JWT (JWT bearer, e.g. [RFC 7522](https://tools.ietf.org/html/rfc7522)).
 Client JWT is available and specified from either the OAuth2 standard, defined in [RFC 7523](https://tools.ietf.org/html/rfc7523), and from
 [OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication).
-UAA supports currently only OpenID Connect standard.
+
+UAA supports both standards for private_key_jwt, the OAuth2 and OpenID Connect standard.
+
+<aside class="success">
+  Added in 77.24.0
+</aside>
+
 
 The client can send a client_assertion for authentication instead of client_secret or Authorization header.
-The signature of the JWT from client_assertion is validated according to OpenID Connect standard either with the jwks_uri or the internal jwks public keys.
+The signature of the JWT from client_assertion is validated and assures the client authentication. The structure of the JWT
+sent with parameter client_assertion differentiates between the OAuth2 and OpenID Connect standard and ith this, both standards
+can be supported in parallel.
+
+The OpenID Connect standard is supported either with the jwks_uri or the internal jwks public keys. The JWT here has only a reference to
+the current client using the client_id for issuer and subject, therefore the trust anchor is only the key which can be retrieved or is set already.
+
+The OAuth2 standard is supported either with plain issuer or a pre-configured Identity Provider object. The IdP must be from type OIDC (`oidc1.0`).
+If an Identity Provider is set up before, then the key material can be configured with `tokenKey` or `tokenKeyUrl`. If no Identity Provider is used, then
+the configured issuer must support the [discovery standard](https://openid.net/specs/openid-connect-discovery-1_0.html). If no audience (`aud`) is set, then
+the UAA own token endpoint URL is expected.
+
+The limits are 10 keys and/or 10 external combinations of issuer and subject. Use jwks_uri/jwks for single entities and iss/sub/aud for system entities, e.g. another UAA landscapes, external system integrations,
+[work load identities](https://www.ietf.org/archive/id/draft-ietf-wimse-workload-identity-bcp-01.html) or [SPIFFE](https://www.ietf.org/archive/id/draft-ietf-wimse-workload-identity-practices-00.html).
 
 <%= render('ClientAdminEndpointDocs/changeClientJwt/curl-request.md') %>
 <%= render('ClientAdminEndpointDocs/changeClientJwt/http-request.md') %>
