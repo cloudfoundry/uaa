@@ -56,14 +56,14 @@ class UaaUsingDelegatingPasswordEncoderMockMvcTest {
     @ValueSource(strings = {
             "client_id_with_empty_password"
     })
-    void tryToGetTokenWithEmtpyPasswordSucceeds(String clientId) throws Exception {
+    void tryToGetTokenWithEmtpyPasswordMustFail(String clientId) throws Exception {
         mockMvc.perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .accept(MediaType.APPLICATION_JSON)
                 .param("client_id", clientId)
                 .param("client_secret", "")
                 .param("grant_type", "client_credentials"))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
     }
 
     @ParameterizedTest
