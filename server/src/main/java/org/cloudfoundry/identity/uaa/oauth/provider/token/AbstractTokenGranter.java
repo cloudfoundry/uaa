@@ -2,7 +2,9 @@ package org.cloudfoundry.identity.uaa.oauth.provider.token;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidRequestException;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
@@ -11,8 +13,16 @@ import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.util.UaaSecurityContextUtils;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Collection;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * Moved class AbstractTokenGranter implementation of from spring-security-oauth2 into UAA
@@ -73,6 +83,26 @@ public abstract class AbstractTokenGranter implements TokenGranter {
         if (authorizedGrantTypes != null && !authorizedGrantTypes.isEmpty()
                 && !authorizedGrantTypes.contains(grantType)) {
             throw new InvalidClientException("Unauthorized grant type");
+        }
+    }
+
+    protected boolean isValidClientAuthentication(List<String> allowedMethods) {
+        SecurityContext context = SecurityContextHolder.getContext();
+        if (allowedMethods.contains(Optional.ofNullable(getUaaClientAuthenticationMethod(context.getAuthentication()))
+                        .orElse(TokenConstants.CLIENT_AUTH_SECRET))) {
+            // internal null for client authentication means secret based (authorization header or post body)
+            return true;
+        } else {
+            throw new InvalidRequestException("Client credentials required");
+        }
+    }
+
+    protected String getUaaClientAuthenticationMethod(Authentication authentication) {
+        if (authentication instanceof UsernamePasswordAuthenticationToken && authentication.isAuthenticated() &&
+                authentication.getDetails() instanceof UaaAuthenticationDetails) {
+            return ((UaaAuthenticationDetails) authentication.getDetails()).getAuthenticationMethod();
+        } else {
+            return UaaSecurityContextUtils.getClientAuthenticationMethod(authentication);
         }
     }
 
