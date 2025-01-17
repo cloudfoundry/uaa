@@ -442,7 +442,7 @@ public final class MockMvcUtils {
 
         // use that user to create an admin client in the new zone
         String zoneAdminAuthcodeToken = getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret",
-                marissa.getId(), "marissa", "koala", zoneAdminScope, zoneId);
+                marissa.getId(), "marissa", "koala", zoneAdminScope);
 
         if (bootstrapClient != null) {
             if (useWebRequests) {
@@ -866,8 +866,7 @@ public final class MockMvcUtils {
                 user.getId(),
                 user.getUserName(),
                 "secr3T",
-                group.getDisplayName(),
-                zoneId
+                group.getDisplayName()
         );
     }
 
@@ -945,15 +944,15 @@ public final class MockMvcUtils {
         return getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, scope, null, opaque);
     }
 
-    public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, String zoneId) throws Exception {
-        return getUserOAuthAccessTokenAuthCode(mockMvc, clientId, clientSecret, userId, username, password, scope, zoneId, OPAQUE);
+    public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope) throws Exception {
+        return getUserOAuthAccessTokenAuthCode(mockMvc, clientId, clientSecret, userId, username, password, scope, OPAQUE);
     }
 
-    public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, String zoneId, TokenFormat tokenFormat) throws Exception {
+    public static String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope, TokenFormat tokenFormat) throws Exception {
         String basicDigestHeaderValue = "Basic "
                 + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + clientSecret)
                 .getBytes()));
-        UaaPrincipal p = new UaaPrincipal(userId, username, "test@test.org", OriginKeys.UAA, "", zoneId);
+        UaaPrincipal p = new UaaPrincipal(userId, username, "test@test.org", OriginKeys.UAA, "", IdentityZone.getUaaZoneId());
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, null);
         assertThat(auth.isAuthenticated()).isTrue();
 

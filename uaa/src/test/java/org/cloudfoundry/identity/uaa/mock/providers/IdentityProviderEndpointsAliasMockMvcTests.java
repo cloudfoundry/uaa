@@ -1276,7 +1276,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 adminUser.getUserName(),
                 adminUser.getPassword(),
                 String.join(" ", scopesForZone),
-                IdentityZone.getUaaZoneId(),
                 TokenConstants.TokenFormat.JWT // use JWT for later checking if all scopes are present
         );
 

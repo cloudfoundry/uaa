@@ -12,7 +12,6 @@ import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,7 +143,7 @@ class IdentityZoneSwitchingFilterMockMvcTest {
         ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", zoneId);
         group.setMembers(Collections.singletonList(new ScimGroupMember(createdUser.getId())));
         MockMvcUtils.createGroup(mockMvc, adminToken, group);
-        String userToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", createdUser.getId(), createdUser.getUserName(), "secret", null, IdentityZoneHolder.getCurrentZoneId());
+        String userToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", createdUser.getId(), createdUser.getUserName(), "secret", null);
         createClientInOtherZone(mockMvc, generator, userToken, status().isCreated(), HEADER, zoneId);
     }
 
