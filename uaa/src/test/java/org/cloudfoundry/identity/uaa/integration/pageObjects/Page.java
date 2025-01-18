@@ -20,7 +20,8 @@ public class Page {
 
     public Page(WebDriver driver) {
         this.driver = driver;
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+        // similar to https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/test/java/org/cloudfoundry/identity/uaa/integration/feature/DefaultIntegrationTestConfig.java#L35-L37
+        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(30L));
     }
 
     public static AbstractStringAssert<?> assertThatUrlEventuallySatisfies(WebDriver driver, Consumer<AbstractStringAssert<?>> assertUrl) {
