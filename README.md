@@ -2,7 +2,7 @@
 
 **Slack** [&#35;uaa](https://cloudfoundry.slack.com/archives/C03FXANBV)
 
-# CloudFoundry User Account and Authentication (UAA) Server
+# Test CloudFoundry User Account and Authentication (UAA) Server
 
 The UAA is a multi tenant identity management service, used in Cloud Foundry, but also available
 as a stand alone OAuth2 server.  Its primary role is as an OAuth2 provider, issuing tokens for client
