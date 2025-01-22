@@ -400,10 +400,8 @@ public class LoginInfoEndpoint {
         // Entity ID to start the discovery
         model.addAttribute(ENTITY_ID, zonifiedEntityID);
 
-        excludedPrompts = new LinkedList<>(excludedPrompts);
         String origin = request.getParameter("origin");
-        populatePrompts(model, excludedPrompts, origin, samlIdentityProviders, oauthIdentityProviders,
-                excludedPrompts, returnLoginPrompts);
+        populatePrompts(model, excludedPrompts, origin, samlIdentityProviders, oauthIdentityProviders, returnLoginPrompts);
 
         if (principal == null) {
             return getUnauthenticatedRedirect(model, request, discoveryEnabled, discoveryPerformed, accountChooserNeeded, accountChooserEnabled);
@@ -696,7 +694,6 @@ public class LoginInfoEndpoint {
             String origin,
             Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
             Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
-            List<String> excludedPrompts,
             boolean returnLoginPrompts
     ) {
         boolean noIdpsPresent = true;
@@ -714,7 +711,10 @@ public class LoginInfoEndpoint {
                 break;
             }
         }
+
         //make the list writeable
+        final List<String> excludedPrompts = new LinkedList<>(exclude);
+
         if (noIdpsPresent) {
             excludedPrompts.add(PASSCODE);
         }
@@ -757,7 +757,7 @@ public class LoginInfoEndpoint {
             }
             map.put(prompt.getName(), details);
         }
-        for (String excludeThisPrompt : exclude) {
+        for (String excludeThisPrompt : excludedPrompts) {
             map.remove(excludeThisPrompt);
         }
         model.addAttribute("prompts", map);
