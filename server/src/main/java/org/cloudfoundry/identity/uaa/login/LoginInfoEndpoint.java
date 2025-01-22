@@ -365,11 +365,11 @@ public class LoginInfoEndpoint {
         if (idpForRedirect == null && !jsonResponse && !fieldUsernameShow && allIdentityProviders.size() == 1) {
             idpForRedirect = allIdentityProviders.entrySet().stream().findFirst().orElse(null);
         }
-        if (idpForRedirect != null) {
+        if (idpForRedirect != null && !jsonResponse) {
             String externalRedirect = redirectToExternalProvider(
                     idpForRedirect.getValue(), idpForRedirect.getKey(), request
             );
-            if (externalRedirect != null && !jsonResponse) {
+            if (externalRedirect != null) {
                 log.debug("Following external redirect : {}", externalRedirect);
                 return externalRedirect;
             }
