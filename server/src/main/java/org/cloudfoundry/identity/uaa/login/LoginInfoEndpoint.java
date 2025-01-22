@@ -357,11 +357,15 @@ public class LoginInfoEndpoint {
         idpForRedirect = evaluateLoginHint(model, samlIdentityProviders,
                 oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys, loginHintParam, uaaLoginHint, loginHintProviders);
 
-        idpForRedirect = evaluateIdpDiscovery(model, samlIdentityProviders, oauthIdentityProviders,
-                allIdentityProviders, allowedIdentityProviderKeys, idpForRedirect, discoveryPerformed, newLoginPageEnabled, defaultIdentityProviderName);
+        if (idpForRedirect == null) {
+            idpForRedirect = evaluateIdpDiscovery(model, samlIdentityProviders, oauthIdentityProviders,
+                    allIdentityProviders, allowedIdentityProviderKeys, discoveryPerformed, newLoginPageEnabled, defaultIdentityProviderName);
+        }
+
         if (idpForRedirect == null && !jsonResponse && !fieldUsernameShow && allIdentityProviders.size() == 1) {
             idpForRedirect = allIdentityProviders.entrySet().stream().findFirst().orElse(null);
         }
+
         if (idpForRedirect != null) {
             String externalRedirect = redirectToExternalProvider(
                     idpForRedirect.getValue(), idpForRedirect.getKey(), request
@@ -497,13 +501,14 @@ public class LoginInfoEndpoint {
             Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
             Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
             List<String> allowedIdentityProviderKeys,
-            Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect,
             boolean discoveryPerformed,
             boolean newLoginPageEnabled,
             String defaultIdentityProviderName
     ) {
+        Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
+
         // Default set, no login_hint given, no error, discovery performed
-        if (idpForRedirect == null && (discoveryPerformed || !newLoginPageEnabled) && defaultIdentityProviderName != null && !model.containsAttribute(LOGIN_HINT_ATTRIBUTE) && !model.containsAttribute(ERROR_ATTRIBUTE)) {
+        if ((discoveryPerformed || !newLoginPageEnabled) && defaultIdentityProviderName != null && !model.containsAttribute(LOGIN_HINT_ATTRIBUTE) && !model.containsAttribute(ERROR_ATTRIBUTE)) {
             if (!OriginKeys.UAA.equals(defaultIdentityProviderName) && !OriginKeys.LDAP.equals(defaultIdentityProviderName)) {
                 if (allIdentityProviders.containsKey(defaultIdentityProviderName)) {
                     idpForRedirect =
