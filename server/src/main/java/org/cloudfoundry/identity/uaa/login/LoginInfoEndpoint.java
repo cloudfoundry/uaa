@@ -496,32 +496,45 @@ public class LoginInfoEndpoint {
     }
 
     private Map.Entry<String, AbstractIdentityProviderDefinition> evaluateIdpDiscovery(
-            Model model,
-            Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
-            Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
-            Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
-            List<String> allowedIdentityProviderKeys,
-            boolean discoveryPerformed,
-            boolean newLoginPageEnabled,
-            String defaultIdentityProviderName
+            final Model model,
+            final Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
+            final Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
+            final Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
+            final List<String> allowedIdentityProviderKeys,
+            final boolean discoveryPerformed,
+            final boolean newLoginPageEnabled,
+            final String defaultIdentityProviderName
     ) {
-        Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
-
-        // Default set, no login_hint given, no error, discovery performed
-        if ((discoveryPerformed || !newLoginPageEnabled) && defaultIdentityProviderName != null && !model.containsAttribute(LOGIN_HINT_ATTRIBUTE) && !model.containsAttribute(ERROR_ATTRIBUTE)) {
-            if (!OriginKeys.UAA.equals(defaultIdentityProviderName) && !OriginKeys.LDAP.equals(defaultIdentityProviderName)) {
-                if (allIdentityProviders.containsKey(defaultIdentityProviderName)) {
-                    idpForRedirect =
-                            allIdentityProviders.entrySet().stream().filter(entry -> defaultIdentityProviderName.equals(entry.getKey())).findAny().orElse(null);
-                }
-            } else if (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(defaultIdentityProviderName)) {
-                UaaLoginHint loginHint = new UaaLoginHint(defaultIdentityProviderName);
-                model.addAttribute(LOGIN_HINT_ATTRIBUTE, loginHint.toString());
-                samlIdentityProviders.clear();
-                oauthIdentityProviders.clear();
-            }
+        if (model.containsAttribute(LOGIN_HINT_ATTRIBUTE) || model.containsAttribute(ERROR_ATTRIBUTE)) {
+            return null;
         }
-        return idpForRedirect;
+
+        if (defaultIdentityProviderName == null) {
+            return null;
+        }
+
+        if (!discoveryPerformed && newLoginPageEnabled) {
+            return null;
+        }
+
+        if (!OriginKeys.UAA.equals(defaultIdentityProviderName) && !OriginKeys.LDAP.equals(defaultIdentityProviderName)) {
+            if (allIdentityProviders.containsKey(defaultIdentityProviderName)) {
+                return allIdentityProviders.entrySet().stream()
+                                .filter(entry -> defaultIdentityProviderName.equals(entry.getKey()))
+                                .findAny()
+                                .orElse(null);
+            }
+            return null;
+        }
+
+        if (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(defaultIdentityProviderName)) {
+            final UaaLoginHint loginHint = new UaaLoginHint(defaultIdentityProviderName);
+            model.addAttribute(LOGIN_HINT_ATTRIBUTE, loginHint.toString());
+            samlIdentityProviders.clear();
+            oauthIdentityProviders.clear();
+        }
+
+        return null;
     }
 
     private String extractLoginHintParam(HttpSession session, HttpServletRequest request) {
