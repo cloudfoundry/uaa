@@ -73,7 +73,6 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
@@ -82,6 +81,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -89,6 +89,7 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Base64.getDecoder;
+import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
 import static java.util.Objects.isNull;
 import static java.util.Optional.ofNullable;
@@ -213,12 +214,12 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
     public String infoForLoginJson(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Collections.emptyList(), true, request);
+        return login(model, principal, emptyList(), true, request);
     }
 
     @RequestMapping(value = {"/info"}, headers = "Accept=application/json")
     public String infoForJson(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Collections.emptyList(), true, request);
+        return login(model, principal, emptyList(), true, request);
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
@@ -526,65 +527,78 @@ public class LoginInfoEndpoint {
                 .orElse(request.getParameter(LOGIN_HINT_ATTRIBUTE));
     }
 
+    /**
+     * @return its origin key and configuration if exactly one SAML/OAuth IdP qualifies for a redirect,
+     *          {@code null} otherwise
+     */
     private Map.Entry<String, AbstractIdentityProviderDefinition> evaluateLoginHint(
-            Model model,
-            Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
-            Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
-            Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
-            List<String> allowedIdentityProviderKeys,
-            String loginHintParam,
-            UaaLoginHint uaaLoginHint,
-            Map<String, AbstractIdentityProviderDefinition> loginHintProviders
+            final Model model,
+            final Map<String, SamlIdentityProviderDefinition> samlIdentityProviders,
+            final Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
+            final Map<String, AbstractIdentityProviderDefinition> allIdentityProviders,
+            final List<String> allowedIdentityProviderKeys,
+            final String loginHintParam,
+            final UaaLoginHint uaaLoginHint,
+            final Map<String, AbstractIdentityProviderDefinition> loginHintProviders
     ) {
-        Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
-        if (loginHintParam != null) {
-            // parse login_hint in JSON format
-            if (uaaLoginHint != null) {
-                log.debug("Received login hint: {}", UaaStringUtils.getCleanedUserControlString(loginHintParam));
-                log.debug("Received login hint with origin: {}", uaaLoginHint.getOrigin());
-                if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
-                    if (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(uaaLoginHint.getOrigin())) {
-                        // in case of uaa/ldap, pass value to login page
-                        model.addAttribute(LOGIN_HINT_ATTRIBUTE, loginHintParam);
-                        samlIdentityProviders.clear();
-                        oauthIdentityProviders.clear();
-                    } else {
-                        model.addAttribute(ERROR_ATTRIBUTE, "invalid_login_hint");
-                    }
-                } else {
-                    // for oidc/saml, trigger the redirect
-                    if (loginHintProviders.size() > 1) {
-                        throw new IllegalStateException(
-                                "There is a misconfiguration with the identity provider(s). Please contact your system administrator."
-                        );
-                    }
-                    if (loginHintProviders.size() == 1) {
-                        idpForRedirect = new ArrayList<>(loginHintProviders.entrySet()).get(0);
-                        log.debug("Setting redirect from origin login_hint to: {}", idpForRedirect);
-                    } else {
-                        log.debug("Client does not allow provider for login_hint with origin key: {}",
-                                uaaLoginHint.getOrigin());
-                        model.addAttribute(ERROR_ATTRIBUTE, "invalid_login_hint");
-                    }
-                }
-            } else {
-                // login_hint in JSON format was not available, try old format (email domain)
-                List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdentityProviders =
-                        allIdentityProviders.entrySet().stream().filter(
-                                idp -> ofNullable(idp.getValue().getEmailDomain()).orElse(Collections.emptyList()).contains(
-                                        loginHintParam)
-                        ).toList();
-                if (matchingIdentityProviders.size() > 1) {
-                    throw new IllegalStateException(
-                            "There is a misconfiguration with the identity provider(s). Please contact your system administrator."
-                    );
-                } else if (matchingIdentityProviders.size() == 1) {
-                    idpForRedirect = matchingIdentityProviders.get(0);
-                    log.debug("Setting redirect from email domain login hint to: {}", idpForRedirect);
-                }
-            }
+        if (loginHintParam == null) {
+            return null;
         }
-        return idpForRedirect;
+
+        // login hint was provided, but could not be parsed into JSON format -> try old format (email domain)
+        if (uaaLoginHint == null) {
+            final List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdentityProviders =
+                    allIdentityProviders.entrySet().stream()
+                            .filter(idp -> {
+                                final List<String> emailDomains = Optional.ofNullable(idp.getValue().getEmailDomain())
+                                        .orElse(emptyList());
+                                return emailDomains.contains(loginHintParam);
+                            }).toList();
+            if (matchingIdentityProviders.size() > 1) {
+                throw new IllegalStateException(
+                        "There is a misconfiguration with the identity provider(s). Please contact your system administrator."
+                );
+            }
+            if (matchingIdentityProviders.size() == 1) {
+                final Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = matchingIdentityProviders.get(0);
+                log.debug("Setting redirect from email domain login hint to: {}", idpForRedirect);
+                return idpForRedirect;
+            }
+            return null;
+        }
+
+        // login hint was provided and could be parsed into JSON format
+        log.debug("Received login hint: {}", UaaStringUtils.getCleanedUserControlString(loginHintParam));
+        log.debug("Received login hint with origin: {}", uaaLoginHint.getOrigin());
+
+        if (OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin())) {
+            if (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(uaaLoginHint.getOrigin())) {
+                // in case of uaa/ldap, pass value to login page
+                model.addAttribute(LOGIN_HINT_ATTRIBUTE, loginHintParam);
+                samlIdentityProviders.clear();
+                oauthIdentityProviders.clear();
+            } else {
+                model.addAttribute(ERROR_ATTRIBUTE, "invalid_login_hint");
+            }
+
+            return null;
+        }
+
+        // for oidc/saml, trigger the redirect
+        if (loginHintProviders.size() > 1) {
+            throw new IllegalStateException(
+                    "There is a misconfiguration with the identity provider(s). Please contact your system administrator."
+            );
+        }
+        if (loginHintProviders.size() == 1) {
+            final Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect =
+                    new ArrayList<>(loginHintProviders.entrySet()).get(0);
+            log.debug("Setting redirect from origin login_hint to: {}", idpForRedirect);
+            return idpForRedirect;
+        }
+        log.debug("Client does not allow provider for login_hint with origin key: {}", uaaLoginHint.getOrigin());
+        model.addAttribute(ERROR_ATTRIBUTE, "invalid_login_hint");
+        return null;
     }
 
     @RequestMapping(value = {"/delete_saved_account"})
