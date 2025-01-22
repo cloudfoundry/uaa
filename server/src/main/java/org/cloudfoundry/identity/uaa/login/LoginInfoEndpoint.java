@@ -696,18 +696,15 @@ public class LoginInfoEndpoint {
             Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
             boolean returnLoginPrompts
     ) {
-        boolean noIdpsPresent = true;
         for (SamlIdentityProviderDefinition idp : samlIdentityProviders.values()) {
             if (idp.isShowSamlLink()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
-                noIdpsPresent = false;
                 break;
             }
         }
         for (AbstractExternalOAuthIdentityProviderDefinition oauthIdp : oauthIdentityProviders.values()) {
             if (oauthIdp.isShowLinkText()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
-                noIdpsPresent = false;
                 break;
             }
         }
@@ -715,9 +712,6 @@ public class LoginInfoEndpoint {
         //make the list writeable
         final List<String> excludedPrompts = new LinkedList<>(exclude);
 
-        if (noIdpsPresent) {
-            excludedPrompts.add(PASSCODE);
-        }
         if (!returnLoginPrompts) {
             excludedPrompts.add(USERNAME_PARAMETER);
             excludedPrompts.add("password");
