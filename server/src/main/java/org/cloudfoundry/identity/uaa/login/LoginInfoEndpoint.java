@@ -325,7 +325,15 @@ public class LoginInfoEndpoint {
             samlIdentityProviders = Map.of();
         } else {
             samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
-            oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
+
+            if (jsonResponse) {
+                /* the OAuth IdPs and all IdPs are used for determining the redirect; if jsonResponse is true, the
+                 * redirect is ignored anyway */
+                oauthIdentityProviders = Map.of();
+            } else {
+                oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
+            }
+
             allIdentityProviders = concatenateMaps(samlIdentityProviders, oauthIdentityProviders);
         }
 
