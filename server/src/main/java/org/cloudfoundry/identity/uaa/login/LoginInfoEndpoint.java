@@ -292,22 +292,24 @@ public class LoginInfoEndpoint {
         Map<String, SamlIdentityProviderDefinition> samlIdentityProviders;
         Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders;
         Map<String, AbstractIdentityProviderDefinition> allIdentityProviders = Map.of();
-        Map<String, AbstractIdentityProviderDefinition> loginHintProviders = Map.of();
+        Map.Entry<String, AbstractIdentityProviderDefinition> loginHintProvider = null;
 
         if (uaaLoginHint != null && (allowedIdentityProviderKeys == null || allowedIdentityProviderKeys.contains(uaaLoginHint.getOrigin()))) {
             // Login hint: Only try to read the hinted IdP from the database
             if (!(OriginKeys.UAA.equals(uaaLoginHint.getOrigin()) || OriginKeys.LDAP.equals(uaaLoginHint.getOrigin()))) {
                 try {
-                    IdentityProvider loginHintProvider = externalOAuthProviderConfigurator
-                            .retrieveByOrigin(uaaLoginHint.getOrigin(), IdentityZoneHolder.get().getId());
-                    loginHintProviders = Stream.of(loginHintProvider).collect(
-                            new MapCollector<IdentityProvider, String, AbstractIdentityProviderDefinition>(
-                                    IdentityProvider::getOriginKey, IdentityProvider::getConfig));
+                    final IdentityProvider idp = externalOAuthProviderConfigurator.retrieveByOrigin(
+                            uaaLoginHint.getOrigin(),
+                            IdentityZoneHolder.get().getId()
+                    );
+                    if (idp != null) {
+                        loginHintProvider = Map.entry(idp.getOriginKey(), idp.getConfig());
+                    }
                 } catch (EmptyResultDataAccessException ignored) {
                     // ignore
                 }
             }
-            if (!loginHintProviders.isEmpty()) {
+            if (loginHintProvider != null) {
                 oauthIdentityProviders = Map.of();
                 samlIdentityProviders = Map.of();
             } else {
@@ -353,19 +355,16 @@ public class LoginInfoEndpoint {
             fieldUsernameShow = false;
         }
 
-        Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect;
-        idpForRedirect = evaluateLoginHint(model, samlIdentityProviders,
-                oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys, loginHintParam, uaaLoginHint, loginHintProviders);
-
+        // redirect to external IdP, if necessary
+        Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = evaluateLoginHint(model, samlIdentityProviders,
+                oauthIdentityProviders, allIdentityProviders, allowedIdentityProviderKeys, loginHintParam, uaaLoginHint, loginHintProvider);
         if (idpForRedirect == null) {
             idpForRedirect = evaluateIdpDiscovery(model, samlIdentityProviders, oauthIdentityProviders,
                     allIdentityProviders, allowedIdentityProviderKeys, discoveryPerformed, newLoginPageEnabled, defaultIdentityProviderName);
         }
-
         if (idpForRedirect == null && !jsonResponse && !fieldUsernameShow && allIdentityProviders.size() == 1) {
             idpForRedirect = allIdentityProviders.entrySet().stream().findFirst().orElse(null);
         }
-
         if (idpForRedirect != null) {
             String externalRedirect = redirectToExternalProvider(
                     idpForRedirect.getValue(), idpForRedirect.getKey(), request
@@ -557,7 +556,7 @@ public class LoginInfoEndpoint {
             final List<String> allowedIdentityProviderKeys,
             final String loginHintParam,
             final UaaLoginHint uaaLoginHint,
-            final Map<String, AbstractIdentityProviderDefinition> loginHintProviders
+            final Map.Entry<String, AbstractIdentityProviderDefinition> loginHintProvider
     ) {
         if (loginHintParam == null) {
             return null;
@@ -603,16 +602,9 @@ public class LoginInfoEndpoint {
         }
 
         // for oidc/saml, trigger the redirect
-        if (loginHintProviders.size() > 1) {
-            throw new IllegalStateException(
-                    "There is a misconfiguration with the identity provider(s). Please contact your system administrator."
-            );
-        }
-        if (loginHintProviders.size() == 1) {
-            final Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect =
-                    new ArrayList<>(loginHintProviders.entrySet()).get(0);
-            log.debug("Setting redirect from origin login_hint to: {}", idpForRedirect);
-            return idpForRedirect;
+        if (loginHintProvider != null) {
+            log.debug("Setting redirect from origin login_hint to: {}", loginHintProvider);
+            return loginHintProvider;
         }
         log.debug("Client does not allow provider for login_hint with origin key: {}", uaaLoginHint.getOrigin());
         model.addAttribute(ERROR_ATTRIBUTE, "invalid_login_hint");
