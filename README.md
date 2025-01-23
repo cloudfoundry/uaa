@@ -361,14 +361,16 @@ Here are some ways for you to get involved in the community:
 Requirements:
 * [Docker](https://docs.docker.com/engine/reference/commandline/cli/)
 * [Docker Compose](https://docs.docker.com/compose/reference/)
-
+* `scripts` directory is visible to be mounted (see `docker-compose.yml` volumes)
 To debug UAA and LDAP integrations, we use an OpenLdap docker image from [VMWare's Bitnami project](https://github.com/bitnami/bitnami-docker-openldap)
 
-1. Modify file `uaa/src/main/resources/uaa.yml` and enable LDAP by uncommenting line 7, `spring_profiles: ldap,default,hsqldb`
-1. run `docker-compose up` from directory `scripts/ldap`
-2. From `scripts/ldap` verify connectivity to running OpenLdap container by running `docker-confirm-ldapquery.sh`
-3. Start UAA with `./gradlew run`
-4. Navigate to [`/uaa`](http://localhost:8080/uaa) and log in with LDAP user `user01` and password `password1`
+1. run `docker compose up` from directory `scripts/`
+
+1. From `scripts/ldap` verify connectivity to running OpenLdap container by running `docker-confirm-ldapquery.sh` - this uses TLS on port 636
+
+1. Start UAA with `./gradlew run -Dspring.profiles.active=ldap,default` (profiles can also be modified using the spring_profiles attribute in uaa/src/main/resources/uaa.yml)
+
+1. Navigate to [`/uaa`](http://localhost:8080/uaa) and log in with LDAP user `user01` and password `password1`
 
 Use below command to clean-up container and volume:
 - `docker-compose down --volumes`

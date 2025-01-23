@@ -207,6 +207,16 @@ userPassword: ldap11
 uid: 20f459e0-e30b-4d1f-998c-3ded7f769d10
 sn: Marissa11
 
+dn: cn=user01,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: user01
+userPassword: password1
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769d01
+sn: User01
+
 ###############################################################################
 #        BEGIN GROUP TO SCOPE MAPPING
 ###############################################################################
