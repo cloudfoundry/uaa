@@ -8,6 +8,10 @@ import org.cloudfoundry.identity.uaa.oauth.provider.token.AbstractTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 
+import java.util.List;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_PRIVATE_KEY_JWT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 
 /**
@@ -19,6 +23,8 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
  * Scope: OAuth2 server
  */
 public class ClientCredentialsTokenGranter extends AbstractTokenGranter {
+
+    private static final List<String> ALLOWED_AUTH_METHODS = List.of(CLIENT_AUTH_SECRET, CLIENT_AUTH_PRIVATE_KEY_JWT);
 
     public ClientCredentialsTokenGranter(AuthorizationServerTokenServices tokenServices,
             ClientDetailsService clientDetailsService, OAuth2RequestFactory requestFactory) {
@@ -33,7 +39,7 @@ public class ClientCredentialsTokenGranter extends AbstractTokenGranter {
     @Override
     public OAuth2AccessToken grant(String grantType, TokenRequest tokenRequest) {
         OAuth2AccessToken token = super.grant(grantType, tokenRequest);
-        if (token != null) {
+        if (token != null && isValidClientAuthentication(ALLOWED_AUTH_METHODS)) {
             DefaultOAuth2AccessToken norefresh = new DefaultOAuth2AccessToken(token);
             // The spec says that client credentials should not be allowed to get a refresh token
             norefresh.setRefreshToken(null);
@@ -41,5 +47,4 @@ public class ClientCredentialsTokenGranter extends AbstractTokenGranter {
         }
         return token;
     }
-
 }

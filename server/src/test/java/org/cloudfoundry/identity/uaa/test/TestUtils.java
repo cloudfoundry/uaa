@@ -116,7 +116,7 @@ public class TestUtils {
         tryCallAfterPropertiesSet(applicationContext, ScimUserBootstrap.class);
 
         try {
-            ClientAdminBootstrap bootstrap = applicationContext.getBean("defaultClientAdminBootstrap", ClientAdminBootstrap.class);
+            ClientAdminBootstrap bootstrap = applicationContext.getBean(ClientAdminBootstrap.class);
             bootstrap.afterPropertiesSet();
         } catch (Exception ignored) {
 

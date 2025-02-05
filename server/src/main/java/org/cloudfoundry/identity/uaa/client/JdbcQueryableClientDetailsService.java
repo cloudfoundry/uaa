@@ -41,7 +41,7 @@ public class JdbcQueryableClientDetailsService
 
     public JdbcQueryableClientDetailsService(
             final @Qualifier("jdbcClientDetailsService") MultitenantJdbcClientDetailsService delegate,
-            final @Qualifier("namedJdbcTemplate") NamedParameterJdbcTemplate jdbcTemplate,
+            final NamedParameterJdbcTemplate jdbcTemplate,
             final JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ClientDetailsRowMapper());
         this.delegate = delegate;

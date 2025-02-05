@@ -16,15 +16,24 @@ import static org.awaitility.Awaitility.await;
  * as well as performing common page actions like logging out and clearing cookies.
  */
 public class Page {
+
+    // This is the global setting that selenium waits during operations.
+    // It should be small, as changing this value will increase the time tests take to run.
+    protected static final Duration IMPLICIT_WAIT_SECONDS = Duration.ofSeconds(5);
+
+    // This is used to control the max time that awaitility will check to see if
+    // an assertion passes, before failing the test.
+    protected static final Duration AWAIT_AT_MOST_SECONDS = Duration.ofSeconds(30);
+
     protected WebDriver driver;
 
     public Page(WebDriver driver) {
         this.driver = driver;
-        driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(5));
+        driver.manage().timeouts().implicitlyWait(IMPLICIT_WAIT_SECONDS);
     }
 
     public static AbstractStringAssert<?> assertThatUrlEventuallySatisfies(WebDriver driver, Consumer<AbstractStringAssert<?>> assertUrl) {
-        await().atMost(Duration.ofSeconds(5))
+        await().atMost(AWAIT_AT_MOST_SECONDS)
                 .untilAsserted(() -> assertUrl.accept(assertThatUrl(driver)));
         return assertThatUrl(driver);
     }
@@ -34,7 +43,7 @@ public class Page {
     }
 
     public AbstractStringAssert<?> assertThatUrlEventuallySatisfies(Consumer<AbstractStringAssert<?>> assertUrl) {
-        await().atMost(Duration.ofSeconds(5))
+        await().atMost(AWAIT_AT_MOST_SECONDS)
                 .untilAsserted(() -> assertUrl.accept(assertThatUrl(driver)));
         return assertThatUrl();
     }

@@ -1,17 +1,15 @@
 package org.cloudfoundry.identity.uaa.db.beans;
 
-import javax.sql.DataSource;
-import org.cloudfoundry.identity.uaa.db.DataSourceAccessor;
 import org.cloudfoundry.identity.uaa.db.FixFailedBackportMigrations_4_0_4;
-import org.cloudfoundry.identity.uaa.db.postgresql.V1_5_3__InitialDBScript;
 import org.flywaydb.core.Flyway;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Condition;
 import org.springframework.context.annotation.ConditionContext;
 import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.AnnotatedTypeMetadata;
+
+import javax.sql.DataSource;
 
 @Configuration
 public class FlywayConfiguration {
@@ -25,20 +23,12 @@ public class FlywayConfiguration {
      */
     static final String VERSION_TABLE = "schema_version";
 
-    /**
-     * @param dataSourceAccessor This bean does NOT need need an instance of {@link DataSourceAccessor}.
-   *                           However, other Flyway objects (example {@link V1_5_3__InitialDBScript}
-   *                           DO make use of {@link DataSourceAccessor}
-     */
     @Bean
-    public Flyway baseFlyway(
-            DataSource dataSource,
-            DataSourceAccessor dataSourceAccessor,
-            @Qualifier("platform") String platform) {
+    public Flyway baseFlyway(DataSource dataSource, DatabaseProperties databaseProperties) {
         return Flyway.configure()
                 .baselineOnMigrate(true)
                 .dataSource(dataSource)
-                .locations("classpath:org/cloudfoundry/identity/uaa/db/" + platform + "/")
+                .locations("classpath:org/cloudfoundry/identity/uaa/db/" + databaseProperties.getDatabasePlatform().type + "/")
                 .baselineVersion("1.5.2")
                 .validateOnMigrate(false)
                 .table(VERSION_TABLE)
@@ -64,7 +54,7 @@ public class FlywayConfiguration {
             baseFlyway.repair();
             baseFlyway.migrate();
             org.apache.tomcat.jdbc.pool.DataSource ds =
-                    (org.apache.tomcat.jdbc.pool.DataSource)baseFlyway.getConfiguration().getDataSource();
+                    (org.apache.tomcat.jdbc.pool.DataSource) baseFlyway.getConfiguration().getDataSource();
             ds.purge();
             return baseFlyway;
         }

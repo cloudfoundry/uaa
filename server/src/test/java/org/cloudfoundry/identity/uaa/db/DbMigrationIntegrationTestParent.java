@@ -1,24 +1,16 @@
 package org.cloudfoundry.identity.uaa.db;
 
+import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.sql.SQLException;
 
-
-@ExtendWith(SpringExtension.class)
-@ContextConfiguration(locations = {
-        "classpath:spring/env.xml",
-        "classpath:spring/jdbc-test-base-add-flyway.xml",
-        "classpath:spring/data-source.xml",
-})
+@WithDatabaseContext
 public abstract class DbMigrationIntegrationTestParent {
 
     @Autowired

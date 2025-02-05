@@ -6,8 +6,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
-import org.cloudfoundry.identity.uaa.db.Vendor;
+import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -130,8 +129,6 @@ class OpenSaml4AuthenticationProviderUaaTests {
     private static final String TEST_USERNAME = "test@saml.user";
     private static final String TEST_PHONE_NUMBER = "123-456-7890";
 
-    @Autowired
-    NamedParameterJdbcTemplate namedJdbcTemplate;
 
     private JdbcIdentityProviderProvisioning providerProvisioning;
     private CreateUserPublisher publisher;
@@ -146,12 +143,17 @@ class OpenSaml4AuthenticationProviderUaaTests {
     private ScimGroup uaaSamlAdmin;
     private IdentityZoneManager identityZoneManager;
     private SamlAuthenticationFilterConfig samlAuthenticationFilterConfig;
+
+    @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
     @Autowired
     private JdbcTemplate jdbcTemplate;
     @Autowired
     private LimitSqlAdapter limitSqlAdapter;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private DatabaseProperties databaseProperties;
 
     private static ScimUser createSamlUser(String username, String zoneId,
                                            ScimUserProvisioning userProvisioning) {
@@ -247,11 +249,8 @@ class OpenSaml4AuthenticationProviderUaaTests {
                 identityZoneManager.getCurrentIdentityZone().getId());
 
         TimeService timeService = mock(TimeService.class);
-        DatabaseUrlModifier databaseUrlModifier = mock(DatabaseUrlModifier.class);
-        when(databaseUrlModifier.getDatabaseType()).thenReturn(Vendor.unknown);
-        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, false,
-                identityZoneManager,
-                databaseUrlModifier, new DbUtils());
+        userDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, databaseProperties,
+                identityZoneManager, new DbUtils());
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);
 

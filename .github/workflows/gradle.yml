@@ -24,4 +24,4 @@ jobs:
           distribution: 'liberica'
           java-version: ${{ matrix.java }}
           cache: 'gradle'
-      - run: ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test
+      - run: ./gradlew --no-daemon -Dspring.profiles.active=hsqldb -DfailOnPassedAfterRetry=false --no-daemon test

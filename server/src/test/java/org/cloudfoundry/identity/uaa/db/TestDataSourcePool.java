@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -12,15 +12,14 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TestDataSourcePool {
 
     @Autowired
-    @Qualifier("validationQuery")
-    private String validationQuery;
+    private DatabaseProperties databaseProperties;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Test
     void validationQuery() {
-        int i = jdbcTemplate.queryForObject(this.validationQuery, Integer.class);
+        int i = jdbcTemplate.queryForObject(this.databaseProperties.getValidationQuery(), Integer.class);
         assertThat(i).isOne();
     }
 

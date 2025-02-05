@@ -65,6 +65,7 @@ public class TokenConstants {
 
     public static final String CLIENT_AUTH_NONE = ClientAuthentication.NONE;
     public static final String CLIENT_AUTH_EMPTY = "empty";
+    public static final String CLIENT_AUTH_SECRET = "secret";
     public static final String CLIENT_AUTH_PRIVATE_KEY_JWT = ClientAuthentication.PRIVATE_KEY_JWT;
 
     public static final String ID_TOKEN_HINT_PROMPT = "prompt";

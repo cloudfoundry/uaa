@@ -106,8 +106,8 @@ class ScimGroupEndpointsMockMvcTests {
         this.testClient = testClient;
 
         if (originalDatabaseExternalMembers == null) {
-            originalDefaultExternalMembers = (List<String>) this.webApplicationContext.getBean("defaultExternalMembers");
             originalDatabaseExternalMembers = this.webApplicationContext.getBean(JdbcScimGroupExternalMembershipManager.class).getExternalGroupMappings(IdentityZoneHolder.get().getId());
+            originalDefaultExternalMembers = originalDatabaseExternalMembers.stream().map(m -> (m.getDisplayName() + "|" + m.getExternalGroup())).toList();
         }
 
         if (bootstrap == null) {
@@ -1091,7 +1091,7 @@ class ScimGroupEndpointsMockMvcTests {
 
     @Test
     void delete_user_not_member_of_group() throws Exception {
-        String groupId = getGroupId("acme");
+        String groupId = getGroupId("uaa.admin");
         mockMvc.perform(delete("/Groups/" + groupId + "/members/" + scimUser.getId())
                         .header("Authorization", "Bearer " + scimWriteToken)
                         .header("Content-Type", APPLICATION_JSON_VALUE))

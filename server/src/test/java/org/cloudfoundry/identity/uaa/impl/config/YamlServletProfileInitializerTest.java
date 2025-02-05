@@ -379,9 +379,9 @@ class YamlServletProfileInitializerTest {
 
         @Test
         void ifProfilesAreSetUseThem() {
-            System.setProperty("spring.profiles.active", "hsqldb,default");
+            System.setProperty("spring.profiles.active", "hsqldb,ldap");
             YamlServletProfileInitializer.applySpringProfiles(environment);
-            assertActiveProfilesAre(environment, "hsqldb", "default");
+            assertActiveProfilesAre(environment, "hsqldb", "ldap");
         }
 
         @Test
@@ -394,10 +394,10 @@ class YamlServletProfileInitializerTest {
 
         @Test
         void yamlConfiguredProfilesAreUsed() {
-            System.setProperty("spring.profiles.active", "hsqldb,default");
-            environment.setProperty("spring_profiles", "mysql,default");
+            System.setProperty("spring.profiles.active", "hsqldb,ldap");
+            environment.setProperty("spring_profiles", "mysql,ldap");
             YamlServletProfileInitializer.applySpringProfiles(environment);
-            assertActiveProfilesAre(environment, "mysql", "default");
+            assertActiveProfilesAre(environment, "mysql", "ldap");
         }
     }
 

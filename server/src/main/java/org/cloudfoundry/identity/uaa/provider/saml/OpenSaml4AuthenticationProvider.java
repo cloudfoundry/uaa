@@ -224,8 +224,8 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             String destination = response.getDestination();
             String location = token.getRelyingPartyRegistration().getAssertionConsumerServiceLocation();
             if (StringUtils.hasText(destination) && !destination.equals(location)) {
-                String message = "Invalid destination [" + destination + "] for SAML response [" + response.getID()
-                        + "]";
+                String message = "Invalid destination [%s], location [%s] combo for SAML response [%s]"
+                        .formatted(destination, location, response.getID());
                 result = result.concat(new Saml2Error(Saml2ErrorCodes.INVALID_DESTINATION, message));
             }
             String assertingPartyEntityId = token.getRelyingPartyRegistration()

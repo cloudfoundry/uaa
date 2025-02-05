@@ -27,6 +27,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         if: env.SONAR_TOKEN != ''
         run: >- 
-          ./gradlew --no-daemon -Dspring.profiles.active=default,hsqldb -DfailOnPassedAfterRetry=false --no-daemon test jacocoTestReport || true;
+          ./gradlew --no-daemon -Dspring.profiles.active=hsqldb -DfailOnPassedAfterRetry=false --no-daemon test jacocoTestReport || true;
           ./gradlew --no-daemon sonar;
           ./gradlew --no-daemon jacocoTestReport;

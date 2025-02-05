@@ -232,7 +232,7 @@ class IdentityProviderBootstrapTest {
         assertThat(ldapProvider.getType()).isEqualTo(LDAP);
         assertThat(ldapProvider.isActive()).isTrue();
 
-        environment.setActiveProfiles("default");
+        environment.setActiveProfiles("hsqldb");
         bootstrap.afterPropertiesSet();
         ldapProvider = provisioning.retrieveByOriginIgnoreActiveFlag(LDAP, IdentityZone.getUaaZoneId());
         assertThat(ldapProvider).isNotNull();
