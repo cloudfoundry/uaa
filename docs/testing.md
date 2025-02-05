@@ -38,13 +38,13 @@ If you wish to launch only one of the DBs, select the appropriate service name:
 To run tests against either Postgres or MySQL, use the `postgresql` or `mysql` profile, to select the DB. Be sure
 to add the `default` profile which will trigger seeding the database with some admin users, clients, etc. For example:
 
-    $ ./gradlew '-Dspring.profiles.active=mysql,default test
+    $ ./gradlew '-Dspring.profiles.active=mysql test
 
 To run tests from your IDE against a given database, you can (temporarily) annotate the test class:
 
 ```java
 
-@ActiveProfiles({"mysql", "default"})
+@ActiveProfiles({"mysql"})
 class MyCustomTests {
     @Test
     void foo() {

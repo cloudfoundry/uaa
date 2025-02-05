@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -1115,8 +1116,9 @@ public abstract class AbstractLdapMockMvcTest {
 
     void transferDefaultMappingsToZone(IdentityZone zone) {
         JdbcScimGroupExternalMembershipManager exm = getWebApplicationContext().getBean(JdbcScimGroupExternalMembershipManager.class);
+        List<ScimGroupExternalMember> defaultExternalMembers = exm.getExternalGroupMappings(IdentityZone.getUaaZoneId());
+        List<String> defaultMappings = defaultExternalMembers.stream().map(m -> (m.getDisplayName()+"|"+m.getExternalGroup())).toList();
         ScimGroupProvisioning gp = getWebApplicationContext().getBean(ScimGroupProvisioning.class);
-        List<String> defaultMappings = (List<String>) getWebApplicationContext().getBean("defaultExternalMembers");
         IdentityZoneHolder.set(zone);
         for (String s : defaultMappings) {
             String[] groupData = StringUtils.split(s, "|");

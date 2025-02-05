@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.cloudfoundry.identity.uaa.ServerRunningExtension;
+import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFailExtension;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
@@ -8,13 +9,11 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.api.AfterAll;
+
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,11 +36,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @ExtendWith(ScreenshotOnFailExtension.class)
+@EnabledIfProfile("ldap")
 class LdapLoginIT {
 
     @Autowired
@@ -64,18 +65,11 @@ class LdapLoginIT {
     private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
     private String zoneAdminToken;
-    private static InMemoryLdapServer server;
     private Optional<String> alertError = Optional.empty();
 
-    @BeforeAll
-    static void startLocalLdap() {
-        server = InMemoryLdapServer.startLdap();
-    }
+    private final String LDAP_URL = "ldap://localhost:389";
+    private final String LDAPS_URL = "ldaps://localhost:636";
 
-    @AfterAll
-    static void stopLocalLdap() {
-        server.stop();
-    }
 
     @BeforeEach
     void clearWebDriverOfCookies() {
@@ -105,9 +99,9 @@ class LdapLoginIT {
     }
 
     @Test
-    void ldapLogin_with_StartTLS() {
+    public void ldapLogin_with_StartTLS() throws Exception {
         Long beforeTest = System.currentTimeMillis();
-        performLdapLogin("testzone2", server.getUrl(), "marissa4", "ldap4");
+        performLdapLogin("testzone2", LDAP_URL, "marissa4", "ldap4", LDAP_TLS_SIMPLE);
         Long afterTest = System.currentTimeMillis();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
         ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, "testzone2", "marissa4");
@@ -116,13 +110,24 @@ class LdapLoginIT {
     }
 
     @Test
-    void ldap_login_using_utf8_characters() {
-        performLdapLogin("testzone2", server.getUrl(), "\u7433\u8D3A", "koala");
+    public void ldapLogin_with_TLS() throws Exception {
+        Long beforeTest = System.currentTimeMillis();
+        performLdapLogin("testzone2", LDAPS_URL, "marissa5", "ldap5", LDAP_TLS_NONE);
+        Long afterTest = System.currentTimeMillis();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
+        ScimUser user = IntegrationTestUtils.getUserByZone(zoneAdminToken, baseUrl, "testzone2", "marissa5");
+        IntegrationTestUtils.validateUserLastLogon(user, beforeTest, afterTest);
+        IntegrationTestUtils.validateAccountChooserCookie(baseUrl.replace("localhost", "testzone2.localhost"), webDriver, IdentityZoneHolder.get());
+    }
+
+    @Test
+    public void ldap_login_using_utf8_characters() throws Exception {
+        performLdapLogin("testzone2", LDAP_URL, "\u7433\u8D3A", "koala", LDAP_TLS_NONE);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
     }
 
-    private void performLdapLogin(String subdomain, String ldapUrl, String username, String password) {
-        //ensure that certs have been added to truststore via Gradle
+    private void performLdapLogin(String subdomain, String ldapUrl, String username, String password, String tlsConfiguration) {
+        //ensure that certs have been added to truststore via gradle
         String zoneUrl = baseUrl.replace("localhost", subdomain + ".localhost");
 
         //identity client token
@@ -169,7 +174,7 @@ class LdapLoginIT {
                 true,
                 100,
                 true);
-        ldapIdentityProviderDefinition.setTlsConfiguration(LDAP_TLS_NONE);
+        ldapIdentityProviderDefinition.setTlsConfiguration(tlsConfiguration);
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(subdomain);

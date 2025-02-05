@@ -117,7 +117,7 @@ To load JDWP agent for UAA jvm debugging, start the server as follows:
 ```
 or
 ```sh
-./gradlew -Dspring.profiles.active=default,hsqldb,debug run
+./gradlew -Dspring.profiles.active=hsqldb,debug run
 ```
 You can then attach your debugger to port 5005 of the jvm process.
 
@@ -128,7 +128,7 @@ debugging start-up code), start the server as follows:
 ```
 or
 ```sh
-./gradlew -Dspring.profiles.active=default,hsqldb,debugs run
+./gradlew -Dspring.profiles.active=hsqldb,debugs run
 ```
 
 ## Running local UAA server with different databases
@@ -147,7 +147,7 @@ mysql> create database uaa;
 ```
 3. Run the UAA server with the mysql profile
 ```sh
-% ./gradlew -Dspring.profiles.active=mysql,default run
+% ./gradlew -Dspring.profiles.active=mysql run
 ```
 
 ### PostgreSQL
@@ -165,7 +165,7 @@ create user root with superuser password 'changeme';
 ```
 3. Run the UAA server with the postgresql profile
 ```sh
-% ./gradlew -Dspring.profiles.active=postgresql,default run
+% ./gradlew -Dspring.profiles.active=postgresql run
 ```
 4. Once the UAA server started, you can see the tables created in the uaa database (e.g. in psql interactive session)
 ```postgresql
@@ -229,7 +229,7 @@ If you wish to launch only one of the DBs, select the appropriate service name:
 
 Then run the test with the appropriate profile:
 
-    $ ./gradlew '-Dspring.profiles.active=postgresql,default' \
+    $ ./gradlew '-Dspring.profiles.active=postgresql' \
         --no-daemon \
         test
 
@@ -364,7 +364,7 @@ Requirements:
 
 To debug UAA and LDAP integrations, we use an OpenLdap docker image from [VMWare's Bitnami project](https://github.com/bitnami/bitnami-docker-openldap)
 
-1. Modify file `uaa/src/main/resources/uaa.yml` and enable LDAP by uncommenting line 7, `spring_profiles: ldap,default,hsqldb`
+1. Modify file `uaa/src/main/resources/uaa.yml` and enable LDAP by uncommenting line 7, `spring_profiles: ldap,hsqldb`
 1. run `docker-compose up` from directory `scripts/ldap`
 2. From `scripts/ldap` verify connectivity to running OpenLdap container by running `docker-confirm-ldapquery.sh`
 3. Start UAA with `./gradlew run`

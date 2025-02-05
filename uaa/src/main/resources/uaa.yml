@@ -2,12 +2,12 @@
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUDFOUNDRY_CONFIG_PATH/uaa.yml]
 
-#spring_profiles: mysql,default,ldap
-#spring_profiles: postgresql,default
-#spring_profiles: ldap,default,hsqldb
+#spring_profiles: mysql,ldap
+#spring_profiles: postgresql
+#spring_profiles: ldap,hsqldb
 #spring_profiles: ldap
 #spring_profiles: saml
-#spring_profiles: keystone,default,hsqldb
+#spring_profiles: keystone,hsqldb
 
 #database:
 #  driverClassName: org.postgresql.Driver

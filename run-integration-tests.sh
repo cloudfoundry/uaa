@@ -51,4 +51,4 @@ docker run --privileged -t -i --shm-size=1G \
   --env RUN_TESTS="${RUN_TESTS:-true}" \
   --publish 8081:8080 \
   "${DOCKER_IMAGE}" \
-  /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}",default "${CONTAINER_SCRIPT_DIR}"
+  /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}" "${CONTAINER_SCRIPT_DIR}"

@@ -18,6 +18,7 @@ import java.util.Map;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Component;
 
 /**
  * Singleton factory for creating a JdbcPagingList instance with the correct DB
@@ -25,6 +26,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  * 
  * @author Mike Youngstrom
  */
+@Component
 public class JdbcPagingListFactory {
 
     private final NamedParameterJdbcTemplate jdbcTemplate;

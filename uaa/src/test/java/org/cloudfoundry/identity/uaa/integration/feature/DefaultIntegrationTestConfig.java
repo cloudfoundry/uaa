@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.openqa.selenium.Dimension;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.beans.factory.annotation.Value;
@@ -64,7 +63,6 @@ public class DefaultIntegrationTestConfig {
                 .implicitlyWait(IMPLICIT_WAIT_TIME.multipliedBy(timeoutMultiplier))
                 .pageLoadTimeout(PAGE_LOAD_TIMEOUT.multipliedBy(timeoutMultiplier))
                 .scriptTimeout(SCRIPT_TIMEOUT.multipliedBy(timeoutMultiplier));
-        driver.manage().window().setSize(new Dimension(1024, 768));
         return driver;
     }
 
@@ -73,9 +71,7 @@ public class DefaultIntegrationTestConfig {
         options.addArguments(
                 "--verbose",
                 // Comment the following line to run selenium test browser in Headed Mode
-                "--headless=old",
-                "--window-position=-2400,-2400",
-                "--window-size=1024,768",
+                "--headless",
                 "--disable-web-security",
                 "--ignore-certificate-errors",
                 "--allow-running-insecure-content",

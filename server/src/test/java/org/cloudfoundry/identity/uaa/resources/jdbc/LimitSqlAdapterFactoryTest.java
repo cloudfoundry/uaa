@@ -29,20 +29,20 @@ class LimitSqlAdapterFactoryTest {
                     Arguments.of(emptyList(), HsqlDbLimitSqlAdapter.class),
 
                     Arguments.of(Collections.singletonList("hsqldb"), HsqlDbLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("hsqldb", "default"), HsqlDbLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("default", "hsqldb"), HsqlDbLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("hsqldb", "ldap"), HsqlDbLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("ldap", "hsqldb"), HsqlDbLimitSqlAdapter.class),
 
                     Arguments.of(Collections.singletonList("postgresql"), PostgresLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("postgresql", "default"), PostgresLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("default", "postgresql"), PostgresLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("postgresql", "ldap"), PostgresLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("ldap", "postgresql"), PostgresLimitSqlAdapter.class),
 
                     Arguments.of(Collections.singletonList("mysql"), MySqlLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("mysql", "default"), MySqlLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("default", "mysql"), MySqlLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("mysql", "ldap"), MySqlLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("ldap", "mysql"), MySqlLimitSqlAdapter.class),
 
-                    Arguments.of(Arrays.asList("hsqldb", "mysql", "postgresql", "default"), PostgresLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("hsqldb", "mysql", "default"), MySqlLimitSqlAdapter.class),
-                    Arguments.of(Arrays.asList("hsqldb", "default"), HsqlDbLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("hsqldb", "mysql", "postgresql", "ldap"), PostgresLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("hsqldb", "mysql", "ldap"), MySqlLimitSqlAdapter.class),
+                    Arguments.of(Arrays.asList("hsqldb", "ldap"), HsqlDbLimitSqlAdapter.class),
                     Arguments.of(Collections.singletonList("hsqldb"), HsqlDbLimitSqlAdapter.class),
 
                     Arguments.of(Collections.singletonList("anything"), HsqlDbLimitSqlAdapter.class)

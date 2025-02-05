@@ -1,6 +1,10 @@
 #!/bin/bash
 
+## TODO - remove this script. The ../docker-compose.yml has a container with the same setup
+
 set -e
+
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 cd `dirname $0`/../..
 
@@ -49,5 +53,5 @@ olcTLSCertificateKeyFile: /etc/ssl/private/ldap01_slapd_key.pem" > /etc/ssl/cert
 
 fi
 
-sudo ldapadd -Y EXTERNAL -H ldapi:/// -f uaa/src/test/resources/ldap_db_init.ldif
-sudo ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f uaa/src/test/resources/ldap_init.ldif
+sudo ldapadd -Y EXTERNAL -H ldapi:/// -f ${SCRIPT_DIR}/ldap_slapd_schema.ldif
+sudo ldapadd -x -D 'cn=admin,dc=test,dc=com' -w password -f ${SCRIPT_DIR}/ldap_slapd_data.ldif

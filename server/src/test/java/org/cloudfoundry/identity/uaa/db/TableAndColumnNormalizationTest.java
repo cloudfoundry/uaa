@@ -1,18 +1,22 @@
 package org.cloudfoundry.identity.uaa.db;
 
+import org.cloudfoundry.identity.uaa.db.beans.DatabaseConfiguration;
+import org.cloudfoundry.identity.uaa.db.beans.FlywayConfiguration;
+import org.cloudfoundry.identity.uaa.db.beans.JdbcUrlCustomizer;
 import org.cloudfoundry.identity.uaa.db.mysql.V1_5_4__NormalizeTableAndColumnNames;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
+import org.cloudfoundry.identity.uaa.test.TestDatabaseNameCustomizer;
 import org.cloudfoundry.identity.uaa.util.beans.PasswordEncoderConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.ApplicationContextInitializer;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.ImportResource;
-import org.springframework.core.env.MapPropertySource;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.annotation.Order;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 
@@ -20,46 +24,38 @@ import javax.sql.DataSource;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
-import java.util.Arrays;
-import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@ImportResource(locations = {
-        "classpath:spring/env.xml",
-        "classpath:spring/jdbc-test-base-add-flyway.xml",
-        "classpath:spring/data-source.xml",
-})
-class TableAndColumnNormalizationTestConfiguration {
-}
 
 /**
  * For MySQL, the database name is hardcoded in the {@link V1_5_4__NormalizeTableAndColumnNames} migration as
- * {@code uaa}. But the {@link UaaDatabaseName} class dynamically allocates a DB name based on the gradle worker id,
- * like {@code uaa_1, uaa_2m ...}.
+ * {@code uaa}. But the {@link TestDatabaseNameCustomizer} class dynamically allocates a DB name based on the
+ * gradle worker id, like {@code uaa_1, uaa_2 ...}.
  * <p>
  * When the profile is {@code mysql}, hardcode the DB url to have the database name equal to {@code uaa}.
+ * <p>
+ * This customizer must happen after {@link TestDatabaseNameCustomizer}, hence the higher order.
  */
-class MySQLInitializer implements ApplicationContextInitializer<ConfigurableApplicationContext> {
-    @Override
-    public void initialize(ConfigurableApplicationContext applicationContext) {
-        var profiles = Arrays.asList(applicationContext.getEnvironment().getActiveProfiles());
-        if (profiles.contains("mysql")) {
-            Map<String, Object> dynamicProperties = Map.of("database.url", "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true");
-            MapPropertySource propertySource = new MapPropertySource("mysql-override", dynamicProperties);
-            applicationContext.getEnvironment().getPropertySources().addLast(propertySource);
-        }
+@Configuration
+class MySQLConfiguration {
+    @Bean
+    @Order(TestDatabaseNameCustomizer.ORDER + 1)
+    @Profile("mysql")
+    JdbcUrlCustomizer mysqlHardcodedJdbcUrlCustomizer() {
+        return url -> "jdbc:mysql://127.0.0.1:3306/uaa?useSSL=true&trustServerCertificate=true";
     }
 }
 
 @ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
 @SpringJUnitConfig(classes = {
-        TableAndColumnNormalizationTestConfiguration.class,
-        PasswordEncoderConfig.class
-},
-        initializers = MySQLInitializer.class
-)
+        PasswordEncoderConfig.class,
+        FlywayConfiguration.class,
+        DatabaseConfiguration.class,
+        TestDatabaseNameCustomizer.class,
+        MySQLConfiguration.class
+})
 @EnabledIfProfile({"postgresql", "mysql"})
 class TableAndColumnNormalizationTest {
 

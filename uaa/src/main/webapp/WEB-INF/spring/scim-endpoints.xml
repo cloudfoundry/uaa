@@ -9,30 +9,6 @@
         http://www.springframework.org/schema/beans https://www.springframework.org/schema/beans/spring-beans.xsd
         http://www.springframework.org/schema/util https://www.springframework.org/schema/util/spring-util.xsd">
 
-    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
-        <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
-                <constructor-arg name="paramsMap">
-                    <map key-type="java.lang.String" value-type="java.lang.String">
-                        <entry key="emails\.value" value="email"/>
-                        <entry key="groups\.display" value="authorities"/>
-                        <entry key="phoneNumbers\.value" value="phoneNumber"/>
-                    </map>
-                </constructor-arg>
-            </bean>
-        </property>
-        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
-    </bean>
-
-    <bean id="scimJoinQueryConverter" class="org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter">
-        <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.resources.JoinAttributeNameMapper">
-                <constructor-arg name="name" value="u"/>
-            </bean>
-        </property>
-        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
-    </bean>
-
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
         <constructor-arg name="minLength" value="${password.policy.global.minLength:0}"/>
         <constructor-arg name="maxLength" value="${password.policy.global.maxLength:255}"/>
@@ -257,7 +233,7 @@
 
     <bean id="users" class="org.springframework.beans.factory.config.ListFactoryBean">
         <property name="sourceList"
-                              value="#{(@config['scim']==null or @config['scim']['users']==null)?@defaultUsers:@config['scim']['users']}"/>
+                              value="#{(@config['scim']==null or @config['scim']['users']==null)?@hack_emptyList:@config['scim']['users']}"/>
     </bean>
 
     <bean id="scimUserBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap">
@@ -311,60 +287,17 @@
 
     <bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
         <property name="sourceList"
-                              value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}"/>
+                              value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@hack_emptyList:@config['scim']['group_membership']}"/>
     </bean>
 
     <bean id="scimExternalGroupsTypeResolvingFactory"
                     class="org.cloudfoundry.identity.uaa.impl.config.ScimExternalGroupsTypeResolvingFactoryBean">
         <constructor-arg
-                              value="#{(@config['scim']==null or @config['scim']['external_groups']==null)?@defaultExternalMembers:@config['scim']['external_groups']}"/>
+                              value="#{(@config['scim']==null or @config['scim']['external_groups']==null)?@hack_emptyList:@config['scim']['external_groups']}"/>
     </bean>
 
     <bean id="externalGroups" class="java.util.HashMap" factory-bean="scimExternalGroupsTypeResolvingFactory"
                     factory-method="getExternalGroups"/>
 
-    <util:list id="defaultUsers"/>
-    <util:list id="defaultMembers"/>
-    <util:list id="defaultExternalMembers">
-        <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
-    </util:list>
-
-    <beans profile="default">
-        <util:list id="defaultUsers">
-            <value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user</value>
-            <value>testbootuser|password|testbootuser@test.org|Test|Bootstrap|uaa.user,scim.read</value>
-            <value>admin|admin|admin|||foo.bar,uaa.admin|uaa</value>
-        </util:list>
-        <util:list id="defaultMembers">
-            <value>acme|acme.dev,acme.qa</value>
-            <value>acme.dev|marissa</value>
-        </util:list>
-        <util:list id="defaultExternalMembers">
-            <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
-            <value>internal.read|cn=developers,ou=scopes,dc=test,dc=com</value>
-            <value>internal.write|cn=operators,ou=scopes,dc=test,dc=com</value>
-            <value>internal.everything|cn=superusers,ou=scopes,dc=test,dc=com</value>
-            <value>internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com</value>
-        </util:list>
-        <util:set id="nonDefaultUserGroups">
-            <value>scim.read</value>
-            <value>scim.write</value>
-            <value>scim.invite</value>
-            <value>uaa.resource</value>
-            <value>uaa.admin</value>
-            <value>clients.read</value>
-            <value>clients.write</value>
-            <value>clients.secret</value>
-            <value>cloud_controller.admin</value>
-            <value>clients.admin</value>
-            <value>zones.write</value>
-            <value>acme</value>
-            <value>acme.dev</value>
-            <value>acme.qa</value>
-            <value>organizations.acme</value>
-        </util:set>
-        <bean id="userIdsEnabled" class="java.lang.Boolean">
-            <constructor-arg value="${scim.userids_enabled:true}"/>
-        </bean>
-    </beans>
+    <util:list id="hack_emptyList"/>
 </beans>

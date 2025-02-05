@@ -2,8 +2,9 @@ package org.cloudfoundry.identity.uaa.user;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.db.DatabaseUrlModifier;
-import org.cloudfoundry.identity.uaa.db.Vendor;
+import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
+import org.cloudfoundry.identity.uaa.extensions.profiles.DisabledIfProfile;
+import org.cloudfoundry.identity.uaa.extensions.profiles.EnabledIfProfile;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -69,13 +70,15 @@ class JdbcUaaUserDatabaseTests {
     private IdentityZoneManager mockIdentityZoneManager;
     private Set<SimpleGrantedAuthority> defaultAuthorities;
     private DbUtils dbUtils;
-    private DatabaseUrlModifier databaseUrlModifier;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
     private Environment environment;
+
+    @Autowired
+    private DatabaseProperties databaseProperties;
 
     @BeforeEach
     void setUp() throws SQLException {
@@ -86,8 +89,6 @@ class JdbcUaaUserDatabaseTests {
 
         timeService = mock(TimeService.class);
 
-        databaseUrlModifier = new DatabaseUrlModifier(Vendor.unknown, ""); //Do not mock, so it works for all databases in Unit tests
-
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
         setUpIdentityZone(mockIdentityZoneManager);
 
@@ -95,9 +96,8 @@ class JdbcUaaUserDatabaseTests {
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(
                 jdbcTemplate,
                 timeService,
-                false,
+                databaseProperties,
                 mockIdentityZoneManager,
-                databaseUrlModifier,
                 dbUtils);
 
         // TODO: Don't need these checks
@@ -205,10 +205,11 @@ class JdbcUaaUserDatabaseTests {
     }
 
     @Test
-    void is_the_right_query_used() throws SQLException {
+    @DisabledIfProfile("mysql")
+    void hsqlPostgresqlCaseSensitive() throws SQLException {
         JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, false, mockIdentityZoneManager,
-                databaseUrlModifier, dbUtils);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
+                dbUtils);
 
         String username = new RandomValueStringGenerator().generate() + "@test.org";
 
@@ -216,10 +217,18 @@ class JdbcUaaUserDatabaseTests {
         verify(mockJdbcTemplate).queryForObject(eq(DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
         jdbcUaaUserDatabase.retrieveUserByEmail(username, OriginKeys.UAA);
         verify(mockJdbcTemplate).query(eq(DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
+    }
 
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, true, mockIdentityZoneManager,
-                databaseUrlModifier, dbUtils)
-        ;
+    @Test
+    @EnabledIfProfile("mysql")
+    void mysqlCaseInsensitive() throws SQLException {
+        JdbcTemplate mockJdbcTemplate = mock(JdbcTemplate.class);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
+                dbUtils);
+        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(mockJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
+                dbUtils);
+
         jdbcUaaUserDatabase.retrieveUserByName(username, OriginKeys.UAA);
         verify(mockJdbcTemplate).queryForObject(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
         jdbcUaaUserDatabase.retrieveUserByEmail(username, OriginKeys.UAA);
@@ -231,8 +240,11 @@ class JdbcUaaUserDatabaseTests {
     void getValidUserCaseInsensitive() throws SQLException {
         for (boolean caseInsensitive : Arrays.asList(true, false)) {
             try {
-                jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, caseInsensitive, mockIdentityZoneManager,
-                        databaseUrlModifier, dbUtils);
+                var dbProps = new DatabaseProperties();
+                dbProps.setEnvironment(environment);
+                dbProps.setCaseinsensitive(caseInsensitive);
+                jdbcUaaUserDatabase = new JdbcUaaUserDatabase(jdbcTemplate, timeService, dbProps, mockIdentityZoneManager,
+                        dbUtils);
                 UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("JOE", OriginKeys.UAA);
                 validateJoe(joe);
                 joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
@@ -283,8 +295,8 @@ class JdbcUaaUserDatabaseTests {
         addAuthority("additional", jdbcTemplate, "zone-the-first", JOE_ID);
         addAuthority("anotherOne", jdbcTemplate, "zone-the-first", JOE_ID);
         JdbcTemplate spiedJdbcTemplate = Mockito.spy(jdbcTemplate);
-        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(spiedJdbcTemplate, timeService, false, mockIdentityZoneManager,
-                databaseUrlModifier, dbUtils);
+        jdbcUaaUserDatabase = new JdbcUaaUserDatabase(spiedJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
+                dbUtils);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
         verify(spiedJdbcTemplate, times(2)).queryForList(anyString(), ArgumentMatchers.<String>any());
         List<GrantedAuthority> grantedAuthorities = (List<GrantedAuthority>) joe.getAuthorities();

@@ -2106,7 +2106,7 @@ class IdentityZoneEndpointsMockMvcTests {
                     .andExpect(status().isCreated());
         }
 
-        String userAccessToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read", IdentityZoneHolder.getCurrentZoneId());
+        String userAccessToken = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read");
 
         MvcResult result = mockMvc.perform(
                         get("/identity-zones/" + identityZone.getId())
@@ -2122,7 +2122,7 @@ class IdentityZoneEndpointsMockMvcTests {
         assertThat(zoneResult.getConfig().getSamlConfig().getPrivateKey()).isNull();
         assertThat(zoneResult.getConfig().getTokenPolicy().getKeys()).isEqualTo(emptyMap());
 
-        String userAccessTokenReadAndAdmin = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read " + "zones." + identityZone.getId() + ".admin ", IdentityZoneHolder.getCurrentZoneId());
+        String userAccessTokenReadAndAdmin = MockMvcUtils.getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read " + "zones." + identityZone.getId() + ".admin ");
         result = mockMvc.perform(
                         get("/identity-zones/" + identityZone.getId())
                                 .header("Authorization", "Bearer " + userAccessTokenReadAndAdmin)

@@ -1,7 +1,7 @@
 name: uaa
 
 services:
-  postgres:
+  postgresql:
     image: "postgres:15"
     ports:
       - 5432:5432
@@ -33,22 +33,19 @@ services:
       - TZ=${TZ}
     command:
       - --sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,PAD_CHAR_TO_FULL_LENGTH
-  openldap:
-    image: docker.io/bitnami/openldap:2.6
-    ports:
-      - '389:1389'
-      - '636:1636'
-    # docs of these env vars: https://github.com/bitnami/containers/tree/2724f9cd02b3b4e7986a1e2a0b0b30af3737bbd2/bitnami/openldap#configuration
-    environment:
-      - LDAP_ROOT=dc=test,dc=com
-      - LDAP_ADMIN_USERNAME=admin
-      - LDAP_ADMIN_PASSWORD=password
-      - LDAP_USERS=user01,user02
-      - LDAP_PASSWORDS=password1,password2
-      - LDAP_GROUP=some-ldap-group
-    volumes:
-      - 'openldap_data:/bitnami/openldap'
 
-volumes:
-  openldap_data:
-    driver: local
+  openldap:
+    build:
+      context: .
+      dockerfile: ldap/Dockerfile
+    ports:
+      - '389:389'
+      - '636:636'
+    entrypoint: [ "/bin/bash", "-c" ]
+    command:
+      - "/uaa/ldap/ldap-start-and-populate.sh"
+    tty: true
+    volumes:
+      - ./ldap:/uaa/ldap/
+      - ./certificates:/uaa/certificates/
+

@@ -18,7 +18,6 @@ buildscript {
         classpath(libraries.cargoGradlePlugin)
         classpath(libraries.springDependencyMangementGradlePlugin)
         classpath(libraries.springBootGradlePlugin)
-        classpath(libraries.testRetryPlugin)
         classpath(libraries.gradleJcocoPlugin)
         classpath(libraries.sonarqubePlugin)
     }
@@ -33,7 +32,6 @@ apply(plugin: "war")
 
 allprojects {
     apply(plugin: "io.spring.dependency-management")
-    apply(plugin: "org.gradle.test-retry")
     apply(plugin: "org.barfuin.gradle.jacocolog")
     apply(plugin: "org.sonarqube")
 
@@ -109,19 +107,6 @@ subprojects {
         failFast = false
         useJUnitPlatform()
         jvmArgs += ["-Xmx1024m", "-XX:+StartAttachListener", "-XX:+HeapDumpOnOutOfMemoryError", "-XX:HeapDumpPath=/var/log/uaa-tests.hprof"]
-
-        retry {
-            def failOnPassedAfterRetrySystemProperty = Boolean.parseBoolean(
-                    System.getProperty("failOnPassedAfterRetry", "false"));
-            if (!failOnPassedAfterRetrySystemProperty) {
-                logger.warn("retry: Flaky tests will not make the test run fail because failOnPassedAfterRetry is false.")
-            }
-
-            // Configure the retry extension
-            failOnPassedAfterRetry = failOnPassedAfterRetrySystemProperty
-            maxFailures = Integer.parseInt(System.getProperty("maxFailures", "3"))
-            maxRetries = Integer.parseInt(System.getProperty("maxRetries", "1"))
-        }
 
         testLogging {
             events("failed")
@@ -213,6 +198,10 @@ cargo {
         } else if (activeSpringProfiles.contains("debug") || Boolean.valueOf(System.getProperty("xdebug"))) {
             jvmArgs = String.format("%s -agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005", jvmArgs)
         }
+        String tlsDebug = System.getProperty("javax.net.debug");
+        if (tlsDebug?.trim()) {
+            jvmArgs = String.format("%s -Djavax.net.debug=%s", jvmArgs, tlsDebug)
+        }
 
         if (Boolean.valueOf(System.getProperty("xcoveragerun"))) {
             copy {
@@ -236,7 +225,7 @@ cargo {
 
         systemProperties {
             property("SECRETS_DIR", System.getProperty("SECRETS_DIR", file("scripts/cargo").getAbsolutePath()))
-            property("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+            property("spring.profiles.active", System.getProperty("spring.profiles.active", "hsqldb"))
             property("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))
             property("smtp.host", "localhost")
             property("smtp.port", 2525)
@@ -267,7 +256,7 @@ sonarqube {
 
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
-        it.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "default"))
+        it.systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "hsqldb"))
         it.systemProperty("testId", System.getProperty("testId", ""))
     }
 }

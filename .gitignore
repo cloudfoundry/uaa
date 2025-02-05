@@ -42,3 +42,8 @@ uaa/slateCustomizations/source/versionfile
 
 ci/dockerfile/Dockerfile
 logs/**
+
+# generated certificates
+scripts/certificates/*.key
+scripts/certificates/*.crt
+scripts/certificates/tmp/**

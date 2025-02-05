@@ -54,7 +54,6 @@
         </constructor-arg>
     </bean>
 
-    <import resource="classpath:spring/data-source.xml"/>
     <import resource="classpath:spring/env.xml"/>
 
     <sec:http name="secFilterOpen01" pattern="/resources/**" security="none"/>

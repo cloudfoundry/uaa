@@ -161,7 +161,7 @@ class BootstrapTests {
 
     @Test
     void legacyDeprecatedProperties() {
-        context = getServletContext(null, "test/bootstrap/deprecated_properties_still_work.yml");
+        context = getServletContext("default", "test/bootstrap/deprecated_properties_still_work.yml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
         assertThat(scimGroups)
@@ -185,7 +185,7 @@ class BootstrapTests {
         System.setProperty(LOGIN_IDP_METADATA, loadResouceAsString("sample-okta-localhost.xml"));
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPFile");
 
-        context = getServletContext("default", "uaa.yml");
+        context = getServletContext("hsqldb", "uaa.yml");
         assertThat(context.getBean("viewResolver", ViewResolver.class)).isNotNull();
         // assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class))
         assertThat(context.getBean(BootstrapSamlIdentityProviderData.class))
@@ -200,7 +200,7 @@ class BootstrapTests {
         String metadataString = loadResouceAsString("sample-okta-localhost.xml");
         System.setProperty(LOGIN_IDP_METADATA, metadataString);
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPData");
-        context = getServletContext("default,saml,configMetadata", "uaa.yml");
+        context = getServletContext("hsqldb,saml,configMetadata", "uaa.yml");
         List<SamlIdentityProviderDefinition> defs = context.getBean(BootstrapSamlIdentityProviderData.class).getIdentityProviderDefinitions();
         assertThat(providerByAlias(defs, "testIDPData"))
                 .isNotNull()
@@ -213,7 +213,7 @@ class BootstrapTests {
         System.setProperty(LOGIN_IDP_METADATA_URL, "http://simplesamlphp.uaa-acceptance.cf-app.com/saml2/idp/metadata.php");
         System.setProperty(LOGIN_IDP_ENTITY_ALIAS, "testIDPUrl");
 
-        context = getServletContext("default", "uaa.yml");
+        context = getServletContext("hsqldb", "uaa.yml");
         assertThat(context.getBean("viewResolver", ViewResolver.class)).isNotNull();
         // assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class))
         assertThat(context.getBean(BootstrapSamlIdentityProviderData.class))
@@ -229,7 +229,7 @@ class BootstrapTests {
     @MethodSource("samlSignatureParameterProvider")
     void samlSignatureAlgorithmsWereBootstrapped(String yamlFile, SignatureAlgorithm algorithm) {
         // When we override the SHA1 default for login.saml.signatureAlgorithm in the yaml, make sure it works.
-        context = getServletContext("default", yamlFile);
+        context = getServletContext("hsqldb", yamlFile);
 
         SignatureAlgorithm signatureAlgorithm = context.getBean(SignatureAlgorithm.class);
         assertThat(signatureAlgorithm)
@@ -239,7 +239,7 @@ class BootstrapTests {
 
     @Test
     void samlSignatureAlgorithmIsInvalid() {
-        context = getServletContext("default", "test/config/saml-algorithm-invalid.yml");
+        context = getServletContext("hsqldb", "test/config/saml-algorithm-invalid.yml");
         // When we override the SHA1 default for login.saml.signatureAlgorithm in the yaml, make sure it works.
         SignatureAlgorithm signatureAlgorithm = context.getBean(SignatureAlgorithm.class);
         assertThat(signatureAlgorithm).isSameAs(SignatureAlgorithm.INVALID);
