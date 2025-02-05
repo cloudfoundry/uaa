@@ -29,11 +29,11 @@ UAA can also be ran standalone to test tweaks in a live instance.
 
 To run these databases locally, use the docker-compose script:
 
-    $ docker compose --file scripts/docker-compose.yaml up
+    $ docker compose --file scripts/docker-compose.yml up
 
 If you wish to launch only one of the DBs, select the appropriate service name:
 
-    $ docker compose --file scripts/docker-compose.yaml up postgresql
+    $ docker compose --file scripts/docker-compose.yml up postgresql
 
 To run tests against either Postgres or MySQL, use the `postgresql` or `mysql` profile, to select the DB. Be sure
 to add the `default` profile which will trigger seeding the database with some admin users, clients, etc. For example:
