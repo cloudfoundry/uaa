@@ -307,9 +307,7 @@ public class ScimUserBootstrap implements
             ScimGroupMember groupMember = new ScimGroupMember(scimUserId);
             groupMember.setOrigin(ofNullable(origin).orElse(OriginKeys.UAA));
             membershipManager.addMember(group.getId(), groupMember, IdentityZoneHolder.get().getId());
-        } catch (MemberAlreadyExistsException ex) {
-            // do nothing
-        } catch (DuplicateKeyException ex) {
+        } catch (MemberAlreadyExistsException | DuplicateKeyException ex) {
             // do nothing
         }
     }
