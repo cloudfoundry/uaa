@@ -416,6 +416,33 @@ class PasswordGrantAuthenticationManagerTest {
     }
 
     @Test
+    void oidcPasswordGrantProviderFailedInOidcMetadataUpdate() {
+        IdentityProvider localIdp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
+        when(localIdp.getConfig()).thenReturn(idpConfig);
+        when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(localIdp.isActive()).thenReturn(true);
+        when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
+        when(idpConfig.getRelyingPartyId()).thenReturn("oidcprovider");
+        when(idpConfig.getRelyingPartySecret()).thenReturn("");
+
+        when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
+        when(identityProviderProvisioning.retrieveByOrigin("oidcprovider", "uaa")).thenReturn(localIdp);
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
+
+        try {
+            instance.authenticate(auth);
+            fail("");
+        } catch (ProviderConfigurationException e) {
+            assertThat(e.getMessage()).isEqualTo("External OpenID Connect metadata is missing after discovery update.");
+        }
+    }
+
+    @Test
     void oidcPasswordGrantProviderJwtClientCredentials() throws ParseException, JOSEException {
         // Given
         mockKeyInfoService();
@@ -450,10 +477,11 @@ class PasswordGrantAuthenticationManagerTest {
     }
 
     @Test
-    void oidcPasswordGrantNoUserCredentials() {
+    void oidcPasswordGrantNoUserCredentials() throws MalformedURLException {
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
         when(loginHint.getOrigin()).thenReturn("oidcprovider");
         Authentication auth = mock(Authentication.class);
+        when(idpConfig.getTokenUrl()).thenReturn(null).thenReturn(new URL("http://localhost:8080/uaa/oauth/token"));
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
 
         try {
