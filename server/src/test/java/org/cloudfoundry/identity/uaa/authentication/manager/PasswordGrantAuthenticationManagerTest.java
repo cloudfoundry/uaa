@@ -418,14 +418,14 @@ class PasswordGrantAuthenticationManagerTest {
     @Test
     void oidcPasswordGrantProviderFailedInOidcMetadataUpdate() {
         IdentityProvider localIdp = mock(IdentityProvider.class);
-        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        OIDCIdentityProviderDefinition localIdpConfig = mock(OIDCIdentityProviderDefinition.class);
         when(localIdp.getOriginKey()).thenReturn("oidcprovider");
-        when(localIdp.getConfig()).thenReturn(idpConfig);
         when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
         when(localIdp.isActive()).thenReturn(true);
-        when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
-        when(idpConfig.getRelyingPartyId()).thenReturn("oidcprovider");
-        when(idpConfig.getRelyingPartySecret()).thenReturn("");
+        when(localIdp.getConfig()).thenReturn(localIdpConfig);
+        when(localIdpConfig.isPasswordGrantEnabled()).thenReturn(true);
+        when(localIdpConfig.getRelyingPartyId()).thenReturn("oidcprovider");
+        when(localIdpConfig.getRelyingPartySecret()).thenReturn("");
 
         when(identityProviderProvisioning.retrieveActive("uaa")).thenReturn(Arrays.asList(uaaProvider, ldapProvider, localIdp));
         when(identityProviderProvisioning.retrieveByOrigin("oidcprovider", "uaa")).thenReturn(localIdp);
