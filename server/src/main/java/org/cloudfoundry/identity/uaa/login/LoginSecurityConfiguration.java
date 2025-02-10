@@ -19,8 +19,11 @@ import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
@@ -37,6 +40,25 @@ class LoginSecurityConfiguration {
     @Bean
     ResourcePropertySource messagePropertiesSource() throws IOException {
         return new ResourcePropertySource("messages.properties");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.DELETE_SAVED_ACCOUNT)
+    UaaFilterChain deleteSavedAccount(
+            HttpSecurity http,
+            @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
+            @Qualifier("basicAuthenticationEntryPoint") AuthenticationEntryPoint authenticationEntryPoint
+    ) throws Exception {
+        var originalChain = http
+                .securityMatcher("/delete_saved_account")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .authenticationManager(authenticationManager)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(exception -> {
+                    exception.authenticationEntryPoint(authenticationEntryPoint);
+                })
+                .build();
+        return new UaaFilterChain(originalChain);
     }
 
     @Bean
