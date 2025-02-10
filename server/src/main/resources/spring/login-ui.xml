@@ -111,17 +111,6 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
-    <http name="forgotPasswordSecurity"
-                    pattern="/forgot_password**"
-                    disable-url-rewriting="true"
-                    entry-point-ref="loginEntryPoint"
-                    use-expressions="false"
-                    xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <csrf disabled="true"/>
-        <access-denied-handler ref="loginEntryPoint"/>
-    </http>
-
     <bean id="uiAuthorizeRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
         <constructor-arg value="/oauth/authorize**"/>
     </bean>
