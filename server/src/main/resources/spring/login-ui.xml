@@ -169,14 +169,6 @@
         <csrf disabled="true"/>
     </http>
 
-    <http name="acceptInvitationSecurity" pattern="/invitations/accept" disable-url-rewriting="true"
-                    xmlns="http://www.springframework.org/schema/security"
-                    entry-point-ref="loginEntryPoint" use-expressions="false">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY"/>
-        <anonymous enabled="true"/>
-        <csrf disabled="true"/>
-    </http>
-
     <bean id="errorMessageAuthenticationFailureHandler"
                     class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">
         <property name="exceptionMappings">
