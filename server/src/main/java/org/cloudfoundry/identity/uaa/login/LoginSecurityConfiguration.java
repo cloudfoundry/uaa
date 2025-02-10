@@ -40,6 +40,20 @@ class LoginSecurityConfiguration {
     }
 
     @Bean
+    @Order(FilterChainOrder.VERIFY_USER)
+    UaaFilterChain verifyUser(HttpSecurity http) throws Exception {
+        var originalChain = http
+                .securityMatcher("/verify_user")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception -> {
+                    exception.authenticationEntryPoint(new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request"));
+                })
+                .build();
+        return new UaaFilterChain(originalChain);
+    }
+
+    @Bean
     @Order(FilterChainOrder.INVITATIONS_ACCEPT)
     UaaFilterChain acceptInvitation(HttpSecurity http) throws Exception {
         var originalChain = http
