@@ -177,16 +177,6 @@
         <csrf disabled="true"/>
     </http>
 
-    <http name="idpSecurity"
-                    use-expressions="true"
-                    pattern="/saml/idp/SSO/**"
-                    entry-point-ref="loginEntryPoint"
-                    xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="isFullyAuthenticated()"/>
-        <custom-filter ref="passwordChangeUiRequiredFilter" after="BASIC_AUTH_FILTER"/>
-        <csrf disabled="true"/>
-    </http>
-
     <bean id="errorMessageAuthenticationFailureHandler"
                     class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">
         <property name="exceptionMappings">

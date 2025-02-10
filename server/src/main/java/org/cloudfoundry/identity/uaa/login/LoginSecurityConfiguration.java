@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import java.io.IOException;
-
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource;
@@ -11,7 +9,6 @@ import org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter;
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
-
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,11 +17,16 @@ import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.session.DisableEncodeUrlFilter;
+
+import java.io.IOException;
+
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anonymousOrFullyAuthenticated;
 
 @Configuration
@@ -34,6 +36,27 @@ class LoginSecurityConfiguration {
     @Bean
     ResourcePropertySource messagePropertiesSource() throws IOException {
         return new ResourcePropertySource("messages.properties");
+    }
+
+    /**
+     * Handle login callbacks from SAML upstream providers.
+     */
+    @Bean
+    @Order(FilterChainOrder.SAML_IDP_SSO)
+    UaaFilterChain samlSsoCallback(
+            HttpSecurity http,
+            PasswordChangeUiRequiredFilter passwordChangeUiRequiredFilter
+    ) throws Exception {
+        var originalChain = http
+                .securityMatcher("/saml/idp/SSO/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().fullyAuthenticated())
+                .addFilterBefore(passwordChangeUiRequiredFilter, BasicAuthenticationFilter.class)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception -> {
+                    exception.authenticationEntryPoint(new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request"));
+                })
+                .build();
+        return new UaaFilterChain(originalChain);
     }
 
     /**
