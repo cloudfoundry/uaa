@@ -16,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import static org.cloudfoundry.identity.uaa.util.ObjectUtils.isEmpty;
+
 /**
  * Custom request matcher which allows endpoints in the UAA to be matched as
  * substrings and also differentiation based
@@ -143,6 +145,10 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
         }
 
         List<MediaType> requestValues = MediaType.parseMediaTypes(requestValue);
+        if (isEmpty(requestValues)) {
+            // the "Accept" header is set, but blank -> cannot match any expected value
+            return false;
+        }
         for (String expectedValue : expectedValues) {
             if (MediaType.parseMediaType(expectedValue).includes(requestValues.get(0))) {
                 return true;

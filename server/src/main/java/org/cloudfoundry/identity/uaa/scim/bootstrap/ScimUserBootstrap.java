@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.services.ScimUserService;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -25,6 +26,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.StringUtils;
 
@@ -254,7 +256,11 @@ public class ScimUserBootstrap implements
                     }
                 }
                 for (ScimGroup group : groupsMap.values()) {
-                    membershipManager.removeMemberById(group.getId(), exEvent.getUser().getId(), group.getZoneId());
+                    try {
+                        membershipManager.removeMemberById(group.getId(), exEvent.getUser().getId(), group.getZoneId());
+                    } catch (MemberNotFoundException ex) {
+                        // do nothing
+                    }
                 }
             }
             //update the user itself
@@ -285,7 +291,15 @@ public class ScimUserBootstrap implements
             return;
         } else if (g == null || g.isEmpty()) {
             group = new ScimGroup(null, gName, IdentityZoneHolder.get().getId());
-            group = scimGroupProvisioning.create(group, IdentityZoneHolder.get().getId());
+            try {
+                group = scimGroupProvisioning.create(group, IdentityZoneHolder.get().getId());
+            }
+            catch (ScimResourceAlreadyExistsException ignore) {
+                g = scimGroupProvisioning.query("displayName eq \"%s\"".formatted(gName), IdentityZoneHolder.get().getId());
+                if (g != null && !g.isEmpty()) {
+                    group = g.get(0);
+                }
+            }
         } else {
             group = g.get(0);
         }
@@ -293,7 +307,7 @@ public class ScimUserBootstrap implements
             ScimGroupMember groupMember = new ScimGroupMember(scimUserId);
             groupMember.setOrigin(ofNullable(origin).orElse(OriginKeys.UAA));
             membershipManager.addMember(group.getId(), groupMember, IdentityZoneHolder.get().getId());
-        } catch (MemberAlreadyExistsException ex) {
+        } catch (MemberAlreadyExistsException | DuplicateKeyException ex) {
             // do nothing
         }
     }

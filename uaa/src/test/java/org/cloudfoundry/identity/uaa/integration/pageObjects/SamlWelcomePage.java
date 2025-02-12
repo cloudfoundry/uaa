@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
+import org.cloudfoundry.identity.uaa.integration.feature.SamlServerConfig;
 import org.openqa.selenium.WebDriver;
 
 /**
@@ -7,10 +8,11 @@ import org.openqa.selenium.WebDriver;
  * It has url matching: `/module.php/core/welcome`.
  */
 public class SamlWelcomePage extends Page {
-    private static final String URL_PATH = "module.php/core/welcome";
 
-    public SamlWelcomePage(WebDriver driver) {
-        super(driver);
-        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith(URL_PATH));
+
+    public SamlWelcomePage(WebDriver webDriver, SamlServerConfig samlServerConfig) {
+        super(webDriver);
+        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith(samlServerConfig.getWelcomePath()));
+
     }
 }

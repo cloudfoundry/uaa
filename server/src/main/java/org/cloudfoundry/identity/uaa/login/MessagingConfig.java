@@ -1,5 +1,6 @@
-package org.cloudfoundry.identity.uaa.impl.config;
+package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.impl.config.SmtpProperties;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate;
 import org.cloudfoundry.identity.uaa.message.MessageService;
@@ -35,7 +36,7 @@ import java.util.Properties;
 @Lazy
 @Configuration
 @EnableConfigurationProperties(SmtpProperties.class)
-public class LoginServerConfig {
+public class MessagingConfig {
 
     /**
      * Fallback bean for when there is no "notifications.url".

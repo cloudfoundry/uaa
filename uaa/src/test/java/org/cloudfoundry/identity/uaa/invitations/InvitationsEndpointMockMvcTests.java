@@ -397,6 +397,7 @@ class InvitationsEndpointMockMvcTests {
         branding.setCompanyName("Best Company");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setBranding(branding);
+        config.setTokenPolicy(IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy());
         IdentityZone defaultZone = IdentityZoneHolder.getUaaZone();
         defaultZone.setConfig(config);
         identityZoneProvisioning.update(defaultZone);

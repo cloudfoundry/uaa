@@ -1,0 +1,50 @@
+# a simple invalid configuration
+database: {}
+
+login:
+  url: http://localhost:8080/uaa
+  entityBaseURL: http://localhost:8080/uaa
+  entityID: integration-saml-entity-id
+  saml:
+    activeKeyId: key1
+    keys:
+      key1:
+        key: |
+          -----BEGIN PRIVATE KEY-----
+          MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMe0LmBRfEEqkSpl
+          MuQ28XA0ac0iSCA07A5BU1uk7RZUciK+KDkvf1apL27SGcD47swID8qWsBHhtdp5
+          VWHB9Q9gEoilppNYVBHlxNHVQVkkv84X28B+k7DOegProMMKdBWlsKO0NhZf7HqK
+          bGfwcJjGEyiXpmdNtKwVbpVmMUyNAgMBAAECgYBU6PZi+6KCLrAkP30A7Z+AXrix
+          gKb8EqRfd0UTDS/FM8iHnySJE/nnhe3mB6ztkKov1CmqsKFSKQ7iQn6cHxSrYC9p
+          kdukIRSZuKnToiWB0DjjSjSvQI+jWaA3Ea6WGJZE3jcuu7N+H2oo+GV6DZ2/IUZD
+          HLkaTopb+3whLjHivQJBAP91x4ED412Pdem5sd/Go3PgZM7Gd1z8BcCjA8amB7bO
+          mAhzt/nS3w4eEbpeGx8nTDJAQS+h0OFk9heQoGdc0fMCQQDIIDvq8DC7GoB3cw5u
+          GJ5ueIBTdKc9/a7h90vUQ6b3Z3IWzUnHLIuC78OyM+PHq1G2fhgBqXELOYAxcVJv
+          Wod/AkEAzerHfPSAYptQRa08dw/sE2yudYq/DoHLtULxuT99+lo/bJiylLrot71/
+          NsXCgPMxVVQ790QtVnIGeGpJEehdBwJBAJ4DZYvxLmjtWfX2sLQZWC7dkmVSvCJk
+          RUtB2Wu2JwU9doWufcx3zYgLDDeOZRFoodI36XiWcx1rv15Knc4yar0CQDSnv0G9
+          iwuyFQkme9uTvqkKNHbw8rh1XWBINQSpAwGrLjmm13AkuoskJ42hHQlRwM0hGE4K
+          4480Pulwy1fqEj8=
+          -----END PRIVATE KEY-----
+        passphrase: password
+        certificate: |
+          -----BEGIN CERTIFICATE-----
+          MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO
+          MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO
+          MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h
+          cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx
+          CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM
+          BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb
+          BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN
+          ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W
+          qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw
+          znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha
+          MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc
+          gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD
+          VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD
+          VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh
+          QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ
+          0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC
+          KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
+          RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
+          -----END CERTIFICATE-----

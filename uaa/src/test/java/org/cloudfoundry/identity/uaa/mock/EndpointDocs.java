@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.UaaConfig;
 import org.cloudfoundry.identity.uaa.test.JUnitRestDocumentationExtension;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -31,10 +32,10 @@ public class EndpointDocs {
 
     @BeforeEach
     void setupWebMvc(ManualRestDocumentation manualRestDocumentation) {
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        FilterChainProxy securityFilterChain = webApplicationContext.getBean(UaaConfig.SPRING_SECURITY_FILTER_CHAIN_ID, FilterChainProxy.class);
 
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
+                .addFilter(securityFilterChain)
                 .apply(documentationConfiguration(manualRestDocumentation)
                         .uris().withPort(80)
                         .and()

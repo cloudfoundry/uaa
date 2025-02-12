@@ -44,8 +44,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SAML_AUTH_SOURCE;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.springframework.http.HttpMethod.GET;
@@ -72,6 +70,9 @@ class ZoneValidationCookieHijackIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
+    @Autowired
+    SamlServerConfig samlServerConfig;
+
     private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
     @BeforeAll
@@ -87,7 +88,7 @@ class ZoneValidationCookieHijackIT {
             LogoutDoEndpoint.logout(webDriver, baseUrl.replace("localhost", domain));
             new Page(webDriver).clearCookies();
         }
-        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, samlServerConfig);
     }
 
     @BeforeEach
@@ -121,7 +122,7 @@ class ZoneValidationCookieHijackIT {
     }
 
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) throws Exception {
-        return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning);
+        return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning, samlServerConfig.getSamlServerUrl());
     }
 
     @Test
@@ -212,10 +213,10 @@ class ZoneValidationCookieHijackIT {
     }
 
     public SamlIdentityProviderDefinition createTestZone1IDP(String alias) {
-        return createSimplePHPSamlIDP(alias, "testzone1");
+        return createSimplePHPSamlIDP(alias, "testzone1", samlServerConfig.getSamlServerUrl());
     }
 
     public SamlIdentityProviderDefinition createTestZone2IDP(String alias) {
-        return createSimplePHPSamlIDP(alias, "testzone2");
+        return createSimplePHPSamlIDP(alias, "testzone2", samlServerConfig.getSamlServerUrl());
     }
 }

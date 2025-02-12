@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.stereotype.Component;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import javax.net.ssl.SSLContext;
@@ -36,6 +37,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 
+@Component
 public class LocalUaaRestTemplate extends OAuth2RestTemplate {
     private final AuthorizationServerTokenServices authorizationServerTokenServices;
     private final String clientId;

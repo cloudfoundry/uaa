@@ -49,3 +49,10 @@ services:
       - ./ldap:/uaa/ldap/
       - ./certificates:/uaa/certificates/
 
+  simplesamlphp:
+    image: kenchan0130/simplesamlphp:1.19.9
+    ports:
+      - '9090:8080'
+    volumes:
+      - ./saml/saml20-sp-remote.php:/var/www/simplesamlphp/metadata/saml20-sp-remote.php
+      - ./saml/authsources.php:/var/www/simplesamlphp/config/authsources.php

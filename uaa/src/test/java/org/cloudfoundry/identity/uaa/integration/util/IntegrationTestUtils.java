@@ -97,11 +97,6 @@ import static org.springframework.util.StringUtils.hasText;
 
 public class IntegrationTestUtils {
 
-    public static final String SIMPLESAMLPHP_UAA_ACCEPTANCE = "http://simplesamlphp.uaa-acceptance.cf-app.com";
-    public static final String SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR =
-            "//h1[contains(text(), 'Enter your username and password')]";
-    public static final String SAML_AUTH_SOURCE = "example-userpass";
-
     public static final String EXAMPLE_DOT_COM_SAML_IDP_METADATA = """
             <?xml version="1.0"?>
             <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" xmlns:ds="http://www.w3.org/2000/09/xmldsig#" entityID="http://example.com/saml2/idp/metadata.php" ID="_7a1d882b1a0cb702f97968d831d70eecce036d6d0c249ae65cca0e91f5656d58"><ds:Signature>
@@ -914,9 +909,13 @@ public class IntegrationTestUtils {
      * @param addShadowUserOnLogin Specifies whether UAA should automatically create shadow users upon successful SAML authentication.
      * @return An object representation of an identity provider.
      */
-    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunningExtension serverRunning) {
+    public static IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey,
+                                                                                          boolean addShadowUserOnLogin,
+                                                                                          String baseUrl,
+                                                                                          ServerRunningExtension serverRunning,
+                                                                                          String samlServerUrl) {
         getZoneAdminToken(baseUrl, serverRunning);
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, OriginKeys.UAA);
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, OriginKeys.UAA, samlServerUrl);
         return createIdentityProvider("simplesamlphp for uaa", addShadowUserOnLogin, baseUrl, serverRunning, samlIdentityProviderDefinition);
     }
 
@@ -1022,12 +1021,12 @@ public class IntegrationTestUtils {
         assertThat(provider.getId()).isNotNull();
     }
 
-    public static SamlIdentityProviderDefinition createSimplePHPSamlIDP(String alias, String zoneId) {
+    public static SamlIdentityProviderDefinition createSimplePHPSamlIDP(String alias, String zoneId, String samlServerUrl) {
         if (!("simplesamlphp".equals(alias) || "simplesamlphp2".equals(alias))) {
             throw new IllegalArgumentException("Only valid origins are: simplesamlphp,simplesamlphp2");
         }
         String idpMetaData = "simplesamlphp".equals(alias) ?
-                SIMPLESAMLPHP_UAA_ACCEPTANCE + "/saml2/idp/metadata.php" :
+                samlServerUrl + "/saml2/idp/metadata.php" :
                 EXAMPLE_DOT_COM_SAML_IDP_METADATA;
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);

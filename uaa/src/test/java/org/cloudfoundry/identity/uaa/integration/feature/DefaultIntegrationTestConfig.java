@@ -113,4 +113,10 @@ public class DefaultIntegrationTestConfig {
             connection.setInstanceFollowRedirects(false);
         }
     }
+
+    @Bean
+    public SamlServerConfig samlServerConfig(@Value("${integration.test.saml.url}") String serverUrl) {
+        return new SamlServerConfig(serverUrl);
+    }
+
 }

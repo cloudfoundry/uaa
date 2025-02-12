@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.beans.TestBuildInfo;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.AfterEach;
@@ -78,7 +79,7 @@ class ProfileControllerMockMvcTests {
 
         @Bean
         BuildInfo buildInfo() {
-            return new BuildInfo();
+            return new TestBuildInfo();
         }
 
         @Bean

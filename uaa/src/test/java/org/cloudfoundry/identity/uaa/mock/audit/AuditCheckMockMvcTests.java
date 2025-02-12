@@ -73,12 +73,10 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Utf8;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
@@ -137,6 +135,7 @@ class AuditCheckMockMvcTests {
 
     @Autowired
     private ConfigurableApplicationContext configurableApplicationContext;
+    @Autowired
     private MockMvc mockMvc;
     private TestClient testClient;
     @Autowired
@@ -153,11 +152,7 @@ class AuditCheckMockMvcTests {
     JdbcScimUserProvisioning jdbcScimUserProvisioning;
 
     @BeforeEach
-    void setUp(@Autowired FilterChainProxy springSecurityFilterChain,
-               @Autowired WebApplicationContext webApplicationContext) throws Exception {
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
+    void setUp() throws Exception {
         testClient = new TestClient(mockMvc);
 
         originalLoginClient = clientRegistrationService.loadClientByClientId("login");

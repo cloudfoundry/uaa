@@ -808,6 +808,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return keyInfoService;
     }
 
+    public void fetchMetadataAndUpdateDefinition(OIDCIdentityProviderDefinition definition) {
+        try {
+            oidcMetadataFetcher.fetchMetadataAndUpdateDefinition(definition);
+        } catch (OidcMetadataFetchingException e) {
+            logger.warn("OidcMetadataFetchingException", e);
+        }
+    }
+
     protected static class AuthenticationData {
 
         private Map<String, Object> claims;

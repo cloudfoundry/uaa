@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.beans.TestBuildInfo;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -775,7 +776,7 @@ class InvitationsControllerTest {
 
         @Bean
         BuildInfo buildInfo() {
-            return new BuildInfo();
+            return new TestBuildInfo();
         }
 
         @Bean

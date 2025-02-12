@@ -35,9 +35,16 @@ class ObjectUtilsTest {
     }
 
     @Test
-    void isNotEmpty() {
-        assertThat(ObjectUtils.isNotEmpty(List.of("1"))).isTrue();
-        assertThat(ObjectUtils.isNotEmpty(new ArrayList<>())).isFalse();
+    void isNotEmpty_isEmpty() {
+        final List<String> object1 = List.of("1");
+        assertThat(ObjectUtils.isNotEmpty(object1)).isTrue();
+        assertThat(ObjectUtils.isEmpty(object1)).isFalse();
+
+        final ArrayList<Object> object2 = new ArrayList<>();
+        assertThat(ObjectUtils.isNotEmpty(object2)).isFalse();
+        assertThat(ObjectUtils.isEmpty(object2)).isTrue();
+
         assertThat(ObjectUtils.isNotEmpty(null)).isFalse();
+        assertThat(ObjectUtils.isEmpty(null)).isTrue();
     }
 }

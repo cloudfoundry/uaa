@@ -87,9 +87,6 @@ import java.util.UUID;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SAML_AUTH_SOURCE;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
@@ -143,6 +140,9 @@ public class SamlLoginIT {
     @Autowired
     TestClient testClient;
 
+    @Autowired
+    SamlServerConfig samlServerConfig;
+
     private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
     @BeforeAll
@@ -158,7 +158,7 @@ public class SamlLoginIT {
             LogoutDoEndpoint.logout(webDriver, baseUrl.replace("localhost", domain));
             new Page(webDriver).clearCookies();
         }
-        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, samlServerConfig);
     }
 
     @BeforeEach
@@ -335,7 +335,7 @@ public class SamlLoginIT {
         // create a UAA user with the email address as the username.
         deleteUser(SAML_ORIGIN, testAccounts.getEmail());
 
-        IdentityProvider<SamlIdentityProviderDefinition> provider = IntegrationTestUtils.createIdentityProvider(SAML_ORIGIN, false, baseUrl, serverRunning);
+        IdentityProvider<SamlIdentityProviderDefinition> provider = IntegrationTestUtils.createIdentityProvider(SAML_ORIGIN, false, baseUrl, serverRunning, samlServerConfig.getSamlServerUrl());
         String clientId = "app-addnew-false" + new RandomValueStringGenerator().generate();
         String redirectUri = "http://nosuchhostname:0/nosuchendpoint";
         createClientAndSpecifyProvider(clientId, provider, redirectUri);
@@ -381,7 +381,7 @@ public class SamlLoginIT {
                         email,
                         "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(SAML_ORIGIN, "testzone3");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(SAML_ORIGIN, "testzone3", samlServerConfig.getSamlServerUrl());
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -416,7 +416,7 @@ public class SamlLoginIT {
     @Test
     void idpInitiatedLogin() {
         createIdentityProvider(SAML_ORIGIN);
-        webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
+        webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login".formatted(samlServerConfig.getSamlServerUrl()));
         new SamlLoginPage(webDriver)
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
     }
@@ -460,9 +460,9 @@ public class SamlLoginIT {
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
         // Logout via IDP
-        webDriver.get("%s/saml2/idp/SingleLogoutService.php?ReturnTo=%1$s/module.php/core/welcome".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
+        webDriver.get("%s/saml2/idp/SingleLogoutService.php?ReturnTo=%1$s/%s".formatted(samlServerConfig.getSamlServerUrl(), samlServerConfig.getWelcomePath()));
         // UAA should redirect to the welcome page
-        new SamlWelcomePage(webDriver);
+        new SamlWelcomePage(webDriver, samlServerConfig);
 
         // UAA Should no longer be logged in
         HomePage.assertThatGoHome_redirectsToLoginPage(webDriver, baseUrl);
@@ -570,7 +570,7 @@ public class SamlLoginIT {
     }
 
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) {
-        return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning);
+        return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning, samlServerConfig.getSamlServerUrl());
     }
 
     protected void createClientAndSpecifyProvider(String clientId, IdentityProvider<SamlIdentityProviderDefinition> provider,
@@ -695,7 +695,7 @@ public class SamlLoginIT {
         webDriver.get("%s/invitations/accept?code=%s".formatted(zoneUrl, code));
 
         //redirected to saml login
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials(username, password);
 
         //we should now be on the login page because we don't have a redirect
@@ -713,17 +713,17 @@ public class SamlLoginIT {
 
         webDriver.get("%s/logout.do".formatted(baseUrl));
         webDriver.get("%s/logout.do".formatted(zoneUrl));
-        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, samlServerConfig);
     }
 
     @Test
     void relayStateRedirectFromIdpInitiatedLogin() {
         createIdentityProvider(SAML_ORIGIN);
 
-        webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login&RelayState=https://www.google.com".formatted(SIMPLESAMLPHP_UAA_ACCEPTANCE));
+        webDriver.get("%s/saml2/idp/SSOService.php?spentityid=cloudfoundry-saml-login&RelayState=https://www.google.com".formatted(samlServerConfig.getSamlServerUrl()));
 
         // we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
         Page.assertThatUrlEventuallySatisfies(webDriver,
                 assertUrl -> assertUrl.startsWith("https://www.google.com"));
@@ -793,7 +793,7 @@ public class SamlLoginIT {
         webDriver.get(authUrl);
 
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials(testAccounts.getUserName(), "koala");
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
@@ -884,7 +884,7 @@ public class SamlLoginIT {
         webDriver.get(authUrl);
 
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials(MARISSA4_USERNAME, MARISSA4_PASSWORD);
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
@@ -976,7 +976,7 @@ public class SamlLoginIT {
         // click on the first provider to login
         WebElement element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         element.click();
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
 
@@ -984,7 +984,7 @@ public class SamlLoginIT {
         webDriver.get("%s/logout.do".formatted(testZone1Url));
 
         //disable the first provider
-        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, samlServerConfig);
         provider.setActive(false);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
         assertThat(provider.getId()).isNotNull();
@@ -1075,7 +1075,7 @@ public class SamlLoginIT {
 
         webDriver.get("%s/oauth/authorize?client_id=%s&redirect_uri=%s&response_type=code&state=8tp0tR".formatted(baseUrl, clientId, URLEncoder.encode(baseUrl, StandardCharsets.UTF_8)));
         // we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials(testAccounts.getUserName(), "koala");
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
@@ -1114,11 +1114,11 @@ public class SamlLoginIT {
     }
 
     public SamlIdentityProviderDefinition createTestZone2IDP(String alias) {
-        return createSimplePHPSamlIDP(alias, "testzone2");
+        return createSimplePHPSamlIDP(alias, "testzone2", samlServerConfig.getSamlServerUrl());
     }
 
     public SamlIdentityProviderDefinition createTestZone1IDP(String alias) {
-        return createSimplePHPSamlIDP(alias, "testzone1");
+        return createSimplePHPSamlIDP(alias, "testzone1", samlServerConfig.getSamlServerUrl());
     }
 
     private SamlIdentityProviderDefinition createIDPWithNoSLOSConfigured() {

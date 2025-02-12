@@ -125,7 +125,7 @@ ratelimit:
         - "startsWith:/Users"
         - "startsWith:/Groups"
     - name: EverythingElse
-      global: 200r/s
+      global: 1000r/s
       pathSelectors:
         - "other"
 
@@ -177,12 +177,14 @@ oauth:
     override: true
   clients:
     admin:
+      id: admin
       authorized-grant-types: client_credentials
       scope: uaa.none
       authorities: 'uaa.admin,clients.read,clients.write,clients.secret,clients.trust,scim.read,scim.write,clients.admin'
       secret: "adminsecret"
       jwks: '{"alg":"RS256","e":"AQAB","kid":"cUiuzP1rw1zm9MV8F0vtrws7BLc","kty":"RSA","n":"rWuIqrVV8kuqeorvRuLio1_pdQm_z7HZJKIcCD5SQqGO0AsKyf1xa5TPzHM0lqEh2GcPTer4u7MYQZzXAAvzOsSaTmgSlenLKDYCDZy2bwOjK0izVLbJwYqiiqyiMGhKeWsYokyDNoYaefjz8izDrp47XDHnwC2eeyJ43cE8GP0JJXRyxIPFecO8rfpe3AzTrHszJ9lPSX9E8QGppSFmcnUDUQYDRipNMzXXp2FHdR7T2MZkvxzjFhVSSMiaDTmAca-Wv_Uct2HpOfC3IuKSy1jpu8yr_GT6aBsDkt1XC1iARuFf9dE83R39oNgvVMICPjeWgNoyhK-ddQAUnRDeqw"}'
     cf:
+      id: cf
       secret: ''
       authorized-grant-types: 'implicit,password,refresh_token'
       scope: 'uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write'
@@ -190,6 +192,7 @@ oauth:
       authorities: uaa.none
       autoapprove: 'true'
     app:
+      id: app
       secret: appclientsecret
       authorized-grant-types: password,implicit,authorization_code,client_credentials,refresh_token
       scope: cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme
@@ -200,6 +203,7 @@ oauth:
       change_email_redirect_url: http://localhost:8080/app/
       name: The Ultimate Oauth App
     appspecial:
+      id: appspecial
       secret: appclient|secret!
       authorized-grant-types: password,implicit,authorization_code,client_credentials,refresh_token
       scope: cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme
@@ -210,6 +214,7 @@ oauth:
       change_email_redirect_url: http://localhost:8080/app/
       name: The Ultimate Oauth App - Special
     login:
+      id: login
       secret: loginsecret
       scope: 'openid,oauth.approvals'
       authorized-grant-types: 'client_credentials,authorization_code'
@@ -218,16 +223,19 @@ oauth:
       autoapprove: 'true'
       allowpublic: 'true'
     dashboard:
+      id: dashboard
       secret: dashboardsecret
       scope: 'dashboard.user,openid'
       authorized-grant-types: authorization_code
       authorities: uaa.resource
       redirect-uri: 'http://localhost:8080/uaa/'
     notifications:
+      id: notifications
       secret: notificationssecret
       authorized-grant-types: client_credentials
       authorities: 'cloud_controller.admin,scim.read'
     identity:
+      id: identity
       secret: identitysecret
       authorized-grant-types: 'authorization_code,client_credentials,refresh_token,password'
       scope: 'cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write'
@@ -235,6 +243,7 @@ oauth:
       autoapprove: 'true'
       redirect-uri: 'http://localhost/*,http://localhost:8080/**,http://oidcloginit.localhost:8080/uaa/**'
     oauth_showcase_authorization_code:
+      id: oauth_showcase_authorization_code
       secret: secret
       authorized-grant-types: authorization_code
       scope: openid
@@ -242,45 +251,54 @@ oauth:
       redirect-uri: http://localhost:8080/uaa/
       allowedproviders: [ uaa ]
     oauth_showcase_client_credentials:
+      id: oauth_showcase_client_credentials
       secret: secret
       authorized-grant-types: client_credentials
       scope: uaa.none
       authorities: 'uaa.resource,clients.read'
     oauth_showcase_password_grant:
+      id: oauth_showcase_password_grant
       secret: secret
       authorized-grant-types: password
       scope: openid
       authorities: uaa.resource
     oauth_showcase_implicit_grant:
+      id: oauth_showcase_implicit_grant
       authorized-grant-types: implicit
       scope: openid
       authorities: uaa.resource
       redirect-uri: 'http://localhost:8080/uaa/'
     oauth_showcase_user_token:
+      id: oauth_showcase_user_token
       authorized-grant-types: 'user_token,password,refresh_token'
       scope: 'openid,uaa.user'
       secret: secret
     oauth_showcase_user_token_public:
+      id: oauth_showcase_user_token_public
       secret: ''
       authorized-grant-types: 'user_token,password,authorization_code'
       scope: 'openid,uaa.user'
       redirect-uri: 'http://localhost:8080/uaa/'
       allowpublic: 'true'
     oauth_showcase_saml2_bearer:
+      id: oauth_showcase_saml2_bearer
       authorized-grant-types: 'password,urn:ietf:params:oauth:grant-type:saml2-bearer'
       scope: 'openid,uaa.user'
       secret: secret
     some_client_that_contains_redirect_uri_matching_request_param:
+      id: some_client_that_contains_redirect_uri_matching_request_param
       authorized-grant-types: 'uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin'
       scope: openid
       authorities: uaa.resource
       redirect-uri: 'http://redirect.localhost'
     client_with_bcrypt_prefix:
+      id: client_with_bcrypt_prefix
       secret: password
       authorized-grant-types: client_credentials
       authorities: uaa.none
       use-bcrypt-prefix: 'true'
     jku_test:
+      id: jku_test
       secret: secret
       authorized-grant-types: 'password,client_credentials,refresh_token,authorization_code'
       authorities: uaa.none
@@ -288,6 +306,7 @@ oauth:
       scope: 'openid,oauth.approvals,user_attributes'
       redirect-uri: 'http://localhost/**'
     jku_test_without_autoapprove:
+      id: jku_test_without_autoapprove
       secret: secret
       authorized-grant-types: 'password,client_credentials,refresh_token,authorization_code'
       authorities: uaa.none
@@ -295,6 +314,7 @@ oauth:
       scope: 'openid,oauth.approvals,user_attributes'
       redirect-uri: 'http://localhost/**'
     client_without_openid:
+      id: client_without_openid
       secret: secret
       authorized-grant-types: 'password,client_credentials,refresh_token,authorization_code'
       authorities: uaa.none
@@ -302,6 +322,7 @@ oauth:
       scope: password.write
       redirect-uri: 'http://localhost/**'
     client_with_jwks_trust:
+      id: client_with_jwks_trust
       authorized-grant-types: 'authorization_code,client_credentials,refresh_token,password'
       scope: 'openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write'
       authorities: 'password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource'
@@ -309,6 +330,7 @@ oauth:
       redirect-uri: 'http://localhost/*,http://localhost:8080/**,http://localhost:7000/**'
       jwks: '{"kty":"RSA","e":"AQAB","use":"sig","kid":"key-id-1","alg":"RS256","n":"qMClJXznycV2bQ1pFbN8W-AWSYhpS2MVAGhkWNlmxv2Ix0_-n6zjivjdoxcq7RJR4kVycoVeD07DiWElYSnQLdeQPgKAcBiwilR30UyyDTKcqDQQ5rkCg2ONlwV0aMsg74KaXeXsV653ASs3FYEtuS1aD_Db5-FyXF8HkHo8xy19NUnqsDWQnh1Hhklynxu2tvW0fw2oDE1pwNl-WLEVPtlcpCtf4VSv-GawtBiI6xmYsGBMC9w29ESHFqPw0NSCRhlyJf6rDBNH_766mzK_vEzA4rzGTBEUqDxTg_8JpRhh9D3qljSsmqCtpQoloOAaUKCqSJb_hKPspe-7r9cYmw"}'
     client_with_allowpublic_and_jwks_uri_trust:
+      id: client_with_allowpublic_and_jwks_uri_trust
       authorized-grant-types: 'authorization_code,client_credentials,refresh_token,password,urn:ietf:params:oauth:grant-type:jwt-bearer'
       scope: 'openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write'
       authorities: 'password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource'
@@ -317,6 +339,7 @@ oauth:
       redirect-uri: 'http://localhost/*,http://localhost:8080/**,http://localhost:7000/**'
       jwks_uri: 'http://localhost:8080/uaa/token_keys'
     client_federated_jwt_trust:
+      id: client_federated_jwt_trust
       authorized-grant-types: 'authorization_code,client_credentials,refresh_token,password,urn:ietf:params:oauth:grant-type:jwt-bearer'
       scope: 'openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write'
       authorities: 'password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource'

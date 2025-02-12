@@ -73,8 +73,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SAML_AUTH_SOURCE;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.isMember;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -98,6 +96,9 @@ public class OIDCLoginIT {
 
     @Autowired
     TestAccounts testAccounts;
+
+    @Autowired
+    SamlServerConfig samlServerConfig;
 
     @RegisterExtension
     private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
@@ -202,7 +203,7 @@ public class OIDCLoginIT {
     }
 
     private void doLogout(String zoneUrl) {
-        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, samlServerConfig);
         webDriver.manage().deleteAllCookies();
 
         for (String url : Arrays.asList(baseUrl + "/logout.do", zoneUrl + "/logout.do")) {
@@ -424,7 +425,7 @@ public class OIDCLoginIT {
 
     @Test
     void successfulLoginWithOIDC_and_SAML_Provider_PlusRefreshRotation() throws Exception {
-        SamlIdentityProviderDefinition saml = IntegrationTestUtils.createSimplePHPSamlIDP("simplesamlphp", OriginKeys.UAA);
+        SamlIdentityProviderDefinition saml = IntegrationTestUtils.createSimplePHPSamlIDP("simplesamlphp", OriginKeys.UAA, samlServerConfig.getSamlServerUrl());
         saml.setLinkText("SAML Login");
         saml.setShowSamlLink(true);
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider = new IdentityProvider<>();
@@ -443,7 +444,7 @@ public class OIDCLoginIT {
             assertThat(webDriver.getCurrentUrl()).contains(baseUrl);
 
             webDriver.findElement(By.linkText("SAML Login")).click();
-            webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+            webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
             webDriver.findElement(By.name("username")).clear();
             webDriver.findElement(By.name("username")).sendKeys("marissa6");
             webDriver.findElement(By.name("password")).sendKeys("saml6");

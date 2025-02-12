@@ -42,6 +42,7 @@ import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -129,6 +130,7 @@ import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.OPTIONS;
 import static org.springframework.http.HttpMethod.POST;
+import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
@@ -734,6 +736,19 @@ public class LoginMockMvcTests {
         mockMvc.perform(get("/login")).andExpect(content().string(containsString("<a href=\"/privacy\">Privacy</a> &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
     }
 
+
+    @Test
+    void buildInfoInFooter() throws Exception {
+        var footerTitleLocator = "//div[@class=\"copyright\"]/@title";
+        mockMvc.perform(get("/login"))
+                .andExpect(
+                        xpath(footerTitleLocator).string(Matchers.containsString("UAA: http://localhost:8080/uaa"))
+                )
+                .andExpect(
+                        xpath(footerTitleLocator).string(Matchers.containsString("Version: 0.0.0, Commit:"))
+                );
+    }
+
     @Test
     void forgotPasswordPageDoesNotHaveCsrf() throws Exception {
         mockMvc.perform(get("/forgot_password"))
@@ -1054,7 +1069,9 @@ public class LoginMockMvcTests {
 
     @Nested
     @DefaultTestContext
-    @TestPropertySource(properties = {"assetBaseUrl=//cdn.example.com/pivotal"})
+    @TestPropertySource(
+            properties = {"assetBaseUrl=//cdn.example.com/pivotal", "uaa.url=https://uaa.exmaple.com/uaa"}
+    )
     class Branding {
         @Autowired
         private MockMvc mockMvc;
@@ -1065,6 +1082,15 @@ public class LoginMockMvcTests {
                     .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/square-logo.png"))
                     .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists())
                     .andExpect(xpath("//head/style[text()[contains(.,'//cdn.example.com/pivotal/images/product-logo.png')]]").exists());
+        }
+
+        @Test
+        void buildInfoInFooter() throws Exception {
+            mockMvc.perform(get("/login"))
+                    .andExpect(
+                            xpath("//div[@class=\"copyright\"]/@title")
+                                    .string(Matchers.containsString("UAA: https://uaa.exmaple.com/uaa"))
+                    );
         }
     }
 
@@ -2185,6 +2211,23 @@ public class LoginMockMvcTests {
                         .header("Authorization", "Basic " + new String(ENCODER.encode("admin:adminsecret".getBytes())))
                         .contentType(APPLICATION_JSON)
                         .content(JsonUtils.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/autologin")
+                        .param("code", "test" + generator.counter.get())
+                        .param("client_id", "admin"))
+                .andExpect(redirectedUrl("home"));
+    }
+
+    @Test
+    void autologin_with_validCode_and_formencoded_RedirectsToHome() throws Exception {
+        MockMvcUtils.PredictableGenerator generator = new MockMvcUtils.PredictableGenerator();
+        jdbcExpiringCodeStore.setGenerator(generator);
+
+        mockMvc.perform(post("/autologin")
+                        .header("Authorization", "Basic " + new String(ENCODER.encode("admin:adminsecret".getBytes())))
+                        .contentType(APPLICATION_FORM_URLENCODED)
+                        .content("username=marissa&password=koala"))
                 .andExpect(status().isOk());
 
         mockMvc.perform(get("/autologin")

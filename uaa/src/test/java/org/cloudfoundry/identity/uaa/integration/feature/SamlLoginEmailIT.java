@@ -56,9 +56,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SAML_AUTH_SOURCE;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
@@ -92,6 +89,9 @@ class SamlLoginEmailIT {
 
     private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
+    @Autowired
+    SamlServerConfig samlServerConfig;
+
     @BeforeAll
     static void checkZoneDNSSupport() {
         assertThat(doesSupportZoneDNS())
@@ -105,7 +105,7 @@ class SamlLoginEmailIT {
             LogoutDoEndpoint.logout(webDriver, baseUrl.replace("localhost", domain));
             new Page(webDriver).clearCookies();
         }
-        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, SIMPLESAMLPHP_UAA_ACCEPTANCE, SAML_AUTH_SOURCE);
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, samlServerConfig);
     }
 
     @BeforeEach
@@ -139,7 +139,7 @@ class SamlLoginEmailIT {
     }
 
     protected IdentityProvider<SamlIdentityProviderDefinition> createIdentityProvider(String originKey) {
-        return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning);
+        return IntegrationTestUtils.createIdentityProvider(originKey, true, baseUrl, serverRunning, samlServerConfig.getSamlServerUrl());
     }
 
     @Test
@@ -208,7 +208,7 @@ class SamlLoginEmailIT {
         webDriver.get(authUrl);
 
         //we should now be in the Simple SAML PHP site
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials("marissa6", "saml6");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
 
@@ -245,7 +245,7 @@ class SamlLoginEmailIT {
     }
 
     public SamlIdentityProviderDefinition createTestZoneIDP(String alias, String zoneSubdomain) {
-        return createSimplePHPSamlIDP(alias, zoneSubdomain);
+        return createSimplePHPSamlIDP(alias, zoneSubdomain, samlServerConfig.getSamlServerUrl());
     }
 
     private void sendCredentials(String username, String password, By loginButtonSelector) {

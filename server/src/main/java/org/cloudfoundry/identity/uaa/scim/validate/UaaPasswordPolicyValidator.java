@@ -11,6 +11,7 @@ import org.passay.PasswordData;
 import org.passay.PropertiesMessageResolver;
 import org.passay.RuleResult;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -32,6 +33,7 @@ import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.validator
  * subcomponent's license, as noted in the LICENSE file.
  * *****************************************************************************
  */
+@Component
 public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     private final IdentityProviderProvisioning provisioning;
@@ -41,8 +43,10 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     private static final PropertiesMessageResolver messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
 
-    public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy,
-            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning) {
+    public UaaPasswordPolicyValidator(
+            final @Qualifier("globalPasswordPolicy") PasswordPolicy globalDefaultPolicy,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning
+    ) {
         this.globalDefaultPolicy = globalDefaultPolicy;
         this.provisioning = provisioning;
     }

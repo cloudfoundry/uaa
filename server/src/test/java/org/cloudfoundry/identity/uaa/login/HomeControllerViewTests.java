@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.provider.saml.MetadataProviderNotFoundException;
+import org.cloudfoundry.identity.uaa.util.beans.TestBuildInfo;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -255,7 +256,7 @@ class HomeControllerViewTests extends TestClassNullifier {
 
         @Bean
         BuildInfo buildInfo() {
-            return new BuildInfo();
+            return new TestBuildInfo();
         }
 
         @Bean

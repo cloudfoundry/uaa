@@ -1,10 +1,10 @@
-package org.cloudfoundry.identity.uaa.impl.config;
+package org.cloudfoundry.identity.uaa.login;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
 
 @ConfigurationProperties(prefix = "notifications")
-record NotificationsProperties(
+public record NotificationsProperties(
         String url,
         @DefaultValue("true") boolean sendInDefaultZone
 ) {

@@ -221,11 +221,11 @@ To run the unit tests with docker:
 
 You need a locally running database. You can launch a Postgres 15 and MySQL 8 locally with docker compose:
 
-    $ docker compose --file scripts/docker-compose.yaml up
+    $ docker compose --file scripts/docker-compose.yml up
 
 If you wish to launch only one of the DBs, select the appropriate service name:
 
-    $ docker compose --file scripts/docker-compose.yaml up postgresql
+    $ docker compose --file scripts/docker-compose.yml up postgresql
 
 Then run the test with the appropriate profile:
 

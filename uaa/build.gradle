@@ -184,6 +184,13 @@ integrationTest {
         includeTestsMatching("org.cloudfoundry.identity.uaa.integration.*")
         includeTestsMatching("*IT")
     }
+    String samlUrlPropKey = "integration.test.saml.url"
+    String samlUrl = System.getProperty(samlUrlPropKey)
+    if (samlUrl?.trim()) {
+        systemProperty("integration.test.saml.url", samlUrl)
+        project.logger.warn("UAA - Overriding SAML Url:"+samlUrl)
+    }
+
 }
 
 war {

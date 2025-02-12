@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.beans.TestBuildInfo;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -381,7 +382,7 @@ class ChangeEmailControllerTest {
 
         @Bean
         BuildInfo buildInfo() {
-            return new BuildInfo();
+            return new TestBuildInfo();
         }
 
         @Bean

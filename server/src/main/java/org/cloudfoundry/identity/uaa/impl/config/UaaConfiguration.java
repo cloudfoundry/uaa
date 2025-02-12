@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.Jwt.Token.Poli
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.Jwt.Token.Policy.KeySpec;
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.OAuth.Client;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.config.LimiterMapping;
 import org.hibernate.validator.constraints.URL;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.Yaml;
@@ -59,6 +60,7 @@ public class UaaConfiguration {
 
     @URL(message = "issuer.uri must be a valid URL")
     public String issuerUri;
+    public Map<String, Object> issuer;
     public boolean dump_requests;
     public boolean require_https;
     public boolean loginAddnew;
@@ -108,6 +110,13 @@ public class UaaConfiguration {
     public OAuth multitenant;
     @Valid
     public Map<String, Object> cors;
+
+    public Encryption encryption;
+
+    public Integer userMaxCount;
+    public Integer groupMaxCount;
+    public Integer clientMaxCount;
+    public RateLimit ratelimit;
 
     public static class Zones {
         @Valid
@@ -159,6 +168,8 @@ public class UaaConfiguration {
             public String signingAlg;
             public Claims claims;
             public Policy policy;
+            public Boolean revocable;
+            public Refresh refresh;
 
             public static class Claims {
                 public Set<String> exclusions;
@@ -174,7 +185,14 @@ public class UaaConfiguration {
                 public static class KeySpec {
                     public String signingKey;
                     public String signingKeyPassword;
+                    public String signingAlg;
                 }
+            }
+
+            public static class Refresh {
+                public String format;
+                public Boolean rotate;
+                public Boolean unique;
             }
         }
     }
@@ -227,12 +245,21 @@ public class UaaConfiguration {
         public String refreshTokenValidity;
         @URL(message = "'redirect-uri' must be a valid URL")
         public String redirectUri;
+        public String jwks;
+        public String signup_redirect_url;
+        public String change_email_redirect_url;
+        public String name;
+        public List<String> allowedproviders;
+        public String useBcryptPrefix;
+        public String jwks_uri;
+        public String jwt_creds;
     }
 
     public static class Scim {
         public boolean userids_enabled;
         public boolean userOverride;
         public List<String> users;
+        public List<String> external_groups;
         public Object groups;
     }
 
@@ -240,10 +267,29 @@ public class UaaConfiguration {
         public int requiredScore;
     }
 
+    public static class Encryption {
+        public String active_key_label;
+        public String passkey;
+        public List<EncryptionKey> encryption_keys;
+
+        public static class EncryptionKey {
+            public String label;
+        }
+    }
+
+    public static class RateLimit {
+        public String loggingOption;
+        public String credentialID;
+        public List<LimiterMapping> limiterMappings;
+    }
+
+
     public static class UaaConfigConstructor extends CustomPropertyConstructor {
 
         public UaaConfigConstructor() {
             super(UaaConfiguration.class);
+            var uaaDesc = typeDefinitions.get(UaaConfiguration.class);
+            uaaDesc.putMapPropertyType("issuer", String.class, Object.class);
 
             TypeDescription oauthDesc = createTypeDescription(OAuth.class);
             oauthDesc.putMapPropertyType("clients", String.class, OAuthClient.class);
@@ -280,6 +326,7 @@ public class UaaConfiguration {
             addPropertyAlias("access-token-validity", OAuthClient.class, "accessTokenValidity");
             addPropertyAlias("refresh-token-validity", OAuthClient.class, "refreshTokenValidity");
             addPropertyAlias("user.override", Scim.class, "userOverride");
+            addPropertyAlias("use-bcrypt-prefix", OAuthClient.class, "useBcryptPrefix");
         }
 
         @Override

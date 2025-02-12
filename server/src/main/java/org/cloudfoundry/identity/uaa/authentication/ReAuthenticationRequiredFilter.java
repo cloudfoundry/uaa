@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -14,6 +15,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+
+@Component
 public class ReAuthenticationRequiredFilter extends OncePerRequestFilter {
 
     private final String samlEntityID;
