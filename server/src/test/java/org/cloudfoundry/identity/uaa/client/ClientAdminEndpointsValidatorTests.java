@@ -130,7 +130,7 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    void validate_jwt_bearer_grant_type_without_secret() {
+    void validate_jwt_bearer_grant_type_without_empty_secret() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
         client.setScope(Collections.singleton(caller.getClientId() + ".write"));
         client.setClientSecret("");
