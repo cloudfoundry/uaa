@@ -1,4 +1,4 @@
-# UAA Rate Limiting (Experimental Feature)
+# UAA Rate Limiting 
 This feature allows operators to set rate limits for UAA endpoints via server configurations. As an experimental
 feature, UAA rate limiting's config interface and behaviors are not considered solidified or stable. 
 If you opt to be an early adopter of this feature, please pay attention to future changes in this feature 
