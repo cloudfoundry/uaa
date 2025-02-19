@@ -15,6 +15,10 @@ public class InvalidClientException extends ClientAuthenticationException {
         super(msg);
     }
 
+    public InvalidClientException(String msg, Throwable t) {
+        super(msg, t);
+    }
+
     @Override
     public int getHttpErrorCode() {
         return 401;

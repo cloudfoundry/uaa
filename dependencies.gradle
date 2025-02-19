@@ -67,6 +67,7 @@ libraries.jacksonAnnotations = "com.fasterxml.jackson.core:jackson-annotations:$
 libraries.jacksonDatabind = "com.fasterxml.jackson.core:jackson-databind:${versions.jacksonVersion}"
 libraries.jacksonDataformatYaml = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:${versions.jacksonVersion}"
 libraries.javaxServlet = "javax.servlet:jstl"
+libraries.javaxSerletApi = "javax.servlet:javax.servlet-api"
 libraries.javaxValidationApi = "javax.validation:validation-api"
 libraries.javaxXmlBindApi = "javax.xml.bind:jaxb-api"
 libraries.glassfishJaxb = "org.glassfish.jaxb:jaxb-runtime"

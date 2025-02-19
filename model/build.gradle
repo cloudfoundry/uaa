@@ -7,6 +7,7 @@ dependencies {
     implementation(libraries.jacksonAnnotations)
 
     implementation(libraries.javaxValidationApi)
+    implementation(libraries.javaxSerletApi)
 
     implementation(libraries.commonsCodec)
     implementation(libraries.commonsIo)

@@ -1,12 +1,9 @@
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -28,7 +25,6 @@ import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 
-@ExtendWith(PollutionPreventionExtension.class)
 class UaaUrlUtilsTest {
 
     private final List<String> invalidWildCardUrls = Arrays.asList(
@@ -185,7 +181,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void zoneAwareUaaUrl() {
-        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+        IdentityZone zone = createIdentityZone("id", "subdomain");
         assertThat(UaaUrlUtils.getUaaUrl("", zone)).isEqualTo("http://localhost");
         assertThat(UaaUrlUtils.getUaaUrl(UaaStringUtils.EMPTY_STRING, true, zone)).isEqualTo("http://subdomain.localhost");
     }
@@ -193,7 +189,7 @@ class UaaUrlUtilsTest {
     @Test
     void zoneAwareUaaUrlFromUriComponentsBuilder() {
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString("http://external.domain.org").path("/custom-path");
-        IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+        IdentityZone zone = createIdentityZone("id", "subdomain");
         assertThat(UaaUrlUtils.getUaaUrl(builder, true, zone)).isEqualTo("http://subdomain.external.domain.org/custom-path");
     }
 
@@ -204,7 +200,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void getUaaUrlWithZone() {
-        IdentityZone zone = MultitenancyFixture.identityZone("zone1", "zone1");
+        IdentityZone zone = createIdentityZone("zone1", "zone1");
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -219,7 +215,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void getUaaUrlWithZoneAndPath() {
-        IdentityZone zone = MultitenancyFixture.identityZone("zone1", "zone1");
+        IdentityZone zone = createIdentityZone("zone1", "zone1");
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -239,7 +235,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void getHostWithZone() {
-        IdentityZone zone = MultitenancyFixture.identityZone("zone1", "zone1");
+        IdentityZone zone = createIdentityZone("zone1", "zone1");
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -298,7 +294,7 @@ class UaaUrlUtilsTest {
 
     @Test
     void zonedAndMultiDomainUrls() {
-        IdentityZone zone = MultitenancyFixture.identityZone("testzone1-id", "testzone1");
+        IdentityZone zone = createIdentityZone("testzone1-id", "testzone1");
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -707,5 +703,12 @@ class UaaUrlUtilsTest {
 
     private static List<String> convertToHttps(List<String> urls) {
         return urls.stream().map(url -> url.replace("http:", "https:")).toList();
+    }
+
+    private static IdentityZone createIdentityZone(String id, String subdomain) {
+        IdentityZone identityZone = IdentityZone.getUaa();
+        identityZone.setId(id);
+        identityZone.setSubdomain(subdomain);
+        return identityZone;
     }
 }

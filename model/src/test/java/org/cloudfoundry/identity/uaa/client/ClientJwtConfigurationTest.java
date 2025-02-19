@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -36,11 +37,11 @@ class ClientJwtConfigurationTest {
 
     @Test
     void jwksInvalid() {
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("custom://any.domain.net/openid/jwks-uri", null));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("test", null));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("http://any.domain.net/openid/jwks-uri"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("https://"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("ftp://any.domain.net/openid/jwks-uri"));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> ClientJwtConfiguration.parse("custom://any.domain.net/openid/jwks-uri", null));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> ClientJwtConfiguration.parse("test", null));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> ClientJwtConfiguration.parse("http://any.domain.net/openid/jwks-uri"));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> ClientJwtConfiguration.parse("https://"));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> ClientJwtConfiguration.parse("ftp://any.domain.net/openid/jwks-uri"));
     }
 
     @Test
@@ -51,14 +52,14 @@ class ClientJwtConfigurationTest {
 
     @Test
     void jwkSetInvalid() {
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse(jsonJwkSetEmtpy));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse(jsonWebKeyNoId));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> ClientJwtConfiguration.parse("{\"keys\": \"x\"}"));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> ClientJwtConfiguration.parse(jsonJwkSetEmtpy));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> ClientJwtConfiguration.parse(jsonWebKeyNoId));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> ClientJwtConfiguration.parse("{\"keys\": \"x\"}"));
     }
 
     @Test
     void jwkSetInvalidSize() {
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> new ClientJwtConfiguration(null, new JsonWebKeySet<>(Collections.emptyList())));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> new ClientJwtConfiguration(null, new JsonWebKeySet<>(Collections.emptyList())));
     }
 
     @Test
@@ -96,7 +97,7 @@ class ClientJwtConfigurationTest {
     @Test
     void invalidJwtCredentials() {
         assertThatThrownBy(() -> new ClientJwtConfiguration(null))
-                .isInstanceOf(InvalidClientDetailsException.class);
+                .isInstanceOf(InvalidClientException.class);
         ClientJwtConfiguration config = new ClientJwtConfiguration(ClientJwtCredential.parse("[{\"iss\":\"http://localhost:8080/uaa\",\"sub\":\"client_with_jwks_trust\"}]"));
         assertThatThrownBy(() -> config.addJwtCredentials(List.of(new ClientJwtCredential("subject", null, null))))
                 .isInstanceOf(IllegalArgumentException.class);
@@ -105,7 +106,7 @@ class ClientJwtConfigurationTest {
             config.addJwtCredentials(List.of(new ClientJwtCredential("subject" + i, "issuer" + i, "audience")));
         }
         assertThatThrownBy(() -> config.addJwtCredentials(List.of(new ClientJwtCredential("subject-max", "issuer-max", "audience"))))
-                .isInstanceOf(InvalidClientDetailsException.class);
+                .isInstanceOf(InvalidClientException.class);
     }
 
     @Test
@@ -115,7 +116,7 @@ class ClientJwtConfigurationTest {
         when(mockedKey.getKeys()).thenReturn(keyList);
         ClientJwtConfiguration privateKey = new ClientJwtConfiguration(null, mockedKey);
         when(mockedKey.getKeySetMap()).thenThrow(new IllegalStateException("error"));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(privateKey::hasConfiguration);
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(privateKey::hasConfiguration);
         ClientJwtConfiguration privateKey2 = new ClientJwtConfiguration("hello", null);
         assertThat(privateKey2.hasConfiguration()).isFalse();
     }
@@ -125,7 +126,7 @@ class ClientJwtConfigurationTest {
         JsonWebKeySet<JsonWebKey> mockedKey = mock(JsonWebKeySet.class);
         List<JsonWebKey> keyList = ClientJwtConfiguration.parse(jsonJwkSet).getJwkSet().getKeys();
         when(mockedKey.getKeys()).thenReturn(Arrays.asList(keyList.get(0), keyList.get(0)));
-        assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> new ClientJwtConfiguration(null, mockedKey));
+        assertThatExceptionOfType(InvalidClientException.class).isThrownBy(() -> new ClientJwtConfiguration(null, mockedKey));
     }
 
     @Test

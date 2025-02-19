@@ -7,6 +7,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
+import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.SpringSecurityCoreVersion;
@@ -26,6 +29,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS;
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWKS_URI;
+import static org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration.JWT_CREDS;
 
 /**
  * Moved class BaseClient implementation of from spring-security-oauth2 into UAA
@@ -78,11 +85,20 @@ public class UaaClientDetails implements ClientDetails {
     @JsonProperty("refresh_token_validity")
     private Integer refreshTokenValiditySeconds;
 
-    @com.fasterxml.jackson.annotation.JsonIgnore
+    @JsonIgnore
     private transient Map<String, Object> additionalInformation = new LinkedHashMap<>();
 
     @JsonProperty("client_jwt_config")
     private String clientJwtConfig;
+
+    @JsonProperty(JWKS_URI)
+    private String jwksUri;
+
+    @JsonProperty(JWKS)
+    private JsonWebKeySet<JsonWebKey> jwkSet;
+
+    @JsonProperty(JWT_CREDS)
+    private List<ClientJwtCredential> clientJwtCredentials;
 
     public UaaClientDetails() {
     }
@@ -282,6 +298,30 @@ public class UaaClientDetails implements ClientDetails {
     @JsonAnyGetter
     public Map<String, Object> getAdditionalInformation() {
         return Collections.unmodifiableMap(this.additionalInformation);
+    }
+
+    public String getJwksUri() {
+        return this.jwksUri;
+    }
+
+    public void setJwksUri(String jwksUri) {
+        this.jwksUri = jwksUri;
+    }
+
+    public JsonWebKeySet<JsonWebKey> getJwkSet() {
+        return this.jwkSet;
+    }
+
+    public void setJwkSet(final JsonWebKeySet<JsonWebKey> jwkSet) {
+        this.jwkSet = jwkSet;
+    }
+
+    public List<ClientJwtCredential> getClientJwtCredentials() {
+        return this.clientJwtCredentials;
+    }
+
+    public void setClientJwtCredentials(final List<ClientJwtCredential> clientJwtCredentials) {
+        this.clientJwtCredentials = clientJwtCredentials;
     }
 
     @JsonAnySetter

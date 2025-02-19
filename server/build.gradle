@@ -4,7 +4,9 @@ description = "CloudFoundry Identity Server JAR"
 
 dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
-    implementation(project(":cloudfoundry-identity-model"))
+    implementation(project(":cloudfoundry-identity-model")) {
+        exclude(module: "servlet-api")
+    }
 
     implementation(libraries.tomcatJdbc)
     providedCompile(libraries.tomcatEmbed)

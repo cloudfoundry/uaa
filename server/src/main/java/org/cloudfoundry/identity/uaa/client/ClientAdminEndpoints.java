@@ -620,6 +620,12 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return new ResponseEntity<>(e, HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(InvalidClientException.class)
+    public ResponseEntity<InvalidClientException> handleInvalidClientException(InvalidClientException e) {
+        incrementErrorCounts(e);
+        return new ResponseEntity<>(e, HttpStatus.BAD_REQUEST);
+    }
+
     @ExceptionHandler(NoSuchClientException.class)
     public ResponseEntity<Void> handleNoSuchClient(NoSuchClientException e) {
         incrementErrorCounts(e);

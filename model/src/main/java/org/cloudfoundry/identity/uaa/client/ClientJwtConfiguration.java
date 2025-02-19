@@ -8,6 +8,7 @@ import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -100,7 +101,7 @@ public class ClientJwtConfiguration implements Cloneable {
         additionalCredentials.forEach(jwtEntry ->
                 clientJwtCredentialHashMap.putIfAbsent(jwtEntry.getSubject() + jwtEntry.getIssuer(), jwtEntry));
         if (clientJwtCredentialHashMap.isEmpty() || clientJwtCredentialHashMap.size() > MAX_KEY_SIZE) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: federated jwt credentials exceeds the maximum of keys. max: + " + MAX_KEY_SIZE);
+            throw new InvalidClientException("Invalid private_key_jwt: federated jwt credentials exceeds the maximum of keys. max: + " + MAX_KEY_SIZE);
         }
     }
 
@@ -153,7 +154,7 @@ public class ClientJwtConfiguration implements Cloneable {
                 configurationChanges = !CollectionUtils.isEmpty(this.clientJwtCredentials);
             }
         } catch (IllegalStateException | JsonUtils.JsonUtilException | ParseException e) {
-            throw new InvalidClientDetailsException("Client jwt configuration configuration fails ", e);
+            throw new InvalidClientException("Client jwt configuration configuration fails ", e);
         }
         return configurationChanges;
     }
@@ -190,7 +191,7 @@ public class ClientJwtConfiguration implements Cloneable {
             clientJwtConfiguration = new ClientJwtConfiguration(null, JsonWebKeyHelper.deserialize(cleanJwtString));
             clientJwtConfiguration.validateJwkSet();
         } catch (ParseException | JsonUtils.JsonUtilException e) {
-            throw new InvalidClientDetailsException("Client jwt configuration cannot be parsed", e);
+            throw new InvalidClientException("Client jwt configuration cannot be parsed", e);
         }
         return clientJwtConfiguration;
     }
@@ -200,7 +201,7 @@ public class ClientJwtConfiguration implements Cloneable {
         try {
             normalizedUri = UaaUrlUtils.normalizeUri(privateKeyUrl);
         } catch (IllegalArgumentException e) {
-            throw new InvalidClientDetailsException("Client jwt configuration with invalid URI", e);
+            throw new InvalidClientException("Client jwt configuration with invalid URI", e);
         }
         ClientJwtConfiguration clientJwtConfiguration = new ClientJwtConfiguration(normalizedUri, null);
         clientJwtConfiguration.validateJwksUri();
@@ -210,17 +211,17 @@ public class ClientJwtConfiguration implements Cloneable {
     private boolean validateJwkSet() {
         List<JsonWebKey> keyList = jwkSet.getKeys();
         if (keyList.isEmpty() || keyList.size() > MAX_KEY_SIZE) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwk set is empty of exceeds to maximum of keys. max: + " + MAX_KEY_SIZE);
+            throw new InvalidClientException("Invalid private_key_jwt: jwk set is empty of exceeds to maximum of keys. max: + " + MAX_KEY_SIZE);
         }
         Set<String> keyId = new HashSet<>();
         keyList.forEach((JsonWebKey key) -> {
             if (!StringUtils.hasText(key.getKid())) {
-                throw new InvalidClientDetailsException("Invalid private_key_jwt: kid is required attribute");
+                throw new InvalidClientException("Invalid private_key_jwt: kid is required attribute");
             }
             keyId.add(key.getKid());
         });
         if (keyId.size() != keyList.size()) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: duplicate kid in JWKSet not allowed");
+            throw new InvalidClientException("Invalid private_key_jwt: duplicate kid in JWKSet not allowed");
         }
         return true;
     }
@@ -230,23 +231,23 @@ public class ClientJwtConfiguration implements Cloneable {
         try {
             validateJwksUri = URI.create(this.jwksUri);
         } catch (IllegalArgumentException e) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri must be URI complaint", e);
+            throw new InvalidClientException("Invalid private_key_jwt: jwks_uri must be URI complaint", e);
         }
         if (!validateJwksUri.isAbsolute()) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri must be an absolute URL");
+            throw new InvalidClientException("Invalid private_key_jwt: jwks_uri must be an absolute URL");
         }
         if (!"https".equals(validateJwksUri.getScheme()) && !"http".equals(validateJwksUri.getScheme())) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri must be either using https or http");
+            throw new InvalidClientException("Invalid private_key_jwt: jwks_uri must be either using https or http");
         }
         if ("http".equals(validateJwksUri.getScheme()) && !validateJwksUri.getHost().endsWith("localhost")) {
-            throw new InvalidClientDetailsException("Invalid private_key_jwt: jwks_uri with http is not on localhost");
+            throw new InvalidClientException("Invalid private_key_jwt: jwks_uri with http is not on localhost");
         }
         return true;
     }
 
     private List<ClientJwtCredential> setValidatedCredentials(List<ClientJwtCredential> clientJwtCredentials) {
         if (ObjectUtils.isEmpty(clientJwtCredentials)) {
-            throw new InvalidClientDetailsException("Invalid null or empty credentials");
+            throw new InvalidClientException("Invalid null or empty credentials");
         }
         HashMap<String, ClientJwtCredential> clientJwtCredentialHashMap = new HashMap<>();
         validateClientJwtCredentials(clientJwtCredentials, clientJwtCredentialHashMap);
