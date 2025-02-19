@@ -580,12 +580,12 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).as("prompts attribute should be present").containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).as("prompts should be a Map for JSON content").isInstanceOf(Map.class);
         mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
-        assertThat(mapPrompts).as("there should be two prompts for html").hasSize(2)
+        assertThat(mapPrompts).as("there should be three prompts for html").hasSize(3)
                 .containsKey("username")
                 .containsKey("password")
-                .doesNotContainKey("passcode");
+                .containsKey("passcode");
 
-        //add a SAML IDP, should make the passcode prompt appear
+        //add a SAML IDP
         extendedModelMap.clear();
         when(mockSamlIdentityProviderConfigurator.getIdentityProviderDefinitions(isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
         endpoint.infoForJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
@@ -1226,7 +1226,7 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertThat(returnedPrompts).hasSize(2);
+        assertThat(returnedPrompts).hasSize(3);
     }
 
     @Test
@@ -1247,7 +1247,9 @@ class LoginInfoEndpointTests {
         List<Prompt> customPrompts = new ArrayList<>();
         customPrompts.add(new Prompt("username", "text", "MyEmail"));
         customPrompts.add(new Prompt("password", "password", "MyPassword"));
-        customPrompts.add(new Prompt("passcode", "text", "MyTemporary Authentication Code ( Get one at " + HTTP_LOCALHOST_8080_UAA + "/passcode )"));
+        final String passcodePromptText = "MyTemporary Authentication Code ( Get one at %s/passcode )"
+                .formatted(HTTP_LOCALHOST_8080_UAA);
+        customPrompts.add(new Prompt("passcode", "text", passcodePromptText));
 
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         mockHttpServletRequest.setParameter("origin", "OIDC-without-prompts");
@@ -1265,11 +1267,13 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertThat(returnedPrompts).hasSize(2)
-                .containsKey("username");
+        assertThat(returnedPrompts).hasSize(3)
+                .containsKey("username")
+                .containsKey("password")
+                .containsKey("passcode");
         assertThat(returnedPrompts.get("username")[1]).isEqualTo("MyEmail");
-        assertThat(returnedPrompts).containsKey("password");
         assertThat(returnedPrompts.get("password")[1]).isEqualTo("MyPassword");
+        assertThat(returnedPrompts.get("passcode")[1]).isEqualTo(passcodePromptText);
     }
 
     @Test
@@ -1288,11 +1292,7 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertThat(returnedPrompts).hasSize(2)
-                .containsKey("username");
-        assertThat(returnedPrompts.get("username")[1]).isEqualTo("Email");
-        assertThat(returnedPrompts).containsKey("password");
-        assertThat(returnedPrompts.get("password")[1]).isEqualTo("Password");
+        assertUsernamePasswordAndPasscodePromptsAreReturned(returnedPrompts);
     }
 
     @Test
@@ -1308,11 +1308,7 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertThat(returnedPrompts).hasSize(2)
-                .containsKey("username");
-        assertThat(returnedPrompts.get("username")[1]).isEqualTo("Email");
-        assertThat(returnedPrompts).containsKey("password");
-        assertThat(returnedPrompts.get("password")[1]).isEqualTo("Password");
+        assertUsernamePasswordAndPasscodePromptsAreReturned(returnedPrompts);
     }
 
     @Test
@@ -1334,11 +1330,7 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertThat(returnedPrompts).hasSize(2)
-                .containsKey("username");
-        assertThat(returnedPrompts.get("username")[1]).isEqualTo("Email");
-        assertThat(returnedPrompts).containsKey("password");
-        assertThat(returnedPrompts.get("password")[1]).isEqualTo("Password");
+        assertUsernamePasswordAndPasscodePromptsAreReturned(returnedPrompts);
     }
 
     @Test
@@ -1756,5 +1748,17 @@ class LoginInfoEndpointTests {
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(mockOidcConfig.isShowLinkText()).thenReturn(true);
         when(mockIdentityProviderProvisioning.retrieveByOrigin(eq("my-OIDC-idp1"), any())).thenReturn(mockProvider);
+    }
+
+    private static void assertUsernamePasswordAndPasscodePromptsAreReturned(
+            final Map<String, String[]> returnedPrompts
+    ) {
+        assertThat(returnedPrompts).hasSize(3)
+                .containsKey("username")
+                .containsKey("password")
+                .containsKey("passcode");
+        assertThat(returnedPrompts.get("username")[1]).isEqualTo("Email");
+        assertThat(returnedPrompts.get("password")[1]).isEqualTo("Password");
+        assertThat(returnedPrompts.get("passcode")[1]).startsWith("Temporary Authentication Code ( Get one at");
     }
 }
