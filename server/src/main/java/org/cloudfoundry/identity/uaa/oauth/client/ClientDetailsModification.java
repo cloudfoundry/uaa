@@ -5,6 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonSetter;
+import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
@@ -31,6 +32,12 @@ public class ClientDetailsModification extends UaaClientDetails {
             this.setAdditionalInformation(baseClientDetails.getAdditionalInformation());
             if (baseClientDetails.getAutoApproveScopes() != null) {
                 this.setAutoApproveScopes(baseClientDetails.getAutoApproveScopes());
+            }
+            if (baseClientDetails.getClientJwtConfig() != null) {
+                ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.readValue(baseClientDetails);
+                this.setJwksUri(clientJwtConfiguration.getJwksUri());
+                this.setJwkSet(clientJwtConfiguration.getJwkSet());
+                this.setClientJwtCredentials(clientJwtConfiguration.getClientJwtCredentials());
             }
         }
         if (prototype instanceof ClientDetailsModification modification) {
