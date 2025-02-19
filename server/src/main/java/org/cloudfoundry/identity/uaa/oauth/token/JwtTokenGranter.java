@@ -13,18 +13,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
-import java.util.List;
-
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_EMPTY;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_PRIVATE_KEY_JWT;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.CLIENT_AUTH_SECRET;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 
 public class JwtTokenGranter extends AbstractTokenGranter {
     final DefaultSecurityContextAccessor defaultSecurityContextAccessor;
-
-    // Do not allow JWT bearer without authentication, but with empty secret. Password grant behaves like that.
-    private static final List<String> ALLOWED_AUTH_METHODS = List.of(CLIENT_AUTH_SECRET, CLIENT_AUTH_EMPTY, CLIENT_AUTH_PRIVATE_KEY_JWT);
 
     public JwtTokenGranter(AuthorizationServerTokenServices tokenServices,
             MultitenantClientServices clientDetailsService,
@@ -49,7 +41,7 @@ public class JwtTokenGranter extends AbstractTokenGranter {
         } else {
             throw new InvalidGrantException("User authentication not found");
         }
-        return isValidClientAuthentication(ALLOWED_AUTH_METHODS) ? SecurityContextHolder.getContext().getAuthentication() : null;
+        return SecurityContextHolder.getContext().getAuthentication();
     }
 
     @Override
