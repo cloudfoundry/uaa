@@ -309,7 +309,7 @@
 
     <bean id="globalClientSecretPolicy" class="org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy">
         <constructor-arg name="minLength" value="${oauth.client.secret.policy.global.minLength:0}"/>
-        <constructor-arg name="maxLength" value="${oauth.client.secret.policy.global.maxLength:255}"/>
+        <constructor-arg name="maxLength" value="${oauth.client.secret.policy.global.maxLength:72}"/>
         <constructor-arg name="requireUpperCaseCharacter"
                               value="${oauth.client.secret.policy.global.requireUpperCaseCharacter:0}"/>
         <constructor-arg name="requireLowerCaseCharacter"

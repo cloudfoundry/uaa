@@ -230,7 +230,10 @@ public class ClientAdminBootstrap implements
             try {
                 clientRegistrationService.addClientDetails(client, IdentityZone.getUaaZoneId());
                 if (secondSecret != null) {
+                    checkSecretLength(secondSecret);
                     clientRegistrationService.addClientSecret(clientId, secondSecret, IdentityZone.getUaaZoneId());
+                } else {
+                    checkSecretLength(client.getClientSecret());
                 }
             } catch (ClientAlreadyExistsException e) {
                 if (override) {
@@ -290,6 +293,12 @@ public class ClientAdminBootstrap implements
         return clientMetadata;
     }
 
+    private static void checkSecretLength(String secret) {
+        if (ofNullable(secret).map(String::length).orElse(0) > 72) {
+            throw new InvalidClientDetailsException("Client must not have a secret with more than 72 characters");
+        }
+    }
+
     private void updatePasswordsIfChanged(String clientId, String rawPassword1, String rawPassword2) {
         if (passwordEncoder != null) {
             ClientDetails existing = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
@@ -298,6 +307,8 @@ public class ClientAdminBootstrap implements
             // check if both passwords are still up to date
             // 1st line: client already has 2 passwords: check if both are still correct
             // 2nd line: client has only 1 pasword: check if password is correct and second password is null
+            checkSecretLength(rawPassword1);
+            checkSecretLength(rawPassword2);
             if ((existingPasswordHash.length > 1 && rawPassword1 != null
                     && passwordEncoder.matches(rawPassword1, existingPasswordHash[0])
                     && rawPassword2 != null && passwordEncoder.matches(rawPassword2, existingPasswordHash[1]))

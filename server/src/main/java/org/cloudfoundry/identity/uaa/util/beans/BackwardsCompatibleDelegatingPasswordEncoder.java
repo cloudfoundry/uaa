@@ -27,6 +27,10 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return false;
         }
 
+        if (rawPassword.length() > 72) {
+            throw new IllegalArgumentException("BCrypt password match cannot exceed 72 characters.");
+        }
+
         return defaultPasswordEncoder.matches(rawPassword, verifyPrefixAndExtractPassword(encodedPassword));
     }
 
