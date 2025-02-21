@@ -295,7 +295,7 @@ public class ClientAdminBootstrap implements
 
     private static void checkSecretLength(String secret) {
         if (ofNullable(secret).map(String::length).orElse(0) > 72) {
-            throw new InvalidClientDetailsException("Client must not have a secret with more than 72 characters");
+            throw new InvalidClientDetailsException("Client secret must be no more than 72 characters in length.");
         }
     }
 
