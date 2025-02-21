@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.util.beans;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -7,6 +9,7 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
 
     private static final String OPTIONAL_BCRYPT_PREFIX = "bcrypt";
     private final BCryptPasswordEncoder defaultPasswordEncoder;
+    private static final Logger slogger = LoggerFactory.getLogger(BackwardsCompatibleDelegatingPasswordEncoder.class);
 
     public BackwardsCompatibleDelegatingPasswordEncoder(final BCryptPasswordEncoder defaultPasswordEncoder) {
         this.defaultPasswordEncoder = defaultPasswordEncoder;
@@ -28,7 +31,8 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
         }
 
         if (rawPassword.length() > 72) {
-            throw new IllegalArgumentException("BCrypt password match cannot exceed 72 characters.");
+            slogger.error("BCrypt password match cannot exceed 72 characters.");
+            return false;
         }
 
         return defaultPasswordEncoder.matches(rawPassword, verifyPrefixAndExtractPassword(encodedPassword));

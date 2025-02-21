@@ -176,7 +176,7 @@ class ForcedPasswordChangeIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys(invalidNewPassword);
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/force_password_change");
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Password must be no more than 72 characters in length.");
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Password must be no more than 255 characters in length.");
     }
 
     private void navigateToForcePasswordChange() {
