@@ -989,6 +989,7 @@ class ClientAdminEndpointsTests {
     void getClientWithFederatedJwt() {
         // Given
         UaaClientDetails uaaClientDetails = new UaaClientDetails(input);
+        uaaClientDetails.setAutoApproveScopes(uaaClientDetails.getScope());
         List<ClientJwtCredential> jwtCredentials = List.of(new ClientJwtCredential("subject", "issuer", null));
         ClientJwtConfiguration clientJwtConfiguration = new ClientJwtConfiguration(jwtCredentials);
         clientJwtConfiguration.setJwksUri("http://localhost:8080/uaa/token_keys");
@@ -1011,13 +1012,16 @@ class ClientAdminEndpointsTests {
         assertThat(clientJwtCredential.getSubject()).isEqualTo("subject");
         assertThat(clientJwtCredential.getAudience()).isNull();
         ClientDetailsModification modification2 = new ClientDetailsModification(uaaClientDetails);
+        modification2.setAction("add");
         // Compare results and original with and without secret
-        assertThat(modification.equals(modification2)).isFalse();
-        assertThat(modification.hashCode()).isNotEqualTo(modification2.hashCode());
+        assertThat(modification).isNotEqualTo(modification2);
+        assertThat(modification).isNotEqualTo(modification2.hashCode());
         uaaClientDetails.setClientSecret(null);
         ClientDetailsModification modification3 = new ClientDetailsModification(uaaClientDetails);
-        assertThat(modification.equals(modification3)).isTrue();
-        assertThat(modification.hashCode()).isEqualTo(modification3.hashCode());
+        assertThat(modification).isEqualTo(modification3);
+        assertThat(modification).hasSameHashCodeAs(modification3.hashCode());
+        assertThat(modification.getAction()).isNotEqualTo(modification2.getAction());
+        assertThat(modification.getAction()).isEqualTo(modification3.getAction());
     }
 
     @Test
