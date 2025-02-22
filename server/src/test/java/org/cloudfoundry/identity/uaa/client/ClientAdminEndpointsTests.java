@@ -1015,11 +1015,10 @@ class ClientAdminEndpointsTests {
         modification2.setAction("add");
         // Compare results and original with and without secret
         assertThat(modification).isNotEqualTo(modification2);
-        assertThat(modification).isNotEqualTo(modification2.hashCode());
+        assertThat(modification.hashCode()).isNotEqualTo(modification2.hashCode());
         uaaClientDetails.setClientSecret(null);
         ClientDetailsModification modification3 = new ClientDetailsModification(uaaClientDetails);
-        assertThat(modification).isEqualTo(modification3);
-        assertThat(modification).hasSameHashCodeAs(modification3.hashCode());
+        assertThat(modification).isEqualTo(modification3).hasSameHashCodeAs(modification3);
         assertThat(modification.getAction()).isNotEqualTo(modification2.getAction());
         assertThat(modification.getAction()).isEqualTo(modification3.getAction());
     }
