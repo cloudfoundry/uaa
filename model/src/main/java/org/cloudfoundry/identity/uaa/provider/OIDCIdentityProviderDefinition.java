@@ -32,6 +32,7 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
     private URL discoveryUrl;
     private boolean passwordGrantEnabled;
     private boolean setForwardHeader;
+    private Boolean tokenExchangeEnabled;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts;
     @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -89,6 +90,15 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         this.additionalAuthzParameters = new HashMap<>(additonalAuthzParameters != null ? additonalAuthzParameters : emptyMap());
     }
 
+
+    public Boolean isTokenExchangeEnabled() {
+        return tokenExchangeEnabled;
+    }
+
+    public void setTokenExchangeEnabled(Boolean tokenExchangeEnabled) {
+        this.tokenExchangeEnabled = tokenExchangeEnabled;
+    }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -120,6 +130,9 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         if (!Objects.equals(this.additionalAuthzParameters, that.additionalAuthzParameters)) {
             return false;
         }
+        if (!Objects.equals(this.tokenExchangeEnabled, that.tokenExchangeEnabled)) {
+            return false;
+        }
         return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
@@ -132,6 +145,7 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         result = 31 * result + (setForwardHeader ? 1 : 0);
         result = 31 * result + (jwtClientAuthentication != null ? jwtClientAuthentication.hashCode() : 0);
         result = 31 * result + (additionalAuthzParameters != null ? additionalAuthzParameters.hashCode() : 0);
+        result = 31 * result + (tokenExchangeEnabled != null ? tokenExchangeEnabled.hashCode() : 0);
         return result;
     }
 }
