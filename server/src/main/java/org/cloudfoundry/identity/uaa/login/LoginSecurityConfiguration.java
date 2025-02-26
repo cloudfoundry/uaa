@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter;
@@ -14,6 +15,7 @@ import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpr
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter;
+import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
@@ -46,6 +48,7 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.session.DisableEncodeUrlFilter;
 
 import java.io.IOException;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anonymousOrFullyAuthenticated;
 
@@ -56,6 +59,26 @@ class LoginSecurityConfiguration {
     @Bean
     ResourcePropertySource messagePropertiesSource() throws IOException {
         return new ResourcePropertySource("messages.properties");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.AUTOLOGIN_CODE)
+    UaaFilterChain autologinCode(
+            HttpSecurity http,
+            @Qualifier("autologinAuthenticationFilter") AuthzAuthenticationFilter autologinFilter
+    ) throws Exception {
+        var securityMatcher = new UaaRequestMatcher("/autologin");
+        securityMatcher.setParameters(Map.of("code", ""));
+        var originalChain = http
+                .securityMatcher(securityMatcher)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .addFilterAt(autologinFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> {
+                    exception.authenticationEntryPoint(new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request"));
+                })
+                .build();
+        return new UaaFilterChain(originalChain);
     }
 
     @Bean

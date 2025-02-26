@@ -26,14 +26,6 @@
         <csrf disabled="false" token-repository-ref="loginCookieCsrfRepository"/>
     </http>
 
-    <http name="secFilterCodeLogin" request-matcher-ref="autologinRequestMatcher" entry-point-ref="loginEntryPoint"
-                    xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-        <intercept-url pattern="/**" method="GET"/>
-        <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
-        <anonymous enabled="false"/>
-        <csrf disabled="true"/>
-    </http>
-
     <bean id="resetPasswordEntryPoint"
                     class="org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationEntryPoint"/>
     <bean id="resetPasswordAuthenticationFilter"
@@ -136,15 +128,6 @@
         <property name="parameters">
             <map>
                 <entry key="response_type" value="code"/>
-                <entry key="code" value=""/>
-            </map>
-        </property>
-    </bean>
-
-    <bean id="autologinRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/autologin"/>
-        <property name="parameters">
-            <map>
                 <entry key="code" value=""/>
             </map>
         </property>
