@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource;
+import org.cloudfoundry.identity.uaa.invitations.InvitationsAuthenticationTrustResolver;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
@@ -35,6 +36,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.session.DisableEncodeUrlFilter;
@@ -51,6 +53,39 @@ class LoginSecurityConfiguration {
     ResourcePropertySource messagePropertiesSource() throws IOException {
         return new ResourcePropertySource("messages.properties");
     }
+
+    @Bean
+    @Order(FilterChainOrder.INVITATIONS)
+    UaaFilterChain invitation(
+            HttpSecurity http,
+            CookieBasedCsrfTokenRepository csrfTokenRepository
+    ) throws Exception {
+        var originalChain = http
+                .securityMatcher(
+                        "/invitations/**"
+                )
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.GET, "/invitations/accept").access(anonymousOrFullyAuthenticated());
+                    auth.requestMatchers(HttpMethod.POST, "/invitations/accept.do").hasAuthority("uaa.invited");
+                    auth.requestMatchers(HttpMethod.POST, "/invitations/accept_enterprise.do").hasAuthority("uaa.invited");
+                    auth.anyRequest().denyAll();
+
+                })
+                .securityContext(securityContext -> {
+                    var securityContextRepository = new HttpSessionSecurityContextRepository();
+                    securityContextRepository.setTrustResolver(new InvitationsAuthenticationTrustResolver());
+                    securityContext.securityContextRepository(securityContextRepository);
+                })
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
+                .exceptionHandling(exception -> {
+                    var authenticationEntryPoint = new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request");
+                    exception.authenticationEntryPoint(authenticationEntryPoint);
+                    exception.accessDeniedHandler(authenticationEntryPoint);
+                })
+                .build();
+        return new UaaFilterChain(originalChain);
+    }
+
 
     @Bean
     @Order(FilterChainOrder.INVITE)
