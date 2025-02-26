@@ -62,6 +62,32 @@ class LoginSecurityConfiguration {
     }
 
     @Bean
+    @Order(FilterChainOrder.AUTOLOGIN_AUTHORIZE)
+    UaaFilterChain autologinAuthorization(
+            HttpSecurity http,
+            CookieBasedCsrfTokenRepository csrfTokenRepository,
+            @Qualifier("autologinAuthenticationFilter") AuthzAuthenticationFilter autologinFilter
+    ) throws Exception {
+        var securityMatcher = new UaaRequestMatcher("/oauth/authorize");
+        securityMatcher.setParameters(
+                Map.of(
+                        "response_type", "code",
+                        "code", ""
+                )
+        );
+
+        var originalChain = http
+                .securityMatcher(securityMatcher)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
+                .addFilterAt(autologinFilter, UsernamePasswordAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request")))
+                .build();
+
+        return new UaaFilterChain(originalChain);
+    }
+
+    @Bean
     @Order(FilterChainOrder.AUTOLOGIN_CODE)
     UaaFilterChain autologinCode(
             HttpSecurity http,
@@ -74,9 +100,7 @@ class LoginSecurityConfiguration {
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .addFilterAt(autologinFilter, UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(exception -> {
-                    exception.authenticationEntryPoint(new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request"));
-                })
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request")))
                 .build();
         return new UaaFilterChain(originalChain);
     }

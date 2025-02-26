@@ -17,15 +17,6 @@
     <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials"/>
 
-    <!-- Pattern: /oauth/authorize parameters:{response_type=code,code=?} -->
-    <http name="secFilterAutologinAuthorize" request-matcher-ref="autologinAuthorizeRequestMatcher"
-                    entry-point-ref="loginEntryPoint"
-                    xmlns="http://www.springframework.org/schema/security">
-        <anonymous enabled="false"/>
-        <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
-        <csrf disabled="false" token-repository-ref="loginCookieCsrfRepository"/>
-    </http>
-
     <bean id="resetPasswordEntryPoint"
                     class="org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationEntryPoint"/>
     <bean id="resetPasswordAuthenticationFilter"
@@ -120,17 +111,6 @@
             </set>
         </property>
         <property name="successHandler" ref="accountSavingAuthenticationSuccessHandler"/>
-    </bean>
-
-    <!-- Pattern: /oauth/authorize parameters:{response_type=code,code=?} -->
-    <bean id="autologinAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/authorize"/>
-        <property name="parameters">
-            <map>
-                <entry key="response_type" value="code"/>
-                <entry key="code" value=""/>
-            </map>
-        </property>
     </bean>
 
 </beans>
