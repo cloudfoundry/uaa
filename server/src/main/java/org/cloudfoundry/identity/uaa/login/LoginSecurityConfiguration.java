@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource;
@@ -24,10 +25,13 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configurers.AnonymousConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
+import org.springframework.security.config.authentication.AuthenticationManagerBeanDefinitionParser;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
@@ -52,6 +56,27 @@ class LoginSecurityConfiguration {
     @Bean
     ResourcePropertySource messagePropertiesSource() throws IOException {
         return new ResourcePropertySource("messages.properties");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.AUTOLOGIN)
+    UaaFilterChain autologin(
+            HttpSecurity http,
+            @Qualifier("basicAuthenticationEntryPoint") AuthenticationEntryPoint authenticationEntryPoint,
+            @Qualifier("clientAuthenticationFilter") ClientBasicAuthenticationFilter clientBasicAuthenticationFilter
+    ) throws Exception {
+        var emptyAuthenticationManager = new ProviderManager(new AuthenticationManagerBeanDefinitionParser.NullAuthenticationProvider());
+        var originalChain = http
+                .securityMatcher("/autologin")
+                .authenticationManager(emptyAuthenticationManager)
+                .authorizeHttpRequests(req -> req.anyRequest().fullyAuthenticated())
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(clientBasicAuthenticationFilter, BasicAuthenticationFilter.class)
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
+                .build();
+        return new UaaFilterChain(originalChain);
     }
 
     @Bean

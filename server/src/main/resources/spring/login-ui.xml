@@ -34,17 +34,6 @@
         <csrf disabled="true"/>
     </http>
 
-    <!-- Pattern:/autologin -->
-    <http name="secFilterAutologin" pattern="/autologin" create-session="stateless"
-                    entry-point-ref="basicAuthenticationEntryPoint"
-                    xmlns="http://www.springframework.org/schema/security" authentication-manager-ref="emptyAuthenticationManager"
-                    use-expressions="false">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" method="POST"/>
-        <anonymous enabled="false"/>
-        <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER"/>
-        <csrf disabled="true"/>
-    </http>
-
     <bean id="resetPasswordEntryPoint"
                     class="org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationEntryPoint"/>
     <bean id="resetPasswordAuthenticationFilter"
