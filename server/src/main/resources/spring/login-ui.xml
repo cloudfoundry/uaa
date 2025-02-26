@@ -98,18 +98,6 @@
         <constructor-arg name="service" ref="resetPasswordService"/>
         <constructor-arg name="expiringCodeStore" ref="codeStore"/>
     </bean>
-    <http name="resetPasswordSubmit"
-                    pattern="/reset_password.do"
-                    disable-url-rewriting="true"
-                    entry-point-ref="loginEntryPoint"
-                    use-expressions="false"
-                    xmlns="http://www.springframework.org/schema/security">
-        <custom-filter ref="userManagementSecurityFilter" before="ANONYMOUS_FILTER"/>
-        <custom-filter ref="resetPasswordAuthenticationFilter" position="LAST"/>
-        <csrf disabled="false"
-                              token-repository-ref="loginCookieCsrfRepository"/>
-        <access-denied-handler ref="loginEntryPoint"/>
-    </http>
 
     <bean id="uiAuthorizeRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
         <constructor-arg value="/oauth/authorize**"/>

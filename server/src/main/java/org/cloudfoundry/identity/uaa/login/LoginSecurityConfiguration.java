@@ -1,8 +1,10 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource;
+import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter;
@@ -20,6 +22,8 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
@@ -38,6 +42,28 @@ class LoginSecurityConfiguration {
     @Bean
     ResourcePropertySource messagePropertiesSource() throws IOException {
         return new ResourcePropertySource("messages.properties");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.RESET_PASSWORD)
+    UaaFilterChain resetPassword(
+            HttpSecurity http,
+            DisableUserManagementSecurityFilter disableUserManagementSecurityFilter,
+            ResetPasswordAuthenticationFilter resetPasswordAuthenticationFilter,
+            CookieBasedCsrfTokenRepository csrfTokenRepository
+    ) throws Exception {
+        var originalChain = http
+                .securityMatcher("/reset_password.do")
+                .addFilterBefore(disableUserManagementSecurityFilter, AnonymousAuthenticationFilter.class)
+                .addFilterAfter(resetPasswordAuthenticationFilter, AuthorizationFilter.class)
+                .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
+                .exceptionHandling(exception -> {
+                    var authenticationEntryPoint = new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request");
+                    exception.authenticationEntryPoint(authenticationEntryPoint);
+                    exception.accessDeniedHandler(authenticationEntryPoint);
+                })
+                .build();
+        return new UaaFilterChain(originalChain);
     }
 
     @Bean
