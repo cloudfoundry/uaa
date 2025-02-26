@@ -4,19 +4,26 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeUiRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource;
+import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
+import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter;
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.io.support.ResourcePropertySource;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
@@ -26,6 +33,7 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.security.web.authentication.AnonymousAuthenticationFilter;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.logout.LogoutFilter;
+import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.security.web.csrf.CsrfFilter;
@@ -42,6 +50,37 @@ class LoginSecurityConfiguration {
     @Bean
     ResourcePropertySource messagePropertiesSource() throws IOException {
         return new ResourcePropertySource("messages.properties");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.INVITE)
+    UaaFilterChain inviteUser(
+            HttpSecurity http,
+            @Qualifier("resourceAgnosticAuthenticationFilter") OAuth2AuthenticationProcessingFilter oauth2ResourceFilter
+    ) throws Exception {
+        var originalChain = http
+                .securityMatcher("/invite_users/**")
+                .authorizeHttpRequests(auth -> {
+                    auth.requestMatchers(HttpMethod.POST, "/**").access(
+                            (authSup, ctx) -> {
+                                // TODO: dgarnier move to AuthorizationManagersUtils
+                                var methods = new ContextSensitiveOAuth2SecurityExpressionMethods(authSup.get(), IdentityZone.getUaa());
+                                var authorization = methods.hasAnyScope("scim.invite") || methods.hasScopeInAuthZone("zones.{zone.id}.admin");
+                                return new AuthorizationDecision(authorization);
+                            }
+                    );
+                    auth.anyRequest().denyAll();
+                })
+                .addFilterBefore(oauth2ResourceFilter, AbstractPreAuthenticatedProcessingFilter.class)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception -> {
+                    var authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
+                    authenticationEntryPoint.setRealmName("UAA/oauth");
+                    exception.authenticationEntryPoint(authenticationEntryPoint);
+                    exception.accessDeniedHandler(new OAuth2AccessDeniedHandler());
+                })
+                .build();
+        return new UaaFilterChain(originalChain);
     }
 
     @Bean
