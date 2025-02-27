@@ -52,7 +52,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anonymousOrFullyAuthenticated;
+import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf;
 
 @Configuration
 @EnableWebSecurity
@@ -139,7 +139,7 @@ class LoginSecurityConfiguration {
                         "/invitations/**"
                 )
                 .authorizeHttpRequests(auth -> {
-                    auth.requestMatchers(HttpMethod.GET, "/invitations/accept").access(anonymousOrFullyAuthenticated());
+                    auth.requestMatchers(HttpMethod.GET, "/invitations/accept").access(anyOf().anonymous().fullyAuthenticated());
                     auth.requestMatchers(HttpMethod.POST, "/invitations/accept.do").hasAuthority("uaa.invited");
                     auth.requestMatchers(HttpMethod.POST, "/invitations/accept_enterprise.do").hasAuthority("uaa.invited");
                     auth.anyRequest().denyAll();
@@ -344,7 +344,7 @@ class LoginSecurityConfiguration {
                     auth.requestMatchers("/login/idp_discovery/**").anonymous();
                     auth.requestMatchers("/saml/metadata/**").anonymous();
                     auth.requestMatchers("/origin-chooser").anonymous();
-                    auth.requestMatchers("/login**").access(anonymousOrFullyAuthenticated());
+                    auth.requestMatchers("/login**").access(anyOf().anonymous().fullyAuthenticated());
                     auth.requestMatchers("/**").fullyAuthenticated();
                 })
                 .formLogin(login -> {
