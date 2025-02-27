@@ -11,7 +11,6 @@ import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2Authent
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
-import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter;
@@ -19,7 +18,6 @@ import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -28,7 +26,6 @@ import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AnonymousConfigurer;
@@ -171,13 +168,11 @@ class LoginSecurityConfiguration {
                 .securityMatcher("/invite_users/**")
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers(HttpMethod.POST, "/**").access(
-                            (authSup, ctx) -> {
-                                // TODO: dgarnier move to AuthorizationManagersUtils
-                                var methods = new ContextSensitiveOAuth2SecurityExpressionMethods(authSup.get(), IdentityZone.getUaa());
-                                var authorization = methods.hasAnyScope("scim.invite") || methods.hasScopeInAuthZone("zones.{zone.id}.admin");
-                                return new AuthorizationDecision(authorization);
-                            }
+                            anyOf().isUaaAdmin()
+                                    .isZoneAdmin()
+                                    .hasScope("scim.invite")
                     );
+
                     auth.anyRequest().denyAll();
                 })
                 .addFilterBefore(oauth2ResourceFilter, AbstractPreAuthenticatedProcessingFilter.class)

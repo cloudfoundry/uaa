@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.web;
 
+import org.cloudfoundry.identity.uaa.oauth.provider.expression.OAuth2ExpressionUtils;
+import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authorization.AuthenticatedAuthorizationManager;
 import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.authorization.AuthorizationManager;
@@ -38,7 +41,7 @@ public class AuthorizationManagersUtils {
         }
 
         /**
-         * Grant access if the authentication is null or anonymous.
+         * Grants access if the authentication is null or anonymous.
          */
         public AnyOfAuthorizationManager anonymous() {
             delegateAuthorizationManagers.add(AuthenticatedAuthorizationManager.anonymous());
@@ -46,7 +49,7 @@ public class AuthorizationManagersUtils {
         }
 
         /**
-         * Grant access if the authentication is authenticated and not remember-me.
+         * Grants access if the authentication is authenticated and not remember-me.
          */
         public AnyOfAuthorizationManager fullyAuthenticated() {
             delegateAuthorizationManagers.add(AuthenticatedAuthorizationManager.fullyAuthenticated());
@@ -54,10 +57,51 @@ public class AuthorizationManagersUtils {
         }
 
         /**
-         * Grant access if the {@code authorizationManager} grants access.
+         * Grants access if the {@code authorizationManager} grants access.
          */
         public AnyOfAuthorizationManager or(AuthorizationManager<RequestAuthorizationContext> authorizationManager) {
             delegateAuthorizationManagers.add(authorizationManager);
+            return this;
+        }
+
+        /**
+         * Grants access to UAA admins.
+         */
+        public AnyOfAuthorizationManager isUaaAdmin() {
+            return hasScope("uaa.admin");
+        }
+
+        /**
+         * Is zone administrator of the current IdentityZone.
+         */
+        public AnyOfAuthorizationManager isZoneAdmin() {
+            return hasScopeWithZoneId("zones.{zone.id}.admin");
+        }
+
+        /**
+         * Grants access for the given scope.
+         *
+         * @deprecated Upgrade in 3.x
+         */
+        public AnyOfAuthorizationManager hasScope(String scope) {
+            delegateAuthorizationManagers.add(
+                    (auth, ctx) -> new AuthorizationDecision(OAuth2ExpressionUtils.hasAnyScope(auth.get(), new String[]{scope}))
+            );
+            return this;
+        }
+
+        /**
+         * Grants access for the given scope, swapping {@code {zone.id}} for the current Zone ID.
+         */
+        public AnyOfAuthorizationManager hasScopeWithZoneId(String scope) {
+            delegateAuthorizationManagers.add(
+                    (auth, ctx) -> {
+                        // TODO dgarnier: this matches the existing behavior but may be incorrect.
+                        var identityZone = IdentityZoneHolder.getUaaZone();
+                        var securityMethods = new ContextSensitiveOAuth2SecurityExpressionMethods(auth.get(), identityZone);
+                        return new AuthorizationDecision(securityMethods.hasScopeInAuthZone(scope));
+                    }
+            );
             return this;
         }
     }

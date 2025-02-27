@@ -1,5 +1,11 @@
 package org.cloudfoundry.identity.uaa.web;
 
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.RememberMeAuthenticationToken;
@@ -10,6 +16,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 
+import java.util.Collections;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,10 +27,15 @@ import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtilsTests.
 
 class AuthorizationManagersUtilsTests {
 
-    private Authentication ANONYMOUS = new AnonymousAuthenticationToken("ignored", "ignored", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
-    private Authentication NOT_AUTHENTICATED = new TestingAuthenticationToken("test", null);
-    private Authentication FULLY_AUTHENTICATED = new TestingAuthenticationToken("test", null, AuthorityUtils.createAuthorityList("ROLE_USER"));
-    private Authentication REMEMBER_ME = new RememberMeAuthenticationToken("ignored", "ignored", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+    private final Authentication ANONYMOUS = new AnonymousAuthenticationToken("ignored", "ignored", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+    private final Authentication NOT_AUTHENTICATED = new TestingAuthenticationToken("test", null);
+    private final Authentication FULLY_AUTHENTICATED = new TestingAuthenticationToken("test", null, AuthorityUtils.createAuthorityList("ROLE_USER"));
+    private final Authentication REMEMBER_ME = new RememberMeAuthenticationToken("ignored", "ignored", AuthorityUtils.createAuthorityList("ROLE_ANONYMOUS"));
+
+    @AfterAll
+    static void afterAll() {
+        IdentityZoneHolder.clear();
+    }
 
     @Test
     void noAuthenticationManager() {
@@ -84,6 +97,32 @@ class AuthorizationManagersUtilsTests {
         assertThat(authManager.check(() -> REMEMBER_ME, null).isGranted()).isFalse();
     }
 
+    @Test
+    void uaaAdmin() {
+        AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf().isUaaAdmin();
+
+        assertThat(authManager.check(() -> withScopes("foo.bar"), null).isGranted()).isFalse();
+        assertThat(authManager.check(() -> withScopes("uaa.admin"), null).isGranted()).isTrue();
+    }
+
+    @Test
+    void hasScope() {
+        AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf().hasScope("foo.bar");
+
+        assertThat(authManager.check(() -> withScopes("uaa.admin"), null).isGranted()).isFalse();
+        assertThat(authManager.check(() -> withScopes("uaa.admin", "foo.bar"), null).isGranted()).isTrue();
+    }
+
+    @Test
+    void zoneAdmin() {
+        AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf().isZoneAdmin();
+
+        IdentityZoneHolder.set(ModelTestUtils.identityZone("someZoneId", "some-domain"));
+
+        assertThat(authManager.check(() -> withScopes("foo.bar"), null).isGranted()).isFalse();
+        assertThat(authManager.check(() -> withScopes("zones.someZoneId.admin"), null).isGranted()).isTrue();
+    }
+
     static class TestAuthManager implements AuthorizationManager<RequestAuthorizationContext> {
 
         public boolean called = false;
@@ -114,6 +153,26 @@ class AuthorizationManagersUtilsTests {
             called = true;
             return authorizationDecision;
         }
+    }
+
+    private Authentication withScopes(String... scopes) {
+        return new UaaOauth2Authentication(
+                "~ignored~",
+                // TODO dgarnier: this matches the existing behavior but may be incorrect
+                IdentityZone.getUaaZoneId(),
+                new OAuth2Request(
+                        Collections.emptyMap(),
+                        null,
+                        Collections.emptySet(),
+                        true,
+                        Set.of(scopes),
+                        Collections.emptySet(),
+                        null,
+                        Collections.emptySet(),
+                        Collections.emptyMap()
+                ),
+                FULLY_AUTHENTICATED
+        );
     }
 
 }
