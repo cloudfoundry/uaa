@@ -93,22 +93,4 @@
         <constructor-arg name="keyInfoService" ref="keyInfoService"/>
     </bean>
 
-    <bean id="autologinAuthenticationFilter"
-                    class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
-        <constructor-arg ref="autologinAuthenticationManager"/>
-        <property name="parameterNames">
-            <list>
-                <value>code</value>
-                <value>response_type</value>
-            </list>
-        </property>
-        <property name="methods">
-            <set>
-                <value>GET</value>
-                <value>POST</value>
-            </set>
-        </property>
-        <property name="successHandler" ref="accountSavingAuthenticationSuccessHandler"/>
-    </bean>
-
 </beans>

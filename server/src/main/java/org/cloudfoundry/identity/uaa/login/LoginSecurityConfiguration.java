@@ -48,7 +48,9 @@ import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.session.DisableEncodeUrlFilter;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anonymousOrFullyAuthenticated;
 
@@ -369,6 +371,18 @@ class LoginSecurityConfiguration {
                 .requestCache(cache -> cache.requestCache(clientRedirectStateCache))
                 .build();
         return new UaaFilterChain(originalChain);
+    }
+
+    @Bean
+    AuthzAuthenticationFilter autologinAuthenticationFilter(
+            @Qualifier("autologinAuthenticationManager") AuthenticationManager authenticationManager,
+            AccountSavingAuthenticationSuccessHandler loginSuccessHandler
+    ) {
+        var filter = new AuthzAuthenticationFilter(authenticationManager);
+        filter.setParameterNames(List.of("code", "response_type"));
+        filter.setMethods(Set.of(HttpMethod.GET.name(), HttpMethod.POST.name()));
+        filter.setSuccessHandler(loginSuccessHandler);
+        return filter;
     }
 
 }
