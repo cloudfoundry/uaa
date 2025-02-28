@@ -7,7 +7,7 @@ ext {
 versions.aspectJVersion = "1.9.4"
 versions.apacheDsVersion = "2.0.0.AM27"
 versions.bouncyCastleFipsVersion = "2.0.0"
-versions.bouncyCastlePkixFipsVersion = "2.1.9"
+versions.bouncyCastlePkixFipsVersion = "2.0.7"
 versions.bouncyCastleTlsFipsVersion = "2.0.19"
 versions.hamcrestVersion = "3.0"
 versions.springBootVersion = "2.7.18"
