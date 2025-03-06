@@ -191,7 +191,6 @@ cargo {
         jvmArgs = String.format("%s -DCLOUDFOUNDRY_CONFIG_PATH='%s'", jvmArgs, file("scripts/cargo").getAbsolutePath())
         jvmArgs = String.format("%s -Dlogging.config='%s'", jvmArgs, file("scripts/cargo/log4j2.properties").getAbsolutePath())
         jvmArgs = String.format("%s -Dstatsd.enabled=true", jvmArgs)
-        jvmArgs = String.format("%s --add-opens=java.base/java.io=ALL-UNNAMED", jvmArgs)
 
         String activeSpringProfiles = System.getProperty("spring.profiles.active", "").split(',');
         if (activeSpringProfiles.contains("debugs") || Boolean.valueOf(System.getProperty("xdebugs"))) {
