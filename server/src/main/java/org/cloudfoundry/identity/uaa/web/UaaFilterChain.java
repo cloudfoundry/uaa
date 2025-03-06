@@ -20,9 +20,15 @@ import java.util.List;
 public class UaaFilterChain implements SecurityFilterChain {
 
     private final SecurityFilterChain chain;
+    private final String name;
+
+    public UaaFilterChain(SecurityFilterChain chain, String name) {
+        this.chain = chain;
+		this.name = name;
+	}
 
     public UaaFilterChain(SecurityFilterChain chain) {
-        this.chain = chain;
+        this(chain, null);
     }
 
     @Override
@@ -33,5 +39,9 @@ public class UaaFilterChain implements SecurityFilterChain {
     @Override
     public boolean matches(HttpServletRequest request) {
         return this.chain.matches(request);
+    }
+
+    public String getName() {
+        return this.name;
     }
 }

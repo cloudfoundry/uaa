@@ -82,9 +82,9 @@ public class AuthorizationManagersUtils {
          *
          * @deprecated Upgrade in 3.x
          */
-        public AnyOfAuthorizationManager hasScope(String scope) {
+        public AnyOfAuthorizationManager hasScope(String... scope) {
             delegateAuthorizationManagers.add(
-                    (auth, ctx) -> new AuthorizationDecision(OAuth2ExpressionUtils.hasAnyScope(auth.get(), new String[]{scope}))
+                    (auth, ctx) -> new AuthorizationDecision(OAuth2ExpressionUtils.hasAnyScope(auth.get(), scope))
             );
             return this;
         }
