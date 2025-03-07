@@ -20,6 +20,8 @@ public class FilterChainOrder {
     public static final int INVITATIONS_ACCEPT = 1210;
     public static final int SAML_IDP_SSO = 1211;
     public static final int SCIM_GROUP = 1212;
-    public static final int UI_SECURITY = 1213;
+    public static final int SCIM_USER_PASSWORD = 1213;
+    public static final int SCIM_USER = 1214;
+    public static final int UI_SECURITY = 1215;
 
 }

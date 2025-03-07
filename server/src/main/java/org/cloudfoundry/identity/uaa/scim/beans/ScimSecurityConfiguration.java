@@ -4,6 +4,8 @@ import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
+import org.cloudfoundry.identity.uaa.security.IsSelfCheck;
+import org.cloudfoundry.identity.uaa.security.SelfCheckAuthorizationManager;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
@@ -75,6 +77,33 @@ class ScimSecurityConfiguration {
                 .build();
 
         return new UaaFilterChain(chain, "groupEndpointSecurity");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.SCIM_USER)
+    UaaFilterChain scimUsers(HttpSecurity http, @Qualifier("self") IsSelfCheck selfCheck) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher("/Users", "/Users/**")
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers(HttpMethod.GET, "/Users/*/verify-link").access(anyOf().hasScope("scim.create").isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.GET, "/Users/*/verify").access(anyOf().hasScope("scim.write", "scim.create").isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.PATCH, "/Users/*/status").access(anyOf().hasScope("scim.write", "uaa.account_status.write").isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.GET, "/Users/**").access(anyOf().hasScope("scim.read").or(new SelfCheckAuthorizationManager(selfCheck, 1)).isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.DELETE, "/Users","/Users/*").access(anyOf().hasScope("scim.write").isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.PUT, "/Users","/Users/*").access(anyOf().hasScope("scim.write").or(new SelfCheckAuthorizationManager(selfCheck, 1)).isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.PATCH, "/Users","/Users/*").access(anyOf().hasScope("scim.write").or(new SelfCheckAuthorizationManager(selfCheck, 1)).isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.POST, "/Users","/Users/*").access(anyOf().hasScope("scim.write", "scim.create").isZoneAdmin());
+                    auth.anyRequest().denyAll();
+                })
+                .authenticationManager(emptyAuthenticationManager)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(resourceAgnosticAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(oauthAuthenticationEntryPoint))
+                .build();
+
+        return new UaaFilterChain(chain, "scimUsers");
     }
 
     @Bean
