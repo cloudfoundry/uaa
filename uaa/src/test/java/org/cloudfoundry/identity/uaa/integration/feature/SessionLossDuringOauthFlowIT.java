@@ -39,6 +39,8 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.web.client.RestOperations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.attemptPasswordLogin;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createUnapprovedUser;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
@@ -112,7 +114,7 @@ class SessionLossDuringOauthFlowIT {
 
         //Session Expires (we simulate through deleting the cookie)
         webDriver.manage().deleteCookieNamed("JSESSIONID");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
 
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Application Authorization");
@@ -123,12 +125,10 @@ class SessionLossDuringOauthFlowIT {
 
         //Session Expires (we simulate through deleting the cookie)
         webDriver.manage().deleteCookieNamed("JSESSIONID");
-        webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
+        clickAndWaitPage(webDriver, By.xpath("//button[text()='Authorize']"));
 
         //We should be back on the login page
-        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        attemptPasswordLogin(webDriver, user.getUserName(), user.getPassword());
 
         //We should be back on the approvals page
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Application Authorization");
@@ -136,7 +136,7 @@ class SessionLossDuringOauthFlowIT {
         webDriver.findElement(By.xpath("//label[text()='Change your password']/preceding-sibling::input")).click();
         webDriver.findElement(By.xpath("//label[text()='Read user IDs and retrieve users by ID']/preceding-sibling::input")).click();
         webDriver.findElement(By.xpath("//label[text()='Read about your clouds.']/preceding-sibling::input"));
-        webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
+        clickAndWaitPage(webDriver, By.xpath("//button[text()='Authorize']"));
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Sample Home Page");
     }

@@ -17,6 +17,9 @@ import java.util.Iterator;
 
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getVisiblePageElementBy;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.performPasswordLogin;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 class ChangeEmailIT {
@@ -93,12 +96,12 @@ class ChangeEmailIT {
 
         webDriver.get(baseUrl + "/profile");
         assertThat(webDriver.findElement(By.cssSelector(".profile .email")).getText()).isEqualTo(userEmail);
-        webDriver.findElement(By.linkText("Change Email")).click();
+        clickAndWaitPage(webDriver, By.linkText("Change Email"));
 
         assertThat(webDriver.findElement(By.cssSelector(".email-display")).getText()).isEqualTo("Current Email Address: " + userEmail);
         String newEmail = userEmail.replace("user", "new");
-        webDriver.findElement(By.name("newEmail")).sendKeys(newEmail);
-        webDriver.findElement(By.xpath("//input[@value='Send Verification Link']")).click();
+        getVisiblePageElementBy(webDriver, By.name("newEmail")).sendKeys(newEmail);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Send Verification Link']"));
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Instructions Sent");
         assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
@@ -130,8 +133,8 @@ class ChangeEmailIT {
         webDriver.get(baseUrl + "/change_email?client_id=app");
 
         String newEmail = userEmail.replace("user", "new");
-        webDriver.findElement(By.name("newEmail")).sendKeys(newEmail);
-        webDriver.findElement(By.xpath("//input[@value='Send Verification Link']")).click();
+        getVisiblePageElementBy(webDriver, By.name("newEmail")).sendKeys(newEmail);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Send Verification Link']"));
 
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
@@ -139,16 +142,13 @@ class ChangeEmailIT {
         String link = testClient.extractLink(message.getBody());
 
         webDriver.get(link);
-        webDriver.findElement(By.id("authorize")).click();
+        clickAndWaitPage(webDriver, By.id("authorize"));
         assertThat(webDriver.getCurrentUrl()).startsWith("http://localhost:8080/app/");
     }
 
     private void signIn(String userName, String password) {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
-        webDriver.findElement(By.name("username")).sendKeys(userName);
-        webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
+        assertThat(performPasswordLogin(webDriver, userName, password).getText()).contains("Where to?");
     }
 }

@@ -49,7 +49,10 @@ import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getVisiblePageElementBy;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.performPasswordLogin;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
@@ -217,13 +220,13 @@ public class InvitationsIT {
             assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Create your account");
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
-            webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
+            clickAndWaitPage(webDriver, By.xpath("//input[@value='Create account']"));
 
             assertThat(IntegrationTestUtils.getUser(scimToken, baseUrl, OriginKeys.UAA, email).isVerified()).isTrue();
 
             webDriver.findElement(By.name("username")).sendKeys(email);
-            webDriver.findElement(By.name("password")).sendKeys("secr3T");
-            webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+            getVisiblePageElementBy(webDriver, By.name("password")).sendKeys("secr3T");
+            clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
 
             assertThat(webDriver.getCurrentUrl()).isEqualTo(redirectUri);
         } else {
@@ -312,9 +315,7 @@ public class InvitationsIT {
         webDriver.get(inviteLink.toString());
         webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome')]"));
         webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys("marissa");
-        webDriver.findElement(By.name("password")).sendKeys("koala");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        performPasswordLogin(webDriver, "marissa", "koala");
 
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertThat(user.isVerified()).isTrue();

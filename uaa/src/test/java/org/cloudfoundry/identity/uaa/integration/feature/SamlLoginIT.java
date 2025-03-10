@@ -87,6 +87,7 @@ import java.util.UUID;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
@@ -974,8 +975,7 @@ public class SamlLoginIT {
         assertThat(elements).hasSize(1);
 
         // click on the first provider to login
-        WebElement element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
-        element.click();
+        clickAndWaitPage(webDriver, By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         sendCredentials(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
@@ -1140,7 +1140,7 @@ public class SamlLoginIT {
         webDriver.findElement(byUsername).clear();
         webDriver.findElement(byUsername).sendKeys(username);
         webDriver.findElement(byPassword).sendKeys(password);
-        webDriver.findElement(loginButtonSelector).click();
+        clickAndWaitPage(webDriver, loginButtonSelector);
     }
 
     private void sendCredentials(String username, String password) {

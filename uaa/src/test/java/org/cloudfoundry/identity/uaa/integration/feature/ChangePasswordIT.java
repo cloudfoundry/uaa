@@ -30,6 +30,8 @@ import org.springframework.web.client.RestTemplate;
 import java.security.SecureRandom;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getVisiblePageElementBy;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 public class ChangePasswordIT {
@@ -117,23 +119,23 @@ public class ChangePasswordIT {
 
     private void changePassword(String originalPassword, String newPassword, String confirmPassword) {
         webDriver.findElement(By.xpath("//*[text()='" + userEmail + "']")).click();
-        webDriver.findElement(By.linkText("Account Settings")).click();
-        webDriver.findElement(By.linkText("Change Password")).click();
-        webDriver.findElement(By.name("current_password")).sendKeys(originalPassword);
-        webDriver.findElement(By.name("new_password")).sendKeys(newPassword);
-        webDriver.findElement(By.name("confirm_password")).sendKeys(confirmPassword);
+        clickAndWaitPage(webDriver, By.linkText("Account Settings"));
+        clickAndWaitPage(webDriver, By.linkText("Change Password"));
+        getVisiblePageElementBy(webDriver, By.name("current_password")).sendKeys(originalPassword);
+        getVisiblePageElementBy(webDriver, By.name("new_password")).sendKeys(newPassword);
+        getVisiblePageElementBy(webDriver, By.name("confirm_password")).sendKeys(confirmPassword);
 
-        webDriver.findElement(By.xpath("//input[@value='Change password']")).click();
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Change password']"));
     }
 
     private void signOut() {
         webDriver.findElement(By.xpath("//*[text()='" + userEmail + "']")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
+        clickAndWaitPage(webDriver, By.linkText("Sign Out"));
     }
 
     private void signIn(String userName, String password) {
-        webDriver.findElement(By.name("username")).sendKeys(userName);
-        webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(userName);
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys(password);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
     }
 }

@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.performPasswordLogin;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 class HomeIT {
@@ -59,9 +60,7 @@ class HomeIT {
     void setUp() {
         logout_and_clear_cookies();
         webDriver.get(baseUrl + "/login");
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        performPasswordLogin(webDriver, testAccounts.getUserName(), testAccounts.getPassword());
 
         asOnHomePage = new HomePagePerspective(webDriver, testAccounts.getUserName());
     }

@@ -44,7 +44,12 @@ import org.hamcrest.Description;
 import org.hamcrest.TypeSafeMatcher;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
+import org.openqa.selenium.ElementNotInteractableException;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.FluentWait;
+import org.openqa.selenium.support.ui.Wait;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -72,6 +77,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
@@ -1534,10 +1540,10 @@ public class IntegrationTestUtils {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
 
         webDriver.get(url + "/create_account");
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.name("password_confirmation")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+        getVisiblePageElementBy(webDriver, By.name("email")).sendKeys(userEmail);
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys(password);
+        getVisiblePageElementBy(webDriver, By.name("password_confirmation")).sendKeys(password);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Send activation link']"));
 
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
@@ -1545,6 +1551,17 @@ public class IntegrationTestUtils {
         webDriver.get(testClient.extractLink(message.getBody()));
 
         return userEmail;
+    }
+
+    public static WebElement performPasswordLogin(WebDriver webDriver, String username, String password) {
+        attemptPasswordLogin(webDriver, username, password);
+        return getVisiblePageElementBy(webDriver, By.tagName("h1"));
+    }
+
+    public static void attemptPasswordLogin(WebDriver webDriver, String username, String password) {
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(username);
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys(password);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
     }
 
     public static HttpHeaders getAuthenticatedHeaders(String token) {
@@ -1565,6 +1582,29 @@ public class IntegrationTestUtils {
         zoneClient.setClientSecret("admin-secret-in-zone");
         createOrUpdateClient(uaaAdminToken, baseUrl, zoneId, zoneClient);
         return getClientCredentialsToken(zoneUrl, "admin-client-in-zone", "admin-secret-in-zone");
+    }
+
+    public static WebElement getVisiblePageElementBy(WebDriver driver, By locator) {
+        var waitingState = driver.findElement(locator);
+        Wait<WebDriver> wait =
+                new FluentWait<>(driver)
+                        .withTimeout(Duration.ofSeconds(5))
+                        .pollingEvery(Duration.ofMillis(300))
+                        .ignoring(ElementNotInteractableException.class);
+        wait.until(ExpectedConditions.visibilityOf(waitingState));
+        return waitingState;
+    }
+
+    public static WebElement clickAndWaitPage(WebDriver driver, By locator) {
+        var stateLessActivation = driver.findElement(locator);
+        Wait<WebDriver> wait =
+                new FluentWait<>(driver)
+                        .withTimeout(Duration.ofSeconds(5))
+                        .pollingEvery(Duration.ofMillis(300))
+                        .ignoring(ElementNotInteractableException.class);
+        stateLessActivation.click();
+        wait.until(ExpectedConditions.stalenessOf(stateLessActivation));
+        return stateLessActivation;
     }
 
     public static class RegexMatcher extends TypeSafeMatcher<String> {

@@ -36,6 +36,8 @@ import java.util.Iterator;
 
 import static org.apache.commons.lang3.StringUtils.contains;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getVisiblePageElementBy;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @UnlessProfileActive(values = "saml")
@@ -124,8 +126,8 @@ class ResetPasswordIT {
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(username);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Send reset password link']"));
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Instructions Sent");
 
         assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
@@ -143,9 +145,9 @@ class ResetPasswordIT {
         assertThat(contains(link, "%40")).isFalse();
         webDriver.get(link);
 
-        webDriver.findElement(By.name("password")).sendKeys("new_password");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys("new_password");
+        getVisiblePageElementBy(webDriver, By.name("password_confirmation")).sendKeys("new_password");
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Create new password']"));
 
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login?success=password_reset&form_redirect_uri=http://example.redirect.com");
     }
@@ -153,13 +155,13 @@ class ResetPasswordIT {
     @Test
     void notAutoLoginAfterResetPassword() {
         webDriver.get(baseUrl + "/oauth/authorize?client_id=" + authCodeClientId + "&redirect_uri=http://example.redirect.com&grant_type=authorization_code&response_type=code");
-        webDriver.findElement(By.linkText("Reset password")).click();
+        clickAndWaitPage(webDriver, By.linkText("Reset password"));
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Reset Password");
 
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(username);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Send reset password link']"));
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Instructions Sent");
 
         assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
@@ -177,15 +179,15 @@ class ResetPasswordIT {
                 .doesNotContain("%40");
         webDriver.get(link);
 
-        webDriver.findElement(By.name("password")).sendKeys("new_password");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys("new_password");
+        getVisiblePageElementBy(webDriver, By.name("password_confirmation")).sendKeys("new_password");
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Create new password']"));
 
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login?success=password_reset");
         assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText()).contains("Password reset successful");
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.name("password")).sendKeys("new_password");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(username);
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys("new_password");
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
 
         assertThat(webDriver.getCurrentUrl()).startsWith("https://example.redirect.com/?code=");
     }
@@ -207,9 +209,9 @@ class ResetPasswordIT {
         webDriver.get(link);
 
         // Enter invalid password information
-        webDriver.findElement(By.name("password")).sendKeys("newsecret");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys("newsecret");
+        getVisiblePageElementBy(webDriver, By.name("password_confirmation")).sendKeys("");
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Create new password']"));
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Passwords must match and not be empty.");
     }
 
@@ -234,9 +236,9 @@ class ResetPasswordIT {
         String link = getPasswordResetLink(email);
         webDriver.get(link);
 
-        webDriver.findElement(By.name("password")).sendKeys(newPassword);
-        webDriver.findElement(By.name("password_confirmation")).sendKeys(newPassword);
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys(newPassword);
+        getVisiblePageElementBy(webDriver, By.name("password_confirmation")).sendKeys(newPassword);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Create new password']"));
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Password must be no more than 255 characters in length.");
     }
 
@@ -246,21 +248,21 @@ class ResetPasswordIT {
         String link = getPasswordResetLink(email);
         webDriver.get(link);
 
-        webDriver.findElement(By.name("password")).sendKeys("secr3T");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys("secr3T");
+        getVisiblePageElementBy(webDriver, By.name("password_confirmation")).sendKeys("secr3T");
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Create new password']"));
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Your new password cannot be the same as the old password.");
     }
 
     private void beginPasswordReset(String username) {
         webDriver.get(baseUrl + "/login");
         assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
-        webDriver.findElement(By.linkText("Reset password")).click();
+        clickAndWaitPage(webDriver, By.linkText("Reset password"));
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Reset Password");
 
         // Enter email address
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(username);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Send reset password link']"));
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Instructions Sent");
     }
 
@@ -282,14 +284,14 @@ class ResetPasswordIT {
         webDriver.get(link);
 
         // Successfully choose password
-        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys("newsecr3T");
+        getVisiblePageElementBy(webDriver, By.name("password_confirmation")).sendKeys("newsecr3T");
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Create new password']"));
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login?success=password_reset");
 
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(username);
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys("newsecr3T");
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
     }

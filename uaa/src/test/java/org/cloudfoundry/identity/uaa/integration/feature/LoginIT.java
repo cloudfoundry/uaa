@@ -50,7 +50,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.attemptPasswordLogin;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getVisiblePageElementBy;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.performPasswordLogin;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
@@ -199,10 +203,9 @@ class LoginIT {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl + "/login");
         assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
-        attemptLogin(newUserEmail, USER_PASSWORD);
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
+        assertThat(performPasswordLogin(webDriver, newUserEmail, USER_PASSWORD).getText()).contains("Where to?");
         webDriver.get(baseUrl + "/logout.do");
-        attemptLogin(newUserEmail, USER_PASSWORD);
+        attemptPasswordLogin(webDriver, newUserEmail, USER_PASSWORD);
 
         assertThat(webDriver.findElement(By.cssSelector("#last_login_time"))).isNotNull();
         String lastLoginDate = webDriver.findElement(By.cssSelector("#last_login_time")).getAttribute("innerHTML");
@@ -219,15 +222,14 @@ class LoginIT {
         webDriver.get(baseUrl + "/login?login_hint=" + ldapLoginHint);
         assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
         assertThat(webDriver.getPageSource()).doesNotContain("or sign in with:");
-        attemptLogin(newUserEmail, USER_PASSWORD);
+        attemptPasswordLogin(webDriver, newUserEmail, USER_PASSWORD);
         assertThat(webDriver.findElement(By.className("alert-error")).getText()).contains("Provided credentials are invalid. Please try again.");
 
         String uaaLoginHint = URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8);
         webDriver.get(baseUrl + "/login?login_hint=" + uaaLoginHint);
         assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
         assertThat(webDriver.getPageSource()).doesNotContain("or sign in with:");
-        attemptLogin(newUserEmail, USER_PASSWORD);
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
+        assertThat(performPasswordLogin(webDriver, newUserEmail, USER_PASSWORD).getText()).contains("Where to?");
         webDriver.get(baseUrl + "/logout.do");
     }
 
@@ -250,7 +252,7 @@ class LoginIT {
         webDriver.get(baseUrl + "/passcode");
         assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
 
-        attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
+        attemptPasswordLogin(webDriver, testAccounts.getUserName(), testAccounts.getPassword());
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Temporary Authentication Code");
 
@@ -267,7 +269,7 @@ class LoginIT {
         webDriver.get(baseUrl + "/login");
         assertThat(webDriver.getTitle()).isEqualTo("Cloud Foundry");
 
-        attemptLogin(testAccounts.getUserName(), "invalidpassword");
+        attemptPasswordLogin(webDriver, testAccounts.getUserName(), "invalidpassword");
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Welcome!");
     }
@@ -346,17 +348,11 @@ class LoginIT {
         webDriver.get(baseUrl + "/login");
 
         for (int i = 0; i < 5; i++) {
-            attemptLogin(userEmail, "invalidpassword");
+            attemptPasswordLogin(webDriver, userEmail, "invalidpassword");
         }
 
-        attemptLogin(userEmail, USER_PASSWORD);
+        attemptPasswordLogin(webDriver, userEmail, USER_PASSWORD);
         assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText()).contains("Your account has been locked because of too many failed attempts to login.");
-    }
-
-    public void attemptLogin(String username, String password) {
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
     }
 
     @Test
@@ -380,8 +376,8 @@ class LoginIT {
         webDriver.get(zoneUrl + "/logout.do");
 
         webDriver.get(zoneUrl);
-        assertThat(webDriver.findElement(By.cssSelector("div.action a")).getText()).isEqualTo("Sign in to another account");
-        webDriver.findElement(By.cssSelector("div.action a")).click();
+        assertThat(getVisiblePageElementBy(webDriver, By.cssSelector("div.action a")).getText()).isEqualTo("Sign in to another account");
+        clickAndWaitPage(webDriver, By.cssSelector("div.action a"));
 
         loginThroughDiscovery(userEmail, USER_PASSWORD);
         assertThat(webDriver.findElement(By.cssSelector(".island h1")).getText()).isEqualTo("Where to?");
@@ -483,9 +479,9 @@ class LoginIT {
     }
 
     private void loginThroughDiscovery(String userEmail, String password) {
-        webDriver.findElement(By.id("email")).sendKeys(userEmail);
-        webDriver.findElement(By.cssSelector(".form-group input[value='Next']")).click();
-        webDriver.findElement(By.id("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        getVisiblePageElementBy(webDriver, By.id("email")).sendKeys(userEmail);
+        clickAndWaitPage(webDriver, By.cssSelector(".form-group input[value='Next']"));
+        getVisiblePageElementBy(webDriver, By.id("password")).sendKeys(password);
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
     }
 }

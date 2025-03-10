@@ -38,7 +38,10 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.web.client.RestOperations;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createUnapprovedUser;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getVisiblePageElementBy;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.performPasswordLogin;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
@@ -107,9 +110,7 @@ class AppApprovalIT {
         webDriver.get(appUrl);
 
         // Sign in to login server
-        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        performPasswordLogin(webDriver, user.getUserName(), user.getPassword());
 
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Application Authorization");
@@ -118,7 +119,7 @@ class AppApprovalIT {
         webDriver.findElement(By.xpath("//label[text()='Read user IDs and retrieve users by ID']/preceding-sibling::input")).click();
         webDriver.findElement(By.xpath("//label[text()='Read about your clouds.']/preceding-sibling::input"));
 
-        webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
+        clickAndWaitPage(webDriver, By.xpath("//button[text()='Authorize']"));
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Sample Home Page");
 
@@ -179,9 +180,9 @@ class AppApprovalIT {
         webDriver.get(appUrl);
 
         // Sign in to login server
-        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(user.getUserName());
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys(user.getPassword());
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
 
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Application Authorization");
@@ -197,9 +198,9 @@ class AppApprovalIT {
         webDriver.get(appUrl + "?redirect_uri=https://localhost:8080/app/");
 
         // Sign in to login server
-        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        getVisiblePageElementBy(webDriver, By.name("username")).sendKeys(user.getUserName());
+        getVisiblePageElementBy(webDriver, By.name("password")).sendKeys(user.getPassword());
+        clickAndWaitPage(webDriver, By.xpath("//input[@value='Sign in']"));
 
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.className("alert-error")).getText())

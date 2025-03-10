@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.clickAndWaitPage;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken.ACCESS_TOKEN;
@@ -303,7 +304,7 @@ class SamlLoginCustomUserAttributesIT {
         webDriver.findElement(byUsername).clear();
         webDriver.findElement(byUsername).sendKeys(username);
         webDriver.findElement(byPassword).sendKeys(password);
-        webDriver.findElement(loginButtonSelector).click();
+        clickAndWaitPage(webDriver, loginButtonSelector);
     }
 
     private void sendCredentials(String username, String password) {
