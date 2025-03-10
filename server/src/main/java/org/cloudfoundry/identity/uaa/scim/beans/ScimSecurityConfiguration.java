@@ -47,7 +47,7 @@ class ScimSecurityConfiguration {
     CookieBasedCsrfTokenRepository csrfTokenRepository;
 
     @Bean
-    @Order(FilterChainOrder.SCIM_USER_PASSWORD)
+    @Order(FilterChainOrder.SCIM)
     UaaFilterChain scimUserPassword(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
                 .securityMatcher("/User*/*/password", "/User*/*/password/**")
@@ -67,7 +67,7 @@ class ScimSecurityConfiguration {
     }
 
     @Bean
-    @Order(FilterChainOrder.SCIM_USER_PASSWORD)
+    @Order(FilterChainOrder.SCIM)
     UaaFilterChain scimUserIds(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
                 .securityMatcher("/ids/Users", "/ids/Users*", "/ids/Users/**")
@@ -87,7 +87,7 @@ class ScimSecurityConfiguration {
     }
 
     @Bean
-    @Order(FilterChainOrder.SCIM_GROUP)
+    @Order(FilterChainOrder.SCIM)
     UaaFilterChain groupEndpointSecurity(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
                 .securityMatcher("/Groups", "/Groups/**")
@@ -116,7 +116,7 @@ class ScimSecurityConfiguration {
     }
 
     @Bean
-    @Order(FilterChainOrder.SCIM_USER)
+    @Order(FilterChainOrder.SCIM)
     UaaFilterChain scimUsers(HttpSecurity http, @Qualifier("self") IsSelfCheck selfCheck) throws Exception {
         SecurityFilterChain chain = http
                 .securityMatcher("/Users", "/Users/**")
