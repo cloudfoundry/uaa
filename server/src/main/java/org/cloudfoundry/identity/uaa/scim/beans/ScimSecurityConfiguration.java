@@ -40,15 +40,51 @@ class ScimSecurityConfiguration {
     OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint;
 
     @Autowired
-    @Qualifier("accessDecisionManager")
-    UnanimousBased accessDecisionManager;
-
-    @Autowired
     @Qualifier("emptyAuthenticationManager")
     AuthenticationManager emptyAuthenticationManager;
 
     @Autowired
     CookieBasedCsrfTokenRepository csrfTokenRepository;
+
+    @Bean
+    @Order(FilterChainOrder.SCIM_USER_PASSWORD)
+    UaaFilterChain scimUserPassword(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher("/User*/*/password", "/User*/*/password/**")
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers("/**").access(anyOf().hasScopeWithZoneId("password.write"));
+                    auth.anyRequest().denyAll();
+                })
+                .authenticationManager(emptyAuthenticationManager)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(passwordResourceAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(oauthAuthenticationEntryPoint))
+                .build();
+
+        return new UaaFilterChain(chain, "groupEndpointSecurity");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.SCIM_USER_PASSWORD)
+    UaaFilterChain scimUserIds(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher("/ids/Users", "/ids/Users*", "/ids/Users/**")
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers("/**").access(anyOf().hasScopeWithZoneId("scim.userids"));
+                    auth.anyRequest().denyAll();
+                })
+                .authenticationManager(emptyAuthenticationManager)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(resourceAgnosticAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception -> exception.authenticationEntryPoint(oauthAuthenticationEntryPoint))
+                .build();
+
+        return new UaaFilterChain(chain, "groupEndpointSecurity");
+    }
 
     @Bean
     @Order(FilterChainOrder.SCIM_GROUP)
