@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.web.beans;
 
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,8 +33,8 @@ public class UaaJdbcSessionConfig extends UaaSessionConfig {
     @Autowired
     public void customizeIdleTimeout(
             final JdbcHttpSessionConfiguration jdbcHttpSessionConfiguration,
-            final @Value("${servlet.idle-timeout:1800}") int idleTimeout) {
-        jdbcHttpSessionConfiguration.setMaxInactiveIntervalInSeconds(idleTimeout);
+            UaaProperties.Servlet servlet) {
+        jdbcHttpSessionConfiguration.setMaxInactiveIntervalInSeconds(servlet.idleTimeout());
     }
 
     @Autowired

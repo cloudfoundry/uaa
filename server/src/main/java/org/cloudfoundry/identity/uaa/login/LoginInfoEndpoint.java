@@ -71,7 +71,6 @@ import java.net.URLEncoder;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Date;
@@ -85,7 +84,6 @@ import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Base64.getDecoder;
@@ -289,8 +287,8 @@ public class LoginInfoEndpoint {
         String loginHintParam = extractLoginHintParam(session, request);
         UaaLoginHint uaaLoginHint = UaaLoginHint.parseRequestParameter(loginHintParam);
 
-        Map<String, SamlIdentityProviderDefinition> samlIdentityProviders;
-        Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders;
+        Map<String, SamlIdentityProviderDefinition> samlIdentityProviders = null;
+        Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders = null;
         Map<String, AbstractIdentityProviderDefinition> allIdentityProviders = Map.of();
         Map.Entry<String, AbstractIdentityProviderDefinition> loginHintProvider = null;
 
@@ -304,32 +302,34 @@ public class LoginInfoEndpoint {
                     );
                     if (idp != null) {
                         loginHintProvider = Map.entry(idp.getOriginKey(), idp.getConfig());
+                        oauthIdentityProviders = new HashMap<>();
+                        oauthIdentityProviders.put(idp.getOriginKey(), (AbstractExternalOAuthIdentityProviderDefinition) idp.getConfig());
                     }
                 } catch (EmptyResultDataAccessException ignored) {
                     // ignore
                 }
             }
             if (loginHintProvider != null) {
-                oauthIdentityProviders = Map.of();
-                samlIdentityProviders = Map.of();
+                oauthIdentityProviders = addDefaultOauthMap(oauthIdentityProviders, allowedIdentityProviderKeys, defaultIdentityProviderName);
+                samlIdentityProviders = addDefaultSamlMap(samlIdentityProviders, allowedIdentityProviderKeys, defaultIdentityProviderName);
             } else {
                 accountChooserNeeded = false;
                 samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
                 oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
                 allIdentityProviders = concatenateMaps(samlIdentityProviders, oauthIdentityProviders);
             }
-        } else if (!jsonResponse && (accountChooserNeeded || (accountChooserEnabled && !discoveryEnabled && !discoveryPerformed))) {
+            } else if (!jsonResponse && (accountChooserNeeded || (accountChooserEnabled && !discoveryEnabled && !discoveryPerformed))) {
             // when `/login` is requested to return html response (as opposed to json response)
             //Account and origin chooser do not need idp information
-            oauthIdentityProviders = Map.of();
-            samlIdentityProviders = Map.of();
+            oauthIdentityProviders = addDefaultOauthMap(oauthIdentityProviders, allowedIdentityProviderKeys, defaultIdentityProviderName);
+            samlIdentityProviders = addDefaultSamlMap(samlIdentityProviders, allowedIdentityProviderKeys, defaultIdentityProviderName);
         } else {
             samlIdentityProviders = getSamlIdentityProviderDefinitions(allowedIdentityProviderKeys);
 
             if (jsonResponse) {
                 /* the OAuth IdPs and all IdPs are used for determining the redirect; if jsonResponse is true, the
                  * redirect is ignored anyway */
-                oauthIdentityProviders = Map.of();
+                oauthIdentityProviders = addDefaultOauthMap(oauthIdentityProviders, allowedIdentityProviderKeys, defaultIdentityProviderName);
             } else {
                 oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
             }
@@ -652,6 +652,36 @@ public class LoginInfoEndpoint {
         return filteredIdps.stream().collect(new MapCollector<>(SamlIdentityProviderDefinition::getIdpEntityAlias, idp -> idp));
     }
 
+    private Map<String, SamlIdentityProviderDefinition> addDefaultSamlMap(Map<String, SamlIdentityProviderDefinition> list, List<String> allowedIdps, String defaultIdp) {
+        Map<String, SamlIdentityProviderDefinition> defaultList = list == null ? new HashMap<>() : list;
+        IdentityProvider samlIdP = getIdentityProviderByOrigin(allowedIdps, defaultIdp);
+        if (samlIdP != null && samlIdP.getConfig() instanceof SamlIdentityProviderDefinition samlDefinition) {
+            defaultList.putIfAbsent(samlDefinition.getIdpEntityAlias(), samlDefinition);
+        }
+        return defaultList;
+    }
+
+    private Map<String, AbstractExternalOAuthIdentityProviderDefinition> addDefaultOauthMap(Map<String, AbstractExternalOAuthIdentityProviderDefinition> list, List<String> allowedIdps, String defaultIdp) {
+        Map<String, AbstractExternalOAuthIdentityProviderDefinition> defaultList = list == null ? new HashMap<>() : list;
+        IdentityProvider oauthIdP = getIdentityProviderByOrigin(allowedIdps, defaultIdp);
+        if (oauthIdP != null && oauthIdP.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition oDefinition) {
+            defaultList.putIfAbsent(oauthIdP.getOriginKey(), oDefinition);
+        }
+        return defaultList;
+    }
+
+    private IdentityProvider getIdentityProviderByOrigin(List<String> allowedIdps, String originKey) {
+        IdentityProvider identityProvider = null;
+        try {
+            if (originKey != null && (allowedIdps == null || allowedIdps.contains(originKey))) {
+                identityProvider = providerProvisioning.retrieveByOrigin(originKey, IdentityZoneHolder.get().getId());
+            }
+        } catch (EmptyResultDataAccessException ignored) {
+            // ignore
+        }
+        return identityProvider;
+    }
+
     protected Map<String, AbstractExternalOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
         List<IdentityProvider> identityProviders = externalOAuthProviderConfigurator.retrieveActiveByTypes(
                 IdentityZoneHolder.get().getId(),
@@ -704,15 +734,18 @@ public class LoginInfoEndpoint {
             Map<String, AbstractExternalOAuthIdentityProviderDefinition> oauthIdentityProviders,
             boolean returnLoginPrompts
     ) {
+        boolean noIdpsPresent = true;
         for (SamlIdentityProviderDefinition idp : samlIdentityProviders.values()) {
             if (idp.isShowSamlLink()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
+                noIdpsPresent = false;
                 break;
             }
         }
         for (AbstractExternalOAuthIdentityProviderDefinition oauthIdp : oauthIdentityProviders.values()) {
             if (oauthIdp.isShowLinkText()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
+                noIdpsPresent = false;
                 break;
             }
         }
@@ -720,6 +753,9 @@ public class LoginInfoEndpoint {
         //make the list writeable
         final List<String> excludedPrompts = new LinkedList<>(exclude);
 
+        if (noIdpsPresent) {
+            excludedPrompts.add(PASSCODE);
+        }
         if (!returnLoginPrompts) {
             excludedPrompts.add(USERNAME_PARAMETER);
             excludedPrompts.add("password");

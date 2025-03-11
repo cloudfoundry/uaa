@@ -696,20 +696,12 @@ class ScimGroupEndpointsTests {
 
     @Test
     void exceptionHandler() {
-        Map<Class<? extends Exception>, HttpStatus> map = new HashMap<>();
-        map.put(IllegalArgumentException.class, HttpStatus.BAD_REQUEST);
-        map.put(UnsupportedOperationException.class, HttpStatus.BAD_REQUEST);
-        map.put(BadSqlGrammarException.class, HttpStatus.BAD_REQUEST);
-        map.put(DataIntegrityViolationException.class, HttpStatus.BAD_REQUEST);
-        map.put(HttpMessageConversionException.class, HttpStatus.BAD_REQUEST);
-        map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
-
         scimGroupEndpoints = new ScimGroupEndpoints(
                 jdbcScimGroupProvisioning,
                 jdbcScimGroupMembershipManager,
                 identityZoneManager,
                 20,
-                map,
+                exceptionToStatusMap,
                 jdbcScimGroupExternalMembershipManager);
 
         MockHttpServletRequest request = new MockHttpServletRequest();

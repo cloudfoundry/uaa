@@ -17,11 +17,15 @@ package org.cloudfoundry.identity.uaa.security.web;
 
 import org.apache.tomcat.util.http.Rfc6265CookieProcessor;
 import org.apache.tomcat.util.http.SameSiteCookies;
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.security.web.csrf.CsrfFilter;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.DefaultCsrfToken;
+import org.springframework.stereotype.Component;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +34,7 @@ import javax.servlet.http.HttpServletResponse;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
+@Component
 public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
 
     public static final String DEFAULT_CSRF_HEADER_NAME = "X-CSRF-TOKEN";
@@ -46,6 +51,12 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
 
     public CookieBasedCsrfTokenRepository() {
         rfc6265CookieProcessor.setSameSiteCookies("Lax");
+    }
+
+    @Autowired
+    public CookieBasedCsrfTokenRepository(UaaProperties.RootLevel properties, Environment environment) {
+        this();
+        this.secure = properties.require_https();
     }
 
     public int getCookieMaxAge() {

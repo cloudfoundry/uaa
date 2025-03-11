@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -48,7 +49,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -89,7 +89,7 @@ public class OIDCLoginIT {
     private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
-    WebDriver webDriver;
+    UaaWebDriver webDriver;
 
     @Value("${integration.test.base_url}")
     String baseUrl;
@@ -216,7 +216,7 @@ public class OIDCLoginIT {
         login(zoneUrl, userName, password);
 
         webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
+        webDriver.clickAndWait(By.linkText("Sign Out"));
         IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver, IdentityZoneHolder.get());
     }
 
@@ -226,12 +226,12 @@ public class OIDCLoginIT {
         Cookie beforeLogin = webDriver.manage().getCookieNamed("JSESSIONID");
         assertThat(beforeLogin).isNotNull();
         assertThat(beforeLogin.getValue()).isNotNull();
-        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+        webDriver.clickAndWait(By.linkText("My OIDC Provider"));
         assertThat(webDriver.getCurrentUrl()).contains(baseUrl);
 
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
         assertThat(webDriver.getCurrentUrl()).contains(zoneUrl);
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
         Cookie afterLogin = webDriver.manage().getCookieNamed("JSESSIONID");
@@ -295,7 +295,7 @@ public class OIDCLoginIT {
 
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
         Page.assertThatUrlEventuallySatisfies(webDriver, asa -> asa.contains(zoneUrl));
 
         assertThat(webDriver.getPageSource()).contains("Could not resolve identity provider with given origin.");
@@ -355,12 +355,12 @@ public class OIDCLoginIT {
         identityProvider.getConfig().setTokenKeyUrl(new URL("https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/discovery/v2.0/keys"));
         updateProvider();
         webDriver.get(zoneUrl + "/login");
-        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+        webDriver.clickAndWait(By.linkText("My OIDC Provider"));
         assertThat(webDriver.getCurrentUrl()).contains(baseUrl);
 
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         assertThat(webDriver.getCurrentUrl()).contains(zoneUrl + "/oauth_error")
                 // no error as parameter sent
@@ -379,12 +379,12 @@ public class OIDCLoginIT {
         updateProvider();
 
         webDriver.get(zoneUrl);
-        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+        webDriver.clickAndWait(By.linkText("My OIDC Provider"));
 
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         webDriver.get(baseUrl);
         Cookie cookie = webDriver.manage().getCookieNamed("JSESSIONID");
@@ -440,15 +440,15 @@ public class OIDCLoginIT {
             // This test creates an OIDC provider. That provider in turn has a SAML provider.
             // The end user is authenticated using OIDC federating to SAML
             webDriver.get(zoneUrl + "/login");
-            webDriver.findElement(By.linkText("My OIDC Provider")).click();
+            webDriver.clickAndWait(By.linkText("My OIDC Provider"));
             assertThat(webDriver.getCurrentUrl()).contains(baseUrl);
 
-            webDriver.findElement(By.linkText("SAML Login")).click();
+            webDriver.clickAndWait(By.linkText("SAML Login"));
             webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
             webDriver.findElement(By.name("username")).clear();
             webDriver.findElement(By.name("username")).sendKeys("marissa6");
             webDriver.findElement(By.name("password")).sendKeys("saml6");
-            webDriver.findElement(By.id("submit_button")).click();
+            webDriver.clickAndWait(By.id("submit_button"));
 
             Page.assertThatUrlEventuallySatisfies(webDriver, assertUrl -> assertUrl.startsWith(zoneUrl));
             assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
@@ -516,7 +516,7 @@ public class OIDCLoginIT {
         webDriver.get(uriBuilder);
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         assertThat(webDriver.getCurrentUrl()).contains("error=invalid_request")
                 .contains("error_description=Missing%20response_type%20in%20authorization%20request");

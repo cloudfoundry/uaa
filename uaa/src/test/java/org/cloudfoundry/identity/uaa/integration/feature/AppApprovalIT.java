@@ -21,12 +21,12 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountExtension;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -62,7 +62,7 @@ class AppApprovalIT {
     private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
-    WebDriver webDriver;
+    UaaWebDriver webDriver;
 
     @Value("${integration.test.base_url}")
     String baseUrl;
@@ -109,7 +109,7 @@ class AppApprovalIT {
         // Sign in to login server
         webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Application Authorization");
@@ -118,7 +118,7 @@ class AppApprovalIT {
         webDriver.findElement(By.xpath("//label[text()='Read user IDs and retrieve users by ID']/preceding-sibling::input")).click();
         webDriver.findElement(By.xpath("//label[text()='Read about your clouds.']/preceding-sibling::input"));
 
-        webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
+        webDriver.clickAndWait(By.xpath("//button[text()='Authorize']"));
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Sample Home Page");
 
@@ -134,7 +134,7 @@ class AppApprovalIT {
         webDriver.findElement(By.xpath("//input[@value='app-password.write']")).click();
         webDriver.findElement(By.xpath("//input[@value='app-scim.userids']")).click();
 
-        webDriver.findElement(By.xpath("//button[text()='Update']")).click();
+        webDriver.clickAndWait(By.xpath("//button[text()='Update']"));
 
         assertThat(webDriver.findElement(By.xpath("//input[@value='app-password.write']")).isSelected()).isTrue();
         assertThat(webDriver.findElement(By.xpath("//input[@value='app-scim.userids']")).isSelected()).isTrue();
@@ -152,7 +152,7 @@ class AppApprovalIT {
         webDriver.findElement(By.linkText("Revoke Access")).click();
 
         // click confirm
-        webDriver.findElement(By.cssSelector("#app-form .revocation-confirm")).click();
+        webDriver.clickAndWait(By.cssSelector("#app-form .revocation-confirm"));
 
         assertThat(webDriver.findElements(By.xpath("//input[@value='app-password.write']"))).isEmpty();
     }
@@ -181,7 +181,7 @@ class AppApprovalIT {
         // Sign in to login server
         webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Application Authorization");
@@ -199,7 +199,7 @@ class AppApprovalIT {
         // Sign in to login server
         webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
         webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.className("alert-error")).getText())

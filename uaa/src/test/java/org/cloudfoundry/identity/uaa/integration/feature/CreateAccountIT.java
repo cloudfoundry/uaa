@@ -21,12 +21,12 @@ import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -51,7 +51,7 @@ class CreateAccountIT {
     private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
-    WebDriver webDriver;
+    UaaWebDriver webDriver;
 
     @Autowired
     SimpleSmtpServer simpleSmtpServer;
@@ -104,7 +104,7 @@ class CreateAccountIT {
 
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys(SECRET);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
     }
@@ -121,7 +121,7 @@ class CreateAccountIT {
         webDriver.findElement(By.name("email")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys(SECRET);
         webDriver.findElement(By.name("password_confirmation")).sendKeys(SECRET);
-        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Send activation link']"));
 
         assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
         Iterator<SmtpMessage> receivedEmail = simpleSmtpServer.getReceivedEmail();
@@ -140,11 +140,11 @@ class CreateAccountIT {
 
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys(SECRET);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         // Authorize the app for some scopes
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Application Authorization");
-        webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
+        webDriver.clickAndWait(By.xpath("//button[text()='Authorize']"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).isEqualTo("Sample Home Page");
     }
 
@@ -158,7 +158,7 @@ class CreateAccountIT {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
 
         webDriver.get(baseUrl + "/");
-        webDriver.findElement(By.xpath("//*[text()='Create account']")).click();
+        webDriver.clickAndWait(By.xpath("//*[text()='Create account']"));
 
         assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Create your account");
 
@@ -166,7 +166,7 @@ class CreateAccountIT {
         webDriver.findElement(By.name("password")).sendKeys(secret);
         webDriver.findElement(By.name("password_confirmation")).sendKeys(secret);
 
-        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Send activation link']"));
         return userEmail;
     }
 
@@ -186,7 +186,7 @@ class CreateAccountIT {
         try {
             startCreateUserFlow("test");
             assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText()).isEqualTo("Account sign-up is not required for this email domain. Please login with the identity provider");
-            webDriver.findElement(By.xpath("//input[@value='Login with provider']")).click();
+            webDriver.clickAndWait(By.xpath("//input[@value='Login with provider']"));
             assertThat(webDriver.getCurrentUrl()).matches("^https?://example.com/.*");
         } finally {
             IntegrationTestUtils.deleteProvider(adminToken, baseUrl, OriginKeys.UAA, OriginKeys.OIDC10);

@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -1530,14 +1531,14 @@ public class IntegrationTestUtils {
         return webDriver.manage().getCookies().stream().map(Cookie::getName).toList();
     }
 
-    public static String createAnotherUser(WebDriver webDriver, String password, SimpleSmtpServer simpleSmtpServer, String url, TestClient testClient) {
+    public static String createAnotherUser(UaaWebDriver webDriver, String password, SimpleSmtpServer simpleSmtpServer, String url, TestClient testClient) {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
 
         webDriver.get(url + "/create_account");
         webDriver.findElement(By.name("email")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.name("password_confirmation")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Send activation link']"));
 
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();

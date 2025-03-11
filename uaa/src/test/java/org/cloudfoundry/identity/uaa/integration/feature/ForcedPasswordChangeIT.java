@@ -15,12 +15,12 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -45,7 +45,7 @@ class ForcedPasswordChangeIT {
     private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
-    WebDriver webDriver;
+    UaaWebDriver webDriver;
 
     @Autowired
     TestClient testClient;
@@ -110,7 +110,7 @@ class ForcedPasswordChangeIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
 
         var session1 = webDriver.manage().getCookieNamed("JSESSIONID");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
         var session2 = webDriver.manage().getCookieNamed("JSESSIONID");
         assertThat(session2).isEqualTo(session1);
         assertThat(session1).isNotNull();
@@ -123,7 +123,7 @@ class ForcedPasswordChangeIT {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/force_password_change");
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Your new password cannot be the same as the old password.");
     }
@@ -133,7 +133,7 @@ class ForcedPasswordChangeIT {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("invalid");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/force_password_change");
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Passwords must match and not be empty.");
     }
@@ -142,7 +142,7 @@ class ForcedPasswordChangeIT {
     void handleForcePasswordChangeWithEmptyPasswordConfirmation() {
         navigateToForcePasswordChange();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/force_password_change");
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Passwords must match and not be empty.");
     }
@@ -154,14 +154,14 @@ class ForcedPasswordChangeIT {
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/force_password_change");
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
 
         var session1 = webDriver.manage().getCookieNamed("JSESSIONID");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
         var session2 = webDriver.manage().getCookieNamed("JSESSIONID");
         assertThat(session2).isEqualTo(session1);
         assertThat(session1).isNotNull();
@@ -174,7 +174,7 @@ class ForcedPasswordChangeIT {
         String invalidNewPassword = new RandomValueStringGenerator(256).generate();
         webDriver.findElement(By.name("password")).sendKeys(invalidNewPassword);
         webDriver.findElement(By.name("password_confirmation")).sendKeys(invalidNewPassword);
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Create new password']"));
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/force_password_change");
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText()).contains("Password must be no more than 255 characters in length.");
     }
@@ -184,7 +184,7 @@ class ForcedPasswordChangeIT {
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
         webDriver.findElement(By.name("password")).sendKeys("secr3T");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Force Change Password");
         assertThat(webDriver.getCurrentUrl()).isEqualTo(baseUrl + "/force_password_change");
     }

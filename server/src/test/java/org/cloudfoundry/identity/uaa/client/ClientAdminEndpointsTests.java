@@ -986,6 +986,44 @@ class ClientAdminEndpointsTests {
     }
 
     @Test
+    void getClientWithFederatedJwt() {
+        // Given
+        UaaClientDetails uaaClientDetails = new UaaClientDetails(input);
+        uaaClientDetails.setAutoApproveScopes(uaaClientDetails.getScope());
+        List<ClientJwtCredential> jwtCredentials = List.of(new ClientJwtCredential("subject", "issuer", null));
+        ClientJwtConfiguration clientJwtConfiguration = new ClientJwtConfiguration(jwtCredentials);
+        clientJwtConfiguration.setJwksUri("http://localhost:8080/uaa/token_keys");
+        clientJwtConfiguration.writeValue(uaaClientDetails);
+        when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
+                uaaClientDetails);
+        when(mockSecurityContextAccessor.getClientId()).thenReturn(detail.getClientId());
+        when(mockSecurityContextAccessor.isClient()).thenReturn(true);
+        // Then
+        ClientDetails result = endpoints.getClientDetails(input.getClientId());
+        // When
+        assertThat(result.getClientSecret()).isNull();
+        ClientDetailsModification modification = (ClientDetailsModification) result;
+        assertThat(modification.getClientJwtCredentials()).size().isEqualTo(1);
+        assertThat(modification.getJwkSet()).isNull();
+        assertThat(modification.getJwksUri()).isEqualTo("http://localhost:8080/uaa/token_keys");
+        ClientJwtCredential clientJwtCredential = modification.getClientJwtCredentials().get(0);
+        assertThat(clientJwtCredential).isNotNull();
+        assertThat(clientJwtCredential.getIssuer()).isEqualTo("issuer");
+        assertThat(clientJwtCredential.getSubject()).isEqualTo("subject");
+        assertThat(clientJwtCredential.getAudience()).isNull();
+        ClientDetailsModification modification2 = new ClientDetailsModification(uaaClientDetails);
+        modification2.setAction("add");
+        // Compare results and original with and without secret
+        assertThat(modification).isNotEqualTo(modification2);
+        assertThat(modification.hashCode()).isNotEqualTo(modification2.hashCode());
+        uaaClientDetails.setClientSecret(null);
+        ClientDetailsModification modification3 = new ClientDetailsModification(uaaClientDetails);
+        assertThat(modification).isEqualTo(modification3).hasSameHashCodeAs(modification3);
+        assertThat(modification.getAction()).isNotEqualTo(modification2.getAction());
+        assertThat(modification.getAction()).isEqualTo(modification3.getAction());
+    }
+
+    @Test
     void updateClientWithAutoapproveScopesTrue() {
         Mockito.when(clientDetailsService.retrieve(input.getClientId(), IdentityZoneHolder.get().getId())).thenReturn(
                 new UaaClientDetails(input));

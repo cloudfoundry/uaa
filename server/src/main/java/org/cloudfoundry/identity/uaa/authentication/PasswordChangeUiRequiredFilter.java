@@ -16,7 +16,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@Component
 public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
 
     private static final String MATCH_PATH = "/force_password_change";
@@ -26,7 +25,12 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
     private final AntPathRequestMatcher completedPath;
     private final UaaSavedRequestCache cache;
 
-    public PasswordChangeUiRequiredFilter(final UaaSavedRequestCache cache) {
+    public PasswordChangeUiRequiredFilter() {
+        this(new UaaSavedRequestCache());
+        this.cache.setRequestMatcher(new AntPathRequestMatcher("/oauth/authorize**"));
+    }
+
+    public PasswordChangeUiRequiredFilter(UaaSavedRequestCache cache) {
         this.cache = cache;
         this.matchPath = new AntPathRequestMatcher(MATCH_PATH);
         this.completedPath = new AntPathRequestMatcher(COMPLETED_PATH);
@@ -84,4 +88,5 @@ public class PasswordChangeUiRequiredFilter extends OncePerRequestFilter {
                 SessionUtils.isPasswordChangeRequired(request.getSession()) &&
                 authentication.isAuthenticated();
     }
+
 }

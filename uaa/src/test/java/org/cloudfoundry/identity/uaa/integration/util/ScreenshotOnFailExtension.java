@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.util;
 
 import org.apache.commons.io.FileUtils;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.extension.AfterTestExecutionCallback;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.openqa.selenium.OutputType;
@@ -25,7 +26,7 @@ public class ScreenshotOnFailExtension implements AfterTestExecutionCallback {
             return;
         }
 
-        WebDriver driver = SpringExtension.getApplicationContext(context).getBean(WebDriver.class);
+        UaaWebDriver driver = SpringExtension.getApplicationContext(context).getBean(UaaWebDriver.class);
         if (hasWebDriverQuit(driver)) {
             // WebDriver has already quit
             log.debug("ScreenshotOnFail Requested, but webdriver has quit.");
@@ -35,7 +36,7 @@ public class ScreenshotOnFailExtension implements AfterTestExecutionCallback {
         String className = context.getRequiredTestClass().getName();
         String description = context.getDisplayName();
 
-        File sourceScreenshotFile = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+        File sourceScreenshotFile = driver.getTakesScreenShot().getScreenshotAs(OutputType.FILE);
         File screenshotFile = getDestinationFile(className, description, "png");
         try {
             FileUtils.copyFile(sourceScreenshotFile, screenshotFile);
@@ -57,11 +58,11 @@ public class ScreenshotOnFailExtension implements AfterTestExecutionCallback {
         log.info("ScreenshotOnFail created source: {}", pageSourceFile);
     }
 
-    private boolean hasWebDriverQuit(WebDriver driver) {
+    private boolean hasWebDriverQuit(UaaWebDriver driver) {
         if (driver == null) {
             return true;
         }
-        return ((RemoteWebDriver) driver).getSessionId() == null;
+        return driver.getSessionId() == null;
     }
 
     private File getDestinationFile(String className, String description, String extension) {

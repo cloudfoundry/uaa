@@ -633,10 +633,16 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             e = exception;
         } else {
             Class<?> clazz = t.getClass();
-            for (Class<?> key : statuses.keySet()) {
-                if (key.isAssignableFrom(clazz)) {
-                    e = new ScimException(t.getMessage(), t, statuses.get(key));
-                    break;
+            //attempt to get the status directly first, before we browse the map
+            HttpStatus status = statuses.get(clazz);
+            if (status != null) {
+                e = new ScimException(t.getMessage(), t, status);
+            } else {
+                for (Class<?> key : statuses.keySet()) {
+                    if (key.isAssignableFrom(clazz)) {
+                        e = new ScimException(t.getMessage(), t, statuses.get(key));
+                        break;
+                    }
                 }
             }
         }

@@ -1,10 +1,14 @@
 package org.cloudfoundry.identity.uaa.web.beans;
 
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Condition;
+import org.springframework.context.annotation.ConditionContext;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.lang.NonNull;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -30,11 +34,11 @@ public class UaaMemorySessionConfig extends UaaSessionConfig {
 
     @Bean
     public MapSessionRepository sessionRepository(
-            final @Value("${servlet.idle-timeout:1800}") int idleTimeout,
+            UaaProperties.Servlet servletProperties,
             @Autowired PurgeableSessionMap purgeableSessionMap
     ) {
         MapSessionRepository sessionRepository = new MapSessionRepository(purgeableSessionMap);
-        sessionRepository.setDefaultMaxInactiveInterval(idleTimeout);
+        sessionRepository.setDefaultMaxInactiveInterval(servletProperties.idleTimeout());
         return sessionRepository;
     }
 

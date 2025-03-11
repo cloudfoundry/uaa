@@ -750,15 +750,6 @@ public class LoginMockMvcTests {
     }
 
     @Test
-    void forgotPasswordPageDoesNotHaveCsrf() throws Exception {
-        mockMvc.perform(get("/forgot_password"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("forgot_password"))
-                .andExpect(content().string(containsString("action=\"/forgot_password.do\"")))
-                .andExpect(content().string(not(containsString("name=\"X-Uaa-Csrf\""))));
-    }
-
-    @Test
     void forgotPasswordSubmitDoesNotValidateCsrf() throws Exception {
         assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
         mockMvc.perform(

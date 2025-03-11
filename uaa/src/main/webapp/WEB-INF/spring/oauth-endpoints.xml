@@ -647,4 +647,9 @@
     </bean>
 
     <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder"/>
+
+    <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">
+        <constructor-arg name="redirectCsrf" value="/invalid_request"/>
+        <constructor-arg name="redirectNotLoggedIn" value="/login?error=invalid_login_request"/>
+    </bean>
 </beans>

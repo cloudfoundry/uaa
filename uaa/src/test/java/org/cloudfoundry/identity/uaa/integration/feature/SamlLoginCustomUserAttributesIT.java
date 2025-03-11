@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.junit.jupiter.api.AfterEach;
@@ -43,7 +44,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -83,7 +83,7 @@ class SamlLoginCustomUserAttributesIT {
     private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
-    WebDriver webDriver;
+    UaaWebDriver webDriver;
 
     @Value("${integration.test.base_url}")
     String baseUrl;
@@ -303,7 +303,7 @@ class SamlLoginCustomUserAttributesIT {
         webDriver.findElement(byUsername).clear();
         webDriver.findElement(byUsername).sendKeys(username);
         webDriver.findElement(byPassword).sendKeys(password);
-        webDriver.findElement(loginButtonSelector).click();
+        webDriver.clickAndWait(loginButtonSelector);
     }
 
     private void sendCredentials(String username, String password) {

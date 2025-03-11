@@ -26,13 +26,13 @@ import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -63,7 +63,7 @@ public class InvitationsIT {
     private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
-    WebDriver webDriver;
+    UaaWebDriver webDriver;
 
     @Autowired
     TestClient testClient;
@@ -217,13 +217,13 @@ public class InvitationsIT {
             assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Create your account");
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
-            webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
+            webDriver.clickAndWait(By.xpath("//input[@value='Create account']"));
 
             assertThat(IntegrationTestUtils.getUser(scimToken, baseUrl, OriginKeys.UAA, email).isVerified()).isTrue();
 
             webDriver.findElement(By.name("username")).sendKeys(email);
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
-            webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+            webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
             assertThat(webDriver.getCurrentUrl()).isEqualTo(redirectUri);
         } else {
@@ -257,7 +257,7 @@ public class InvitationsIT {
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
-        webDriver.findElement(By.id("submit_button")).click();
+        webDriver.clickAndWait(By.id("submit_button"));
 
         //wait until UAA page has loaded
         webDriver.findElement(By.id("application_authorization"));
@@ -280,7 +280,7 @@ public class InvitationsIT {
         webDriver.findElement(By.name("password")).sendKeys(newPassword);
         webDriver.findElement(By.name("password_confirmation")).sendKeys(newPassword);
 
-        webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Create account']"));
         assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText()).contains("Password must be no more than 255 characters in length.");
         webDriver.findElement(By.name("password"));
         webDriver.findElement(By.name("password_confirmation"));
@@ -314,7 +314,7 @@ public class InvitationsIT {
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         assertThat(user.isVerified()).isTrue();

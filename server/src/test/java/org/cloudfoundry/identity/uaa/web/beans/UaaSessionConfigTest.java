@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.web.beans;
 
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,7 +84,9 @@ class UaaSessionConfigTest {
         MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest("GET", "/uaa/login");
         MockHttpServletResponse mockHttpServletResponse = new MockHttpServletResponse();
         UaaSessionConfig config = new UaaJdbcSessionConfig();
-        CookieSerializer cookieSerializer = config.uaaCookieSerializer(defaults ? -1 : 1, defaults ? true : false);
+        var defaultProps = new UaaProperties.Servlet(new UaaProperties.SessionCookie(true, -1), 0);
+        var customProps = new UaaProperties.Servlet(new UaaProperties.SessionCookie(false, 1), 0);
+        CookieSerializer cookieSerializer = config.uaaCookieSerializer(defaults ? defaultProps : customProps);
         mockHttpServletRequest.setCookies(new Cookie(sessionName, sessionId));
         List<String> cookies = cookieSerializer.readCookieValues(mockHttpServletRequest);
         for (String value : cookies) {

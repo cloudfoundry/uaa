@@ -580,10 +580,10 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).as("prompts attribute should be present").containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).as("prompts should be a Map for JSON content").isInstanceOf(Map.class);
         mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
-        assertThat(mapPrompts).as("there should be three prompts for html").hasSize(3)
+        assertThat(mapPrompts).as("there should be three prompts for html").hasSize(2)
                 .containsKey("username")
                 .containsKey("password")
-                .containsKey("passcode");
+                .doesNotContainKey("passcode");
 
         //add a SAML IDP
         extendedModelMap.clear();
@@ -832,7 +832,7 @@ class LoginInfoEndpointTests {
     }
 
     @Test
-    void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
+    void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
         RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
@@ -847,11 +847,11 @@ class LoginInfoEndpointTests {
         endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
 
         Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
-        assertThat(mapPrompts).containsKey("passcode");
+        assertThat(mapPrompts).doesNotContainKey("passcode");
     }
 
     @Test
-    void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithAccountChooser() throws Exception {
+    void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithAccountChooser() throws Exception {
         IdentityZoneHolder.get().getConfig().setAccountChooserEnabled(true);
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
@@ -867,11 +867,11 @@ class LoginInfoEndpointTests {
         endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
 
         Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
-        assertThat(mapPrompts).containsKey("passcode");
+        assertThat(mapPrompts).doesNotContainKey("passcode");
     }
 
     @Test
-    void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithDiscovery() throws Exception {
+    void no_passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider_stillWorksWithDiscovery() throws Exception {
         IdentityZoneHolder.get().getConfig().setIdpDiscoveryEnabled(true);
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
@@ -886,7 +886,7 @@ class LoginInfoEndpointTests {
         endpoint.infoForLoginJson(extendedModelMap, null, new MockHttpServletRequest("GET", "http://someurl"));
 
         Map<String, Object> mapPrompts = (Map<String, Object>) extendedModelMap.get("prompts");
-        assertThat(mapPrompts).containsKey("passcode");
+        assertThat(mapPrompts).doesNotContainKey("passcode");
     }
 
     @Test
@@ -1267,13 +1267,13 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertThat(returnedPrompts).hasSize(3)
+        assertThat(returnedPrompts).hasSize(2)
                 .containsKey("username")
                 .containsKey("password")
-                .containsKey("passcode");
+                .doesNotContainKey("passcode");
         assertThat(returnedPrompts.get("username")[1]).isEqualTo("MyEmail");
         assertThat(returnedPrompts.get("password")[1]).isEqualTo("MyPassword");
-        assertThat(returnedPrompts.get("passcode")[1]).isEqualTo(passcodePromptText);
+        assertThat(returnedPrompts.get("passcode")).isNull();
     }
 
     @Test
@@ -1292,7 +1292,7 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertUsernamePasswordAndPasscodePromptsAreReturned(returnedPrompts);
+        assertUsernamePasswordButNoPasscodePromptsAreReturned(returnedPrompts);
     }
 
     @Test
@@ -1308,7 +1308,7 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertUsernamePasswordAndPasscodePromptsAreReturned(returnedPrompts);
+        assertUsernamePasswordButNoPasscodePromptsAreReturned(returnedPrompts);
     }
 
     @Test
@@ -1330,7 +1330,7 @@ class LoginInfoEndpointTests {
         assertThat(extendedModelMap).containsKey("prompts");
         assertThat(extendedModelMap.get("prompts")).isInstanceOf(Map.class);
         Map<String, String[]> returnedPrompts = (Map<String, String[]>) extendedModelMap.get("prompts");
-        assertUsernamePasswordAndPasscodePromptsAreReturned(returnedPrompts);
+        assertUsernamePasswordButNoPasscodePromptsAreReturned(returnedPrompts);
     }
 
     @Test
@@ -1733,6 +1733,7 @@ class LoginInfoEndpointTests {
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(mockOidcConfig.isShowLinkText()).thenReturn(true);
         when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any())).thenReturn(singletonList(mockProvider));
+        when(mockIdentityProviderProvisioning.retrieveByOrigin(eq("my-OIDC-idp1"), any())).thenReturn(mockProvider);
     }
 
     private static void mockLoginHintProvider(ExternalOAuthProviderConfigurator mockIdentityProviderProvisioning)
@@ -1750,15 +1751,15 @@ class LoginInfoEndpointTests {
         when(mockIdentityProviderProvisioning.retrieveByOrigin(eq("my-OIDC-idp1"), any())).thenReturn(mockProvider);
     }
 
-    private static void assertUsernamePasswordAndPasscodePromptsAreReturned(
+    private static void assertUsernamePasswordButNoPasscodePromptsAreReturned(
             final Map<String, String[]> returnedPrompts
     ) {
-        assertThat(returnedPrompts).hasSize(3)
+        assertThat(returnedPrompts).hasSize(2)
                 .containsKey("username")
                 .containsKey("password")
-                .containsKey("passcode");
+                .doesNotContainKey("passcode");
         assertThat(returnedPrompts.get("username")[1]).isEqualTo("Email");
         assertThat(returnedPrompts.get("password")[1]).isEqualTo("Password");
-        assertThat(returnedPrompts.get("passcode")[1]).startsWith("Temporary Authentication Code ( Get one at");
+        assertThat(returnedPrompts.get("passcode")).isNull();
     }
 }

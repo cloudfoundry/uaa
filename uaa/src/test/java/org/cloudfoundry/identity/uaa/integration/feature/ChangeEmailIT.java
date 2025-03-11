@@ -2,12 +2,12 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -26,7 +26,7 @@ class ChangeEmailIT {
     private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
-    WebDriver webDriver;
+    UaaWebDriver webDriver;
 
     @Value("${integration.test.base_url}")
     String baseUrl;
@@ -93,12 +93,12 @@ class ChangeEmailIT {
 
         webDriver.get(baseUrl + "/profile");
         assertThat(webDriver.findElement(By.cssSelector(".profile .email")).getText()).isEqualTo(userEmail);
-        webDriver.findElement(By.linkText("Change Email")).click();
+        webDriver.clickAndWait(By.linkText("Change Email"));
 
         assertThat(webDriver.findElement(By.cssSelector(".email-display")).getText()).isEqualTo("Current Email Address: " + userEmail);
         String newEmail = userEmail.replace("user", "new");
         webDriver.findElement(By.name("newEmail")).sendKeys(newEmail);
-        webDriver.findElement(By.xpath("//input[@value='Send Verification Link']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Send Verification Link']"));
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Instructions Sent");
         assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
@@ -131,7 +131,7 @@ class ChangeEmailIT {
 
         String newEmail = userEmail.replace("user", "new");
         webDriver.findElement(By.name("newEmail")).sendKeys(newEmail);
-        webDriver.findElement(By.xpath("//input[@value='Send Verification Link']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Send Verification Link']"));
 
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
@@ -139,7 +139,7 @@ class ChangeEmailIT {
         String link = testClient.extractLink(message.getBody());
 
         webDriver.get(link);
-        webDriver.findElement(By.id("authorize")).click();
+        webDriver.clickAndWait(By.id("authorize"));
         assertThat(webDriver.getCurrentUrl()).startsWith("http://localhost:8080/app/");
     }
 
@@ -148,7 +148,7 @@ class ChangeEmailIT {
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
     }
 }

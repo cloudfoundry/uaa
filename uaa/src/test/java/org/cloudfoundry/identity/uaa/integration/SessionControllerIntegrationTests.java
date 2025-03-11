@@ -3,11 +3,10 @@ package org.cloudfoundry.identity.uaa.integration;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.feature.TestClient;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
@@ -21,7 +20,7 @@ class SessionControllerIntegrationTests {
     @Autowired
     TestAccounts testAccounts;
     @Autowired
-    WebDriver webDriver;
+    UaaWebDriver webDriver;
     @Value("${integration.test.base_url}")
     String baseUrl;
 
@@ -42,7 +41,7 @@ class SessionControllerIntegrationTests {
         webDriver.get(baseUrl +
                 "/session?clientId=admin&messageOrigin=http://localhost:8080");
 
-        Object r = ((JavascriptExecutor) webDriver).executeScript(
+        Object r = webDriver.getJavascriptExecutor().executeScript(
                 "return typeof(handleMessage);");
         assertThat(r).hasToString("function");
     }
@@ -52,11 +51,11 @@ class SessionControllerIntegrationTests {
         webDriver.get(baseUrl +
                 "/session_management?clientId=admin&messageOrigin=http://localhost:8080");
 
-        Object clientId = ((JavascriptExecutor) webDriver).executeScript(
+        Object clientId = webDriver.getJavascriptExecutor().executeScript(
                 "return clientId;");
         assertThat(clientId).hasToString("admin");
 
-        Object origin = ((JavascriptExecutor) webDriver).executeScript(
+        Object origin = webDriver.getJavascriptExecutor().executeScript(
                 "return messageOrigin;");
         assertThat(origin).hasToString("http://localhost:8080");
     }

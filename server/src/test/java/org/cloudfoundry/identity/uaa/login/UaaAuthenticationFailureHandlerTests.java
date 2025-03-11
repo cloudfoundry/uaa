@@ -15,17 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.util.SessionUtils;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import java.io.IOException;
@@ -38,6 +27,21 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.internal.verification.VerificationModeFactory.times;
+
+import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
+import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
+import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler;
 
 class UaaAuthenticationFailureHandlerTests {
 
@@ -93,6 +97,31 @@ class UaaAuthenticationFailureHandlerTests {
                 .isEqualTo(uaaAuthentication);
         validateCookie();
         assertThat(response.getRedirectedUrl()).isEqualTo("/force_password_change");
+    }
+
+    @Test
+    void redirectUrls() throws ServletException, IOException {
+        var handler = new UaaAuthenticationFailureHandler(cookieFactory);
+
+        var response = new MockHttpServletResponse();
+        handler.onAuthenticationFailure(request, response, new AccountNotVerifiedException("test"));
+        assertThat(response.getRedirectedUrl()).isEqualTo("/login?error=account_not_verified");
+
+        response = new MockHttpServletResponse();
+        handler.onAuthenticationFailure(request, response, new AuthenticationPolicyRejectionException("test"));
+        assertThat(response.getRedirectedUrl()).isEqualTo("/login?error=account_locked");
+
+        response = new MockHttpServletResponse();
+        handler.onAuthenticationFailure(request, response, new AccountNotPreCreatedException("test"));
+        assertThat(response.getRedirectedUrl()).isEqualTo("/login?error=account_not_precreated");
+
+        response = new MockHttpServletResponse();
+        handler.onAuthenticationFailure(request, response, new PasswordChangeRequiredException(mock(UaaAuthentication.class), "test"));
+        assertThat(response.getRedirectedUrl()).isEqualTo("/force_password_change");
+
+        response = new MockHttpServletResponse();
+        handler.onAuthenticationFailure(request, response, new BadCredentialsException("test"));
+        assertThat(response.getRedirectedUrl()).isEqualTo("/login?error=login_failure");
     }
 
     private void validateCookie() {

@@ -5,25 +5,24 @@ import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.NotificationsProperties;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2ClientContext;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2RestTemplate;
-import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.stereotype.Component;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import javax.net.ssl.SSLContext;
 import java.security.KeyManagementException;
@@ -37,30 +36,37 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 
-@Component
 public class LocalUaaRestTemplate extends OAuth2RestTemplate {
     private final AuthorizationServerTokenServices authorizationServerTokenServices;
     private final String clientId;
     private final MultitenantClientServices multitenantClientServices;
     private final IdentityZoneManager identityZoneManager;
 
-    LocalUaaRestTemplate(
-            @Qualifier("uaa") final OAuth2ProtectedResourceDetails resource,
+    public LocalUaaRestTemplate(
+            UaaProperties.RootLevel uaaProperties,
+            NotificationsProperties notificationsProperties,
             final AuthorizationServerTokenServices authorizationServerTokenServices,
             final MultitenantClientServices multitenantClientServices,
-            @Value("${notifications.verify_ssl:false}") final boolean verifySsl,
             final IdentityZoneManager identityZoneManager)
             throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-        super(resource);
+        super(clientResourceDetails(uaaProperties.LOGIN_SECRET()));
 
         this.authorizationServerTokenServices = authorizationServerTokenServices;
         this.clientId = "login";
         this.multitenantClientServices = multitenantClientServices;
         this.identityZoneManager = identityZoneManager;
 
-        if (!verifySsl) {
+        if (!notificationsProperties.verify_ssl()) {
             skipSslValidation();
         }
+    }
+
+    static ClientCredentialsResourceDetails clientResourceDetails(String loginSecret) {
+        var res = new ClientCredentialsResourceDetails();
+        res.setClientId("uaa");
+        res.setClientId("login");
+        res.setClientSecret(loginSecret);
+        return res;
     }
 
     @Override

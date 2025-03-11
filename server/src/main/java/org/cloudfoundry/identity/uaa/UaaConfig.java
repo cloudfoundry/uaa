@@ -1,11 +1,7 @@
 package org.cloudfoundry.identity.uaa;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
-
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,12 +9,19 @@ import org.springframework.security.config.annotation.web.configuration.WebSecur
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.SecurityFilterChain;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Configuration for application-wide beans, as well as "infrastructure" beans
  * that help enable other beans (e.g. during the migration from XML config to Java config).
  */
 @Configuration
-@EnableConfigurationProperties(UaaProperties.Uaa.class)
+@EnableConfigurationProperties({
+        UaaProperties.Uaa.class,
+        UaaProperties.Servlet.class,
+        UaaProperties.RootLevel.class
+})
 public class UaaConfig {
 
     /**

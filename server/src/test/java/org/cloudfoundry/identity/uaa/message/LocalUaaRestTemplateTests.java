@@ -2,8 +2,10 @@ package org.cloudfoundry.identity.uaa.message;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Sets;
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.login.NotificationsProperties;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2ClientContext;
 import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
@@ -42,16 +44,15 @@ class LocalUaaRestTemplateTests {
 
     @BeforeEach
     void setUp() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-        OAuth2ProtectedResourceDetails mockOAuth2ProtectedResourceDetails = mock(OAuth2ProtectedResourceDetails.class);
         mockAuthorizationServerTokenServices = mock(AuthorizationServerTokenServices.class);
         mockMultitenantClientServices = mock(MultitenantClientServices.class);
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
 
         localUaaRestTemplate = new LocalUaaRestTemplate(
-                mockOAuth2ProtectedResourceDetails,
+                new UaaProperties.RootLevel(false, "loginsecret"),
+                new NotificationsProperties("", false, true),
                 mockAuthorizationServerTokenServices,
                 mockMultitenantClientServices,
-                true,
                 mockIdentityZoneManager);
 
         ClientDetails mockClientDetails = mock(ClientDetails.class);

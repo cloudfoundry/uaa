@@ -186,7 +186,7 @@ oauth:
     cf:
       id: cf
       secret: ''
-      authorized-grant-types: 'implicit,password,refresh_token'
+      authorized-grant-types: 'implicit,password,refresh_token,urn:ietf:params:oauth:grant-type:jwt-bearer'
       scope: 'uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write'
       redirect-uri: 'http://localhost:8080/**,http://localhost:7000/**'
       authorities: uaa.none

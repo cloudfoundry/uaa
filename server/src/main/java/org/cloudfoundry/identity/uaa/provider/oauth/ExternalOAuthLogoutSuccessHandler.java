@@ -12,8 +12,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -22,6 +24,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
+@Component
 public class ExternalOAuthLogoutSuccessHandler extends SimpleUrlLogoutSuccessHandler {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthLogoutSuccessHandler.class);
@@ -31,8 +34,10 @@ public class ExternalOAuthLogoutSuccessHandler extends SimpleUrlLogoutSuccessHan
     private final IdentityZoneManager identityZoneManager;
     private final Set<String> defaultOrigin = Set.of(OriginKeys.UAA, OriginKeys.LDAP);
 
-    public ExternalOAuthLogoutSuccessHandler(final IdentityProviderProvisioning providerProvisioning, final OidcMetadataFetcher oidcMetadataFetcher,
-            IdentityZoneManager identityZoneManager) {
+    public ExternalOAuthLogoutSuccessHandler(
+            @Qualifier("externalOAuthProviderConfigurator") final IdentityProviderProvisioning providerProvisioning,
+            final OidcMetadataFetcher oidcMetadataFetcher,
+            final IdentityZoneManager identityZoneManager) {
         this.providerProvisioning = providerProvisioning;
         this.oidcMetadataFetcher = oidcMetadataFetcher;
         this.identityZoneManager = identityZoneManager;

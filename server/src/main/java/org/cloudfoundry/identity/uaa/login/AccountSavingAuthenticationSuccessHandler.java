@@ -23,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
@@ -35,6 +36,7 @@ import java.net.URLEncoder;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.springframework.http.HttpHeaders.SET_COOKIE;
 
+@Component
 public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
     private final Rfc6265CookieProcessor rfc6265CookieProcessor;
     private final SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;

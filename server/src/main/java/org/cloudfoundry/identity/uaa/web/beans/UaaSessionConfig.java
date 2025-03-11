@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.web.beans;
 
-import org.springframework.beans.factory.annotation.Value;
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import org.springframework.session.web.http.CookieSerializer;
@@ -27,16 +27,13 @@ public class UaaSessionConfig {
     }
 
     @Bean
-    public CookieSerializer uaaCookieSerializer(
-            final @Value("${servlet.session-cookie.max-age:-1}") int cookieMaxAge,
-            final @Value("${servlet.session-cookie.encode-base64:true}") boolean useBase64Encoding
-    ) {
+    public CookieSerializer uaaCookieSerializer(UaaProperties.Servlet servlet) {
         DefaultCookieSerializer cookieSerializer = new DefaultCookieSerializer();
         cookieSerializer.setSameSite("None");
         cookieSerializer.setUseSecureCookie(true);
-        cookieSerializer.setCookieMaxAge(cookieMaxAge);
+        cookieSerializer.setCookieMaxAge(servlet.sessionCookie().maxAge() != null ? servlet.sessionCookie().maxAge() : -1);
         cookieSerializer.setCookieName("JSESSIONID");
-        cookieSerializer.setUseBase64Encoding(useBase64Encoding);
+        cookieSerializer.setUseBase64Encoding(servlet.sessionCookie().encodeBase64());
 
         return cookieSerializer;
     }

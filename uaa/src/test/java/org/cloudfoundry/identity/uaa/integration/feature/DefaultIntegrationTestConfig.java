@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.springframework.beans.factory.annotation.Value;
@@ -53,7 +54,7 @@ public class DefaultIntegrationTestConfig {
     }
 
     @Bean(destroyMethod = "quit")
-    public ChromeDriver webDriver() {
+    public UaaWebDriver webDriver() {
         System.setProperty("webdriver.chrome.logfile", "/tmp/chromedriver.log");
         System.setProperty("webdriver.chrome.verboseLogging", "true");
         System.setProperty("webdriver.http.factory", "jdk-http-client");
@@ -63,7 +64,7 @@ public class DefaultIntegrationTestConfig {
                 .implicitlyWait(IMPLICIT_WAIT_TIME.multipliedBy(timeoutMultiplier))
                 .pageLoadTimeout(PAGE_LOAD_TIMEOUT.multipliedBy(timeoutMultiplier))
                 .scriptTimeout(SCRIPT_TIMEOUT.multipliedBy(timeoutMultiplier));
-        return driver;
+        return new UaaWebDriver(driver);
     }
 
     private static ChromeOptions getChromeOptions() {

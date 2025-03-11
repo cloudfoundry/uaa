@@ -62,7 +62,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 
         String zoneAdminRole = "zones." + IdentityZoneHolder.get().getId() + ".admin";
         if (!result) {
-            ContextSensitiveOAuth2SecurityExpressionMethods eval = new ContextSensitiveOAuth2SecurityExpressionMethods(a, IdentityZone.getUaa());
+            ContextSensitiveOAuth2SecurityExpressionMethods eval = new ContextSensitiveOAuth2SecurityExpressionMethods(a);
             result = eval.hasScopeInAuthZone(zoneAdminRole);
         }
         return result;

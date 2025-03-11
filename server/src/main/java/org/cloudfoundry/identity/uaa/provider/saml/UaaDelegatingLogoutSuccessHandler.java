@@ -10,6 +10,7 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2RelyingPartyInitiatedLogoutSuccessHandler;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -30,6 +31,7 @@ import java.util.Optional;
  * On the LogoutResponse side, there is no Authentication available at that point, so will
  * always delegate to the {@link ZoneAwareWhitelistLogoutSuccessHandler}.
  */
+@Component
 public class UaaDelegatingLogoutSuccessHandler implements LogoutSuccessHandler {
     private final ZoneAwareWhitelistLogoutSuccessHandler zoneAwareWhitelistLogoutHandler;
     private final Saml2RelyingPartyInitiatedLogoutSuccessHandler saml2RelyingPartyInitiatedLogoutSuccessHandler;

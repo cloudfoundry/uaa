@@ -14,6 +14,8 @@
     <context:annotation-config/>
     <context:component-scan base-package="org.cloudfoundry.identity.uaa"/>
 
+    <authentication-manager alias="emptyAuthenticationManager" id="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security"/>
+
     <bean id="uaaConfigValidation" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
             <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor"/>
@@ -341,6 +343,8 @@
                     class="org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator">
         <constructor-arg ref="globalClientSecretPolicy"/>
     </bean>
+    <bean id="oauthWebExpressionHandler"
+          class="org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler" />
 
     <import resource="spring/oauth-clients.xml"/>
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
@@ -353,8 +357,6 @@
     <import resource="spring/resource-endpoints.xml"/>
     <import resource="spring/openid-endpoints.xml"/>
     <import resource="spring/codestore-endpoints.xml"/>
-    <import resource="spring/authentication.xml"/>
-    <import resource="spring/identity-zones.xml"/>
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
         <property name="basenames">
@@ -377,6 +379,11 @@
         <property name="exceptionTranslator" ref="accountNotVerifiedExceptionTranslator"/>
     </bean>
 
+    <bean id="oauthAuthenticationEntryPoint"
+          class="org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint">
+        <property name="realmName" value="UAA/oauth"/>
+    </bean>
+
     <bean id="accountNotVerifiedExceptionTranslator"
                     class="org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator"/>
 
@@ -391,8 +398,6 @@
             </list>
         </constructor-arg>
     </bean>
-
-    <import resource="classpath:spring/login-ui.xml"/>
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint"/>
 

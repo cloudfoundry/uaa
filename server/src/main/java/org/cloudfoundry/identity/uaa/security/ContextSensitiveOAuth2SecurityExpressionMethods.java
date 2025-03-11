@@ -13,6 +13,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.security;
 
+import java.util.Map;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
@@ -27,8 +29,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.springframework.security.core.Authentication;
 import org.springframework.util.StringUtils;
-
-import java.util.Map;
 
 public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2SecurityExpressionMethods {
 
@@ -52,13 +52,9 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
     }
 
     public ContextSensitiveOAuth2SecurityExpressionMethods(Authentication authentication) {
-        this(authentication, IdentityZone.getUaa());
-    }
-
-    public ContextSensitiveOAuth2SecurityExpressionMethods(Authentication authentication, IdentityZone authenticationZone) {
         super(authentication);
         this.authentication = authentication;
-        this.identityZone = authenticationZone;
+        this.identityZone = IdentityZone.getUaa();
     }
 
     @Override

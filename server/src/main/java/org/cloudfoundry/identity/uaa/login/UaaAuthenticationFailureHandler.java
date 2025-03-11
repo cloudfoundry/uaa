@@ -13,23 +13,49 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
+import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
+import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredException;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.AuthenticationFailureHandler;
 import org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler;
 import org.springframework.security.web.authentication.logout.LogoutHandler;
+import org.springframework.stereotype.Component;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Map;
 
+@Component
 public class UaaAuthenticationFailureHandler implements AuthenticationFailureHandler, LogoutHandler {
     private final ExceptionMappingAuthenticationFailureHandler delegate;
     private final CurrentUserCookieFactory currentUserCookieFactory;
+
+    @Autowired
+    public UaaAuthenticationFailureHandler(CurrentUserCookieFactory currentUserCookieFactory) {
+        this(defaultDelegateFailureHandler(), currentUserCookieFactory);
+    }
+
+    private static ExceptionMappingAuthenticationFailureHandler defaultDelegateFailureHandler() {
+        var handler = new ExceptionMappingAuthenticationFailureHandler();
+        handler.setExceptionMappings(
+                Map.of(
+                        AccountNotVerifiedException.class.getName(), "/login?error=account_not_verified",
+                        AuthenticationPolicyRejectionException.class.getName(), "/login?error=account_locked",
+                        AccountNotPreCreatedException.class.getName(), "/login?error=account_not_precreated",
+                        PasswordChangeRequiredException.class.getName(), "/force_password_change"
+                )
+        );
+        handler.setDefaultFailureUrl("/login?error=login_failure");
+        return handler;
+    }
 
     public UaaAuthenticationFailureHandler(ExceptionMappingAuthenticationFailureHandler delegate, CurrentUserCookieFactory currentUserCookieFactory) {
         this.delegate = delegate;

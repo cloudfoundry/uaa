@@ -1,10 +1,16 @@
 package org.cloudfoundry.identity.uaa.login.util;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.UaaProperties;
+import org.cloudfoundry.identity.uaa.login.NotificationsProperties;
 import org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate;
 import org.cloudfoundry.identity.uaa.oauth.client.DefaultOAuth2ClientContext;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2RestTemplate;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
@@ -13,15 +19,39 @@ import org.springframework.util.ReflectionUtils;
 
 import java.lang.reflect.Method;
 import java.net.URI;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DefaultTestContext
 class LocalUaaRestTemplateMockMvcTests {
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
-    @Autowired
     private LocalUaaRestTemplate localUaaRestTemplate;
+
+    @Autowired
+    private AuthorizationServerTokenServices authorizationServerTokenServices;
+
+    @Autowired
+    private MultitenantClientServices multitenantClientServices;
+
+    @Autowired
+    private IdentityZoneManager identityZoneManager;
+
+    @Autowired
+    private UaaProperties.RootLevel uaaProperties;
+
+    @BeforeEach
+    void setUp() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
+        localUaaRestTemplate = new LocalUaaRestTemplate(
+                uaaProperties,
+                new NotificationsProperties("", true, false),
+                authorizationServerTokenServices,
+                multitenantClientServices,
+                identityZoneManager
+        );
+    }
 
     @Test
     void localUaaRestTemplateAcquireToken() {
