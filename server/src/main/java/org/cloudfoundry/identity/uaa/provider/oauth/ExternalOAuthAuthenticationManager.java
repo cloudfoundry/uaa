@@ -839,7 +839,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return retrieveTokenExchangeIdp(UaaLoginHint.parseRequestParameter(request.getParameter("login_hint")), getAllowedProviders());
     }
 
-    public static List<String> getAllowedProviders() {
+    public List<String> getAllowedProviders() {
         Authentication clientAuth = SecurityContextHolder.getContext().getAuthentication();
         if (clientAuth == null) {
             throw new BadCredentialsException("No client authentication found.");
