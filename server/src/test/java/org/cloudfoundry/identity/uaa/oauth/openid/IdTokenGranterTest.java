@@ -73,13 +73,13 @@ class IdTokenGranterTest {
     }
 
     @Test
-    void shouldSend_isFalse_whenJwtBearerGrantType() {
-        assertThat(idTokenGranter.shouldSendIdToken(user, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_USER_TOKEN)).isFalse();
+    void shouldSend_isTrue_whenJwtBearerGrantType() {
+        assertThat(idTokenGranter.shouldSendIdToken(user, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_JWT_BEARER)).isTrue();
     }
 
     @Test
     void shouldSend_isFalse_whenUserTokenGrantType() {
-        assertThat(idTokenGranter.shouldSendIdToken(user, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_JWT_BEARER)).isFalse();
+        assertThat(idTokenGranter.shouldSendIdToken(user, clientWithOpenId, requestedScopesWithOpenId, GRANT_TYPE_USER_TOKEN)).isFalse();
     }
 
     @Test

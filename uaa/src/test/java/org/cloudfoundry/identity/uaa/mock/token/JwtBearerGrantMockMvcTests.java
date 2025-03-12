@@ -343,6 +343,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 null
         );
         details.setClientSecret(SECRET);
+        details.setAutoApproveScopes(List.of("openid"));
         IdentityZoneHolder.set(zone);
         try {
             webApplicationContext.getBean(MultitenantJdbcClientDetailsService.class).addClientDetails(details);
