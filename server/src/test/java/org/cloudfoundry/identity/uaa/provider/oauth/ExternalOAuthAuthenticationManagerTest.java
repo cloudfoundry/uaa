@@ -617,7 +617,7 @@ class ExternalOAuthAuthenticationManagerTest {
 
 
     @Test
-    void getOidcProxyTokenExchangeSuccess() throws MalformedURLException {
+    void getOidcProxyIdpForTokenExchangeSuccess() throws MalformedURLException {
         IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("login_hint", new UaaLoginHint("idp").toString());
@@ -630,11 +630,11 @@ class ExternalOAuthAuthenticationManagerTest {
         when(identityProviderProvisioning.retrieveByOrigin(any(), any())).thenReturn(idp);
         when(idp.getOriginKey()).thenReturn("idp");
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
-        assertThat(authManager.getOidcProxyTokenExchange(request)).isEqualTo(idp);
+        assertThat(authManager.getOidcProxyIdpForTokenExchange(request)).isEqualTo(idp);
     }
 
     @Test
-    void getOidcProxyTokenExchangeNotEnabled() throws MalformedURLException {
+    void getOidcProxyIdpForTokenExchangeNotEnabled() throws MalformedURLException {
         IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("login_hint", new UaaLoginHint("idp").toString());
@@ -648,11 +648,11 @@ class ExternalOAuthAuthenticationManagerTest {
         when(identityProviderProvisioning.retrieveByOrigin(any(), any())).thenReturn(idp);
         when(idp.getOriginKey()).thenReturn("idp");
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
-        assertThat(authManager.getOidcProxyTokenExchange(request)).isNull();
+        assertThat(authManager.getOidcProxyIdpForTokenExchange(request)).isNull();
     }
 
     @Test
-    void getOidcProxyTokenExchangeDbException() throws MalformedURLException {
+    void getOidcProxyIdpForTokenExchangeDbException() throws MalformedURLException {
         IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("login_hint", new UaaLoginHint("idp").toString());
@@ -662,11 +662,11 @@ class ExternalOAuthAuthenticationManagerTest {
         when(identityProviderProvisioning.retrieveByOrigin(any(), any())).thenThrow(new EmptyResultDataAccessException(1));
         when(idp.getOriginKey()).thenReturn("idp");
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
-        assertThat(authManager.getOidcProxyTokenExchange(request)).isNull();
+        assertThat(authManager.getOidcProxyIdpForTokenExchange(request)).isNull();
     }
 
     @Test
-    void getOidcProxyTokenExchangeNoResult() throws MalformedURLException {
+    void getOidcProxyIdpForTokenExchangeNoResult() throws MalformedURLException {
         IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setParameter("login_hint", new UaaLoginHint("idp").toString());
@@ -676,7 +676,7 @@ class ExternalOAuthAuthenticationManagerTest {
         when(identityProviderProvisioning.retrieveByOrigin(any(), any())).thenReturn(null);
         when(idp.getOriginKey()).thenReturn("idp");
         SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
-        assertThat(authManager.getOidcProxyTokenExchange(request)).isNull();
+        assertThat(authManager.getOidcProxyIdpForTokenExchange(request)).isNull();
     }
 
     @Test

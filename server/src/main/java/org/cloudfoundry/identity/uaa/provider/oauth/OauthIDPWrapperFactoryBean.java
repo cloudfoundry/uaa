@@ -80,6 +80,12 @@ public class OauthIDPWrapperFactoryBean {
         }
     }
 
+    /**
+     * Get IdP configuration map. The properties are documented either via
+     * https://docs.cloudfoundry.org/api/uaa/index.html#oauth-oidc -> create OAuth/OIDC Identity Provider
+     * or class
+     * #org.cloudfoundry.identity.uaa.mock.providers.IdentityProviderEndpointDocs
+     */
     private AbstractExternalOAuthIdentityProviderDefinition getExternalOIDCIdentityProviderDefinition(String alias,
             Map<String, Object> idpDefinitionMap, IdentityProvider provider) throws MalformedURLException {
         AbstractExternalOAuthIdentityProviderDefinition rawDef;

@@ -212,7 +212,7 @@ class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         ArgumentCaptor<ExternalOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
-        verify(externalOAuthAuthenticationManager, times(1)).getOidcProxyTokenExchange(request);
+        verify(externalOAuthAuthenticationManager, times(1)).getOidcProxyIdpForTokenExchange(request);
         verifyNoInteractions(passwordAuthManager);
         verifyNoMoreInteractions(externalOAuthAuthenticationManager);
         assertThat(authenticateData.getValue().getIdToken()).isEqualTo(idToken);
@@ -228,14 +228,14 @@ class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         UaaAuthenticationDetailsSource uaaAuthenticationDetailsSource = new UaaAuthenticationDetailsSource();
         UaaAuthenticationDetails uaaAuthenticationDetails = uaaAuthenticationDetailsSource.buildDetails(request);
         IdentityProvider identityProvider = mock(IdentityProvider.class);
-        doReturn(identityProvider).when(externalOAuthAuthenticationManager).getOidcProxyTokenExchange(request);
+        doReturn(identityProvider).when(externalOAuthAuthenticationManager).getOidcProxyIdpForTokenExchange(request);
         filter.setAuthenticationDetailsSource(uaaAuthenticationDetailsSource);
 
         filter.doFilter(request, response, chain);
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         ArgumentCaptor<ExternalOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
-        verify(externalOAuthAuthenticationManager, times(1)).getOidcProxyTokenExchange(request);
+        verify(externalOAuthAuthenticationManager, times(1)).getOidcProxyIdpForTokenExchange(request);
         verify(externalOAuthAuthenticationManager, times(1)).oidcJwtBearerGrant(uaaAuthenticationDetails, identityProvider, idToken);
         verifyNoInteractions(passwordAuthManager);
         verifyNoMoreInteractions(externalOAuthAuthenticationManager);

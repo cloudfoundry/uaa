@@ -30,14 +30,19 @@ import static java.util.Collections.emptyMap;
 public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
         implements Cloneable {
     private URL discoveryUrl;
+    // Enable Resource Owner Password Grant flow for this identity provider.
     private boolean passwordGrantEnabled;
+    // Set X-Forward-For header in Password Grant request to this identity provider.
     private boolean setForwardHeader;
+    // Enable JWT Bearer Token Exchange Grant flow for this identity provider.
     private Boolean tokenExchangeEnabled;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts;
+    // Enables private_key_jwt towards identity provider.
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Object jwtClientAuthentication;
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    // Add additional parameters in request towards identity provider.
     private Map<String, String> additionalAuthzParameters;
 
     public URL getDiscoveryUrl() {

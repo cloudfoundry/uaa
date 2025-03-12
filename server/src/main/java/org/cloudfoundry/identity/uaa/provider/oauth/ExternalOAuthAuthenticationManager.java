@@ -835,20 +835,17 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
-    public IdentityProvider<OIDCIdentityProviderDefinition> getOidcProxyTokenExchange(HttpServletRequest request) {
+    public IdentityProvider<OIDCIdentityProviderDefinition> getOidcProxyIdpForTokenExchange(HttpServletRequest request) {
         return retrieveTokenExchangeIdp(UaaLoginHint.parseRequestParameter(request.getParameter("login_hint")), getAllowedProviders());
     }
 
-    public List<String> getAllowedProviders() {
+    public static List<String> getAllowedProviders() {
         Authentication clientAuth = SecurityContextHolder.getContext().getAuthentication();
         if (clientAuth == null) {
             throw new BadCredentialsException("No client authentication found.");
         }
-        List<String> allowedProviders = null;
-        if (clientAuth.getPrincipal() instanceof UaaClient uaaClient && uaaClient.getAdditionalInformation() != null) {
-            allowedProviders = (List<String>) uaaClient.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-        }
-        return allowedProviders;
+        return clientAuth.getPrincipal() instanceof UaaClient uaaClient && uaaClient.getAdditionalInformation() != null ?
+            (List<String>) uaaClient.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS) : null;
     }
 
     private IdentityProvider<OIDCIdentityProviderDefinition> retrieveTokenExchangeIdp(UaaLoginHint loginHint, List<String> allowedProviders) {

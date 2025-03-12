@@ -256,7 +256,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             log.debug(GRANT_TYPE_JWT_BEARER + " found. Attempting authentication with assertion");
             String assertion = request.getParameter("assertion");
             if (assertion != null && externalOAuthAuthenticationManager != null) {
-                IdentityProvider<OIDCIdentityProviderDefinition> oidcProxy = externalOAuthAuthenticationManager.getOidcProxyTokenExchange(request);
+                IdentityProvider<OIDCIdentityProviderDefinition> oidcProxy = externalOAuthAuthenticationManager.getOidcProxyIdpForTokenExchange(request);
                 if (oidcProxy != null) {
                     log.debug("Forward OIDC JWT authentication to oidc proxy");
                     String idpAssertion = externalOAuthAuthenticationManager.oidcJwtBearerGrant(
