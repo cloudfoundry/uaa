@@ -32,6 +32,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
@@ -129,13 +130,11 @@ class ClientAdminEndpointsValidatorTests {
     }
 
     @Test
-    void validate_jwt_bearer_grant_type_without_secret() {
+    void validate_jwt_bearer_grant_type_without_empty_secret() {
         client.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_JWT_BEARER));
         client.setScope(Collections.singleton(caller.getClientId() + ".write"));
         client.setClientSecret("");
-        assertThatThrownBy(() -> validator.validate(client, true, true))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessageContaining("Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
+        assertThatNoException().isThrownBy(() -> validator.validate(client, true, true));
     }
 
     @Test

@@ -59,7 +59,6 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOf
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyBoolean;
@@ -1045,16 +1044,6 @@ class ClientAdminEndpointsTests {
         assertSetEquals(autoApproveScopes, updated.getAutoApproveScopes());
         assertThat(updated.isAutoApprove("foo.read")).isTrue();
         assertThat(updated.isAutoApprove("foo.write")).isTrue();
-    }
-
-    @Test
-    void clientCredentialWithEmptySecretIsRejected() {
-        detail.setAuthorizedGrantTypes(Collections.singletonList(GRANT_TYPE_CLIENT_CREDENTIALS));
-        detail.setClientSecret("");
-        detail.setScope(Collections.emptyList());
-        assertThatThrownBy(() -> endpoints.createClientDetails(createClientDetailsCreation(detail)))
-                .isInstanceOf(InvalidClientDetailsException.class)
-                .hasMessage("Client secret is required for client_credentials grant type");
     }
 
     @Test

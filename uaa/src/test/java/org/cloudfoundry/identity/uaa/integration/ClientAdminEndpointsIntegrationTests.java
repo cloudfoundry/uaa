@@ -390,7 +390,7 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
-    void nonImplicitGrantClientWithoutSecretIsRejectedTxFails() {
+    void nonImplicitGrantClientWithSecret() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         String grantTypes = "client_credentials";
@@ -411,10 +411,10 @@ public class ClientAdminEndpointsIntegrationTests {
                         HttpMethod.POST,
                         new HttpEntity<>(clients, headers),
                         UaaException.class);
-        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         for (String id : ids) {
             ClientDetails client = getClient(id);
-            assertThat(client).isNull();
+            assertThat(client).isNotNull();
         }
     }
 

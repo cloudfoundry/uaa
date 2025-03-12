@@ -139,15 +139,9 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             requestedGrantTypes.add(GRANT_TYPE_REFRESH_TOKEN);
         }
 
-        if (requestedGrantTypes.contains(GRANT_TYPE_JWT_BEARER)) {
-            if (client.getScope() == null || client.getScope().isEmpty()) {
-                logger.debug("Invalid client: " + clientId + ". Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
-                throw new InvalidClientDetailsException("Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
-            }
-            if (create && !StringUtils.hasText(client.getClientSecret())) {
-                logger.debug("Invalid client: " + clientId + ". Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
-                throw new InvalidClientDetailsException("Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
-            }
+        if (requestedGrantTypes.contains(GRANT_TYPE_JWT_BEARER) && (client.getScope() == null || client.getScope().isEmpty())) {
+            logger.debug("Invalid client: " + clientId + ". Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
+            throw new InvalidClientDetailsException("Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
         }
 
         if (checkAdmin &&
@@ -235,11 +229,6 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             }
         }
         if (create) {
-            // Only check for missing secret if client is being created.
-            if (requestedGrantTypes.contains(GRANT_TYPE_CLIENT_CREDENTIALS) && !StringUtils.hasText(client.getClientSecret())) {
-                logger.debug("Client secret is required for client_credentials grant type");
-                throw new InvalidClientDetailsException("Client secret is required for client_credentials grant type");
-            }
             clientSecretValidator.validate(client.getClientSecret());
 
             if (prototype instanceof ClientDetailsCreation clientDetailsCreation) {

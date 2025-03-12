@@ -86,6 +86,7 @@ import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.Cha
 import static org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest.ChangeMode.DELETE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -697,11 +698,11 @@ class ClientAdminEndpointsMockMvcTests {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(details));
-        mockMvc.perform(createClientPost).andExpect(status().isBadRequest());
+        mockMvc.perform(createClientPost).andExpect(status().isCreated());
         for (ClientDetails client : details) {
-            assertThat(getClient(client.getClientId())).isNull();
+            assertThat(getClient(client.getClientId())).isNotNull();
         }
-        verify(mockApplicationEventPublisher, times(0)).publishEvent(abstractUaaEventCaptor.capture());
+        verify(mockApplicationEventPublisher, atLeast(5)).publishEvent(abstractUaaEventCaptor.capture());
     }
 
     @Test

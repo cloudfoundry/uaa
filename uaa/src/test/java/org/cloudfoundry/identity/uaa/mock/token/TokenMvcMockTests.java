@@ -1021,7 +1021,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void getToken_withPasswordGrantType_resultsInUserLastLogonTimestampUpdate() throws Exception {
-        long delayTime = 5;
+        long delayTime = 15;
         String username = "testuser" + generator.generate();
         String userScopes = "uaa.user";
         ScimUser user = setUpUser(jdbcScimUserProvisioning, jdbcScimGroupMembershipManager, jdbcScimGroupProvisioning, username, userScopes, OriginKeys.UAA, IdentityZone.getUaaZoneId());

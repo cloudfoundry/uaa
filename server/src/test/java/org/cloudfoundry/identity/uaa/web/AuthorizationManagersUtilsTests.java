@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InsufficientScopeException;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.test.ModelTestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -21,6 +22,7 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtilsTests.TestAuthManager.granted;
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtilsTests.TestAuthManager.notGranted;
 import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtilsTests.TestAuthManager.unknown;
@@ -111,6 +113,16 @@ class AuthorizationManagersUtilsTests {
 
         assertThat(authManager.check(() -> withScopes("uaa.admin"), null).isGranted()).isFalse();
         assertThat(authManager.check(() -> withScopes("uaa.admin", "foo.bar"), null).isGranted()).isTrue();
+    }
+
+    @Test
+    void throwOnError() {
+        AuthorizationManager<RequestAuthorizationContext> authManager = AuthorizationManagersUtils.anyOf(true).hasScope("foo.bar");
+
+        assertThatThrownBy(
+                () -> {authManager.check(() -> withScopes("uaa.admin"), null);}
+        ).getCause().isInstanceOf(InsufficientScopeException.class);
+
     }
 
     @Test
