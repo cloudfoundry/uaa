@@ -59,13 +59,18 @@ class IdentityZoneSwitchingFilterTests {
         OAuth2Authentication oAuth2Authentication = mock(OAuth2Authentication.class);
         when(uaaAauth2Authentication.getOAuth2Request()).thenReturn(oAuth2Request);
         when(oAuth2Authentication.getOAuth2Request()).thenReturn(oAuth2Request);
+        when(uaaAauth2Authentication.getTokenValue()).thenReturn("token");
         // When
         SecurityContextHolder.getContext().setAuthentication(uaaAauth2Authentication);
         // Then
-        assertThat(filter.getAuthenticationForZone("uaa", new MockHttpServletRequest())).isInstanceOf(UaaOauth2Authentication.class);
+        OAuth2Authentication result = filter.getAuthenticationForZone("uaa", new MockHttpServletRequest());
+        assertThat(result).isInstanceOf(UaaOauth2Authentication.class);
+        assertThat(((UaaOauth2Authentication) result).getTokenValue()).isNotNull().isEqualTo("token");
         // When
         SecurityContextHolder.getContext().setAuthentication(oAuth2Authentication);
         // Then
-        assertThat(filter.getAuthenticationForZone("uaa", new MockHttpServletRequest())).isInstanceOf(OAuth2Authentication.class);
+        result = filter.getAuthenticationForZone("uaa", new MockHttpServletRequest());
+        assertThat(result).isInstanceOf(UaaOauth2Authentication.class);
+        assertThat(((UaaOauth2Authentication) result).getTokenValue()).isNull();
     }
 }
