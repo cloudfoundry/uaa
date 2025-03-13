@@ -97,6 +97,7 @@ dependencies {
     testImplementation(libraries.openSamlApi)
     testImplementation(libraries.xmlUnit)
     testImplementation(libraries.awaitility)
+    testImplementation(libraries.nimbusJwt)
 }
 
 ext {

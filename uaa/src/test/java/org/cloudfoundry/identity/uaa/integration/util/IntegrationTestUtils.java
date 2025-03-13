@@ -1148,6 +1148,42 @@ public class IntegrationTestUtils {
         return response.getBody();
     }
 
+    public static Map getJwtBearerToken(String baseUrl,
+                                       String clientId,
+                                       String clientSecret,
+                                       String assertion,
+                                       String loginHint,
+                                       String scopes) {
+        RestTemplate template = new RestTemplate();
+        template.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        template.setRequestFactory(new StatelessRequestFactory());
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer");
+        formData.add("client_id", clientId);
+        formData.add("assertion", assertion);
+        if (loginHint != null) {
+            formData.add("login_hint", "{\"origin\": \""+loginHint+"\"}");
+        }
+        formData.add("response_type", "token id_token");
+        if (hasText(scopes)) {
+            formData.add("scope", scopes);
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "Basic " + new String(BASE_64_ENCODER.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = template.exchange(
+                baseUrl + "/oauth/token",
+                HttpMethod.POST,
+                new HttpEntity<>(formData, headers),
+                Map.class);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        return response.getBody();
+    }
+
     public static String getClientCredentialsToken(ServerRunningExtension serverRunning,
                                                    String clientId,
                                                    String clientSecret) {
