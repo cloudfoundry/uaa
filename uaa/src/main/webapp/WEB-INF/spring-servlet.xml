@@ -339,6 +339,11 @@
     </bean>
 
 
+    <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator">
+        <property name="clientDetailsService" ref="clientDetailsService"/>
+        <property name="clientSecretValidator" ref="zoneAwareClientSecretPolicyValidator"/>
+    </bean>
+    <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher"/>
     <bean id="zoneAwareClientSecretPolicyValidator"
                     class="org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator">
         <constructor-arg ref="globalClientSecretPolicy"/>
@@ -351,9 +356,6 @@
     <import resource="spring/login-server-security.xml"/>
     <import resource="spring/oauth-endpoints.xml"/>
     <import resource="spring/multitenant-endpoints.xml"/>
-    <import resource="spring/approvals-endpoints.xml"/>
-    <import resource="spring/client-admin-endpoints.xml"/>
-    <import resource="spring/resource-endpoints.xml"/>
 
     <bean id="messageSource" class="org.springframework.context.support.ReloadableResourceBundleMessageSource">
         <property name="basenames">

@@ -34,7 +34,7 @@ class ScimSecurityConfiguration {
     @Qualifier("tokenServices")
     private UaaTokenServices tokenServices;
 
-    @Autowired()
+    @Autowired
     @Qualifier("oauthAuthenticationEntryPoint")
     OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint;
 

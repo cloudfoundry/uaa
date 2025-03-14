@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.ratelimiting.beans;
+package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
@@ -24,9 +24,7 @@ import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf
 
 @Configuration
 @EnableWebSecurity
-class RateLimiterSecurityConfiguration {
-
-
+public class TokenIntrospectionSecurityConfiguration {
     @Autowired
     @Qualifier("basicAuthenticationEntryPoint")
     OAuth2AuthenticationEntryPoint basicAuthenticationEntryPoint;
@@ -49,11 +47,58 @@ class RateLimiterSecurityConfiguration {
 
     @Bean
     @Order(FilterChainOrder.RESOURCE)
-    UaaFilterChain ratelimitSecurity(HttpSecurity http) throws Exception {
+    UaaFilterChain checkTokenSecurity(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher("/RateLimitingStatus/**")
+                .securityMatcher("/check_token")
                 .authorizeHttpRequests( auth -> {
-                    auth.requestMatchers("/**").hasAuthority("uaa.admin");
+                    auth.requestMatchers("/**").hasAuthority("uaa.resource");
+                    auth.anyRequest().denyAll();
+                })
+                //TODO is the auth manager needed?
+                .authenticationManager(clientAuthenticationManager)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
+                                .accessDeniedHandler(oauthAccessDeniedHandler)
+                )
+                .build();
+
+        return new UaaFilterChain(chain, "checkTokenSecurity");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.RESOURCE)
+    UaaFilterChain tokenKeySecurity(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher("/token_key/**", "/token_keys/**")
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers("/**").access(anyOf().anonymous().fullyAuthenticated());
+                    auth.anyRequest().denyAll();
+                })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                //TODO is the auth manager needed?
+                .authenticationManager(clientAuthenticationManager)
+                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
+                                .accessDeniedHandler(oauthAccessDeniedHandler)
+                )
+                .build();
+
+        return new UaaFilterChain(chain, "tokenKeySecurity");
+    }
+
+    @Bean
+    @Order(FilterChainOrder.RESOURCE)
+    UaaFilterChain introspectSecurity(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher("/introspect")
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers("/**").hasAuthority("uaa.resource");
                     auth.anyRequest().denyAll();
                 })
                 //TODO is the auth manager needed?
@@ -69,6 +114,6 @@ class RateLimiterSecurityConfiguration {
                 )
                 .build();
 
-        return new UaaFilterChain(chain, "ratelimitSecurity");
+        return new UaaFilterChain(chain, "introspectSecurity");
     }
 }

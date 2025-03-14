@@ -1,6 +1,7 @@
-package org.cloudfoundry.identity.uaa.ratelimiting.beans;
+package org.cloudfoundry.identity.uaa.approval.beans;
 
-import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
@@ -11,10 +12,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AnonymousConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,51 +23,48 @@ import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf
 
 @Configuration
 @EnableWebSecurity
-class RateLimiterSecurityConfiguration {
-
-
-    @Autowired
-    @Qualifier("basicAuthenticationEntryPoint")
-    OAuth2AuthenticationEntryPoint basicAuthenticationEntryPoint;
+public class ApprovalsSecurityConfiguration {
 
     @Autowired
-    @Qualifier("clientAuthenticationManager")
-    AuthenticationManager clientAuthenticationManager;
+    @Qualifier("tokenServices")
+    private UaaTokenServices tokenServices;
+
+    @Autowired
+    @Qualifier("oauthAuthenticationEntryPoint")
+    OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint;
 
     @Autowired
     @Qualifier("oauthAccessDeniedHandler")
     OAuth2AccessDeniedHandler oauthAccessDeniedHandler;
 
-    @Autowired
-    @Qualifier("oauthWithoutResourceAuthenticationFilter")
-    OAuth2AuthenticationProcessingFilter oauthWithoutResourceAuthenticationFilter;
-
-    @Autowired
-    @Qualifier("clientAuthenticationFilter")
-    ClientBasicAuthenticationFilter clientAuthenticationFilter;
 
     @Bean
-    @Order(FilterChainOrder.RESOURCE)
-    UaaFilterChain ratelimitSecurity(HttpSecurity http) throws Exception {
+    OAuth2AuthenticationProcessingFilter approvalsResourceAuthenticationFilter() {
+        OAuth2AuthenticationProcessingFilter bean = new OAuth2AuthenticationProcessingFilter();
+        OAuth2AuthenticationManager authenticationManager = new OAuth2AuthenticationManager();
+        authenticationManager.setResourceId("oauth");
+        authenticationManager.setTokenServices(tokenServices);
+        bean.setAuthenticationManager(authenticationManager);
+        return bean;
+    }
+    @Bean
+    @Order(FilterChainOrder.APPROVAL)
+    UaaFilterChain approvalsSecurity(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher("/RateLimitingStatus/**")
+                .securityMatcher("/approvals/**")
                 .authorizeHttpRequests( auth -> {
-                    auth.requestMatchers("/**").hasAuthority("uaa.admin");
+                    auth.requestMatchers("/**").access(anyOf(true).hasScope("oauth.approvals"));
                     auth.anyRequest().denyAll();
                 })
-                //TODO is the auth manager needed?
-                .authenticationManager(clientAuthenticationManager)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(oauthWithoutResourceAuthenticationFilter, BasicAuthenticationFilter.class)
-                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
-                .anonymous(AnonymousConfigurer::disable)
+                .addFilterBefore(approvalsResourceAuthenticationFilter(), BasicAuthenticationFilter.class)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
-                        exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
+                        exception.authenticationEntryPoint(oauthAuthenticationEntryPoint)
                                 .accessDeniedHandler(oauthAccessDeniedHandler)
                 )
                 .build();
 
-        return new UaaFilterChain(chain, "ratelimitSecurity");
+        return new UaaFilterChain(chain, "approvalsSecurity");
     }
 }

@@ -1,7 +1,6 @@
-package org.cloudfoundry.identity.uaa.ratelimiting.beans;
+package org.cloudfoundry.identity.uaa.client.beans;
 
 import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
-import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
@@ -14,7 +13,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configurers.AnonymousConfigurer;
 import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,9 +22,7 @@ import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf
 
 @Configuration
 @EnableWebSecurity
-class RateLimiterSecurityConfiguration {
-
-
+public class ClientInfoSecurityConfiguration {
     @Autowired
     @Qualifier("basicAuthenticationEntryPoint")
     OAuth2AuthenticationEntryPoint basicAuthenticationEntryPoint;
@@ -40,28 +36,21 @@ class RateLimiterSecurityConfiguration {
     OAuth2AccessDeniedHandler oauthAccessDeniedHandler;
 
     @Autowired
-    @Qualifier("oauthWithoutResourceAuthenticationFilter")
-    OAuth2AuthenticationProcessingFilter oauthWithoutResourceAuthenticationFilter;
-
-    @Autowired
     @Qualifier("clientAuthenticationFilter")
     ClientBasicAuthenticationFilter clientAuthenticationFilter;
-
     @Bean
     @Order(FilterChainOrder.RESOURCE)
-    UaaFilterChain ratelimitSecurity(HttpSecurity http) throws Exception {
+    UaaFilterChain clientInfoSecurity(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher("/RateLimitingStatus/**")
+                .securityMatcher("/clientinfo/**")
                 .authorizeHttpRequests( auth -> {
-                    auth.requestMatchers("/**").hasAuthority("uaa.admin");
+                    auth.requestMatchers("/**").access(anyOf().fullyAuthenticated());
                     auth.anyRequest().denyAll();
                 })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 //TODO is the auth manager needed?
                 .authenticationManager(clientAuthenticationManager)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(oauthWithoutResourceAuthenticationFilter, BasicAuthenticationFilter.class)
                 .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
-                .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
@@ -69,6 +58,6 @@ class RateLimiterSecurityConfiguration {
                 )
                 .build();
 
-        return new UaaFilterChain(chain, "ratelimitSecurity");
+        return new UaaFilterChain(chain, "clientInfoSecurity");
     }
 }

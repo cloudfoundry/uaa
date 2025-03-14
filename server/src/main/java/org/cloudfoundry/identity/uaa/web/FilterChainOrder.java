@@ -21,11 +21,13 @@ public class FilterChainOrder {
     // multitenant-endpoints.xml: 400
 
     // approval-endpoints.xml: 500
+    public static final int APPROVAL = 500;
 
     // client-admin-endpoints.xml: 600
+    public static final int CLIENT_ADMIN = 600;
 
     // resource-endpoints.xml: 700
-    public static final int RATE_LIMIT = 700;
+    public static final int RESOURCE = 700;
 
     // openid-endpoints.xml: 800
     public static final int USERINFO = 800;
