@@ -20,7 +20,6 @@ import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.Inet4Address;
@@ -31,11 +30,9 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
-import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Fail.fail;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
@@ -174,8 +171,7 @@ class JWTBearerGrantIT {
         // no password forward
         config.setPasswordGrantEnabled(false);
         // jwt bearer forward
-        // config.setTokenExchangeEnabled(true);
-        config.setScopes(List.of("openid", "cloud_controller.read"));
+        config.setTokenExchangeEnabled(true);
         identityProvider.setConfig(config);
         identityProvider.setOriginKey(originKey);
         IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
@@ -298,16 +294,11 @@ class JWTBearerGrantIT {
             // Then
             validateJwtClaimMap(tokenInZoneUaa, GRANT_TYPE_PASSWORD, "uaa");
             // When - get id token from jwt trusting uaa zone to testzone4 with testzone3 in between as proxy or transient trust
-            getJwtBearerResult(tokenInZoneUaa, getZoneUrl(testzone4), originInZone4);
-            fail("This part is not reached, because of missing https://github.com/cloudfoundry/uaa/pull/3309");
-            //String jwtBearer = getJwtBearerResult(tokenInZoneUaa, getZoneUrl(testzone4), originInZone4);
+            String jwtBearer = getJwtBearerResult(tokenInZoneUaa, getZoneUrl(testzone4), originInZone4);
             // Then
-            //validateJwtClaimMap(jwtBearer, GRANT_TYPE_JWT_BEARER, originInZone4);
+            validateJwtClaimMap(jwtBearer, GRANT_TYPE_JWT_BEARER, originInZone4);
             // JwtClaimSet ensure that id token is valid also with another OS library
-            //validateJwtClaimSet(jwtBearer, GRANT_TYPE_JWT_BEARER, testzone4, originInZone4);
-        } catch (HttpClientErrorException e) {
-            // not wanted, but currently no proxy
-            assertThat(e.getMessage()).contains("Unable to map issuer, http://localhost:8080/uaa/oauth/token");
+            validateJwtClaimSet(jwtBearer, GRANT_TYPE_JWT_BEARER, testzone4, originInZone4);
         } finally {
             if (testzone3 != null) {
                 IntegrationTestUtils.deleteZone(baseUrl, testzone3.getId(), clientCredentialsToken);
