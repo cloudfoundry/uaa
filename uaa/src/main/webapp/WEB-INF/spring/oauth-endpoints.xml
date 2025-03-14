@@ -527,6 +527,10 @@
         <constructor-arg name="approvalService" ref="approvalService"/>
     </bean>
 
+    <bean id="approvalStore" class="org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore">
+        <constructor-arg ref="jdbcTemplate"/>
+    </bean>
+
     <bean id="approvalService" class="org.cloudfoundry.identity.uaa.approval.ApprovalService">
         <constructor-arg name="timeService" ref="timeService"/>
         <constructor-arg name="approvalStore" ref="approvalStore"/>

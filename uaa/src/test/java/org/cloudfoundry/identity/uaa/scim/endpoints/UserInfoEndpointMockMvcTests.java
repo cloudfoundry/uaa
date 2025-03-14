@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.WebApplicationContext;
@@ -27,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
@@ -103,6 +105,13 @@ class UserInfoEndpointMockMvcTests {
     }
 
     @Test
+    void testPostUserInfo() throws Exception {
+        UserInfoResponse userInfoResponse = performUserInfoRequest(post("/userinfo"), "openid");
+
+        assertThat(userInfoResponse.getUserName()).isEqualTo(user.getUserName());
+    }
+
+    @Test
     void attributesWithRolesAndUserAttributes() throws Exception {
         UserInfoResponse userInfo = getUserInfo("openid user_attributes roles");
         Map<String, List<String>> uas = userInfo.getUserAttributes();
@@ -124,6 +133,10 @@ class UserInfoEndpointMockMvcTests {
     }
 
     private UserInfoResponse getUserInfo(String scopes) throws Exception {
+        return performUserInfoRequest(get("/userinfo"), scopes);
+    }
+
+    private UserInfoResponse performUserInfoRequest(MockHttpServletRequestBuilder request, String scopes) throws Exception {
         String userInfoToken = testClient.getUserOAuthAccessToken(
                 clientId,
                 clientSecret,
@@ -133,8 +146,7 @@ class UserInfoEndpointMockMvcTests {
         );
 
         MockHttpServletResponse response = mockMvc.perform(
-                        get("/userinfo")
-                                .header("Authorization", "Bearer " + userInfoToken))
+                        request.header("Authorization", "Bearer " + userInfoToken))
                 .andExpect(status().isOk())
                 .andReturn().getResponse();
 

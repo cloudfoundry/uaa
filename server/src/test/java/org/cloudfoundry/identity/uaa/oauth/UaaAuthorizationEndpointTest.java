@@ -75,11 +75,11 @@ class UaaAuthorizationEndpointTest {
                 null,
                 authorizationCodeServices,
                 null,
-                openIdSessionStateCalculator,
                 oAuth2RequestFactory,
                 null,
                 null,
                 pkceValidationService);
+        uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(openIdSessionStateCalculator);
         responseTypes = new HashSet<>();
 
         when(openIdSessionStateCalculator.calculate("userid", null, "http://example.com")).thenReturn("opbshash");

@@ -105,13 +105,11 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
     }
 
     @Test
-    void silentAuthenticationIncludesSessionState(
-            @Autowired OpenIdSessionStateCalculator openIdSessionStateCalculator
-    ) throws Exception {
+    void silentAuthenticationIncludesSessionState() throws Exception {
         UaaAuthorizationEndpoint uaaAuthorizationEndpoint = (UaaAuthorizationEndpoint) webApplicationContext.getBean("uaaAuthorizationEndpoint");
         try {
             OpenIdSessionStateCalculator mockOpenIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
-            ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", mockOpenIdSessionStateCalculator);
+            uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(mockOpenIdSessionStateCalculator);
             when(mockOpenIdSessionStateCalculator.calculate(anyString(), anyString(), anyString())).thenReturn("sessionhash.saltvalue");
             String currentUserId = MockMvcUtils.getUserByUsername(mockMvc, "marissa", adminToken).getId();
 
@@ -140,18 +138,16 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
             // tab relying on uaa-singular aggressively polls /oauth/authorize?prompt=none
             assertThat(result.getResponse().getCookie("Current-User").getValue()).contains(currentUserId);
         } finally {
-            ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", openIdSessionStateCalculator);
+            uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(new OpenIdSessionStateCalculator());
         }
     }
 
     @Test
-    void silentAuthenticationRuntimeExceptionDisplaysErrorFragment(
-            @Autowired OpenIdSessionStateCalculator openIdSessionStateCalculator
-    ) throws Exception {
+    void silentAuthenticationRuntimeExceptionDisplaysErrorFragment() throws Exception {
         UaaAuthorizationEndpoint uaaAuthorizationEndpoint = (UaaAuthorizationEndpoint) webApplicationContext.getBean("uaaAuthorizationEndpoint");
         try {
             OpenIdSessionStateCalculator mockOpenIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
-            ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", mockOpenIdSessionStateCalculator);
+            uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(mockOpenIdSessionStateCalculator);
 
             when(mockOpenIdSessionStateCalculator.calculate(anyString(), anyString(), anyString())).thenThrow(RuntimeException.class);
 
@@ -165,7 +161,7 @@ class AuthorizationPromptNoneEntryPointMockMvcTests {
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("http://example.com/with/path.html#error=internal_server_error"));
         } finally {
-            ReflectionTestUtils.setField(uaaAuthorizationEndpoint, "openIdSessionStateCalculator", openIdSessionStateCalculator);
+            uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(new OpenIdSessionStateCalculator());
         }
     }
 

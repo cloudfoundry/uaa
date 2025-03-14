@@ -117,7 +117,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     private OAuth2RequestValidator oauth2RequestValidator;
     private final AuthorizationCodeServices authorizationCodeServices;
     private final HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
-    private final OpenIdSessionStateCalculator openIdSessionStateCalculator;
+    private OpenIdSessionStateCalculator openIdSessionStateCalculator = new OpenIdSessionStateCalculator();
 
     private final SessionAttributeStore sessionAttributeStore;
     private final Object implicitLock;
@@ -132,7 +132,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
             final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oauth2RequestValidator,
             final @Qualifier("authorizationCodeServices") AuthorizationCodeServices authorizationCodeServices,
             final @Qualifier("hybridTokenGranterForAuthCodeGrant") HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode,
-            final @Qualifier("openIdSessionStateCalculator") OpenIdSessionStateCalculator openIdSessionStateCalculator,
             final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
             final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
             final @Qualifier("oauth2TokenGranter") TokenGranter tokenGranter,
@@ -142,7 +141,6 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
         this.oauth2RequestValidator = oauth2RequestValidator;
         this.authorizationCodeServices = authorizationCodeServices;
         this.hybridTokenGranterForAuthCode = hybridTokenGranterForAuthCode;
-        this.openIdSessionStateCalculator = openIdSessionStateCalculator;
         this.pkceValidationService = pkceValidationService;
 
         super.setOAuth2RequestFactory(oAuth2RequestFactory);
@@ -848,5 +846,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
 
     public void setUserApprovalHandler(UserApprovalHandler userApprovalHandler) {
         this.userApprovalHandler = userApprovalHandler;
+    }
+
+    public void setOpenIdSessionStateCalculator(OpenIdSessionStateCalculator openIdSessionStateCalculator) {
+        this.openIdSessionStateCalculator = openIdSessionStateCalculator;
     }
 }

@@ -65,11 +65,11 @@ public class UaaAuthorizationEndpointParamaterizedTest {
                 null,
                 null,
                 null,
-                calculator,
                 null,
                 clientDetailsService,
                 null,
                 null);
+        uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(calculator);
 
         request = new MockHttpServletRequest("GET", "/oauth/authorize");
         request.setParameter(OAuth2Utils.CLIENT_ID, client.getClientId());

@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa;
+package org.cloudfoundry.identity.uaa.ratelimiting.beans;
 
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;

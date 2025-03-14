@@ -15,6 +15,7 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 
@@ -26,6 +27,7 @@ public class IdTokenGranter {
     private final List<String> grantTypesThatMayGetIdTokens = Lists.newArrayList(
             GRANT_TYPE_AUTHORIZATION_CODE,
             GRANT_TYPE_PASSWORD,
+            GRANT_TYPE_JWT_BEARER,
             GRANT_TYPE_IMPLICIT,
             GRANT_TYPE_REFRESH_TOKEN
     );
