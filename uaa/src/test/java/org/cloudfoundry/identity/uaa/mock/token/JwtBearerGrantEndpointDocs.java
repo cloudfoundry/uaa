@@ -87,6 +87,7 @@ class JwtBearerGrantEndpointDocs extends JwtBearerGrantMockMvcTests {
                 parameterWithName("grant_type").type(STRING).required().description("Must be set to `" + GRANT_TYPE_JWT_BEARER + "`"),
                 parameterWithName("scope").type(STRING).optional(null).description("Optional parameter to limit the number of scopes in the `scope` claim of the access token"),
                 parameterWithName("response_type").type(STRING).optional(null).description("May be set to `token` or `token id_token` or `id_token`"),
+                parameterWithName("login_hint").type(STRING).optional(null).description("<small><mark>UAA 77.29.0</mark></small> Indicates the identity provider to be used as proxy for assertion validation. The passed string has to be a URL-Encoded JSON Object, containing the field `origin` with value as `origin_key` of an identity provider. Note that this identity provider must support the grant type `urn:ietf:params:oauth:grant-type:jwt-bearer`."),
                 parameterWithName("token_format").type(STRING).optional(null).description("May be set to `opaque` to retrieve revocable and non identifiable access token")
         );
 

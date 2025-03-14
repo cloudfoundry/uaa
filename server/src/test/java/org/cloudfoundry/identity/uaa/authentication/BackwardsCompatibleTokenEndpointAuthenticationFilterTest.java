@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.saml.Saml2BearerGrantAuthenticationConverter;
@@ -57,6 +58,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -210,6 +212,31 @@ class BackwardsCompatibleTokenEndpointAuthenticationFilterTest {
         verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
         ArgumentCaptor<ExternalOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
         verify(externalOAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
+        verify(externalOAuthAuthenticationManager, times(1)).getOidcProxyIdpForTokenExchange(request);
+        verifyNoInteractions(passwordAuthManager);
+        verifyNoMoreInteractions(externalOAuthAuthenticationManager);
+        assertThat(authenticateData.getValue().getIdToken()).isEqualTo(idToken);
+        assertThat(authenticateData.getValue().getOrigin()).isNull();
+    }
+
+    @Test
+    void attemptJwtTokenProxiedAuthentication() throws Exception {
+        support = new TokenTestSupport(null, null);
+        String idToken = support.getIdTokenAsString(Collections.singletonList(OPENID));
+        request.addParameter(GRANT_TYPE, GRANT_TYPE_JWT_BEARER);
+        request.addParameter("assertion", idToken);
+        UaaAuthenticationDetailsSource uaaAuthenticationDetailsSource = new UaaAuthenticationDetailsSource();
+        UaaAuthenticationDetails uaaAuthenticationDetails = uaaAuthenticationDetailsSource.buildDetails(request);
+        IdentityProvider identityProvider = mock(IdentityProvider.class);
+        doReturn(identityProvider).when(externalOAuthAuthenticationManager).getOidcProxyIdpForTokenExchange(request);
+        filter.setAuthenticationDetailsSource(uaaAuthenticationDetailsSource);
+
+        filter.doFilter(request, response, chain);
+        verify(filter, times(1)).attemptTokenAuthentication(same(request), same(response));
+        ArgumentCaptor<ExternalOAuthCodeToken> authenticateData = ArgumentCaptor.forClass(ExternalOAuthCodeToken.class);
+        verify(externalOAuthAuthenticationManager, times(1)).authenticate(authenticateData.capture());
+        verify(externalOAuthAuthenticationManager, times(1)).getOidcProxyIdpForTokenExchange(request);
+        verify(externalOAuthAuthenticationManager, times(1)).oidcJwtBearerGrant(uaaAuthenticationDetails, identityProvider, idToken);
         verifyNoInteractions(passwordAuthManager);
         verifyNoMoreInteractions(externalOAuthAuthenticationManager);
         assertThat(authenticateData.getValue().getIdToken()).isEqualTo(idToken);

@@ -243,6 +243,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.OPAQUE.getStringValue())
                 .param("response_type", "token id_token")
                 .param("scope", "openid")
+                .param("login_hint", "%7B%22origin%22%3A%22idp%22%7D")
                 .param("assertion", assertion);
 
         if (hasText(theZone.getSubdomain())) {
@@ -267,6 +268,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
                 .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.JWT.getStringValue())
                 .param("response_type", "token id_token")
                 .param("scope", "openid")
+                .param("login_hint", "%7B%22origin%22%3A%22idp%22%7D")
                 .param("assertion", assertion);
         if (hasText(theZone.getSubdomain())) {
             jwtBearerGrant = jwtBearerGrant.header("Host", theZone.getSubdomain() + ".localhost");

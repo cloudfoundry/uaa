@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class OIDCIdentityProviderDefinitionTests {
 
-    private final String defaultJson = "{\"emailDomain\":null,\"additionalConfiguration\":null,\"providerDescription\":null,\"externalGroupsWhitelist\":[],\"attributeMappings\":{},\"addShadowUserOnLogin\":true,\"storeCustomAttributes\":false,\"authUrl\":null,\"tokenUrl\":null,\"tokenKeyUrl\":null,\"tokenKey\":null,\"linkText\":null,\"showLinkText\":true,\"skipSslValidation\":false,\"relyingPartyId\":null,\"relyingPartySecret\":null,\"scopes\":null,\"issuer\":null,\"responseType\":\"code\",\"userInfoUrl\":null,\"jwtClientAuthentication\":false,\"additionalAuthzParameters\":{\"token_format\":\"jwt\"}}";
+    private final String defaultJson = "{\"emailDomain\":null,\"additionalConfiguration\":null,\"providerDescription\":null,\"externalGroupsWhitelist\":[],\"attributeMappings\":{},\"addShadowUserOnLogin\":true,\"storeCustomAttributes\":false,\"authUrl\":null,\"tokenUrl\":null,\"tokenKeyUrl\":null,\"tokenKey\":null,\"linkText\":null,\"showLinkText\":true,\"skipSslValidation\":false,\"tokenExchangeEnabled\":true,\"relyingPartyId\":null,\"relyingPartySecret\":null,\"scopes\":null,\"issuer\":null,\"responseType\":\"code\",\"userInfoUrl\":null,\"jwtClientAuthentication\":false,\"additionalAuthzParameters\":{\"token_format\":\"jwt\"}}";
     String url = "https://accounts.google.com/.well-known/openid-configuration";
 
     @Test
@@ -66,6 +66,14 @@ class OIDCIdentityProviderDefinitionTests {
         String json = JsonUtils.writeValueAsString(def);
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);
         assertThat(def.getPrompts()).isEqualTo(prompts);
+    }
+
+    @Test
+    void equalsTests() throws CloneNotSupportedException {
+        OIDCIdentityProviderDefinition original = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
+        OIDCIdentityProviderDefinition compare = (OIDCIdentityProviderDefinition) original.clone();
+        compare.setTokenExchangeEnabled(false);
+        assertThat(original).isNotEqualTo(compare);
     }
 
     @Test

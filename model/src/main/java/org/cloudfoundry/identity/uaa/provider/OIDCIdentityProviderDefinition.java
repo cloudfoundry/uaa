@@ -30,13 +30,19 @@ import static java.util.Collections.emptyMap;
 public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
         implements Cloneable {
     private URL discoveryUrl;
+    // Enable Resource Owner Password Grant flow for this identity provider.
     private boolean passwordGrantEnabled;
+    // Set X-Forward-For header in Password Grant request to this identity provider.
     private boolean setForwardHeader;
+    // Enable JWT Bearer Token Exchange Grant flow for this identity provider.
+    private Boolean tokenExchangeEnabled;
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private List<Prompt> prompts;
+    // Enables private_key_jwt towards identity provider.
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Object jwtClientAuthentication;
     @JsonInclude(JsonInclude.Include.NON_NULL)
+    // Add additional parameters in request towards identity provider.
     private Map<String, String> additionalAuthzParameters;
 
     public URL getDiscoveryUrl() {
@@ -89,6 +95,15 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         this.additionalAuthzParameters = new HashMap<>(additonalAuthzParameters != null ? additonalAuthzParameters : emptyMap());
     }
 
+
+    public Boolean isTokenExchangeEnabled() {
+        return tokenExchangeEnabled;
+    }
+
+    public void setTokenExchangeEnabled(Boolean tokenExchangeEnabled) {
+        this.tokenExchangeEnabled = tokenExchangeEnabled;
+    }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -120,6 +135,9 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         if (!Objects.equals(this.additionalAuthzParameters, that.additionalAuthzParameters)) {
             return false;
         }
+        if (!Objects.equals(this.tokenExchangeEnabled, that.tokenExchangeEnabled)) {
+            return false;
+        }
         return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
@@ -132,6 +150,7 @@ public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentit
         result = 31 * result + (setForwardHeader ? 1 : 0);
         result = 31 * result + (jwtClientAuthentication != null ? jwtClientAuthentication.hashCode() : 0);
         result = 31 * result + (additionalAuthzParameters != null ? additionalAuthzParameters.hashCode() : 0);
+        result = 31 * result + (tokenExchangeEnabled != null ? tokenExchangeEnabled.hashCode() : 0);
         return result;
     }
 }

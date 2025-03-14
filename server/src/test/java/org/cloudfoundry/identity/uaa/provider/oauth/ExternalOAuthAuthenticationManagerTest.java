@@ -2,15 +2,29 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.nimbusds.jose.HeaderParameterNames;
+import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jose.util.X509CertUtils;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.JWTParser;
+import org.cloudfoundry.identity.uaa.authentication.ProviderConfigurationException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.UaaLoginHint;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
+import org.cloudfoundry.identity.uaa.client.UaaClient;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelperX5tTest;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -18,6 +32,8 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -25,35 +41,69 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
+import java.text.ParseException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXPIRY_IN_SECONDS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ExternalOAuthAuthenticationManagerTest {
@@ -101,6 +151,39 @@ class ExternalOAuthAuthenticationManagerTest {
     private TokenEndpointBuilder tokenEndpointBuilder;
     private IdentityProvider<OIDCIdentityProviderDefinition> provider;
     private IdentityProviderProvisioning identityProviderProvisioning;
+    private OidcMetadataFetcher oidcMetadataFetcher;
+
+    private KeyInfoService mockKeyInfoService() throws JOSEException {
+        KeyInfoService keyInfoService = mock(KeyInfoService.class);
+        KeyInfo keyInfo = mock(KeyInfo.class);
+        JWSSigner signer = mock(JWSSigner.class);
+        when(keyInfoService.getActiveKey()).thenReturn(keyInfo);
+        when(keyInfoService.getKey("id")).thenReturn(keyInfo);
+        when(keyInfo.algorithm()).thenReturn("RS256");
+        when(keyInfo.getSigner()).thenReturn(signer);
+        when(keyInfo.verifierCertificate()).thenReturn(Optional.of(X509CertUtils.parse(JwtHelperX5tTest.CERTIFICATE_1)));
+        when(keyInfo.keyId()).thenReturn("id");
+        when(signer.supportedJWSAlgorithms()).thenReturn(Set.of(JWSAlgorithm.RS256));
+        when(signer.sign(any(), any())).thenReturn(new Base64URL("dummy"));
+        return keyInfoService;
+    }
+
+    private IdentityProvider mockOidcIdentityProvider() throws MalformedURLException {
+        IdentityProvider localIdp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition localIdpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdpConfig.getRelyingPartyId()).thenReturn("identity");
+        when(localIdpConfig.getTokenUrl()).thenReturn(new URL("http://localhost:8080/uaa/oauth/token"));
+        when(localIdpConfig.getRelyingPartySecret()).thenReturn(null);
+        when(localIdpConfig.getJwtClientAuthentication()).thenReturn(true);
+        when(localIdpConfig.getScopes()).thenReturn(Arrays.asList("openid", "email"));
+        when(localIdpConfig.isPasswordGrantEnabled()).thenReturn(true);
+        when(localIdpConfig.isTokenExchangeEnabled()).thenReturn(true);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
+        when(localIdp.getConfig()).thenReturn(localIdpConfig);
+        when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(localIdp.isActive()).thenReturn(true);
+        return localIdp;
+    }
 
     @BeforeEach
     void beforeEach() throws Exception {
@@ -126,7 +209,7 @@ class ExternalOAuthAuthenticationManagerTest {
         when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
         uaaIssuerBaseUrl = "http://uaa.example.com";
         tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
-        OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
+        oidcMetadataFetcher = new OidcMetadataFetcher(
                 new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, Ticker.disabledTicker()),
                 new RestTemplate(),
                 new RestTemplate()
@@ -138,6 +221,7 @@ class ExternalOAuthAuthenticationManagerTest {
     @AfterEach
     void afterEach() {
         IdentityZoneHolder.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -491,5 +575,409 @@ class ExternalOAuthAuthenticationManagerTest {
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), mockedOidcMetadataFetcher);
         doThrow(new OidcMetadataFetchingException("error")).when(mockedOidcMetadataFetcher).fetchMetadataAndUpdateDefinition(mockedProviderDefinition);
         assertThatNoException().isThrownBy(() -> authManager.fetchMetadataAndUpdateDefinition(mockedProviderDefinition));
+    }
+
+    @Test
+    void oidcPasswordGrantProviderFailedInOidcMetadataUpdate() {
+        IdentityProvider localIdp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition localIdpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
+        when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(localIdp.isActive()).thenReturn(true);
+        when(localIdp.getConfig()).thenReturn(localIdpConfig);
+        when(localIdpConfig.isPasswordGrantEnabled()).thenReturn(true);
+        when(localIdpConfig.getRelyingPartyId()).thenReturn("oidcprovider");
+        when(localIdpConfig.getRelyingPartySecret()).thenReturn("");
+
+        try {
+            authManager.oauthTokenRequest(mock(UaaAuthenticationDetails.class), localIdp, GRANT_TYPE_PASSWORD, new LinkedMaskingMultiValueMap<>());
+            fail("");
+        } catch (ProviderConfigurationException e) {
+            assertThat(e.getMessage()).isEqualTo("External OpenID Connect metadata is missing after discovery update.");
+        }
+    }
+
+    @Test
+    void oidcPasswordGrantProviderNoRelyingPartyCredentials() {
+        IdentityProvider localIdp = mock(IdentityProvider.class);
+        OIDCIdentityProviderDefinition idpConfig = mock(OIDCIdentityProviderDefinition.class);
+        when(localIdp.getOriginKey()).thenReturn("oidcprovider");
+        when(localIdp.getConfig()).thenReturn(idpConfig);
+        when(localIdp.getType()).thenReturn(OriginKeys.OIDC10);
+        when(localIdp.isActive()).thenReturn(true);
+        when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
+
+        try {
+            authManager.oauthTokenRequest(mock(UaaAuthenticationDetails.class), localIdp, GRANT_TYPE_PASSWORD, new LinkedMaskingMultiValueMap<>());
+            fail("");
+        } catch (ProviderConfigurationException e) {
+            assertThat(e.getMessage()).isEqualTo("External OpenID Connect provider configuration is missing relyingPartyId.");
+        }
+    }
+
+
+    @Test
+    void getOidcProxyIdpForTokenExchangeSuccess() throws MalformedURLException {
+        IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("login_hint", new UaaLoginHint("idp").toString());
+        UsernamePasswordAuthenticationToken uaaAuthentication = mock(UsernamePasswordAuthenticationToken.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        UaaClient uaaClient = mock(UaaClient.class);
+        doReturn(uaaClient).when(uaaAuthentication).getPrincipal();
+        doReturn(Map.of(ClientConstants.ALLOWED_PROVIDERS, List.of("uaa", "idp"))).when(uaaClient).getAdditionalInformation();
+        when(uaaAuthentication.getDetails()).thenReturn(uaaAuthenticationDetails);
+        when(identityProviderProvisioning.retrieveByOrigin(any(), any())).thenReturn(idp);
+        when(idp.getOriginKey()).thenReturn("idp");
+        SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
+        assertThat(authManager.getOidcProxyIdpForTokenExchange(request)).isEqualTo(idp);
+    }
+
+    @Test
+    void getOidcProxyIdpForTokenExchangeNotEnabled() throws MalformedURLException {
+        IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("login_hint", new UaaLoginHint("idp").toString());
+        UsernamePasswordAuthenticationToken uaaAuthentication = mock(UsernamePasswordAuthenticationToken.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        UaaClient uaaClient = mock(UaaClient.class);
+        doReturn(uaaClient).when(uaaAuthentication).getPrincipal();
+        doReturn(null).when(uaaClient).getAdditionalInformation();
+        when(uaaAuthentication.getDetails()).thenReturn(uaaAuthenticationDetails);
+        when(idp.getType()).thenReturn(OriginKeys.OAUTH20);
+        when(identityProviderProvisioning.retrieveByOrigin(any(), any())).thenReturn(idp);
+        when(idp.getOriginKey()).thenReturn("idp");
+        SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
+        assertThat(authManager.getOidcProxyIdpForTokenExchange(request)).isNull();
+    }
+
+    @Test
+    void getOidcProxyIdpForTokenExchangeDbException() throws MalformedURLException {
+        IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("login_hint", new UaaLoginHint("idp").toString());
+        UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(uaaAuthentication.getDetails()).thenReturn(uaaAuthenticationDetails);
+        when(identityProviderProvisioning.retrieveByOrigin(any(), any())).thenThrow(new EmptyResultDataAccessException(1));
+        when(idp.getOriginKey()).thenReturn("idp");
+        SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
+        assertThat(authManager.getOidcProxyIdpForTokenExchange(request)).isNull();
+    }
+
+    @Test
+    void getOidcProxyIdpForTokenExchangeNoResult() throws MalformedURLException {
+        IdentityProvider<OIDCIdentityProviderDefinition> idp = mockOidcIdentityProvider();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setParameter("login_hint", new UaaLoginHint("idp").toString());
+        UaaAuthentication uaaAuthentication = mock(UaaAuthentication.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        when(uaaAuthentication.getDetails()).thenReturn(uaaAuthenticationDetails);
+        when(identityProviderProvisioning.retrieveByOrigin(any(), any())).thenReturn(null);
+        when(idp.getOriginKey()).thenReturn("idp");
+        SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
+        assertThat(authManager.getOidcProxyIdpForTokenExchange(request)).isNull();
+    }
+
+    @Test
+    void getAllowedProvidersSuccess() {
+        UsernamePasswordAuthenticationToken uaaAuthentication = mock(UsernamePasswordAuthenticationToken.class);
+        UaaClient uaaClient = mock(UaaClient.class);
+        doReturn(uaaClient).when(uaaAuthentication).getPrincipal();
+        doReturn(Map.of(ClientConstants.ALLOWED_PROVIDERS, List.of("uaa"))).when(uaaClient).getAdditionalInformation();
+        SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
+        assertThat(authManager.getAllowedProviders()).isInstanceOf(List.class).hasSize(1);
+    }
+
+    @Test
+    void getAllowedProvidersNull() {
+        UsernamePasswordAuthenticationToken uaaAuthentication = mock(UsernamePasswordAuthenticationToken.class);
+        UaaClient uaaClient = mock(UaaClient.class);
+        doReturn(uaaClient).when(uaaAuthentication).getPrincipal();
+        doReturn(null).when(uaaClient).getAdditionalInformation();
+        SecurityContextHolder.getContext().setAuthentication(uaaAuthentication);
+        assertThat(authManager.getAllowedProviders()).isNull();
+    }
+
+    @Test
+    void getAllowedProvidersNoAuthentication() {
+        assertThatThrownBy(() -> authManager.getAllowedProviders()).isInstanceOf(BadCredentialsException.class)
+                .hasMessage("No client authentication found.");
+    }
+
+    @Test
+    void oidcPasswordGrant_requireAuthenticationStatement() {
+        IdentityProvider<OIDCIdentityProviderDefinition> localIdp = new IdentityProvider<>();
+        localIdp.setOriginKey(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
+        OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition().setRelyingPartyId("client-id");
+        localIdp.setConfig(config);
+
+        assertThatThrownBy(() -> authManager.oauthTokenRequest(mock(UaaAuthenticationDetails.class), localIdp, GRANT_TYPE_PASSWORD, new LinkedMaskingMultiValueMap<>()))
+                .isInstanceOf(ProviderConfigurationException.class)
+                .hasMessage("External OpenID Connect provider configuration is missing relyingPartySecret, jwtClientAuthentication or authMethod.");
+    }
+
+    @Test
+    void oidcPasswordGrantProviderJwtClientCredentials() throws ParseException, JOSEException, MalformedURLException {
+        // Given
+        KeyInfoService keyInfoService = mockKeyInfoService();
+        ResponseEntity responseEntity = mock(ResponseEntity.class);
+        /* HTTP mock */
+        RestTemplate rt = mock(RestTemplate.class);
+        when(rt.exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
+        when(responseEntity.hasBody()).thenReturn(true);
+        when(responseEntity.getBody()).thenReturn(Map.of("id_token", "dummy"));
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+
+        // When
+        authManager.oauthTokenRequest(null, mockOidcIdentityProvider(), GRANT_TYPE_PASSWORD, new LinkedMaskingMultiValueMap<>());
+        ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+
+        // Then
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(), eq(new ParameterizedTypeReference<Map<String, String>>() {
+        }));
+        HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
+        LinkedMultiValueMap<String, Object> httpEntityBody = (LinkedMultiValueMap) httpEntity.getBody();
+        assertThat(httpEntityBody).containsKey("client_assertion")
+                .containsKey("client_assertion_type")
+                .containsEntry("client_assertion_type", Collections.singletonList(JwtClientAuthentication.GRANT_TYPE))
+                .containsKey("scope")
+                .containsEntry("scope", Collections.singletonList("openid email"));
+        /* verify client assertion according OIDC private_key_jwt */
+        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").get(0)).getJWTClaimsSet();
+        assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
+        assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
+        assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
+    }
+
+    @Test
+    void oidcJwtBearerProviderJwtClientCredentials() throws ParseException, JOSEException, MalformedURLException {
+        // Given
+        KeyInfoService keyInfoService = mockKeyInfoService();
+        ResponseEntity responseEntity = mock(ResponseEntity.class);
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        /* HTTP mock */
+        RestTemplate rt = mock(RestTemplate.class);
+        when(rt.exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
+        when(responseEntity.hasBody()).thenReturn(true);
+        when(responseEntity.getBody()).thenReturn(Map.of("id_token", "dummy"));
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+
+        // When
+        assertThat(authManager.oidcJwtBearerGrant(uaaAuthenticationDetails, mockOidcIdentityProvider() , "proxy-token")).isEqualTo("dummy");
+        ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+
+        // Then
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(), eq(new ParameterizedTypeReference<Map<String, String>>() {
+        }));
+        HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
+        LinkedMultiValueMap<String, Object> httpEntityBody = (LinkedMultiValueMap) httpEntity.getBody();
+        assertThat(httpEntityBody).containsKey("client_assertion")
+                .containsKey("client_assertion_type")
+                .containsEntry("client_assertion_type", Collections.singletonList(JwtClientAuthentication.GRANT_TYPE))
+                .containsEntry("assertion", Collections.singletonList("proxy-token"))
+                .containsEntry("grant_type", Collections.singletonList(GRANT_TYPE_JWT_BEARER))
+                .containsKey("scope")
+                .containsEntry("scope", Collections.singletonList("openid email"));
+        /* verify client assertion according OIDC private_key_jwt */
+        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").get(0)).getJWTClaimsSet();
+        assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
+        assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
+        assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
+    }
+
+    @Test
+    void oidcJwtBearerProviderProxyThrowException() throws JOSEException, MalformedURLException {
+        // Given
+        KeyInfoService keyInfoService = mockKeyInfoService();
+        UaaAuthenticationDetails uaaAuthenticationDetails = mock(UaaAuthenticationDetails.class);
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = mockOidcIdentityProvider();
+        /* HTTP mock */
+        RestTemplate rt = mock(RestTemplate.class);
+        OIDCIdentityProviderDefinition config = identityProvider.getConfig();
+        when(config.getRelyingPartySecret()).thenReturn("secret");
+        doReturn(false).when(config).isClientAuthInBody();
+        when(rt.exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+
+        // When
+        assertThatThrownBy(() -> authManager.oidcJwtBearerGrant(uaaAuthenticationDetails, identityProvider, "proxy-token"))
+                .isInstanceOf(BadCredentialsException.class);
+        ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+
+        // Then
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(), eq(new ParameterizedTypeReference<Map<String, String>>() {
+        }));
+        HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
+        HttpHeaders httpHeaders = httpEntity.getHeaders();
+        assertThat(httpHeaders).containsKey("Authorization")
+                .containsEntry("Authorization", Collections.singletonList("Basic aWRlbnRpdHk6c2VjcmV0"))
+                .containsKey("Accept")
+                .containsEntry("Content-Type", Collections.singletonList("application/x-www-form-urlencoded"));
+    }
+
+    @Test
+    void oidcPasswordGrantWithForwardHeader() throws JOSEException, MalformedURLException {
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = mockOidcIdentityProvider();
+        OIDCIdentityProviderDefinition config = identityProvider.getConfig();
+        KeyInfoService keyInfoService = mockKeyInfoService();
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala");
+        UaaAuthenticationDetails details = mock(UaaAuthenticationDetails.class);
+        when(details.getOrigin()).thenReturn("203.0.113.1");
+        when(auth.getDetails()).thenReturn(details);
+
+        RestTemplate rt = mock(RestTemplate.class);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+
+        ResponseEntity<Map<String, String>> response = mock(ResponseEntity.class);
+        when(response.hasBody()).thenReturn(true);
+        when(response.getBody()).thenReturn(Collections.singletonMap("id_token", "mytoken"));
+        when(rt.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(response);
+        when(config.isSetForwardHeader()).thenReturn(true);
+        when(config.isClientAuthInBody()).thenReturn(false);
+        when(config.getRelyingPartySecret()).thenReturn("");
+        when(config.getJwtClientAuthentication()).thenReturn(null);
+        when(config.getScopes()).thenReturn(null);
+
+        MultiValueMap<String, String> additionalParameters = new LinkedMultiValueMap<>();
+        additionalParameters.add("username", "marissa");
+        additionalParameters.add("password", "koala");
+
+        assertThat(authManager.oauthTokenRequest(details, identityProvider, GRANT_TYPE_PASSWORD, additionalParameters)).isEqualTo("mytoken");
+
+        ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(), eq(new ParameterizedTypeReference<Map<String, String>>() {
+        }));
+        verify(identityProviderProvisioning, times(0)).retrieveByOrigin(any(), any());
+        verify(identityProviderProvisioning, times(0)).retrieveActive(any());
+
+        HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
+        assertThat(httpEntity).isNotNull();
+        assertThat(httpEntity.hasBody()).isTrue();
+        assertThat(httpEntity.getBody()).isInstanceOf(MultiValueMap.class);
+        MultiValueMap<String, String> body = (MultiValueMap<String, String>) httpEntity.getBody();
+        assertThat(body).hasSize(4)
+                .containsEntry("grant_type", Collections.singletonList("password"))
+                .containsEntry("response_type", Collections.singletonList("id_token"))
+                .containsEntry("username", Collections.singletonList("marissa"))
+                .containsEntry("password", Collections.singletonList("koala"));
+
+        HttpHeaders headers = httpEntity.getHeaders();
+        assertThat(headers.getAccept()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_JSON));
+        assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
+        assertThat(headers).containsKey("Authorization");
+        assertThat(headers.get("Authorization")).hasSize(1);
+        assertThat(headers.get("Authorization").get(0)).startsWith("Basic ");
+        assertThat(headers).containsKey("X-Forwarded-For");
+        assertThat(headers.get("X-Forwarded-For")).hasSize(1);
+        assertThat(headers.get("X-Forwarded-For").get(0)).isEqualTo("203.0.113.1");
+    }
+
+    @Test
+    void oidcPasswordGrant_credentialsMustBeStringButNoSecretNeeded() throws MalformedURLException, JOSEException {
+        RestTemplate restTemplate = mock(RestTemplate.class);
+        ResponseEntity responseEntity = mock(ResponseEntity.class);
+
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
+        when(responseEntity.hasBody()).thenReturn(true);
+        when(responseEntity.getBody()).thenReturn(Map.of("id_token", "dummy"));
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplate, restTemplate, tokenEndpointBuilder, mockKeyInfoService(), oidcMetadataFetcher);
+
+        final IdentityProvider<OIDCIdentityProviderDefinition> localIdp = new IdentityProvider<>();
+        localIdp.setOriginKey(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
+        final OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition()
+                .setRelyingPartyId("client-id")
+                .setTokenUrl(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
+        config.setAuthMethod("none");
+        final OIDCIdentityProviderDefinition spyConfig = spy(config);
+        localIdp.setConfig(spyConfig);
+
+        assertThat(authManager.oauthTokenRequest(null, localIdp, GRANT_TYPE_PASSWORD, new LinkedMaskingMultiValueMap<>())).isEqualTo("dummy");
+        verify(spyConfig, atLeast(2)).getAuthMethod();
+    }
+
+    @Test
+    void oidcPasswordGrantWithPrompts() throws MalformedURLException, JOSEException {
+        KeyInfoService keyInfoService = mockKeyInfoService();
+        IdentityProvider<OIDCIdentityProviderDefinition> identityProvider = mockOidcIdentityProvider();
+        OIDCIdentityProviderDefinition config = identityProvider.getConfig();
+        UaaLoginHint loginHint = mock(UaaLoginHint.class);
+        when(loginHint.getOrigin()).thenReturn("oidcprovider");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn("marissa");
+        when(auth.getCredentials()).thenReturn("koala");
+        UaaAuthenticationDetails uaaAuthDetails = mock(UaaAuthenticationDetails.class);
+        Map<String, String[]> params = new HashMap<>();
+        params.put("multivalue", new String[]{"123456", "654321"});
+        params.put("emptyvalue", new String[0]);
+        params.put("emptystring", new String[]{""});
+        params.put("junk", new String[]{"true"});
+        params.put("addcode", new String[]{"1972"});
+        when(uaaAuthDetails.getParameterMap()).thenReturn(params);
+        when(auth.getDetails()).thenReturn(uaaAuthDetails);
+
+        List<Prompt> prompts = new ArrayList<>();
+        prompts.add(new Prompt("username", "text", "Email"));
+        prompts.add(new Prompt("password", "password", "Password"));
+        prompts.add(new Prompt("passcode", "password", "Temporary Authentication Code"));
+        prompts.add(new Prompt("multivalue", "password", "TOTP-Code"));
+        prompts.add(new Prompt("emptyvalue", "password", "TOTP-Code"));
+        prompts.add(new Prompt("emptystring", "password", "TOTP-Code"));
+        prompts.add(new Prompt("missingvalue", "password", "TOTP-Code"));
+        prompts.add(new Prompt("addcode", "password", "TOTP-Code"));
+        when(config.getPrompts()).thenReturn(prompts);
+        when(config.isSetForwardHeader()).thenReturn(false);
+        when(config.isClientAuthInBody()).thenReturn(false);
+        when(config.getRelyingPartySecret()).thenReturn("");
+        when(config.getJwtClientAuthentication()).thenReturn(null);
+        when(config.getScopes()).thenReturn(null);
+
+        RestTemplate rt = mock(RestTemplate.class);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+
+        ResponseEntity<Map<String, String>> response = mock(ResponseEntity.class);
+        when(response.hasBody()).thenReturn(true);
+        when(response.getBody()).thenReturn(Collections.singletonMap("id_token", "mytoken"));
+        when(rt.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(response);
+
+        MultiValueMap<String, String> additionalParameters = new LinkedMultiValueMap<>();
+        additionalParameters.add("username", "marissa");
+        additionalParameters.add("password", "koala");
+
+        assertThat(authManager.oauthTokenRequest(uaaAuthDetails, identityProvider, GRANT_TYPE_PASSWORD, additionalParameters)).isEqualTo("mytoken");
+        ArgumentCaptor<HttpEntity> httpEntityArgumentCaptor = ArgumentCaptor.forClass(HttpEntity.class);
+        verify(rt, times(1)).exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), httpEntityArgumentCaptor.capture(), eq(new ParameterizedTypeReference<Map<String, String>>() {
+        }));
+        verify(identityProviderProvisioning, times(0)).retrieveByOrigin(any(), any());
+        verify(identityProviderProvisioning, times(0)).retrieveActive(any());
+
+        HttpEntity httpEntity = httpEntityArgumentCaptor.getValue();
+        assertThat(httpEntity).isNotNull();
+        assertThat(httpEntity.hasBody()).isTrue();
+        assertThat(httpEntity.getBody()).isInstanceOf(MultiValueMap.class);
+        MultiValueMap<String, String> body = (MultiValueMap<String, String>) httpEntity.getBody();
+        assertThat(body).hasSize(5)
+                .containsEntry("grant_type", Collections.singletonList("password"))
+                .containsEntry("response_type", Collections.singletonList("id_token"))
+                .containsEntry("username", Collections.singletonList("marissa"))
+                .containsEntry("password", Collections.singletonList("koala"))
+                .containsEntry("addcode", Collections.singletonList("1972"))
+                .doesNotContainKey("passcode")
+                .doesNotContainKey("multivalue")
+                .doesNotContainKey("emptyvalue")
+                .doesNotContainKey("emptystring")
+                .doesNotContainKey("missingvalue");
+
+        HttpHeaders headers = httpEntity.getHeaders();
+        assertThat(headers.getAccept()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_JSON));
+        assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
+        assertThat(headers).containsKey("Authorization");
+        assertThat(headers.get("Authorization")).hasSize(1);
+        assertThat(headers.get("Authorization").get(0)).startsWith("Basic ");
+        assertThat(headers).doesNotContainKey("X-Forwarded-For");
     }
 }

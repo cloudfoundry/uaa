@@ -24,6 +24,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthCodeToken;
 import org.cloudfoundry.identity.uaa.provider.saml.Saml2BearerGrantAuthenticationConverter;
@@ -254,7 +256,17 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
             log.debug(GRANT_TYPE_JWT_BEARER + " found. Attempting authentication with assertion");
             String assertion = request.getParameter("assertion");
             if (assertion != null && externalOAuthAuthenticationManager != null) {
-                log.debug("Attempting OIDC JWT authentication for token endpoint.");
+                IdentityProvider<OIDCIdentityProviderDefinition> oidcProxy = externalOAuthAuthenticationManager.getOidcProxyIdpForTokenExchange(request);
+                if (oidcProxy != null) {
+                    log.debug("Forward OIDC JWT authentication to oidc proxy");
+                    String idpAssertion = externalOAuthAuthenticationManager.oidcJwtBearerGrant(
+                            (UaaAuthenticationDetails) authenticationDetailsSource.buildDetails(request),
+                            oidcProxy, assertion);
+                    assertion = idpAssertion != null ? idpAssertion : assertion;
+                } else {
+                    log.debug("Attempting OIDC JWT authentication for token endpoint.");
+                }
+
                 ExternalOAuthCodeToken token = new ExternalOAuthCodeToken(null, null, null, assertion, null, null);
                 token.setRequestContextPath(getContextPath(request));
                 authResult = externalOAuthAuthenticationManager.authenticate(token);

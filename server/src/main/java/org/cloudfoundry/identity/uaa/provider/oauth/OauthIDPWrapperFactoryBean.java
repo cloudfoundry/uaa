@@ -31,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
@@ -79,6 +80,12 @@ public class OauthIDPWrapperFactoryBean {
         }
     }
 
+    /**
+     * Get IdP configuration map. The properties are documented either via
+     * https://docs.cloudfoundry.org/api/uaa/index.html#oauth-oidc -> create OAuth/OIDC Identity Provider
+     * or class
+     * #org.cloudfoundry.identity.uaa.mock.providers.IdentityProviderEndpointDocs
+     */
     private AbstractExternalOAuthIdentityProviderDefinition getExternalOIDCIdentityProviderDefinition(String alias,
             Map<String, Object> idpDefinitionMap, IdentityProvider provider) throws MalformedURLException {
         AbstractExternalOAuthIdentityProviderDefinition rawDef;
@@ -88,6 +95,7 @@ public class OauthIDPWrapperFactoryBean {
         oidcIdentityProviderDefinition.setPasswordGrantEnabled(
                 idpDefinitionMap.get("passwordGrantEnabled") == null ? false : (boolean) idpDefinitionMap.get("passwordGrantEnabled"));
         oidcIdentityProviderDefinition.setSetForwardHeader(idpDefinitionMap.get("setForwardHeader") == null ? false : (boolean) idpDefinitionMap.get("setForwardHeader"));
+        oidcIdentityProviderDefinition.setTokenExchangeEnabled(Optional.ofNullable(idpDefinitionMap.get("tokenExchangeEnabled")).filter(Boolean.class::isInstance).map(Boolean.class::cast).orElse(false));
         oidcIdentityProviderDefinition.setPrompts((List<Prompt>) idpDefinitionMap.get("prompts"));
         setJwtClientAuthentication(idpDefinitionMap, oidcIdentityProviderDefinition);
         oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
