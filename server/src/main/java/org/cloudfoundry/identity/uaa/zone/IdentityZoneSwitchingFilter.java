@@ -19,12 +19,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.ZONES_ZONE_ID_PREFIX;
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.getZoneSwitchingScopes;
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * If the X-Identity-Zone-Id header is set and the user has a scope
@@ -93,7 +95,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     }
 
     protected String stripPrefix(String s, String identityZoneId) {
-        if (!StringUtils.hasText(s)) {
+        if (!hasText(s)) {
             return s;
         }
         //dont touch the zones.{zone.id}.admin scope
@@ -115,17 +117,16 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String identityZoneIdFromHeader = request.getHeader(HEADER);
-        String identityZoneSubDomainFromHeader = request.getHeader(SUBDOMAIN_HEADER);
+        ZoneSwitchDecision decision = new ZoneSwitchDecision(request);
 
-        if (StringUtils.isEmpty(identityZoneIdFromHeader) && StringUtils.isEmpty(identityZoneSubDomainFromHeader)) {
+        if (!decision.hasZoneSwitch()) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        IdentityZone identityZone = validateIdentityZone(identityZoneIdFromHeader, identityZoneSubDomainFromHeader);
+        IdentityZone identityZone = validateIdentityZone(decision.zoneId, decision.subdomain);
         if (identityZone == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with id/subdomain " + identityZoneIdFromHeader + "/" + identityZoneSubDomainFromHeader + " does not exist");
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with id/subdomain " + decision.zoneId + "/" + decision.subdomain + " does not exist");
             return;
         }
 
@@ -147,6 +148,11 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
     }
 
+    private static boolean containsZoneSwitchHeader(HttpServletRequest request) {
+        List<String> headers = Collections.list(request.getHeaderNames());
+        return headers.contains(HEADER) || headers.contains(SUBDOMAIN_HEADER);
+    }
+
     private IdentityZone validateIdentityZone(String identityZoneId, String identityZoneSubDomain) {
         IdentityZone identityZone = null;
 
@@ -159,5 +165,26 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         } catch (ZoneDoesNotExistsException | EmptyResultDataAccessException ignored) {
         }
         return identityZone;
+    }
+
+    private record ZoneSwitchDecision(boolean headerPresent, String zoneId, String subdomain) {
+        public ZoneSwitchDecision(HttpServletRequest request) {
+            this(
+                    containsZoneSwitchHeader(request),
+                    request.getHeader(HEADER),
+                    request.getHeader(SUBDOMAIN_HEADER)
+            );
+        }
+
+        public boolean hasZoneSwitch() {
+            if (this.headerPresent) {
+                if (hasText(this.zoneId)) {
+                    return !IdentityZone.getUaa().getId().equals(this.zoneId);
+                } else {
+                    return hasText(this.subdomain);
+                }
+            }
+            return false;
+        }
     }
 }

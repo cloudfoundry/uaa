@@ -126,6 +126,22 @@ class IdentityZoneSwitchingFilterMockMvcTest {
     }
 
     @Test
+    void switchingToUaaZoneUsingSubDomain() throws Exception {
+        IdentityZone identityZone = createZone(mockMvc, identityToken);
+        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, identityZone.getId());
+        //a zone admin privilege does not allow you to create stuff in the default zone
+        createClientInOtherZone(mockMvc, generator, zoneAdminToken, status().isForbidden(), SUBDOMAIN_HEADER, IdentityZone.getUaa().getSubdomain());
+    }
+
+    @Test
+    void switchingToUaaZoneUsingZoneId() throws Exception {
+        IdentityZone identityZone = createZone(mockMvc, identityToken);
+        String zoneAdminToken = MockMvcUtils.getZoneAdminToken(mockMvc, adminToken, identityZone.getId());
+        //a zone admin privilege does not allow you to create stuff in the default zone
+        createClientInOtherZone(mockMvc, generator, zoneAdminToken, status().isForbidden(), HEADER, IdentityZone.getUaa().getId());
+    }
+
+    @Test
     void switchingZonesWithoutAuthority() throws Exception {
         String identityTokenWithoutZonesAdmin = testClient.getClientCredentialsOAuthAccessToken("identity", "identitysecret", "zones.write,scim.zones");
         final String zoneId = createZone(mockMvc, identityTokenWithoutZonesAdmin).getId();
