@@ -5,10 +5,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.net.URISyntaxException;
 import java.net.URL;
 
+@Component
 public class TokenEndpointBuilder {
     private static final Logger logger = LoggerFactory.getLogger(TokenEndpointBuilder.class);
     private final String issuer;
