@@ -351,7 +351,6 @@
     <bean id="oauthWebExpressionHandler"
           class="org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler" />
 
-    <import resource="spring/oauth-clients.xml"/>
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
     <import resource="spring/login-server-security.xml"/>
     <import resource="spring/oauth-endpoints.xml"/>
