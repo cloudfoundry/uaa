@@ -129,10 +129,10 @@ class ScimSecurityConfiguration {
                     auth.requestMatchers(HttpMethod.GET, "/Users/*/verify-link").access(anyOf(true).hasScope("scim.create").isZoneAdmin());
                     auth.requestMatchers(HttpMethod.GET, "/Users/*/verify").access(anyOf(true).hasScope("scim.write", "scim.create").isZoneAdmin());
                     auth.requestMatchers(HttpMethod.PATCH, "/Users/*/status").access(anyOf(true).hasScope("scim.write", "uaa.account_status.write").isZoneAdmin());
-                    auth.requestMatchers(HttpMethod.GET, "/Users/**").access(anyOf(true).hasScope("scim.read").or(new SelfCheckAuthorizationManager(selfCheck, 1)).isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.GET, "/Users/**").access(anyOf(true).hasScope("scim.read").or(SelfCheckAuthorizationManager.isUserSelf(selfCheck, 1)).isZoneAdmin());
                     auth.requestMatchers(HttpMethod.DELETE, "/Users","/Users/*").access(anyOf(true).hasScope("scim.write").isZoneAdmin());
-                    auth.requestMatchers(HttpMethod.PUT, "/Users","/Users/*").access(anyOf(true).hasScope("scim.write").or(new SelfCheckAuthorizationManager(selfCheck, 1)).isZoneAdmin());
-                    auth.requestMatchers(HttpMethod.PATCH, "/Users","/Users/*").access(anyOf(true).hasScope("scim.write").or(new SelfCheckAuthorizationManager(selfCheck, 1)).isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.PUT, "/Users","/Users/*").access(anyOf(true).hasScope("scim.write").or(SelfCheckAuthorizationManager.isUserSelf(selfCheck, 1)).isZoneAdmin());
+                    auth.requestMatchers(HttpMethod.PATCH, "/Users","/Users/*").access(anyOf(true).hasScope("scim.write").or(SelfCheckAuthorizationManager.isUserSelf(selfCheck, 1)).isZoneAdmin());
                     auth.requestMatchers(HttpMethod.POST, "/Users","/Users/*").access(anyOf(true).hasScope("scim.write", "scim.create").isZoneAdmin());
                     auth.anyRequest().denyAll();
                 })

@@ -13,6 +13,7 @@ public class FilterChainOrder {
     // login-server-security.xml: 100
 
     // oauth-endpoints.xml: 200
+    public static final int OAUTH = 200;
 
     // scim-endpoints.xml: 300
     public static final int SCIM_PASSWORD = 300;
