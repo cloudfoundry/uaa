@@ -51,7 +51,7 @@ class ScimSecurityConfiguration {
         SecurityFilterChain chain = http
                 .securityMatcher("/Users/*/password", "/Users/*/password/**")
                 .authorizeHttpRequests( auth -> {
-                    auth.requestMatchers("/**").access(anyOf(true).hasScopeWithZoneId("password.write"));
+                    auth.requestMatchers("/**").access(anyOf(true).hasScope("password.write"));
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -73,7 +73,7 @@ class ScimSecurityConfiguration {
         SecurityFilterChain chain = http
                 .securityMatcher("/ids/Users", "/ids/Users*", "/ids/Users/**")
                 .authorizeHttpRequests( auth -> {
-                    auth.requestMatchers("/**").access(anyOf(true).hasScopeWithZoneId("scim.userids"));
+                    auth.requestMatchers("/**").access(anyOf(true).hasScope("scim.userids"));
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -95,8 +95,8 @@ class ScimSecurityConfiguration {
         SecurityFilterChain chain = http
                 .securityMatcher("/Groups", "/Groups/**")
                 .authorizeHttpRequests( auth -> {
-                    auth.requestMatchers("/Groups/zones").access(anyOf(true).hasScopeWithZoneId("scim.zones"));
-                    auth.requestMatchers("/Groups/zones/**").access(anyOf(true).hasScopeWithZoneId("scim.zones"));
+                    auth.requestMatchers("/Groups/zones").access(anyOf(true).hasScope("scim.zones"));
+                    auth.requestMatchers("/Groups/zones/**").access(anyOf(true).hasScope("scim.zones"));
                     auth.requestMatchers(HttpMethod.GET, "/Groups/External").access(anyOf(true).hasScope("scim.read").isZoneAdmin());
                     auth.requestMatchers(HttpMethod.POST, "/Groups/External").access(anyOf(true).hasScope("scim.write").isZoneAdmin());
                     auth.requestMatchers(HttpMethod.DELETE, "/Groups/**").access(anyOf(true).hasScope("scim.write").isZoneAdmin());
