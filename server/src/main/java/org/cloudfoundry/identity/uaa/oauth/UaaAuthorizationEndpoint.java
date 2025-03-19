@@ -126,7 +126,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint implements Authen
     /**
      * @param tokenGranter created by <oauth:authorization-server/>
      */
-    UaaAuthorizationEndpoint(
+    public UaaAuthorizationEndpoint(
             final RedirectResolver redirectResolver,
             final @Qualifier("userManagedApprovalHandler") UserApprovalHandler userApprovalHandler,
             final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oauth2RequestValidator,

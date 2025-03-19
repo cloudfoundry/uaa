@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
@@ -60,6 +61,12 @@ public class OauthEndpointBeanConfiguration {
 
     @Autowired
     IdentityZoneManager identityZoneManager;
+
+    @Bean("loginEntryPoint")
+    CsrfAwareEntryPointAndDeniedHandler loginEntryPoint() {
+        return new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request");
+    }
+
     @Bean
     UaaOauth2RequestValidator oauth2RequestValidator() {
         UaaOauth2RequestValidator bean = new UaaOauth2RequestValidator();
@@ -100,30 +107,30 @@ public class OauthEndpointBeanConfiguration {
         return bean;
     }
 
-//    @Bean("defaultUserAuthorities")
-//    SetFactoryBean defaultUserAuthorities(
-//            @Value("#{@config['oauth']==null ? legacyDefaultUserAuthorities : @config['oauth']['user']==null ? legacyDefaultUserAuthorities: @config['oauth']['user']['authorities']}") Set<String> sourceSet
-//    ) {
-//        SetFactoryBean bean = new SetFactoryBean();
-//        bean.setSourceSet(sourceSet);
-//        return bean;
-//    }
-//
-//    @Bean("legacyDefaultUserAuthorities")
-//    HashSet<String> legacyDefaultUserAuthorities() {
-//        return new LinkedHashSet<>(Arrays.asList(
-//                "openid",
-//                "scim.me",
-//                "cloud_controller.read",
-//                "cloud_controller.write",
-//                "password.write",
-//                "scim.userids",
-//                "uaa.user",
-//                "approvals.me",
-//                "oauth.approvals",
-//                "cloud_controller_service_permissions.read"
-//        ));
-//    }
+    @Bean("defaultUserAuthorities")
+    SetFactoryBean defaultUserAuthorities(
+            @Value("#{@config['oauth']==null ? legacyDefaultUserAuthorities : @config['oauth']['user']==null ? legacyDefaultUserAuthorities: @config['oauth']['user']['authorities']}") Set<String> sourceSet
+    ) {
+        SetFactoryBean bean = new SetFactoryBean();
+        bean.setSourceSet(sourceSet);
+        return bean;
+    }
+
+    @Bean("legacyDefaultUserAuthorities")
+    HashSet<String> legacyDefaultUserAuthorities() {
+        return new LinkedHashSet<>(Arrays.asList(
+                "openid",
+                "scim.me",
+                "cloud_controller.read",
+                "cloud_controller.write",
+                "password.write",
+                "scim.userids",
+                "uaa.user",
+                "approvals.me",
+                "oauth.approvals",
+                "cloud_controller_service_permissions.read"
+        ));
+    }
 //
 //    @Bean("userDatabase")
 //    JdbcUaaUserDatabase userDatabase() {

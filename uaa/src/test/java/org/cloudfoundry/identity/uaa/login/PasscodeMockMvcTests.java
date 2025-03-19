@@ -13,6 +13,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,17 +68,18 @@ class PasscodeMockMvcTests {
         FilterChainProxy filterChainProxy = (FilterChainProxy) webApplicationContext.getBean("org.springframework.security.filterChainProxy");
         if (captureSecurityContextFilter == null) {
             captureSecurityContextFilter = new CaptureSecurityContextFilter();
-
-            List<SecurityFilterChain> chains = filterChainProxy.getFilterChains();
-            for (SecurityFilterChain chain : chains) {
-
-                if (chain instanceof DefaultSecurityFilterChain dfc
-                        && dfc.getRequestMatcher() instanceof UaaRequestMatcher matcher
-                        && matcher.toString().contains("passcodeTokenMatcher")) {
-                    dfc.getFilters().add(captureSecurityContextFilter);
-                    break;
-                }
-            }
+            UaaFilterChain chain = webApplicationContext.getBean("tokenEndpointSecurityForPasscodes", UaaFilterChain.class);
+            chain.getFilters().add(captureSecurityContextFilter);
+//            List<SecurityFilterChain> chains = filterChainProxy.getFilterChains();
+//            for (SecurityFilterChain chain : chains) {
+//
+//                if (chain instanceof DefaultSecurityFilterChain dfc
+//                        && dfc.getRequestMatcher() instanceof UaaRequestMatcher matcher
+//                        && matcher.toString().contains("passcodeTokenMatcher")) {
+//                    dfc.getFilters().add(captureSecurityContextFilter);
+//                    break;
+//                }
+//            }
             UaaUserDatabase db = webApplicationContext.getBean(UaaUserDatabase.class);
             marissa = new UaaPrincipal(db.retrieveUserByName("marissa", OriginKeys.UAA));
             webApplicationContext.getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(32));
