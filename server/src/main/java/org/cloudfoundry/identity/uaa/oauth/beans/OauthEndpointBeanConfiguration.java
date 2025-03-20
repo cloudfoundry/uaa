@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHan
 import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
+import org.cloudfoundry.identity.uaa.oauth.ClientTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
@@ -39,11 +40,13 @@ import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
+import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
@@ -133,6 +136,10 @@ public class OauthEndpointBeanConfiguration {
     @Autowired
     @Qualifier("dataSource")
     DataSource dataSource;
+
+    @Autowired
+    @Qualifier("limitSqlAdapter")
+    LimitSqlAdapter limitSqlAdapter;
 
     @Bean("cachingPasswordEncoder")
     CachingPasswordEncoder cachingPasswordEncoder(
@@ -653,6 +660,35 @@ public class OauthEndpointBeanConfiguration {
     ) {
         LegacyTokenKey.setLegacySigningKey(signingKey, uaaUrl, signingAlg, signingCert);
         return LegacyTokenKey.getLegacyTokenKeyInfo();
+    }
+
+    @Bean("globalTokenPolicy")
+    TokenPolicy globalTokenPolicy(
+           @Value("${jwt.token.policy.global.accessTokenValiditySeconds:43200}") int accessTokenValidity,
+           @Value("${jwt.token.policy.global.refreshTokenValiditySeconds:2592000}") int refreshTokenValidity
+    ) {
+        return new TokenPolicy(accessTokenValidity, refreshTokenValidity);
+    }
+
+    @Bean("revocableTokenProvisioning")
+    JdbcRevocableTokenProvisioning revocableTokenProvisioning(
+            @Value("${delete.expirationRunTime:2500}") int maxExpirationRuntime
+    ) {
+        JdbcRevocableTokenProvisioning bean = new JdbcRevocableTokenProvisioning(jdbcTemplate, limitSqlAdapter, timeService);
+        bean.setMaxExpirationRuntime(maxExpirationRuntime);
+        return bean;
+    }
+
+    @Bean("refreshTokenValidityResolver")
+    TokenValidityResolver refreshTokenValidityResolver(
+            @Qualifier("clientRefreshTokenValidity") ClientTokenValidity clientRefreshTokenValidity,
+            @Value("${jwt.token.policy.global.refreshTokenValiditySeconds:2592000}") int globalTokenValiditySeconds
+    ) {
+        return new TokenValidityResolver(
+                clientRefreshTokenValidity,
+                globalTokenValiditySeconds,
+                timeService
+        );
     }
 
 //    @Bean
