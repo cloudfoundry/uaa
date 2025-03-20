@@ -36,20 +36,6 @@
         </aop:aspect>
     </aop:config>
 
-    <!-- PKCE -->
-    <bean id="s256PkceVerifier" class="org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier"/>
-    <bean id="plainPkceVerifier" class="org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier"/>
-
-    <util:map id="codeChallengeMethods" map-class="java.util.HashMap">
-        <entry key="S256" value-ref="s256PkceVerifier"/>
-        <entry key="plain" value-ref="plainPkceVerifier"/>
-    </util:map>
-
-    <bean id="pkceValidationServices" class="org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService">
-        <constructor-arg ref="codeChallengeMethods"/>
-    </bean>
-    <!-- End of PKCE -->
-
     <bean id="authorizationCodeServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenStore">
         <constructor-arg name="dataSource" ref="dataSource"/>
         <constructor-arg name="timeService" ref="timeService"/>
