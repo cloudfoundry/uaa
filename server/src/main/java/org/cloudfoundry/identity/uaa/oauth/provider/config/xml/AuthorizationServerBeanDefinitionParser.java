@@ -210,13 +210,13 @@ public class AuthorizationServerBeanDefinitionParser
                     .equalsIgnoreCase(clientPasswordElement.getAttribute(DISABLED))) {
                 BeanDefinitionBuilder clientPasswordTokenGranter = BeanDefinitionBuilder
                         .rootBeanDefinition(ResourceOwnerPasswordTokenGranter.class);
-                String authenticationManagerRef = clientPasswordElement
+                String migrateAuthenticationManagerRef = clientPasswordElement
                         .getAttribute("authentication-manager-ref");
-                if (!StringUtils.hasText(authenticationManagerRef)) {
-                    authenticationManagerRef = BeanIds.AUTHENTICATION_MANAGER;
+                if (!StringUtils.hasText(migrateAuthenticationManagerRef)) {
+                    migrateAuthenticationManagerRef = BeanIds.AUTHENTICATION_MANAGER;
                 }
                 clientPasswordTokenGranter
-                        .addConstructorArgReference(authenticationManagerRef);
+                        .addConstructorArgReference(migrateAuthenticationManagerRef);
                 clientPasswordTokenGranter.addConstructorArgReference(tokenServicesRef);
                 clientPasswordTokenGranter.addConstructorArgReference(migrateClientDetailsRef);
                 clientPasswordTokenGranter

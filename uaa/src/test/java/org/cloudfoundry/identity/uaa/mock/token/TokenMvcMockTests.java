@@ -832,6 +832,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                                 .param(OAuth2Utils.CLIENT_ID, clientId)
                                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
                                 .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+                .andDo(print())
                 .andExpect(status().isFound())
                 .andReturn();
 
@@ -914,6 +915,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .param(OAuth2Utils.CLIENT_ID, clientId)
                         .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
                         .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE))
+                .andDo(print())
                 .andExpect(status().isFound())
                 .andReturn();
 
@@ -1903,6 +1905,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                         .param("credentials", credentials)
                         .param(OAuth2Utils.STATE, "random-state")
                         .param(SCOPE, "openid"))
+                .andDo(print())
                 .andExpect(status().is3xxRedirection())
                 .andReturn();
 

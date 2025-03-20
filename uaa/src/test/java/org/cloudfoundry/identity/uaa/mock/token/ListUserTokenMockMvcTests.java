@@ -38,6 +38,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
@@ -206,6 +207,7 @@ class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
                         get(urlTemplate)
                                 .header(AUTHORIZATION, "Bearer " + accessToken)
                 )
+                .andDo(print())
                 .andExpect(status)
                 .andReturn();
         if (result.getResponse().getStatus() == 200) {
