@@ -23,11 +23,13 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
+import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
@@ -62,6 +64,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.SetFactoryBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.DependsOn;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
@@ -638,6 +641,18 @@ public class OauthEndpointBeanConfiguration {
         bean.setRefreshTokenUnique(refreshTokenUnique);
         bean.setRefreshTokenRotate(refreshTokenRotate);
         return bean;
+    }
+
+    @Bean("legacyTokenKeyInitializer")
+    @DependsOn({"setUpBouncyCastle"})
+    KeyInfo legacyTokenKeyInitializer(
+            @Value("${uaa.url}") String uaaUrl,
+            @Value("${jwt.token.signing-key:#{null}}") String signingKey,
+            @Value("${jwt.token.signing-alg:#{null}}") String signingAlg,
+            @Value("${jwt.token.signing-cert:#{null}}") String signingCert
+    ) {
+        LegacyTokenKey.setLegacySigningKey(signingKey, uaaUrl, signingAlg, signingCert);
+        return LegacyTokenKey.getLegacyTokenKeyInfo();
     }
 
 //    @Bean

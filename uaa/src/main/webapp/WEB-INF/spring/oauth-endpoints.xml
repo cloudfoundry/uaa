@@ -36,19 +36,19 @@
         </aop:aspect>
     </aop:config>
 
-    <bean id="legacyTokenKeyInitializer" class="org.springframework.beans.factory.config.MethodInvokingBean"
-                    lazy-init="false" depends-on="setUpBouncyCastle">
-        <property name="arguments">
-            <list>
-                <value type="java.lang.String">${jwt.token.signing-key:#{null}}</value>
-                <value type="java.lang.String">${uaa.url}</value>
-                <value type="java.lang.String">${jwt.token.signing-alg:#{null}}</value>
-                <value type="java.lang.String">${jwt.token.signing-cert:#{null}}</value>
-            </list>
-        </property>
-        <property name="staticMethod"
-                              value="org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey.setLegacySigningKey"/>
-    </bean>
+<!--    <bean id="legacyTokenKeyInitializer" class="org.springframework.beans.factory.config.MethodInvokingBean"-->
+<!--                    lazy-init="false" depends-on="setUpBouncyCastle">-->
+<!--        <property name="arguments">-->
+<!--            <list>-->
+<!--                <value type="java.lang.String">${jwt.token.signing-key:#{null}}</value>-->
+<!--                <value type="java.lang.String">${uaa.url}</value>-->
+<!--                <value type="java.lang.String">${jwt.token.signing-alg:#{null}}</value>-->
+<!--                <value type="java.lang.String">${jwt.token.signing-cert:#{null}}</value>-->
+<!--            </list>-->
+<!--        </property>-->
+<!--        <property name="staticMethod"-->
+<!--                              value="org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey.setLegacySigningKey"/>-->
+<!--    </bean>-->
 
     <bean id="globalTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">
         <property name="accessTokenValidity" value="${jwt.token.policy.global.accessTokenValiditySeconds:43200}"/>
