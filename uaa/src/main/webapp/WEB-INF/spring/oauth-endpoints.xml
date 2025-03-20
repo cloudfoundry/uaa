@@ -41,15 +41,15 @@
         </aop:aspect>
     </aop:config>
 
-    <bean id="passwordChangeRequiredFilter"
-                    class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter">
-        <constructor-arg name="entryPoint" ref="uaaAuthorizationEndpoint"/>
-    </bean>
+<!--    <bean id="passwordChangeRequiredFilter"-->
+<!--                    class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter">-->
+<!--        <constructor-arg name="entryPoint" ref="uaaAuthorizationEndpoint"/>-->
+<!--    </bean>-->
 
-    <bean id="currentUserCookieFilter"
-                    class="org.cloudfoundry.identity.uaa.authentication.CurrentUserCookieRequestFilter">
-        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory"/>
-    </bean>
+<!--    <bean id="currentUserCookieFilter"-->
+<!--                    class="org.cloudfoundry.identity.uaa.authentication.CurrentUserCookieRequestFilter">-->
+<!--        <constructor-arg name="currentUserCookieFactory" ref="currentUserCookieFactory"/>-->
+<!--    </bean>-->
 
     <bean id="externalOAuthAuthenticationManager"
                     class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager">

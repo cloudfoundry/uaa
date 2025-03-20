@@ -6,7 +6,9 @@ import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider;
 import org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.authentication.CurrentUserCookieRequestFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager;
@@ -20,6 +22,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
+import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode;
@@ -488,6 +491,21 @@ public class OauthEndpointBeanConfiguration {
         );
         return bean;
     }
+
+    @Bean("passwordChangeRequiredFilter")
+    PasswordChangeRequiredFilter passwordChangeRequiredFilter(
+            @Qualifier("uaaAuthorizationEndpoint") AuthenticationEntryPoint uaaAuthorizationEndpoint
+    ) {
+        return new PasswordChangeRequiredFilter(uaaAuthorizationEndpoint);
+    }
+
+    @Bean("currentUserCookieFilter")
+    CurrentUserCookieRequestFilter currentUserCookieFilter(
+            @Qualifier("currentUserCookieFactory") CurrentUserCookieFactory currentUserCookieFactory
+    ) {
+        return new CurrentUserCookieRequestFilter(currentUserCookieFactory);
+    }
+
 //    @Bean
 //    UaaTokenServices tokenServices() {
 //        <constructor-arg name="idTokenCreator" ref="idTokenCreator"/>
