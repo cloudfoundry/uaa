@@ -91,7 +91,9 @@ public class OauthEndpointBeanConfiguration {
     IdentityProviderProvisioning providerProvisioning;
 
     @Bean("cachingPasswordEncoder")
-    CachingPasswordEncoder cachingPasswordEncoder(@Qualifier("nonCachingPasswordEncoder") PasswordEncoder nonCachingPasswordEncoder) throws NoSuchAlgorithmException {
+    CachingPasswordEncoder cachingPasswordEncoder(
+            @Qualifier("nonCachingPasswordEncoder") PasswordEncoder nonCachingPasswordEncoder
+    ) throws NoSuchAlgorithmException {
         return new CachingPasswordEncoder(nonCachingPasswordEncoder);
     }
 
