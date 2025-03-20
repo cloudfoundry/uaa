@@ -139,18 +139,18 @@
 <!--        <csrf disabled="true"/>-->
 <!--    </http>-->
 
-    <http name="promptStatelessTokenApiSecurity"
-                    disable-url-rewriting="true"
-                    entry-point-ref="uaaAuthorizationEndpoint"
-                    use-expressions="false"
-                    request-matcher-ref="promptOauthAuthorizeApiRequestMatcher"
-                    create-session="never"
-                    xmlns="http://www.springframework.org/schema/security">
-        <custom-filter ref="passwordChangeRequiredFilter" after="BASIC_AUTH_FILTER"/>
-        <custom-filter ref="currentUserCookieFilter" before="FILTER_SECURITY_INTERCEPTOR"/>
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
-        <csrf disabled="true"/>
-    </http>
+<!--    <http name="promptStatelessTokenApiSecurity"-->
+<!--                    disable-url-rewriting="true"-->
+<!--                    entry-point-ref="uaaAuthorizationEndpoint"-->
+<!--                    use-expressions="false"-->
+<!--                    request-matcher-ref="promptOauthAuthorizeApiRequestMatcher"-->
+<!--                    create-session="never"-->
+<!--                    xmlns="http://www.springframework.org/schema/security">-->
+<!--        <custom-filter ref="passwordChangeRequiredFilter" after="BASIC_AUTH_FILTER"/>-->
+<!--        <custom-filter ref="currentUserCookieFilter" before="FILTER_SECURITY_INTERCEPTOR"/>-->
+<!--        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>-->
+<!--        <csrf disabled="true"/>-->
+<!--    </http>-->
 
 <!--    <http name="externalOAuthCallbackEndpointSecurity" request-matcher-ref="externalOAuthCallbackRequestMatcher"-->
 <!--                    entry-point-ref="loginEntryPoint"-->

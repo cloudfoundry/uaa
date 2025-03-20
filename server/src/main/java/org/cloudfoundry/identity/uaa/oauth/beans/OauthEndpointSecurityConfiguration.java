@@ -90,6 +90,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.FilterSecurityInterceptor;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 
@@ -254,6 +255,10 @@ class OauthEndpointSecurityConfiguration {
     @Autowired
     @Qualifier("pkceValidationServices")
     PkceValidationService pkceValidationService;
+
+    @Autowired
+    @Qualifier("uaaAuthorizationEndpoint")
+    UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
 
 //    @Bean("uaaAuthorizationEndpoint")
 //    UaaAuthorizationEndpoint uaaAuthorizationEndpoint() {
@@ -458,29 +463,29 @@ class OauthEndpointSecurityConfiguration {
 
         return new UaaFilterChain(chain, "statelessAuthorizeApiSecurity");
     }
-//
-//    @Bean
-//    @Order(FilterChainOrder.OAUTH_08)
-//    UaaFilterChain promptStatelessTokenApiSecurity(HttpSecurity http) throws Exception {
-//        SecurityFilterChain chain = http
-//                .securityMatcher(promptOauthAuthorizeApiRequestMatcher)
-//                .authorizeHttpRequests( auth -> {
-//                    auth.requestMatchers("/**").access(anyOf(true).hasScope("uaa.user"));
-//                    auth.anyRequest().denyAll();
-//                })
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
-//                .addFilterAfter(passwordChangeRequiredFilter, BasicAuthenticationFilter.class)
-//                .addFilterAt(resourceAgnosticAuthenticationFilter, BasicAuthenticationFilter.class)
-//                .anonymous(AnonymousConfigurer::disable)
-//                .csrf(CsrfConfigurer::disable)
-//                .exceptionHandling(exception ->
-//                        exception.authenticationEntryPoint(oauthAuthenticationEntryPoint)
-//                                .accessDeniedHandler(oauthAccessDeniedHandler)
-//                )
-//                .build();
-//
-//        return new UaaFilterChain(chain, "promptStatelessTokenApiSecurity");
-//    }
+
+    @Bean
+    @Order(FilterChainOrder.OAUTH_08)
+    UaaFilterChain promptStatelessTokenApiSecurity(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher(promptOauthAuthorizeApiRequestMatcher)
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers(promptOauthAuthorizeApiRequestMatcher).fullyAuthenticated();
+                    auth.anyRequest().denyAll();
+                })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
+                .addFilterAfter(passwordChangeRequiredFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(currentUserCookieFilter, FilterSecurityInterceptor.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(uaaAuthorizationEndpoint)
+                                .accessDeniedHandler(oauthAccessDeniedHandler)
+                )
+                .build();
+
+        return new UaaFilterChain(chain, "promptStatelessTokenApiSecurity");
+    }
 
     @Bean
     @Order(FilterChainOrder.OAUTH_09)
