@@ -412,7 +412,7 @@
 <!--        <value>cloud_controller_service_permissions.read</value>-->
 <!--    </util:set>-->
 
-    <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase"/>
+<!--    <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase"/>-->
 
     <bean id="userLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
         <property name="lockoutAfterFailures"

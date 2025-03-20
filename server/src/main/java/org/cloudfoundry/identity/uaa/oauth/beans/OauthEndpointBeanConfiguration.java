@@ -1,38 +1,20 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-
-import org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider;
-import org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter;
-import org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter;
-import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
-import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
-import org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
+import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
-import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
-import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.opensaml.xmlsec.signature.P;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
@@ -40,6 +22,14 @@ import org.springframework.beans.factory.config.SetFactoryBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
+
+import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.Arrays.asList;
 import static java.util.Map.entry;
@@ -131,11 +121,23 @@ public class OauthEndpointBeanConfiguration {
                 "cloud_controller_service_permissions.read"
         ));
     }
-//
-//    @Bean("userDatabase")
-//    JdbcUaaUserDatabase userDatabase() {
-//
-//    }
+
+
+    @Bean("userDatabase")
+    JdbcUaaUserDatabase userDatabase(
+            @Autowired TimeService timeService,
+            @Autowired JdbcTemplate jdbcTemplate,
+            @Autowired DatabaseProperties databaseProperties,
+            @Autowired IdentityZoneManager identityZoneManager,
+            @Autowired DbUtils dbUtils) throws SQLException {
+        return new JdbcUaaUserDatabase(
+                jdbcTemplate,
+                timeService,
+                databaseProperties,
+                identityZoneManager,
+                dbUtils
+        );
+    }
 //
 //    @Bean("userLockoutPolicy")
 //    LockoutPolicy userLockoutPolicy() {
