@@ -480,7 +480,7 @@
         <constructor-arg name="externalOAuthProviderProvisioning" ref="externalOAuthProviderConfigurator"/>
     </bean>
 
-    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder"/>
+<!--    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder"/>-->
 
 <!--    <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">-->
 <!--        <constructor-arg name="redirectCsrf" value="/invalid_request"/>-->

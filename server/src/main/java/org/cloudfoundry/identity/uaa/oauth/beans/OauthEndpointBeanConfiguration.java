@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandle
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
@@ -36,6 +37,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import javax.servlet.http.HttpSession;
+import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -82,11 +84,16 @@ public class OauthEndpointBeanConfiguration {
 
     @Autowired
     @Qualifier("nonCachingPasswordEncoder")
-    PasswordEncoder encoder;
+    PasswordEncoder nonCachingPasswordEncoder;
 
     @Autowired
     @Qualifier("identityProviderProvisioning")
     IdentityProviderProvisioning providerProvisioning;
+
+    @Bean("cachingPasswordEncoder")
+    CachingPasswordEncoder cachingPasswordEncoder(@Qualifier("nonCachingPasswordEncoder") PasswordEncoder nonCachingPasswordEncoder) throws NoSuchAlgorithmException {
+        return new CachingPasswordEncoder(nonCachingPasswordEncoder);
+    }
 
     @Bean("loginEntryPoint")
     CsrfAwareEntryPointAndDeniedHandler loginEntryPoint() {
@@ -228,11 +235,12 @@ public class OauthEndpointBeanConfiguration {
             @Autowired JdbcUaaUserDatabase userDatabase,
             @Qualifier("globalPeriodLockoutPolicy") PeriodLockoutPolicy lockoutPolicy,
             @Value("${allowUnverifiedUsers:true}") boolean allowUnverifiedUsers,
-            @Autowired HttpSession session
+            @Autowired HttpSession session,
+            @Qualifier("nonCachingPasswordEncoder") PasswordEncoder nonCachingPasswordEncoder
     ) {
         AuthzAuthenticationManager bean = new AuthzAuthenticationManager(
                 userDatabase,
-                encoder,
+                nonCachingPasswordEncoder,
                 providerProvisioning,
                 session
         );

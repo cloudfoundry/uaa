@@ -43,7 +43,7 @@ public class CachingPasswordEncoder implements PasswordEncoder {
 
     private final PasswordEncoder passwordEncoder;
 
-    CachingPasswordEncoder(final PasswordEncoder passwordEncoder) throws NoSuchAlgorithmException {
+    public CachingPasswordEncoder(final PasswordEncoder passwordEncoder) throws NoSuchAlgorithmException {
         this.passwordEncoder = passwordEncoder;
         messageDigest = MessageDigest.getInstance("SHA-256");
         secret = Utf8.encode(new RandomValueStringGenerator().generate());

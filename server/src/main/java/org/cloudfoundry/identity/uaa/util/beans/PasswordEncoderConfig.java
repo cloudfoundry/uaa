@@ -15,7 +15,6 @@ public class PasswordEncoderConfig {
     @Bean
     public PasswordEncoder nonCachingPasswordEncoder() {
         logger.info("Building BackwardsCompatibleDelegatingPasswordEncoder with {bcrypt} only");
-
         return new BackwardsCompatibleDelegatingPasswordEncoder(new BCryptPasswordEncoder());
     }
 }
