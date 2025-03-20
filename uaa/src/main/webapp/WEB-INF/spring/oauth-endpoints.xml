@@ -25,104 +25,10 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager"/>
     </oauth:authorization-server>
 
-<!--    <bean id="passcodeTokenMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">-->
-<!--        <constructor-arg value="/oauth/token"/>-->
-<!--        <property name="accept">-->
-<!--            <list>-->
-<!--                <value>application/json</value>-->
-<!--                <value>application/x-www-form-urlencoded</value>-->
-<!--            </list>-->
-<!--        </property>-->
-<!--        <property name="parameters">-->
-<!--            <map>-->
-<!--                <entry key="grant_type" value="password"/>-->
-<!--                <entry key="passcode" value=""/>-->
-<!--            </map>-->
-<!--        </property>-->
-<!--    </bean>-->
-
-
-<!--    <bean id="passcodeAuthenticationFilter"-->
-<!--                    class="org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter">-->
-<!--        <constructor-arg ref="userDatabase"/>-->
-<!--        <constructor-arg ref="zoneAwareAuthzAuthenticationManager"/>-->
-<!--        <constructor-arg ref="authorizationRequestManager"/>-->
-<!--        <constructor-arg ref="codeStore"/>-->
-<!--        <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>-->
-<!--        <property name="parameterNames">-->
-<!--            <list>-->
-<!--                <value>username</value>-->
-<!--                <value>password</value>-->
-<!--                <value>passcode</value>-->
-<!--                <value>credentials</value>-->
-<!--                <value>origin</value>-->
-<!--                <value>user_id</value>-->
-<!--            </list>-->
-<!--        </property>-->
-<!--    </bean>-->
-
-
-<!--    <bean id="hybridTokenGranterForAuthCodeGrant"-->
-<!--                    class="org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode">-->
-<!--        <constructor-arg index="0" ref="tokenServices"/>-->
-<!--        <constructor-arg index="1" ref="jdbcClientDetailsService"/>-->
-<!--        <constructor-arg index="2" ref="authorizationRequestManager"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="oauthTokenApiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">-->
-<!--        <constructor-arg value="/oauth/token"/>-->
-<!--        <property name="headers">-->
-<!--            <map>-->
-<!--                <entry key="Authorization" value="bearer "/>-->
-<!--            </map>-->
-<!--        </property>-->
-<!--        <property name="parameters">-->
-<!--            <map>-->
-<!--                <entry key="client_id" value=""/>-->
-<!--            </map>-->
-<!--        </property>-->
-<!--    </bean>-->
-
-<!--    <bean id="clientAuthenticationFilter"-->
-<!--                    class="org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter">-->
-<!--        <constructor-arg ref="clientAuthenticationManager"/>-->
-<!--        <constructor-arg ref="basicAuthenticationEntryPoint"/>-->
-<!--        <constructor-arg name="enableUriEncodingCompatibilityMode"-->
-<!--                              value="${authentication.enableUriEncodingCompatibilityMode:false}"-->
-<!--        />-->
-<!--        <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="clientParameterAuthenticationFilter"-->
-<!--                    class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">-->
-<!--        <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>-->
-<!--        <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint"/>-->
-<!--    </bean>-->
-
-    <bean id="compositeAuthenticationManager"
-                    class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager"/>
-
     <authentication-manager alias="clientAuthenticationManager" id="clientAuthenticationManager"
                     xmlns="http://www.springframework.org/schema/security">
         <authentication-provider ref="clientAuthenticationProvider"/>
     </authentication-manager>
-
-    <bean id="jwtClientAuthentication"
-                    class="org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication">
-        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
-        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>
-        <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>
-    </bean>
-
-    <bean id="clientAuthenticationProvider"
-                    class="org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider">
-        <constructor-arg name="userDetailsService" ref="clientDetailsUserService"/>
-        <constructor-arg name="encoder" ref="cachingPasswordEncoder"/>
-        <constructor-arg name="jwtClientAuthentication" ref="jwtClientAuthentication"/>
-    </bean>
-
-    <bean id="clientAuthenticationPublisher"
-                    class="org.cloudfoundry.identity.uaa.client.ClientAuthenticationPublisher"/>
 
     <aop:config proxy-target-class="true">
         <aop:aspect ref="clientAuthenticationPublisher">
@@ -134,11 +40,6 @@
                                         throwing="ex"/>
         </aop:aspect>
     </aop:config>
-
-<!--    <bean id="clientDetailsUserService"-->
-<!--                    class="org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService">-->
-<!--        <constructor-arg ref="jdbcClientDetailsService"/>-->
-<!--    </bean>-->
 
     <bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/oauth/authorize"/>
@@ -394,69 +295,6 @@
     <oauth:resource-server id="oauthWithoutResourceAuthenticationFilter" token-services-ref="tokenServices"
                     entry-point-ref="oauthAuthenticationEntryPoint"/>
 
-<!--    <bean id="defaultUserAuthorities" class="org.springframework.beans.factory.config.SetFactoryBean">-->
-<!--        <property name="sourceSet"-->
-<!--                              value="#{@config['oauth']==null ? legacyDefaultUserAuthorities : @config['oauth']['user']==null ? legacyDefaultUserAuthorities: @config['oauth']['user']['authorities']}"/>-->
-<!--    </bean>-->
-
-<!--    <util:set id="legacyDefaultUserAuthorities" set-class="java.util.HashSet">-->
-<!--        <value>openid</value>-->
-<!--        <value>scim.me</value>-->
-<!--        <value>cloud_controller.read</value>-->
-<!--        <value>cloud_controller.write</value>-->
-<!--        <value>password.write</value>-->
-<!--        <value>scim.userids</value>-->
-<!--        <value>uaa.user</value>-->
-<!--        <value>approvals.me</value>-->
-<!--        <value>oauth.approvals</value>-->
-<!--        <value>cloud_controller_service_permissions.read</value>-->
-<!--    </util:set>-->
-
-<!--    <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase"/>-->
-
-<!--    <bean id="userLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">-->
-<!--        <property name="lockoutAfterFailures"-->
-<!--                              value="${authentication.policy.lockoutAfterFailures:#{defaultUserLockoutPolicy.getLockoutAfterFailures()}}"/>-->
-<!--        <property name="countFailuresWithin"-->
-<!--                              value="${authentication.policy.countFailuresWithinSeconds:#{defaultUserLockoutPolicy.getCountFailuresWithin()}}"/>-->
-<!--        <property name="lockoutPeriodSeconds"-->
-<!--                              value="${authentication.policy.lockoutPeriodSeconds:#{defaultUserLockoutPolicy.getLockoutPeriodSeconds()}}"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="defaultUserLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">-->
-<!--        <property name="lockoutAfterFailures"-->
-<!--                              value="${authentication.policy.global.lockoutAfterFailures:5}"/>-->
-<!--        <property name="countFailuresWithin"-->
-<!--                              value="${authentication.policy.global.countFailuresWithinSeconds:1200}"/>-->
-<!--        <property name="lockoutPeriodSeconds"-->
-<!--                              value="${authentication.policy.global.lockoutPeriodSeconds:300}"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="globalUserLockoutPolicyRetriever"-->
-<!--                    class="org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever">-->
-<!--        <property name="defaultLockoutPolicy" ref="defaultUserLockoutPolicy"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="globalPeriodLockoutPolicy"-->
-<!--                    class="org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy">-->
-<!--        <constructor-arg ref="globalUserLoginPolicy"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="globalUserLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">-->
-<!--        <constructor-arg index="0" ref="jdbcAuditService"/>-->
-<!--        <constructor-arg index="1" ref="globalUserLockoutPolicyRetriever"/>-->
-<!--        <constructor-arg index="2" value="UserAuthenticationSuccess"/>-->
-<!--        <constructor-arg index="3" value="UserAuthenticationFailure"/>-->
-<!--        <constructor-arg index="4" ref="timeService"/>-->
-<!--        <constructor-arg index="5" value="true"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="uaaUserDatabaseAuthenticationManager"-->
-<!--                    class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">-->
-<!--        <property name="accountLoginPolicy" ref="globalPeriodLockoutPolicy"/>-->
-<!--        <property name="origin" value="uaa"/>-->
-<!--        <property name="allowUnverifiedUsers" value="${allowUnverifiedUsers:true}"/>-->
-<!--    </bean>-->
 
     <bean id="uaaAuthenticationMgr"
                     class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
@@ -473,17 +311,4 @@
         <constructor-arg name="ldapLoginAuthenticationManager" ref="ldapLoginAuthenticationMgr"/>
     </bean>
 
-<!--    <bean id="passwordGrantAuthenticationManager"-->
-<!--                    class="org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager">-->
-<!--        <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>-->
-<!--        <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>-->
-<!--        <constructor-arg name="externalOAuthProviderProvisioning" ref="externalOAuthProviderConfigurator"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder"/>-->
-
-<!--    <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">-->
-<!--        <constructor-arg name="redirectCsrf" value="/invalid_request"/>-->
-<!--        <constructor-arg name="redirectNotLoggedIn" value="/login?error=invalid_login_request"/>-->
-<!--    </bean>-->
 </beans>

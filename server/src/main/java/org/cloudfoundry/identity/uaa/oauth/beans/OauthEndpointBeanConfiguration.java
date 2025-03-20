@@ -3,15 +3,18 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
 import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider;
 import org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
+import org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever;
+import org.cloudfoundry.identity.uaa.client.ClientAuthenticationPublisher;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -19,14 +22,17 @@ import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
+import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
@@ -47,6 +53,7 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
@@ -376,6 +383,42 @@ public class OauthEndpointBeanConfiguration {
         bean.setAuthenticationEntryPoint(basicAuthenticationEntryPoint);
         bean.setClientAuthenticationManager(clientAuthenticationManager);
         return bean;
+    }
+
+    @Bean("compositeAuthenticationManager")
+    CompositeAuthenticationManager compositeAuthenticationManager() {
+        return new CompositeAuthenticationManager();
+    }
+
+    @Bean("jwtClientAuthentication")
+    JwtClientAuthentication jwtClientAuthentication(
+            @Qualifier("keyInfoService") KeyInfoService keyInfoService,
+            @Qualifier("oidcMetadataFetcher") OidcMetadataFetcher oidcMetadataFetcher,
+            @Qualifier("externalOAuthAuthenticationManager") ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager
+    ) {
+        return new JwtClientAuthentication(
+                keyInfoService,
+                oidcMetadataFetcher,
+                externalOAuthAuthenticationManager
+        );
+    }
+
+    @Bean("clientAuthenticationPublisher")
+    ClientAuthenticationPublisher clientAuthenticationPublisher() {
+        return new ClientAuthenticationPublisher();
+    }
+
+    @Bean("clientAuthenticationProvider")
+    ClientDetailsAuthenticationProvider clientAuthenticationProvider(
+            @Qualifier("clientDetailsUserService") UserDetailsService clientDetailsUserService,
+            @Qualifier("cachingPasswordEncoder") PasswordEncoder cachingPasswordEncoder,
+            @Qualifier("jwtClientAuthentication") JwtClientAuthentication jwtClientAuthentication
+    ) {
+        return new ClientDetailsAuthenticationProvider(
+                clientDetailsUserService,
+                cachingPasswordEncoder,
+                jwtClientAuthentication
+        );
     }
 //
 //    @Bean("clientAuthenticationProvider")
