@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCod
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
+import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
@@ -43,6 +44,7 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationM
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
+import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
@@ -589,6 +591,19 @@ public class OauthEndpointBeanConfiguration {
         );
     }
 
+    @Bean("authorizationRequestManager")
+    UaaAuthorizationRequestManager authorizationRequestManager(
+            @Qualifier("userDatabase") UaaUserDatabase userDatabase,
+            SecurityContextAccessor securityContextAccessor
+    ) {
+        return new UaaAuthorizationRequestManager(
+                jdbcClientDetailsService,
+                securityContextAccessor,
+                userDatabase,
+                providerProvisioning,
+                identityZoneManager
+        );
+    }
 
 
 //    @Bean
