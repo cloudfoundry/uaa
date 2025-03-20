@@ -38,7 +38,9 @@ import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -616,6 +618,15 @@ public class OauthEndpointBeanConfiguration {
         );
     }
 
+    @Bean("excludedClaims") //TODO break into a record or object
+    LinkedHashSet<String> excludedClaims(
+            @Value("#{@config['jwt']==null ? T(java.util.Collections).EMPTY_SET : " +
+                    "@config['jwt.token']==null ? T(java.util.Collections).EMPTY_SET : " +
+                    "@config['jwt.token.claims']==null ? T(java.util.Collections).EMPTY_SET : " +
+                    "@config['jwt.token.claims.exclude']==null ? T(java.util.Collections).EMPTY_SET : @config['jwt.token.claims.exclude']}") LinkedHashSet<String> excludedClaims
+    ) {
+        return excludedClaims;
+    }
     @Bean("signingKeysMap") //TODO break into a record or object
     Map signingKeysMap(
             @Value("#{@config['jwt']==null ? T(java.util.Collections).EMPTY_MAP : " +
@@ -688,6 +699,29 @@ public class OauthEndpointBeanConfiguration {
                 clientRefreshTokenValidity,
                 globalTokenValiditySeconds,
                 timeService
+        );
+    }
+
+    @Bean("oauthAccessDeniedHandler")
+    OAuth2AccessDeniedHandler oauthAccessDeniedHandler() {
+        return new OAuth2AccessDeniedHandler();
+    }
+
+    @Bean("idTokenCreator")
+    IdTokenCreator idTokenCreator(
+            @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
+            @Qualifier("accessTokenValidityResolver") TokenValidityResolver tokenValidityResolver,
+            @Qualifier("userDatabase") UaaUserDatabase uaaUserDatabase,
+            @Qualifier("excludedClaims") Set<String> excludedClaims
+    ) {
+        return new IdTokenCreator(
+                tokenEndpointBuilder,
+                timeService,
+                tokenValidityResolver,
+                uaaUserDatabase,
+                jdbcClientDetailsService,
+                excludedClaims,
+                identityZoneManager
         );
     }
 
