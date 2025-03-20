@@ -126,18 +126,18 @@
 <!-- Version of the /authorize endpoint for stateless clients such as cf
      /oauth/authorize Authorization: Bearer <access_token> response_type=code&client_id=<value>&grant_type=authorization_code
 -->
-    <http name="statelessAuthorizeApiSecurity" request-matcher-ref="oauthAuthorizeApiRequestMatcher"
-                    create-session="stateless"
-                    entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-                    xmlns="http://www.springframework.org/schema/security" use-expressions="true">
-        <intercept-url pattern="/**" access="#oauth2.hasScope('uaa.user')"/>
-        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
-        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER"/>
-        <access-denied-handler ref="oauthAccessDeniedHandler"/>
-        <expression-handler ref="oauthWebExpressionHandler"/>
-        <anonymous enabled="false"/>
-        <csrf disabled="true"/>
-    </http>
+<!--    <http name="statelessAuthorizeApiSecurity" request-matcher-ref="oauthAuthorizeApiRequestMatcher"-->
+<!--                    create-session="stateless"-->
+<!--                    entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"-->
+<!--                    xmlns="http://www.springframework.org/schema/security" use-expressions="true">-->
+<!--        <intercept-url pattern="/**" access="#oauth2.hasScope('uaa.user')"/>-->
+<!--        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>-->
+<!--        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER"/>-->
+<!--        <access-denied-handler ref="oauthAccessDeniedHandler"/>-->
+<!--        <expression-handler ref="oauthWebExpressionHandler"/>-->
+<!--        <anonymous enabled="false"/>-->
+<!--        <csrf disabled="true"/>-->
+<!--    </http>-->
 
     <http name="promptStatelessTokenApiSecurity"
                     disable-url-rewriting="true"

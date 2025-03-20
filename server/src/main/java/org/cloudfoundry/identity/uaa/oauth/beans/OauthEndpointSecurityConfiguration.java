@@ -436,28 +436,28 @@ class OauthEndpointSecurityConfiguration {
         return new UaaFilterChain(chain, "statelessAuthzEndpointSecurity");
     }
 
-//    @Bean
-//    @Order(FilterChainOrder.OAUTH_07)
-//    UaaFilterChain statelessAuthorizeApiSecurity(HttpSecurity http) throws Exception {
-//        SecurityFilterChain chain = http
-//                .securityMatcher(oauthAuthorizeApiRequestMatcher)
-//                .authorizeHttpRequests( auth -> {
-//                    auth.requestMatchers("/**").access(anyOf(true).hasScope("uaa.user"));
-//                    auth.anyRequest().denyAll();
-//                })
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .addFilterBefore(backwardsCompatibleScopeParameter, SecurityContextPersistenceFilter.class)
-//                .addFilterAt(resourceAgnosticAuthenticationFilter, BasicAuthenticationFilter.class)
-//                .anonymous(AnonymousConfigurer::disable)
-//                .csrf(CsrfConfigurer::disable)
-//                .exceptionHandling(exception ->
-//                        exception.authenticationEntryPoint(oauthAuthenticationEntryPoint)
-//                                .accessDeniedHandler(oauthAccessDeniedHandler)
-//                )
-//                .build();
-//
-//        return new UaaFilterChain(chain, "statelessAuthorizeApiSecurity");
-//    }
+    @Bean
+    @Order(FilterChainOrder.OAUTH_07)
+    UaaFilterChain statelessAuthorizeApiSecurity(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher(oauthAuthorizeApiRequestMatcher)
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers(oauthAuthorizeApiRequestMatcher).access(anyOf(true).hasScope("uaa.user").isUaaAdmin().isZoneAdmin());
+                    auth.anyRequest().denyAll();
+                })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(backwardsCompatibleScopeParameter, SecurityContextPersistenceFilter.class)
+                .addFilterAt(resourceAgnosticAuthenticationFilter, BasicAuthenticationFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(oauthAuthenticationEntryPoint)
+                                .accessDeniedHandler(oauthAccessDeniedHandler)
+                )
+                .build();
+
+        return new UaaFilterChain(chain, "statelessAuthorizeApiSecurity");
+    }
 //
 //    @Bean
 //    @Order(FilterChainOrder.OAUTH_08)
