@@ -47,7 +47,10 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
+import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
@@ -152,6 +155,10 @@ public class OauthEndpointBeanConfiguration {
     @Autowired
     @Qualifier("limitSqlAdapter")
     LimitSqlAdapter limitSqlAdapter;
+
+    @Autowired
+    @Qualifier("oauthAuthenticationEntryPoint")
+    OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint;
 
     @Bean("cachingPasswordEncoder")
     CachingPasswordEncoder cachingPasswordEncoder(
@@ -841,6 +848,18 @@ public class OauthEndpointBeanConfiguration {
                 scimGroupProvisioning,
                 ldapLoginAuthenticationManager
         );
-
     }
+
+    @Bean("oauthWithoutResourceAuthenticationFilter")
+    OAuth2AuthenticationProcessingFilter oauthWithoutResourceAuthenticationFilter(
+            @Qualifier("tokenServices") UaaTokenServices tokenServices
+    ) {
+        OAuth2AuthenticationManager authenticationManager = new OAuth2AuthenticationManager();
+        authenticationManager.setTokenServices(tokenServices);
+        OAuth2AuthenticationProcessingFilter bean = new OAuth2AuthenticationProcessingFilter();
+        bean.setAuthenticationManager(authenticationManager);
+        bean.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+        return bean;
+    }
+
 }

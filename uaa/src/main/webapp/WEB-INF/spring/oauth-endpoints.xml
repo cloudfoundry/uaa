@@ -25,18 +25,4 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager"/>
     </oauth:authorization-server>
 
-    <aop:config proxy-target-class="true">
-        <aop:aspect ref="clientAuthenticationPublisher">
-            <aop:after-returning method="clientAuthenticationSuccess"
-                                        pointcut="execution(* *..ProviderManager+.authenticate(..)) and bean(clientAuthenticationManager)"
-                                        returning="authentication"/>
-            <aop:after-throwing method="clientAuthenticationFailure"
-                                        pointcut="execution(* *..ProviderManager+.authenticate(..)) and args(authentication) and bean(clientAuthenticationManager)"
-                                        throwing="ex"/>
-        </aop:aspect>
-    </aop:config>
-
-    <oauth:resource-server id="oauthWithoutResourceAuthenticationFilter" token-services-ref="tokenServices"
-                    entry-point-ref="oauthAuthenticationEntryPoint"/>
-
 </beans>
