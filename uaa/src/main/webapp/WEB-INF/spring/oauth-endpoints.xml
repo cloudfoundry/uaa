@@ -25,10 +25,10 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager"/>
     </oauth:authorization-server>
 
-    <authentication-manager alias="clientAuthenticationManager" id="clientAuthenticationManager"
-                    xmlns="http://www.springframework.org/schema/security">
-        <authentication-provider ref="clientAuthenticationProvider"/>
-    </authentication-manager>
+<!--    <authentication-manager alias="clientAuthenticationManager" id="clientAuthenticationManager"-->
+<!--                    xmlns="http://www.springframework.org/schema/security">-->
+<!--        <authentication-provider ref="clientAuthenticationProvider"/>-->
+<!--    </authentication-manager>-->
 
     <aop:config proxy-target-class="true">
         <aop:aspect ref="clientAuthenticationPublisher">

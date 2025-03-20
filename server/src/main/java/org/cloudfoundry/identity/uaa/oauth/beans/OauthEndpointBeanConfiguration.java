@@ -52,7 +52,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.authentication.AuthenticationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
@@ -420,14 +422,16 @@ public class OauthEndpointBeanConfiguration {
                 jwtClientAuthentication
         );
     }
-//
-//    @Bean("clientAuthenticationProvider")
-//    ClientDetailsAuthenticationProvider clientAuthenticationProvider() {
-//        ClientDetailsAuthenticationProvider bean = new ClientDetailsAuthenticationProvider();
-//    }
-//
 
-
+    @Bean("clientAuthenticationManager")
+    AuthenticationManager clientAuthenticationManager(
+            @Autowired ClientDetailsAuthenticationProvider provider,
+            @Autowired AuthenticationEventPublisher defaultAuthenticationEventPublisher
+    ) {
+        ProviderManager bean = new ProviderManager(provider);
+        bean.setAuthenticationEventPublisher(defaultAuthenticationEventPublisher);
+        return bean;
+    }
 
 //    @Bean
 //    UaaTokenServices tokenServices() {
