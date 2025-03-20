@@ -473,12 +473,12 @@
         <constructor-arg name="ldapLoginAuthenticationManager" ref="ldapLoginAuthenticationMgr"/>
     </bean>
 
-    <bean id="passwordGrantAuthenticationManager"
-                    class="org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager">
-        <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
-        <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>
-        <constructor-arg name="externalOAuthProviderProvisioning" ref="externalOAuthProviderConfigurator"/>
-    </bean>
+<!--    <bean id="passwordGrantAuthenticationManager"-->
+<!--                    class="org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager">-->
+<!--        <constructor-arg name="zoneAwareAuthzAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>-->
+<!--        <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>-->
+<!--        <constructor-arg name="externalOAuthProviderProvisioning" ref="externalOAuthProviderConfigurator"/>-->
+<!--    </bean>-->
 
 <!--    <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder"/>-->
 

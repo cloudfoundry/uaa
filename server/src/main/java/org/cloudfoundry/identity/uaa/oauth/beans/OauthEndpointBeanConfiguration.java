@@ -4,7 +4,9 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
+import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
+import org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
@@ -17,6 +19,7 @@ import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
@@ -262,10 +265,17 @@ public class OauthEndpointBeanConfiguration {
 //
 //    }
 //
-//    @Bean("passwordGrantAuthenticationManager")
-//    PasswordGrantAuthenticationManager passwordGrantAuthenticationManager() {
-//
-//    }
+    @Bean("passwordGrantAuthenticationManager")
+    PasswordGrantAuthenticationManager passwordGrantAuthenticationManager(
+            @Autowired DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager,
+            @Autowired ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager
+            ) {
+        return new PasswordGrantAuthenticationManager(
+                zoneAwareAuthzAuthenticationManager,
+                providerProvisioning,
+                externalOAuthAuthenticationManager
+        );
+    }
 //
 //    @Bean("passcodeAuthenticationFilter")
 //    PasscodeAuthenticationFilter passcodeAuthenticationFilter() {
