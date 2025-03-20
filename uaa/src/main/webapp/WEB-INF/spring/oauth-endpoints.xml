@@ -36,12 +36,12 @@
         </aop:aspect>
     </aop:config>
 
-    <bean id="authorizationCodeServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenStore">
-        <constructor-arg name="dataSource" ref="dataSource"/>
-        <constructor-arg name="timeService" ref="timeService"/>
-    </bean>
+<!--    <bean id="authorizationCodeServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenStore">-->
+<!--        <constructor-arg name="dataSource" ref="dataSource"/>-->
+<!--        <constructor-arg name="timeService" ref="timeService"/>-->
+<!--    </bean>-->
 
-    <bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler"/>
+<!--    <bean id="userApprovalHandler" class="org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler"/>-->
 
     <bean id="userManagedApprovalHandler" class="org.cloudfoundry.identity.uaa.oauth.UserManagedAuthzApprovalHandler"/>
 

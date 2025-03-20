@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
+import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter;
@@ -31,6 +32,7 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
+import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
@@ -44,6 +46,7 @@ import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandle
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserApprovalHandler;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.TimeService;
@@ -120,6 +123,10 @@ public class OauthEndpointBeanConfiguration {
     @Autowired
     @Qualifier("identityProviderProvisioning")
     IdentityProviderProvisioning providerProvisioning;
+
+    @Autowired
+    @Qualifier("dataSource")
+    DataSource dataSource;
 
     @Bean("cachingPasswordEncoder")
     CachingPasswordEncoder cachingPasswordEncoder(
@@ -561,6 +568,25 @@ public class OauthEndpointBeanConfiguration {
                 )
         );
         return bean;
+    }
+
+    @Bean("authorizationCodeServices")
+    UaaTokenStore authorizationCodeServices() {
+        return new UaaTokenStore(dataSource, timeService);
+    }
+
+    @Bean("userApprovalHandler")
+    UaaUserApprovalHandler userApprovalHandler(
+            @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
+            @Qualifier("tokenServices") AuthorizationServerTokenServices tokenServices
+
+    ) {
+        return new UaaUserApprovalHandler(
+                jdbcClientDetailsService,
+                oAuth2RequestFactory,
+                tokenServices,
+                identityZoneManager
+        );
     }
 
 
