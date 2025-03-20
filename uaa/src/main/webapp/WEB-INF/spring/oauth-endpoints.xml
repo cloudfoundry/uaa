@@ -25,11 +25,6 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager"/>
     </oauth:authorization-server>
 
-<!--    <authentication-manager alias="clientAuthenticationManager" id="clientAuthenticationManager"-->
-<!--                    xmlns="http://www.springframework.org/schema/security">-->
-<!--        <authentication-provider ref="clientAuthenticationProvider"/>-->
-<!--    </authentication-manager>-->
-
     <aop:config proxy-target-class="true">
         <aop:aspect ref="clientAuthenticationPublisher">
             <aop:after-returning method="clientAuthenticationSuccess"
@@ -40,45 +35,6 @@
                                         throwing="ex"/>
         </aop:aspect>
     </aop:config>
-
-<!--    <bean id="externalOAuthAuthenticationManager"-->
-<!--                    class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager">-->
-<!--        <constructor-arg name="providerProvisioning" ref="externalOAuthProviderConfigurator"/>-->
-<!--        <constructor-arg name="trustingRestTemplate" ref="trustingRestTemplate"/>-->
-<!--        <constructor-arg name="nonTrustingRestTemplate" ref="nonTrustingRestTemplate"/>-->
-<!--        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>-->
-<!--        <constructor-arg name="keyInfoService" ref="keyInfoService"/>-->
-<!--        <constructor-arg name="oidcMetadataFetcher" ref="oidcMetadataFetcher"/>-->
-<!--        <property name="userDatabase" ref="userDatabase"/>-->
-<!--        <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="externalOAuthCallbackAuthenticationFilter"-->
-<!--                    class="org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationFilter">-->
-<!--        <constructor-arg name="externalOAuthAuthenticationManager" ref="externalOAuthAuthenticationManager"/>-->
-<!--        <constructor-arg name="successHandler" ref="accountSavingAuthenticationSuccessHandler"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="externalOAuthCallbackRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">-->
-<!--        <constructor-arg value="/login/callback"/>-->
-<!--    </bean>-->
-
-<!--    <bean id="oauthAuthorizeRequestMatcherOld" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">-->
-<!--        <constructor-arg value="/oauth/authorize"/>-->
-<!--        <property name="accept">-->
-<!--            <list>-->
-<!--                <value>application/json</value>-->
-<!--                <value>application/x-www-form-urlencoded</value>-->
-<!--            </list>-->
-<!--        </property>-->
-<!--        <property name="parameters">-->
-<!--            <map>-->
-<!--                <entry key="response_type" value="token"/>-->
-<!--                <entry key="credentials" value="{"/>-->
-<!--            </map>-->
-<!--        </property>-->
-<!--    </bean>-->
-    <!-- End -->
 
     <!-- PKCE -->
     <bean id="s256PkceVerifier" class="org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier"/>
