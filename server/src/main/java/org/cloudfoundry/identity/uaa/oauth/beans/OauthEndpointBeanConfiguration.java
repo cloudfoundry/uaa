@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
+import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider;
 import org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter;
@@ -433,6 +434,60 @@ public class OauthEndpointBeanConfiguration {
         return bean;
     }
 
+    @Bean("oauthAuthorizeRequestMatcher")
+    UaaRequestMatcher oauthAuthorizeRequestMatcher() {
+        UaaRequestMatcher bean = new UaaRequestMatcher("/oauth/authorize");
+        bean.setAccept(asList(MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE));
+        bean.setParameters(
+                Map.ofEntries(
+                        entry("response_type", "token"),
+                        entry("source", "credentials")
+                )
+        );
+        return bean;
+    }
+
+    @Bean("oauthAuthorizeApiRequestMatcher")
+    UaaRequestMatcher oauthAuthorizeApiRequestMatcher() {
+        UaaRequestMatcher bean = new UaaRequestMatcher("/oauth/authorize");
+        bean.setHeaders(Map.ofEntries(
+                entry("Authorization", asList("bearer "))
+        ));
+        bean.setParameters(
+                Map.ofEntries(
+                        entry("response_type", "code"),
+                        entry("client_id", "")
+                )
+        );
+        return bean;
+    }
+
+    @Bean("promptOauthAuthorizeApiRequestMatcher")
+    UaaRequestMatcher promptOauthAuthorizeApiRequestMatcher() {
+        UaaRequestMatcher bean = new UaaRequestMatcher("/oauth/authorize");
+        bean.setParameters(
+                Map.ofEntries(
+                        entry("prompt", "none")
+                )
+        );
+        return bean;
+    }
+    
+    @Bean("authzAuthenticationFilter")
+    AuthzAuthenticationFilter authzAuthenticationFilter(
+            @Autowired DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager
+    ) {
+        AuthzAuthenticationFilter bean = new AuthzAuthenticationFilter(zoneAwareAuthzAuthenticationManager);
+        bean.setParameterNames(
+                asList(
+                        "username",
+                        "password",
+                        "passcode",
+                        "credentials"
+                )
+        );
+        return bean;
+    }
 //    @Bean
 //    UaaTokenServices tokenServices() {
 //        <constructor-arg name="idTokenCreator" ref="idTokenCreator"/>

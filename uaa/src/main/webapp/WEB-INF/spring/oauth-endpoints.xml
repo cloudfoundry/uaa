@@ -41,59 +41,6 @@
         </aop:aspect>
     </aop:config>
 
-    <bean id="oauthAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/authorize"/>
-        <property name="accept">
-            <list>
-                <value>application/json</value>
-                <value>application/x-www-form-urlencoded</value>
-            </list>
-        </property>
-        <property name="parameters">
-            <map>
-                <entry key="response_type" value="token"/>
-                <entry key="source" value="credentials"/>
-            </map>
-        </property>
-    </bean>
-
-    <bean id="oauthAuthorizeApiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/authorize"/>
-        <property name="headers">
-            <map>
-                <entry key="Authorization" value="bearer "/>
-            </map>
-        </property>
-        <property name="parameters">
-            <map>
-                <entry key="response_type" value="code"/>
-                <entry key="client_id" value=""/>
-            </map>
-        </property>
-    </bean>
-
-    <bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
-        <constructor-arg ref="zoneAwareAuthzAuthenticationManager"/>
-        <property name="parameterNames">
-            <list>
-                <value>username</value>
-                <value>password</value>
-                <value>passcode</value>
-                <value>credentials</value>
-            </list>
-        </property>
-    </bean>
-
-    <bean id="promptOauthAuthorizeApiRequestMatcher"
-                    class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/authorize"/>
-        <property name="parameters">
-            <map>
-                <entry key="prompt" value="none"/>
-            </map>
-        </property>
-    </bean>
-
     <bean id="passwordChangeRequiredFilter"
                     class="org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter">
         <constructor-arg name="entryPoint" ref="uaaAuthorizationEndpoint"/>
