@@ -39,6 +39,7 @@ import org.cloudfoundry.identity.uaa.oauth.TokenValidationService;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
+import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
@@ -778,21 +779,36 @@ public class OauthEndpointBeanConfiguration {
         return new ApprovalService(timeService, approvalStore);
     }
 
-//    @Bean
-//    UaaTokenServices tokenServices() {
-//        <constructor-arg name="idTokenCreator" ref="idTokenCreator"/>
-//        <constructor-arg name="tokenEndpointBuilder" ref="tokenEndpointBuilder"/>
-//        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
-//        <constructor-arg name="revocableTokenProvisioning" ref="revocableTokenProvisioning"/>
-//        <constructor-arg name="tokenValidationService" ref="tokenValidationService"/>
-//        <constructor-arg name="refreshTokenCreator" ref="refreshTokenCreator"/>
-//        <constructor-arg name="timeService" ref="timeService"/>
-//        <constructor-arg name="accessTokenValidityResolver" ref="accessTokenValidityResolver"/>
-//        <constructor-arg name="userDatabase" ref="userDatabase"/>
-//        <constructor-arg name="approvalService" ref="approvalService"/>
-//        <constructor-arg name="excludedClaims" ref="excludedClaims"/>
-//        <constructor-arg name="globalTokenPolicy" ref="globalTokenPolicy"/>
-//        <constructor-arg name="keyInfoService" ref="keyInfoService"/>
-//        <constructor-arg name="idTokenGranter" ref="idTokenGranter"/>
-//    }
+    @Bean("tokenServices")
+    UaaTokenServices tokenServices(
+            @Qualifier("idTokenCreator") IdTokenCreator idTokenCreator,
+            @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
+            @Qualifier("revocableTokenProvisioning") RevocableTokenProvisioning revocableTokenProvisioning,
+            @Qualifier("tokenValidationService") TokenValidationService tokenValidationService,
+            @Qualifier("refreshTokenCreator") RefreshTokenCreator refreshTokenCreator,
+            @Qualifier("accessTokenValidityResolver") TokenValidityResolver accessTokenValidityResolver,
+            @Qualifier("userDatabase") UaaUserDatabase userDatabase,
+            @Qualifier("approvalService") ApprovalService approvalService,
+            @Qualifier("excludedClaims") LinkedHashSet<String> excludedClaims,
+            @Qualifier("globalTokenPolicy") TokenPolicy globalTokenPolicy,
+            @Qualifier("keyInfoService") KeyInfoService keyInfoService,
+            @Qualifier("idTokenGranter") IdTokenGranter idTokenGranter
+    ) {
+        return new UaaTokenServices(
+                idTokenCreator,
+                tokenEndpointBuilder,
+                jdbcClientDetailsService,
+                revocableTokenProvisioning,
+                tokenValidationService,
+                refreshTokenCreator,
+                timeService,
+                accessTokenValidityResolver,
+                userDatabase,
+                excludedClaims,
+                globalTokenPolicy,
+                keyInfoService,
+                idTokenGranter,
+                approvalService
+        );
+    }
 }
