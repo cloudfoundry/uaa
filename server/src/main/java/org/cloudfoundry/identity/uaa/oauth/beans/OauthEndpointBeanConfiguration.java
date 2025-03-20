@@ -16,10 +16,12 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
+import org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
@@ -320,6 +322,18 @@ public class OauthEndpointBeanConfiguration {
                 entry("passcode", "")
         ));
         return bean;
+    }
+
+    @Bean("hybridTokenGranterForAuthCodeGrant")
+    HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCodeGrant(
+            @Qualifier("tokenServices") AuthorizationServerTokenServices tokenServices,
+            @Qualifier("authorizationRequestManager") OAuth2RequestFactory authorizationRequestManager
+    ) {
+        return new HybridTokenGranterForAuthorizationCode(
+                tokenServices,
+                jdbcClientDetailsService,
+                authorizationRequestManager
+        );
     }
 //
 //    @Bean("clientAuthenticationProvider")

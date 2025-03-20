@@ -62,12 +62,12 @@
 <!--    </bean>-->
 
 
-    <bean id="hybridTokenGranterForAuthCodeGrant"
-                    class="org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode">
-        <constructor-arg index="0" ref="tokenServices"/>
-        <constructor-arg index="1" ref="jdbcClientDetailsService"/>
-        <constructor-arg index="2" ref="authorizationRequestManager"/>
-    </bean>
+<!--    <bean id="hybridTokenGranterForAuthCodeGrant"-->
+<!--                    class="org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode">-->
+<!--        <constructor-arg index="0" ref="tokenServices"/>-->
+<!--        <constructor-arg index="1" ref="jdbcClientDetailsService"/>-->
+<!--        <constructor-arg index="2" ref="authorizationRequestManager"/>-->
+<!--    </bean>-->
 
     <bean id="oauthTokenApiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/oauth/token"/>
