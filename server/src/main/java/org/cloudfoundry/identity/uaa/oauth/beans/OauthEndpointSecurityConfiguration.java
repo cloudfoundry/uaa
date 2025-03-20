@@ -482,27 +482,27 @@ class OauthEndpointSecurityConfiguration {
 //        return new UaaFilterChain(chain, "promptStatelessTokenApiSecurity");
 //    }
 
-//    @Bean
-//    @Order(FilterChainOrder.OAUTH_09)
-//    UaaFilterChain externalOAuthCallbackEndpointSecurity(HttpSecurity http) throws Exception {
-//        SecurityFilterChain chain = http
-//                .securityMatcher(oauthAuthorizeRequestMatcherOld)
-//                .authenticationManager(zoneAwareAuthzAuthenticationManager)
-//                .authorizeHttpRequests( auth -> {
-//                    auth.requestMatchers("/**").access(anyOf().fullyAuthenticated());
-//                    auth.anyRequest().denyAll();
-//                })
-//                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
-//                .addFilterAt(externalOAuthCallbackAuthenticationFilter, BasicAuthenticationFilter.class)
-//                .anonymous(AnonymousConfigurer::disable)
-//                .csrf(CsrfConfigurer::disable)
-//                .exceptionHandling(exception ->
-//                        exception.authenticationEntryPoint(loginEntryPoint)
-//                )
-//                .build();
-//
-//        return new UaaFilterChain(chain, "externalOAuthCallbackEndpointSecurity");
-//    }
+    @Bean
+    @Order(FilterChainOrder.OAUTH_09)
+    UaaFilterChain externalOAuthCallbackEndpointSecurity(HttpSecurity http) throws Exception {
+        SecurityFilterChain chain = http
+                .securityMatcher(externalOAuthCallbackRequestMatcher)
+                .authenticationManager(zoneAwareAuthzAuthenticationManager)
+                .authorizeHttpRequests( auth -> {
+                    auth.requestMatchers(externalOAuthCallbackRequestMatcher).access(anyOf().fullyAuthenticated());
+                    auth.anyRequest().denyAll();
+                })
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
+                .addFilterAt(externalOAuthCallbackAuthenticationFilter, BasicAuthenticationFilter.class)
+                .anonymous(AnonymousConfigurer::disable)
+                .csrf(CsrfConfigurer::disable)
+                .exceptionHandling(exception ->
+                        exception.authenticationEntryPoint(loginEntryPoint)
+                )
+                .build();
+
+        return new UaaFilterChain(chain, "externalOAuthCallbackEndpointSecurity");
+    }
 
     @Bean
     @Order(FilterChainOrder.OAUTH_10)
@@ -511,7 +511,7 @@ class OauthEndpointSecurityConfiguration {
                 .securityMatcher(oauthAuthorizeRequestMatcherOld)
                 .authenticationManager(zoneAwareAuthzAuthenticationManager)
                 .authorizeHttpRequests( auth -> {
-                    auth.requestMatchers("/**").access(anyOf().fullyAuthenticated());
+                    auth.requestMatchers(oauthAuthorizeRequestMatcherOld).access(anyOf().fullyAuthenticated());
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))

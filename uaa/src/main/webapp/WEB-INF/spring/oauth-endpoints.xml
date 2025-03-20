@@ -164,18 +164,18 @@
 <!-- For backwards compatibility to the old way of posting credentials to /authorize endpoint
      /oauth/authorize response_type=token&credentials={
 -->
-    <http name="oldAuthzEndpointSecurity" request-matcher-ref="oauthAuthorizeRequestMatcherOld"
-                    create-session="stateless"
-                    entry-point-ref="oauthAuthenticationEntryPoint"
-                    authentication-manager-ref="zoneAwareAuthzAuthenticationManager"
-                    xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>
-        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
-        <custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER"/>
-        <anonymous enabled="false"/>
-        <access-denied-handler ref="oauthAccessDeniedHandler"/>
-        <csrf disabled="true"/>
-    </http>
+<!--    <http name="oldAuthzEndpointSecurity" request-matcher-ref="oauthAuthorizeRequestMatcherOld"-->
+<!--                    create-session="stateless"-->
+<!--                    entry-point-ref="oauthAuthenticationEntryPoint"-->
+<!--                    authentication-manager-ref="zoneAwareAuthzAuthenticationManager"-->
+<!--                    xmlns="http://www.springframework.org/schema/security" use-expressions="false">-->
+<!--        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY"/>-->
+<!--        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>-->
+<!--        <custom-filter ref="authzAuthenticationFilter" position="FORM_LOGIN_FILTER"/>-->
+<!--        <anonymous enabled="false"/>-->
+<!--        <access-denied-handler ref="oauthAccessDeniedHandler"/>-->
+<!--        <csrf disabled="true"/>-->
+<!--    </http>-->
 
     <bean id="passcodeTokenMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/oauth/token"/>
