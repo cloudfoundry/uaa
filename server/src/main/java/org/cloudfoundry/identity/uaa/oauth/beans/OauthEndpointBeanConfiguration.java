@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
+import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
@@ -7,6 +10,8 @@ import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
@@ -52,6 +57,16 @@ public class OauthEndpointBeanConfiguration {
     @Autowired
     IdentityZoneManager identityZoneManager;
 
+    @Autowired
+    JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    ClientAccessTokenValidity clientAccessTokenValidity;
+
+    @Autowired DatabaseProperties databaseProperties;
+
+    @Autowired DbUtils dbUtils;
+
     @Bean("loginEntryPoint")
     CsrfAwareEntryPointAndDeniedHandler loginEntryPoint() {
         return new CsrfAwareEntryPointAndDeniedHandler("/invalid_request", "/login?error=invalid_login_request");
@@ -81,7 +96,6 @@ public class OauthEndpointBeanConfiguration {
 
     @Bean
     TokenValidityResolver accessTokenValidityResolver(
-            @Autowired ClientAccessTokenValidity clientAccessTokenValidity,
             @Value("${jwt.token.policy.global.accessTokenValiditySeconds:43200}") int accessTokenValidity
     ) {
         return new TokenValidityResolver(
@@ -93,8 +107,7 @@ public class OauthEndpointBeanConfiguration {
 
     @Bean("clientDetailsUserService")
     UaaClientDetailsUserDetailsService clientDetailsUserService() {
-        UaaClientDetailsUserDetailsService bean = new UaaClientDetailsUserDetailsService(jdbcClientDetailsService);
-        return bean;
+        return new UaaClientDetailsUserDetailsService(jdbcClientDetailsService);
     }
 
     @Bean("defaultUserAuthorities")
@@ -124,12 +137,7 @@ public class OauthEndpointBeanConfiguration {
 
 
     @Bean("userDatabase")
-    JdbcUaaUserDatabase userDatabase(
-            @Autowired TimeService timeService,
-            @Autowired JdbcTemplate jdbcTemplate,
-            @Autowired DatabaseProperties databaseProperties,
-            @Autowired IdentityZoneManager identityZoneManager,
-            @Autowired DbUtils dbUtils) throws SQLException {
+    JdbcUaaUserDatabase userDatabase() throws SQLException {
         return new JdbcUaaUserDatabase(
                 jdbcTemplate,
                 timeService,
@@ -138,26 +146,48 @@ public class OauthEndpointBeanConfiguration {
                 dbUtils
         );
     }
-//
-//    @Bean("userLockoutPolicy")
-//    LockoutPolicy userLockoutPolicy() {
-//
-//    }
-//
-//    @Bean("defaultUserLockoutPolicy")
-//    LockoutPolicy defaultUserLockoutPolicy() {
-//
-//    }
-//
-//    @Bean("globalUserLockoutPolicyRetriever")
-//    UserLockoutPolicyRetriever globalUserLockoutPolicyRetriever() {
-//
-//    }
-//
-//    @Bean("globalPeriodLockoutPolicy")
-//    PeriodLockoutPolicy globalPeriodLockoutPolicy() {
-//
-//    }
+
+    @Bean("userLockoutPolicy")
+    LockoutPolicy userLockoutPolicy(
+            @Value("${authentication.policy.countFailuresWithinSeconds:#{defaultUserLockoutPolicy.getCountFailuresWithin()}}") int countFailuresWithin,
+            @Value("${authentication.policy.lockoutAfterFailures:#{defaultUserLockoutPolicy.getLockoutAfterFailures()}}") int lockoutAfterFailures,
+            @Value("${authentication.policy.lockoutPeriodSeconds:#{defaultUserLockoutPolicy.getLockoutPeriodSeconds()}}") int lockoutPeriodSeconds
+    ) {
+        return new LockoutPolicy(
+                countFailuresWithin,
+                lockoutAfterFailures,
+                lockoutPeriodSeconds
+        );
+    }
+
+    @Bean("defaultUserLockoutPolicy")
+    LockoutPolicy defaultUserLockoutPolicy(@Value("${authentication.policy.global.countFailuresWithinSeconds:1200}") int countFailuresWithin,
+                                           @Value("${authentication.policy.global.lockoutAfterFailures:5}") int lockoutAfterFailures,
+                                           @Value("${authentication.policy.global.lockoutPeriodSeconds:300}") int lockoutPeriodSeconds
+    ) {
+        return new LockoutPolicy(
+                countFailuresWithin,
+                lockoutAfterFailures,
+                lockoutPeriodSeconds
+        );
+    }
+
+    @Bean
+    UserLockoutPolicyRetriever globalUserLockoutPolicyRetriever(
+            @Autowired @Qualifier("defaultUserLockoutPolicy") LockoutPolicy lockoutPolicy,
+            @Autowired @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning
+    ) {
+        UserLockoutPolicyRetriever bean = new UserLockoutPolicyRetriever(providerProvisioning);
+        bean.setDefaultLockoutPolicy(lockoutPolicy);
+        return bean;
+    }
+
+    @Bean("globalPeriodLockoutPolicy")
+    PeriodLockoutPolicy globalPeriodLockoutPolicy(
+            @Autowired @Qualifier("globalUserLoginPolicy") LoginPolicy loginPolicy
+    ) {
+        return new PeriodLockoutPolicy(loginPolicy);
+    }
 //
 //    @Bean("globalUserLoginPolicy")
 //    CommonLoginPolicy globalUserLoginPolicy() {
