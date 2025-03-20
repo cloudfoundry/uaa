@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
+import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
@@ -35,8 +36,10 @@ import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
@@ -62,6 +65,7 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpSession;
 import java.security.NoSuchAlgorithmException;
@@ -505,6 +509,61 @@ public class OauthEndpointBeanConfiguration {
     ) {
         return new CurrentUserCookieRequestFilter(currentUserCookieFactory);
     }
+
+    @Bean("externalOAuthAuthenticationManager")
+    ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager(
+        @Qualifier("externalOAuthProviderConfigurator") IdentityProviderProvisioning providerProvisioning,
+        @Qualifier("trustingRestTemplate") RestTemplate trustingRestTemplate,
+        @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate,
+        @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
+        @Qualifier("keyInfoService") KeyInfoService keyInfoService,
+        @Qualifier("oidcMetadataFetcher") OidcMetadataFetcher oidcMetadataFetcher,
+        @Qualifier("userDatabase") UaaUserDatabase userDatabase,
+        @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager externalMembershipManager
+    ) {
+        ExternalOAuthAuthenticationManager bean = new ExternalOAuthAuthenticationManager(
+                providerProvisioning,
+                trustingRestTemplate,
+                nonTrustingRestTemplate,
+                tokenEndpointBuilder,
+                keyInfoService,
+                oidcMetadataFetcher
+        );
+        bean.setUserDatabase(userDatabase);
+        bean.setExternalMembershipManager(externalMembershipManager);
+        return bean;
+    }
+
+    @Bean("externalOAuthCallbackAuthenticationFilter")
+    ExternalOAuthAuthenticationFilter externalOAuthCallbackAuthenticationFilter(
+            @Qualifier("externalOAuthAuthenticationManager") ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager,
+            @Qualifier("accountSavingAuthenticationSuccessHandler") AccountSavingAuthenticationSuccessHandler successHandler
+    ) {
+        return new ExternalOAuthAuthenticationFilter(
+                externalOAuthAuthenticationManager,
+                successHandler
+        );
+    }
+
+    @Bean("externalOAuthCallbackRequestMatcher")
+    UaaRequestMatcher externalOAuthCallbackRequestMatcher() {
+        return new UaaRequestMatcher("/login/callback");
+    }
+
+    @Bean("oauthAuthorizeRequestMatcherOld")
+    UaaRequestMatcher oauthAuthorizeRequestMatcherOld() {
+        UaaRequestMatcher bean = new UaaRequestMatcher("/oauth/authorize");
+        bean.setAccept(asList(MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE));
+        bean.setParameters(
+                Map.ofEntries(
+                        entry("response_type", "token"),
+                        entry("credentials", "{")
+                )
+        );
+        return bean;
+    }
+
+
 
 //    @Bean
 //    UaaTokenServices tokenServices() {
