@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.cloudfoundry.identity.uaa.approval.ApprovalService;
+import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter;
@@ -33,16 +35,20 @@ import org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCod
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
+import org.cloudfoundry.identity.uaa.oauth.TokenValidationService;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
 import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenCreator;
+import org.cloudfoundry.identity.uaa.oauth.openid.IdTokenGranter;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
 import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.refresh.RefreshTokenCreator;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationFilter;
@@ -723,6 +729,53 @@ public class OauthEndpointBeanConfiguration {
                 excludedClaims,
                 identityZoneManager
         );
+    }
+
+    @Bean("refreshTokenCreator")
+    RefreshTokenCreator refreshTokenCreator(
+            @Value("${jwt.token.refresh.restrict_grant:false}") boolean isRestrictRefreshGrant,
+            @Qualifier("refreshTokenValidityResolver") TokenValidityResolver tokenValidityResolver,
+            @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
+            @Qualifier("keyInfoService") KeyInfoService keyInfoService
+    ) {
+        return new RefreshTokenCreator(
+                isRestrictRefreshGrant,
+                tokenValidityResolver,
+                tokenEndpointBuilder,
+                timeService,
+                keyInfoService
+        );
+    }
+
+    @Bean("tokenValidationService")
+    TokenValidationService tokenValidationService(
+            @Qualifier("revocableTokenProvisioning") RevocableTokenProvisioning revocableTokenProvisioning,
+            @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
+            @Qualifier("userDatabase") UaaUserDatabase uaaUserDatabase,
+            @Qualifier("keyInfoService") KeyInfoService keyInfoService
+    ) {
+        return new TokenValidationService(
+                revocableTokenProvisioning,
+                tokenEndpointBuilder,
+                uaaUserDatabase,
+                jdbcClientDetailsService,
+                keyInfoService
+        );
+    }
+
+    @Bean("approvalStore")
+    JdbcApprovalStore approvalStore() {
+        return new JdbcApprovalStore(jdbcTemplate);
+    }
+
+    @Bean("idTokenGranter")
+    IdTokenGranter idTokenGranter(@Qualifier("approvalService")ApprovalService approvalService) {
+        return new IdTokenGranter(approvalService);
+    }
+
+    @Bean("approvalService")
+    ApprovalService approvalService(@Qualifier("approvalStore") JdbcApprovalStore approvalStore) {
+        return new ApprovalService(timeService, approvalStore);
     }
 
 //    @Bean
