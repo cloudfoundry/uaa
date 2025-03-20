@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
+import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
@@ -46,6 +48,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.AuthenticationEntryPoint;
 
 import javax.servlet.http.HttpSession;
 import java.security.NoSuchAlgorithmException;
@@ -347,18 +350,40 @@ public class OauthEndpointBeanConfiguration {
         ));
         return bean;
     }
+
+    @Bean("clientAuthenticationFilter")
+    ClientBasicAuthenticationFilter clientAuthenticationFilter(
+            @Qualifier("clientAuthenticationManager") AuthenticationManager clientAuthenticationManager,
+            @Qualifier("basicAuthenticationEntryPoint") AuthenticationEntryPoint basicAuthenticationEntryPoint,
+            @Value("${authentication.enableUriEncodingCompatibilityMode:false}") boolean enableUriEncodingCompatibilityMod,
+            @Qualifier("authenticationDetailsSource")AuthenticationDetailsSource authenticationDetailsSource
+    ) {
+        ClientBasicAuthenticationFilter bean = new ClientBasicAuthenticationFilter(
+                clientAuthenticationManager,
+                basicAuthenticationEntryPoint,
+                enableUriEncodingCompatibilityMod
+        );
+        bean.setAuthenticationDetailsSource(authenticationDetailsSource);
+        return bean;
+    }
+
+    @Bean("clientParameterAuthenticationFilter")
+    ClientParametersAuthenticationFilter clientParameterAuthenticationFilter(
+            @Qualifier("clientAuthenticationManager") AuthenticationManager clientAuthenticationManager,
+            @Qualifier("basicAuthenticationEntryPoint") AuthenticationEntryPoint basicAuthenticationEntryPoint
+    ) {
+        ClientParametersAuthenticationFilter bean = new ClientParametersAuthenticationFilter();
+        bean.setAuthenticationEntryPoint(basicAuthenticationEntryPoint);
+        bean.setClientAuthenticationManager(clientAuthenticationManager);
+        return bean;
+    }
 //
 //    @Bean("clientAuthenticationProvider")
 //    ClientDetailsAuthenticationProvider clientAuthenticationProvider() {
 //        ClientDetailsAuthenticationProvider bean = new ClientDetailsAuthenticationProvider();
 //    }
 //
-//    @Bean("clientParameterAuthenticationFilter")
-//    ClientParametersAuthenticationFilter clientParameterAuthenticationFilter() {
-//        ClientParametersAuthenticationFilter bean = new ClientParametersAuthenticationFilter();
-//
-//
-//    }
+
 
 
 //    @Bean

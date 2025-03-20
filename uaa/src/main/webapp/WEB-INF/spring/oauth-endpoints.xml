@@ -83,21 +83,21 @@
 <!--        </property>-->
 <!--    </bean>-->
 
-    <bean id="clientAuthenticationFilter"
-                    class="org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter">
-        <constructor-arg ref="clientAuthenticationManager"/>
-        <constructor-arg ref="basicAuthenticationEntryPoint"/>
-        <constructor-arg name="enableUriEncodingCompatibilityMode"
-                              value="${authentication.enableUriEncodingCompatibilityMode:false}"
-        />
-        <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>
-    </bean>
+<!--    <bean id="clientAuthenticationFilter"-->
+<!--                    class="org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter">-->
+<!--        <constructor-arg ref="clientAuthenticationManager"/>-->
+<!--        <constructor-arg ref="basicAuthenticationEntryPoint"/>-->
+<!--        <constructor-arg name="enableUriEncodingCompatibilityMode"-->
+<!--                              value="${authentication.enableUriEncodingCompatibilityMode:false}"-->
+<!--        />-->
+<!--        <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>-->
+<!--    </bean>-->
 
-    <bean id="clientParameterAuthenticationFilter"
-                    class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">
-        <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
-        <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint"/>
-    </bean>
+<!--    <bean id="clientParameterAuthenticationFilter"-->
+<!--                    class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">-->
+<!--        <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>-->
+<!--        <property name="authenticationEntryPoint" ref="basicAuthenticationEntryPoint"/>-->
+<!--    </bean>-->
 
     <bean id="compositeAuthenticationManager"
                     class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager"/>
