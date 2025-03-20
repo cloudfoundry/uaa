@@ -25,21 +25,21 @@
         <oauth:password authentication-manager-ref="compositeAuthenticationManager"/>
     </oauth:authorization-server>
 
-    <bean id="passcodeTokenMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/token"/>
-        <property name="accept">
-            <list>
-                <value>application/json</value>
-                <value>application/x-www-form-urlencoded</value>
-            </list>
-        </property>
-        <property name="parameters">
-            <map>
-                <entry key="grant_type" value="password"/>
-                <entry key="passcode" value=""/>
-            </map>
-        </property>
-    </bean>
+<!--    <bean id="passcodeTokenMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">-->
+<!--        <constructor-arg value="/oauth/token"/>-->
+<!--        <property name="accept">-->
+<!--            <list>-->
+<!--                <value>application/json</value>-->
+<!--                <value>application/x-www-form-urlencoded</value>-->
+<!--            </list>-->
+<!--        </property>-->
+<!--        <property name="parameters">-->
+<!--            <map>-->
+<!--                <entry key="grant_type" value="password"/>-->
+<!--                <entry key="passcode" value=""/>-->
+<!--            </map>-->
+<!--        </property>-->
+<!--    </bean>-->
 
 
     <bean id="passcodeAuthenticationFilter"

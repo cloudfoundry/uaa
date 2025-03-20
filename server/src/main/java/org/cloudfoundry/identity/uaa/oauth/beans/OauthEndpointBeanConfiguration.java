@@ -189,16 +189,16 @@ public class OauthEndpointBeanConfiguration {
 //                );
 //    }
 //
-//    @Bean("passcodeTokenMatcher")
-//    UaaRequestMatcher passcodeTokenMatcher() {
-//        UaaRequestMatcher bean = new UaaRequestMatcher("/oauth/token");
-//        bean.setAccept(asList(MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE));
-//        bean.setParameters(Map.ofEntries(
-//                entry("grant_type", "password"),
-//                entry("passcode", "")
-//        ));
-//        return bean;
-//    }
+    @Bean("passcodeTokenMatcher")
+    UaaRequestMatcher passcodeTokenMatcher() {
+        UaaRequestMatcher bean = new UaaRequestMatcher("/oauth/token");
+        bean.setAccept(asList(MediaType.APPLICATION_JSON_VALUE, MediaType.APPLICATION_FORM_URLENCODED_VALUE));
+        bean.setParameters(Map.ofEntries(
+                entry("grant_type", "password"),
+                entry("passcode", "")
+        ));
+        return bean;
+    }
 //
 //    @Bean("clientAuthenticationProvider")
 //    ClientDetailsAuthenticationProvider clientAuthenticationProvider() {
