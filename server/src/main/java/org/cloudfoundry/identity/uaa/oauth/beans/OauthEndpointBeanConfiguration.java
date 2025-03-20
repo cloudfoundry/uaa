@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.oauth.beans;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
+import org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
@@ -10,6 +11,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthent
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
@@ -17,6 +19,7 @@ import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.oauth.TokenValidityResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2RequestValidator;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationManager;
@@ -24,6 +27,7 @@ import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandle
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
@@ -37,6 +41,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.authentication.AuthenticationDetailsSource;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import javax.servlet.http.HttpSession;
@@ -276,14 +282,35 @@ public class OauthEndpointBeanConfiguration {
                 externalOAuthAuthenticationManager
         );
     }
-//
-//    @Bean("passcodeAuthenticationFilter")
-//    PasscodeAuthenticationFilter passcodeAuthenticationFilter() {
-//        PasscodeAuthenticationFilter bean = new PasscodeAuthenticationFilter(
-//                userDatabase,
-//                );
-//    }
-//
+
+    @Bean("passcodeAuthenticationFilter")
+    PasscodeAuthenticationFilter passcodeAuthenticationFilter(
+            @Qualifier("userDatabase") UaaUserDatabase userDatabase,
+            @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
+            @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
+            @Qualifier("codeStore") ExpiringCodeStore expiringCodeStore,
+            @Qualifier("authenticationDetailsSource")AuthenticationDetailsSource authenticationDetailsSource
+            ) {
+        PasscodeAuthenticationFilter bean = new PasscodeAuthenticationFilter(
+                userDatabase,
+                authenticationManager,
+                oAuth2RequestFactory,
+                expiringCodeStore
+        );
+        bean.setAuthenticationDetailsSource(authenticationDetailsSource);
+        bean.setParameterNames(
+                Arrays.asList(
+                        "username",
+                        "password",
+                        "passcode",
+                        "credentials",
+                        "origin",
+                        "user_id"
+                )
+        );
+        return bean;
+    }
+
     @Bean("passcodeTokenMatcher")
     UaaRequestMatcher passcodeTokenMatcher() {
         UaaRequestMatcher bean = new UaaRequestMatcher("/oauth/token");

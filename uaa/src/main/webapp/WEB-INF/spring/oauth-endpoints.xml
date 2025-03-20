@@ -42,24 +42,24 @@
 <!--    </bean>-->
 
 
-    <bean id="passcodeAuthenticationFilter"
-                    class="org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter">
-        <constructor-arg ref="userDatabase"/>
-        <constructor-arg ref="zoneAwareAuthzAuthenticationManager"/>
-        <constructor-arg ref="authorizationRequestManager"/>
-        <constructor-arg ref="codeStore"/>
-        <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>
-        <property name="parameterNames">
-            <list>
-                <value>username</value>
-                <value>password</value>
-                <value>passcode</value>
-                <value>credentials</value>
-                <value>origin</value>
-                <value>user_id</value>
-            </list>
-        </property>
-    </bean>
+<!--    <bean id="passcodeAuthenticationFilter"-->
+<!--                    class="org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter">-->
+<!--        <constructor-arg ref="userDatabase"/>-->
+<!--        <constructor-arg ref="zoneAwareAuthzAuthenticationManager"/>-->
+<!--        <constructor-arg ref="authorizationRequestManager"/>-->
+<!--        <constructor-arg ref="codeStore"/>-->
+<!--        <property name="authenticationDetailsSource" ref="authenticationDetailsSource"/>-->
+<!--        <property name="parameterNames">-->
+<!--            <list>-->
+<!--                <value>username</value>-->
+<!--                <value>password</value>-->
+<!--                <value>passcode</value>-->
+<!--                <value>credentials</value>-->
+<!--                <value>origin</value>-->
+<!--                <value>user_id</value>-->
+<!--            </list>-->
+<!--        </property>-->
+<!--    </bean>-->
 
 
     <bean id="hybridTokenGranterForAuthCodeGrant"
