@@ -39,20 +39,4 @@
     <oauth:resource-server id="oauthWithoutResourceAuthenticationFilter" token-services-ref="tokenServices"
                     entry-point-ref="oauthAuthenticationEntryPoint"/>
 
-
-    <bean id="uaaAuthenticationMgr"
-                    class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
-        <constructor-arg name="delegate" ref="uaaUserDatabaseAuthenticationManager"/>
-        <constructor-arg name="origin" value="uaa"/>
-    </bean>
-
-    <bean id="zoneAwareAuthzAuthenticationManager"
-                    class="org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager"
-                    destroy-method="destroy">
-        <constructor-arg name="internalUaaAuthenticationManager" ref="uaaAuthenticationMgr"/>
-        <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
-        <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
-        <constructor-arg name="ldapLoginAuthenticationManager" ref="ldapLoginAuthenticationMgr"/>
-    </bean>
-
 </beans>

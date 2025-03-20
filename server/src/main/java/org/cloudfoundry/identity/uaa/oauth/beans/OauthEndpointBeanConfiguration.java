@@ -13,9 +13,11 @@ import org.cloudfoundry.identity.uaa.authentication.CurrentUserCookieRequestFilt
 import org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.PasswordGrantAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
@@ -57,6 +59,7 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationM
 import org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.web.TokenEndpointPostProcessor;
@@ -810,5 +813,34 @@ public class OauthEndpointBeanConfiguration {
                 idTokenGranter,
                 approvalService
         );
+    }
+
+    @Bean("uaaAuthenticationMgr")
+    CheckIdpEnabledAuthenticationManager uaaAuthenticationMgr(
+            @Qualifier("uaaUserDatabaseAuthenticationManager") AuthenticationManager delegate
+
+    ) {
+        return new CheckIdpEnabledAuthenticationManager(
+                delegate,
+                OriginKeys.UAA,
+                providerProvisioning
+        );
+    }
+
+    @Bean(value = "zoneAwareAuthzAuthenticationManager", destroyMethod = "destroy")
+    DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager(
+            CheckIdpEnabledAuthenticationManager uaaAuthenticationMgr,
+            @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager externalMembershipManager,
+            @Qualifier("scimGroupProvisioning")ScimGroupProvisioning scimGroupProvisioning,
+            @Qualifier("ldapLoginAuthenticationMgr")LdapLoginAuthenticationManager ldapLoginAuthenticationManager
+            ) {
+        return new DynamicZoneAwareAuthenticationManager(
+                providerProvisioning,
+                uaaAuthenticationMgr,
+                externalMembershipManager,
+                scimGroupProvisioning,
+                ldapLoginAuthenticationManager
+        );
+
     }
 }
