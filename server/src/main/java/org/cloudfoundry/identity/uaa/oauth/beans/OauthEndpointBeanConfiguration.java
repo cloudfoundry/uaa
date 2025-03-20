@@ -54,6 +54,7 @@ import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -605,6 +606,39 @@ public class OauthEndpointBeanConfiguration {
         );
     }
 
+    @Bean("signingKeysMap") //TODO break into a record or object
+    Map signingKeysMap(
+            @Value("#{@config['jwt']==null ? T(java.util.Collections).EMPTY_MAP : " +
+                   "@config['jwt.token']==null ? T(java.util.Collections).EMPTY_MAP :" +
+                   "@config['jwt.token.policy']==null ? T(java.util.Collections).EMPTY_MAP :" +
+                   "@config['jwt.token.policy.keys']==null ? T(java.util.Collections).EMPTY_MAP : @config['jwt.token.policy.keys']}")
+            Map<String, ? extends Map<String, String>> signingKeysMap
+    ) {
+        return signingKeysMap;
+    }
+    @Bean("uaaTokenPolicy")
+    TokenPolicy uaaTokenPolicy(
+            @Value("${jwt.token.policy.accessTokenValiditySeconds:#{globalTokenPolicy.getAccessTokenValidity()}}") int accessTokenValidity,
+            @Value("${jwt.token.policy.refreshTokenValiditySeconds:#{globalTokenPolicy.getRefreshTokenValidity()}}") int refreshTokenValidity,
+            @Qualifier("signingKeysMap") Map signingKeysMap,
+            @Value("${jwt.token.policy.activeKeyId:#{null}}") String activeKeyId,
+            @Value("${jwt.token.revocable:false}") boolean jwtRevocable,
+            @Value("${jwt.token.refresh.format:#{T(org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.TokenFormat).OPAQUE.getStringValue()}}") String refreshTokenFormat,
+            @Value("${jwt.token.refresh.unique:false}") boolean refreshTokenUnique,
+            @Value("${jwt.token.refresh.rotate:false}") boolean refreshTokenRotate
+    ) {
+        TokenPolicy bean = new TokenPolicy(
+                accessTokenValidity,
+                refreshTokenValidity,
+                signingKeysMap
+        );
+        bean.setActiveKeyId(activeKeyId);
+        bean.setJwtRevocable(jwtRevocable);
+        bean.setRefreshTokenFormat(refreshTokenFormat);
+        bean.setRefreshTokenUnique(refreshTokenUnique);
+        bean.setRefreshTokenRotate(refreshTokenRotate);
+        return bean;
+    }
 
 //    @Bean
 //    UaaTokenServices tokenServices() {
