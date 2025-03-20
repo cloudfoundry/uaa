@@ -442,21 +442,21 @@
 <!--        <constructor-arg ref="globalUserLoginPolicy"/>-->
 <!--    </bean>-->
 
-    <bean id="globalUserLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">
-        <constructor-arg index="0" ref="jdbcAuditService"/>
-        <constructor-arg index="1" ref="globalUserLockoutPolicyRetriever"/>
-        <constructor-arg index="2" value="UserAuthenticationSuccess"/>
-        <constructor-arg index="3" value="UserAuthenticationFailure"/>
-        <constructor-arg index="4" ref="timeService"/>
-        <constructor-arg index="5" value="true"/>
-    </bean>
+<!--    <bean id="globalUserLoginPolicy" class="org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy">-->
+<!--        <constructor-arg index="0" ref="jdbcAuditService"/>-->
+<!--        <constructor-arg index="1" ref="globalUserLockoutPolicyRetriever"/>-->
+<!--        <constructor-arg index="2" value="UserAuthenticationSuccess"/>-->
+<!--        <constructor-arg index="3" value="UserAuthenticationFailure"/>-->
+<!--        <constructor-arg index="4" ref="timeService"/>-->
+<!--        <constructor-arg index="5" value="true"/>-->
+<!--    </bean>-->
 
-    <bean id="uaaUserDatabaseAuthenticationManager"
-                    class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
-        <property name="accountLoginPolicy" ref="globalPeriodLockoutPolicy"/>
-        <property name="origin" value="uaa"/>
-        <property name="allowUnverifiedUsers" value="${allowUnverifiedUsers:true}"/>
-    </bean>
+<!--    <bean id="uaaUserDatabaseAuthenticationManager"-->
+<!--                    class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">-->
+<!--        <property name="accountLoginPolicy" ref="globalPeriodLockoutPolicy"/>-->
+<!--        <property name="origin" value="uaa"/>-->
+<!--        <property name="allowUnverifiedUsers" value="${allowUnverifiedUsers:true}"/>-->
+<!--    </bean>-->
 
     <bean id="uaaAuthenticationMgr"
                     class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">

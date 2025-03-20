@@ -1,9 +1,14 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
+import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.CommonLoginPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.LoginPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.authentication.manager.UserLockoutPolicyRetriever;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetailsUserDetailsService;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
 import org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity;
@@ -28,7 +33,9 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
+import javax.servlet.http.HttpSession;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -63,9 +70,23 @@ public class OauthEndpointBeanConfiguration {
     @Autowired
     ClientAccessTokenValidity clientAccessTokenValidity;
 
-    @Autowired DatabaseProperties databaseProperties;
+    @Autowired
+    DatabaseProperties databaseProperties;
 
-    @Autowired DbUtils dbUtils;
+    @Autowired
+    DbUtils dbUtils;
+
+    @Autowired
+    @Qualifier("jdbcAuditService")
+    JdbcAuditService jdbcAuditService;
+
+    @Autowired
+    @Qualifier("nonCachingPasswordEncoder")
+    PasswordEncoder encoder;
+
+    @Autowired
+    @Qualifier("identityProviderProvisioning")
+    IdentityProviderProvisioning providerProvisioning;
 
     @Bean("loginEntryPoint")
     CsrfAwareEntryPointAndDeniedHandler loginEntryPoint() {
@@ -174,8 +195,7 @@ public class OauthEndpointBeanConfiguration {
 
     @Bean
     UserLockoutPolicyRetriever globalUserLockoutPolicyRetriever(
-            @Autowired @Qualifier("defaultUserLockoutPolicy") LockoutPolicy lockoutPolicy,
-            @Autowired @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning
+            @Autowired @Qualifier("defaultUserLockoutPolicy") LockoutPolicy lockoutPolicy
     ) {
         UserLockoutPolicyRetriever bean = new UserLockoutPolicyRetriever(providerProvisioning);
         bean.setDefaultLockoutPolicy(lockoutPolicy);
@@ -188,16 +208,39 @@ public class OauthEndpointBeanConfiguration {
     ) {
         return new PeriodLockoutPolicy(loginPolicy);
     }
-//
-//    @Bean("globalUserLoginPolicy")
-//    CommonLoginPolicy globalUserLoginPolicy() {
-//
-//    }
-//
-//    @Bean("uaaUserDatabaseAuthenticationManager")
-//    AuthzAuthenticationManager uaaUserDatabaseAuthenticationManager() {
-//
-//    }
+
+    @Bean("globalUserLoginPolicy")
+    CommonLoginPolicy globalUserLoginPolicy(
+            @Autowired UserLockoutPolicyRetriever globalUserLockoutPolicyRetriever
+    ) {
+        return new CommonLoginPolicy(
+                jdbcAuditService,
+                globalUserLockoutPolicyRetriever,
+                AuditEventType.UserAuthenticationSuccess,
+                AuditEventType.UserAuthenticationFailure,
+                timeService,
+                true
+        );
+    }
+
+    @Bean("uaaUserDatabaseAuthenticationManager")
+    AuthzAuthenticationManager uaaUserDatabaseAuthenticationManager(
+            @Autowired JdbcUaaUserDatabase userDatabase,
+            @Qualifier("globalPeriodLockoutPolicy") PeriodLockoutPolicy lockoutPolicy,
+            @Value("${allowUnverifiedUsers:true}") boolean allowUnverifiedUsers,
+            @Autowired HttpSession session
+    ) {
+        AuthzAuthenticationManager bean = new AuthzAuthenticationManager(
+                userDatabase,
+                encoder,
+                providerProvisioning,
+                session
+        );
+        bean.setAccountLoginPolicy(lockoutPolicy);
+        bean.setOrigin(OriginKeys.UAA);
+        bean.setAllowUnverifiedUsers(allowUnverifiedUsers);
+        return bean;
+    }
 //
 //    @Bean("uaaAuthenticationMgr")
 //    CheckIdpEnabledAuthenticationManager uaaAuthenticationMgr() {
