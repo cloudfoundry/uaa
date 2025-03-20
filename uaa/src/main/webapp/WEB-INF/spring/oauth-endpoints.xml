@@ -69,19 +69,19 @@
 <!--        <constructor-arg index="2" ref="authorizationRequestManager"/>-->
 <!--    </bean>-->
 
-    <bean id="oauthTokenApiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
-        <constructor-arg value="/oauth/token"/>
-        <property name="headers">
-            <map>
-                <entry key="Authorization" value="bearer "/>
-            </map>
-        </property>
-        <property name="parameters">
-            <map>
-                <entry key="client_id" value=""/>
-            </map>
-        </property>
-    </bean>
+<!--    <bean id="oauthTokenApiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">-->
+<!--        <constructor-arg value="/oauth/token"/>-->
+<!--        <property name="headers">-->
+<!--            <map>-->
+<!--                <entry key="Authorization" value="bearer "/>-->
+<!--            </map>-->
+<!--        </property>-->
+<!--        <property name="parameters">-->
+<!--            <map>-->
+<!--                <entry key="client_id" value=""/>-->
+<!--            </map>-->
+<!--        </property>-->
+<!--    </bean>-->
 
     <bean id="clientAuthenticationFilter"
                     class="org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter">

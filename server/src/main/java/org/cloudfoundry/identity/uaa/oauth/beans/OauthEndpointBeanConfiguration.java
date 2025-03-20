@@ -335,6 +335,18 @@ public class OauthEndpointBeanConfiguration {
                 authorizationRequestManager
         );
     }
+
+    @Bean("oauthTokenApiRequestMatcher")
+    UaaRequestMatcher oauthTokenApiRequestMatcher() {
+        UaaRequestMatcher bean = new UaaRequestMatcher("/oauth/token");
+        bean.setHeaders(Map.ofEntries(
+                entry("Authorization", asList("bearer "))
+        ));
+        bean.setParameters(Map.ofEntries(
+                entry("client_id", "")
+        ));
+        return bean;
+    }
 //
 //    @Bean("clientAuthenticationProvider")
 //    ClientDetailsAuthenticationProvider clientAuthenticationProvider() {
