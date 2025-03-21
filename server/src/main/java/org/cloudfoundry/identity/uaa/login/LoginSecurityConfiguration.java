@@ -79,6 +79,7 @@ class LoginSecurityConfiguration {
     UaaFilterChain autologinCode(
             HttpSecurity http,
             CookieBasedCsrfTokenRepository csrfTokenRepository,
+            ReAuthenticationRequiredFilter reAuthenticationRequiredFilter,
             @Qualifier("autologinAuthenticationFilter") AuthzAuthenticationFilter autologinFilter
     ) throws Exception {
         var autologinMatcher = new UaaRequestMatcher("/autologin");
