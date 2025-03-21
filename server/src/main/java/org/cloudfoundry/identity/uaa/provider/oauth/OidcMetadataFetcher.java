@@ -86,7 +86,7 @@ public class OidcMetadataFetcher {
         if (authorizationValue != null) {
             headers.add("Authorization", authorizationValue);
         }
-        headers.add("Accept", "application/json");
+        headers.add("Accept", "application/json,application/jwk-set+json");
         HttpEntity<Object> tokenKeyRequest = new HttpEntity<>(null, headers);
         if (isCached) {
             return getCachedResponse(uri, isSkipSslValidation, HttpMethod.GET, tokenKeyRequest);

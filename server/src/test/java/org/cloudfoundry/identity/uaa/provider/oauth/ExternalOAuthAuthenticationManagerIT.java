@@ -950,7 +950,7 @@ class ExternalOAuthAuthenticationManagerIT {
         mockToken();
         mockUaaServer.expect(requestTo("http://localhost/token_key"))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
-                .andExpect(header("Accept", "application/json"))
+                .andExpect(header("Accept", "application/json,application/jwk-set+json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
 
         mockToken();
@@ -1265,7 +1265,7 @@ class ExternalOAuthAuthenticationManagerIT {
         mockToken();
         mockUaaServer.expect(requestTo(keyUrl))
                 .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
-                .andExpect(header("Accept", "application/json"))
+                .andExpect(header("Accept", "application/json,application/jwk-set+json"))
                 .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
 
