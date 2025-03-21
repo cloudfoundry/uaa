@@ -100,6 +100,7 @@ class LoginSecurityConfiguration {
                     csrf.csrfTokenRepository(csrfTokenRepository);
                 })
                 .addFilterAt(autologinFilter, UsernamePasswordAuthenticationFilter.class)
+                .headers(headers -> headers.xssProtection(xss -> xss.disable()))
                 .exceptionHandling(EXCEPTION_HANDLING)
                 .build();
         return new UaaFilterChain(originalChain);
@@ -122,6 +123,7 @@ class LoginSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(clientBasicAuthenticationFilter, BasicAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
+                .headers(headers -> headers.xssProtection(xss -> xss.disable()))
                 .build();
         return new UaaFilterChain(originalChain);
     }
@@ -149,6 +151,7 @@ class LoginSecurityConfiguration {
                     securityContext.securityContextRepository(securityContextRepository);
                 })
                 .csrf(csrf -> csrf.csrfTokenRepository(csrfTokenRepository))
+                .headers(headers -> headers.xssProtection(xss -> xss.disable()))
                 .exceptionHandling(EXCEPTION_HANDLING)
                 .build();
         return new UaaFilterChain(originalChain);
@@ -174,6 +177,7 @@ class LoginSecurityConfiguration {
                 })
                 .addFilterBefore(oauth2ResourceFilter, AbstractPreAuthenticatedProcessingFilter.class)
                 .csrf(CsrfConfigurer::disable)
+                .headers(headers -> headers.xssProtection(xss -> xss.disable()))
                 .exceptionHandling(exception -> {
                     var authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
                     authenticationEntryPoint.setRealmName("UAA/oauth");
@@ -206,6 +210,7 @@ class LoginSecurityConfiguration {
                     csrf.ignoringRequestMatchers("/forgot_password.do");
                     csrf.csrfTokenRepository(csrfTokenRepository);
                 })
+                .headers(headers -> headers.xssProtection(xss -> xss.disable()))
                 .addFilterBefore(disableUserManagementSecurityFilter, AnonymousAuthenticationFilter.class)
                 .addFilterAfter(resetPasswordAuthenticationFilter, AuthorizationFilter.class)
                 .exceptionHandling(EXCEPTION_HANDLING)
@@ -266,6 +271,7 @@ class LoginSecurityConfiguration {
                 .addFilterAt(logoutFilter, LogoutFilter.class)
                 .exceptionHandling(EXCEPTION_HANDLING)
                 .requestCache(cache -> cache.requestCache(clientRedirectStateCache))
+                .headers(headers -> headers.xssProtection(xss -> xss.disable()))
                 .build();
         return new UaaFilterChain(originalChain);
     }
