@@ -26,6 +26,7 @@ public class CompositeTokenGranter implements TokenGranter {
 
     private final List<TokenGranter> tokenGranters;
 
+    @Deprecated(since = "This constructor is only used in unit tests", forRemoval = true)
     public CompositeTokenGranter(
             final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
             final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
