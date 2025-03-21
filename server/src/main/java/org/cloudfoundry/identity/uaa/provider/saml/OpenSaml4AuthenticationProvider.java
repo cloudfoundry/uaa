@@ -20,6 +20,8 @@ import lombok.Getter;
 import net.shibboleth.utilities.java.support.xml.ParserPool;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.ZoneAware;
 import org.opensaml.core.config.ConfigurationService;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistry;
@@ -105,7 +107,7 @@ import java.util.function.Consumer;
  * Once we can move to the spring-security version of OpenSaml4AuthenticationProvider,
  * this class should be removed, along with OpenSamlDecryptionUtils and OpenSamlVerificationUtils.
  */
-public final class OpenSaml4AuthenticationProvider implements AuthenticationProvider {
+public final class OpenSaml4AuthenticationProvider implements AuthenticationProvider, ZoneAware {
 
     static {
         OpenSamlInitializationService.initialize();
@@ -357,6 +359,15 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
         }
     }
 
+    private boolean isWantAssertionSigned() {
+        IdentityZone currentZone = retrieveZone();
+
+        boolean isWantAssertionSigned = false;
+        if (currentZone.getConfig() != null && currentZone.getConfig().getSamlConfig() != null) {
+            isWantAssertionSigned = currentZone.getConfig().getSamlConfig().isWantAssertionSigned();
+        }
+        return isWantAssertionSigned;
+    }
     private void process(Saml2AuthenticationToken token, Response response) {
         String issuer = response.getIssuer().getValue();
         this.logger.debug(LogMessage.format("Processing SAML response from %s", issuer));
@@ -364,11 +375,18 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
 
         ResponseToken responseToken = new ResponseToken(response, token);
         Saml2ResponseValidatorResult result = this.responseSignatureValidator.convert(responseToken);
+        boolean encryptedAssertion = false;
         if (responseSigned) {
             this.responseElementsDecrypter.accept(responseToken);
         } else if (!response.getEncryptedAssertions().isEmpty()) {
-            result = result.concat(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
-                    "Did not decrypt response [" + response.getID() + "] since it is not signed"));
+            if (isWantAssertionSigned()) {
+                result = result.concat(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE,
+                        "Did not decrypt response [" + response.getID() + "] since it is not signed"));
+            } else {
+                // accept the response if it has at least one encrypted assertion
+                this.responseElementsDecrypter.accept(responseToken);
+                encryptedAssertion = true;
+            }
         }
         result = result.concat(this.responseValidator.convert(responseToken));
         boolean allAssertionsSigned = true;
@@ -381,7 +399,7 @@ public final class OpenSaml4AuthenticationProvider implements AuthenticationProv
             }
             result = result.concat(this.assertionValidator.convert(assertionToken));
         }
-        if (!responseSigned && !allAssertionsSigned) {
+        if (!responseSigned && !allAssertionsSigned && !encryptedAssertion) {
             String description = "Either the response or one of the assertions is unsigned. "
                     + "Please either sign the response or all of the assertions.";
             result = result.concat(new Saml2Error(Saml2ErrorCodes.INVALID_SIGNATURE, description));

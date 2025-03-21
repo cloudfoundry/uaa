@@ -3,6 +3,9 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import net.shibboleth.utilities.java.support.xml.SerializeSupport;
 import org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4AuthenticationProvider.ResponseToken;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.opensaml.core.xml.XMLObject;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
@@ -57,6 +60,7 @@ import static java.util.Map.entry;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatExceptionOfType;
 import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
+import static org.assertj.core.api.Assertions.assertThatNoException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.mock;
@@ -86,6 +90,10 @@ class OpenSaml4AuthenticationProviderUnitTests {
     private static final String ASSERTING_PARTY_ENTITY_ID = "https://some.idp.test/saml2/idp";
 
     private final OpenSaml4AuthenticationProvider provider = new OpenSaml4AuthenticationProvider();
+
+    @AfterEach void cleanup() {
+        IdentityZoneHolder.clear();
+    }
 
     @Test
     void supportsWhenSaml2AuthenticationTokenThenReturnTrue() {
@@ -393,6 +401,19 @@ class OpenSaml4AuthenticationProviderUnitTests {
         assertThatExceptionOfType(Saml2AuthenticationException.class)
                 .isThrownBy(() -> this.provider.authenticate(token))
                 .satisfies(errorOf(Saml2ErrorCodes.INVALID_SIGNATURE, "Did not decrypt response"));
+    }
+
+    @Test
+    void authenticateWhenEncryptedAssertionWithoutSignatureThenAllowItIfSamlConfigurationAllowsIt() {
+        IdentityZone identityZone = IdentityZoneHolder.getUaaZone();
+        identityZone.getConfig().getSamlConfig().setWantAssertionSigned(false);
+        IdentityZoneHolder.set(identityZone);
+        Response response = response();
+        EncryptedAssertion encryptedAssertion = TestOpenSamlObjects.encrypted(assertion(),
+                TestSaml2X509Credentials.assertingPartyEncryptingCredential());
+        response.getEncryptedAssertions().add(encryptedAssertion);
+        Saml2AuthenticationToken token = token(response, decrypting(verifying(registration())));
+        assertThatNoException().isThrownBy(() -> this.provider.authenticate(token));
     }
 
     @Test
