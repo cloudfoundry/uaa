@@ -321,17 +321,7 @@ public class OauthEndpointBeanConfiguration {
         bean.setAllowUnverifiedUsers(allowUnverifiedUsers);
         return bean;
     }
-//
-//    @Bean("uaaAuthenticationMgr")
-//    CheckIdpEnabledAuthenticationManager uaaAuthenticationMgr() {
-//
-//    }
-//
-//    @Bean("zoneAwareAuthzAuthenticationManager")
-//    DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager() {
-//
-//    }
-//
+
     @Bean("passwordGrantAuthenticationManager")
     PasswordGrantAuthenticationManager passwordGrantAuthenticationManager(
             @Autowired DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager,

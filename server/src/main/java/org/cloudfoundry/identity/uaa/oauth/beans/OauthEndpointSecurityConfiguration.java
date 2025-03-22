@@ -231,24 +231,6 @@ class OauthEndpointSecurityConfiguration {
     @Qualifier("uaaAuthorizationEndpoint")
     UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
 
-//    @Bean("uaaAuthorizationEndpoint")
-//    UaaAuthorizationEndpoint uaaAuthorizationEndpoint() {
-//        UaaAuthorizationEndpoint bean = new UaaAuthorizationEndpoint(
-//                redirectResolver,
-//                userManagedApprovalHandler,
-//                oauth2RequestValidator,
-//                authorizationCodeServices,
-//                hybridTokenGranterForAuthCode,
-//                oAuth2RequestFactory,
-//                jdbcClientDetailsService,
-//                tokenGranter,
-//                pkceValidationService
-//        );
-//        bean.setOAuth2RequestValidator(oauth2RequestValidator);
-//        return bean;
-//    }
-
-
     @Bean
     @Order(FilterChainOrder.OAUTH_01)
     UaaFilterChain tokenRevocationFilter(HttpSecurity http, @Qualifier("self") IsSelfCheck selfCheck) throws Exception {
