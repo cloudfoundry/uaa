@@ -1503,6 +1503,27 @@ class LoginInfoEndpointTests {
     }
 
     @Test
+    void loginHintSamlOverridesDefaultProvider() throws Exception {
+        MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
+        IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", "my-client-awesome-idp", OriginKeys.LDAP, OriginKeys.UAA);
+        MultitenantClientServices clientDetailsService = mockClientService(allowedProviders);
+        IdentityProvider idp = mock(IdentityProvider.class);
+        when(idp.getType()).thenReturn(OriginKeys.SAML);
+        when(idp.getOriginKey()).thenReturn("my-client-awesome-id");
+        when(idp.getConfig()).thenReturn(mock(SamlIdentityProviderDefinition.class));
+        when(mockIdentityProviderProvisioning.retrieveByOrigin(eq("my-client-awesome-idp"), any())).thenReturn(idp);
+        LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get(), clientDetailsService);
+        SavedRequest savedRequest = SessionUtils.getSavedRequestSession(mockHttpServletRequest.getSession());
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[]{"{\"origin\":\"my-client-awesome-idp\"}"});
+        String redirect = endpoint.loginForHtml(extendedModelMap, null, mockHttpServletRequest, singletonList(MediaType.TEXT_HTML));
+
+        assertThat(redirect).startsWith("redirect:/saml2/authenticate/")
+                .contains("saml2");
+        assertThat(extendedModelMap).doesNotContainKey("login_hint");
+    }
+
+    @Test
     void loginHintLdapOverridesDefaultProviderUaa() throws Exception {
         MockHttpServletRequest mockHttpServletRequest = getMockHttpServletRequest();
         IdentityZoneHolder.get().getConfig().setDefaultIdentityProvider("uaa");

@@ -302,8 +302,13 @@ public class LoginInfoEndpoint {
                     );
                     if (idp != null) {
                         loginHintProvider = Map.entry(idp.getOriginKey(), idp.getConfig());
-                        oauthIdentityProviders = new HashMap<>();
-                        oauthIdentityProviders.put(idp.getOriginKey(), (AbstractExternalOAuthIdentityProviderDefinition) idp.getConfig());
+                        if (idp.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition oAuthConfig) {
+                            oauthIdentityProviders = new HashMap<>();
+                            oauthIdentityProviders.put(idp.getOriginKey(), oAuthConfig);
+                        } else if (idp.getConfig() instanceof SamlIdentityProviderDefinition samlConfig) {
+                            samlIdentityProviders = new HashMap<>();
+                            samlIdentityProviders.put(idp.getOriginKey(), samlConfig);
+                        }
                     }
                 } catch (EmptyResultDataAccessException ignored) {
                     // ignore
@@ -318,7 +323,7 @@ public class LoginInfoEndpoint {
                 oauthIdentityProviders = getOauthIdentityProviderDefinitions(allowedIdentityProviderKeys);
                 allIdentityProviders = concatenateMaps(samlIdentityProviders, oauthIdentityProviders);
             }
-            } else if (!jsonResponse && (accountChooserNeeded || (accountChooserEnabled && !discoveryEnabled && !discoveryPerformed))) {
+        } else if (!jsonResponse && (accountChooserNeeded || (accountChooserEnabled && !discoveryEnabled && !discoveryPerformed))) {
             // when `/login` is requested to return html response (as opposed to json response)
             //Account and origin chooser do not need idp information
             oauthIdentityProviders = addDefaultOauthMap(oauthIdentityProviders, allowedIdentityProviderKeys, defaultIdentityProviderName);
