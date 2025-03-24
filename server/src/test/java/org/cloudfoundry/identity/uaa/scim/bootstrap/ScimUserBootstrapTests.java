@@ -677,6 +677,47 @@ class ScimUserBootstrapTests {
     }
 
     @Test
+    void addNonExistentGroupWithQuote() {
+        String[] externalAuthorities = new String[]{"\"extTest1", "extTest2\"", "\"extTest3\""};
+        String[] userAuthorities = new String[]{};
+        String origin = "testOrigin";
+        addIdentityProvider(jdbcTemplate, origin);
+        String email = "test@test.org";
+        String firstName = "FirstName";
+        String lastName = "LastName";
+        String password = "testPassword";
+        String externalId = null;
+        String userId = new RandomValueStringGenerator().generate();
+        String username = new RandomValueStringGenerator().generate();
+        UaaUser user = getUaaUser(new String[] {}, origin, email, firstName, lastName, password, externalId, userId, username);
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(
+                jdbcScimUserProvisioning,
+                scimUserService,
+                jdbcScimGroupProvisioning,
+                jdbcScimGroupMembershipManager,
+                Collections.singletonList(user),
+                false,
+                Collections.emptyList(),
+                false
+        );
+        bootstrap.afterPropertiesSet();
+
+        List<ScimUser> users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
+        assertThat(users.size()).isEqualTo(1);
+        userId = users.get(0).getId();
+
+        ScimUser created = users.get(0);
+
+        user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities), true));
+
+        users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
+        assertThat(users.size()).isEqualTo(1);
+        created = users.get(0);
+        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created, jdbcScimGroupMembershipManager);
+    }
+
+    @Test
     void canUpdateEmailThroughEvent() {
         String[] externalAuthorities = new String[]{"extTest1", "extTest2", "extTest3"};
         String origin = "testOrigin";

@@ -27,6 +27,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.StringUtils;
 
@@ -284,25 +285,19 @@ public class ScimUserBootstrap implements
             return;
         }
         logger.debug("Adding to group: " + gName);
-        List<ScimGroup> g = scimGroupProvisioning.query("displayName eq \"%s\"".formatted(gName), IdentityZoneHolder.get().getId());
         ScimGroup group;
-        if ((g == null || g.isEmpty()) && (!addGroup)) {
-            logger.debug("No group found with name:" + gName + ". Group membership will not be added.");
-            return;
-        } else if (g == null || g.isEmpty()) {
-            group = new ScimGroup(null, gName, IdentityZoneHolder.get().getId());
-            try {
-                group = scimGroupProvisioning.create(group, IdentityZoneHolder.get().getId());
-            }
-            catch (ScimResourceAlreadyExistsException ignore) {
-                g = scimGroupProvisioning.query("displayName eq \"%s\"".formatted(gName), IdentityZoneHolder.get().getId());
-                if (g != null && !g.isEmpty()) {
-                    group = g.get(0);
-                }
-            }
-        } else {
-            group = g.get(0);
+        try {
+            group = getOrCreateGroup(gName, addGroup);
         }
+        catch (ScimResourceAlreadyExistsException e) {
+            logger.debug("Unexpected ScimResourceAlreadyExistsException: {}. Retrying...", e.getMessage());
+            group = getOrCreateGroup(gName, addGroup);
+        }
+
+        if (group == null) {
+            return;
+        }
+
         try {
             ScimGroupMember groupMember = new ScimGroupMember(scimUserId);
             groupMember.setOrigin(ofNullable(origin).orElse(OriginKeys.UAA));
@@ -310,6 +305,30 @@ public class ScimUserBootstrap implements
         } catch (MemberAlreadyExistsException | DuplicateKeyException ex) {
             // do nothing
         }
+    }
+
+    private ScimGroup getOrCreateGroup(String gName, boolean addGroup) {
+        ScimGroup group = null;
+        try {
+            group = scimGroupProvisioning.getByName(gName, IdentityZoneHolder.get().getId());
+        }
+        catch (IncorrectResultSizeDataAccessException e) {
+            if (!addGroup) {
+                logger.debug("No group found with name:" + gName + ". Group membership will not be added.");
+                return null;
+            } else {
+                group = new ScimGroup(null, gName, IdentityZoneHolder.get().getId());
+                try {
+                    group = scimGroupProvisioning.create(group, IdentityZoneHolder.get().getId());
+                }
+                catch (ScimResourceAlreadyExistsException sraee) {
+                    logger.debug("Unexpected ScimResourceAlreadyExistsException: {}. Retrying...", sraee.getMessage());
+                    group = scimGroupProvisioning.create(group, IdentityZoneHolder.get().getId());
+                }
+            }
+        }
+
+        return group;
     }
 
     private void removeFromGroup(String scimUserId, String gName) {
