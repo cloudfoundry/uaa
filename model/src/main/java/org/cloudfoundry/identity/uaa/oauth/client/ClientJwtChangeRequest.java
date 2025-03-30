@@ -125,7 +125,7 @@ public class ClientJwtChangeRequest {
     @JsonIgnore
     public boolean isFederated() {
         return ((changeMode == ADD || changeMode == UPDATE) && issuer != null && subject != null) ||
-                (changeMode == DELETE && (issuer != null || subject != null));
+                (changeMode == DELETE && (issuer != null && subject != null));
     }
 
     @JsonIgnore

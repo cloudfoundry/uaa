@@ -562,7 +562,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         ActionResult result;
         switch (change.getChangeMode()) {
             case ADD :
-                if (change.getChangeValue() != null) {
+                if (change.getChangeValue() != null && !change.isFederated()) {
                     clientRegistrationService.addClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId(), false);
                     result = new ActionResult("ok", "Client jwt configuration is added");
                 } else {
@@ -577,7 +577,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
                 break;
 
             case DELETE :
-                if (ClientJwtConfiguration.readValue(uaaUaaClientDetails) != null && change.getChangeValue() != null) {
+                if (ClientJwtConfiguration.readValue(uaaUaaClientDetails) != null && change.getChangeValue() != null && !change.isFederated()) {
                     clientRegistrationService.deleteClientJwtConfig(client_id, change.getChangeValue(), IdentityZoneHolder.get().getId());
                     result = new ActionResult("ok", "Client jwt configuration is deleted");
                 } else {

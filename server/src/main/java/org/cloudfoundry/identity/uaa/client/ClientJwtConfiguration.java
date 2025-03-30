@@ -311,6 +311,7 @@ public class ClientJwtConfiguration implements Cloneable {
                 result = new ClientJwtConfiguration(newConfig.jwksUri, null);
             } else {
                 result = existingConfig;
+                result.jwksUri = existingConfig.jwksUri != null ? existingConfig.jwksUri : newConfig.jwksUri;
             }
         }
         if (newConfig.jwkSet != null) {
@@ -319,6 +320,7 @@ public class ClientJwtConfiguration implements Cloneable {
                     result = new ClientJwtConfiguration(null, newConfig.jwkSet);
                 } else {
                     result = existingConfig;
+                    result.jwkSet = newConfig.jwkSet;
                 }
             } else {
                 JsonWebKeySet<JsonWebKey> existingKeySet = existingConfig.jwkSet;
@@ -357,12 +359,12 @@ public class ClientJwtConfiguration implements Cloneable {
         if (tobeDeleted == null) {
             return existingConfig;
         }
-        ClientJwtConfiguration result = null;
+        ClientJwtConfiguration result = existingConfig;
         if (existingConfig.jwkSet != null && tobeDeleted.jwksUri != null) {
             JsonWebKeySet<JsonWebKey> existingKeySet = existingConfig.jwkSet;
             List<JsonWebKey> keys = existingKeySet.getKeys().stream().filter(k -> !tobeDeleted.jwksUri.equals(k.getKid())).toList();
             if (keys.isEmpty()) {
-                result = null;
+                result.jwkSet = null;
             } else {
                 result = new ClientJwtConfiguration(null, new JsonWebKeySet<>(keys));
             }
@@ -370,26 +372,22 @@ public class ClientJwtConfiguration implements Cloneable {
             List<JsonWebKey> existingKeys = new ArrayList<>(existingConfig.getJwkSet().getKeys());
             existingKeys.removeAll(tobeDeleted.jwkSet.getKeys());
             if (existingKeys.isEmpty()) {
-                result = null;
+                result.jwkSet = null;
             } else {
                 result = new ClientJwtConfiguration(null, new JsonWebKeySet<>(existingKeys));
             }
         } else if (existingConfig.jwksUri != null && tobeDeleted.jwksUri != null) {
             if ("*".equals(tobeDeleted.jwksUri) || existingConfig.jwksUri.equals(tobeDeleted.jwksUri)) {
-                result = null;
-            } else {
-                result = existingConfig;
+                result.jwksUri = null;
             }
         } else if (existingConfig.clientJwtCredentials != null && tobeDeleted.clientJwtCredentials != null) {
             existingConfig.clientJwtCredentials = existingConfig.clientJwtCredentials.stream()
                     .filter (c -> tobeDeleted.clientJwtCredentials.stream()
-                    .filter(e -> e.getSubject().equals(c.getSubject()) && e.getIssuer().equals(c.getIssuer())).isParallel()).toList();
-            result = existingConfig;
-            if (ObjectUtils.isEmpty(result.clientJwtCredentials)) {
+                    .noneMatch(e -> e.getSubject().equals(c.getSubject()) && e.getIssuer().equals(c.getIssuer()))).toList();
+            if (ObjectUtils.isEmpty(result.clientJwtCredentials) || tobeDeleted.clientJwtCredentials.equals(List.of(new ClientJwtCredential("*", "*", null))) || tobeDeleted.clientJwtCredentials.equals(List.of(new ClientJwtCredential("*", "*", "*")))) {
                 result.clientJwtCredentials = null;
             }
-            result = ObjectUtils.isEmpty(result.jwkSet) && ObjectUtils.isEmpty(result.jwksUri) ? null : result;
         }
-        return result;
+        return ObjectUtils.isEmpty(result.jwkSet) && ObjectUtils.isEmpty(result.jwksUri) && ObjectUtils.isEmpty(result.clientJwtCredentials) ? null : result;
     }
 }

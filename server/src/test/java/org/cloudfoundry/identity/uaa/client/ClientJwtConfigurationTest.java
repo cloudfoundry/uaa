@@ -161,7 +161,7 @@ class ClientJwtConfigurationTest {
         assertThat(configuration.getJwksUri()).isNull();
         configuration = ClientJwtConfiguration.merge(configuration, ClientJwtConfiguration.parse("https://any/jwks-uri"), false);
         assertThat(configuration.getJwkSet().getKeys()).hasSize(1);
-        assertThat(configuration.getJwksUri()).isNull();
+        assertThat(configuration.getJwksUri()).isEqualTo("https://any/jwks-uri");
 
         configuration = ClientJwtConfiguration.merge(configuration, ClientJwtConfiguration.parse("https://any/jwks-uri"), true);
         assertThat(configuration.getJwkSet()).isNull();
@@ -176,7 +176,8 @@ class ClientJwtConfigurationTest {
         assertThat(configuration.getJwksUri()).isEqualTo("https://new/jwks-uri");
 
         configuration = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse("https://any/jwks-uri"), ClientJwtConfiguration.parse(jsonJwkSet), false);
-        assertThat(configuration.getJwkSet()).isNull();
+        assertThat(configuration.getJwkSet()).isNotNull();
+        assertThat(configuration.getJwkSet().getKeys()).hasSize(1);
         assertThat(configuration.getJwksUri()).isEqualTo("https://any/jwks-uri");
 
         configuration = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse("https://any/jwks-uri"), ClientJwtConfiguration.parse(jsonJwkSet), true);
@@ -226,6 +227,37 @@ class ClientJwtConfigurationTest {
     }
 
     @Test
+    void configDeleteFederated() {
+        ClientJwtCredential existingKey1 = new ClientJwtCredential("subject1", "issuer1", "audience1");
+        ClientJwtCredential existingKey2 = new ClientJwtCredential("subject2", "issuer2", "audience2");
+        ClientJwtConfiguration existingConfiguration = new ClientJwtConfiguration(List.of(existingKey1, existingKey2));
+        assertThat(ClientJwtConfiguration.delete(existingConfiguration, new ClientJwtConfiguration(List.of(new ClientJwtCredential("not-existing", "not-existing", null))))).isEqualTo(existingConfiguration);
+        assertThat(ClientJwtConfiguration.delete(existingConfiguration, new ClientJwtConfiguration(List.of(existingKey1)))).isEqualTo(new ClientJwtConfiguration(List.of(existingKey2)));
+        existingConfiguration = new ClientJwtConfiguration(List.of(existingKey1, existingKey2));
+        assertThat(ClientJwtConfiguration.delete(existingConfiguration, existingConfiguration)).isNull();
+        assertThat(ClientJwtConfiguration.delete(new ClientJwtConfiguration(List.of(existingKey1, existingKey2)), new ClientJwtConfiguration(List.of(new ClientJwtCredential("*", "*", null))))).isNull();
+        assertThat(ClientJwtConfiguration.delete(new ClientJwtConfiguration(List.of(existingKey1, existingKey2)), new ClientJwtConfiguration(List.of(new ClientJwtCredential("*", "*", "*"))))).isNull();
+    }
+
+    @Test
+    void configDeleteMixedJwtConfiguration() {
+        ClientJwtCredential existingKey1 = new ClientJwtCredential("subject1", "issuer1", "audience1");
+        ClientJwtCredential existingKey2 = new ClientJwtCredential("subject2", "issuer2", "audience2");
+        ClientJwtConfiguration existingConfiguration = ClientJwtConfiguration.parse("https://other/jwks-uri");
+        existingConfiguration.setClientJwtCredentials(List.of(existingKey1, existingKey2));
+        assertThat(ClientJwtConfiguration.delete(existingConfiguration, new ClientJwtConfiguration(List.of(new ClientJwtCredential("not-existing", "not-existing", null))))).isEqualTo(existingConfiguration);
+        assertThat(ClientJwtConfiguration.delete(existingConfiguration, new ClientJwtConfiguration(List.of(existingKey1))).getClientJwtCredentials()).hasSize(1);
+        assertThat(ClientJwtConfiguration.delete(existingConfiguration, new ClientJwtConfiguration(List.of(existingKey1, existingKey2))).getClientJwtCredentials()).isNull();
+        // complex deletion - given
+        existingConfiguration = new ClientJwtConfiguration(List.of(existingKey1, existingKey2));
+        existingConfiguration = ClientJwtConfiguration.merge(existingConfiguration, ClientJwtConfiguration.parse("https://other/jwks-uri"), false);
+        // When
+        existingConfiguration = ClientJwtConfiguration.delete(existingConfiguration, ClientJwtConfiguration.parse("https://other/jwks-uri"));
+        // Then
+        assertThat(existingConfiguration).isEqualTo(new ClientJwtConfiguration(List.of(existingKey1, existingKey2)));
+    }
+
+    @Test
     void configDeleteNull() {
         assertThat(ClientJwtConfiguration.delete(null, ClientJwtConfiguration.parse("https://other/jwks-uri"))).isNull();
         assertThat(ClientJwtConfiguration.delete(ClientJwtConfiguration.parse("https://any/jwks-uri"), null)).isNotNull();
@@ -238,6 +270,7 @@ class ClientJwtConfigurationTest {
         assertThat(key2.hashCode()).isNotEqualTo(key1.hashCode());
         assertThat(key1).hasSameHashCodeAs(key1);
         assertThat(key2).hasSameHashCodeAs(key2);
+        assertThat(new ClientJwtCredential("subject", "issuer", "audience")).hasSameHashCodeAs(new ClientJwtCredential("subject", "issuer", "audience"));
     }
 
     @Test

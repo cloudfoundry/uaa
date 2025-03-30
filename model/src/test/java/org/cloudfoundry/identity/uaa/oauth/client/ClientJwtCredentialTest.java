@@ -40,4 +40,16 @@ class ClientJwtCredentialTest {
         assertThatThrownBy(() -> ClientJwtCredential.parse("[\"iss\":\"issuer\"]"))
                 .isInstanceOf(IllegalArgumentException.class).hasMessage("Client jwt configuration cannot be parsed");
     }
+
+    @Test
+    void testHashCode() {
+        assertThat(new ClientJwtCredential("subject", "issuer", "audience")).hasSameHashCodeAs(new ClientJwtCredential("subject", "issuer", "audience"));
+        assertThat(new ClientJwtCredential("subject", "issuer", "audience")).doesNotHaveSameHashCodeAs(new ClientJwtCredential("subject", "issuer", null));
+    }
+
+    @Test
+    void testEquals() {
+        assertThat(new ClientJwtCredential("subject", "issuer", "audience")).isEqualTo(new ClientJwtCredential("subject", "issuer", "audience"));
+        assertThat(new ClientJwtCredential("subject", "issuer", "audience")).isNotEqualTo(new ClientJwtCredential("subject", "issuer", null));
+    }
 }

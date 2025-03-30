@@ -45,4 +45,21 @@ public class ClientJwtCredential {
         }
     }
 
+    @Override
+    public boolean equals(Object object) {
+        if (this == object) return true;
+        if (object == null || getClass() != object.getClass()) return false;
+        ClientJwtCredential that = (ClientJwtCredential) object;
+        return subject.equals(that.subject) &&
+               issuer.equals(that.issuer) &&
+               (audience != null ? audience.equals(that.audience) : that.audience == null);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = subject.hashCode();
+        result = 31 * result + issuer.hashCode();
+        result = 31 * result + (audience != null ? audience.hashCode() : 0);
+        return result;
+    }
 }
