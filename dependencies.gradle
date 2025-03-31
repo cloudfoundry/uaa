@@ -132,7 +132,7 @@ libraries.nimbusJwt = "com.nimbusds:nimbus-jose-jwt:10.0.2"
 libraries.xmlSecurity = "org.apache.santuario:xmlsec:4.0.3"
 libraries.xmlUnit = "org.xmlunit:xmlunit-assertj:2.10.0"
 libraries.orgJson = "org.json:json:20250107"
-libraries.jodaTime = "joda-time:joda-time:2.13.1"
+libraries.jodaTime = "joda-time:joda-time:2.14.0"
 libraries.apacheHttpClient = "org.apache.httpcomponents:httpclient:4.5.14"
 libraries.jacocoAgent = "org.jacoco:org.jacoco.agent:0.8.12"
 
