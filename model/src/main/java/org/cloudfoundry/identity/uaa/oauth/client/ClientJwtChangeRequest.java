@@ -123,8 +123,8 @@ public class ClientJwtChangeRequest {
 
     @JsonIgnore
     public boolean isFederated() {
-        // is private_key_jwt according to RFC 7523. audience is addition supported, but optional
-        return (issuer != null && subject != null);
+        // private_key_jwt according to RFC 7523. audience is addition supported, but optional
+        return issuer != null && subject != null;
     }
 
     @JsonIgnore
