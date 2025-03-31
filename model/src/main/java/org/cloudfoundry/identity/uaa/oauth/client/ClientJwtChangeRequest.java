@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.ADD;
 import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.DELETE;
-import static org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest.ChangeMode.UPDATE;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -124,8 +123,8 @@ public class ClientJwtChangeRequest {
 
     @JsonIgnore
     public boolean isFederated() {
-        return ((changeMode == ADD || changeMode == UPDATE) && issuer != null && subject != null) ||
-                (changeMode == DELETE && (issuer != null && subject != null));
+        // is private_key_jwt according to RFC 7523. audience is addition supported, but optional
+        return (issuer != null && subject != null);
     }
 
     @JsonIgnore

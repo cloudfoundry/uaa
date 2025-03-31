@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Objects;
 
 @JsonInclude(JsonInclude.Include.NON_EMPTY)
 @JsonIgnoreProperties(ignoreUnknown = true)
