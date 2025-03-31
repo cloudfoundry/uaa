@@ -52,7 +52,7 @@ public class ClientJwtCredential {
         ClientJwtCredential that = (ClientJwtCredential) object;
         return subject.equals(that.subject) &&
                issuer.equals(that.issuer) &&
-               (audience != null ? audience.equals(that.audience) : that.audience == null);
+               Objects.equals(audience, that.audience);
     }
 
     @Override
