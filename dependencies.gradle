@@ -25,7 +25,7 @@ versions.awaitilityVersion = "4.3.0"
 // Versions we're overriding from the Spring Boot Bom (Dependabot does not issue PRs to bump these versions, so we need to manually bump them)
 ext["mariadb.version"] = "2.7.12" // Bumping to v3 breaks some pipeline jobs (and compatibility with Amazon Aurora MySQL), so pinning to v2 for now. v2 (current version) is stable and will be supported until about September 2025 (https://mariadb.com/kb/en/about-mariadb-connector-j/).
 ext["flyway.version"] = "7.15.0" // the next major (v8)'s community edition drops support with MySQL 5.7, which UAA still needs to support. Can bump to v8 once we solve this issue.
-ext["snakeyaml.version"] = "2.3" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
+ext["snakeyaml.version"] = "2.4" // manual update, see because of missing in spring boot https://github.com/spring-projects/spring-boot/issues/32221
 ext["jackson-bom.version"] = "${versions.jacksonVersion}" // Bumping to latest version because of compatiblity to snakeyaml 2.0
 ext["json-path.version"] = "${versions.jsonPathVersion}" // CVE, https://github.com/advisories/GHSA-pfh2-hfmq-phg5
 ext["hsqldb.version"] = "2.7.4" // HSQL-DB used for tests but not supported for productive usage
