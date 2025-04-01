@@ -51,7 +51,10 @@ jwt:
       format: opaque
       rotate: false
       unique: false
-
+    claims:
+      exclude:
+        - excluded-claim1
+        - excluded-claim2
 login:
   saml:
     activeKeyId: key1
