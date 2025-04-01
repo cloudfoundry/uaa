@@ -703,17 +703,15 @@ class ScimUserBootstrapTests {
         bootstrap.afterPropertiesSet();
 
         List<ScimUser> users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
-        assertThat(users.size()).isEqualTo(1);
+        assertThat(users).hasSize(1);
         userId = users.get(0).getId();
-
-        ScimUser created = users.get(0);
 
         user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
         bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities), true));
 
         users = jdbcScimUserProvisioning.query("userName eq \"" + username + "\" and origin eq \"" + origin + "\"", IdentityZone.getUaaZoneId());
-        assertThat(users.size()).isEqualTo(1);
-        created = users.get(0);
+        assertThat(users).hasSize(1);
+        ScimUser created = users.get(0);
         validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created, jdbcScimGroupMembershipManager);
     }
 
