@@ -98,6 +98,7 @@ import javax.servlet.http.HttpSession;
 import java.security.NoSuchAlgorithmException;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -640,9 +641,9 @@ public class OauthEndpointBeanConfiguration {
             @Value("#{@config['jwt']==null ? T(java.util.Collections).EMPTY_SET : " +
                     "@config['jwt.token']==null ? T(java.util.Collections).EMPTY_SET : " +
                     "@config['jwt.token.claims']==null ? T(java.util.Collections).EMPTY_SET : " +
-                    "@config['jwt.token.claims.exclude']==null ? T(java.util.Collections).EMPTY_SET : @config['jwt.token.claims.exclude']}") LinkedHashSet<String> excludedClaims
+                    "@config['jwt.token.claims.exclude']==null ? T(java.util.Collections).EMPTY_SET : @config['jwt.token.claims.exclude']}") Collection<String> excludedClaims
     ) {
-        return excludedClaims;
+        return new LinkedHashSet<>(excludedClaims);
     }
     @Bean("signingKeysMap") //TODO break into a record or object
     Map signingKeysMap(
