@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
 import java.util.concurrent.atomic.AtomicReference;
@@ -14,12 +14,12 @@ public class LoginPage extends Page {
 
     private static final String URL_PATH = "/login";
 
-    public LoginPage(WebDriver driver) {
+    public LoginPage(UaaWebDriver driver) {
         super(driver);
         assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.matches(".*" + URL_PATH + "(\\?.*)?$"));
     }
 
-    public static LoginPage go(WebDriver driver, String baseUrl) {
+    public static LoginPage go(UaaWebDriver driver, String baseUrl) {
         driver.get(baseUrl + URL_PATH);
         return new LoginPage(driver);
     }

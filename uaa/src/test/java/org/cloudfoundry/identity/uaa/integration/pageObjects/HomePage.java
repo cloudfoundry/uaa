@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import org.cloudfoundry.identity.uaa.home.HomeController;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.springframework.ui.Model;
 
@@ -20,7 +20,7 @@ public class HomePage extends Page {
     private static final String SLASH_URL_PATH = "/";
     private static final String HOME_URL_PATH = "/home";
 
-    public HomePage(WebDriver driver) {
+    public HomePage(UaaWebDriver driver) {
         super(driver);
         Consumer<String> endsWithSlash = url -> assertThat(url).endsWith(SLASH_URL_PATH);
         Consumer<String> endsWithHome = url -> assertThat(url).endsWith(HOME_URL_PATH);
@@ -28,7 +28,7 @@ public class HomePage extends Page {
         assertThatPageSource().contains("Where to?");
     }
 
-    public static LoginPage assertThatGoHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
+    public static LoginPage assertThatGoHome_redirectsToLoginPage(UaaWebDriver driver, String baseUrl) {
         driver.get(baseUrl + SLASH_URL_PATH);
         return new LoginPage(driver);
     }

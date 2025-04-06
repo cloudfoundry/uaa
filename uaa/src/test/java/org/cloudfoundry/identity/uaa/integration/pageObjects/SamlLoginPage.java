@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 
 /**
@@ -13,7 +13,7 @@ public class SamlLoginPage extends Page {
     // This is on the saml server, not the UAA server
     private static final String URL_PATH = "/module.php/core/loginuserpass";
 
-    public SamlLoginPage(WebDriver driver) {
+    public SamlLoginPage(UaaWebDriver driver) {
         super(driver);
         assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.contains(URL_PATH));
     }

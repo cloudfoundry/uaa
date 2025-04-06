@@ -20,7 +20,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -89,10 +88,10 @@ class HomeIT {
     }
 
     static class HomePagePerspective {
-        private final WebDriver webDriver;
+        private final UaaWebDriver webDriver;
         private final String username;
 
-        public HomePagePerspective(WebDriver webDriver, String username) {
+        public HomePagePerspective(UaaWebDriver webDriver, String username) {
             this.webDriver = webDriver;
             this.username = username;
         }

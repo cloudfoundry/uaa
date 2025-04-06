@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.openqa.selenium.WebDriver;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 
 /**
  * @author fhanik
@@ -44,7 +44,7 @@ public class SamlServerConfig {
                 String.format(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR, "h1");
     }
 
-    public void logOut(WebDriver webDriver) {
+    public void logOut(UaaWebDriver webDriver) {
         if (isUpgraded()) {
             webDriver.get(this.getSamlServerUrl() + "/logout.php");
             webDriver.get(this.getSamlServerUrl() + "/index.php");

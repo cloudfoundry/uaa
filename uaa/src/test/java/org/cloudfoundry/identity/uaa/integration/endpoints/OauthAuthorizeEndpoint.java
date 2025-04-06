@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.endpoints;
 
 import org.cloudfoundry.identity.uaa.integration.pageObjects.SamlLoginPage;
-import org.openqa.selenium.WebDriver;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -9,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 public class OauthAuthorizeEndpoint {
     private static final String URL_PATH = "/oauth/authorize";
 
-    public static SamlLoginPage assertThatAuthorize_goesToSamlLoginPage(WebDriver driver, String baseUrl, String redirectUri, String clientId, String responseType) {
+    public static SamlLoginPage assertThatAuthorize_goesToSamlLoginPage(UaaWebDriver driver, String baseUrl, String redirectUri, String clientId, String responseType) {
         driver.get(buildAuthorizeUrl(baseUrl, redirectUri, clientId, responseType));
         return new SamlLoginPage(driver);
     }

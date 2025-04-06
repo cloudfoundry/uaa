@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
-import org.openqa.selenium.WebDriver;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 
 /**
  * The SamlErrorPage class represents the saml error page on the UAA server.
@@ -9,7 +9,7 @@ import org.openqa.selenium.WebDriver;
 public class SamlErrorPage extends Page {
     private static final String URL_PATH = "/saml_error";
 
-    public SamlErrorPage(WebDriver driver) {
+    public SamlErrorPage(UaaWebDriver driver) {
         super(driver);
         assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith(URL_PATH));
     }

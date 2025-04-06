@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import org.assertj.core.api.AbstractStringAssert;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 
 import java.time.Duration;
 import java.util.function.Consumer;
@@ -25,20 +25,20 @@ public class Page {
     // an assertion passes, before failing the test.
     protected static final Duration AWAIT_AT_MOST_SECONDS = Duration.ofSeconds(30);
 
-    protected WebDriver driver;
+    protected UaaWebDriver driver;
 
-    public Page(WebDriver driver) {
+    public Page(UaaWebDriver driver) {
         this.driver = driver;
         driver.manage().timeouts().implicitlyWait(IMPLICIT_WAIT_SECONDS);
     }
 
-    public static AbstractStringAssert<?> assertThatUrlEventuallySatisfies(WebDriver driver, Consumer<AbstractStringAssert<?>> assertUrl) {
+    public static AbstractStringAssert<?> assertThatUrlEventuallySatisfies(UaaWebDriver driver, Consumer<AbstractStringAssert<?>> assertUrl) {
         await().atMost(AWAIT_AT_MOST_SECONDS)
                 .untilAsserted(() -> assertUrl.accept(assertThatUrl(driver)));
         return assertThatUrl(driver);
     }
 
-    private static AbstractStringAssert<?> assertThatUrl(WebDriver driver) {
+    private static AbstractStringAssert<?> assertThatUrl(UaaWebDriver driver) {
         return assertThat(driver.getCurrentUrl());
     }
 

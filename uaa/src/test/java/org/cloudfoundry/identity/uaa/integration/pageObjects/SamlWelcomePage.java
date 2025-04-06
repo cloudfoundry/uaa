@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import org.cloudfoundry.identity.uaa.integration.feature.SamlServerConfig;
-import org.openqa.selenium.WebDriver;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 
 /**
  * The SamlWelcomePage class represents the welcome page on the SimpleSAML server.
@@ -10,7 +10,7 @@ import org.openqa.selenium.WebDriver;
 public class SamlWelcomePage extends Page {
 
 
-    public SamlWelcomePage(WebDriver webDriver, SamlServerConfig samlServerConfig) {
+    public SamlWelcomePage(UaaWebDriver webDriver, SamlServerConfig samlServerConfig) {
         super(webDriver);
         assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith(samlServerConfig.getWelcomePath()));
 
