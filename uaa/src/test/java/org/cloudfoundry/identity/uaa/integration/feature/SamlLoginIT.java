@@ -442,13 +442,13 @@ public class SamlLoginIT {
 
     @Test
     void singleLogout() {
-        IdentityProvider<SamlIdentityProviderDefinition> idp = createIdentityProvider(SAML_ORIGIN);
+        createIdentityProvider(SAML_ORIGIN);
 
         LoginPage.go(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
                 .assertThatLogout_goesToLoginPage()
-                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText());
+                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN);
     }
 
     @Test

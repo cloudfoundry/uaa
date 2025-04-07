@@ -17,10 +17,6 @@ import static org.awaitility.Awaitility.await;
  */
 public class Page {
 
-    // This is the global setting that selenium waits during operations.
-    // It should be small, as changing this value will increase the time tests take to run.
-    protected static final Duration IMPLICIT_WAIT_SECONDS = Duration.ofSeconds(5);
-
     // This is used to control the max time that awaitility will check to see if
     // an assertion passes, before failing the test.
     protected static final Duration AWAIT_AT_MOST_SECONDS = Duration.ofSeconds(30);
@@ -29,7 +25,6 @@ public class Page {
 
     public Page(WebDriver driver) {
         this.driver = driver;
-        driver.manage().timeouts().implicitlyWait(IMPLICIT_WAIT_SECONDS);
     }
 
     public static AbstractStringAssert<?> assertThatUrlEventuallySatisfies(WebDriver driver, Consumer<AbstractStringAssert<?>> assertUrl) {

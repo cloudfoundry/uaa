@@ -41,7 +41,7 @@ public class UaaWebDriver implements WebDriver {
         var clickableElement = this.delegate.findElement(locator);
         clickableElement.click();
 
-        new FluentWait<>(this.delegate).withTimeout(Duration.ofSeconds(5))
+        new FluentWait<>(this.delegate).withTimeout(Duration.ofSeconds(10))
                 .pollingEvery(Duration.ofMillis(100))
                 .withMessage(() -> "Waiting for navigation after clicking on [%s]. Current URL [%s].".formatted(locator, delegate.getCurrentUrl()))
                 .until((d) -> {
