@@ -322,10 +322,10 @@ public class SamlLoginIT {
 
     @Test
     void simpleSamlPhpPasscodeRedirect() {
-        createIdentityProvider(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = createIdentityProvider(SAML_ORIGIN);
 
         PasscodePage.assertThatRequestPasscode_goesToLoginPage(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
                 .assertThatLogin_goesToPasscodePage(testAccounts.getUserName(), testAccounts.getPassword());
     }
 
@@ -393,18 +393,18 @@ public class SamlLoginIT {
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         HomePage.assertThatGoHome_redirectsToLoginPage(webDriver, zoneUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(samlIdentityProviderDefinition.getLinkText())
                 .assertThatLogin_goesToSamlErrorPage(testAccounts.getUserName(), testAccounts.getPassword())
                 .assertThatPageSource().contains("Invalid destination");
     }
 
     @Test
     void simpleSamlPhpLogin() {
-        createIdentityProvider(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = createIdentityProvider(SAML_ORIGIN);
 
         Long beforeTest = System.currentTimeMillis();
         LoginPage.go(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
         Long afterTest = System.currentTimeMillis();
 
@@ -423,14 +423,14 @@ public class SamlLoginIT {
 
     @Test
     void simpleSamlPhpLoginDisplaysLastLogin() {
-        createIdentityProvider(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = createIdentityProvider(SAML_ORIGIN);
 
         Long beforeTest = System.currentTimeMillis();
         HomePage homePage = LoginPage.go(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
                 .assertThatLogout_goesToLoginPage()
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(homePage.hasLastLoginTime()).isTrue();
 
@@ -442,21 +442,21 @@ public class SamlLoginIT {
 
     @Test
     void singleLogout() {
-        createIdentityProvider(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = createIdentityProvider(SAML_ORIGIN);
 
         LoginPage.go(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
                 .assertThatLogout_goesToLoginPage()
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN);
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText());
     }
 
     @Test
     void idpInitiatedLogout() {
-        createIdentityProvider(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = createIdentityProvider(SAML_ORIGIN);
 
         LoginPage.go(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
         // Logout via IDP
@@ -517,7 +517,7 @@ public class SamlLoginIT {
 
         LoginPage loginPage = LoginPage.go(webDriver, zoneUrl);
         loginPage.assertThatTitle().contains("testzone2");
-        loginPage.assertThatSamlLink_goesToSamlLoginPage("simplesamlphp")
+        loginPage.assertThatSamlLink_goesToSamlLoginPage(providerDefinition.getLinkText())
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
 
         String redirectUrl = "%s/login?test=test".formatted(zoneUrl);
@@ -545,27 +545,27 @@ public class SamlLoginIT {
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         LoginPage.go(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(providerDefinition.getLinkText())
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
                 .assertThatLogout_goesToLoginPage()
                 // Local Logout, but not logged out of IDP, login should skip U/P prompt
-                .assertThatSamlLink_goesToHomePage(SAML_ORIGIN);
+                .assertThatSamlLink_goesToHomePage(providerDefinition.getLinkText());
     }
 
     @Test
     void groupIntegration() {
-        createIdentityProvider(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = createIdentityProvider(SAML_ORIGIN);
         LoginPage.go(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
                 .assertThatLogin_goesToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 
     @Test
     void faviconShouldNotSave() {
-        createIdentityProvider(SAML_ORIGIN);
+        IdentityProvider<SamlIdentityProviderDefinition> idp = createIdentityProvider(SAML_ORIGIN);
         FaviconElement.getDefaultIcon(webDriver, baseUrl);
         LoginPage.go(webDriver, baseUrl)
-                .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
+                .assertThatSamlLink_goesToSamlLoginPage(idp.getConfig().getLinkText())
                 .assertThatLogin_goesToHomePage(MARISSA4_USERNAME, MARISSA4_PASSWORD);
     }
 

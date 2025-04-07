@@ -1,10 +1,8 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
-
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * The LoginPage class represents the login page on the UAA server.
@@ -48,15 +46,7 @@ public class LoginPage extends Page {
      * Click the first link that contains the given text
      */
     private void clickSamlLoginLinkWithText(String matchText) {
-        final AtomicReference<WebElement> matchingElement = new AtomicReference<>();
-        driver.findElements(By.className("saml-login-link")).forEach(webElement -> {
-            if (webElement.getText().contains(matchText)) {
-                matchingElement.compareAndSet(null, webElement);
-            }
-        });
-        if (matchingElement.get() == null) {
-            throw new RuntimeException("No element with text " + matchText + " found");
-        }
-        matchingElement.get().click();
+        UaaWebDriver uaaWebDriver = (UaaWebDriver) driver;
+        uaaWebDriver.clickAndWait(By.linkText(matchText));
     }
 }
