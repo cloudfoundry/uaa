@@ -13,13 +13,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFailExtension;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
@@ -31,7 +29,6 @@ import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
-@ExtendWith(ScreenshotOnFailExtension.class)
 class HomeIT {
     @Autowired
     TestAccounts testAccounts;
@@ -76,24 +73,20 @@ class HomeIT {
     }
 
     @Test
-    void profilePage() {
-        asOnHomePage.clickProfile();
-        webDriver.findElement(By.xpath("//*[text()='" + "Account Settings" + "']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
-    }
-
-    @Test
-    void defaultNoDropDown() {
+    void theHeaderDropdown() {
+        // Check that the header dropdown is not visible when the page loads
         assertThat(asOnHomePage.getUsernameElement()).isNotNull();
         assertThat(asOnHomePage.getAccountSettingsElement().isDisplayed()).isFalse();
         assertThat(asOnHomePage.getSignOutElement().isDisplayed()).isFalse();
-    }
-
-    @Test
-    void theHeaderDropdown() {
-        asOnHomePage.clickProfile();
+        // click the dropdown
+        webDriver.findElement(By.className("dropdown-trigger")).click();
+        // check that the header dropdown is visible
         assertThat(asOnHomePage.getAccountSettingsElement().isDisplayed()).isTrue();
         assertThat(asOnHomePage.getSignOutElement().isDisplayed()).isTrue();
+        // click the Account Settings link
+        webDriver.findElement(By.linkText("Account Settings")).click();
+        // check that the profile page is returned
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
     }
 
     static class HomePagePerspective {
@@ -115,10 +108,6 @@ class HomeIT {
 
         public WebElement getSignOutElement() {
             return getWebElementWithText("Sign Out");
-        }
-
-        public void clickProfile() {
-            webDriver.findElement(By.xpath("//*[text()='" + username + "']")).click();
         }
 
         private WebElement getWebElementWithText(String text) {
