@@ -66,7 +66,7 @@ public class Page {
     }
 
     private void clickLogout() {
-        driver.findElement(By.cssSelector(".dropdown-trigger")).click();
+        driver.findElement(By.className("dropdown-trigger")).click();
         driver.findElement(By.linkText("Sign Out")).click();
     }
 
