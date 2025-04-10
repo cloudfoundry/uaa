@@ -82,6 +82,7 @@ public class DefaultIntegrationTestConfig {
                 "--remote-allow-origins=*"
         );
         options.setAcceptInsecureCerts(true);
+        options.setBrowserVersion("134.0.6998.165");
 
         return options;
     }
