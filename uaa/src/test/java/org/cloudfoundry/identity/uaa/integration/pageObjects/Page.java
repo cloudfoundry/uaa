@@ -1,8 +1,7 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
 import org.assertj.core.api.AbstractStringAssert;
-import org.openqa.selenium.By;
-import org.openqa.selenium.Keys;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.WebDriver;
 
 import java.time.Duration;
@@ -67,8 +66,7 @@ public class Page {
     }
 
     private void clickLogout() {
-        driver.findElement(By.id("nav-dropdown-button")).sendKeys(Keys.ENTER);
-        driver.findElement(By.id("nav-dropdown-content-logout")).sendKeys(Keys.ENTER);
+        ((UaaWebDriver) driver).pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-logout");
     }
 
     public void clearCookies() {

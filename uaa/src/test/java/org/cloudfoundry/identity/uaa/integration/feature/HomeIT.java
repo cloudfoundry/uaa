@@ -78,7 +78,7 @@ class HomeIT {
 
     @Test
     void profilePage() {
-        webDriver.pressUaaNavigation("nav-dropdown-button","nav-dropdown-content-profile");
+        webDriver.pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-profile");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
     }
 
