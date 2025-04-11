@@ -22,6 +22,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -76,24 +77,19 @@ class HomeIT {
     }
 
     @Test
-    void profilePage() {
-        asOnHomePage.clickProfile();
-        webDriver.findElement(By.xpath("//*[text()='" + "Account Settings" + "']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
-    }
-
-    @Test
-    void defaultNoDropDown() {
+    void theHeaderDropdown() {
         assertThat(asOnHomePage.getUsernameElement()).isNotNull();
         assertThat(asOnHomePage.getAccountSettingsElement().isDisplayed()).isFalse();
         assertThat(asOnHomePage.getSignOutElement().isDisplayed()).isFalse();
-    }
 
-    @Test
-    void theHeaderDropdown() {
-        asOnHomePage.clickProfile();
+        asOnHomePage.getUsernameElement().sendKeys(Keys.ENTER);
+
         assertThat(asOnHomePage.getAccountSettingsElement().isDisplayed()).isTrue();
         assertThat(asOnHomePage.getSignOutElement().isDisplayed()).isTrue();
+
+        webDriver.findElement(By.id("nav-dropdown-content-profile")).sendKeys(Keys.ENTER);
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
     }
 
     static class HomePagePerspective {
@@ -106,23 +102,15 @@ class HomeIT {
         }
 
         public WebElement getUsernameElement() {
-            return getWebElementWithText(username);
+            return webDriver.findElement(By.id("nav-dropdown-button"));
         }
 
         public WebElement getAccountSettingsElement() {
-            return getWebElementWithText("Account Settings");
+            return webDriver.findElement(By.id("nav-dropdown-content-profile"));
         }
 
         public WebElement getSignOutElement() {
-            return getWebElementWithText("Sign Out");
-        }
-
-        public void clickProfile() {
-            webDriver.findElement(By.xpath("//*[text()='" + username + "']")).click();
-        }
-
-        private WebElement getWebElementWithText(String text) {
-            return webDriver.findElement(By.xpath("//*[text()='" + text + "']"));
+            return webDriver.findElement(By.id("nav-dropdown-content-logout"));
         }
     }
 }
