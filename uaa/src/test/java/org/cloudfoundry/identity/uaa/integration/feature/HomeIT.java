@@ -77,19 +77,24 @@ class HomeIT {
     }
 
     @Test
-    void theHeaderDropdown() {
+    void profilePage() {
+        asOnHomePage.getUsernameElement().sendKeys(Keys.ENTER);
+        asOnHomePage.getAccountSettingsElement().sendKeys(Keys.ENTER);
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
+    }
+
+    @Test
+    void defaultNoDropDown() {
         assertThat(asOnHomePage.getUsernameElement()).isNotNull();
         assertThat(asOnHomePage.getAccountSettingsElement().isDisplayed()).isFalse();
         assertThat(asOnHomePage.getSignOutElement().isDisplayed()).isFalse();
+    }
 
+    @Test
+    void theHeaderDropdown() {
         asOnHomePage.getUsernameElement().sendKeys(Keys.ENTER);
-
         assertThat(asOnHomePage.getAccountSettingsElement().isDisplayed()).isTrue();
         assertThat(asOnHomePage.getSignOutElement().isDisplayed()).isTrue();
-
-        webDriver.findElement(By.id("nav-dropdown-content-profile")).sendKeys(Keys.ENTER);
-
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
     }
 
     static class HomePagePerspective {
