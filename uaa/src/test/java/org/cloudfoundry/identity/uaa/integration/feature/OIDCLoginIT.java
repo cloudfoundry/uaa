@@ -50,6 +50,9 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.Keys;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -67,6 +70,7 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -216,8 +220,10 @@ public class OIDCLoginIT {
     private void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
         login(zoneUrl, userName, password);
 
+        WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(10));
         webDriver.findElement(By.id("nav-dropdown-button")).sendKeys(Keys.ENTER);
-        webDriver.findElement(By.id("nav-dropdown-content-logout")).sendKeys(Keys.ENTER);
+        WebElement elm = wait.until(ExpectedConditions.elementToBeClickable(By.id("nav-dropdown-content-logout")));
+        elm.sendKeys(Keys.ENTER);
         IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver, IdentityZoneHolder.get());
     }
 
