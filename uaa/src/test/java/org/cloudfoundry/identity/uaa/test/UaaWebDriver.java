@@ -7,6 +7,7 @@ import java.util.Set;
 import org.jspecify.annotations.Nullable;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
+import org.openqa.selenium.Keys;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
@@ -14,7 +15,9 @@ import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.remote.RemoteWebDriver;
 import org.openqa.selenium.remote.SessionId;
+import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.FluentWait;
+import org.openqa.selenium.support.ui.WebDriverWait;
 
 /**
  * Thin wrapper around a "regular" webdriver, that allows you to "click-and-wait" until
@@ -54,6 +57,18 @@ public class UaaWebDriver implements WebDriver {
                         return e.getMessage().contains("-32000");
                     }
                 });
+    }
+
+    /**
+     * Press the UAA navigation element with the given id, and wait for the button with a given id
+     * Example: After Login to UAA there is a menu in the top right corner with. A user can click on it and get
+     * the profile page or perform a logout.
+     */
+    public void pressUaaNavigation(String navigationElementId, String idButton) {
+        WebDriverWait wait = new WebDriverWait(this.delegate, Duration.ofSeconds(10));
+        this.delegate.findElement(By.id(navigationElementId)).sendKeys(Keys.ENTER);
+        WebElement elm = wait.until(ExpectedConditions.elementToBeClickable(By.id(idButton)));
+        elm.sendKeys(Keys.ENTER);
     }
 
     public JavascriptExecutor getJavascriptExecutor() {

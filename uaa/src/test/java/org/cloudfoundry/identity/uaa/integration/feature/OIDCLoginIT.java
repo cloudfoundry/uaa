@@ -49,7 +49,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
 import org.openqa.selenium.Cookie;
-import org.openqa.selenium.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
@@ -215,9 +214,7 @@ public class OIDCLoginIT {
 
     private void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
         login(zoneUrl, userName, password);
-
-        webDriver.findElement(By.id("nav-dropdown-button")).sendKeys(Keys.ENTER);
-        webDriver.findElement(By.id("nav-dropdown-content-logout")).sendKeys(Keys.ENTER);
+        webDriver.pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-logout");
         IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver, IdentityZoneHolder.get());
     }
 

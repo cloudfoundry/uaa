@@ -68,7 +68,7 @@ class HomeIT {
         webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
         webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
-        asOnHomePage = new HomePagePerspective(webDriver, testAccounts.getUserName());
+        asOnHomePage = new HomePagePerspective(webDriver);
     }
 
     @Test
@@ -78,8 +78,7 @@ class HomeIT {
 
     @Test
     void profilePage() {
-        asOnHomePage.getUsernameElement().sendKeys(Keys.ENTER);
-        asOnHomePage.getAccountSettingsElement().sendKeys(Keys.ENTER);
+        webDriver.pressUaaNavigation("nav-dropdown-button","nav-dropdown-content-profile");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
     }
 
@@ -99,11 +98,9 @@ class HomeIT {
 
     static class HomePagePerspective {
         private final WebDriver webDriver;
-        private final String username;
 
-        public HomePagePerspective(WebDriver webDriver, String username) {
+        public HomePagePerspective(WebDriver webDriver) {
             this.webDriver = webDriver;
-            this.username = username;
         }
 
         public WebElement getUsernameElement() {
