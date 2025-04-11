@@ -22,12 +22,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.Keys;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -91,7 +94,9 @@ class HomeIT {
 
     @Test
     void theHeaderDropdown() {
-        asOnHomePage.getUsernameElement().sendKeys(Keys.ENTER);
+        WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(30));
+        WebElement elm = wait.until(ExpectedConditions.elementToBeClickable(By.id("nav-dropdown-button")));
+        elm.click();
         assertThat(asOnHomePage.getAccountSettingsElement().isDisplayed()).isTrue();
         assertThat(asOnHomePage.getSignOutElement().isDisplayed()).isTrue();
     }
