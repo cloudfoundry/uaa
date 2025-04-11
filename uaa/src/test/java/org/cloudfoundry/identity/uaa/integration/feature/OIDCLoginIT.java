@@ -215,8 +215,8 @@ public class OIDCLoginIT {
     private void validateSuccessfulOIDCLogin(String zoneUrl, String userName, String password) {
         login(zoneUrl, userName, password);
 
-        webDriver.findElement(By.className("dropdown-trigger")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
+        webDriver.findElement(By.id("nav-dropdown-button")).click();
+        webDriver.findElement(By.id("nav-dropdown-content-logout")).click();
         IntegrationTestUtils.validateAccountChooserCookie(zoneUrl, webDriver, IdentityZoneHolder.get());
     }
 
