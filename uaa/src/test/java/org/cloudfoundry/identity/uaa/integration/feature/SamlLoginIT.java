@@ -429,7 +429,7 @@ public class SamlLoginIT {
         HomePage homePage = LoginPage.go(webDriver, baseUrl)
                 .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
-                .assertThatLogout_goesToLoginPage()
+                .assertThatLogout_goesToLoginPage(baseUrl)
                 .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(homePage.hasLastLoginTime()).isTrue();
@@ -447,7 +447,7 @@ public class SamlLoginIT {
         LoginPage.go(webDriver, baseUrl)
                 .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
-                .assertThatLogout_goesToLoginPage()
+                .assertThatLogout_goesToLoginPage(baseUrl)
                 .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN);
     }
 
@@ -547,7 +547,7 @@ public class SamlLoginIT {
         LoginPage.go(webDriver, baseUrl)
                 .assertThatSamlLink_goesToSamlLoginPage(SAML_ORIGIN)
                 .assertThatLogin_goesToHomePage(testAccounts.getUserName(), testAccounts.getPassword())
-                .assertThatLogout_goesToLoginPage()
+                .assertThatLogout_goesToLoginPage(baseUrl)
                 // Local Logout, but not logged out of IDP, login should skip U/P prompt
                 .assertThatSamlLink_goesToHomePage(SAML_ORIGIN);
     }

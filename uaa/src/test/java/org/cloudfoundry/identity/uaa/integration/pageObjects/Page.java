@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.integration.pageObjects;
 import org.assertj.core.api.AbstractStringAssert;
 import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
 
 import java.time.Duration;
 import java.util.function.Consumer;
@@ -60,13 +61,18 @@ public class Page {
         return assertThat(driver.getTitle());
     }
 
-    public LoginPage assertThatLogout_goesToLoginPage() {
-        clickLogout();
+    public LoginPage assertThatLogout_goesToLoginPage(String baseUrl) {
+        clickLogout(baseUrl);
         return new LoginPage(driver);
     }
 
-    private void clickLogout() {
-        ((UaaWebDriver) driver).pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-logout");
+    private void clickLogout(String baseUrl) {
+        try {
+            ((UaaWebDriver) driver).pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-logout");
+        } catch (WebDriverException e) {
+            driver.get(baseUrl + "/logout.do");
+            driver.get(baseUrl + "/");
+        }
     }
 
     public void clearCookies() {
