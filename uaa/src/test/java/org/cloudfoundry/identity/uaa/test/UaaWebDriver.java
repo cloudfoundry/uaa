@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.jspecify.annotations.Nullable;
 import org.openqa.selenium.By;
+import org.openqa.selenium.ElementNotInteractableException;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.StaleElementReferenceException;
 import org.openqa.selenium.TakesScreenshot;
@@ -65,10 +66,10 @@ public class UaaWebDriver implements WebDriver {
      */
     public void pressUaaNavigation(String navigationElementId, String idButton) {
         WebDriverWait wait1 = new WebDriverWait(this.delegate, Duration.ofSeconds(10));
-        WebElement elm1 = wait1.until(ExpectedConditions.elementToBeClickable(By.id(navigationElementId)));
+        WebElement elm1 = wait1.ignoreAll(List.of(StaleElementReferenceException.class, ElementNotInteractableException.class)).until(ExpectedConditions.visibilityOfElementLocated(By.id(navigationElementId)));
         elm1.click();
         WebDriverWait wait2 = new WebDriverWait(this.delegate, Duration.ofSeconds(30));
-        WebElement elm2 = wait2.until(ExpectedConditions.elementToBeClickable(By.id(idButton)));
+        WebElement elm2 = wait2.ignoreAll(List.of(StaleElementReferenceException.class, ElementNotInteractableException.class)).until(ExpectedConditions.visibilityOfElementLocated(By.id(idButton)));
         elm2.click();
     }
 
