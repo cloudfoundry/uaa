@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
@@ -14,14 +15,21 @@ public class LoginPage extends Page {
 
     private static final String URL_PATH = "/login";
 
+    private String baseUrl;
+
     public LoginPage(WebDriver driver) {
         super(driver);
         assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.matches(".*" + URL_PATH + "(\\?.*)?$"));
     }
 
+    public LoginPage(WebDriver driver, String baseUrl) {
+        this(driver);
+        this.baseUrl = baseUrl;
+    }
+
     public static LoginPage go(WebDriver driver, String baseUrl) {
         driver.get(baseUrl + URL_PATH);
-        return new LoginPage(driver);
+        return new LoginPage(driver, baseUrl);
     }
 
     /**
@@ -41,6 +49,14 @@ public class LoginPage extends Page {
      */
     public HomePage assertThatSamlLink_goesToHomePage(String matchText) {
         clickSamlLoginLinkWithText(matchText);
+        return new HomePage(driver);
+    }
+
+    public HomePage sendLoginCredentials(String username, String password) {
+        driver.get(baseUrl + "/login");
+        driver.findElement(By.name("username")).sendKeys(username);
+        driver.findElement(By.name("password")).sendKeys(password);
+        ((UaaWebDriver) driver).clickAndWait(By.xpath("//input[@value='Sign in']"));
         return new HomePage(driver);
     }
 
