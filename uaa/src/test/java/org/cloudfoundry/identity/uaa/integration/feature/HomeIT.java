@@ -94,11 +94,10 @@ class HomeIT {
 
     @Test
     void theHeaderDropdown() {
-        WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(30));
-        WebElement elm = wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-dropdown-button")));
-        elm.click();
-        assertThat(asOnHomePage.getAccountSettingsElement().isDisplayed()).isTrue();
-        assertThat(asOnHomePage.getSignOutElement().isDisplayed()).isTrue();
+        WebDriverWait wait = new WebDriverWait(webDriver, Duration.ofSeconds(5));
+        wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-dropdown-button"))).click();
+        assertThat(wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-dropdown-content-profile"))).isDisplayed()).isTrue();
+        assertThat(wait.until(ExpectedConditions.visibilityOfElementLocated(By.id("nav-dropdown-content-logout"))).isDisplayed()).isTrue();
     }
 
     static class HomePagePerspective {
