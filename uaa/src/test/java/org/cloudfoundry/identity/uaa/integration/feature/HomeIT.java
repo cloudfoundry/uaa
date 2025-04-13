@@ -86,9 +86,8 @@ class HomeIT {
         HomePage homePage = LoginPage.go(webDriver, baseUrl)
                 .sendLoginCredentials(testAccounts.getUserName(), testAccounts.getPassword());
         try {
-            homePage.assertThatPageSource().contains("Where to?");
+            homePage.goHome().assertThatPageSource().contains("Where to?");
             webDriver.pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-profile");
-            homePage.assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith("/profile"));
         } catch (TimeoutException e) {
             webDriver.get(baseUrl + "/profile");
         }

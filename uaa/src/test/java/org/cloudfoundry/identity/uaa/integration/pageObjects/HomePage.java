@@ -28,9 +28,19 @@ public class HomePage extends Page {
         assertThatPageSource().contains("Where to?");
     }
 
+    public HomePage(WebDriver driver, String baseUrl) {
+        this(driver);
+        this.baseUrl = baseUrl;
+    }
+
     public static LoginPage assertThatGoHome_redirectsToLoginPage(WebDriver driver, String baseUrl) {
         driver.get(baseUrl + SLASH_URL_PATH);
-        return new LoginPage(driver);
+        return new LoginPage(driver, baseUrl);
+    }
+
+    public HomePage goHome() {
+        driver.get(baseUrl + "/home");
+        return this;
     }
 
     public boolean hasLastLoginTime() {
