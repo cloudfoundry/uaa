@@ -71,8 +71,9 @@ public class Page {
             ((UaaWebDriver) driver).pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-logout");
         } catch (WebDriverException e) {
             driver.get(baseUrl + "/logout.do");
-            driver.get(baseUrl + "/");
         }
+        // check that we end in /login
+        LoginPage.go(driver, baseUrl).assertThatLoginPageShown();
     }
 
     public void clearCookies() {

@@ -32,6 +32,15 @@ public class LoginPage extends Page {
         return new LoginPage(driver, baseUrl);
     }
 
+    public LoginPage assertThatLoginPageShown() {
+        if (baseUrl == null) {
+            assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.matches(".*" + URL_PATH + "(\\?.*)?$"));
+        } else {
+            assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith(baseUrl + URL_PATH));
+        }
+        return this;
+    }
+
     /**
      * When there is a SAML integration, there is a link to go to a SAML login page.
      * Clicking the link will go to the SAML login page.
