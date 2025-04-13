@@ -84,7 +84,10 @@ dependencies {
     implementation(libraries.javaxXmlBindApi)
     implementation(libraries.glassfishJaxb)
 
-    implementation(libraries.nimbusJwt)
+    implementation(libraries.nimbusJwt) {
+        exclude(module: "gson")
+    }
+    implementation(libraries.googleGson)
     implementation(libraries.orgJson)
 
     implementation(libraries.apacheHttpClient)
