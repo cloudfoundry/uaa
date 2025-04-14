@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.oauth.jwt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.directory.api.util.Base64;
 import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension;
 import org.cloudfoundry.identity.uaa.test.RandomParametersJunitExtension.RandomValue;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.Base64;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -194,6 +194,6 @@ class JwtHeaderHelperTest {
     }
 
     private String asBase64(String jwt) {
-        return new String(Base64.encode(jwt.getBytes()));
+        return new String(Base64.getEncoder().encode(jwt.getBytes()));
     }
 }

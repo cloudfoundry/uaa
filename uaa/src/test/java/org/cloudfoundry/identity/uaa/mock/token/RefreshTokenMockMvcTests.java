@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Lists;
-import org.apache.directory.api.util.Base64;
 import org.apache.http.HttpStatus;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -46,6 +45,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 
 import java.time.Instant;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -207,7 +207,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         String body = mockMvc.perform(post("/oauth/token")
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .header("Host", getZoneHostUrl(zone))
-                        .header("Authorization", "Basic " + new String(Base64.encode((client.getClientId() + ":" + SECRET).getBytes())))
+                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode((client.getClientId() + ":" + SECRET).getBytes())))
                         .param("grant_type", GRANT_TYPE_PASSWORD)
                         .param("client_id", client.getClientId())
                         .param("client_secret", SECRET)
@@ -238,7 +238,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
         String body = mockMvc.perform(post("/oauth/token")
                         .accept(MediaType.APPLICATION_JSON_VALUE)
                         .header("Host", getZoneHostUrl(zone))
-                        .header("Authorization", "Basic " + new String(Base64.encode((client.getClientId() + ":" + SECRET).getBytes())))
+                        .header("Authorization", "Basic " + new String(Base64.getEncoder().encode((client.getClientId() + ":" + SECRET).getBytes())))
                         .param("grant_type", GRANT_TYPE_PASSWORD)
                         .param("client_id", client.getClientId())
                         .param("client_secret", SECRET)
