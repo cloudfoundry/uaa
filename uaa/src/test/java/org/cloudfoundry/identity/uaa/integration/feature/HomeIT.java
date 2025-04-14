@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import org.cloudfoundry.identity.uaa.integration.pageObjects.HomePage;
 import org.cloudfoundry.identity.uaa.integration.pageObjects.LoginPage;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFailExtension;
 import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
@@ -82,10 +83,10 @@ class HomeIT {
 
     @Test
     void profilePage() {
-        LoginPage.go(webDriver, baseUrl)
-                .sendLoginCredentials(testAccounts.getUserName(), testAccounts.getPassword())
-                .assertThatPageSource().contains("Where to?");
+        HomePage homePage = LoginPage.go(webDriver, baseUrl)
+                .sendLoginCredentials(testAccounts.getUserName(), testAccounts.getPassword());
         try {
+            homePage.goHome().assertThatPageSource().contains("Where to?");
             webDriver.pressUaaNavigation("nav-dropdown-button", "nav-dropdown-content-profile");
         } catch (TimeoutException e) {
             webDriver.get(baseUrl + "/profile");

@@ -15,21 +15,28 @@ public class LoginPage extends Page {
 
     private static final String URL_PATH = "/login";
 
-    private String baseUrl;
-
     public LoginPage(WebDriver driver) {
         super(driver);
-        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.matches(".*" + URL_PATH + "(\\?.*)?$"));
+        assertThatLoginPageShown();
     }
 
     public LoginPage(WebDriver driver, String baseUrl) {
-        this(driver);
-        this.baseUrl = baseUrl;
+        super(driver, baseUrl);
+        assertThatLoginPageShown();
     }
 
     public static LoginPage go(WebDriver driver, String baseUrl) {
         driver.get(baseUrl + URL_PATH);
         return new LoginPage(driver, baseUrl);
+    }
+
+    public LoginPage assertThatLoginPageShown() {
+        if (baseUrl == null) {
+            assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.matches(".*" + URL_PATH + "(\\?.*)?$"));
+        } else {
+            assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith(baseUrl + URL_PATH));
+        }
+        return this;
     }
 
     /**
@@ -47,9 +54,9 @@ public class LoginPage extends Page {
      * When going back to the SAML login page, it will log
      * the app back in automatically and immediately redirect to the post-login page.
      */
-    public HomePage assertThatSamlLink_goesToHomePage(String matchText) {
-        clickSamlLoginLinkWithText(matchText);
-        return new HomePage(driver);
+    public HomePage assertThatSamlLink_goesToHomePage(String originKey) {
+        driver.get(baseUrl + "/saml2/authenticate/%s".formatted(originKey));
+        return new HomePage(driver, baseUrl);
     }
 
     public HomePage sendLoginCredentials(String username, String password) {
@@ -57,7 +64,7 @@ public class LoginPage extends Page {
         driver.findElement(By.name("username")).sendKeys(username);
         driver.findElement(By.name("password")).sendKeys(password);
         ((UaaWebDriver) driver).clickAndWait(By.xpath("//input[@value='Sign in']"));
-        return new HomePage(driver);
+        return new HomePage(driver, baseUrl);
     }
 
     /**
