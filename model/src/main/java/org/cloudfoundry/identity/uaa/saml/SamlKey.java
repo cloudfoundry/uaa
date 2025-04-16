@@ -28,6 +28,7 @@ import lombok.ToString;
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class SamlKey {
+    @ToString.Exclude
     private String key;
     @ToString.Exclude
     private String passphrase;
