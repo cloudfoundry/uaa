@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthentic
 import org.cloudfoundry.identity.uaa.client.UaaClient;
 import org.cloudfoundry.identity.uaa.constants.ClientAuthentication;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
@@ -136,6 +137,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     public static final Logger logger = LoggerFactory.getLogger(ExternalOAuthAuthenticationManager.class);
 
+    private final RestTemplateConfig restTemplateConfig;
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
     private final OidcMetadataFetcher oidcMetadataFetcher;
@@ -146,12 +148,14 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
 
     public ExternalOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
+                                              RestTemplateConfig restTemplateConfig,
                                               RestTemplate trustingRestTemplate,
                                               RestTemplate nonTrustingRestTemplate,
                                               TokenEndpointBuilder tokenEndpointBuilder,
                                               KeyInfoService keyInfoService,
                                               OidcMetadataFetcher oidcMetadataFetcher) {
         super(providerProvisioning);
+        this.restTemplateConfig = restTemplateConfig;
         this.trustingRestTemplate = trustingRestTemplate;
         this.nonTrustingRestTemplate = nonTrustingRestTemplate;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
@@ -906,7 +910,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             tokenUrl = ofNullable(config.getTokenUrl()).orElseThrow(() -> new ProviderConfigurationException("External OpenID Connect metadata is missing after discovery update."));
         }
         String calcAuthMethod = ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), clientSecret != null, config.getJwtClientAuthentication() != null);
-        RestTemplate rt = config.isSkipSslValidation() ? trustingRestTemplate : nonTrustingRestTemplate;
+        RestTemplate rt = config.isSkipSslValidation() ? restTemplateConfig.trustingRestTemplate() : restTemplateConfig.nonTrustingRestTemplate();
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(APPLICATION_JSON));

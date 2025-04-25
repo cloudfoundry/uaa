@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.github.benmanes.caffeine.cache.Ticker;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -90,7 +91,7 @@ class ExternalOAuthAuthenticationManagerGithubTest {
                 trustingRestTemplate,
                 nonTrustingRestTemplate
         );
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, trustingRestTemplate,
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, RestTemplateConfig.createDefaults(), trustingRestTemplate,
                 nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
     }
 

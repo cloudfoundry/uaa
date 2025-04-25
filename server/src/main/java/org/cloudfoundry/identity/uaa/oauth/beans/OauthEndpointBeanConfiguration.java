@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
@@ -550,9 +551,15 @@ public class OauthEndpointBeanConfiguration {
         return new CurrentUserCookieRequestFilter(currentUserCookieFactory);
     }
 
+    @Bean("restTemplateConfig")
+    RestTemplateConfig restTemplateConfig() {
+        return new RestTemplateConfig();
+    }
+
     @Bean("externalOAuthAuthenticationManager")
     ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager(
         @Qualifier("externalOAuthProviderConfigurator") IdentityProviderProvisioning providerProvisioning,
+        @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
         @Qualifier("trustingRestTemplate") RestTemplate trustingRestTemplate,
         @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate,
         @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
@@ -563,6 +570,7 @@ public class OauthEndpointBeanConfiguration {
     ) {
         ExternalOAuthAuthenticationManager bean = new ExternalOAuthAuthenticationManager(
                 providerProvisioning,
+                restTemplateConfig,
                 trustingRestTemplate,
                 nonTrustingRestTemplate,
                 tokenEndpointBuilder,
