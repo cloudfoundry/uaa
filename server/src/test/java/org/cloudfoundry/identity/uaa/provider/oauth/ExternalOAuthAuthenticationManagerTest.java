@@ -96,6 +96,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
@@ -212,10 +213,9 @@ class ExternalOAuthAuthenticationManagerTest {
         tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
         oidcMetadataFetcher = new OidcMetadataFetcher(
                 new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, Ticker.disabledTicker()),
-                new RestTemplate(),
-                new RestTemplate()
+                RestTemplateConfig.createDefaults()
         );
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, RestTemplateConfig.createDefaults(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, RestTemplateConfig.createDefaults(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
         authManager.setExternalMembershipManager(externalMembershipManager);
     }
 
@@ -552,7 +552,7 @@ class ExternalOAuthAuthenticationManagerTest {
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", null, "accesstoken", "signedrequest");
 
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, RestTemplateConfig.createDefaults(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), null) {
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, RestTemplateConfig.createDefaults(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), null) {
             @Override
             protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> String getTokenFromCode(
                     ExternalOAuthCodeToken codeToken,
@@ -573,7 +573,7 @@ class ExternalOAuthAuthenticationManagerTest {
     void fetchOidcMetadata() throws OidcMetadataFetchingException {
         OIDCIdentityProviderDefinition mockedProviderDefinition = mock(OIDCIdentityProviderDefinition.class);
         OidcMetadataFetcher mockedOidcMetadataFetcher = mock(OidcMetadataFetcher.class);
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, RestTemplateConfig.createDefaults(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), mockedOidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, RestTemplateConfig.createDefaults(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), mockedOidcMetadataFetcher);
         doThrow(new OidcMetadataFetchingException("error")).when(mockedOidcMetadataFetcher).fetchMetadataAndUpdateDefinition(mockedProviderDefinition);
         assertThatNoException().isThrownBy(() -> authManager.fetchMetadataAndUpdateDefinition(mockedProviderDefinition));
     }
@@ -726,12 +726,11 @@ class ExternalOAuthAuthenticationManagerTest {
         RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
         /* HTTP mock */
         RestTemplate rt = mock(RestTemplate.class);
-        when(restTemplateConfig.trustingRestTemplate()).thenReturn(rt);
-        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(rt);
         when(rt.exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
         when(responseEntity.hasBody()).thenReturn(true);
         when(responseEntity.getBody()).thenReturn(Map.of("id_token", "dummy"));
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
 
         // When
         authManager.oauthTokenRequest(null, mockOidcIdentityProvider(), GRANT_TYPE_PASSWORD, new LinkedMaskingMultiValueMap<>());
@@ -763,12 +762,11 @@ class ExternalOAuthAuthenticationManagerTest {
         /* HTTP mock */
         RestTemplate rt = mock(RestTemplate.class);
         RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
-        when(restTemplateConfig.trustingRestTemplate()).thenReturn(rt);
-        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(rt);
         when(rt.exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
         when(responseEntity.hasBody()).thenReturn(true);
         when(responseEntity.getBody()).thenReturn(Map.of("id_token", "dummy"));
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
 
         // When
         assertThat(authManager.oidcJwtBearerGrant(uaaAuthenticationDetails, mockOidcIdentityProvider() , "proxy-token")).isEqualTo("dummy");
@@ -802,13 +800,12 @@ class ExternalOAuthAuthenticationManagerTest {
         /* HTTP mock */
         RestTemplate rt = mock(RestTemplate.class);
         RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(rt);
         OIDCIdentityProviderDefinition config = identityProvider.getConfig();
         when(config.getRelyingPartySecret()).thenReturn("secret");
         doReturn(false).when(config).isClientAuthInBody();
-        when(restTemplateConfig.trustingRestTemplate()).thenReturn(rt);
-        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
         when(rt.exchange(eq("http://localhost:8080/uaa/oauth/token"), eq(HttpMethod.POST), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenThrow(new HttpClientErrorException(HttpStatus.UNAUTHORIZED));
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
 
         // When
         assertThatThrownBy(() -> authManager.oidcJwtBearerGrant(uaaAuthenticationDetails, identityProvider, "proxy-token"))
@@ -842,9 +839,8 @@ class ExternalOAuthAuthenticationManagerTest {
 
         RestTemplate rt = mock(RestTemplate.class);
         RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
-        when(restTemplateConfig.trustingRestTemplate()).thenReturn(rt);
-        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(rt);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
 
         ResponseEntity<Map<String, String>> response = mock(ResponseEntity.class);
         when(response.hasBody()).thenReturn(true);
@@ -895,13 +891,12 @@ class ExternalOAuthAuthenticationManagerTest {
         RestTemplate restTemplate = mock(RestTemplate.class);
         ResponseEntity responseEntity = mock(ResponseEntity.class);
         RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(restTemplate);
 
-        when(restTemplateConfig.trustingRestTemplate()).thenReturn(restTemplate);
-        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(restTemplate);
         when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(HttpEntity.class), any(ParameterizedTypeReference.class))).thenReturn(responseEntity);
         when(responseEntity.hasBody()).thenReturn(true);
         when(responseEntity.getBody()).thenReturn(Map.of("id_token", "dummy"));
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, restTemplate, restTemplate, tokenEndpointBuilder, mockKeyInfoService(), oidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, tokenEndpointBuilder, mockKeyInfoService(), oidcMetadataFetcher);
 
         final IdentityProvider<OIDCIdentityProviderDefinition> localIdp = new IdentityProvider<>();
         localIdp.setOriginKey(new AlphanumericRandomValueStringGenerator(8).generate().toLowerCase());
@@ -954,9 +949,8 @@ class ExternalOAuthAuthenticationManagerTest {
 
         RestTemplate rt = mock(RestTemplate.class);
         RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
-        when(restTemplateConfig.trustingRestTemplate()).thenReturn(rt);
-        when(restTemplateConfig.nonTrustingRestTemplate()).thenReturn(rt);
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, rt, rt, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(rt);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig, tokenEndpointBuilder, keyInfoService, oidcMetadataFetcher);
 
         ResponseEntity<Map<String, String>> response = mock(ResponseEntity.class);
         when(response.hasBody()).thenReturn(true);

@@ -2,30 +2,17 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.http.conn.ssl.NoopHostnameVerifier;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.ssl.TrustStrategy;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
-import org.springframework.web.client.RestTemplate;
-
-import javax.net.ssl.SSLContext;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.time.Duration;
 
 @Slf4j
 @EnableConfigurationProperties({SamlConfigProps.class})
@@ -126,38 +113,23 @@ public class SamlConfiguration {
         return new StaleUrlCache(timeService);
     }
 
-    @Bean
-    public RestTemplate trustingRestTemplate() throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-        // skip ssl validation
-        TrustStrategy acceptingTrustStrategy = (x509Certificates, s) -> true;
-        SSLContext sslContext = org.apache.http.ssl.SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
-        SSLConnectionSocketFactory csf = new SSLConnectionSocketFactory(sslContext, new NoopHostnameVerifier());
-        CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(csf).build();
-        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory();
-        requestFactory.setHttpClient(httpClient);
-
-        RestTemplateBuilder restTemplateBuilder = new RestTemplateBuilder();
-        return restTemplateBuilder
-                .setConnectTimeout(Duration.ofMillis(socketConnectionTimeout))
-                .setReadTimeout(Duration.ofMillis(socketReadTimeout))
-                .requestFactory(() -> requestFactory)
-                .build();
-    }
-
-    @Bean
-    public RestTemplate nonTrustingRestTemplate() {
-        RestTemplateBuilder restTemplateBuilder = new RestTemplateBuilder();
-        return restTemplateBuilder
-                .setConnectTimeout(Duration.ofMillis(socketConnectionTimeout))
-                .setReadTimeout(Duration.ofMillis(socketReadTimeout))
-                .build();
+    @Bean("restTemplateConfig")
+    RestTemplateConfig restTemplateConfig() {
+        return new RestTemplateConfig();
     }
 
     @Autowired
     @Bean
-    public FixedHttpMetaDataProvider fixedHttpMetaDataProvider(@Qualifier("trustingRestTemplate") RestTemplate trustingRestTemplate,
-            @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate,
+    public FixedHttpMetaDataProvider fixedHttpMetaDataProvider(
+            @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
             UrlContentCache urlContentCache) {
-        return new FixedHttpMetaDataProvider(trustingRestTemplate, nonTrustingRestTemplate, urlContentCache);
+        // create SAML custom configuration
+        int timeout = socketConnectionTimeout != 10_000 ? socketConnectionTimeout : socketReadTimeout != 10_000 ? socketReadTimeout : socketConnectionTimeout;
+        RestTemplateConfig restTemplateConfigWithSamlTimeout = new RestTemplateConfig();
+        restTemplateConfigWithSamlTimeout.maxTotal = restTemplateConfig.maxTotal;
+        restTemplateConfigWithSamlTimeout.maxPerRoute = restTemplateConfig.maxPerRoute;
+        restTemplateConfigWithSamlTimeout.maxKeepAlive = restTemplateConfig.maxKeepAlive;
+        restTemplateConfigWithSamlTimeout.timeout = timeout;
+        return new FixedHttpMetaDataProvider(restTemplateConfigWithSamlTimeout, urlContentCache);
     }
 }

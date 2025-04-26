@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -23,6 +24,7 @@ import java.net.URL;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -35,6 +37,7 @@ class OidcMetadataFetcherTest {
     private OidcMetadataFetcher metadataDiscoverer;
     private UrlContentCache urlContentCache;
     private RestTemplate restTemplate;
+    private RestTemplateConfig restTemplateConfig;
 
     private OIDCIdentityProviderDefinition definition;
 
@@ -42,8 +45,10 @@ class OidcMetadataFetcherTest {
     void setUp() {
         urlContentCache = mock(UrlContentCache.class, Answers.CALLS_REAL_METHODS);
         restTemplate = mock(RestTemplate.class, Answers.RETURNS_DEEP_STUBS);
+        restTemplateConfig = mock(RestTemplateConfig.class, Answers.RETURNS_DEEP_STUBS);
 
-        metadataDiscoverer = new OidcMetadataFetcher(urlContentCache, restTemplate, restTemplate);
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(restTemplate);
+        metadataDiscoverer = new OidcMetadataFetcher(urlContentCache, restTemplateConfig);
         definition = new OIDCIdentityProviderDefinition();
     }
 

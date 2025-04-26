@@ -138,8 +138,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     public static final Logger logger = LoggerFactory.getLogger(ExternalOAuthAuthenticationManager.class);
 
     private final RestTemplateConfig restTemplateConfig;
-    private final RestTemplate trustingRestTemplate;
-    private final RestTemplate nonTrustingRestTemplate;
     private final OidcMetadataFetcher oidcMetadataFetcher;
     private TokenEndpointBuilder tokenEndpointBuilder;
     private final KeyInfoService keyInfoService;
@@ -149,15 +147,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     public ExternalOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
                                               RestTemplateConfig restTemplateConfig,
-                                              RestTemplate trustingRestTemplate,
-                                              RestTemplate nonTrustingRestTemplate,
                                               TokenEndpointBuilder tokenEndpointBuilder,
                                               KeyInfoService keyInfoService,
                                               OidcMetadataFetcher oidcMetadataFetcher) {
         super(providerProvisioning);
         this.restTemplateConfig = restTemplateConfig;
-        this.trustingRestTemplate = trustingRestTemplate;
-        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.keyInfoService = keyInfoService;
         this.oidcMetadataFetcher = oidcMetadataFetcher;
@@ -556,11 +550,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     public RestTemplate getRestTemplate(AbstractExternalOAuthIdentityProviderDefinition config) {
-        if (config.isSkipSslValidation()) {
-            return trustingRestTemplate;
-        } else {
-            return nonTrustingRestTemplate;
-        }
+        return restTemplateConfig.createRestTemplate(config.isSkipSslValidation());
     }
 
     protected String getResponseType(AbstractExternalOAuthIdentityProviderDefinition config) {
@@ -910,7 +900,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             tokenUrl = ofNullable(config.getTokenUrl()).orElseThrow(() -> new ProviderConfigurationException("External OpenID Connect metadata is missing after discovery update."));
         }
         String calcAuthMethod = ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), clientSecret != null, config.getJwtClientAuthentication() != null);
-        RestTemplate rt = config.isSkipSslValidation() ? restTemplateConfig.trustingRestTemplate() : restTemplateConfig.nonTrustingRestTemplate();
+        RestTemplate rt = restTemplateConfig.createRestTemplate(config.isSkipSslValidation());
 
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(APPLICATION_JSON));

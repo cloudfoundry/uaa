@@ -102,6 +102,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.DEFAULT_UAA_URL;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.doAnswer;
@@ -173,9 +174,9 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @BeforeEach
     void setUp() throws Exception {
-        RestTemplateConfig restTemplateConfig = RestTemplateConfig.createDefaults();
-        RestTemplate nonTrustingRestTemplate = restTemplateConfig.nonTrustingRestTemplate();
-        RestTemplate trustingRestTemplate = restTemplateConfig.trustingRestTemplate();
+        RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
+        RestTemplate nonTrustingRestTemplate = new RestTemplate();
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(nonTrustingRestTemplate);
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         String keyName = "testKey";
@@ -206,8 +207,7 @@ class ExternalOAuthAuthenticationManagerIT {
         urlContentCache = spy(new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, Ticker.systemTicker()));
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
                 urlContentCache,
-                trustingRestTemplate,
-                nonTrustingRestTemplate
+                restTemplateConfig
         );
         externalOAuthProviderConfigurator = spy(
                 new ExternalOAuthProviderConfigurator(
@@ -217,7 +217,7 @@ class ExternalOAuthAuthenticationManagerIT {
                         identityZoneProvisioning,
                         identityZoneManager)
         );
-        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, restTemplateConfig, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
+        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, restTemplateConfig, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
         externalOAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         externalOAuthAuthenticationManager.setApplicationEventPublisher(publisher);

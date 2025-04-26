@@ -551,17 +551,10 @@ public class OauthEndpointBeanConfiguration {
         return new CurrentUserCookieRequestFilter(currentUserCookieFactory);
     }
 
-    @Bean("restTemplateConfig")
-    RestTemplateConfig restTemplateConfig() {
-        return new RestTemplateConfig();
-    }
-
     @Bean("externalOAuthAuthenticationManager")
     ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager(
         @Qualifier("externalOAuthProviderConfigurator") IdentityProviderProvisioning providerProvisioning,
         @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
-        @Qualifier("trustingRestTemplate") RestTemplate trustingRestTemplate,
-        @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate,
         @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
         @Qualifier("keyInfoService") KeyInfoService keyInfoService,
         @Qualifier("oidcMetadataFetcher") OidcMetadataFetcher oidcMetadataFetcher,
@@ -571,8 +564,6 @@ public class OauthEndpointBeanConfiguration {
         ExternalOAuthAuthenticationManager bean = new ExternalOAuthAuthenticationManager(
                 providerProvisioning,
                 restTemplateConfig,
-                trustingRestTemplate,
-                nonTrustingRestTemplate,
                 tokenEndpointBuilder,
                 keyInfoService,
                 oidcMetadataFetcher

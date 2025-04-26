@@ -26,6 +26,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpHeaders.ACCEPT;
@@ -84,15 +85,16 @@ class ExternalOAuthAuthenticationManagerGithubTest {
 
         RestTemplate trustingRestTemplate = null;
         RestTemplate nonTrustingRestTemplate = new RestTemplate();
+        RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
+        when(restTemplateConfig.createRestTemplate(anyBoolean())).thenReturn(nonTrustingRestTemplate);
         mockGithubServer = MockRestServiceServer.createServer(nonTrustingRestTemplate);
 
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
                 new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, Ticker.disabledTicker()),
-                trustingRestTemplate,
-                nonTrustingRestTemplate
+                restTemplateConfig
         );
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, RestTemplateConfig.createDefaults(), trustingRestTemplate,
-                nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, restTemplateConfig,
+                tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
     }
 
     @AfterEach

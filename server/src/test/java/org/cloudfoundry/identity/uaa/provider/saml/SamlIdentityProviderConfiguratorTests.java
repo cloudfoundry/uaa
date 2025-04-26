@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -34,7 +35,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.saml2.provider.service.registration.RelyingPartyRegistration;
 import org.springframework.web.client.ResourceAccessException;
-import org.springframework.web.client.RestTemplate;
 
 import java.net.SocketTimeoutException;
 import java.security.KeyManagementException;
@@ -227,11 +227,9 @@ public class SamlIdentityProviderConfiguratorTests {
     }
 
     FixedHttpMetaDataProvider createNonMockFixedHttpMetaDataProvider(SamlConfiguration samlConfiguration) throws NoSuchAlgorithmException, KeyStoreException, KeyManagementException {
-        RestTemplate trustingRestTemplate = samlConfiguration.trustingRestTemplate();
-        RestTemplate nonTrustingRestTemplate = samlConfiguration.nonTrustingRestTemplate();
         UrlContentCache urlContentCache = samlConfiguration.urlContentCache(samlConfiguration.timeService());
 
-        return samlConfiguration.fixedHttpMetaDataProvider(trustingRestTemplate, nonTrustingRestTemplate, urlContentCache);
+        return samlConfiguration.fixedHttpMetaDataProvider(RestTemplateConfig.createDefaults(), urlContentCache);
     }
 
     @Test
