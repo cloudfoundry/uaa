@@ -421,7 +421,6 @@
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.provider.oauth.OidcMetadataFetcher" id="oidcMetadataFetcher">
-        <constructor-arg name="restTemplateConfig" ref="restTemplateConfig"/>
     </bean>
 
     <bean id="globalLinks" class="org.cloudfoundry.identity.uaa.zone.Links">

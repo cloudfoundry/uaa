@@ -113,18 +113,13 @@ public class SamlConfiguration {
         return new StaleUrlCache(timeService);
     }
 
-    @Bean("restTemplateConfig")
-    RestTemplateConfig restTemplateConfig() {
-        return new RestTemplateConfig();
-    }
-
     @Autowired
     @Bean
     public FixedHttpMetaDataProvider fixedHttpMetaDataProvider(
             @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
             UrlContentCache urlContentCache) {
         // create SAML custom configuration
-        int timeout = socketConnectionTimeout != 10_000 ? socketConnectionTimeout : socketReadTimeout != 10_000 ? socketReadTimeout : socketConnectionTimeout;
+        int timeout = socketConnectionTimeout != 10_000 ? socketConnectionTimeout : (socketReadTimeout != 10_000 ? socketReadTimeout : socketConnectionTimeout);
         RestTemplateConfig restTemplateConfigWithSamlTimeout = new RestTemplateConfig();
         restTemplateConfigWithSamlTimeout.maxTotal = restTemplateConfig.maxTotal;
         restTemplateConfigWithSamlTimeout.maxPerRoute = restTemplateConfig.maxPerRoute;

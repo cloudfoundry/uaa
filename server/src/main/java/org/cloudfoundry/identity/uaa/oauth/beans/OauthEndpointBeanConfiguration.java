@@ -93,7 +93,6 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpSession;
 import java.security.NoSuchAlgorithmException;
