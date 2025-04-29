@@ -57,6 +57,7 @@ class SamlMetadataEndpointMockMvcTests {
     @Test
     void samlMetadataDefaultWithEndingSlash() throws Exception {
         mockMvc.perform(get(new URI("/saml/metadata/example/")))
+                .andDo(print())
                 .andExpect(status().is4xxClientError());
     }
 

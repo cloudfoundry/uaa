@@ -59,7 +59,7 @@ public class SpringServletXmlSecurityConfiguration implements WebMvcConfigurer {
     @Order(FilterChainOrder.NO_SECURITY)
     UaaFilterChain secFilterOpen06SAMLMetadata(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher("/saml/metadata/**")
+                .securityMatcher("/saml/metadata/**", "/saml/metadata")
                 .authorizeHttpRequests().anyRequest().permitAll().and()
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)

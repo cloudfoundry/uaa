@@ -13,13 +13,13 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.util.InMemoryResource;
-import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.SystemPropertyUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
 
+import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -83,15 +83,16 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         ServletContext servletContext = applicationContext.getServletContext();
         final String contextPath = servletContext != null ? servletContext.getContextPath() : "/";
 
-        if (servletContext != null) {
-            HttpSessionEventPublisher publisher = new HttpSessionEventPublisher();
-            servletContext.addListener(publisher);
-        }
-
         JacksonObjectMapperConfig.configureJsonPathForJackson();
 
+        ServletConfig servletConfig = null;
+        try {
+            servletConfig = applicationContext.getServletConfig();
+        } catch (UnsupportedOperationException ignore) {
+            System.err.println("Unable to load Servlet Context - are you testing?");
+        }
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
-                servletContext, applicationContext.getServletConfig());
+                servletContext, servletConfig);
 
         List<Resource> resources = new ArrayList<>();
 
