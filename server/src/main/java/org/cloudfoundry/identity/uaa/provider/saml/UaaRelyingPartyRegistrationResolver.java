@@ -43,15 +43,15 @@ import java.util.function.Function;
 @Slf4j
 public final class UaaRelyingPartyRegistrationResolver implements Converter<HttpServletRequest, RelyingPartyRegistration>, RelyingPartyRegistrationResolver {
 
-    private final String samlEntityID;
+    private final String uaaWideSamlEntityIDAlias;
     private final RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
     private final RequestMatcher registrationRequestMatcher = new AntPathRequestMatcher("/**/{registrationId}");
 
     public UaaRelyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
-            String samlEntityID) {
+            String uaaWideSamlEntityIDAlias) {
         Assert.notNull(relyingPartyRegistrationRepository, "relyingPartyRegistrationRepository cannot be null");
         this.relyingPartyRegistrationRepository = relyingPartyRegistrationRepository;
-        this.samlEntityID = samlEntityID;
+        this.uaaWideSamlEntityIDAlias = uaaWideSamlEntityIDAlias;
     }
 
     public RelyingPartyRegistration convert(HttpServletRequest request) {
@@ -95,7 +95,7 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
 
     private String resolveFromRequest(HttpServletRequest request, String resolvedEntityId, String samlResponseParameter) {
         String relyingPartyRegistrationId = null;
-        if (samlEntityID != null && samlEntityID.equals(resolvedEntityId) && samlResponseParameter != null) {
+        if (uaaWideSamlEntityIDAlias != null && uaaWideSamlEntityIDAlias.equals(resolvedEntityId) && samlResponseParameter != null) {
             if (log.isTraceEnabled()) {
                 log.trace("Attempting to resolve from SAMLResponse parameter");
             }

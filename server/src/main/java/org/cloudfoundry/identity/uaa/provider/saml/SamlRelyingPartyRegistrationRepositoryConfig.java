@@ -16,6 +16,7 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.SamlMetadataEndpoint.DEFAULT_REGISTRATION_ID;
 
@@ -108,6 +109,6 @@ public class SamlRelyingPartyRegistrationRepositoryConfig {
     @Bean
     UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver(RelyingPartyRegistrationRepository relyingPartyRegistrationRepository,
             @Qualifier("samlEntityID") String samlEntityID) {
-        return new UaaRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, samlEntityID);
+        return new UaaRelyingPartyRegistrationResolver(relyingPartyRegistrationRepository, Optional.ofNullable(samlConfigProps.getEntityIDAlias()).orElse(samlEntityID));
     }
 }
