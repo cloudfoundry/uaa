@@ -18,6 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -38,6 +39,7 @@ import static java.util.stream.Collectors.toSet;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 
+@Component("externalOAuthProviderConfigurator")
 public class ExternalOAuthProviderConfigurator implements IdentityProviderProvisioning {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ExternalOAuthProviderConfigurator.class);
@@ -50,7 +52,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
 
     public ExternalOAuthProviderConfigurator(
             final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning,
-            final OidcMetadataFetcher oidcMetadataFetcher,
+            final @Qualifier("oidcMetadataFetcher") OidcMetadataFetcher oidcMetadataFetcher,
             final UaaRandomStringUtil uaaRandomStringUtil,
             final @Qualifier("identityZoneProvisioning") IdentityZoneProvisioning identityZoneProvisioning,
             final IdentityZoneManager identityZoneManager

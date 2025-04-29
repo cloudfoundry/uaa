@@ -73,6 +73,7 @@ public class DefaultIntegrationTestConfig {
                 "--verbose",
                 // Comment the following line to run selenium test browser in Headed Mode
                 "--headless",
+                "--guest", //attempt to disable password checkups that disrupt the flow
                 "--disable-web-security",
                 "--ignore-certificate-errors",
                 "--allow-running-insecure-content",
