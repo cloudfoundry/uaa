@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -91,7 +92,7 @@ public class CorsFilter extends OncePerRequestFilter {
     private final boolean enforceSystemZoneSettings;
 
     public CorsFilter(final IdentityZoneManager identityZoneManager,
-            final boolean enforceSystemZoneSettings) {
+            @Value("${cors.enforceSystemZonePolicyInAllZones:false}") final boolean enforceSystemZoneSettings) {
         if (logger.isInfoEnabled()) {
             logger.info("`cors.enforceSystemZonePolicyInAllZones` is set to `{}`. Per-zone CORS policy settings are to be {}.",
                     enforceSystemZoneSettings, enforceSystemZoneSettings ? "ignored" : "honored");

@@ -14,7 +14,6 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.session.web.http.CookieSerializer;
 
 import javax.servlet.http.Cookie;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -85,8 +84,8 @@ class UaaSessionConfigTest {
         MockHttpServletRequest mockHttpServletRequest = new MockHttpServletRequest("GET", "/uaa/login");
         MockHttpServletResponse mockHttpServletResponse = new MockHttpServletResponse();
         UaaSessionConfig config = new UaaJdbcSessionConfig();
-        var defaultProps = new UaaProperties.Servlet(new UaaProperties.SessionCookie(true, -1), 0, Collections.emptyList());
-        var customProps = new UaaProperties.Servlet(new UaaProperties.SessionCookie(false, 1), 0, Collections.emptyList());
+        var defaultProps = new UaaProperties.Servlet(new UaaProperties.SessionCookie(true, -1), 0);
+        var customProps = new UaaProperties.Servlet(new UaaProperties.SessionCookie(false, 1), 0);
         CookieSerializer cookieSerializer = config.uaaCookieSerializer(defaults ? defaultProps : customProps);
         mockHttpServletRequest.setCookies(new Cookie(sessionName, sessionId));
         List<String> cookies = cookieSerializer.readCookieValues(mockHttpServletRequest);

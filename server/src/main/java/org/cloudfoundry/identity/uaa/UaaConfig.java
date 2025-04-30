@@ -19,15 +19,8 @@ import java.util.List;
 @Configuration
 @EnableConfigurationProperties({
         UaaProperties.Uaa.class,
-        UaaProperties.Login.class,
-        UaaProperties.Logout.class,
         UaaProperties.Servlet.class,
-        UaaProperties.RootLevel.class,
-        UaaProperties.Csp.class,
-        UaaProperties.Metrics.class,
-        UaaProperties.Zones.class,
-        UaaProperties.GlobalClientSecretPolicy.class,
-        UaaProperties.DefaultClientSecretPolicy.class
+        UaaProperties.RootLevel.class
 })
 public class UaaConfig {
 
@@ -66,18 +59,13 @@ public class UaaConfig {
      * @see <a href="https://github.com/spring-projects/spring-security/issues/11108#issuecomment-1113608990">Spring Security #11108</a>
      * @deprecated Remove this once there are no more XML-based filter chains.
      */
-//    @Bean(name = SPRING_SECURITY_FILTER_CHAIN_ID)
-//    public FilterChainProxy aggregateSpringSecurityFilterChain(WebSecurityConfiguration webSecurityConfiguration, List<UaaFilterChain> javaFilterChains) throws Exception {
-//        var xmlFilterChains = ((FilterChainProxy) webSecurityConfiguration.springSecurityFilterChain()).getFilterChains();
-//        var securityFilterChains = new ArrayList<>(xmlFilterChains);
-//        securityFilterChains.removeAll(javaFilterChains);
-//        securityFilterChains.addAll(javaFilterChains);
-//        return new FilterChainProxy(securityFilterChains);
-//    }
-
     @Bean(name = SPRING_SECURITY_FILTER_CHAIN_ID)
     public FilterChainProxy aggregateSpringSecurityFilterChain(WebSecurityConfiguration webSecurityConfiguration, List<UaaFilterChain> javaFilterChains) throws Exception {
-        List<SecurityFilterChain> securityFilterChains = new ArrayList<>(javaFilterChains);
+        var xmlFilterChains = ((FilterChainProxy) webSecurityConfiguration.springSecurityFilterChain()).getFilterChains();
+        var securityFilterChains = new ArrayList<>(xmlFilterChains);
+        securityFilterChains.removeAll(javaFilterChains);
+        securityFilterChains.addAll(javaFilterChains);
+
         return new FilterChainProxy(securityFilterChains);
     }
 
