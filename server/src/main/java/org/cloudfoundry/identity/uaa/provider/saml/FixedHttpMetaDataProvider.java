@@ -1,26 +1,32 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
-import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
+import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 
 public class FixedHttpMetaDataProvider {
 
-    private final RestTemplateConfig restTemplateConfig;
+    private final RestTemplate trustingRestTemplate;
+    private final RestTemplate nonTrustingRestTemplate;
     private final UrlContentCache cache;
 
     public FixedHttpMetaDataProvider(
-            final RestTemplateConfig restTemplateConfig,
+            final RestTemplate trustingRestTemplate,
+            final RestTemplate nonTrustingRestTemplate,
             final UrlContentCache cache) {
-        this.restTemplateConfig = restTemplateConfig;
+        this.trustingRestTemplate = trustingRestTemplate;
+        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
         this.cache = cache;
     }
 
     public byte[] fetchMetadata(String metadataURL, boolean isSkipSSLValidation) throws MetadataProviderNotFoundException {
         validateMetadataURL(metadataURL);
-        return cache.getUrlContent(metadataURL, restTemplateConfig.createRestTemplate(isSkipSSLValidation));
+        if (isSkipSSLValidation) {
+            return cache.getUrlContent(metadataURL, trustingRestTemplate);
+        }
+        return cache.getUrlContent(metadataURL, nonTrustingRestTemplate);
     }
 
     private void validateMetadataURL(String metadataURL) throws MetadataProviderNotFoundException {

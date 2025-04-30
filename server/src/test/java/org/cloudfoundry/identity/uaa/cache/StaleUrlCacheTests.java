@@ -250,7 +250,7 @@ class StaleUrlCacheTests {
         void throwUnavailableIdpWhenServerMetadataDoesNotReply() {
             RestTemplateConfig restTemplateConfig = RestTemplateConfig.createDefaults();
             restTemplateConfig.timeout = 120;
-            RestTemplate restTemplate = restTemplateConfig.createRestTemplate(true);
+            RestTemplate restTemplate = restTemplateConfig.trustingRestTemplate();
 
             String url = slowHttpServer.getUrl();
             await().atMost(60, TimeUnit.SECONDS)

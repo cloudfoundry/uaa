@@ -5,7 +5,6 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.client.ClientJwtConfiguration;
-import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeyHelper;
 import org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKeySet;
@@ -29,13 +28,16 @@ import static java.util.Optional.ofNullable;
 
 public class OidcMetadataFetcher {
     private final UrlContentCache contentCache;
-    private final RestTemplateConfig restTemplateConfig;
+    private final RestTemplate trustingRestTemplate;
+    private final RestTemplate nonTrustingRestTemplate;
 
     public OidcMetadataFetcher(UrlContentCache contentCache,
-                               RestTemplateConfig restTemplateConfig
+            RestTemplate trustingRestTemplate,
+            RestTemplate nonTrustingRestTemplate
     ) {
         this.contentCache = contentCache;
-        this.restTemplateConfig = restTemplateConfig;
+        this.trustingRestTemplate = trustingRestTemplate;
+        this.nonTrustingRestTemplate = nonTrustingRestTemplate;
     }
 
     public void fetchMetadataAndUpdateDefinition(OIDCIdentityProviderDefinition definition) throws OidcMetadataFetchingException {
@@ -94,7 +96,12 @@ public class OidcMetadataFetcher {
     }
 
     private byte[] getResponse(String uri, boolean isSkipSslValidation, HttpMethod method, HttpEntity<Object> header) {
-        ResponseEntity<byte[]> responseEntity = restTemplateConfig.createRestTemplate(isSkipSslValidation).exchange(uri, method, header, byte[].class);
+        ResponseEntity<byte[]> responseEntity;
+        if (isSkipSslValidation) {
+            responseEntity = trustingRestTemplate.exchange(uri, method, header, byte[].class);
+        } else {
+            responseEntity = nonTrustingRestTemplate.exchange(uri, method, header, byte[].class);
+        }
         if (responseEntity.getStatusCode() == HttpStatus.OK) {
             return responseEntity.getBody();
         } else {
@@ -104,8 +111,11 @@ public class OidcMetadataFetcher {
     }
 
     private byte[] getCachedResponse(String uri, boolean isSkipSslValidation, HttpMethod method, HttpEntity<Object> header) {
-        RestTemplate restTemplate = restTemplateConfig.createRestTemplate(isSkipSslValidation);
-        return contentCache.getUrlContent(uri, restTemplate, method, header);
+        if (isSkipSslValidation) {
+            return contentCache.getUrlContent(uri, trustingRestTemplate, method, header);
+        } else {
+            return contentCache.getUrlContent(uri, nonTrustingRestTemplate, method, header);
+        }
     }
 
     private String getClientAuthHeader(AbstractExternalOAuthIdentityProviderDefinition<?> config) {
@@ -116,9 +126,13 @@ public class OidcMetadataFetcher {
         return "Basic " + clientAuth;
     }
 
-    private OidcMetadata fetchMetadata(URL discoveryUrl, boolean isSkipSslValidation) throws OidcMetadataFetchingException {
-        RestTemplate restTemplate = restTemplateConfig.createRestTemplate(isSkipSslValidation);
-        byte[] rawContents = contentCache.getUrlContent(discoveryUrl.toString(), restTemplate);
+    private OidcMetadata fetchMetadata(URL discoveryUrl, boolean shouldDoSslValidation) throws OidcMetadataFetchingException {
+        byte[] rawContents;
+        if (shouldDoSslValidation) {
+            rawContents = contentCache.getUrlContent(discoveryUrl.toString(), trustingRestTemplate);
+        } else {
+            rawContents = contentCache.getUrlContent(discoveryUrl.toString(), nonTrustingRestTemplate);
+        }
         try {
             return new ObjectMapper().readValue(rawContents, OidcMetadata.class);
         } catch (IOException e) {

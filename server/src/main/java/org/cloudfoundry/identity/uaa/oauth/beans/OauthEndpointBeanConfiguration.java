@@ -93,6 +93,7 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpSession;
 import java.security.NoSuchAlgorithmException;
@@ -550,9 +551,16 @@ public class OauthEndpointBeanConfiguration {
         return new CurrentUserCookieRequestFilter(currentUserCookieFactory);
     }
 
+    @Bean
+    RestTemplateConfig restTemplateConfig() {
+        return new RestTemplateConfig();
+    }
+
     @Bean("externalOAuthAuthenticationManager")
     ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager(
         @Qualifier("externalOAuthProviderConfigurator") IdentityProviderProvisioning providerProvisioning,
+        @Qualifier("trustingRestTemplate") RestTemplate trustingRestTemplate,
+        @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate,
         @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
         @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
         @Qualifier("keyInfoService") KeyInfoService keyInfoService,
@@ -562,6 +570,8 @@ public class OauthEndpointBeanConfiguration {
     ) {
         ExternalOAuthAuthenticationManager bean = new ExternalOAuthAuthenticationManager(
                 providerProvisioning,
+                trustingRestTemplate,
+                nonTrustingRestTemplate,
                 restTemplateConfig,
                 tokenEndpointBuilder,
                 keyInfoService,

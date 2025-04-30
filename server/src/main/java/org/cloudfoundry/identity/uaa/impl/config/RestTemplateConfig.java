@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.client.RestTemplate;
 
@@ -19,8 +20,14 @@ public class RestTemplateConfig {
     @Value("${rest.template.maxKeepAlive:0}")
     public int maxKeepAlive;
 
-    public RestTemplate createRestTemplate(boolean skipSslValidation) {
-        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(skipSslValidation, timeout, maxTotal, maxPerRoute, maxKeepAlive));
+    @Bean
+    public RestTemplate nonTrustingRestTemplate() {
+        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, timeout, timeout, maxTotal, maxPerRoute, maxKeepAlive));
+    }
+
+    @Bean
+    public RestTemplate trustingRestTemplate() {
+        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true, timeout, timeout, maxTotal, maxPerRoute, maxKeepAlive));
     }
 
     public static RestTemplateConfig createDefaults() {

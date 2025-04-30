@@ -63,17 +63,17 @@ public abstract class UaaHttpRequestUtils {
     private static final Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, 10, 5, 0), timeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, 10, 5, 0), timeout, timeout);
     }
 
-    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, poolSize, defaultMaxPerRoute, maxKeepAlive), timeout);
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int readTimeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
+        return createRequestFactory(getClientBuilder(skipSslValidation, poolSize, defaultMaxPerRoute, maxKeepAlive), timeout, readTimeout);
     }
 
-    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int timeoutInMs) {
+    protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int timeoutInMs, int readTimeoutInMs) {
         HttpComponentsClientHttpRequestFactory httpComponentsClientHttpRequestFactory = new HttpComponentsClientHttpRequestFactory(builder.build());
 
-        httpComponentsClientHttpRequestFactory.setReadTimeout(timeoutInMs);
+        httpComponentsClientHttpRequestFactory.setReadTimeout(readTimeoutInMs);
         httpComponentsClientHttpRequestFactory.setConnectionRequestTimeout(timeoutInMs);
         httpComponentsClientHttpRequestFactory.setConnectTimeout(timeoutInMs);
         return httpComponentsClientHttpRequestFactory;

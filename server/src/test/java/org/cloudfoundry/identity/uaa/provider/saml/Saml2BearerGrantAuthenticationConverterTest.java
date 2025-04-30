@@ -43,7 +43,6 @@ import org.springframework.security.saml2.provider.service.registration.RelyingP
 import org.springframework.security.saml2.provider.service.registration.Saml2MessageBinding;
 import org.springframework.security.saml2.provider.service.web.RelyingPartyRegistrationResolver;
 import org.springframework.util.StringUtils;
-import org.springframework.web.client.RestTemplate;
 import org.w3c.dom.Element;
 
 import javax.xml.namespace.QName;

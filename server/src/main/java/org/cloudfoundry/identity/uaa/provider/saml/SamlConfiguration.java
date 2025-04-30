@@ -7,12 +7,15 @@ import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.web.client.RestTemplate;
 
 @Slf4j
 @EnableConfigurationProperties({SamlConfigProps.class})
@@ -119,12 +122,8 @@ public class SamlConfiguration {
             @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
             UrlContentCache urlContentCache) {
         // create SAML custom configuration
-        int timeout = socketConnectionTimeout != 10_000 ? socketConnectionTimeout : (socketReadTimeout != 10_000 ? socketReadTimeout : socketConnectionTimeout);
-        RestTemplateConfig restTemplateConfigWithSamlTimeout = new RestTemplateConfig();
-        restTemplateConfigWithSamlTimeout.maxTotal = restTemplateConfig.maxTotal;
-        restTemplateConfigWithSamlTimeout.maxPerRoute = restTemplateConfig.maxPerRoute;
-        restTemplateConfigWithSamlTimeout.maxKeepAlive = restTemplateConfig.maxKeepAlive;
-        restTemplateConfigWithSamlTimeout.timeout = timeout;
-        return new FixedHttpMetaDataProvider(restTemplateConfigWithSamlTimeout, urlContentCache);
+        ClientHttpRequestFactory trustingRequestFactory = UaaHttpRequestUtils.createRequestFactory(true, socketConnectionTimeout, socketReadTimeout, restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive);
+        ClientHttpRequestFactory nonTrustingRequestFactory = UaaHttpRequestUtils.createRequestFactory(false, socketConnectionTimeout, socketReadTimeout, restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive);
+        return new FixedHttpMetaDataProvider(new RestTemplate(trustingRequestFactory), new RestTemplate(nonTrustingRequestFactory), urlContentCache);
     }
 }
