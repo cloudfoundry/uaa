@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
-import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.login.CurrentUserCookieFactory;
 import org.cloudfoundry.identity.uaa.oauth.ClientAccessTokenValidity;
@@ -551,17 +550,11 @@ public class OauthEndpointBeanConfiguration {
         return new CurrentUserCookieRequestFilter(currentUserCookieFactory);
     }
 
-    @Bean
-    RestTemplateConfig restTemplateConfig() {
-        return new RestTemplateConfig();
-    }
-
     @Bean("externalOAuthAuthenticationManager")
     ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager(
         @Qualifier("externalOAuthProviderConfigurator") IdentityProviderProvisioning providerProvisioning,
         @Qualifier("trustingRestTemplate") RestTemplate trustingRestTemplate,
         @Qualifier("nonTrustingRestTemplate") RestTemplate nonTrustingRestTemplate,
-        @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
         @Qualifier("tokenEndpointBuilder") TokenEndpointBuilder tokenEndpointBuilder,
         @Qualifier("keyInfoService") KeyInfoService keyInfoService,
         @Qualifier("oidcMetadataFetcher") OidcMetadataFetcher oidcMetadataFetcher,
@@ -572,7 +565,6 @@ public class OauthEndpointBeanConfiguration {
                 providerProvisioning,
                 trustingRestTemplate,
                 nonTrustingRestTemplate,
-                restTemplateConfig,
                 tokenEndpointBuilder,
                 keyInfoService,
                 oidcMetadataFetcher

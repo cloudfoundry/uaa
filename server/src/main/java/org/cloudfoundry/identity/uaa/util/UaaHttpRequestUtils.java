@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.http.HeaderElement;
 import org.apache.http.HeaderElementIterator;
 import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpRequestRetryHandler;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.ConnectionKeepAliveStrategy;
@@ -28,6 +29,7 @@ import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.TextUtils;
+import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
@@ -45,6 +47,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.KeyManagementException;
@@ -63,11 +66,15 @@ public abstract class UaaHttpRequestUtils {
     private static final Logger logger = LoggerFactory.getLogger(UaaHttpRequestUtils.class);
 
     public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, 10, 5, 0), timeout, timeout);
+        return createRequestFactory(getClientBuilder(skipSslValidation, 10, 5, 0, 2000, 0), timeout, timeout);
     }
 
-    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int readTimeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
-        return createRequestFactory(getClientBuilder(skipSslValidation, poolSize, defaultMaxPerRoute, maxKeepAlive), timeout, readTimeout);
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int readTimeout, int poolSize, int defaultMaxPerRoute, int maxKeepAlive, int validateAfterInactivity, int retryCount) {
+        return createRequestFactory(getClientBuilder(skipSslValidation, poolSize, defaultMaxPerRoute, maxKeepAlive, validateAfterInactivity, retryCount), timeout, readTimeout);
+    }
+
+    public static ClientHttpRequestFactory createRequestFactory(boolean skipSslValidation, int timeout, int readTimeout, RestTemplateConfig restTemplateConfig) {
+        return createRequestFactory(getClientBuilder(skipSslValidation, restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive, restTemplateConfig.validateAfterInactivity, restTemplateConfig.retryCount), timeout, readTimeout);
     }
 
     protected static ClientHttpRequestFactory createRequestFactory(HttpClientBuilder builder, int timeoutInMs, int readTimeoutInMs) {
@@ -79,7 +86,7 @@ public abstract class UaaHttpRequestUtils {
         return httpComponentsClientHttpRequestFactory;
     }
 
-    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, int poolSize, int defaultMaxPerRoute, int maxKeepAlive) {
+    protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, int poolSize, int defaultMaxPerRoute, int maxKeepAlive, int validateAfterInactivity, int retryCount) {
         HttpClientBuilder builder = HttpClients.custom()
                 .useSystemProperties()
                 .setRedirectStrategy(new DefaultRedirectStrategy());
@@ -100,12 +107,17 @@ public abstract class UaaHttpRequestUtils {
         }
         cm.setMaxTotal(poolSize);
         cm.setDefaultMaxPerRoute(defaultMaxPerRoute);
+        cm.setValidateAfterInactivity(validateAfterInactivity);
         builder.setConnectionManager(cm);
 
         if (maxKeepAlive <= 0) {
             builder.setConnectionReuseStrategy(NoConnectionReuseStrategy.INSTANCE);
         } else {
             builder.setKeepAliveStrategy(new UaaConnectionKeepAliveStrategy(maxKeepAlive));
+        }
+
+        if (retryCount > 0) {
+            builder.setRetryHandler(new UaaHttpRequestRetryHandler(retryCount));
         }
 
         return builder;
@@ -175,6 +187,26 @@ public abstract class UaaHttpRequestUtils {
                 }
             }
             return result;
+        }
+    }
+
+    private static class UaaHttpRequestRetryHandler implements HttpRequestRetryHandler {
+
+        private final int executionCount;
+
+        public UaaHttpRequestRetryHandler(int executionCount) {
+            this.executionCount = executionCount;
+        }
+
+        @Override
+        public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
+            if (executionCount > this.executionCount) {
+                return false;
+            }
+            if (exception instanceof org.apache.http.NoHttpResponseException) {
+                return true;
+            }
+            return false;
         }
     }
 

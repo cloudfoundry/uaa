@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.github.benmanes.caffeine.cache.Ticker;
 import org.cloudfoundry.identity.uaa.cache.StaleUrlCache;
-import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfoService;
 import org.cloudfoundry.identity.uaa.oauth.TokenEndpointBuilder;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -84,7 +83,6 @@ class ExternalOAuthAuthenticationManagerGithubTest {
 
         RestTemplate trustingRestTemplate = null;
         RestTemplate nonTrustingRestTemplate = new RestTemplate();
-        RestTemplateConfig restTemplateConfig = mock(RestTemplateConfig.class);
         mockGithubServer = MockRestServiceServer.createServer(nonTrustingRestTemplate);
 
         OidcMetadataFetcher oidcMetadataFetcher = new OidcMetadataFetcher(
@@ -93,8 +91,7 @@ class ExternalOAuthAuthenticationManagerGithubTest {
                 nonTrustingRestTemplate
         );
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, trustingRestTemplate,
-                nonTrustingRestTemplate, restTemplateConfig, tokenEndpointBuilder,
-                new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
+                nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
     }
 
     @AfterEach

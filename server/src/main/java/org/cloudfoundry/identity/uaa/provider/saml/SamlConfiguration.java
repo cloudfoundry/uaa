@@ -121,9 +121,9 @@ public class SamlConfiguration {
     public FixedHttpMetaDataProvider fixedHttpMetaDataProvider(
             @Qualifier("restTemplateConfig") RestTemplateConfig restTemplateConfig,
             UrlContentCache urlContentCache) {
-        // create SAML custom configuration
-        ClientHttpRequestFactory trustingRequestFactory = UaaHttpRequestUtils.createRequestFactory(true, socketConnectionTimeout, socketReadTimeout, restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive);
-        ClientHttpRequestFactory nonTrustingRequestFactory = UaaHttpRequestUtils.createRequestFactory(false, socketConnectionTimeout, socketReadTimeout, restTemplateConfig.maxTotal, restTemplateConfig.maxPerRoute, restTemplateConfig.maxKeepAlive);
+        // create SAML custom configuration, because of own timeout settings
+        ClientHttpRequestFactory trustingRequestFactory = UaaHttpRequestUtils.createRequestFactory(true, socketConnectionTimeout, socketReadTimeout, restTemplateConfig);
+        ClientHttpRequestFactory nonTrustingRequestFactory = UaaHttpRequestUtils.createRequestFactory(false, socketConnectionTimeout, socketReadTimeout, restTemplateConfig);
         return new FixedHttpMetaDataProvider(new RestTemplate(trustingRequestFactory), new RestTemplate(nonTrustingRequestFactory), urlContentCache);
     }
 }
