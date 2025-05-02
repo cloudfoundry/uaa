@@ -2,23 +2,38 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.UaaSamlPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.opensaml.saml.saml2.core.Assertion;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.saml2.provider.service.authentication.AbstractSaml2AuthenticationRequest;
+import org.springframework.security.saml2.provider.service.authentication.Saml2AuthenticationToken;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
@@ -27,24 +42,41 @@ import org.springframework.web.context.request.RequestContextHolder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlUaaResponseAuthenticationConverter.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
 /**
  * Part of the AuthenticationConverter used during SAML login flow.
  * This handles User creation and storage in the database.
  */
+@Slf4j
 public class SamlUaaAuthenticationUserManager implements ApplicationEventPublisherAware {
 
     ApplicationEventPublisher eventPublisher;
+    private final IdentityZoneManager identityZoneManager;
+    private final IdentityProviderProvisioning identityProviderProvisioning;
+    private final SamlUaaAuthenticationAttributesConverter attributesConverter;
+    private final SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter;
 
-    public SamlUaaAuthenticationUserManager(UaaUserDatabase userDatabase) {
+    public SamlUaaAuthenticationUserManager(IdentityZoneManager identityZoneManager,
+                                            final JdbcIdentityProviderProvisioning identityProviderProvisioning,
+                                            UaaUserDatabase userDatabase,
+                                            SamlUaaAuthenticationAttributesConverter attributesConverter,
+                                            SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter) {
         this.userDatabase = userDatabase;
+        this.identityZoneManager = identityZoneManager;
+        this.identityProviderProvisioning = identityProviderProvisioning;
+        this.attributesConverter = attributesConverter;
+        this.authoritiesConverter = authoritiesConverter;
     }
 
     private final UaaUserDatabase userDatabase;
@@ -158,6 +190,105 @@ public class SamlUaaAuthenticationUserManager implements ApplicationEventPublish
                 !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) ||
                 !StringUtils.equals(existingUser.getEmail(), user.getEmail()) ||
                 !StringUtils.equals(existingUser.getExternalId(), user.getExternalId());
+    }
+
+    protected UaaAuthentication getUaaAuthentication(String subjectName, Saml2AuthenticationToken authenticationToken, String alias, List<Assertion> assertions, List<String> sessionIndexess) {
+        UaaPrincipal initialPrincipal = new UaaPrincipal(NotANumber, subjectName, authenticationToken.getName(),
+                alias, authenticationToken.getName(), identityZoneManager.getCurrentIdentityZoneId());
+        log.debug("Mapped SAML authentication to IDP with origin '{}' and username '{}'",
+                alias, initialPrincipal.getName());
+
+        boolean addNew;
+        IdentityProvider<SamlIdentityProviderDefinition> idp;
+        SamlIdentityProviderDefinition samlConfig;
+        try {
+            idp = identityProviderProvisioning.retrieveByOrigin(alias, identityZoneManager.getCurrentIdentityZoneId());
+            samlConfig = idp.getConfig();
+            addNew = samlConfig.isAddShadowUserOnLogin();
+            if (!idp.isActive()) {
+                throw new ProviderNotFoundException("Identity Provider has been disabled by administrator for alias:" + alias);
+            }
+        } catch (EmptyResultDataAccessException x) {
+            throw new ProviderNotFoundException("No SAML identity provider found in zone for alias:" + alias);
+        }
+
+        MultiValueMap<String, String> userAttributes = attributesConverter.retrieveUserAttributes(samlConfig, assertions);
+        List<? extends GrantedAuthority> samlAuthorities = authoritiesConverter.retrieveSamlAuthorities(samlConfig, assertions);
+
+        log.debug("Mapped SAML authentication to IDP with origin '{}' and username '{}'",
+                idp.getOriginKey(), initialPrincipal.getName());
+
+        UaaUser user = createIfMissing(initialPrincipal, addNew, getMappedAuthorities(
+                idp, samlAuthorities), userAttributes);
+
+        UaaAuthentication authentication = new UaaAuthentication(
+                new UaaSamlPrincipal(user, sessionIndexess),
+                authenticationToken.getCredentials(),
+                user.getAuthorities(),
+                authoritiesConverter.filterSamlAuthorities(samlConfig, samlAuthorities),
+                attributesConverter.retrieveCustomUserAttributes(userAttributes),
+                null,
+                true, System.currentTimeMillis(),
+                -1);
+
+        authentication.setAuthenticationMethods(Set.of("ext"));
+        setAuthContextClassRef(userAttributes, authentication, samlConfig);
+
+        publish(new IdentityProviderAuthenticationSuccessEvent(user, authentication, OriginKeys.SAML, identityZoneManager.getCurrentIdentityZoneId()));
+
+        if (samlConfig.isStoreCustomAttributes()) {
+            storeCustomAttributesAndRoles(user, authentication);
+        }
+
+        AbstractSaml2AuthenticationRequest authenticationRequest = authenticationToken.getAuthenticationRequest();
+        if (authenticationRequest != null) {
+            String relayState = authenticationRequest.getRelayState();
+            configureRelayRedirect(relayState);
+        }
+
+        return authentication;
+    }
+
+    private static void setAuthContextClassRef(MultiValueMap<String, String> userAttributes,
+                                               UaaAuthentication authentication, SamlIdentityProviderDefinition samlConfig) {
+
+        List<String> acrValues = userAttributes.get(AUTHENTICATION_CONTEXT_CLASS_REFERENCE);
+        if (acrValues != null) {
+            authentication.setAuthContextClassRef(Set.copyOf(acrValues));
+        }
+
+        if (samlConfig.getAuthnContext() != null) {
+            assert acrValues != null;
+            if (Collections.disjoint(acrValues, samlConfig.getAuthnContext())) {
+                throw new BadCredentialsException(
+                        "Identity Provider did not authenticate with the requested AuthnContext.");
+            }
+        }
+    }
+
+    private Collection<? extends GrantedAuthority> getMappedAuthorities(
+            IdentityProvider<SamlIdentityProviderDefinition> idp,
+            List<? extends GrantedAuthority> samlAuthorities) {
+        Collection<? extends GrantedAuthority> authorities;
+        SamlIdentityProviderDefinition.ExternalGroupMappingMode groupMappingMode = idp.getConfig().getGroupMappingMode();
+        authorities = switch (groupMappingMode) {
+            case EXPLICITLY_MAPPED -> authoritiesConverter.mapAuthorities(idp.getOriginKey(),
+                    samlAuthorities, identityZoneManager.getCurrentIdentityZoneId());
+            case AS_SCOPES -> List.copyOf(samlAuthorities);
+        };
+        return authorities;
+    }
+
+    private void configureRelayRedirect(String relayState) {
+        //configure relay state
+        if (UaaUrlUtils.isUrl(relayState)) {
+            RequestContextHolder.currentRequestAttributes()
+                    .setAttribute(
+                            UaaSavedRequestAwareAuthenticationSuccessHandler.URI_OVERRIDE_ATTRIBUTE,
+                            relayState,
+                            RequestAttributes.SCOPE_REQUEST
+                    );
+        }
     }
 
     @Override

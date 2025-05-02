@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.opensaml.core.xml.XMLObject;
+import org.opensaml.saml.saml2.core.Assertion;
 import org.opensaml.saml.saml2.core.Response;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -62,12 +63,12 @@ public class SamlUaaAuthenticationAuthoritiesConverter {
         return result;
     }
 
-    protected List<SamlUserAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, Response response) {
+    protected List<SamlUserAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, List<Assertion> assertions) {
         if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) != null) {
             List<String> groupAttributeNames = getGroupAttributeNames(definition);
 
             List<SamlUserAuthority> authorities = new ArrayList<>();
-            response.getAssertions().stream().flatMap(assertion -> assertion.getAttributeStatements().stream())
+            assertions.stream().flatMap(assertion -> assertion.getAttributeStatements().stream())
                     .flatMap(attributeStatement -> attributeStatement.getAttributes().stream())
                     .filter(attribute -> groupAttributeNames.contains(attribute.getName()) || groupAttributeNames.contains(attribute.getFriendlyName()))
                     .filter(attribute -> attribute.getAttributeValues() != null)

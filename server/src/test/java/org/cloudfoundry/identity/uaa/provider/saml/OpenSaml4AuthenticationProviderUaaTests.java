@@ -255,9 +255,9 @@ class OpenSaml4AuthenticationProviderUaaTests {
         publisher = new CreateUserPublisher(bootstrap);
 
         samlAuthenticationFilterConfig = new SamlAuthenticationFilterConfig();
-        samlUaaAuthenticationUserManager = samlAuthenticationFilterConfig.samlUaaAuthenticationUserManager(userDatabase, publisher);
+        samlUaaAuthenticationUserManager = samlAuthenticationFilterConfig.samlUaaAuthenticationUserManager(identityZoneManager, providerProvisioning, externalManager, userDatabase, publisher);
         authprovider = samlAuthenticationFilterConfig.samlAuthenticationProvider(
-                identityZoneManager, providerProvisioning, externalManager, samlUaaAuthenticationUserManager, publisher, new SamlConfigProps());
+                identityZoneManager, samlUaaAuthenticationUserManager, publisher, new SamlConfigProps());
 
         providerDefinition = new SamlIdentityProviderDefinition();
         providerDefinition.setMetaDataLocation(IDP_META_DATA.formatted(OriginKeys.SAML));
@@ -825,7 +825,7 @@ class OpenSaml4AuthenticationProviderUaaTests {
         SamlConfigProps samlConfigProps = new SamlConfigProps();
         samlConfigProps.setDisableInResponseToCheck(true);
         authprovider = samlAuthenticationFilterConfig.samlAuthenticationProvider(
-                identityZoneManager, providerProvisioning, externalManager, samlUaaAuthenticationUserManager, publisher, samlConfigProps);
+                identityZoneManager, samlUaaAuthenticationUserManager, publisher, samlConfigProps);
 
         Response response = responseWithAssertions();
         response.setInResponseTo("incorrect");

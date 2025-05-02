@@ -95,7 +95,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
         RelyingPartyRegistrationResolver relyingPartyRegistrationResolver = samlRelyingPartyRegistrationRepositoryConfig.relyingPartyRegistrationResolver(relyingPartyRegistrationRepository, null);
 
         provider = new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
-                providerProvisioning, null, null);
+                null, null);
     }
 
     @Test

@@ -66,7 +66,7 @@ class SamlUaaAuthenticationUserManagerTest {
 
     @Test
     void getUserByDefaultUsesTheAvailableData() {
-        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null);
+        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null, null,null, null, null);
 
         UaaPrincipal principal = new UaaPrincipal(
                 UUID.randomUUID().toString(),
@@ -100,7 +100,7 @@ class SamlUaaAuthenticationUserManagerTest {
 
     @Test
     void getUserWithoutVerifiedDefaultsToFalse() {
-        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null);
+        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null, null, null, null, null);
 
         UaaPrincipal principal = new UaaPrincipal(
                 UUID.randomUUID().toString(),
@@ -118,7 +118,7 @@ class SamlUaaAuthenticationUserManagerTest {
 
     @Test
     void throwsIfPrincipalUserNameAndUserAttributesEmailIsMissing() {
-        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null);
+        SamlUaaAuthenticationUserManager userManager = new SamlUaaAuthenticationUserManager(null, null, null, null, null);
 
         UaaPrincipal principal = new UaaPrincipal(
                 UUID.randomUUID().toString(),

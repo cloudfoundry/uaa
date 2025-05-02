@@ -61,10 +61,17 @@ public class SamlAuthenticationFilterConfig {
     }
 
     @Bean
-    SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager(final UaaUserDatabase userDatabase,
+    SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager(IdentityZoneManager identityZoneManager,
+            final JdbcIdentityProviderProvisioning identityProviderProvisioning,
+            ScimGroupExternalMembershipManager externalMembershipManager,
+            final UaaUserDatabase userDatabase,
             ApplicationEventPublisher applicationEventPublisher) {
 
-        SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager = new SamlUaaAuthenticationUserManager(userDatabase);
+        SamlUaaAuthenticationAttributesConverter attributesConverter = new SamlUaaAuthenticationAttributesConverter();
+        SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter = new SamlUaaAuthenticationAuthoritiesConverter(externalMembershipManager);
+        SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager =
+                new SamlUaaAuthenticationUserManager(identityZoneManager, identityProviderProvisioning, userDatabase,
+                        attributesConverter, authoritiesConverter);
         samlUaaAuthenticationUserManager.setApplicationEventPublisher(applicationEventPublisher);
 
         return samlUaaAuthenticationUserManager;
@@ -72,18 +79,12 @@ public class SamlAuthenticationFilterConfig {
 
     @Bean
     AuthenticationProvider samlAuthenticationProvider(IdentityZoneManager identityZoneManager,
-            final JdbcIdentityProviderProvisioning identityProviderProvisioning,
-            ScimGroupExternalMembershipManager externalMembershipManager,
             SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager,
             ApplicationEventPublisher applicationEventPublisher,
             SamlConfigProps samlConfigProps) {
 
-        SamlUaaAuthenticationAttributesConverter attributesConverter = new SamlUaaAuthenticationAttributesConverter();
-        SamlUaaAuthenticationAuthoritiesConverter authoritiesConverter = new SamlUaaAuthenticationAuthoritiesConverter(externalMembershipManager);
-
         SamlUaaResponseAuthenticationConverter samlResponseAuthenticationConverter =
-                new SamlUaaResponseAuthenticationConverter(identityZoneManager, identityProviderProvisioning,
-                        samlUaaAuthenticationUserManager, attributesConverter, authoritiesConverter);
+                new SamlUaaResponseAuthenticationConverter(identityZoneManager, samlUaaAuthenticationUserManager);
         samlResponseAuthenticationConverter.setApplicationEventPublisher(applicationEventPublisher);
 
         OpenSaml4AuthenticationProvider samlResponseAuthenticationProvider = new OpenSaml4AuthenticationProvider();
@@ -197,12 +198,11 @@ public class SamlAuthenticationFilterConfig {
      */
     @Bean
     Saml2BearerGrantAuthenticationConverter samlBearerGrantAuthenticationProvider(IdentityZoneManager identityZoneManager,
-            final JdbcIdentityProviderProvisioning identityProviderProvisioning,
             SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager,
             ApplicationEventPublisher applicationEventPublisher,
             UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
 
         return new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
-                identityProviderProvisioning, samlUaaAuthenticationUserManager, applicationEventPublisher);
+                samlUaaAuthenticationUserManager, applicationEventPublisher);
     }
 }
