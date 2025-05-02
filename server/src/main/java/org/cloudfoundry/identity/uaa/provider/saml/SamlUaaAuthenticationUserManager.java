@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
@@ -203,12 +204,13 @@ public class SamlUaaAuthenticationUserManager implements ApplicationEventPublish
         IdentityProvider<SamlIdentityProviderDefinition> idp;
         SamlIdentityProviderDefinition samlConfig;
         try {
-            idp = identityProviderProvisioning.retrieveByOrigin(alias, identityZoneManager.getCurrentIdentityZoneId());
-            samlConfig = idp.getConfig();
-            addNew = samlConfig.isAddShadowUserOnLogin();
-            if (!idp.isActive()) {
+            IdentityProvider<?> idpConfig = identityProviderProvisioning.retrieveByOrigin(alias, identityZoneManager.getCurrentIdentityZoneId());
+            if (idpConfig == null || !SAML.equals(idpConfig.getType()) || !idpConfig.isActive()) {
                 throw new ProviderNotFoundException("Identity Provider has been disabled by administrator for alias:" + alias);
             }
+            samlConfig = (SamlIdentityProviderDefinition) idpConfig.getConfig();
+            idp = (IdentityProvider<SamlIdentityProviderDefinition>) idpConfig;
+            addNew = samlConfig.isAddShadowUserOnLogin();
         } catch (EmptyResultDataAccessException x) {
             throw new ProviderNotFoundException("No SAML identity provider found in zone for alias:" + alias);
         }
