@@ -199,10 +199,9 @@ public class SamlAuthenticationFilterConfig {
     @Bean
     Saml2BearerGrantAuthenticationConverter samlBearerGrantAuthenticationProvider(IdentityZoneManager identityZoneManager,
             SamlUaaAuthenticationUserManager samlUaaAuthenticationUserManager,
-            ApplicationEventPublisher applicationEventPublisher,
             UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
 
         return new Saml2BearerGrantAuthenticationConverter(relyingPartyRegistrationResolver, identityZoneManager,
-                samlUaaAuthenticationUserManager, applicationEventPublisher);
+                samlUaaAuthenticationUserManager);
     }
 }

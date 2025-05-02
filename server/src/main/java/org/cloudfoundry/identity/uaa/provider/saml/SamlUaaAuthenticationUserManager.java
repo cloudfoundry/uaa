@@ -51,7 +51,6 @@ import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDef
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlUaaResponseAuthenticationConverter.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedInvitationAuthentication;
 
 /**
@@ -60,6 +59,8 @@ import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.isAcceptedI
  */
 @Slf4j
 public class SamlUaaAuthenticationUserManager implements ApplicationEventPublisherAware {
+
+    public static final String AUTHENTICATION_CONTEXT_CLASS_REFERENCE = "acr";
 
     ApplicationEventPublisher eventPublisher;
     private final IdentityZoneManager identityZoneManager;

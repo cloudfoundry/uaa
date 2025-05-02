@@ -29,8 +29,6 @@ public class SamlUaaResponseAuthenticationConverter
         implements Converter<OpenSaml4AuthenticationProvider.ResponseToken, UaaAuthentication>,
         ApplicationEventPublisherAware {
 
-    public static final String AUTHENTICATION_CONTEXT_CLASS_REFERENCE = "acr";
-
     private final IdentityZoneManager identityZoneManager;
 
     private ApplicationEventPublisher eventPublisher;

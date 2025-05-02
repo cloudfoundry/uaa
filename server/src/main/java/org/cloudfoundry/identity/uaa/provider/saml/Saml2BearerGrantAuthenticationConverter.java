@@ -30,8 +30,6 @@ import org.opensaml.saml.saml2.core.Issuer;
 import org.opensaml.saml.saml2.core.Response;
 import org.opensaml.saml.saml2.core.impl.AssertionUnmarshaller;
 import org.opensaml.saml.saml2.core.impl.ResponseUnmarshaller;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -71,8 +69,7 @@ import static org.cloudfoundry.identity.uaa.provider.saml.OpenSaml4Authenticatio
  * @see <a href="https://datatracker.ietf.org/doc/html/rfc7522">RFC 7522</a>
  */
 @Slf4j
-public final class Saml2BearerGrantAuthenticationConverter implements AuthenticationConverter,
-        ApplicationEventPublisherAware {
+public final class Saml2BearerGrantAuthenticationConverter implements AuthenticationConverter {
 
     static {
         OpenSamlInitializationService.initialize();
@@ -103,21 +100,18 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
     private final RelyingPartyRegistrationResolver relyingPartyRegistrationResolver;
     private final IdentityZoneManager identityZoneManager;
     private final SamlUaaAuthenticationUserManager userManager;
-    private ApplicationEventPublisher eventPublisher;
 
     /**
      * Creates an {@link Saml2BearerGrantAuthenticationConverter}
      */
     public Saml2BearerGrantAuthenticationConverter(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
             IdentityZoneManager identityZoneManager,
-            SamlUaaAuthenticationUserManager userManager,
-            ApplicationEventPublisher eventPublisher) {
+            SamlUaaAuthenticationUserManager userManager) {
 
         Assert.notNull(relyingPartyRegistrationResolver, "relyingPartyRegistrationResolver cannot be null");
         this.relyingPartyRegistrationResolver = relyingPartyRegistrationResolver;
         this.identityZoneManager = identityZoneManager;
         this.userManager = userManager;
-        this.eventPublisher = eventPublisher;
     }
 
     /**
@@ -183,11 +177,6 @@ public final class Saml2BearerGrantAuthenticationConverter implements Authentica
         String subjectName = assertion.getSubject().getNameID().getValue();
         String alias = relyingPartyRegistration.getRegistrationId();
         return userManager.getUaaAuthentication(subjectName, authenticationToken, alias, List.of(assertion), null);
-    }
-
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        this.eventPublisher = applicationEventPublisher;
     }
 
     /**

@@ -15,7 +15,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
-import static org.cloudfoundry.identity.uaa.provider.saml.SamlUaaResponseAuthenticationConverter.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
+import static org.cloudfoundry.identity.uaa.provider.saml.SamlUaaAuthenticationUserManager.AUTHENTICATION_CONTEXT_CLASS_REFERENCE;
 
 /**
  * Part of the AuthenticationConverter used during SAML login flow.
