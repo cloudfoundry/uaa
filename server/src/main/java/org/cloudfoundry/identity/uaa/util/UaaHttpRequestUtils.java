@@ -24,6 +24,7 @@ import org.apache.http.conn.ConnectionKeepAliveStrategy;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.NoopUserTokenHandler;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.message.BasicHeaderElementIterator;
 import org.apache.http.protocol.HTTP;
@@ -89,6 +90,7 @@ public abstract class UaaHttpRequestUtils {
     protected static HttpClientBuilder getClientBuilder(boolean skipSslValidation, int poolSize, int defaultMaxPerRoute, int maxKeepAlive, int validateAfterInactivity, int retryCount) {
         HttpClientBuilder builder = HttpClients.custom()
                 .useSystemProperties()
+                .setUserTokenHandler(NoopUserTokenHandler.INSTANCE)
                 .setRedirectStrategy(new DefaultRedirectStrategy());
         PoolingHttpClientConnectionManager cm;
         if (skipSslValidation) {
