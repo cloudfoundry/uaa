@@ -55,7 +55,7 @@ public class ConvertingExceptionView implements View {
 
     @Override
     public String getContentType() {
-        return MediaType.APPLICATION_JSON_UTF8_VALUE;
+        return MediaType.APPLICATION_JSON_VALUE;
     }
 
     @Override
@@ -115,9 +115,9 @@ public class ConvertingExceptionView implements View {
             HttpOutputMessage outputMessage) throws IOException, HttpMediaTypeNotAcceptableException {
         List<MediaType> acceptedMediaTypes = inputMessage.getHeaders().getAccept();
         if (acceptedMediaTypes.isEmpty()) {
-            acceptedMediaTypes = Collections.singletonList(MediaType.APPLICATION_JSON_UTF8);
+            acceptedMediaTypes = Collections.singletonList(MediaType.APPLICATION_JSON);
         } else {
-            acceptedMediaTypes.add(MediaType.APPLICATION_JSON_UTF8);
+            acceptedMediaTypes.add(MediaType.APPLICATION_JSON);
         }
         MediaType.sortByQualityValue(acceptedMediaTypes);
         Class<?> returnValueType = returnValue.getClass();
