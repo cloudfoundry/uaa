@@ -46,7 +46,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
     private String name;
 
     public UaaRequestMatcher(String path) {
-        Assert.hasText(path);
+        Assert.hasText(path, "must have text");
         if (path.contains("*")) {
             throw new IllegalArgumentException("UaaRequestMatcher is not intended for use with wildcards");
         }
