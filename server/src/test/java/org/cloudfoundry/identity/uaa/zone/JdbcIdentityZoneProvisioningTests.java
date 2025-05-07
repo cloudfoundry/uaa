@@ -38,16 +38,16 @@ class JdbcIdentityZoneProvisioningTests {
         identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
 
         IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{createdIdZone.getId()}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", Integer.class, new Object[]{createdIdZone.getId()})).isOne();
         jdbcIdentityZoneProvisioning.onApplicationEvent(new EntityDeletedEvent<>(identityZone, null, IdentityZoneHolder.getCurrentZoneId()));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{createdIdZone.getId()}, Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", Integer.class, new Object[]{createdIdZone.getId()})).isZero();
     }
 
     @Test
     void cannot_delete_uaa_zone() {
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{IdentityZone.getUaaZoneId()}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", Integer.class, new Object[]{IdentityZone.getUaaZoneId()})).isOne();
         jdbcIdentityZoneProvisioning.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa(), null, IdentityZoneHolder.getCurrentZoneId()));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{IdentityZone.getUaaZoneId()}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", Integer.class, new Object[]{IdentityZone.getUaaZoneId()})).isOne();
     }
 
     @Test

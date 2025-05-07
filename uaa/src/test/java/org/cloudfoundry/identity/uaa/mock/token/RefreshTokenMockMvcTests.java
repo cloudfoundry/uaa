@@ -512,7 +512,7 @@ class RefreshTokenMockMvcTests extends AbstractTokenMockMvcTests {
     }
 
     int countTokens(String clientId, String userId) {
-        return template.queryForObject("select count(*) from revocable_tokens where client_id=? and user_id=?", new String[]{clientId, userId}, Integer.class);
+        return template.queryForObject("select count(*) from revocable_tokens where client_id=? and user_id=?", Integer.class, new String[]{clientId, userId});
     }
 
     MockHttpServletResponse useRefreshToken(String refreshToken, String clientId, String clientSecret, String host) throws Exception {

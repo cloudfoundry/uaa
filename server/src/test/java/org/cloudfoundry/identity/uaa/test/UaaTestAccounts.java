@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.env.Environment;
+import org.springframework.core.env.Profiles;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.codec.Base64;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
@@ -119,7 +120,7 @@ public final class UaaTestAccounts implements TestAccounts {
      */
     public boolean isProfileActive(String profile) {
         logger.debug("Checking for %s profile in: [%s]".formatted(profile, environment));
-        return profile != null && environment.acceptsProfiles(profile);
+        return profile != null && environment.acceptsProfiles(Profiles.of(profile));
     }
 
     public String getAuthorizationHeader(String prefix, String defaultUsername, String defaultPassword) {

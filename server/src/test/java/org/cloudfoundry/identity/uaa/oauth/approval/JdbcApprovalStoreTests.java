@@ -368,20 +368,20 @@ class JdbcApprovalStoreTests {
             final JdbcTemplate jdbcTemplate,
             final String clientId,
             final String zoneId) {
-        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=? and identity_zone_id = ?", new Object[]{clientId, zoneId}, Integer.class);
+        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where client_id=? and identity_zone_id = ?", Integer.class, new Object[]{clientId, zoneId});
     }
 
     private static int countUserApprovals(
             final JdbcTemplate jdbcTemplate,
             final String userId,
             final String zoneId) {
-        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=? and identity_zone_id = ?", new Object[]{userId, zoneId}, Integer.class);
+        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=? and identity_zone_id = ?", Integer.class, new Object[]{userId, zoneId});
     }
 
     private static int countZoneApprovals(
             final JdbcTemplate jdbcTemplate,
             final String zoneId) {
-        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where identity_zone_id = ?", new Object[]{zoneId}, Integer.class);
+        return jdbcTemplate.queryForObject("select count(*) from authz_approvals where identity_zone_id = ?", Integer.class, new Object[]{zoneId});
     }
 
 }

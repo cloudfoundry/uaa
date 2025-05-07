@@ -344,7 +344,7 @@ class ScimUserBootstrapTests {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList(), false);
         bootstrap.afterPropertiesSet();
 
-        String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class);
+        String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class, new Object[0]);
 
         joe = new UaaUser("joe", "new", "joe@test.org", "Joe", "Bloggs");
         joe = joe.modifyOrigin(OriginKeys.UAA);
@@ -353,11 +353,11 @@ class ScimUserBootstrapTests {
         Collection<ScimUser> users = jdbcScimUserProvisioning.retrieveAll(IdentityZone.getUaaZoneId());
         assertThat(users).hasSize(1);
         assertThat(users.iterator().next().getFamilyName()).isEqualTo("Bloggs");
-        assertThat(jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class)).isNotEqualTo(passwordHash);
+        assertThat(jdbcTemplate.queryForObject("select password from users where username='joe'", String.class, new Object[0])).isNotEqualTo(passwordHash);
 
-        passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class);
+        passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class, new Object[0]);
         bootstrap.afterPropertiesSet();
-        assertThat(jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class)).isEqualTo(passwordHash);
+        assertThat(jdbcTemplate.queryForObject("select password from users where username='joe'", String.class, new Object[0])).isEqualTo(passwordHash);
     }
 
     @Test
@@ -591,7 +591,7 @@ class ScimUserBootstrapTests {
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(jdbcScimUserProvisioning, scimUserService, jdbcScimGroupProvisioning, jdbcScimGroupMembershipManager, Collections.singletonList(joe), false, Collections.emptyList(), false);
         bootstrap.afterPropertiesSet();
 
-        String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class);
+        String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'", String.class, new Object[0]);
 
         joe = new UaaUser("joe", "", "joe@test.org", "Joe", "Bloggs");
         joe = joe.modifyOrigin(OriginKeys.UAA);
@@ -600,7 +600,7 @@ class ScimUserBootstrapTests {
         Collection<ScimUser> users = jdbcScimUserProvisioning.retrieveAll(IdentityZone.getUaaZoneId());
         assertThat(users).hasSize(1);
         assertThat(users.iterator().next().getFamilyName()).isEqualTo("Bloggs");
-        assertThat(jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class)).isEqualTo(passwordHash);
+        assertThat(jdbcTemplate.queryForObject("select password from users where username='joe'", String.class, new Object[0])).isEqualTo(passwordHash);
     }
 
     @Test

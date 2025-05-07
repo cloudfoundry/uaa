@@ -34,7 +34,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -125,7 +124,7 @@ public class InvitationsServiceMockMvcTests {
     void authorizeWithInvitationLogin() throws Exception {
         String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
-        assertThat(jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", new Object[]{email}, String.class)).isEqualTo(OriginKeys.UAA);
+        assertThat(jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", String.class, new Object[]{email})).isEqualTo(OriginKeys.UAA);
 
         String code = extractInvitationCode(inviteLink.toString());
         MvcResult result = mockMvc.perform(
@@ -168,7 +167,7 @@ public class InvitationsServiceMockMvcTests {
     void acceptInvitationShouldNotLogYouIn() throws Exception {
         String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
-        assertThat(jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", new Object[]{email}, String.class)).isEqualTo(OriginKeys.UAA);
+        assertThat(jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", String.class, new Object[]{email})).isEqualTo(OriginKeys.UAA);
 
         String code = extractInvitationCode(inviteLink.toString());
         MvcResult result = mockMvc.perform(get("/invitations/accept")

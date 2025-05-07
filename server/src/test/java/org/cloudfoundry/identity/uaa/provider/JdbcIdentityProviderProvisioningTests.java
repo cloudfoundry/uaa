@@ -75,9 +75,9 @@ class JdbcIdentityProviderProvisioningTests {
         IdentityProvider idp = MultitenancyFixture.identityProvider(origin, otherZoneId1);
         IdentityProvider createdIdp = jdbcIdentityProviderProvisioning.create(idp, otherZoneId1);
         assertThat(createdIdp).isNotNull();
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[]{otherZoneId1}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", Integer.class, new Object[]{otherZoneId1})).isOne();
         jdbcIdentityProviderProvisioning.onApplicationEvent(new EntityDeletedEvent<>(mockIdentityZone, null, otherZoneId1));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[]{otherZoneId1}, Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", Integer.class, new Object[]{otherZoneId1})).isZero();
     }
 
     @Test
@@ -127,11 +127,11 @@ class JdbcIdentityProviderProvisioningTests {
     }
 
     private void assertIdentityProviderExists(final String id, final String zoneId) {
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{zoneId, id}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", Integer.class, new Object[]{zoneId, id})).isOne();
     }
 
     private void assertIdentityProviderDoesNotExist(final String id, final String zoneId) {
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", new Object[]{zoneId, id}, Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=? and id=?", Integer.class, new Object[]{zoneId, id})).isZero();
     }
 
     @Test
@@ -139,19 +139,19 @@ class JdbcIdentityProviderProvisioningTests {
         IdentityProvider idp = MultitenancyFixture.identityProvider(origin, uaaZoneId);
         IdentityProvider createdIdp = jdbcIdentityProviderProvisioning.create(idp, uaaZoneId);
         assertThat(createdIdp).isNotNull();
-        int count = jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[]{uaaZoneId}, Integer.class);
+        int count = jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", Integer.class, new Object[]{uaaZoneId});
         jdbcIdentityProviderProvisioning.onApplicationEvent(new EntityDeletedEvent<>(createdIdp, null, uaaZoneId));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[]{uaaZoneId}, Integer.class)).isEqualTo(count - 1);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", Integer.class, new Object[]{uaaZoneId})).isEqualTo(count - 1);
     }
 
     @Test
     void cannotDeleteUaaProviders() {
         //action try to delete uaa provider
         //should not do anything
-        int count = jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[]{getUaaZoneId()}, Integer.class);
+        int count = jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", Integer.class, new Object[]{getUaaZoneId()});
         IdentityProvider uaa = jdbcIdentityProviderProvisioning.retrieveByOrigin(UAA, getUaaZoneId());
         jdbcIdentityProviderProvisioning.onApplicationEvent(new EntityDeletedEvent<>(uaa, null, getUaaZoneId()));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[]{getUaaZoneId()}, Integer.class)).isEqualTo(count);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", Integer.class, new Object[]{getUaaZoneId()})).isEqualTo(count);
     }
 
     @Test

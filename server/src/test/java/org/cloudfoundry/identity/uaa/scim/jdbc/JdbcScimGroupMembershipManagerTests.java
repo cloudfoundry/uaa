@@ -318,28 +318,28 @@ class JdbcScimGroupMembershipManagerTests {
         String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
         addMembers(jdbcTemplate, otherIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
-                groups + " where identity_zone_id=?)", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(4);
+                groups + " where identity_zone_id=?)", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(4);
         assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups +
-                " where identity_zone_id=?", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(3);
+                " where identity_zone_id=?", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(3);
         assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where group_id in (select id from " +
-                groups + " where identity_zone_id=?)", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(3);
+                groups + " where identity_zone_id=?)", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(3);
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
-                groups + " where identity_zone_id=? and displayName like ?)", new Object[]{IdentityZone.getUaaZoneId(), "zones." + otherIdentityZone.getId() + ".%"}, Integer.class)).isOne();
+                groups + " where identity_zone_id=? and displayName like ?)", Integer.class, new Object[]{IdentityZone.getUaaZoneId(), "zones." + otherIdentityZone.getId() + ".%"})).isOne();
         assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups +
-                " where identity_zone_id=? and displayName like ?", new Object[]{IdentityZone.getUaaZoneId(), "zones." + otherIdentityZone.getId() + ".%"}, Integer.class)).isOne();
+                " where identity_zone_id=? and displayName like ?", Integer.class, new Object[]{IdentityZone.getUaaZoneId(), "zones." + otherIdentityZone.getId() + ".%"})).isOne();
 
         jdbcScimGroupProvisioning.onApplicationEvent(new EntityDeletedEvent<>(otherIdentityZone, null, anyZoneId));
 
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
-                groups + " where identity_zone_id=?)", new Object[]{otherIdentityZone.getId()}, Integer.class)).isZero();
+                groups + " where identity_zone_id=?)", Integer.class, new Object[]{otherIdentityZone.getId()})).isZero();
         assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups +
-                " where identity_zone_id=?", new Object[]{otherIdentityZone.getId()}, Integer.class)).isZero();
+                " where identity_zone_id=?", Integer.class, new Object[]{otherIdentityZone.getId()})).isZero();
         assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where group_id in (select id from " +
-                groups + " where identity_zone_id=?)", new Object[]{otherIdentityZone.getId()}, Integer.class)).isZero();
+                groups + " where identity_zone_id=?)", Integer.class, new Object[]{otherIdentityZone.getId()})).isZero();
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
-                groups + " where identity_zone_id=? and displayName like ?)", new Object[]{IdentityZone.getUaaZoneId(), "zones." + otherIdentityZone.getId() + ".%"}, Integer.class)).isZero();
+                groups + " where identity_zone_id=? and displayName like ?)", Integer.class, new Object[]{IdentityZone.getUaaZoneId(), "zones." + otherIdentityZone.getId() + ".%"})).isZero();
         assertThat(jdbcTemplate.queryForObject("select count(*) from " +
-                groups + " where identity_zone_id=? and displayName like ?", new Object[]{IdentityZone.getUaaZoneId(), "zones." + otherIdentityZone.getId() + ".%"}, Integer.class)).isZero();
+                groups + " where identity_zone_id=? and displayName like ?", Integer.class, new Object[]{IdentityZone.getUaaZoneId(), "zones." + otherIdentityZone.getId() + ".%"})).isZero();
     }
 
     @Test
@@ -350,10 +350,10 @@ class JdbcScimGroupMembershipManagerTests {
         mapExternalGroup("g1", "some-external-group", LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
         mapExternalGroup("g1", "some-external-group", UAA, jdbcTemplate, otherIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from "
-                + groups + " where identity_zone_id=?) and origin=?", new Object[]{otherIdentityZone.getId(), LOGIN_SERVER}, Integer.class)).isEqualTo(4);
+                + groups + " where identity_zone_id=?) and origin=?", Integer.class, new Object[]{otherIdentityZone.getId(), LOGIN_SERVER})).isEqualTo(4);
         assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups +
-                " where identity_zone_id=?", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(3);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where origin = ? and identity_zone_id=?", new Object[]{LOGIN_SERVER, otherIdentityZone.getId()}, Integer.class)).isOne();
+                " where identity_zone_id=?", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where origin = ? and identity_zone_id=?", Integer.class, new Object[]{LOGIN_SERVER, otherIdentityZone.getId()})).isOne();
 
         IdentityProvider loginServer =
                 new IdentityProvider()
@@ -362,9 +362,9 @@ class JdbcScimGroupMembershipManagerTests {
 
         jdbcScimGroupProvisioning.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, anyZoneId));
 
-        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " + groupName + " where identity_zone_id=?) and origin=?", new Object[]{otherIdentityZone.getId(), LOGIN_SERVER}, Integer.class)).isZero();
-        assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups + " where identity_zone_id=?", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(3);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where origin = ? and identity_zone_id=?", new Object[]{LOGIN_SERVER, otherIdentityZone.getId()}, Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " + groupName + " where identity_zone_id=?) and origin=?", Integer.class, new Object[]{otherIdentityZone.getId(), LOGIN_SERVER})).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups + " where identity_zone_id=?", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(3);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from external_group_mapping where origin = ? and identity_zone_id=?", Integer.class, new Object[]{LOGIN_SERVER, otherIdentityZone.getId()})).isZero();
     }
 
     @Test
@@ -372,13 +372,13 @@ class JdbcScimGroupMembershipManagerTests {
         String groups = dbUtils.getQuotedIdentifier("groups", jdbcTemplate);
 
         addMembers(jdbcTemplate, uaaIdentityZone.getId());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " + groupName + " where identity_zone_id=?)", new Object[]{uaaIdentityZone.getId()}, Integer.class)).isEqualTo(4);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups + " where identity_zone_id=?", new Object[]{uaaIdentityZone.getId()}, Integer.class)).isEqualTo(4);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " + groupName + " where identity_zone_id=?)", Integer.class, new Object[]{uaaIdentityZone.getId()})).isEqualTo(4);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups + " where identity_zone_id=?", Integer.class, new Object[]{uaaIdentityZone.getId()})).isEqualTo(4);
 
         jdbcScimGroupProvisioning.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa(), null, anyZoneId));
 
-        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " + groups + " where identity_zone_id=?)", new Object[]{uaaIdentityZone.getId()}, Integer.class)).isEqualTo(4);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups + " where identity_zone_id=?", new Object[]{uaaIdentityZone.getId()}, Integer.class)).isEqualTo(4);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " + groups + " where identity_zone_id=?)", Integer.class, new Object[]{uaaIdentityZone.getId()})).isEqualTo(4);
+        assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups + " where identity_zone_id=?", Integer.class, new Object[]{uaaIdentityZone.getId()})).isEqualTo(4);
     }
 
     @Test
@@ -387,9 +387,9 @@ class JdbcScimGroupMembershipManagerTests {
 
         addMembers(LOGIN_SERVER, jdbcTemplate, otherIdentityZone.getId());
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
-                groups + " where identity_zone_id=?)", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(4);
+                groups + " where identity_zone_id=?)", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(4);
         assertThat(jdbcTemplate.queryForObject("select count(*) from " + groups +
-                " where identity_zone_id=?", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(3);
+                " where identity_zone_id=?", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(3);
         IdentityProvider loginServer =
                 new IdentityProvider()
                         .setOriginKey(UAA)
@@ -398,9 +398,9 @@ class JdbcScimGroupMembershipManagerTests {
         jdbcScimGroupProvisioning.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, anyZoneId));
 
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where group_id in (select id from " +
-                groups + " where identity_zone_id=?)", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(4);
+                groups + " where identity_zone_id=?)", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(4);
         assertThat(jdbcTemplate.queryForObject("select count(*) from " +
-                groups + " where identity_zone_id=?", new Object[]{otherIdentityZone.getId()}, Integer.class)).isEqualTo(3);
+                groups + " where identity_zone_id=?", Integer.class, new Object[]{otherIdentityZone.getId()})).isEqualTo(3);
     }
 
     @Test
@@ -714,7 +714,7 @@ class JdbcScimGroupMembershipManagerTests {
         int existingMemberCount = jdbcTemplate.queryForObject("select count(*) from " +
                         dbUtils.getQuotedIdentifier("groups", jdbcTemplate) +
                         " g, group_membership gm where g.identity_zone_id=? and gm.group_id=g.id",
-                new Object[]{zoneId}, Integer.class);
+                Integer.class, new Object[]{zoneId});
         assertThat(existingMemberCount).as(msg).isEqualTo(expected);
     }
 

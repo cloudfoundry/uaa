@@ -403,7 +403,7 @@ class ScimUserEndpointsTests {
         assertThatThrownBy(() -> scimUserEndpoints.createUser(user, request, response))
                 .isInstanceOf(InvalidScimResourceException.class)
                 .hasMessageContaining("email");
-        int count = jdbcTemplate.queryForObject("select count(*) from users where userName=?", new Object[]{"dave"}, Integer.class);
+        int count = jdbcTemplate.queryForObject("select count(*) from users where userName=?", Integer.class, new Object[]{"dave"});
         assertThat(count).isZero();
     }
 

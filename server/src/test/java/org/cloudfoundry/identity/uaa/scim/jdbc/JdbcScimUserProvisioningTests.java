@@ -256,19 +256,18 @@ class JdbcScimUserProvisioningTests {
         assertThat(created.getOrigin()).isEqualTo(LOGIN_SERVER);
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from users where origin=? and identity_zone_id=?",
-                new Object[]{LOGIN_SERVER, IdentityZone.getUaaZoneId()},
-                Integer.class
-        )).isOne();
+                Integer.class,
+                new Object[]{LOGIN_SERVER, IdentityZone.getUaaZoneId()})).isOne();
         addMembership(jdbcTemplate, created.getId(), created.getOrigin(), IdentityZone.getUaaZoneId());
-        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[]{created.getId()}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isOne();
 
         IdentityProvider loginServer =
                 new IdentityProvider()
                         .setOriginKey(LOGIN_SERVER)
                         .setIdentityZoneId(IdentityZone.getUaaZoneId());
         jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, IdentityZone.getUaaZoneId()));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{LOGIN_SERVER, IdentityZone.getUaaZoneId()}, Integer.class)).isZero();
-        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[]{created.getId()}, Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{LOGIN_SERVER, IdentityZone.getUaaZoneId()})).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isZero();
     }
 
     @Test
@@ -472,17 +471,17 @@ class JdbcScimUserProvisioningTests {
         assertThat(created.getId()).isNotNull();
         assertThat(created.getOrigin()).isEqualTo(LOGIN_SERVER);
         assertThat(created.getZoneId()).isEqualTo(currentIdentityZoneId);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{LOGIN_SERVER, currentIdentityZoneId}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{LOGIN_SERVER, currentIdentityZoneId})).isOne();
         addMembership(jdbcTemplate, created.getId(), created.getOrigin(), currentIdentityZoneId);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[]{created.getId()}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isOne();
 
         IdentityProvider loginServer =
                 new IdentityProvider()
                         .setOriginKey(LOGIN_SERVER)
                         .setIdentityZoneId(currentIdentityZoneId);
         jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, currentIdentityZoneId));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{LOGIN_SERVER, currentIdentityZoneId}, Integer.class)).isZero();
-        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[]{created.getId()}, Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{LOGIN_SERVER, currentIdentityZoneId})).isZero();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isZero();
     }
 
     @WithDatabaseContext
@@ -509,16 +508,16 @@ class JdbcScimUserProvisioningTests {
             assertThat(created.getId()).isNotNull();
             assertThat(created.getOrigin()).isEqualTo(UAA);
             assertThat(created.getZoneId()).isEqualTo(currentIdentityZoneId);
-            assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{UAA, currentIdentityZoneId}, Integer.class)).isOne();
+            assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{UAA, currentIdentityZoneId})).isOne();
             addMembership(jdbcTemplate, created.getId(), created.getOrigin(), currentIdentityZoneId);
-            assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[]{created.getId()}, Integer.class)).isOne();
+            assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isOne();
 
 
             IdentityZone zoneToDelete = new IdentityZone();
             zoneToDelete.setId(currentIdentityZoneId);
             jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<>(zoneToDelete, null, currentIdentityZoneId));
-            assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{UAA, currentIdentityZoneId}, Integer.class)).isZero();
-            assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[]{created.getId()}, Integer.class)).isZero();
+            assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{UAA, currentIdentityZoneId})).isZero();
+            assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", Integer.class, new Object[]{created.getId()})).isZero();
         }
 
         @Test
@@ -531,13 +530,13 @@ class JdbcScimUserProvisioningTests {
             assertThat(created.getId()).isNotNull();
             assertThat(created.getOrigin()).isEqualTo(UAA);
             assertThat(created.getZoneId()).isEqualTo(currentIdentityZoneId);
-            assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{UAA, currentIdentityZoneId}, Integer.class)).isOne();
+            assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{UAA, currentIdentityZoneId})).isOne();
             IdentityProvider loginServer =
                     new IdentityProvider()
                             .setOriginKey(UAA)
                             .setIdentityZoneId(currentIdentityZoneId);
             jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, currentIdentityZoneId));
-            assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{UAA, currentIdentityZoneId}, Integer.class)).isOne();
+            assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{UAA, currentIdentityZoneId})).isOne();
         }
 
     }
@@ -643,13 +642,13 @@ class JdbcScimUserProvisioningTests {
         assertThat(created.getUserName()).isEqualTo("jo@foo.com");
         assertThat(created.getId()).isNotNull();
         assertThat(created.getOrigin()).isEqualTo(UAA);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{UAA, IdentityZone.getUaaZoneId()}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{UAA, IdentityZone.getUaaZoneId()})).isOne();
         IdentityProvider loginServer =
                 new IdentityProvider()
                         .setOriginKey(UAA)
                         .setIdentityZoneId(IdentityZone.getUaaZoneId());
         jdbcScimUserProvisioning.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null, currentIdentityZoneId));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[]{UAA, IdentityZone.getUaaZoneId()}, Integer.class)).isOne();
+        assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", Integer.class, new Object[]{UAA, IdentityZone.getUaaZoneId()})).isOne();
     }
 
     @Test
@@ -1108,14 +1107,14 @@ class JdbcScimUserProvisioningTests {
         assertThat(scimUser.getSalt()).isEqualTo("salt");
         scimUser.setSalt("newsalt");
 
-        String passwordHash = jdbcTemplate.queryForObject("select password from users where id=?", new Object[]{scimUser.getId()}, String.class);
+        String passwordHash = jdbcTemplate.queryForObject("select password from users where id=?", String.class, new Object[]{scimUser.getId()});
         assertThat(passwordHash).isNotNull();
 
         jdbcScimUserProvisioning.changePassword(scimUser.getId(), null, "password", currentIdentityZoneId);
-        assertThat(jdbcTemplate.queryForObject("select password from users where id=?", new Object[]{scimUser.getId()}, String.class)).isEqualTo(passwordHash);
+        assertThat(jdbcTemplate.queryForObject("select password from users where id=?", String.class, new Object[]{scimUser.getId()})).isEqualTo(passwordHash);
 
         jdbcScimUserProvisioning.changePassword(scimUser.getId(), "password", "password", currentIdentityZoneId);
-        assertThat(jdbcTemplate.queryForObject("select password from users where id=?", new Object[]{scimUser.getId()}, String.class)).isEqualTo(passwordHash);
+        assertThat(jdbcTemplate.queryForObject("select password from users where id=?", String.class, new Object[]{scimUser.getId()})).isEqualTo(passwordHash);
 
     }
 

@@ -774,11 +774,11 @@ class MultitenantJdbcClientDetailsServiceTests {
     }
 
     private static int countClientsInZone(String zoneId, JdbcTemplate jdbcTemplate) {
-        return jdbcTemplate.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", new Object[]{zoneId}, Integer.class);
+        return jdbcTemplate.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", Integer.class, new Object[]{zoneId});
     }
 
     private static boolean clientExists(String clientId, String zoneId, JdbcTemplate jdbcTemplate) {
-        return jdbcTemplate.queryForObject("select count(*) from oauth_client_details where client_id = ? and identity_zone_id=?", new Object[]{clientId, zoneId}, Integer.class) == 1;
+        return jdbcTemplate.queryForObject("select count(*) from oauth_client_details where client_id = ? and identity_zone_id=?", Integer.class, new Object[]{clientId, zoneId}) == 1;
     }
 
     private static ClientDetails addClientToDb(String clientId, MultitenantJdbcClientDetailsService service) {

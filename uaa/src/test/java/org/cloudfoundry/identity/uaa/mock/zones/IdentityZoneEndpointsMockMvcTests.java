@@ -1701,7 +1701,7 @@ class IdentityZoneEndpointsMockMvcTests {
         IdentityZoneHolder.set(zone);
         externalMembershipManager.mapExternalGroup(group.getId(), "externalDeleteGroup", LOGIN_SERVER, IdentityZoneHolder.get().getId());
         assertThat(externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER, IdentityZoneHolder.get().getId())).hasSize(1);
-        assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", new Object[]{LOGIN_SERVER}, Integer.class)).isOne();
+        assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", Integer.class, new Object[]{LOGIN_SERVER})).isOne();
 
         //add user approvals
         approvalStore.addApproval(
@@ -1726,12 +1726,12 @@ class IdentityZoneEndpointsMockMvcTests {
                                 .accept(APPLICATION_JSON))
                 .andExpect(status().isNotFound());
 
-        assertThat(template.queryForObject("select count(*) from identity_zone where id=?", new Object[]{zone.getId()}, Integer.class)).isZero();
-        assertThat(template.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", new Object[]{zone.getId()}, Integer.class)).isZero();
-        assertThat(template.queryForObject("select count(*) from " + dbUtils.getQuotedIdentifier("groups", template) + " where identity_zone_id=?", new Object[]{zone.getId()}, Integer.class)).isZero();
-        assertThat(template.queryForObject("select count(*) from sec_audit where identity_zone_id=?", new Object[]{zone.getId()}, Integer.class)).isZero();
-        assertThat(template.queryForObject("select count(*) from users where identity_zone_id=?", new Object[]{zone.getId()}, Integer.class)).isZero();
-        assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", new Object[]{LOGIN_SERVER}, Integer.class)).isZero();
+        assertThat(template.queryForObject("select count(*) from identity_zone where id=?", Integer.class, new Object[]{zone.getId()})).isZero();
+        assertThat(template.queryForObject("select count(*) from oauth_client_details where identity_zone_id=?", Integer.class, new Object[]{zone.getId()})).isZero();
+        assertThat(template.queryForObject("select count(*) from " + dbUtils.getQuotedIdentifier("groups", template) + " where identity_zone_id=?", Integer.class, new Object[]{zone.getId()})).isZero();
+        assertThat(template.queryForObject("select count(*) from sec_audit where identity_zone_id=?", Integer.class, new Object[]{zone.getId()})).isZero();
+        assertThat(template.queryForObject("select count(*) from users where identity_zone_id=?", Integer.class, new Object[]{zone.getId()})).isZero();
+        assertThat(template.queryForObject("select count(*) from external_group_mapping where origin=?", Integer.class, new Object[]{LOGIN_SERVER})).isZero();
 
         final String groupId = group.getId();
         String zoneId = IdentityZoneHolder.get().getId();
@@ -1739,7 +1739,7 @@ class IdentityZoneEndpointsMockMvcTests {
                 .isInstanceOf(ScimResourceNotFoundException.class)
                 .hasMessageContainingAll("Group", " does not exist");
 
-        assertThat(template.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[]{user.getId()}, Integer.class)).isZero();
+        assertThat(template.queryForObject("select count(*) from authz_approvals where user_id=?", Integer.class, new Object[]{user.getId()})).isZero();
         assertThat(approvalStore.getApprovals(user.getId(), client.getClientId(), IdentityZoneHolder.get().getId())).isEmpty();
     }
 
