@@ -9,7 +9,6 @@ import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.core.io.support.ResourcePropertySource;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContext;
@@ -47,7 +46,7 @@ public class ForcePasswordChangeController {
 
     @PostMapping("/force_password_change")
     public String handleForcePasswordChange(Model model,
-            @RequestParam String password,
+            @RequestParam("password") String password,
             @RequestParam("password_confirmation") String passwordConfirmation,
             HttpServletRequest request,
             HttpServletResponse response, HttpSession httpSession) {

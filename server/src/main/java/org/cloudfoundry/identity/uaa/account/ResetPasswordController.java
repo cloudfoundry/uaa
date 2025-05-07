@@ -82,7 +82,7 @@ public class ResetPasswordController {
     }
 
     @PostMapping("/forgot_password.do")
-    public String forgotPassword(Model model, @RequestParam String username, @RequestParam(value = "client_id", defaultValue = "") String clientId,
+    public String forgotPassword(Model model, @RequestParam("username") String username, @RequestParam(value = "client_id", defaultValue = "") String clientId,
             @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
         if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
@@ -158,7 +158,7 @@ public class ResetPasswordController {
     }
 
     @GetMapping("/email_sent")
-    public String emailSentPage(@ModelAttribute String code,
+    public String emailSentPage(@ModelAttribute("code") String code,
             HttpServletResponse response) {
         response.addHeader("Content-Security-Policy", "frame-ancestors 'none'");
         return "email_sent";
@@ -172,7 +172,7 @@ public class ResetPasswordController {
     @GetMapping(value = "/reset_password", params = {"code"})
     public String resetPasswordPage(Model model,
             HttpServletResponse response,
-            @RequestParam String code) {
+            @RequestParam("code") String code) {
 
         ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code, IdentityZoneHolder.get().getId()));
         if (expiringCode == null) {
@@ -216,13 +216,13 @@ public class ResetPasswordController {
 
     @PostMapping("/reset_password.do")
     public void resetPassword(Model model,
-        @RequestParam("code") String code,
-        @RequestParam("email") String email,
-        @RequestParam("password") String password,
-        @RequestParam("password_confirmation") String passwordConfirmation,
-        HttpServletRequest request,
-        HttpServletResponse response,
-        HttpSession session) {
+            @RequestParam("code") String code,
+            @RequestParam("email") String email,
+            @RequestParam("password") String password,
+            @RequestParam("password_confirmation") String passwordConfirmation,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            HttpSession session) {
 
 
     }
