@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 public class KeyInfoBuilder {
 
@@ -10,7 +10,7 @@ public class KeyInfoBuilder {
     }
 
     public static KeyInfo build(String keyId, String signingKey, String uaaUrl, String sigAlg, String signingCert) {
-        if (StringUtils.isEmpty(signingKey)) {
+        if (UaaStringUtils.isEmpty(signingKey)) {
             throw new IllegalArgumentException("Signing key cannot be empty");
         }
 

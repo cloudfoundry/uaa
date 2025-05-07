@@ -27,10 +27,6 @@ public class UaaFilterChain implements SecurityFilterChain {
 		this.name = name;
 	}
 
-    public UaaFilterChain(SecurityFilterChain chain) {
-        this(chain, null);
-    }
-
     @Override
     public List<Filter> getFilters() {
         return this.chain.getFilters();
@@ -43,5 +39,10 @@ public class UaaFilterChain implements SecurityFilterChain {
 
     public String getName() {
         return this.name;
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getName()+"[" + getName()+", "+getFilters().size()+"]";
     }
 }
