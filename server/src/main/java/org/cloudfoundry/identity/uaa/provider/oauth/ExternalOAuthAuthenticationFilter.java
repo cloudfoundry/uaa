@@ -1,10 +1,10 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,7 +76,7 @@ public class ExternalOAuthAuthenticationFilter implements Filter {
         }
         final Object stateInSession = SessionUtils.getStateParam(session, SessionUtils.stateParameterAttributeKeyForIdp(originKey));
         final String stateFromParameters = request.getParameter("state");
-        if (StringUtils.isEmpty(stateFromParameters) || !stateFromParameters.equals(stateInSession)) {
+        if (UaaStringUtils.isEmpty(stateFromParameters) || !stateFromParameters.equals(stateInSession)) {
             throw new CsrfException("Invalid State Param in request.");
         }
     }

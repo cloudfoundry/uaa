@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenType.REFRESH_TOKEN;
-import static org.springframework.util.StringUtils.isEmpty;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isEmpty;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 

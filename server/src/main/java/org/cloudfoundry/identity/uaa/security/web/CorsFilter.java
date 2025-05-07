@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
@@ -311,7 +312,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     protected boolean isAllowedRequestUri(final String uri, CorsConfiguration configuration) {
-        if (StringUtils.isEmpty(uri)) {
+        if (UaaStringUtils.isEmpty(uri)) {
             return false;
         }
 

@@ -25,7 +25,7 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.util.UrlUtils;
-import org.springframework.util.StringUtils;
+import org.springframework.util.ObjectUtils;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -89,7 +89,7 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
         if (!HttpMethod.POST.name().equals(request.getMethod())) {
             return false;
         }
-        if (StringUtils.isEmpty(formRedirect)) {
+        if (ObjectUtils.isEmpty(formRedirect)) {
             return false;
         }
         if (!UaaUrlUtils.uriHasMatchingHost(formRedirect, request.getServerName())) {
