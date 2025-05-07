@@ -166,7 +166,7 @@ public class TokenEndpoint extends AbstractEndpoint {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Cache-Control", "no-store");
         headers.set("Pragma", "no-cache");
-        headers.set("Content-Type", "application/json;charset=UTF-8");
+        headers.set("Content-Type", "application/json");
         return new ResponseEntity<>(accessToken, headers, HttpStatus.OK);
     }
 
