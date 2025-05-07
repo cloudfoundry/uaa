@@ -294,6 +294,10 @@ public final class UaaStringUtils {
         return input == null || input.length() == 0;
     }
 
+    public static boolean isEmpty(final String input) {
+        return input == null || input.length() == 0;
+    }
+
     public static boolean isNotEmpty(final String input) {
         return !isNullOrEmpty(input);
     }

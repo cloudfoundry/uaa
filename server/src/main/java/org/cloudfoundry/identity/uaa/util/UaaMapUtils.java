@@ -20,7 +20,6 @@ import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
-import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
 import java.util.AbstractMap;
@@ -148,7 +147,7 @@ public class UaaMapUtils {
                 @SuppressWarnings("unchecked")
                 Map<String, ?> bare = (Map<String, ?>) value;
                 result.put(key, redactValues(bare));
-            } else if (value instanceof String && StringUtils.isEmpty(value)) {
+            } else if (value instanceof String strValue && UaaStringUtils.isEmpty(strValue)) {
                 result.put(key, "");
             } else {
                 result.put(key, "<redacted>");

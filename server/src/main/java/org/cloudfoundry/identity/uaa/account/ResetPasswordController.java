@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
@@ -114,7 +115,7 @@ public class ResetPasswordController {
 
     private String getSubjectText() {
         String serviceName = getServiceName();
-        if (StringUtils.isEmpty(serviceName)) {
+        if (UaaStringUtils.isEmpty(serviceName)) {
             return "Account password reset request";
         }
         return serviceName + " account password reset request";

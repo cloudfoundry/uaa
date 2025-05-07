@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.web;
 
 
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,7 +26,6 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.security.web.util.UrlUtils;
-import org.springframework.util.StringUtils;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -89,7 +89,7 @@ public class UaaSavedRequestCache extends HttpSessionRequestCache implements Fil
         if (!HttpMethod.POST.name().equals(request.getMethod())) {
             return false;
         }
-        if (StringUtils.isEmpty(formRedirect)) {
+        if (UaaStringUtils.isEmpty(formRedirect)) {
             return false;
         }
         if (!UaaUrlUtils.uriHasMatchingHost(formRedirect, request.getServerName())) {
