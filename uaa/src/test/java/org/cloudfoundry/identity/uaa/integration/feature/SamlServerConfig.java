@@ -40,8 +40,8 @@ public class SamlServerConfig {
 
     public String getLoginPromptXpathExpr() {
         return isUpgraded() ?
-                SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR.formatted("h2") :
-                SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR.formatted("h1");
+                String.format(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR, "h2") :
+                String.format(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR, "h1");
     }
 
     public void logOut(WebDriver webDriver) {
