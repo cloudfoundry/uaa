@@ -59,7 +59,7 @@ public class CurrentUserCookieRequestFilter extends OncePerRequestFilter {
     }
 
     private String errorMessage(UaaPrincipal principal) {
-        return String.format("There was a problem while creating the Current-User cookie for user id %s", principal.getId());
+        return "There was a problem while creating the Current-User cookie for user id %s".formatted(principal.getId());
     }
 
     private void handleError(HttpServletResponse response, UaaPrincipal principal) throws IOException {
