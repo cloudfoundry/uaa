@@ -24,9 +24,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.View;
 
@@ -64,7 +63,7 @@ public class PasswordResetEndpoint {
         this.identityZoneManager = identityZoneManager;
     }
 
-    @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
+    @PostMapping("/password_resets")
     public ResponseEntity<PasswordResetResponse> resetPassword(@RequestBody String email,
             @RequestParam(required = false, value = "client_id") String clientId,
             @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
@@ -96,7 +95,7 @@ public class PasswordResetEndpoint {
         return expiringCode;
     }
 
-    @RequestMapping(value = "/password_change", method = RequestMethod.POST)
+    @PostMapping("/password_change")
     public ResponseEntity<LostPasswordChangeResponse> changePassword(@RequestBody LostPasswordChangeRequest passwordChangeRequest) {
         ResponseEntity<LostPasswordChangeResponse> responseEntity;
         if (passwordChangeRequest.getChangeCode() != null) {

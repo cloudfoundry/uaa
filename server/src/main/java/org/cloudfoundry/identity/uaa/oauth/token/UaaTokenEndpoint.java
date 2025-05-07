@@ -14,6 +14,8 @@ import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
@@ -27,8 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller
 @RequestMapping(value = "/oauth/token") //used simply because TokenEndpoint wont match /oauth/token/alias/saml-entity-id
@@ -59,13 +59,13 @@ public class UaaTokenEndpoint extends TokenEndpoint {
         }
     }
 
-    @RequestMapping(value = "**", method = GET)
+    @GetMapping("**")
     public ResponseEntity<OAuth2AccessToken> doDelegateGet(Principal principal,
             @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
         return getAccessToken(principal, parameters);
     }
 
-    @RequestMapping(value = "**", method = POST)
+    @PostMapping("**")
     public ResponseEntity<OAuth2AccessToken> doDelegatePost(Principal principal,
             @RequestParam Map<String, String> parameters,
             HttpServletRequest request) throws HttpRequestMethodNotSupportedException {

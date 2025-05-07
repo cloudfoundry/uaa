@@ -18,8 +18,8 @@ import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
@@ -57,7 +57,7 @@ public class ProfileController {
     /**
      * Display the current user's approvals
      */
-    @RequestMapping(value = "/profile", method = RequestMethod.GET)
+    @GetMapping("/profile")
     public String get(Authentication authentication, Model model) {
         Map<String, List<DescribedApproval>> approvals = getCurrentApprovalsForUser(getCurrentUserId());
         Map<String, String> clientNames = getClientNames(approvals);
@@ -70,7 +70,7 @@ public class ProfileController {
     /**
      * Handle form post for revoking chosen approvals
      */
-    @RequestMapping(value = "/profile", method = RequestMethod.POST)
+    @PostMapping("/profile")
     public String post(@RequestParam(required = false) Collection<String> checkedScopes,
             @RequestParam(required = false) String update,
             @RequestParam(required = false) String delete,

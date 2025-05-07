@@ -24,6 +24,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -37,7 +38,6 @@ import java.util.Optional;
 import static java.util.Collections.emptyList;
 import static org.springframework.util.StringUtils.commaDelimitedListToSet;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 /**
  * Controller which decodes access tokens for clients who are not able to do so
@@ -79,7 +79,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         Assert.notNull(resourceServerTokenServices, "tokenServices must be set");
     }
 
-    @RequestMapping(value = "/check_token", method = POST)
+    @PostMapping("/check_token")
     @ResponseBody
     @Deprecated
     public Claims checkToken(@RequestParam(name = "token", required = false, defaultValue = "") String value,

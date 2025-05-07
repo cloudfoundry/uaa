@@ -10,13 +10,12 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import javax.servlet.http.HttpServletRequest;
-
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller
 public class IntrospectEndpoint {
@@ -29,7 +28,7 @@ public class IntrospectEndpoint {
         this.resourceServerTokenServices = resourceServerTokenServices;
     }
 
-    @RequestMapping(value = "/introspect", method = POST)
+    @PostMapping("/introspect")
     @ResponseBody
     public IntrospectionClaims introspect(@RequestParam("token") String token) {
         IntrospectionClaims introspectionClaims = new IntrospectionClaims();

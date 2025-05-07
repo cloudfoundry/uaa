@@ -14,9 +14,8 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
@@ -41,7 +40,7 @@ public class TokenKeyEndpoint {
         this.keyInfoService = keyInfoService;
     }
 
-    @RequestMapping(value = "/token_key", method = RequestMethod.GET)
+    @GetMapping("/token_key")
     @ResponseBody
     public ResponseEntity<VerificationKeyResponse> getKey(Principal principal,
                                                           @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
@@ -56,7 +55,7 @@ public class TokenKeyEndpoint {
     }
 
 
-    @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
+    @GetMapping("/token_keys")
     @ResponseBody
     public ResponseEntity<VerificationKeysListResponse> getKeys(Principal principal,
                                                                 @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {

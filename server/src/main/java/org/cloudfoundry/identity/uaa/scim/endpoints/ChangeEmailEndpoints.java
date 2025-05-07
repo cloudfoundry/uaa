@@ -19,9 +19,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
 import java.sql.Timestamp;
 import java.time.Duration;
@@ -55,7 +54,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
         this.identityZoneManager = identityZoneManager;
     }
 
-    @RequestMapping(value = "/email_verifications", method = RequestMethod.POST)
+    @PostMapping("/email_verifications")
     public ResponseEntity<String> generateEmailVerificationCode(@RequestBody EmailChange emailChange) {
         final String userId = emailChange.getUserId();
         final String email = emailChange.getEmail();
@@ -76,7 +75,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @RequestMapping(value = "/email_changes", method = RequestMethod.POST)
+    @PostMapping("/email_changes")
     public ResponseEntity<EmailChangeResponse> changeEmail(@RequestBody String code) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZoneId());
         if ((null != expiringCode) && ((null == expiringCode.getIntent()) || EMAIL.name().equals(expiringCode.getIntent()))) {

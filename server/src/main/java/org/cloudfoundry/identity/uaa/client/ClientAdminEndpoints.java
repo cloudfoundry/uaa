@@ -64,12 +64,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -188,7 +189,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return errorCounts;
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.GET)
+    @GetMapping("/oauth/clients/{client}")
     @ResponseBody
     public ClientDetails getClientDetails(@PathVariable String client) {
         try {
@@ -202,7 +203,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @RequestMapping(value = "/oauth/clients", method = RequestMethod.POST)
+    @PostMapping("/oauth/clients")
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
@@ -222,7 +223,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return removeSecret(clientDetailsService.create(details, IdentityZoneHolder.get().getId()));
     }
 
-    @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.GET)
+    @GetMapping("/oauth/clients/restricted")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public List<String> getRestrictedClientScopes() {
@@ -230,7 +231,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
 
-    @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.POST)
+    @PostMapping("/oauth/clients/restricted")
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ClientDetails createRestrictedClientDetails(@RequestBody UaaClientDetails client) {
@@ -238,7 +239,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return createClientDetailsInternal(client);
     }
 
-    @RequestMapping(value = "/oauth/clients/tx", method = RequestMethod.POST)
+    @PostMapping("/oauth/clients/tx")
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
@@ -261,7 +262,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return details;
     }
 
-    @RequestMapping(value = "/oauth/clients/tx", method = RequestMethod.PUT)
+    @PutMapping("/oauth/clients/tx")
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
@@ -294,7 +295,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
 
     }
 
-    @RequestMapping(value = "/oauth/clients/restricted/{client}", method = RequestMethod.PUT)
+    @PutMapping("/oauth/clients/restricted/{client}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails updateRestrictedClientDetails(@RequestBody UaaClientDetails client,
@@ -303,7 +304,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return updateClientDetails(client, clientId);
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
+    @PutMapping("/oauth/clients/{client}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails updateClientDetails(@RequestBody UaaClientDetails client,
@@ -327,7 +328,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return removeSecret(clientDetailsService.retrieve(clientId, IdentityZoneHolder.get().getId()));
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)
+    @DeleteMapping("/oauth/clients/{client}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientDetails removeClientDetails(@PathVariable String client) {
@@ -336,7 +337,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return removeSecret(details);
     }
 
-    @RequestMapping(value = "/oauth/clients/tx/delete", method = RequestMethod.POST)
+    @PostMapping("/oauth/clients/tx/delete")
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
@@ -348,7 +349,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         return doProcessDeletes(result);
     }
 
-    @RequestMapping(value = "/oauth/clients/tx/modify", method = RequestMethod.POST)
+    @PostMapping("/oauth/clients/tx/modify")
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
@@ -402,7 +403,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
     }
 
 
-    @RequestMapping(value = "/oauth/clients/tx/secret", method = RequestMethod.POST)
+    @PostMapping("/oauth/clients/tx/secret")
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
@@ -445,7 +446,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         approvalStore.revokeApprovalsForClient(clientId, IdentityZoneHolder.get().getId());
     }
 
-    @RequestMapping(value = "/oauth/clients", method = RequestMethod.GET)
+    @GetMapping("/oauth/clients")
     @ResponseBody
     public SearchResults<?> listClientDetails(
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
@@ -495,7 +496,7 @@ public class ClientAdminEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @RequestMapping(value = "/oauth/clients/{client_id}/secret", method = RequestMethod.PUT)
+    @PutMapping("/oauth/clients/{client_id}/secret")
     @ResponseBody
     public ActionResult changeSecret(@PathVariable String client_id, @RequestBody SecretChangeRequest change) {
 

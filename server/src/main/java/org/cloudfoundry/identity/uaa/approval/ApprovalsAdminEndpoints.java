@@ -71,7 +71,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         };
     }
 
-    @RequestMapping(value = "/approvals", method = RequestMethod.GET)
+    @GetMapping("/approvals")
     @ResponseBody
     public List<Approval> getApprovals(@RequestParam(required = false, defaultValue = "user_id pr") String ignored,
             @RequestParam(required = false, defaultValue = "1") int startIndex,
@@ -124,7 +124,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         return securityContextAccessor.getUserId();
     }
 
-    @RequestMapping(value = "/approvals", method = RequestMethod.PUT)
+    @PutMapping("/approvals")
     @ResponseBody
     public List<Approval> updateApprovals(@RequestBody Approval[] approvals) {
         String currentUserId = getCurrentUserId();
@@ -147,7 +147,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         return result;
     }
 
-    @RequestMapping(value = "/approvals/{clientId}", method = RequestMethod.PUT)
+    @PutMapping("/approvals/{clientId}")
     @ResponseBody
     public List<Approval> updateClientApprovals(@PathVariable String clientId, @RequestBody Approval[] approvals) {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
@@ -180,7 +180,7 @@ public class ApprovalsAdminEndpoints implements InitializingBean {
         }
     }
 
-    @RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
+    @DeleteMapping("/approvals")
     @ResponseBody
     public ActionResult revokeApprovals(@RequestParam() String clientId) {
         clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());

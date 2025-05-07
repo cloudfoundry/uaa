@@ -14,10 +14,10 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
@@ -38,7 +38,7 @@ public class ClientMetadataAdminEndpoints {
         };
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.GET)
+    @GetMapping("/oauth/clients/{client}/meta")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientMetadata retrieveClientMetadata(@PathVariable("client") String clientId) {
@@ -49,14 +49,14 @@ public class ClientMetadataAdminEndpoints {
         }
     }
 
-    @RequestMapping(value = "/oauth/clients/meta", method = RequestMethod.GET)
+    @GetMapping("/oauth/clients/meta")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public List<ClientMetadata> retrieveAllClientMetadata() {
         return clientMetadataProvisioning.retrieveAll(IdentityZoneHolder.get().getId());
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.PUT)
+    @PutMapping("/oauth/clients/{client}/meta")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ClientMetadata updateClientMetadata(@RequestBody ClientMetadata clientMetadata,

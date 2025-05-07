@@ -32,8 +32,12 @@ import org.springframework.validation.BindingResult;
 import org.springframework.validation.Errors;
 import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -54,10 +58,6 @@ import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
-import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
-import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 @RestController("identityZoneEndpoints")
 @RequestMapping("/identity-zones")
@@ -96,7 +96,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     }
 
 
-    @RequestMapping(value = "{id}", method = GET)
+    @GetMapping("{id}")
     public IdentityZone getIdentityZone(@PathVariable String id) {
         List<IdentityZone> result = filterForCurrentZone(Collections.singletonList(zoneDao.retrieveIgnoreActiveFlag(id)));
         if (result.isEmpty()) {
@@ -120,7 +120,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         return identityZone;
     }
 
-    @RequestMapping(method = GET)
+    @GetMapping
     public List<IdentityZone> getIdentityZones() {
         return filterForCurrentZone(zoneDao.retrieveAll());
     }
@@ -170,7 +170,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     }
 
 
-    @RequestMapping(method = POST)
+    @PostMapping
     public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZone body, BindingResult result) {
 
         if (result.hasErrors()) {
@@ -244,7 +244,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         return String.join("\r\n", messages);
     }
 
-    @RequestMapping(value = "{id}", method = PUT)
+    @PutMapping("{id}")
     public ResponseEntity<IdentityZone> updateIdentityZone(
             @RequestBody @Valid IdentityZone body, @PathVariable String id) {
         IdentityZone previous = IdentityZoneHolder.get();
@@ -319,7 +319,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @RequestMapping(value = "{id}", method = DELETE)
+    @DeleteMapping("{id}")
     @Transactional
     public ResponseEntity<IdentityZone> deleteIdentityZone(@PathVariable String id) {
         if (id == null) {
@@ -355,7 +355,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         }
     }
 
-    @RequestMapping(method = POST, value = "{identityZoneId}/clients")
+    @PostMapping("{identityZoneId}/clients")
     public ResponseEntity<? extends ClientDetails> createClient(
             @PathVariable String identityZoneId, @RequestBody UaaClientDetails clientDetails) {
         if (identityZoneId == null) {
@@ -383,7 +383,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         return response;
     }
 
-    @RequestMapping(method = DELETE, value = "{identityZoneId}/clients/{clientId}")
+    @DeleteMapping("{identityZoneId}/clients/{clientId}")
     public ResponseEntity<? extends ClientDetails> deleteClient(
             @PathVariable String identityZoneId, @PathVariable String clientId) {
         if (identityZoneId == null) {

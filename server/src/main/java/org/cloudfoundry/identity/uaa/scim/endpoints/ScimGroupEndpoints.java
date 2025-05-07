@@ -33,12 +33,16 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -133,7 +137,7 @@ public class ScimGroupEndpoints {
         return response;
     }
 
-    @RequestMapping(value = {"/Groups"}, method = RequestMethod.GET)
+    @GetMapping({"/Groups"})
     @ResponseBody
     public SearchResults<?> listGroups(
             @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
@@ -178,7 +182,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = {"/Groups/External/list"}, method = RequestMethod.GET)
+    @GetMapping({"/Groups/External/list"})
     @ResponseBody
     @Deprecated
     public SearchResults<?> listExternalGroups(
@@ -188,7 +192,7 @@ public class ScimGroupEndpoints {
         return getExternalGroups(startIndex, count, filter, "", "");
     }
 
-    @RequestMapping(value = {"/Groups/External"}, method = RequestMethod.GET)
+    @GetMapping({"/Groups/External"})
     @ResponseBody
     public SearchResults<?> getExternalGroups(
             @RequestParam(required = false, defaultValue = "1") int startIndex,
@@ -236,7 +240,7 @@ public class ScimGroupEndpoints {
                 Arrays.asList(ScimCore.SCHEMAS));
     }
 
-    @RequestMapping(value = {"/Groups/External"}, method = RequestMethod.POST)
+    @PostMapping({"/Groups/External"})
     @ResponseBody
     @ResponseStatus(HttpStatus.CREATED)
     public ScimGroupExternalMember mapExternalGroup(@RequestBody ScimGroupExternalMember sgm) {
@@ -258,7 +262,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = {"/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}"})
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
@@ -266,7 +270,7 @@ public class ScimGroupEndpoints {
         return unmapExternalGroup(groupId, externalGroup, null);
     }
 
-    @RequestMapping(value = {"/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}"})
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupExternalMember unmapExternalGroup(@PathVariable String groupId,
@@ -289,7 +293,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = {"/Groups/External/id/{groupId}/{externalGroup}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/External/id/{groupId}/{externalGroup}"})
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
@@ -297,7 +301,7 @@ public class ScimGroupEndpoints {
         return unmapExternalGroup(groupId, externalGroup, LDAP);
     }
 
-    @RequestMapping(value = {"/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}"})
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
@@ -305,7 +309,7 @@ public class ScimGroupEndpoints {
         return unmapExternalGroupUsingName(displayName, externalGroup, LDAP);
     }
 
-    @RequestMapping(value = {"/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}"})
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName,
@@ -329,7 +333,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = {"/Groups/External/{displayName}/{externalGroup}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/External/{displayName}/{externalGroup}"})
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
@@ -350,7 +354,7 @@ public class ScimGroupEndpoints {
     }
 
 
-    @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.GET)
+    @GetMapping({"/Groups/{groupId}"})
     @ResponseBody
     public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
         logger.debug("retrieving group with id: " + groupId);
@@ -360,7 +364,7 @@ public class ScimGroupEndpoints {
         return group;
     }
 
-    @RequestMapping(value = {"/Groups"}, method = RequestMethod.POST)
+    @PostMapping({"/Groups"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimGroup createGroup(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
@@ -387,7 +391,7 @@ public class ScimGroupEndpoints {
         return created;
     }
 
-    @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.PUT)
+    @PutMapping({"/Groups/{groupId}"})
     @ResponseBody
     public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable String groupId,
             @RequestHeader(value = "If-Match", required = false) String etag,
@@ -430,7 +434,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.PATCH)
+    @PatchMapping({"/Groups/{groupId}"})
     @ResponseBody
     public ScimGroup patchGroup(@RequestBody ScimGroup patch, @PathVariable
     String groupId,
@@ -447,7 +451,7 @@ public class ScimGroupEndpoints {
         return updateGroup(current, groupId, etag, httpServletResponse);
     }
 
-    @RequestMapping(value = {"/Groups/{groupId}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/{groupId}"})
     @ResponseBody
     public ScimGroup deleteGroup(@PathVariable String groupId,
             @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag,
@@ -465,7 +469,7 @@ public class ScimGroupEndpoints {
         return group;
     }
 
-    @RequestMapping(value = {"/Groups/zones"}, method = RequestMethod.POST)
+    @PostMapping({"/Groups/zones"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Deprecated
@@ -497,7 +501,7 @@ public class ScimGroupEndpoints {
         }
     }
 
-    @RequestMapping(value = {"/Groups/zones/{userId}/{zoneId}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/zones/{userId}/{zoneId}"})
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     @Deprecated
@@ -505,7 +509,7 @@ public class ScimGroupEndpoints {
         return deleteZoneScope(userId, zoneId, "admin", httpServletResponse);
     }
 
-    @RequestMapping(value = {"/Groups/zones/{userId}/{zoneId}/{scope}"}, method = RequestMethod.DELETE)
+    @DeleteMapping({"/Groups/zones/{userId}/{zoneId}/{scope}"})
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     @Deprecated
@@ -544,7 +548,7 @@ public class ScimGroupEndpoints {
         return new ResponseEntity<>(membership, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.GET)
+    @GetMapping("/Groups/{groupId}/members")
     public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId,
             @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
             @RequestParam(required = false, defaultValue = "", name = "filter") String deprecatedFilter) {
@@ -555,7 +559,7 @@ public class ScimGroupEndpoints {
         return new ResponseEntity<>(members, HttpStatus.OK);
     }
 
-    @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.POST)
+    @PostMapping("/Groups/{groupId}/members")
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimGroupMember addMemberToGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
@@ -563,7 +567,7 @@ public class ScimGroupEndpoints {
         return membershipManager.addMember(groupId, member, identityZoneManager.getCurrentIdentityZoneId());
     }
 
-    @RequestMapping(value = "/Groups/{groupId}/members/{memberId}", method = RequestMethod.DELETE)
+    @DeleteMapping("/Groups/{groupId}/members/{memberId}")
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupMember deleteGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {

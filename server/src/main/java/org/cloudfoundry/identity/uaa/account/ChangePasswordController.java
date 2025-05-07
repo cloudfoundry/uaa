@@ -10,14 +10,12 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller
 public class ChangePasswordController {
@@ -28,12 +26,12 @@ public class ChangePasswordController {
         this.changePasswordService = changePasswordService;
     }
 
-    @RequestMapping(value = "/change_password", method = GET)
+    @GetMapping("/change_password")
     public String changePasswordPage() {
         return "change_password";
     }
 
-    @RequestMapping(value = "/change_password.do", method = POST)
+    @PostMapping("/change_password.do")
     public String changePassword(
             Model model,
             @RequestParam("current_password") String currentPassword,
