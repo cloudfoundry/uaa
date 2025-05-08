@@ -43,8 +43,8 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     JdbcClientMetadataProvisioning(
             final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
             final JdbcTemplate jdbcTemplate) {
-        Assert.notNull(jdbcTemplate);
-        Assert.notNull(clientDetailsService);
+        Assert.notNull(jdbcTemplate, "must not be null");
+        Assert.notNull(clientDetailsService, "must not be null");
         this.jdbcTemplate = jdbcTemplate;
         this.clientDetailsService = clientDetailsService;
     }

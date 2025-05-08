@@ -34,7 +34,7 @@ public final class LdapUtils {
     }
 
     public static ConfigurableEnvironment getLdapConfigurationEnvironment(LdapIdentityProviderDefinition definition) {
-        Assert.notNull(definition);
+        Assert.notNull(definition, "must not be null");
 
         Map<String, Object> properties = new HashMap<>();
 
@@ -82,7 +82,7 @@ public final class LdapUtils {
      * Load a LDAP definition from the Yaml config (IdentityProviderBootstrap)
      */
     public static LdapIdentityProviderDefinition fromConfig(Map<String, Object> ldapConfig) {
-        Assert.notNull(ldapConfig);
+        Assert.notNull(ldapConfig, "must not be null");
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         if (ldapConfig == null || ldapConfig.isEmpty()) {

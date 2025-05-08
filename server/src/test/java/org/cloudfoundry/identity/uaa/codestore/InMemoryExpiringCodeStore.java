@@ -84,7 +84,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
     @Override
     public void expireByIntent(String intent, String zoneId) {
-        Assert.hasText(intent);
+        Assert.hasText(intent, "must have text");
 
         store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode() + zoneId));
     }
