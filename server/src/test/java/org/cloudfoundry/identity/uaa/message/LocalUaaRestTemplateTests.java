@@ -7,7 +7,6 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.login.NotificationsProperties;
 import org.cloudfoundry.identity.uaa.oauth.client.OAuth2ClientContext;
-import org.cloudfoundry.identity.uaa.oauth.client.resource.OAuth2ProtectedResourceDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
@@ -49,7 +48,7 @@ class LocalUaaRestTemplateTests {
         mockIdentityZoneManager = mock(IdentityZoneManager.class);
 
         localUaaRestTemplate = new LocalUaaRestTemplate(
-                new UaaProperties.RootLevel(false, "loginsecret"),
+                new UaaProperties.RootLevel(false, "loginsecret", false, 443),
                 new NotificationsProperties("", false, true),
                 mockAuthorizationServerTokenServices,
                 mockMultitenantClientServices,

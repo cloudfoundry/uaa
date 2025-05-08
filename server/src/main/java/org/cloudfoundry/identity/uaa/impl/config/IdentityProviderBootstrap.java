@@ -33,7 +33,6 @@ import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
@@ -84,7 +83,7 @@ public class IdentityProviderBootstrap
     private ApplicationEventPublisher publisher;
 
     public IdentityProviderBootstrap(
-            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
+            final IdentityProviderProvisioning provisioning,
             final IdentityZoneManager identityZoneManager,
             Environment environment) {
         if (provisioning == null) {

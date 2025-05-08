@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
@@ -54,8 +53,8 @@ public class UaaMetricsFilter extends OncePerRequestFilter implements UaaMetrics
     private NotificationPublisher notificationPublisher;
 
     public UaaMetricsFilter(
-            final @Value("${metrics.enabled:true}") boolean enabled,
-            final @Value("${metrics.perRequestMetrics:false}") boolean perRequestMetrics,
+            final boolean enabled,
+            final boolean perRequestMetrics,
             final TimeService timeService
     ) throws IOException {
         this.enabled = enabled;
