@@ -59,7 +59,7 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
      * @param constructor the validation constructor, must not be {@literal null}
      */
     public YamlConfigurationValidator(Constructor constructor) {
-        Assert.notNull(constructor);
+        Assert.notNull(constructor, "must not be null");
         this.constructor = constructor;
     }
 

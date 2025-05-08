@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.bouncycastle.jcajce.provider.BouncyCastleFipsProvider;
-import org.cloudfoundry.identity.uaa.UaaConfig;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
@@ -100,6 +99,7 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.restdocs.templates.TemplateFormats.markdown;
+import static org.springframework.security.config.BeanIds.SPRING_SECURITY_FILTER_CHAIN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -154,7 +154,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     private ScimUser user;
 
-    @Qualifier(UaaConfig.SPRING_SECURITY_FILTER_CHAIN_ID)
+    @Qualifier(SPRING_SECURITY_FILTER_CHAIN)
     @Autowired
     FilterChainProxy securityFilterChain;
 

@@ -120,7 +120,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         String identityZoneIdFromHeader = request.getHeader(HEADER);
         String identityZoneSubDomainFromHeader = request.getHeader(SUBDOMAIN_HEADER);
 
-        if (StringUtils.isEmpty(identityZoneIdFromHeader) && StringUtils.isEmpty(identityZoneSubDomainFromHeader)) {
+        if (UaaStringUtils.isEmpty(identityZoneIdFromHeader) && UaaStringUtils.isEmpty(identityZoneSubDomainFromHeader)) {
             filterChain.doFilter(request, response);
             return;
         }
@@ -161,7 +161,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         IdentityZone identityZone = null;
 
         try {
-            if (StringUtils.isEmpty(identityZoneId)) {
+            if (UaaStringUtils.isEmpty(identityZoneId)) {
                 identityZone = dao.retrieveBySubdomain(identityZoneSubDomain);
             } else {
                 identityZone = dao.retrieve(identityZoneId);
