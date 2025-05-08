@@ -234,7 +234,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         }
 
         public void setValue(String value) {
-            Assert.notNull(value);
+            Assert.notNull(value, "must not be null");
             this.value = value;
         }
 
@@ -641,7 +641,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
     }
 
     public void setPrimaryEmail(String value) {
-        Assert.notNull(value);
+        Assert.notNull(value, "must not be null");
 
         Email newPrimaryEmail = new Email();
         newPrimaryEmail.setPrimary(true);

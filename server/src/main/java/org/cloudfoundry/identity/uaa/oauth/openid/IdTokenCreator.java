@@ -134,7 +134,7 @@ public class IdTokenCreator {
         }
 
         if (requestedAttributes && attributes == null) {
-            logger.debug(String.format("Requested id_token containing %s, but no saved attributes available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", ClaimConstants.USER_ATTRIBUTES, user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
+            logger.debug("Requested id_token containing {}, but no saved attributes available for user with id:{}. Ensure storeCustomAttributes is enabled for origin:{} in zone:{}.", ClaimConstants.USER_ATTRIBUTES, user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId());
         }
 
         return attributes;
@@ -150,7 +150,7 @@ public class IdTokenCreator {
         }
 
         if (requestedRoles && roles == null) {
-            logger.debug(String.format("Requested id_token containing user roles, but no saved roles available for user with id:%s. Ensure storeCustomAttributes is enabled for origin:%s in zone:%s.", user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
+            logger.debug("Requested id_token containing user roles, but no saved roles available for user with id:{}. Ensure storeCustomAttributes is enabled for origin:{} in zone:{}.", user.getId(), user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId());
         }
 
         return roles;

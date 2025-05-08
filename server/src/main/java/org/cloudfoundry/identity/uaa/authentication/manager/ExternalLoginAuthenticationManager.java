@@ -246,7 +246,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             }
         }
 
-        if (StringUtils.isEmpty(email)) {
+        if (UaaStringUtils.isEmpty(email)) {
             email = generateEmailIfNullOrEmpty(name);
         }
 

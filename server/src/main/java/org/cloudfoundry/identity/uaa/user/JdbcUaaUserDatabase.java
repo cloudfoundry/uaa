@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.db.DatabasePlatform;
 import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
@@ -181,7 +182,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     @Override
     public UserInfo storeUserInfo(String id, UserInfo info) {
-        if (StringUtils.isEmpty(id)) {
+        if (UaaStringUtils.isEmpty(id)) {
             throw new NullPointerException("id is a required field");
         }
         final String insertUserInfoSQL = "insert into user_info(user_id, info) values (?,?)";

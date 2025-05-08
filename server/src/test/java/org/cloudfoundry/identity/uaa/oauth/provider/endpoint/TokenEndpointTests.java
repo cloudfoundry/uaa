@@ -215,7 +215,7 @@ class TokenEndpointTests {
 
         assertThat(response).isNotNull();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getHeaders().get("Content-Type").iterator().next()).isEqualTo("application/json;charset=UTF-8");
+        assertThat(response.getHeaders().get("Content-Type").iterator().next()).isEqualTo("application/json");
     }
 
     @Test

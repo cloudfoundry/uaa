@@ -38,7 +38,7 @@ import java.util.Set;
 
 import static java.util.Collections.emptyList;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
-import static org.springframework.util.StringUtils.isEmpty;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isEmpty;
 
 @Service("resetPasswordService")
 public class UaaResetPasswordService implements ResetPasswordService, ApplicationEventPublisherAware {

@@ -813,7 +813,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     @Override
     public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
-        if (StringUtils.isEmpty(accessToken)) {
+        if (UaaStringUtils.isEmpty(accessToken)) {
             throw new InvalidTokenException("Invalid access token value, must be at least 30 characters");
         }
 

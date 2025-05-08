@@ -156,7 +156,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     }
 
     public void setRedirectToHttps(List<String> redirectToHttps) {
-        Assert.notNull(redirectToHttps);
+        Assert.notNull(redirectToHttps, "must not be null");
         this.redirectToHttps = redirectToHttps;
     }
 
@@ -164,7 +164,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
      * List of filter chains which should be ignored completely.
      */
     public void setIgnore(List<String> ignore) {
-        Assert.notNull(ignore);
+        Assert.notNull(ignore, "must not be null");
         this.ignore = ignore;
     }
 

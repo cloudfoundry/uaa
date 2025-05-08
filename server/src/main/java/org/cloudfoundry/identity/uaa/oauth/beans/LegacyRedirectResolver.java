@@ -27,7 +27,7 @@ import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.toMap;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.normalizeUri;
-import static org.springframework.util.StringUtils.isEmpty;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isEmpty;
 
 public class LegacyRedirectResolver extends org.cloudfoundry.identity.uaa.oauth.beans.org.springframework.security.oauth2.provider.endpoint.DefaultRedirectResolver {
     private static final Logger logger = LoggerFactory.getLogger(LegacyRedirectResolver.class);

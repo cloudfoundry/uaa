@@ -137,7 +137,7 @@ import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8_VALUE;
+import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.httpBasic;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -173,7 +173,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void token_endpoint_get_by_default() throws Exception {
-        try_token_with_non_post(get("/oauth/token"), status().isOk(), APPLICATION_JSON_UTF8_VALUE);
+        try_token_with_non_post(get("/oauth/token"), status().isOk(), APPLICATION_JSON_VALUE);
     }
 
     @Nested
@@ -253,7 +253,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     void token_endpoint_post() throws Exception {
-        try_token_with_non_post(post("/oauth/token"), status().isOk(), APPLICATION_JSON_UTF8_VALUE);
+        try_token_with_non_post(post("/oauth/token"), status().isOk(), APPLICATION_JSON_VALUE);
     }
 
     @Test

@@ -42,8 +42,8 @@ import java.util.stream.Collectors;
 import static java.util.Collections.emptyList;
 import static java.util.Optional.ofNullable;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.isEmpty;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser}

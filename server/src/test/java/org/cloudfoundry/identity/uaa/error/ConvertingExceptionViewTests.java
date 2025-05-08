@@ -47,7 +47,7 @@ class ConvertingExceptionViewTests {
         RuntimeException e = new RuntimeException("Unexpected error");
         view = new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e),
                 HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
-        assertThat(view.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_UTF8_VALUE);
+        assertThat(view.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
     }
 
     @Test

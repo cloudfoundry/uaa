@@ -2,49 +2,65 @@ package org.cloudfoundry.identity.uaa;
 
 import org.cloudfoundry.identity.uaa.db.beans.JdbcUrlCustomizer;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.autoconfigure.ldap.LdapAutoConfiguration;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.session.SessionAutoConfiguration;
+import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ImportResource;
-import org.springframework.context.annotation.PropertySource;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
+import org.springframework.mock.web.MockRequestDispatcher;
+import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.springframework.test.context.junit.jupiter.web.SpringJUnitWebConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.WebApplicationContext;
 
+import javax.servlet.RequestDispatcher;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
+import java.util.EventListener;
+
+import static org.springframework.security.config.BeanIds.SPRING_SECURITY_FILTER_CHAIN;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
 @ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
-@SpringJUnitConfig(classes = {
-        SpringServletTestConfig.class,
-        TestClientAndMockMvcTestConfig.class,
-        DatabasePropertiesOverrideConfiguration.class,
-})
+@SpringJUnitWebConfig(
+        classes = {
+                UaaApplicationConfiguration.class,
+                SpringServletTestConfig.class,
+                TestClientAndMockMvcTestConfig.class,
+                DatabasePropertiesOverrideConfiguration.class
+        },
+        initializers = {TestPropertyInitializer.class, YamlServletProfileInitializer.class}
+)
 @EnableAutoConfiguration(exclude = {
         // Conflicts with UaaJdbcSessionConfig
         SessionAutoConfiguration.class,
         // Conflicts with LdapSearchAndCompareConfig/LdapSearchAndBindConfig/LdapSimpleBindConfig
-        LdapAutoConfiguration.class,
-        SecurityAutoConfiguration.class
+        LdapAutoConfiguration.class
 })
 public @interface DefaultTestContext {
 }
 
-@ImportResource(locations = {"file:./src/main/webapp/WEB-INF/spring-servlet.xml"})
-@PropertySource(value = "classpath:integration_test_properties.yml", factory = NestedMapPropertySourceFactory.class)
+class TestPropertyInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
+
+    @Override
+    public void initialize(ConfigurableWebApplicationContext applicationContext) {
+        System.setProperty("UAA_CONFIG_URL","classpath:integration_test_properties.yml");
+    }
+}
 class SpringServletTestConfig {
 
 }
@@ -53,7 +69,7 @@ class TestClientAndMockMvcTestConfig {
     @Bean
     public MockMvc mockMvc(
             WebApplicationContext webApplicationContext,
-            @Qualifier(UaaConfig.SPRING_SECURITY_FILTER_CHAIN_ID) FilterChainProxy securityFilterChain
+            @Qualifier(SPRING_SECURITY_FILTER_CHAIN) FilterChainProxy securityFilterChain
     ) {
         return MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .addFilter(securityFilterChain)
@@ -65,6 +81,29 @@ class TestClientAndMockMvcTestConfig {
             MockMvc mockMvc
     ) {
         return new TestClient(mockMvc);
+    }
+
+    @Bean
+    MockServletContext mockServletContext() {
+
+        return new MockServletContext() {
+            @Override
+            @NonNull
+            public RequestDispatcher getNamedDispatcher(@Nullable String path) {
+                return new MockRequestDispatcher("/");
+            }
+
+            @Override
+            @NonNull
+            public String getVirtualServerName() {
+                return "localhost";
+            }
+
+            @Override
+            public <T extends EventListener> void addListener(@Nullable T t) {
+                //no op
+            }
+        };
     }
 
 }
@@ -99,3 +138,5 @@ class DatabasePropertiesOverrideConfiguration {
     }
 
 }
+
+
