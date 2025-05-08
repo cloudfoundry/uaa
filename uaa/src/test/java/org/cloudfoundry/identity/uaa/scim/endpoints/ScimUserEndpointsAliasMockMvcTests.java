@@ -149,7 +149,6 @@ class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
     @Nested
     class Create {
-        @Nested
         abstract class CreateBase {
             protected final boolean aliasFeatureEnabled;
 
@@ -478,7 +477,6 @@ class ScimUserEndpointsAliasMockMvcTests extends AliasMockMvcTestBase {
 
     @Nested
     class Update {
-        @Nested
         abstract class UpdateBase {
             protected final boolean aliasFeatureEnabled;
 

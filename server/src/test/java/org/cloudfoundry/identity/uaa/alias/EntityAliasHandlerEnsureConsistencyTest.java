@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.alias;
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatcher;
 import org.springframework.lang.Nullable;
@@ -65,7 +64,6 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         protected abstract boolean isAliasFeatureEnabled();
     }
 
-    @Nested
     private abstract class NoExistingAliasBase extends Base {
         @Test
         final void shouldIgnore_AliasZidEmptyInOriginalEntity() {
@@ -78,7 +76,6 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         }
     }
 
-    @Nested
     protected abstract class NoExistingAlias_AliasFeatureEnabled extends NoExistingAliasBase {
         @Override
         protected final boolean isAliasFeatureEnabled() {
@@ -117,7 +114,6 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         }
     }
 
-    @Nested
     protected abstract class NoExistingAlias_AliasFeatureDisabled extends NoExistingAliasBase {
         @Override
         protected final boolean isAliasFeatureEnabled() {
@@ -136,7 +132,6 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         }
     }
 
-    @Nested
     protected abstract class ExistingAlias_AliasFeatureEnabled extends Base {
         @Override
         protected final boolean isAliasFeatureEnabled() {
@@ -160,7 +155,6 @@ public abstract class EntityAliasHandlerEnsureConsistencyTest<T extends EntityWi
         }
     }
 
-    @Nested
     protected abstract class ExistingAlias_AliasFeatureDisabled extends Base {
         @Override
         protected final boolean isAliasFeatureEnabled() {

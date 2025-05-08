@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.alias;
 import org.cloudfoundry.identity.uaa.EntityWithAlias;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -48,7 +47,6 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
         protected abstract boolean isAliasFeatureEnabled();
     }
 
-    @Nested
     protected abstract class NoExistingAliasBase extends Base {
         @ParameterizedTest
         @EnumSource
@@ -101,7 +99,6 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
         }
     }
 
-    @Nested
     protected abstract class ExistingAlias_AliasFeatureDisabled extends Base {
         @Override
         protected final boolean isAliasFeatureEnabled() {
@@ -159,7 +156,6 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
         }
     }
 
-    @Nested
     protected abstract class ExistingAlias_AliasFeatureEnabled extends Base {
         @Override
         protected final boolean isAliasFeatureEnabled() {
@@ -237,7 +233,6 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
         }
     }
 
-    @Nested
     protected abstract class NoExistingAlias_AliasFeatureEnabled extends NoExistingAliasBase {
         @Override
         protected final boolean isAliasFeatureEnabled() {
@@ -283,7 +278,6 @@ public abstract class EntityAliasHandlerValidationTest<T extends EntityWithAlias
         }
     }
 
-    @Nested
     protected abstract class NoExistingAlias_AliasFeatureDisabled extends NoExistingAliasBase {
         @Override
         protected final boolean isAliasFeatureEnabled() {

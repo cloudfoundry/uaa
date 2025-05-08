@@ -146,7 +146,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
     @Nested
     class Create {
-        @Nested
         abstract class CreateBase {
             private final boolean aliasFeatureEnabled;
 
@@ -363,7 +362,6 @@ class IdentityProviderEndpointsAliasMockMvcTests {
 
     @Nested
     class Update {
-        @Nested
         abstract class UpdateBase {
             protected final boolean aliasFeatureEnabled;
 
