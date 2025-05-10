@@ -1073,11 +1073,10 @@ public class IntegrationTestUtils {
 
         HttpEntity postHeaders = new HttpEntity<>(provider, headers);
         ResponseEntity<String> providerPost = client.exchange(
-                url + "/identity-providers/{id}",
+                url + "/identity-providers",
                 HttpMethod.POST,
                 postHeaders,
-                String.class,
-                provider.getId()
+                String.class
         );
         if (providerPost.getStatusCode() == HttpStatus.CREATED) {
             return JsonUtils.readValue(providerPost.getBody(), IdentityProvider.class);
