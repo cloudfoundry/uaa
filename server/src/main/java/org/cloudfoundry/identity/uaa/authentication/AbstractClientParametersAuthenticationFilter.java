@@ -114,7 +114,8 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     }
 
     private Authentication performClientAuthentication(HttpServletRequest req, Map<String, String> loginInfo, String clientId) {
-        String clientSecret = loginInfo.get(CLIENT_SECRET);
+        // spring security 6.x requires a credential to be present
+        String clientSecret = Optional.ofNullable(loginInfo.get(CLIENT_SECRET)).orElse(UaaStringUtils.EMPTY_STRING);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(clientId, clientSecret);
         authentication.setDetails(new UaaAuthenticationDetails(req, clientId));
         try {

@@ -65,7 +65,7 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
         for (String pwd : passwordList) {
             try {
                 UaaClient uaaClient = new UaaClient(userDetails, pwd);
-                if (authentication.getCredentials() == null) {
+                if (ObjectUtils.isEmpty(authentication.getCredentials())) {
                     if (isPublicGrantTypeUsageAllowed(authentication.getDetails()) && uaaClient.isAllowPublic()) {
                         // in case of grant_type=authorization_code and code_verifier passed (PKCE) we check if client has option allowpublic with true and continue even if no secret is in request
                         setAuthenticationMethod(authentication, CLIENT_AUTH_NONE);
@@ -76,10 +76,10 @@ public class ClientDetailsAuthenticationProvider extends DaoAuthenticationProvid
                             error = new BadCredentialsException("Bad client_assertion type");
                         }
                         break;
+                    } else {
+                        // set internally empty as client_auth_method e.g. cf client
+                        setAuthenticationMethod(authentication, CLIENT_AUTH_EMPTY);
                     }
-                } else if (ObjectUtils.isEmpty(authentication.getCredentials())) {
-                    // set internally empty as client_auth_method e.g. cf client
-                    setAuthenticationMethod(authentication, CLIENT_AUTH_EMPTY);
                 }
                 if (uaaClient.getPassword() == null) {
                     error = new BadCredentialsException("Missing credentials");
