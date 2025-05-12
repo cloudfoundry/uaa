@@ -80,7 +80,6 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.util.Base64Utils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -326,12 +325,12 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                     } else if (values instanceof String[] strings) {
                         authentication.setAuthContextClassRef(new HashSet<>(Arrays.asList(strings)));
                     } else {
-                        logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", values, authentication.getPrincipal().getId()));
+                        logger.debug("Unrecognized ACR claim[{}] for user_id: {}", values, authentication.getPrincipal().getId());
                     }
                 } else if (acr instanceof String string) {
                     authentication.setAuthContextClassRef(new HashSet(Collections.singletonList(string)));
                 } else {
-                    logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", acr, authentication.getPrincipal().getId()));
+                    logger.debug("Unrecognized ACR claim[{}] for user_id: {}", acr, authentication.getPrincipal().getId());
                 }
             }
             MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
@@ -598,7 +597,9 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
         if ("signed_request".equals(config.getResponseType())) {
             String secret = config.getRelyingPartySecret();
-            logger.debug("Validating signed_request: {}", UaaStringUtils.getCleanedUserControlString(idToken));
+            if (logger.isDebugEnabled()) {
+                logger.debug("Validating signed_request: {}", UaaStringUtils.getCleanedUserControlString(idToken));
+            }
             //split request into signature and data
             String[] signedRequests = idToken.split("\\.", 2);
             //parse signature
@@ -793,7 +794,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                                 }
                         );
         logger.debug("Request completed with status:{}", responseEntity.getStatusCode());
-        return responseEntity.getBody() != null ? responseEntity.getBody().get(getTokenFieldName(config)) : UaaStringUtils.EMPTY_STRING;
+        return ofNullable(responseEntity.getBody()).map(resBody -> resBody.get(getTokenFieldName(config))).orElse(UaaStringUtils.EMPTY_STRING);
     }
 
     private String getSessionValue(String value) {
@@ -921,7 +922,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                     .getClientAuthenticationParameters(params, config, allowDynamicValueLookupInCustomZone);
         } else if (ClientAuthentication.secretNeeded(calcAuthMethod)) {
             String auth = clientId + ":" + clientSecret;
-            headers.add("Authorization", "Basic " + Base64Utils.encodeToString(auth.getBytes()));
+            headers.add("Authorization", "Basic " + Base64.encodeBase64String(auth.getBytes()));
         } else {
             params.add(AbstractClientParametersAuthenticationFilter.CLIENT_ID, clientId);
         }

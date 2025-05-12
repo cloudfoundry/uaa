@@ -112,7 +112,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.util.Base64Utils.encode;
 
 @DefaultTestContext
 class AuditCheckMockMvcTests {
@@ -518,7 +517,7 @@ class AuditCheckMockMvcTests {
         // PrincipalAuthenticationFailureEvent does not contain sessionId at all
         assertThat(event2.getAuditEvent().getOrigin()).doesNotContain("sessionId=<SESSION>");
 
-        String encodedUsername = Utf8.decode(encode(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(username))));
+        String encodedUsername = Utf8.decode(Base64.encodeBase64(MessageDigest.getInstance("SHA-1").digest(Utf8.encode(username))));
         assertLogMessageWithSession(testLogger.getMessageAtIndex(0), UserNotFound, encodedUsername, "");
         assertLogMessageWithoutSession(testLogger.getMessageAtIndex(1), PrincipalAuthenticationFailure, username, "null");
     }
