@@ -825,7 +825,7 @@ class LoginInfoEndpointTests {
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
-        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any())).thenReturn(singletonList(identityProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any(), any())).thenReturn(singletonList(identityProvider));
         endpoint.loginForHtml(extendedModelMap, null, new MockHttpServletRequest(), singletonList(MediaType.TEXT_HTML));
 
         assertThat((Boolean) extendedModelMap.get("showLoginLinks")).isTrue();
@@ -1754,6 +1754,7 @@ class LoginInfoEndpointTests {
         when(mockProvider.getConfig()).thenReturn(mockOidcConfig);
         when(mockOidcConfig.isShowLinkText()).thenReturn(true);
         when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any())).thenReturn(singletonList(mockProvider));
+        when(mockIdentityProviderProvisioning.retrieveActiveByTypes(anyString(), any(), any())).thenReturn(singletonList(mockProvider));
         when(mockIdentityProviderProvisioning.retrieveByOrigin(eq("my-OIDC-idp1"), any())).thenReturn(mockProvider);
     }
 
