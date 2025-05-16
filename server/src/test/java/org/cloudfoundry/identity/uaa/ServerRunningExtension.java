@@ -323,7 +323,7 @@ public final class ServerRunningExtension implements BeforeAllCallback, RestTemp
     private static class StatelessRequestFactory extends HttpComponentsClientHttpRequestFactory {
         @Override
         public HttpClient getHttpClient() {
-            return HttpClientBuilder.create().useSystemProperties().disableRedirectHandling().disableCookieManagement().build();
+            return HttpClientBuilder.create().useSystemProperties().disableRedirectHandling().disableAutomaticRetries().disableCookieManagement().build();
         }
     }
 
