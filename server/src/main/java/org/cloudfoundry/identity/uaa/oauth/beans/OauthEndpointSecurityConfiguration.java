@@ -50,6 +50,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -85,7 +86,7 @@ class OauthEndpointSecurityConfiguration {
 
     @Autowired
     @Qualifier("resourceAgnosticAuthenticationFilter")
-    OAuth2AuthenticationProcessingFilter resourceAgnosticAuthenticationFilter;
+    FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> resourceAgnosticAuthenticationFilter;
 
     @Autowired
     @Qualifier("jdbcClientDetailsService")
@@ -104,16 +105,12 @@ class OauthEndpointSecurityConfiguration {
     UaaRequestMatcher passcodeTokenMatcher;
 
     @Autowired
-    @Qualifier("clientParameterAuthenticationFilter")
-    ClientParametersAuthenticationFilter clientParameterAuthenticationFilter;
-
-    @Autowired
     @Qualifier("clientAuthenticationFilter")
-    ClientBasicAuthenticationFilter clientAuthenticationFilter;
+    FilterRegistrationBean<ClientBasicAuthenticationFilter> clientAuthenticationFilter;
 
     @Autowired
     @Qualifier("passcodeAuthenticationFilter")
-    PasscodeAuthenticationFilter passcodeAuthenticationFilter;
+    FilterRegistrationBean<PasscodeAuthenticationFilter> passcodeAuthenticationFilter;
 
     @Autowired
     @Qualifier("oauthTokenApiRequestMatcher")
@@ -121,14 +118,14 @@ class OauthEndpointSecurityConfiguration {
 
     @Autowired
     @Qualifier("tokenEndpointAuthenticationFilter")
-    BackwardsCompatibleTokenEndpointAuthenticationFilter tokenEndpointAuthenticationFilter;
+    FilterRegistrationBean<BackwardsCompatibleTokenEndpointAuthenticationFilter> tokenEndpointAuthenticationFilter;
 
     @Autowired
     @Qualifier("clientAuthenticationManager")
     AuthenticationManager clientAuthenticationManager;
 
     @Autowired
-    AuthzAuthenticationFilter authzAuthenticationFilter;
+    FilterRegistrationBean<AuthzAuthenticationFilter> authzAuthenticationFilter;
 
     @Autowired
     @Qualifier("oauthAuthorizeRequestMatcher")
@@ -148,11 +145,11 @@ class OauthEndpointSecurityConfiguration {
 
     @Autowired
     @Qualifier("passwordChangeRequiredFilter")
-    PasswordChangeRequiredFilter passwordChangeRequiredFilter;
+    FilterRegistrationBean<PasswordChangeRequiredFilter> passwordChangeRequiredFilter;
 
     @Autowired
     @Qualifier("currentUserCookieFilter")
-    CurrentUserCookieRequestFilter currentUserCookieFilter;
+    FilterRegistrationBean<CurrentUserCookieRequestFilter> currentUserCookieFilter;
 
     @Autowired
     @Qualifier("oauthAuthorizeRequestMatcherOld")
@@ -164,7 +161,7 @@ class OauthEndpointSecurityConfiguration {
 
     @Autowired
     @Qualifier("externalOAuthCallbackAuthenticationFilter")
-    ExternalOAuthAuthenticationFilter externalOAuthCallbackAuthenticationFilter;
+    FilterRegistrationBean<ExternalOAuthAuthenticationFilter> externalOAuthCallbackAuthenticationFilter;
 
     @Autowired
     @Qualifier("loginEntryPoint")
@@ -224,6 +221,16 @@ class OauthEndpointSecurityConfiguration {
     @Qualifier("uaaAuthorizationEndpoint")
     UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
 
+    ClientParametersAuthenticationFilter clientParameterAuthenticationFilter;
+    private synchronized ClientParametersAuthenticationFilter getClientParameterAuthenticationFilter() {
+        if (this.clientParameterAuthenticationFilter == null) {
+            clientParameterAuthenticationFilter = new ClientParametersAuthenticationFilter();
+            clientParameterAuthenticationFilter.setAuthenticationEntryPoint(basicAuthenticationEntryPoint);
+            clientParameterAuthenticationFilter.setClientAuthenticationManager(clientAuthenticationManager);
+        }
+        return this.clientParameterAuthenticationFilter;
+    }
+
     @Bean
     @Order(FilterChainOrder.OAUTH_01)
     UaaFilterChain tokenRevocationFilter(HttpSecurity http, @Qualifier("self") IsSelfCheck selfCheck) throws Exception {
@@ -247,7 +254,7 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(resourceAgnosticAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(resourceAgnosticAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -270,7 +277,7 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterAt(resourceAgnosticAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(resourceAgnosticAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -297,9 +304,9 @@ class OauthEndpointSecurityConfiguration {
                 //<custom-filter ref="clientParameterAuthenticationFilter" before="BASIC_AUTH_FILTER"/>
                 //<custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER"/>
                 //<custom-filter ref="passcodeAuthenticationFilter" after="BASIC_AUTH_FILTER"/>
-                .addFilterBefore(clientParameterAuthenticationFilter, BasicAuthenticationFilter.class)
-                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
-                .addFilterAfter(passcodeAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(getClientParameterAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(passcodeAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -321,7 +328,7 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterAt(resourceAgnosticAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(resourceAgnosticAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -344,9 +351,9 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(clientParameterAuthenticationFilter, BasicAuthenticationFilter.class)
-                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
-                .addFilterAfter(tokenEndpointAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(getClientParameterAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
+                .addFilterAfter(tokenEndpointAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -369,7 +376,7 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterAt(authzAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(authzAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -391,7 +398,7 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterAt(resourceAgnosticAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(resourceAgnosticAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -413,8 +420,8 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
-                .addFilterAfter(passwordChangeRequiredFilter, BasicAuthenticationFilter.class)
-                .addFilterBefore(currentUserCookieFilter, FilterSecurityInterceptor.class)
+                .addFilterAfter(passwordChangeRequiredFilter.getFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(currentUserCookieFilter.getFilter(), FilterSecurityInterceptor.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -437,7 +444,7 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
-                .addFilterAt(externalOAuthCallbackAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(externalOAuthCallbackAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -459,7 +466,7 @@ class OauthEndpointSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.NEVER))
-                .addFilterAt(authzAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(authzAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->

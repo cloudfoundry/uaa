@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,10 +50,13 @@ public class SamlAuthenticationFilterConfig {
      * Handles building and forwarding the SAML2 Authentication Request to the IDP.
      */
     @Bean
-    Filter saml2WebSsoAuthenticationRequestFilter(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
+    FilterRegistrationBean<Filter> saml2WebSsoAuthenticationRequestFilter(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver) {
         OpenSaml4AuthenticationRequestResolver openSaml4AuthenticationRequestResolver = new OpenSaml4AuthenticationRequestResolver(relyingPartyRegistrationResolver);
 
-        return new Saml2WebSsoAuthenticationRequestFilter(openSaml4AuthenticationRequestResolver);
+        Saml2WebSsoAuthenticationRequestFilter filter = new Saml2WebSsoAuthenticationRequestFilter(openSaml4AuthenticationRequestResolver);
+        FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
@@ -102,23 +106,25 @@ public class SamlAuthenticationFilterConfig {
      * Handles the return SAML2 Authentication Response from the IDP and creates the Authentication object.
      */
     @Bean
-    Filter saml2WebSsoAuthenticationFilter(AuthenticationProvider samlAuthenticationProvider,
+    FilterRegistrationBean<Filter> saml2WebSsoAuthenticationFilter(AuthenticationProvider samlAuthenticationProvider,
             UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
             SecurityContextRepository securityContextRepository,
             SamlLoginAuthenticationFailureHandler samlLoginAuthenticationFailureHandler,
             UaaSavedRequestAwareAuthenticationSuccessHandler samlLoginAuthenticationSuccessHandler) {
 
         Saml2AuthenticationTokenConverter saml2AuthenticationTokenConverter = new Saml2AuthenticationTokenConverter((RelyingPartyRegistrationResolver) relyingPartyRegistrationResolver);
-        Saml2WebSsoAuthenticationFilter saml2WebSsoAuthenticationFilter = new Saml2WebSsoAuthenticationFilter(saml2AuthenticationTokenConverter, BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
+        Saml2WebSsoAuthenticationFilter filter = new Saml2WebSsoAuthenticationFilter(saml2AuthenticationTokenConverter, BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
 
         ProviderManager authenticationManager = new ProviderManager(samlAuthenticationProvider);
-        saml2WebSsoAuthenticationFilter.setAuthenticationManager(authenticationManager);
-        saml2WebSsoAuthenticationFilter.setSecurityContextRepository(securityContextRepository);
-        saml2WebSsoAuthenticationFilter.setFilterProcessesUrl(BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
-        saml2WebSsoAuthenticationFilter.setAuthenticationFailureHandler(samlLoginAuthenticationFailureHandler);
-        saml2WebSsoAuthenticationFilter.setAuthenticationSuccessHandler(samlLoginAuthenticationSuccessHandler);
+        filter.setAuthenticationManager(authenticationManager);
+        filter.setSecurityContextRepository(securityContextRepository);
+        filter.setFilterProcessesUrl(BACKWARD_COMPATIBLE_ASSERTION_CONSUMER_FILTER_PROCESSES_URI);
+        filter.setAuthenticationFailureHandler(samlLoginAuthenticationFailureHandler);
+        filter.setAuthenticationSuccessHandler(samlLoginAuthenticationSuccessHandler);
 
-        return saml2WebSsoAuthenticationFilter;
+        FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     /**
@@ -157,23 +163,25 @@ public class SamlAuthenticationFilterConfig {
      * Handles a return SAML2LogoutResponse from IDP/asserting party in response to a Saml2LogoutRequest from UAA.
      */
     @Bean
-    Saml2LogoutResponseFilter saml2LogoutResponseFilter(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
+    FilterRegistrationBean<Saml2LogoutResponseFilter> saml2LogoutResponseFilter(RelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
             UaaDelegatingLogoutSuccessHandler successHandler) {
 
         // This validator ignores missing signatures in the SAML2 Logout Response
         Saml2LogoutResponseValidator openSamlLogoutResponseValidator = new SamlLogoutResponseValidator();
 
-        Saml2LogoutResponseFilter saml2LogoutResponseFilter = new Saml2LogoutResponseFilter(relyingPartyRegistrationResolver, openSamlLogoutResponseValidator, successHandler);
-        saml2LogoutResponseFilter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/{registrationId}"));
+        Saml2LogoutResponseFilter filter = new Saml2LogoutResponseFilter(relyingPartyRegistrationResolver, openSamlLogoutResponseValidator, successHandler);
+        filter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/{registrationId}"));
 
-        return saml2LogoutResponseFilter;
+        FilterRegistrationBean<Saml2LogoutResponseFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     /**
      * Handles an incoming Saml2LogoutRequest from an Asserting Party Initiated Logout
      */
     @Bean
-    Saml2LogoutRequestFilter saml2LogoutRequestFilter(UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
+    FilterRegistrationBean<Saml2LogoutRequestFilter> saml2LogoutRequestFilter(UaaRelyingPartyRegistrationResolver relyingPartyRegistrationResolver,
             UaaAuthenticationFailureHandler authenticationFailureHandler,
             CookieBasedCsrfTokenRepository loginCookieCsrfRepository) {
 
@@ -185,12 +193,14 @@ public class SamlAuthenticationFilterConfig {
         CsrfLogoutHandler csrfLogoutHandler = new CsrfLogoutHandler(loginCookieCsrfRepository);
         CookieClearingLogoutHandler cookieClearingLogoutHandlerWithHandler = new CookieClearingLogoutHandler("JSESSIONID");
 
-        Saml2LogoutRequestFilter saml2LogoutRequestFilter = new Saml2LogoutRequestFilter(relyingPartyRegistrationResolver,
+        Saml2LogoutRequestFilter filter = new Saml2LogoutRequestFilter(relyingPartyRegistrationResolver,
                 logoutRequestValidator, logoutResponseResolver,
                 authenticationFailureHandler, securityContextLogoutHandlerWithHandler, csrfLogoutHandler,
                 cookieClearingLogoutHandlerWithHandler);
-        saml2LogoutRequestFilter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/*"));
-        return saml2LogoutRequestFilter;
+        filter.setLogoutRequestMatcher(new AntPathRequestMatcher("/saml/SingleLogout/alias/*"));
+        FilterRegistrationBean<Saml2LogoutRequestFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     /**

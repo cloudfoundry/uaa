@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa;
 
 import org.apache.catalina.filters.HttpHeaderSecurityFilter;
 import org.cloudfoundry.identity.uaa.authentication.SessionResetFilter;
-import org.cloudfoundry.identity.uaa.authentication.UTF8ConversionFilter;
 import org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -23,6 +22,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -66,124 +66,169 @@ public class SpringServletXmlFiltersConfiguration {
     IdentityZoneManager identityZoneManager;
 
     @Bean
-    DisableIdTokenResponseTypeFilter disableIdTokenResponseFilter(
+    FilterRegistrationBean<DisableIdTokenResponseTypeFilter> disableIdTokenResponseFilter(
             @Value("${oauth.id_token.disable:false}") boolean disable
     ) {
-        DisableIdTokenResponseTypeFilter bean = new DisableIdTokenResponseTypeFilter(
+        DisableIdTokenResponseTypeFilter filter = new DisableIdTokenResponseTypeFilter(
                 disable,
                 Arrays.asList("/**/oauth/authorize", "/oauth/authorize")
         );
+        FilterRegistrationBean<DisableIdTokenResponseTypeFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 
     @Bean
-    UTF8ConversionFilter utf8ConversionFilter() {
-        return new UTF8ConversionFilter();
-    }
+    FilterRegistrationBean<CorsFilter> corsFilter() {
+        CorsFilter filter = new CorsFilter(identityZoneManager, corsProperties.enforceSystemZoneSettings);
 
-    @Bean
-    CorsFilter corsFilter() {
-        CorsFilter bean = new CorsFilter(identityZoneManager, corsProperties.enforceSystemZoneSettings);
+        filter.setCorsAllowedUris(corsProperties.defaultAllowed.uris());
+        filter.setCorsAllowedOrigins(corsProperties.defaultAllowed.origins());
+        filter.setCorsAllowedHeaders(corsProperties.defaultAllowed.headers());
+        filter.setCorsAllowedMethods(corsProperties.defaultAllowed.methods());
+        filter.setCorsAllowedCredentials(corsProperties.defaultAllowed.credentials());
+        filter.setCorsMaxAge(corsProperties.defaultMaxAge);
 
-        bean.setCorsAllowedUris(corsProperties.defaultAllowed.uris());
-        bean.setCorsAllowedOrigins(corsProperties.defaultAllowed.origins());
-        bean.setCorsAllowedHeaders(corsProperties.defaultAllowed.headers());
-        bean.setCorsAllowedMethods(corsProperties.defaultAllowed.methods());
-        bean.setCorsAllowedCredentials(corsProperties.defaultAllowed.credentials());
-        bean.setCorsMaxAge(corsProperties.defaultMaxAge);
+        filter.setCorsXhrAllowedUris(corsProperties.xhrAllowed.uris());
+        filter.setCorsXhrAllowedOrigins(corsProperties.xhrAllowed.origins());
+        filter.setCorsXhrAllowedHeaders(corsProperties.xhrAllowed.headers());
+        filter.setCorsXhrAllowedMethods(corsProperties.xhrAllowed.methods());
+        filter.setCorsXhrAllowedCredentials(corsProperties.xhrAllowed.credentials());
+        filter.setCorsXhrMaxAge(corsProperties.xhrMaxAge);
+        FilterRegistrationBean<CorsFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
 
-        bean.setCorsXhrAllowedUris(corsProperties.xhrAllowed.uris());
-        bean.setCorsXhrAllowedOrigins(corsProperties.xhrAllowed.origins());
-        bean.setCorsXhrAllowedHeaders(corsProperties.xhrAllowed.headers());
-        bean.setCorsXhrAllowedMethods(corsProperties.xhrAllowed.methods());
-        bean.setCorsXhrAllowedCredentials(corsProperties.xhrAllowed.credentials());
-        bean.setCorsXhrMaxAge(corsProperties.xhrMaxAge);
+        filter.initialize();
         return bean;
     }
 
     @Bean
-    LimitedModeUaaFilter limitedModeUaaFilter() {
-        LimitedModeUaaFilter bean = new LimitedModeUaaFilter();
-        bean.setStatusFile(limitedModeProperties.statusFile);
-        bean.setPermittedEndpoints(limitedModeProperties.permitted.endpoints());
-        bean.setPermittedMethods(limitedModeProperties.permitted.methods());
+    FilterRegistrationBean<LimitedModeUaaFilter> limitedModeUaaFilter() {
+        LimitedModeUaaFilter filter = new LimitedModeUaaFilter();
+        filter.setStatusFile(limitedModeProperties.statusFile);
+        filter.setPermittedEndpoints(limitedModeProperties.permitted.endpoints());
+        filter.setPermittedMethods(limitedModeProperties.permitted.methods());
+        FilterRegistrationBean<LimitedModeUaaFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 
     @Bean
-    HeaderFilter headerFilter(
+    FilterRegistrationBean<HeaderFilter> headerFilter(
 
     ) {
-        return new HeaderFilter(servletProps.filteredHeaders());
+        HeaderFilter filter = new HeaderFilter(servletProps.filteredHeaders());
+        FilterRegistrationBean<HeaderFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
-    ContentSecurityPolicyFilter contentSecurityPolicyFilter() {
-        return new ContentSecurityPolicyFilter(cspProps.scriptSrc());
+    FilterRegistrationBean<ContentSecurityPolicyFilter> contentSecurityPolicyFilter() {
+        ContentSecurityPolicyFilter filter = new ContentSecurityPolicyFilter(cspProps.scriptSrc());
+        FilterRegistrationBean<ContentSecurityPolicyFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
+
+
+//    @Bean
+//    FilterRegistrationBean<UaaMetricsFilter> metricsFilter(TimeService timeService) throws IOException {
+//        UaaMetricsFilter filter = new UaaMetricsFilter(metricsProps.enabled(), metricsProps.perRequestMetrics(), timeService);
+//        FilterRegistrationBean<UaaMetricsFilter> bean = new FilterRegistrationBean<>(filter);
+//        bean.setEnabled(false);
+//        return bean;
+//    }
     @Bean
     UaaMetricsFilter metricsFilter(TimeService timeService) throws IOException {
-        return new UaaMetricsFilter(metricsProps.enabled(), metricsProps.perRequestMetrics(), timeService);
+        UaaMetricsFilter filter = new UaaMetricsFilter(metricsProps.enabled(), metricsProps.perRequestMetrics(), timeService);
+        FilterRegistrationBean<UaaMetricsFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return filter;
     }
 
     @Bean
-    DisableUserManagementSecurityFilter userManagementSecurityFilter(
+    FilterRegistrationBean<DisableUserManagementSecurityFilter> userManagementSecurityFilter(
             @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning
     ) {
-        return new DisableUserManagementSecurityFilter(provisioning, identityZoneManager);
+        DisableUserManagementSecurityFilter filter = new DisableUserManagementSecurityFilter(provisioning, identityZoneManager);
+        FilterRegistrationBean<DisableUserManagementSecurityFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
-    DisableInternalUserManagementFilter userManagementFilter(
+    FilterRegistrationBean<DisableInternalUserManagementFilter> userManagementFilter(
             @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning
     ) {
-        return new DisableInternalUserManagementFilter(provisioning, identityZoneManager);
+        DisableInternalUserManagementFilter filter = new DisableInternalUserManagementFilter(provisioning, identityZoneManager);
+        FilterRegistrationBean<DisableInternalUserManagementFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
-    IdentityZoneResolvingFilter identityZoneResolvingFilter(IdentityZoneProvisioning provisioning) {
-        IdentityZoneResolvingFilter bean = new IdentityZoneResolvingFilter(provisioning);
-        bean.setDefaultInternalHostnames(new HashSet<>(Arrays.asList(
+    FilterRegistrationBean<IdentityZoneResolvingFilter> identityZoneResolvingFilter(IdentityZoneProvisioning provisioning) {
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter(provisioning);
+        filter.setDefaultInternalHostnames(new HashSet<>(Arrays.asList(
                 UaaUrlUtils.getHostForURI(uaaProps.url()),
                 UaaUrlUtils.getHostForURI(loginProps.url()),
                 "localhost"
         )));
-        bean.setAdditionalInternalHostnames(zoneProps.internal().hostnames());
+        filter.setAdditionalInternalHostnames(zoneProps.internal().hostnames());
+        FilterRegistrationBean<IdentityZoneResolvingFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 
     @Bean
-    SessionResetFilter sessionResetFilter(@Qualifier("userDatabase") JdbcUaaUserDatabase userDatabase) {
-        return new SessionResetFilter(
+    FilterRegistrationBean<SessionResetFilter> sessionResetFilter(
+            @Qualifier("userDatabase") JdbcUaaUserDatabase userDatabase
+    ) {
+        SessionResetFilter filter = new SessionResetFilter(
                 new DefaultRedirectStrategy(),
                 "/login",
                 userDatabase
         );
+        FilterRegistrationBean<SessionResetFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
-    IdentityZoneSwitchingFilter identityZoneSwitchingFilter(IdentityZoneProvisioning provisioning) {
-        return new IdentityZoneSwitchingFilter(provisioning);
+    FilterRegistrationBean<IdentityZoneSwitchingFilter> identityZoneSwitchingFilter(IdentityZoneProvisioning provisioning) {
+        IdentityZoneSwitchingFilter filter = new IdentityZoneSwitchingFilter(provisioning);
+        FilterRegistrationBean<IdentityZoneSwitchingFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
-    RateLimitingFilter rateLimitingFilter() throws ServletException {
-        return new RateLimitingFilter();
+    FilterRegistrationBean<RateLimitingFilter> rateLimitingFilter() throws ServletException {
+        RateLimitingFilter filter = new RateLimitingFilter();
+        FilterRegistrationBean<RateLimitingFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
-    RequestContextFilter springRequestContextFilter() {
-        return new RequestContextFilter();
+    FilterRegistrationBean<RequestContextFilter> springRequestContextFilter() {
+        RequestContextFilter filter = new RequestContextFilter();
+        FilterRegistrationBean<RequestContextFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
-    public HttpHeaderSecurityFilter httpHeaderSecurityFilter() {
-        HttpHeaderSecurityFilter httpHeaderSecurityFilter = new HttpHeaderSecurityFilter();
-        httpHeaderSecurityFilter.setHstsEnabled(false);
-        httpHeaderSecurityFilter.setAntiClickJackingEnabled(false);
-        httpHeaderSecurityFilter.setBlockContentTypeSniffingEnabled(true);
-        httpHeaderSecurityFilter.setXssProtectionEnabled(false);
-        return httpHeaderSecurityFilter;
+    public FilterRegistrationBean<HttpHeaderSecurityFilter> httpHeaderSecurityFilter() {
+        HttpHeaderSecurityFilter filter = new HttpHeaderSecurityFilter();
+        filter.setHstsEnabled(false);
+        filter.setAntiClickJackingEnabled(false);
+        filter.setBlockContentTypeSniffingEnabled(true);
+        filter.setXssProtectionEnabled(false);
+        FilterRegistrationBean<HttpHeaderSecurityFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 }

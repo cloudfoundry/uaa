@@ -51,11 +51,6 @@ dependencies {
     providedCompile(libraries.tomcatEmbed)
     implementation(libraries.bouncyCastleFipsProv)
 
-    implementation(libraries.nimbusJwt) {
-        exclude(module: "gson")
-    }
-    implementation(libraries.googleGson)
-
     testImplementation(identityServer.sourceSets.test.output)
 
     testImplementation(project(":cloudfoundry-identity-model"))
@@ -102,6 +97,7 @@ dependencies {
     testImplementation(libraries.openSamlApi)
     testImplementation(libraries.xmlUnit)
     testImplementation(libraries.awaitility)
+    testImplementation(libraries.nimbusJwt)
 }
 
 ext {

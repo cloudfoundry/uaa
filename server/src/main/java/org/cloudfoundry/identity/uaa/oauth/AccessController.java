@@ -248,8 +248,8 @@ public class AccessController {
     public String handleError(WebRequest request, Map<String, Object> model) {
         // There is already an error entry in the model
         Object object = request.getAttribute("error", RequestAttributes.SCOPE_REQUEST);
-        if (object != null) {
-            model.put("error", object);
+        if (object instanceof Exception e) {
+            model.put("error_message", e.getMessage());
         }
         return "access_confirmation_error";
     }

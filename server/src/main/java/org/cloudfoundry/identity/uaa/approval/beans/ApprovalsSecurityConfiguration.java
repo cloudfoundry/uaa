@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -39,12 +40,14 @@ public class ApprovalsSecurityConfiguration {
 
 
     @Bean
-    OAuth2AuthenticationProcessingFilter approvalsResourceAuthenticationFilter() {
-        OAuth2AuthenticationProcessingFilter bean = new OAuth2AuthenticationProcessingFilter();
+    FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> approvalsResourceAuthenticationFilter() {
+        OAuth2AuthenticationProcessingFilter filter = new OAuth2AuthenticationProcessingFilter();
         OAuth2AuthenticationManager authenticationManager = new OAuth2AuthenticationManager();
         authenticationManager.setResourceId("oauth");
         authenticationManager.setTokenServices(tokenServices);
-        bean.setAuthenticationManager(authenticationManager);
+        filter.setAuthenticationManager(authenticationManager);
+        FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
     @Bean
@@ -57,7 +60,7 @@ public class ApprovalsSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(approvalsResourceAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(approvalsResourceAuthenticationFilter().getFilter(), BasicAuthenticationFilter.class)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(oauthAuthenticationEntryPoint)

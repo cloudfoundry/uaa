@@ -50,6 +50,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -160,7 +161,7 @@ public class LoginMockMvcTests {
     @Autowired
     private JdbcIdentityZoneProvisioning identityZoneProvisioning;
     @Autowired
-    private LimitedModeUaaFilter limitedModeUaaFilter;
+    private FilterRegistrationBean<LimitedModeUaaFilter> limitedModeUaaFilter;
 
     @Autowired
     private JdbcExpiringCodeStore jdbcExpiringCodeStore;
@@ -187,7 +188,7 @@ public class LoginMockMvcTests {
     @Autowired
     private ExpiringCodeStore expiringCodeStore;
     @Autowired
-    private CorsFilter corsFilter;
+    private FilterRegistrationBean<CorsFilter> corsFilter;
 
     private static final Base64.Encoder ENCODER = Base64.getEncoder();
     private static final String DEFAULT_COPYRIGHT_TEMPLATE = "Copyright © %s";
@@ -219,7 +220,7 @@ public class LoginMockMvcTests {
 
         originalLimitedModeStatusFile = MockMvcUtils.getLimitedModeStatusFile(webApplicationContext);
         MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, null);
-        assertThat(isLimitedMode(limitedModeUaaFilter)).isFalse();
+        assertThat(isLimitedMode(limitedModeUaaFilter.getFilter())).isFalse();
     }
 
     @AfterEach
@@ -777,7 +778,7 @@ public class LoginMockMvcTests {
 
     @Test
     void forgotPasswordSubmitDoesNotValidateCsrf() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         mockMvc.perform(
                         post("/forgot_password.do")
                                 .param("username", "marissa")
@@ -800,7 +801,7 @@ public class LoginMockMvcTests {
 
     @Test
     void changePasswordSubmitDoesValidateCsrf() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         ScimUser user = createUser(scimUserProvisioning, generator, IdentityZone.getUaaZoneId());
         mockMvc.perform(
                         post("/change_password.do")
@@ -1727,7 +1728,7 @@ public class LoginMockMvcTests {
 
     @Test
     void deactivatedProviderIsRemovedFromSamlLoginLinks() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         String alias = "login-saml-" + generator.generate();
         UaaClientDetails zoneAdminClient = new UaaClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -1783,7 +1784,7 @@ public class LoginMockMvcTests {
 
     @Test
     void changeEmailSubmitWithMissingCsrf() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1808,7 +1809,7 @@ public class LoginMockMvcTests {
 
     @Test
     void changeEmailSubmitWithInvalidCsrf() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1833,7 +1834,7 @@ public class LoginMockMvcTests {
 
     @Test
     void changeEmailSubmitWithSpringSecurityForcedCsrf() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
         //example shows to to test a request that is secured by csrf and you wish to bypass it
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -1852,7 +1853,7 @@ public class LoginMockMvcTests {
 
     @Test
     void changeEmailSubmitWithCorrectCsrf() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1881,7 +1882,7 @@ public class LoginMockMvcTests {
 
     @Test
     void changeEmailDoNotLoggedIn() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
@@ -1909,7 +1910,7 @@ public class LoginMockMvcTests {
 
     @Test
     void changeEmailNoCsrfReturns403AndInvalidRequest() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
 
         MockHttpServletRequestBuilder get = get("/change_email")
@@ -1934,7 +1935,7 @@ public class LoginMockMvcTests {
 
     @Test
     void csrfForInvitationAcceptPost() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         SecurityContext marissaContext = getMarissaSecurityContext(webApplicationContext, IdentityZoneHolder.getCurrentZoneId());
         AnonymousAuthenticationToken inviteToken = new AnonymousAuthenticationToken("invited-test", marissaContext.getAuthentication().getPrincipal(), singletonList(UaaAuthority.UAA_INVITED));
         MockHttpSession inviteSession = new MockHttpSession();
@@ -2003,9 +2004,9 @@ public class LoginMockMvcTests {
      */
     @Test
     void logOutCorsPreflight() throws Exception {
-        corsFilter.setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
-        corsFilter.setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
-        corsFilter.initialize();
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
+        corsFilter.getFilter().initialize();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
@@ -2019,9 +2020,9 @@ public class LoginMockMvcTests {
      */
     @Test
     void logOutCorsPreflightForIdentityZone() throws Exception {
-        corsFilter.setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
-        corsFilter.setCorsXhrAllowedUris(singletonList("^/logout.do$"));
-        corsFilter.initialize();
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout.do$"));
+        corsFilter.getFilter().initialize();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
@@ -2037,9 +2038,9 @@ public class LoginMockMvcTests {
      */
     @Test
     void logOutCorsPreflightWithStandardHeader() throws Exception {
-        corsFilter.setCorsXhrAllowedOrigins(singletonList("^localhost$"));
-        corsFilter.setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
-        corsFilter.initialize();
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(singletonList("^localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
+        corsFilter.getFilter().initialize();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Access-Control-Request-Headers", "Accept");
@@ -2056,9 +2057,9 @@ public class LoginMockMvcTests {
      */
     @Test
     void logOutCorsPreflightWithUnallowedEndpoint() throws Exception {
-        corsFilter.setCorsXhrAllowedOrigins(singletonList("^localhost$"));
-        corsFilter.setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
-        corsFilter.initialize();
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(singletonList("^localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
+        corsFilter.getFilter().initialize();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
@@ -2075,9 +2076,9 @@ public class LoginMockMvcTests {
      */
     @Test
     void logOutCorsPreflightWithUnallowedMethod() throws Exception {
-        corsFilter.setCorsXhrAllowedOrigins(singletonList("^localhost$"));
-        corsFilter.setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
-        corsFilter.initialize();
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(singletonList("^localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
+        corsFilter.getFilter().initialize();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
@@ -2094,9 +2095,9 @@ public class LoginMockMvcTests {
      */
     @Test
     void logOutCorsPreflightWithUnallowedOrigin() throws Exception {
-        corsFilter.setCorsXhrAllowedOrigins(singletonList("^localhost$"));
-        corsFilter.setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
-        corsFilter.initialize();
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(singletonList("^localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout\\.do$"));
+        corsFilter.getFilter().initialize();
 
         HttpHeaders httpHeaders = new HttpHeaders();
         httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
@@ -2113,9 +2114,9 @@ public class LoginMockMvcTests {
     @Test
     void xhrCorsPreflightForNonDefaultZoneWhenZoneSpecificCorsPolicyIsNull() throws Exception {
         // setting the default zone CORS policy
-        corsFilter.setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
-        corsFilter.setCorsXhrAllowedUris(singletonList("^/logout.do$"));
-        corsFilter.initialize();
+        corsFilter.getFilter().setCorsXhrAllowedOrigins(asList("^localhost$", "^*\\.localhost$"));
+        corsFilter.getFilter().setCorsXhrAllowedUris(singletonList("^/logout.do$"));
+        corsFilter.getFilter().initialize();
 
         // set the non default zone CORS Xhr policy to null
         identityZone.getConfig().getCorsPolicy().setXhrConfiguration(null);
@@ -2140,8 +2141,8 @@ public class LoginMockMvcTests {
     @Test
     void xhrCorsPreflightForNonDefaultZoneWhenZoneSpecificCorsPolicyExists() throws Exception {
         // setting the default zone CORS policy to not allow POST
-        corsFilter.setCorsXhrAllowedMethods(List.of(GET.toString(), OPTIONS.toString()));
-        corsFilter.initialize();
+        corsFilter.getFilter().setCorsXhrAllowedMethods(List.of(GET.toString(), OPTIONS.toString()));
+        corsFilter.getFilter().initialize();
 
         // set the non default zone CORS Xhr policy to allow POST
         identityZone.getConfig().getCorsPolicy().getXhrConfiguration().setAllowedMethods(List.of(GET.toString(), OPTIONS.toString(), POST.toString()));
@@ -2388,7 +2389,7 @@ public class LoginMockMvcTests {
 
     @Test
     void accountChooserWithoutDiscovery_loginWithProvidedLoginHint() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(false);
         config.setAccountChooserEnabled(true);
@@ -2416,7 +2417,7 @@ public class LoginMockMvcTests {
 
     @Test
     void accountChooserWithoutDiscovery_noDefaultReturnsLoginPage() throws Exception {
-        assumeFalse(isLimitedMode(limitedModeUaaFilter), "Test only runs in non limited mode.");
+        assumeFalse(isLimitedMode(limitedModeUaaFilter.getFilter()), "Test only runs in non limited mode.");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(false);
         config.setAccountChooserEnabled(true);

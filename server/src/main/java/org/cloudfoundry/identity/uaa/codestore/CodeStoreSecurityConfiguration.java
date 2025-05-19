@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEn
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -25,7 +26,7 @@ class CodeStoreSecurityConfiguration {
     @Order(FilterChainOrder.CODESTORE)
     UaaFilterChain codestore(
             HttpSecurity http,
-            @Qualifier("resourceAgnosticAuthenticationFilter") OAuth2AuthenticationProcessingFilter oauth2ResourceFilter
+            @Qualifier("resourceAgnosticAuthenticationFilter") FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> oauth2ResourceFilter
     ) throws Exception {
         var originalFilterChain = http
                 .securityMatcher("/Codes/**")
@@ -38,7 +39,7 @@ class CodeStoreSecurityConfiguration {
                 })
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
-                .addFilterBefore(oauth2ResourceFilter, AbstractPreAuthenticatedProcessingFilter.class)
+                .addFilterBefore(oauth2ResourceFilter.getFilter(), AbstractPreAuthenticatedProcessingFilter.class)
                 .exceptionHandling(exception -> {
                     var authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
                     authenticationEntryPoint.setRealmName("UAA/oauth");

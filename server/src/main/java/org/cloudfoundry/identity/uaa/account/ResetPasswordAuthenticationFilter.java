@@ -37,7 +37,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.Timestamp;
 
-@Component
 public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
     private final ResetPasswordService service;
     private final AuthenticationEntryPoint entryPoint;
@@ -54,7 +53,6 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
         this.expiringCodeStore = expiringCodeStore;
     }
 
-    @Autowired
     public ResetPasswordAuthenticationFilter(
             ResetPasswordService service,
             ExpiringCodeStore expiringCodeStore) {

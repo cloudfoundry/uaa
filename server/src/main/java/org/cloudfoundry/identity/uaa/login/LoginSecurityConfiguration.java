@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.account.ResetPasswordAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.LoginClientParametersAuthenticationFilter;
@@ -10,8 +11,10 @@ import org.cloudfoundry.identity.uaa.authentication.ReAuthenticationRequiredFilt
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetailsSource;
 import org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationFilter;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsAuthenticationTrustResolver;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
 import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AccessDeniedHandler;
@@ -26,6 +29,7 @@ import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestCache;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -88,9 +92,9 @@ class LoginSecurityConfiguration {
             UaaTokenServices tokenServices,
             @Qualifier("oauthAuthenticationEntryPoint") OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint,
             @Qualifier("oauthAccessDeniedHandler") OAuth2AccessDeniedHandler oauthAccessDeniedHandler,
-            LoginAuthenticationManager loginAuthenticationManager,
-            ScopeAuthenticationFilter scopeAuthenticationFilter
+            LoginAuthenticationManager loginAuthenticationManager
     ) {
+        ScopeAuthenticationFilter scopeAuthenticationFilter = new ScopeAuthenticationFilter();
         this.tokenServices = tokenServices;
         this.oauthAuthenticationEntryPoint = oauthAuthenticationEntryPoint;
         this.oauthAccessDeniedHandler = oauthAccessDeniedHandler;
@@ -108,6 +112,18 @@ class LoginSecurityConfiguration {
                 "email",
                 "authorities"
         ));
+    }
+
+    @Bean
+    public FilterRegistrationBean<ResetPasswordAuthenticationFilter> resetPasswordAuthenticationFilter(
+            ResetPasswordService service,
+            ExpiringCodeStore expiringCodeStore
+    )
+    {
+        ResetPasswordAuthenticationFilter filter = new ResetPasswordAuthenticationFilter(service, expiringCodeStore);
+        FilterRegistrationBean<ResetPasswordAuthenticationFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean
@@ -191,9 +207,16 @@ class LoginSecurityConfiguration {
     @Order(FilterChainOrder.LOGIN_TOKEN)
     UaaFilterChain loginToken(
             HttpSecurity http,
-            LoginClientParametersAuthenticationFilter loginClientParametersAuthenticationFilter,
-            LoginServerTokenEndpointFilter loginFilter
+            @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager,
+            LoginAuthenticationManager loginAuthenticationManager,
+            OAuth2RequestFactory oAuth2RequestFactory,
+            UaaAuthenticationDetailsSource authenticationDetailsSource
     ) throws Exception {
+        LoginClientParametersAuthenticationFilter loginClientParametersAuthenticationFilter =
+                new LoginClientParametersAuthenticationFilter(authenticationManager);
+        LoginServerTokenEndpointFilter loginFilter = new LoginServerTokenEndpointFilter(
+                loginAuthenticationManager, oAuth2RequestFactory, authenticationDetailsSource
+        );
         var requestMatcher = new UaaRequestMatcher("/oauth/token");
         requestMatcher.setAccept(List.of(MediaType.APPLICATION_JSON_VALUE));
         requestMatcher.setHeaders(Map.of("Authorization", List.of("bearer ")));
@@ -343,7 +366,7 @@ class LoginSecurityConfiguration {
     UaaFilterChain autologin(
             HttpSecurity http,
             @Qualifier("basicAuthenticationEntryPoint") AuthenticationEntryPoint authenticationEntryPoint,
-            @Qualifier("clientAuthenticationFilter") ClientBasicAuthenticationFilter clientBasicAuthenticationFilter
+            @Qualifier("clientAuthenticationFilter") FilterRegistrationBean<ClientBasicAuthenticationFilter> clientBasicAuthenticationFilter
     ) throws Exception {
         var emptyAuthenticationManager = new ProviderManager(new AuthenticationManagerBeanDefinitionParser.NullAuthenticationProvider());
         var originalChain = http
@@ -353,7 +376,7 @@ class LoginSecurityConfiguration {
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(clientBasicAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(clientBasicAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .exceptionHandling(exception -> exception.authenticationEntryPoint(authenticationEntryPoint))
                 .headers(headers -> headers.xssProtection(xss -> xss.disable()))
                 .build();
@@ -394,7 +417,7 @@ class LoginSecurityConfiguration {
     @Order(FilterChainOrder.INVITE)
     UaaFilterChain inviteUser(
             HttpSecurity http,
-            @Qualifier("resourceAgnosticAuthenticationFilter") OAuth2AuthenticationProcessingFilter oauth2ResourceFilter
+            @Qualifier("resourceAgnosticAuthenticationFilter") FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> oauth2ResourceFilter
     ) throws Exception {
         var originalChain = http
                 .securityMatcher("/invite_users/**")
@@ -407,7 +430,7 @@ class LoginSecurityConfiguration {
 
                     auth.anyRequest().denyAll();
                 })
-                .addFilterBefore(oauth2ResourceFilter, AbstractPreAuthenticatedProcessingFilter.class)
+                .addFilterBefore(oauth2ResourceFilter.getFilter(), AbstractPreAuthenticatedProcessingFilter.class)
                 .csrf(CsrfConfigurer::disable)
                 .headers(headers -> headers.xssProtection(xss -> xss.disable()))
                 .exceptionHandling(exception -> {
@@ -424,8 +447,8 @@ class LoginSecurityConfiguration {
     @Order(FilterChainOrder.LOGIN_PUBLIC_OPERATIONS)
     UaaFilterChain loginPublicOperations(
             HttpSecurity http,
-            DisableUserManagementSecurityFilter disableUserManagementSecurityFilter,
-            ResetPasswordAuthenticationFilter resetPasswordAuthenticationFilter,
+            FilterRegistrationBean<DisableUserManagementSecurityFilter> disableUserManagementSecurityFilter,
+            FilterRegistrationBean<ResetPasswordAuthenticationFilter> resetPasswordAuthenticationFilter,
             CookieBasedCsrfTokenRepository csrfTokenRepository
     ) throws Exception {
         var originalChain = http
@@ -443,8 +466,8 @@ class LoginSecurityConfiguration {
                     csrf.csrfTokenRepository(csrfTokenRepository);
                 })
                 .headers(headers -> headers.xssProtection(xss -> xss.disable()))
-                .addFilterBefore(disableUserManagementSecurityFilter, AnonymousAuthenticationFilter.class)
-                .addFilterAfter(resetPasswordAuthenticationFilter, AuthorizationFilter.class)
+                .addFilterBefore(disableUserManagementSecurityFilter.getFilter(), AnonymousAuthenticationFilter.class)
+                .addFilterAfter(resetPasswordAuthenticationFilter.getFilter(), AuthorizationFilter.class)
                 .exceptionHandling(EXCEPTION_HANDLING)
                 .build();
         return new UaaFilterChain(originalChain,"loginPublicOperations");
@@ -462,12 +485,13 @@ class LoginSecurityConfiguration {
     UaaFilterChain uiSecurity(
             HttpSecurity http,
             @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
-            ReAuthenticationRequiredFilter reAuthenticationRequiredFilter,
-            LogoutFilter logoutFilter,
+            final @Qualifier("samlEntityID") String samlEntityID,
+            FilterRegistrationBean<LogoutFilter> logoutFilter,
             CookieBasedCsrfTokenRepository csrfTokenRepository,
             AccountSavingAuthenticationSuccessHandler loginSuccessHandler,
             UaaAuthenticationFailureHandler loginFailureHandler
     ) throws Exception {
+        ReAuthenticationRequiredFilter reAuthenticationRequiredFilter = new ReAuthenticationRequiredFilter(samlEntityID);
         var clientRedirectStateCache = new UaaSavedRequestCache();
         clientRedirectStateCache.setRequestMatcher(new AntPathRequestMatcher("/oauth/authorize**"));
 
@@ -500,7 +524,7 @@ class LoginSecurityConfiguration {
                 .addFilterAfter(reAuthenticationRequiredFilter, SecurityContextPersistenceFilter.class)
                 .addFilterBefore(clientRedirectStateCache, CsrfFilter.class)
                 .addFilterBefore(new PasswordChangeUiRequiredFilter(), UsernamePasswordAuthenticationFilter.class)
-                .addFilterAt(logoutFilter, LogoutFilter.class)
+                .addFilterAt(logoutFilter.getFilter(), LogoutFilter.class)
                 .exceptionHandling(EXCEPTION_HANDLING)
                 .requestCache(cache -> cache.requestCache(clientRedirectStateCache))
                 .headers(headers -> headers.xssProtection(xss -> xss.disable()))
@@ -514,7 +538,7 @@ class LoginSecurityConfiguration {
      * If Saml, it forwards a Saml2LogoutRequest to IDP/asserting party if configured.
      */
     @Bean
-    LogoutFilter logoutFilter(
+    FilterRegistrationBean<LogoutFilter> logoutFilter(
             UaaDelegatingLogoutSuccessHandler delegatingLogoutSuccessHandler,
             UaaAuthenticationFailureHandler authenticationFailureHandler,
             CookieBasedCsrfTokenRepository loginCookieCsrfRepository
@@ -532,8 +556,9 @@ class LoginSecurityConfiguration {
                 cookieClearingLogoutHandlerWithHandler
         );
         logoutFilter.setLogoutRequestMatcher(new AntPathRequestMatcher("/logout.do"));
-
-        return logoutFilter;
+        FilterRegistrationBean<LogoutFilter> bean = new FilterRegistrationBean<>(logoutFilter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     public OAuth2AuthenticationProcessingFilter oauth2ResourceFilter(@Nullable String resourceId) {

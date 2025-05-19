@@ -24,6 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.security.crypto.codec.Base64;
 
 import java.io.File;
@@ -81,6 +82,10 @@ class LimitedModeTokenMockMvcTests extends TokenMvcMockTests {
     }
 
     private boolean isLimitedMode() {
-        return webApplicationContext.getBean(LimitedModeUaaFilter.class).isEnabled();
+        FilterRegistrationBean<LimitedModeUaaFilter> bean =
+                    (FilterRegistrationBean<LimitedModeUaaFilter>)
+                            webApplicationContext.getBean("limitedModeUaaFilter", FilterRegistrationBean.class);
+        LimitedModeUaaFilter filter = bean.getFilter();
+        return filter.isEnabled();
     }
 }

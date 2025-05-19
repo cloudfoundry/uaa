@@ -16,9 +16,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+import java.io.File;
 import java.lang.reflect.Field;
 
 import static org.springframework.util.ReflectionUtils.findField;
@@ -28,13 +31,34 @@ import static org.springframework.util.ReflectionUtils.getField;
 @Import({UaaBootConfiguration.class, UaaApplicationConfiguration.class})
 public class UaaBootApplication {
     public static void main(String... args) {
-        System.setProperty(
-                "UAA_CONFIG_URL",
-                "file:"+System.getProperty("user.dir")+"/uaa/build/resources/test/integration_test_properties.yml"
-        );
+        String base = System.getProperty("user.dir");
+
+        //set up tomcat base directory
+        String tomcatBase = base + "/scripts/boot/tomcat/";
+        new File(tomcatBase+"/work").mkdirs();
+        new File(tomcatBase+"/webapps").mkdirs();
+        System.setProperty("server.tomcat.basedir", tomcatBase);
+
+        //read the uaa.yml file out of the scripts/cargo dir
+        String configPath = base + "/scripts/cargo";
+        System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", configPath);
+
+        //make spring boot work with UAA beans
         System.setProperty("spring.main.allow-bean-definition-overriding", "true");
         System.setProperty("spring.main.allow-circular-references", "true");
         System.setProperty("server.servlet.context-path", "/uaa");
+
+        //configure sample properties for testing
+        System.setProperty("smtp.host", "localhost");
+        System.setProperty("smtp.port", "2525");
+        System.setProperty("java.security.egd", "file:/dev/./urandom");
+        System.setProperty("spring.profiles.active", "hsqldb");
+
+        //debug spring filters
+        //System.setProperty("logging.level.org.springframework.security", "TRACE");
+
+
+        //start the application
         SpringApplication application = new SpringApplication(UaaBootApplication.class);
         application.addInitializers(new YamlServletProfileInitializer());
         application.run(args);
@@ -42,8 +66,41 @@ public class UaaBootApplication {
 
 }
 
+//@Configuration
+//class UaaSampleAppConfiguration {
+//    @Bean
+//    public TomcatServletWebServerFactory tomcatServletWebServerFactory() {
+//        return new TomcatServletWebServerFactory() {
+//            @Override
+//            protected TomcatWebServer getTomcatWebServer(Tomcat tomcat) {
+//                String base = System.getProperty("user.dir");
+//                String configPath = base + "/scripts/cargo";
+//                System.setProperty("CLOUDFOUNDRY_CONFIG_PATH", configPath);
+//                String app = base + "/samples/app/build/libs/cloudfoundry-identity-app-0.0.0.war";
+//                String api = base + "/samples/api/build/libs/cloudfoundry-identity-api-0.0.0.war";
+//                for (String path : asList(app, api)) {
+//                    File f = new File(path);
+//                    if (!f.exists()) {
+//                        throw new UnsupportedOperationException(f.getAbsolutePath() + " does not exist. Please run `./gradlew assemble`.");
+//                    }
+//                }
+//                tomcat.addWebapp("/app", app);
+//                tomcat.addWebapp("/api", api);
+//                return super.getTomcatWebServer(tomcat);
+//            }
+//        };
+//    }
+//}
+
 @Configuration
-class UaaBootConfiguration implements ServletContextInitializer {
+class UaaBootConfiguration implements ServletContextInitializer, WebMvcConfigurer {
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+        String base = System.getProperty("user.dir");
+        registry.addResourceHandler("/**")
+                .addResourceLocations("file:"+base+"/uaa/src/main/webapp/");
+    }
 
     @Bean
     WebServerFactoryCustomizer<ConfigurableServletWebServerFactory> enableDefaultServlet() {

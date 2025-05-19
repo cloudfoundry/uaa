@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -39,11 +40,11 @@ public class TokenIntrospectionSecurityConfiguration {
 
     @Autowired
     @Qualifier("oauthWithoutResourceAuthenticationFilter")
-    OAuth2AuthenticationProcessingFilter oauthWithoutResourceAuthenticationFilter;
+    FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> oauthWithoutResourceAuthenticationFilter;
 
     @Autowired
     @Qualifier("clientAuthenticationFilter")
-    ClientBasicAuthenticationFilter clientAuthenticationFilter;
+    FilterRegistrationBean<ClientBasicAuthenticationFilter> clientAuthenticationFilter;
 
     @Bean
     @Order(FilterChainOrder.RESOURCE)
@@ -57,7 +58,7 @@ public class TokenIntrospectionSecurityConfiguration {
                 //TODO is the auth manager needed?
                 .authenticationManager(clientAuthenticationManager)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -81,7 +82,7 @@ public class TokenIntrospectionSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 //TODO is the auth manager needed?
                 .authenticationManager(clientAuthenticationManager)
-                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(basicAuthenticationEntryPoint)
@@ -104,8 +105,8 @@ public class TokenIntrospectionSecurityConfiguration {
                 //TODO is the auth manager needed?
                 .authenticationManager(clientAuthenticationManager)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(oauthWithoutResourceAuthenticationFilter, BasicAuthenticationFilter.class)
-                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterBefore(oauthWithoutResourceAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
+                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->

@@ -9,6 +9,7 @@ import brave.propagation.ThreadLocalCurrentTraceContext;
 import brave.servlet.TracingFilter;
 import brave.spring.webmvc.SpanCustomizingAsyncHandlerInterceptor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -71,8 +72,11 @@ public class TracingAutoConfiguration {
      * Creates server spans for HTTP requests
      */
     @Bean
-    Filter tracingFilter(HttpTracing httpTracing) {
-        return TracingFilter.create(httpTracing);
+    FilterRegistrationBean<Filter> tracingFilter(HttpTracing httpTracing) {
+        Filter filter = TracingFilter.create(httpTracing);
+        FilterRegistrationBean<Filter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 }
 

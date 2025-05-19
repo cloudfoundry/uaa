@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf;
-
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationManager;
 import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationProcessingFilter;
@@ -10,6 +8,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEn
 import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -22,6 +21,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.access.intercept.RequestAuthorizationContext;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 
+import static org.cloudfoundry.identity.uaa.web.AuthorizationManagersUtils.anyOf;
+
 @Configuration
 @EnableWebSecurity
 class ClientAdminSecurityConfiguration {
@@ -32,7 +33,7 @@ class ClientAdminSecurityConfiguration {
             HttpSecurity http,
             @Qualifier("oauthAuthenticationEntryPoint") OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint,
             @Qualifier("oauthAccessDeniedHandler") OAuth2AccessDeniedHandler oauthAccessDeniedHandler,
-            @Qualifier("clientAdminOAuth2ResourceFilter") OAuth2AuthenticationProcessingFilter resourceFilter
+            @Qualifier("clientAdminOAuth2ResourceFilter") FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> resourceFilter
     ) throws Exception {
         var originalChain = http
                 .securityMatcher("/oauth/clients/**")
@@ -56,7 +57,7 @@ class ClientAdminSecurityConfiguration {
 
                     auth.anyRequest().denyAll();
                 })
-                .addFilterAt(resourceFilter, AbstractPreAuthenticatedProcessingFilter.class)
+                .addFilterAt(resourceFilter.getFilter(), AbstractPreAuthenticatedProcessingFilter.class)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception -> {
@@ -69,13 +70,18 @@ class ClientAdminSecurityConfiguration {
 
     // TODO: object provider?
     @Bean(name = "clientAdminOAuth2ResourceFilter")
-    public OAuth2AuthenticationProcessingFilter clientAdminOAuth2ResourceFilter(UaaTokenServices tokenServices, @Qualifier("oauthAuthenticationEntryPoint") OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint) {
+    public FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> clientAdminOAuth2ResourceFilter(
+            UaaTokenServices tokenServices,
+            @Qualifier("oauthAuthenticationEntryPoint") OAuth2AuthenticationEntryPoint oauthAuthenticationEntryPoint
+    ) {
         var oauth2AuthenticationManager = new OAuth2AuthenticationManager();
         oauth2AuthenticationManager.setTokenServices(tokenServices);
         var oauth2ResourceFilter = new OAuth2AuthenticationProcessingFilter();
         oauth2ResourceFilter.setAuthenticationManager(oauth2AuthenticationManager);
         oauth2ResourceFilter.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
-        return oauth2ResourceFilter;
+        FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> bean = new FilterRegistrationBean<>(oauth2ResourceFilter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     /**

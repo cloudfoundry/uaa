@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.web.LimitedModeUaaFilter;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
@@ -33,12 +34,12 @@ class LimitedModeLoginMockMvcTests extends LoginMockMvcTests {
     @BeforeEach
     void setUpLimitedModeLoginMockMvcTests(
             @Autowired WebApplicationContext webApplicationContext,
-            @Autowired LimitedModeUaaFilter limitedModeUaaFilter
+            @Autowired FilterRegistrationBean<LimitedModeUaaFilter> limitedModeUaaFilter
     ) throws Exception {
         originalLimitedModeStatusFile = MockMvcUtils.getLimitedModeStatusFile(webApplicationContext);
         MockMvcUtils.setLimitedModeStatusFile(webApplicationContext);
 
-        assertThat(isLimitedMode(limitedModeUaaFilter)).isTrue();
+        assertThat(isLimitedMode(limitedModeUaaFilter.getFilter())).isTrue();
     }
 
     @AfterEach

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.annotation.DirtiesContext;
@@ -63,7 +64,7 @@ class LoginPagePerformanceMockMvcTest {
     void setUpContext(
             @Autowired WebApplicationContext webApplicationContext,
             @Autowired MockMvc mockMvc,
-            @Autowired LimitedModeUaaFilter limitedModeUaaFilter
+            @Autowired FilterRegistrationBean<LimitedModeUaaFilter> limitedModeUaaFilter
     ) {
         generator = new AlphanumericRandomValueStringGenerator();
         this.webApplicationContext = webApplicationContext;
@@ -72,7 +73,7 @@ class LoginPagePerformanceMockMvcTest {
 
         originalLimitedModeStatusFile = MockMvcUtils.getLimitedModeStatusFile(webApplicationContext);
         MockMvcUtils.resetLimitedModeStatusFile(webApplicationContext, null);
-        assertThat(limitedModeUaaFilter.isEnabled()).isFalse();
+        assertThat(limitedModeUaaFilter.getFilter().isEnabled()).isFalse();
     }
 
     @AfterEach

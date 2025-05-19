@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -145,7 +144,7 @@ public final class UaaStringUtils {
     }
 
     public static boolean containsWildcard(String s) {
-        if (StringUtils.hasText(s)) {
+        if (hasText(s)) {
             return !escapeRegExCharacters(s).equals(constructSimpleWildcardPattern(s));
         }
         return false;
@@ -336,7 +335,11 @@ public final class UaaStringUtils {
         if (null == value || value.length < 1) {
             return EMPTY_STRING;
         }
-        return StringUtils.hasText(value[0]) ? value[0] : EMPTY_STRING;
+        return hasText(value[0]) ? value[0] : EMPTY_STRING;
+    }
+
+    public static boolean hasText(String str) {
+        return (str != null && !str.isBlank());
     }
 
     public static List<String> getValuesOrDefaultValue(Set<String> values, String defaultValue) {

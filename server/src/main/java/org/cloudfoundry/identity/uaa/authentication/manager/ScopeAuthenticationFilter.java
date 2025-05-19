@@ -13,8 +13,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.util.List;
-
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
@@ -25,7 +23,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.stereotype.Component;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -36,8 +33,8 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
-@Component
 public class ScopeAuthenticationFilter implements Filter {
     private final ScopeAuthenticationManager authenticationManager;
     private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();

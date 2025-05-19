@@ -47,3 +47,7 @@ logs/**
 scripts/certificates/*.key
 scripts/certificates/*.crt
 scripts/certificates/tmp/**
+
+# temporary tomcat war file directories
+scripts/boot/tomcat/**
+

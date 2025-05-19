@@ -8,7 +8,6 @@ import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ClientBasicAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.ClientDetailsAuthenticationProvider;
-import org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.CurrentUserCookieRequestFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasscodeAuthenticationFilter;
 import org.cloudfoundry.identity.uaa.authentication.PasswordChangeRequiredFilter;
@@ -80,6 +79,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.config.SetFactoryBean;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.DependsOn;
@@ -322,17 +322,7 @@ public class OauthEndpointBeanConfiguration {
         bean.setAllowUnverifiedUsers(allowUnverifiedUsers);
         return bean;
     }
-//
-//    @Bean("uaaAuthenticationMgr")
-//    CheckIdpEnabledAuthenticationManager uaaAuthenticationMgr() {
-//
-//    }
-//
-//    @Bean("zoneAwareAuthzAuthenticationManager")
-//    DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager() {
-//
-//    }
-//
+
     @Bean("passwordGrantAuthenticationManager")
     PasswordGrantAuthenticationManager passwordGrantAuthenticationManager(
             @Autowired DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager,
@@ -346,21 +336,21 @@ public class OauthEndpointBeanConfiguration {
     }
 
     @Bean("passcodeAuthenticationFilter")
-    PasscodeAuthenticationFilter passcodeAuthenticationFilter(
+    FilterRegistrationBean<PasscodeAuthenticationFilter> passcodeAuthenticationFilter(
             @Qualifier("userDatabase") UaaUserDatabase userDatabase,
             @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
             @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
             @Qualifier("codeStore") ExpiringCodeStore expiringCodeStore,
             @Qualifier("authenticationDetailsSource")AuthenticationDetailsSource authenticationDetailsSource
             ) {
-        PasscodeAuthenticationFilter bean = new PasscodeAuthenticationFilter(
+        PasscodeAuthenticationFilter filter = new PasscodeAuthenticationFilter(
                 userDatabase,
                 authenticationManager,
                 oAuth2RequestFactory,
                 expiringCodeStore
         );
-        bean.setAuthenticationDetailsSource(authenticationDetailsSource);
-        bean.setParameterNames(
+        filter.setAuthenticationDetailsSource(authenticationDetailsSource);
+        filter.setParameterNames(
                 Arrays.asList(
                         "username",
                         "password",
@@ -370,6 +360,8 @@ public class OauthEndpointBeanConfiguration {
                         "user_id"
                 )
         );
+        FilterRegistrationBean<PasscodeAuthenticationFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 
@@ -409,29 +401,20 @@ public class OauthEndpointBeanConfiguration {
     }
 
     @Bean("clientAuthenticationFilter")
-    ClientBasicAuthenticationFilter clientAuthenticationFilter(
+    FilterRegistrationBean<ClientBasicAuthenticationFilter> clientAuthenticationFilter(
             @Qualifier("clientAuthenticationManager") AuthenticationManager clientAuthenticationManager,
             @Qualifier("basicAuthenticationEntryPoint") AuthenticationEntryPoint basicAuthenticationEntryPoint,
             @Value("${authentication.enableUriEncodingCompatibilityMode:false}") boolean enableUriEncodingCompatibilityMod,
             @Qualifier("authenticationDetailsSource")AuthenticationDetailsSource authenticationDetailsSource
     ) {
-        ClientBasicAuthenticationFilter bean = new ClientBasicAuthenticationFilter(
+        ClientBasicAuthenticationFilter filter = new ClientBasicAuthenticationFilter(
                 clientAuthenticationManager,
                 basicAuthenticationEntryPoint,
                 enableUriEncodingCompatibilityMod
         );
-        bean.setAuthenticationDetailsSource(authenticationDetailsSource);
-        return bean;
-    }
-
-    @Bean("clientParameterAuthenticationFilter")
-    ClientParametersAuthenticationFilter clientParameterAuthenticationFilter(
-            @Qualifier("clientAuthenticationManager") AuthenticationManager clientAuthenticationManager,
-            @Qualifier("basicAuthenticationEntryPoint") AuthenticationEntryPoint basicAuthenticationEntryPoint
-    ) {
-        ClientParametersAuthenticationFilter bean = new ClientParametersAuthenticationFilter();
-        bean.setAuthenticationEntryPoint(basicAuthenticationEntryPoint);
-        bean.setClientAuthenticationManager(clientAuthenticationManager);
+        filter.setAuthenticationDetailsSource(authenticationDetailsSource);
+        FilterRegistrationBean<ClientBasicAuthenticationFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 
@@ -519,13 +502,13 @@ public class OauthEndpointBeanConfiguration {
         );
         return bean;
     }
-    
+
     @Bean("authzAuthenticationFilter")
-    AuthzAuthenticationFilter authzAuthenticationFilter(
+    FilterRegistrationBean<AuthzAuthenticationFilter> authzAuthenticationFilter(
             @Autowired DynamicZoneAwareAuthenticationManager zoneAwareAuthzAuthenticationManager
     ) {
-        AuthzAuthenticationFilter bean = new AuthzAuthenticationFilter(zoneAwareAuthzAuthenticationManager);
-        bean.setParameterNames(
+        AuthzAuthenticationFilter filter = new AuthzAuthenticationFilter(zoneAwareAuthzAuthenticationManager);
+        filter.setParameterNames(
                 asList(
                         "username",
                         "password",
@@ -533,21 +516,30 @@ public class OauthEndpointBeanConfiguration {
                         "credentials"
                 )
         );
+        FilterRegistrationBean<AuthzAuthenticationFilter> bean = new FilterRegistrationBean<AuthzAuthenticationFilter>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 
     @Bean("passwordChangeRequiredFilter")
-    PasswordChangeRequiredFilter passwordChangeRequiredFilter(
+    FilterRegistrationBean<PasswordChangeRequiredFilter> passwordChangeRequiredFilter(
             @Qualifier("uaaAuthorizationEndpoint") AuthenticationEntryPoint uaaAuthorizationEndpoint
     ) {
-        return new PasswordChangeRequiredFilter(uaaAuthorizationEndpoint);
+        PasswordChangeRequiredFilter filter = new PasswordChangeRequiredFilter(uaaAuthorizationEndpoint);
+        FilterRegistrationBean<PasswordChangeRequiredFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Bean("currentUserCookieFilter")
-    CurrentUserCookieRequestFilter currentUserCookieFilter(
+    FilterRegistrationBean<CurrentUserCookieRequestFilter> currentUserCookieFilter(
             @Qualifier("currentUserCookieFactory") CurrentUserCookieFactory currentUserCookieFactory
     ) {
-        return new CurrentUserCookieRequestFilter(currentUserCookieFactory);
+        CurrentUserCookieRequestFilter filter = new CurrentUserCookieRequestFilter(currentUserCookieFactory);
+        FilterRegistrationBean<CurrentUserCookieRequestFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
+
     }
 
     @Bean("externalOAuthAuthenticationManager")
@@ -575,14 +567,18 @@ public class OauthEndpointBeanConfiguration {
     }
 
     @Bean("externalOAuthCallbackAuthenticationFilter")
-    ExternalOAuthAuthenticationFilter externalOAuthCallbackAuthenticationFilter(
+    FilterRegistrationBean<ExternalOAuthAuthenticationFilter> externalOAuthCallbackAuthenticationFilter(
             @Qualifier("externalOAuthAuthenticationManager") ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager,
             @Qualifier("accountSavingAuthenticationSuccessHandler") AccountSavingAuthenticationSuccessHandler successHandler
     ) {
-        return new ExternalOAuthAuthenticationFilter(
+        ExternalOAuthAuthenticationFilter filter = new ExternalOAuthAuthenticationFilter(
                 externalOAuthAuthenticationManager,
                 successHandler
         );
+        FilterRegistrationBean<ExternalOAuthAuthenticationFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
+
     }
 
     @Bean("externalOAuthCallbackRequestMatcher")
@@ -852,14 +848,16 @@ public class OauthEndpointBeanConfiguration {
     }
 
     @Bean("oauthWithoutResourceAuthenticationFilter")
-    OAuth2AuthenticationProcessingFilter oauthWithoutResourceAuthenticationFilter(
+    FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> oauthWithoutResourceAuthenticationFilter(
             @Qualifier("tokenServices") UaaTokenServices tokenServices
     ) {
         OAuth2AuthenticationManager authenticationManager = new OAuth2AuthenticationManager();
         authenticationManager.setTokenServices(tokenServices);
-        OAuth2AuthenticationProcessingFilter bean = new OAuth2AuthenticationProcessingFilter();
-        bean.setAuthenticationManager(authenticationManager);
-        bean.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+        OAuth2AuthenticationProcessingFilter filter = new OAuth2AuthenticationProcessingFilter();
+        filter.setAuthenticationManager(authenticationManager);
+        filter.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+        FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 

@@ -61,6 +61,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -1297,10 +1298,17 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         mockMvc.perform(postForRefreshToken.param(REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())).andExpect(status().isOk());
     }
 
+    private DisableIdTokenResponseTypeFilter getDisableIdTokenResponseFilter() {
+        FilterRegistrationBean<DisableIdTokenResponseTypeFilter> bean =
+                (FilterRegistrationBean<DisableIdTokenResponseTypeFilter>)
+                        webApplicationContext.getBean("disableIdTokenResponseFilter", FilterRegistrationBean.class);
+        return bean.getFilter();
+    }
+
     @Test
     void openIdTokenHybridFlowWithNoImplicitGrantWhenIdTokenDisabled() throws Exception {
         try {
-            webApplicationContext.getBean(DisableIdTokenResponseTypeFilter.class).setIdTokenDisabled(true);
+            getDisableIdTokenResponseFilter().setIdTokenDisabled(true);
 
             String clientId = "testclient" + generator.generate();
             String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
@@ -1331,7 +1339,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             String code = ((List<String>) query.get("code")).get(0);
             assertThat(code).isNotNull();
         } finally {
-            webApplicationContext.getBean(DisableIdTokenResponseTypeFilter.class).setIdTokenDisabled(false);
+            getDisableIdTokenResponseFilter().setIdTokenDisabled(false);
         }
     }
 

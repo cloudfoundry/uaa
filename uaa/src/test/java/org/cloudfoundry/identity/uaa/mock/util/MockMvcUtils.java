@@ -63,6 +63,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
@@ -167,18 +168,24 @@ public final class MockMvcUtils {
                     "  </md:ContactPerson>\n" +
                     "</md:EntityDescriptor>";
 
+
+    static LimitedModeUaaFilter getLimitedModeUaaFilter(ApplicationContext context) {
+        FilterRegistrationBean<LimitedModeUaaFilter> bean =
+                (FilterRegistrationBean<LimitedModeUaaFilter>) context.getBean("limitedModeUaaFilter", FilterRegistrationBean.class);
+        return bean.getFilter();
+    }
     public static File getLimitedModeStatusFile(ApplicationContext context) {
-        return context.getBean(LimitedModeUaaFilter.class).getStatusFile();
+        return getLimitedModeUaaFilter(context).getStatusFile();
     }
 
     public static File setLimitedModeStatusFile(ApplicationContext context) throws Exception {
         File tempFile = File.createTempFile("uaa-limited-mode-negative-test.", ".status");
-        context.getBean(LimitedModeUaaFilter.class).setStatusFile(tempFile);
+        getLimitedModeUaaFilter(context).setStatusFile(tempFile);
         return tempFile;
     }
 
     public static void resetLimitedModeStatusFile(ApplicationContext context, File file) {
-        context.getBean(LimitedModeUaaFilter.class).setStatusFile(file);
+        getLimitedModeUaaFilter(context).setStatusFile(file);
     }
 
     public static MockHttpSession getSavedRequestSession() {

@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
@@ -30,21 +31,24 @@ public class OAuth2FilterConfig {
 
     @Autowired
     @Bean
-    BackwardsCompatibleTokenEndpointAuthenticationFilter tokenEndpointAuthenticationFilter(PasswordGrantAuthenticationManager passwordGrantAuthenticationManager,
+    FilterRegistrationBean<BackwardsCompatibleTokenEndpointAuthenticationFilter> tokenEndpointAuthenticationFilter(
+            PasswordGrantAuthenticationManager passwordGrantAuthenticationManager,
             UaaAuthorizationRequestManager authorizationRequestManager,
             Saml2BearerGrantAuthenticationConverter samlBearerGrantAuthenticationProvider,
             ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager,
             AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource,
-            AuthenticationEntryPoint basicAuthenticationEntryPoint) {
+            AuthenticationEntryPoint basicAuthenticationEntryPoint
+    ) {
 
-        BackwardsCompatibleTokenEndpointAuthenticationFilter authenticationFilter =
+        BackwardsCompatibleTokenEndpointAuthenticationFilter filter =
                 new BackwardsCompatibleTokenEndpointAuthenticationFilter("/oauth/token/alias/{registrationId}",
                         passwordGrantAuthenticationManager, authorizationRequestManager, samlBearerGrantAuthenticationProvider,
                         externalOAuthAuthenticationManager);
-        authenticationFilter.setAuthenticationDetailsSource(authenticationDetailsSource);
-        authenticationFilter.setAuthenticationEntryPoint(basicAuthenticationEntryPoint);
-
-        return authenticationFilter;
+        filter.setAuthenticationDetailsSource(authenticationDetailsSource);
+        filter.setAuthenticationEntryPoint(basicAuthenticationEntryPoint);
+        FilterRegistrationBean<BackwardsCompatibleTokenEndpointAuthenticationFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
+        return bean;
     }
 
     @Autowired

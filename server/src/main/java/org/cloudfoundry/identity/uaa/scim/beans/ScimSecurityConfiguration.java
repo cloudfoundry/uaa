@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -55,7 +56,7 @@ class ScimSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(passwordResourceAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(passwordResourceAuthenticationFilter().getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -77,7 +78,7 @@ class ScimSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(resourceAgnosticAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(resourceAgnosticAuthenticationFilter().getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -108,7 +109,7 @@ class ScimSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(resourceAgnosticAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(resourceAgnosticAuthenticationFilter().getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -137,7 +138,7 @@ class ScimSecurityConfiguration {
                     auth.anyRequest().denyAll();
                 })
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(resourceAgnosticAuthenticationFilter(), BasicAuthenticationFilter.class)
+                .addFilterBefore(resourceAgnosticAuthenticationFilter().getFilter(), BasicAuthenticationFilter.class)
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
@@ -150,26 +151,32 @@ class ScimSecurityConfiguration {
     }
 
     @Bean
-    OAuth2AuthenticationProcessingFilter passwordResourceAuthenticationFilter() {
-        OAuth2AuthenticationProcessingFilter bean = new OAuth2AuthenticationProcessingFilter();
-        bean.setAuthenticationManager(getoAuth2AuthenticationManager(tokenServices, "password"));
-        bean.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+    FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> passwordResourceAuthenticationFilter() {
+        OAuth2AuthenticationProcessingFilter filter = new OAuth2AuthenticationProcessingFilter();
+        filter.setAuthenticationManager(getoAuth2AuthenticationManager(tokenServices, "password"));
+        filter.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+        FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 
     @Bean
-    OAuth2AuthenticationProcessingFilter scimResourceAuthenticationFilter() {
-        OAuth2AuthenticationProcessingFilter bean = new OAuth2AuthenticationProcessingFilter();
-        bean.setAuthenticationManager(getoAuth2AuthenticationManager(tokenServices, "scim"));
-        bean.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+    FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> scimResourceAuthenticationFilter() {
+        OAuth2AuthenticationProcessingFilter filter = new OAuth2AuthenticationProcessingFilter();
+        filter.setAuthenticationManager(getoAuth2AuthenticationManager(tokenServices, "scim"));
+        filter.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+        FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 
     @Bean
-    OAuth2AuthenticationProcessingFilter resourceAgnosticAuthenticationFilter() {
-        OAuth2AuthenticationProcessingFilter bean = new OAuth2AuthenticationProcessingFilter();
-        bean.setAuthenticationManager(getoAuth2AuthenticationManager(tokenServices, null));
-        bean.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+    FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> resourceAgnosticAuthenticationFilter() {
+        OAuth2AuthenticationProcessingFilter filter = new OAuth2AuthenticationProcessingFilter();
+        filter.setAuthenticationManager(getoAuth2AuthenticationManager(tokenServices, null));
+        filter.setAuthenticationEntryPoint(oauthAuthenticationEntryPoint);
+        FilterRegistrationBean<OAuth2AuthenticationProcessingFilter> bean = new FilterRegistrationBean<>(filter);
+        bean.setEnabled(false);
         return bean;
     }
 

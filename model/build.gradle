@@ -15,10 +15,7 @@ dependencies {
     implementation(libraries.springWebMvc)
     implementation(libraries.springSecurityConfig)
 
-    implementation(libraries.nimbusJwt) {
-        exclude(module: "gson")
-    }
-    implementation(libraries.googleGson)
+    implementation(libraries.nimbusJwt)
 
     implementation(libraries.slf4jApi)
 

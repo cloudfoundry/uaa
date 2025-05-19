@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.web.FilterChainOrder;
 import org.cloudfoundry.identity.uaa.web.UaaFilterChain;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -37,7 +38,8 @@ public class ClientInfoSecurityConfiguration {
 
     @Autowired
     @Qualifier("clientAuthenticationFilter")
-    ClientBasicAuthenticationFilter clientAuthenticationFilter;
+    FilterRegistrationBean<ClientBasicAuthenticationFilter> clientAuthenticationFilter;
+
     @Bean
     @Order(FilterChainOrder.RESOURCE)
     UaaFilterChain clientInfoSecurity(HttpSecurity http) throws Exception {
@@ -50,7 +52,7 @@ public class ClientInfoSecurityConfiguration {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 //TODO is the auth manager needed?
                 .authenticationManager(clientAuthenticationManager)
-                .addFilterAt(clientAuthenticationFilter, BasicAuthenticationFilter.class)
+                .addFilterAt(clientAuthenticationFilter.getFilter(), BasicAuthenticationFilter.class)
                 .csrf(CsrfConfigurer::disable)
                 .exceptionHandling(exception ->
                         exception.authenticationEntryPoint(basicAuthenticationEntryPoint)

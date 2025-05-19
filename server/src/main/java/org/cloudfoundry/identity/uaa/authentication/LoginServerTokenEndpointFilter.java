@@ -19,10 +19,8 @@ import org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationM
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
 import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.TokenEndpointAuthenticationFilter;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,7 +32,6 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 
-@Component
 public class LoginServerTokenEndpointFilter extends TokenEndpointAuthenticationFilter {
 
     private final List<String> parameterNames = List.of(
