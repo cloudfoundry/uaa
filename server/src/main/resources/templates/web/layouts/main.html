@@ -10,7 +10,7 @@
                 copyright=${branding.getFooterLegalText() ?: copyrightFallback},
                 brandingLogo=${branding.getInlinedBase64PngLogo()},
                 fallbackLogo=${isUaa ? assetBaseUrl+'/images/product-logo.png' : null},
-                logo=${brandingLogo != null ? T(org.apache.commons.lang3.StringUtils).normalizeSpace(brandingLogo) : fallbackLogo}" >
+                logo=${brandingLogo != null ? T(org.cloudfoundry.identity.uaa.util.UaaStringUtils).getCleanedUserControlString(brandingLogo, '') : fallbackLogo}" >
 <head>
     <title th:text="${isUaa ? companyName : zoneName}" th:inline="text"></title>
     <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />

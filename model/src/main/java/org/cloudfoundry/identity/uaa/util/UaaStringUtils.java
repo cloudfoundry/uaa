@@ -317,11 +317,16 @@ public final class UaaStringUtils {
         return result.substring(1, result.length() - 1);
     }
 
-    public static String getCleanedUserControlString(String input) {
-        if (input == null) {
+    public static String getCleanedUserControlString(String input, String replacement) {
+        if (isEmpty(input)) {
             return null;
         }
-        return CTRL_PATTERN.matcher(input).replaceAll("_");
+        return CTRL_PATTERN.matcher(input).replaceAll(replacement);
+
+    }
+
+    public static String getCleanedUserControlString(String input) {
+        return getCleanedUserControlString(input, "_");
     }
 
     public static String getValidatedString(String input) {
