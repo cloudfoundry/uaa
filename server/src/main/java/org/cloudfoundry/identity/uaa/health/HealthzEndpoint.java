@@ -46,7 +46,7 @@ public class HealthzEndpoint {
         this.dataSource = dataSource;
     }
 
-    @GetMapping("/healthz")
+    @GetMapping({"/healthz", "/healthz/**"})
     @ResponseBody
     public String getHealthz(HttpServletResponse response) {
         if (stopping) {
