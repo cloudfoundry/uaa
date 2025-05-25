@@ -171,8 +171,6 @@ With this setup, we get 11 test workers total, 4 for `cloudfoundry-identity-uaa`
 - `cloudfoundry-identity-statsd-lib`
 - `cloudfoundry-identity-model`
 - `cloudfoundry-identity-statsd`
-- `cloudfoundry-identity-samples:cloudfoundry-identity-api`
-- `cloudfoundry-identity-samples:cloudfoundry-identity-app`
 - `cloudfoundry-identity-server`
 
 Since `cloudfoundry-identity-uaa` depends on all the projects, it runs last, and gets workers 8, 9, 10 and 11. If some

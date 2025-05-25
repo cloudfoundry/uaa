@@ -38,14 +38,12 @@ pushd $(dirname $SCRIPT_DIR)
             --max-workers=4 \
             --no-daemon \
             --stacktrace \
-            --console=plain \
-            --exclude-task ':cloudfoundry-identity-samples:assemble'
+            --console=plain
 
   ./gradlew "-Dspring.profiles.active=${TESTENV}" \
             "-Djava.security.egd=file:/dev/./urandom" \
             test \
             --no-daemon \
             --stacktrace \
-            --console=plain \
-            --exclude-task ':cloudfoundry-identity-samples:assemble'
+            --console=plain
 popd

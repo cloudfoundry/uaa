@@ -28,16 +28,14 @@ pushd $(dirname $DIR)
             --max-workers=4 \
             --no-daemon \
             --stacktrace \
-            --console=plain \
-            -x :cloudfoundry-identity-samples:assemble"
+            --console=plain"
 
   readonly integrationTestCode="./gradlew '-Dspring.profiles.active=${TESTENV}' \
             '-Djava.security.egd=file:/dev/./urandom' \
             integrationTest \
             --no-daemon \
             --stacktrace \
-            --console=plain \
-            -x :cloudfoundry-identity-samples:assemble"
+            --console=plain"
   if [[ "${RUN_TESTS:-true}" = 'true' ]]; then
     eval "$assembleCode"
     eval "$integrationTestCode"
