@@ -46,19 +46,7 @@ updates:
     time: "11:00"
   open-pull-requests-limit: 10
 - package-ecosystem: gradle
-  directory: "/samples/api"
-  schedule:
-    interval: daily
-    time: "11:00"
-  open-pull-requests-limit: 10
-- package-ecosystem: gradle
   directory: "/server"
-  schedule:
-    interval: daily
-    time: "11:00"
-  open-pull-requests-limit: 10
-- package-ecosystem: gradle
-  directory: "/samples/app"
   schedule:
     interval: daily
     time: "11:00"
