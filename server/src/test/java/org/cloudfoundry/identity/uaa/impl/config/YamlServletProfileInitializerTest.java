@@ -388,7 +388,7 @@ class YamlServletProfileInitializerTest {
 
     @Test
     void appliesCustomClassPathLogProperties() throws Exception {
-        File tempFile = File.createTempFile("prefix", "suffix.properties");
+        File tempFile = Files.createTempFile("prefix", "suffix.properties").toFile();
         File validLog4j2PropertyFile = new ClassPathResource("log4j2-test.properties").getFile();
 
         FileUtils.copyFile(validLog4j2PropertyFile, tempFile);

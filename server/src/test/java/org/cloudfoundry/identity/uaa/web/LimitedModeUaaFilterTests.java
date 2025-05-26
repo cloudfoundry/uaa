@@ -10,6 +10,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 
 import javax.servlet.FilterChain;
 import java.io.File;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -53,7 +54,7 @@ public class LimitedModeUaaFilterTests {
         mockHttpServletResponse = new MockHttpServletResponse();
         mockFilterChain = mock(FilterChain.class);
         filter = new LimitedModeUaaFilter();
-        statusFile = File.createTempFile("uaa-limited-mode.", ".status");
+        statusFile = Files.createTempFile("uaa-limited-mode.", ".status").toFile();
     }
 
     @AfterEach

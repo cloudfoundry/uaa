@@ -100,6 +100,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.File;
 import java.io.Serial;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -179,7 +180,7 @@ public final class MockMvcUtils {
     }
 
     public static File setLimitedModeStatusFile(ApplicationContext context) throws Exception {
-        File tempFile = File.createTempFile("uaa-limited-mode-negative-test.", ".status");
+        File tempFile = Files.createTempFile("uaa-limited-mode-negative-test.", ".status").toFile();
         getLimitedModeUaaFilter(context).setStatusFile(tempFile);
         return tempFile;
     }
