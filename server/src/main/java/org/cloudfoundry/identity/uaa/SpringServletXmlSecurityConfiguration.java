@@ -51,11 +51,11 @@ public class SpringServletXmlSecurityConfiguration {
     UaaFilterChain secFilterOpen05Healthz(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
                 .securityMatcher("/healthz/**")
-                .authorizeHttpRequests().anyRequest().permitAll().and()
+                .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .build();
 
@@ -67,11 +67,11 @@ public class SpringServletXmlSecurityConfiguration {
     UaaFilterChain secFilterOpen06SAMLMetadata(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
                 .securityMatcher("/saml/metadata/**", "/saml/metadata")
-                .authorizeHttpRequests().anyRequest().permitAll().and()
+                .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .build();
 
@@ -102,11 +102,11 @@ public class SpringServletXmlSecurityConfiguration {
                         "/oauth/token/.well-known/openid-configuration",
                         "/.well-known/openid-configuration"
                 )
-                .authorizeHttpRequests().anyRequest().permitAll().and()
+                .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
                 .csrf(CsrfConfigurer::disable)
                 .sessionManagement(session -> session
-                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
                 .build();
 
