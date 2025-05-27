@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.web;
 
 import lombok.extern.slf4j.Slf4j;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.saml2.core.Saml2ParameterNames;
@@ -23,7 +24,6 @@ import org.springframework.security.web.authentication.SavedRequestAwareAuthenti
 import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 import org.springframework.security.web.savedrequest.RequestCache;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.util.StringUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -41,8 +41,8 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
         SavedRequest savedRequest = this.requestCache.getRequest(request, response);
         if (savedRequest == null) {
-            String relayState = request.getParameter(Saml2ParameterNames.RELAY_STATE);
-            if (relayState != null && UaaUrlUtils.isUrl(relayState)) {
+            String relayState = UaaStringUtils.getCleanedUserControlString(request.getParameter(Saml2ParameterNames.RELAY_STATE), UaaStringUtils.EMPTY_STRING);
+            if (UaaStringUtils.hasText(relayState) && UaaUrlUtils.isUrl(relayState)) {
                 log.debug("Redirecting to relayState URI: {}", relayState);
                 this.getRedirectStrategy().sendRedirect(request, response, relayState);
             } else {
@@ -50,7 +50,7 @@ public class UaaSavedRequestAwareAuthenticationSuccessHandler extends SavedReque
             }
         } else {
             String targetUrlParameter = this.getTargetUrlParameter();
-            if (!this.isAlwaysUseDefaultTargetUrl() && (targetUrlParameter == null || !StringUtils.hasText(request.getParameter(targetUrlParameter)))) {
+            if (!this.isAlwaysUseDefaultTargetUrl() && (targetUrlParameter == null || !UaaStringUtils.hasText(request.getParameter(targetUrlParameter)))) {
                 this.clearAuthenticationAttributes(request);
                 String targetUrl = savedRequest.getRedirectUrl();
                 this.getRedirectStrategy().sendRedirect(request, response, targetUrl);
