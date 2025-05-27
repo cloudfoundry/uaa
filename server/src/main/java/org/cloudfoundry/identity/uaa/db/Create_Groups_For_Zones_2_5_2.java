@@ -87,17 +87,17 @@ public abstract class Create_Groups_For_Zones_2_5_2 extends BaseJavaMigration {
                 //this zone doesnt exist anymore. delete the row
                 int count = jdbcTemplate.update("DELETE FROM group_membership WHERE group_id=? AND member_id=?", oldGroupId, memberId);
                 if (count != 1) {
-                    logger.error("Unable to delete membership for non existent zone(group:" + oldGroupId + ", member:" + memberId + ")");
+                    logger.error("Unable to delete membership for non existent zone(group:{}, member:{})", oldGroupId, memberId);
                 }
             } else {
                 String groupId = groupNameToGroupId.get(displayName);
                 if (StringUtils.hasText(groupId)) {
                     int count = jdbcTemplate.update("UPDATE group_membership SET group_id=? WHERE group_id=? AND member_id=?", groupId, oldGroupId, memberId);
                     if (count != 1) {
-                        logger.error("Unable to update group membership for migrated zone(old group:" + oldGroupId + ", member:" + memberId + ", new group:" + groupId + ")");
+                        logger.error("Unable to update group membership for migrated zone(old group:{}, member:{}, new group:{})", oldGroupId, memberId, groupId);
                     }
                 } else {
-                    logger.error("Will not migrate (old group:" + oldGroupId + ", member:" + memberId + ", new group:" + groupId + "). Incorrectly mapped zones group? (" + displayName + ")");
+                    logger.error("Will not migrate (old group:{}, member:{}, new group:{}). Incorrectly mapped zones group? ({})", oldGroupId, memberId, groupId, displayName);
                 }
             }
         }

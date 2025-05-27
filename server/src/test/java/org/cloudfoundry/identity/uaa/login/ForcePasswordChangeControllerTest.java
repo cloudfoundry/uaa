@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,7 +40,8 @@ class ForcePasswordChangeControllerTest extends TestClassNullifier {
         mockResourcePropertySource = mock(ResourcePropertySource.class);
         ForcePasswordChangeController controller = new ForcePasswordChangeController(
                 mockResourcePropertySource,
-                mock(ResetPasswordService.class)
+                mock(ResetPasswordService.class),
+                new IdentityZoneManagerImpl()
         );
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)

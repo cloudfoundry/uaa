@@ -271,7 +271,7 @@ public class TokenTestSupport {
 
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         timeService = mock(TimeService.class);
-        approvalService = new ApprovalService(timeService, approvalStore);
+        approvalService = new ApprovalService(timeService, approvalStore, mockIdentityZoneManager);
         when(timeService.getCurrentDate()).thenCallRealMethod();
         TokenEndpointBuilder tokenEndpointBuilder = new TokenEndpointBuilder(DEFAULT_ISSUER);
         keyInfoService = keyInfo != null ? keyInfo : new KeyInfoService(DEFAULT_ISSUER);

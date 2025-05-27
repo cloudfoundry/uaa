@@ -11,8 +11,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -44,6 +44,7 @@ import static org.springframework.util.StringUtils.hasText;
 public class ResetPasswordController {
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final IdentityZoneManager identityZoneManager;
     private final ResetPasswordService resetPasswordService;
     private final MessageService messageService;
     private final TemplateEngine templateEngine;
@@ -53,6 +54,7 @@ public class ResetPasswordController {
     private final String externalLoginUrl;
 
     public ResetPasswordController(
+            final IdentityZoneManager identityZoneManager,
             final ResetPasswordService resetPasswordService,
             final MessageService messageService,
             final @Qualifier("mailTemplateEngine") TemplateEngine templateEngine,
@@ -60,6 +62,7 @@ public class ResetPasswordController {
             final UaaUserDatabase userDatabase,
             final @Value("${login.url}") String externalLoginUrl
     ) {
+        this.identityZoneManager = identityZoneManager;
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
@@ -73,7 +76,7 @@ public class ResetPasswordController {
             @RequestParam(required = false, value = "client_id") String clientId,
             @RequestParam(required = false, value = "redirect_uri") String redirectUri,
             HttpServletResponse response) {
-        if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+        if (!identityZoneManager.getCurrentIdentityZone().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
         model.addAttribute("client_id", clientId);
@@ -84,7 +87,7 @@ public class ResetPasswordController {
     @PostMapping("/forgot_password.do")
     public String forgotPassword(Model model, @RequestParam("username") String username, @RequestParam(value = "client_id", defaultValue = "") String clientId,
             @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
-        if (!IdentityZoneHolder.get().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
+        if (!identityZoneManager.getCurrentIdentityZone().getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled()) {
             return handleSelfServiceDisabled(model, response, "error_message_code", "self_service_disabled");
         }
         forgotPassword(username, clientId, redirectUri);
@@ -107,7 +110,7 @@ public class ResetPasswordController {
             htmlContent = getResetUnavailableEmailHtml(email);
             userId = e.getUserId();
         } catch (NotFoundException e) {
-            logger.error("User with email address " + username + " not found.");
+            logger.error("User with email address {} not found.", username);
         }
 
         if (htmlContent != null && userId != null) {
@@ -126,9 +129,9 @@ public class ResetPasswordController {
     private String getCodeSentEmailHtml(String code) {
         String resetUrl;
         if (UaaUrlUtils.isUrl(externalLoginUrl)) {
-            resetUrl = UaaUrlUtils.getUaaUrl(UriComponentsBuilder.fromUriString(externalLoginUrl).path("/reset_password"), true, IdentityZoneHolder.get());
+            resetUrl = UaaUrlUtils.getUaaUrl(UriComponentsBuilder.fromUriString(externalLoginUrl).path("/reset_password"), true, identityZoneManager.getCurrentIdentityZone());
         } else {
-            resetUrl = UaaUrlUtils.getUaaUrl("/reset_password", IdentityZoneHolder.get());
+            resetUrl = UaaUrlUtils.getUaaUrl("/reset_password", identityZoneManager.getCurrentIdentityZone());
         }
 
         final Context ctx = new Context();
@@ -139,7 +142,7 @@ public class ResetPasswordController {
     }
 
     private String getResetUnavailableEmailHtml(String email) {
-        String hostname = UaaUrlUtils.getUaaHost(IdentityZoneHolder.get());
+        String hostname = UaaUrlUtils.getUaaHost(identityZoneManager.getCurrentIdentityZone());
 
         final Context ctx = new Context();
         ctx.setVariable("serviceName", getServiceName());
@@ -149,11 +152,11 @@ public class ResetPasswordController {
     }
 
     private String getServiceName() {
-        if (IdentityZoneHolder.isUaa()) {
+        if (identityZoneManager.isCurrentZoneUaa()) {
             String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
             return StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
-            return IdentityZoneHolder.get().getName();
+            return identityZoneManager.getCurrentIdentityZone().getName();
         }
     }
 
@@ -174,14 +177,14 @@ public class ResetPasswordController {
             HttpServletResponse response,
             @RequestParam("code") String code) {
 
-        ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code, IdentityZoneHolder.get().getId()));
+        ExpiringCode expiringCode = checkIfUserExists(codeStore.retrieveCode(code, identityZoneManager.getCurrentIdentityZone().getId()));
         if (expiringCode == null) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } else {
             PasswordChange passwordChange = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
             String userId = passwordChange.getUserId();
             UaaUser uaaUser = userDatabase.retrieveUserById(userId);
-            String newCode = codeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), IdentityZoneHolder.get().getId()).getCode();
+            String newCode = codeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000)), expiringCode.getIntent(), identityZoneManager.getCurrentIdentityZoneId()).getCode();
             model.addAttribute("code", newCode);
             model.addAttribute("email", uaaUser.getEmail());
             model.addAttribute("username", uaaUser.getUsername());
@@ -195,20 +198,20 @@ public class ResetPasswordController {
             return null;
         }
         if (!hasText(code.getData())) {
-            logger.debug("reset_password ExpiringCode[" + code.getCode() + "] data string is null or empty. Aborting.");
+            logger.debug("reset_password ExpiringCode[{}] data string is null or empty. Aborting.", code.getCode());
             return null;
         }
         Map<String, String> data = JsonUtils.readValue(code.getData(), new TypeReference<Map<String, String>>() {
         });
         if (!hasText(data.get("user_id"))) {
-            logger.debug("reset_password ExpiringCode[" + code.getCode() + "] user_id string is null or empty. Aborting.");
+            logger.debug("reset_password ExpiringCode[{}] user_id string is null or empty. Aborting.", code.getCode());
             return null;
         }
         String userId = data.get("user_id");
         try {
             userDatabase.retrieveUserById(userId);
         } catch (UsernameNotFoundException e) {
-            logger.debug("reset_password ExpiringCode[" + code.getCode() + "] user_id is invalid. Aborting.");
+            logger.debug("reset_password ExpiringCode[{}] user_id is invalid. Aborting.", code.getCode());
             return null;
         }
         return code;

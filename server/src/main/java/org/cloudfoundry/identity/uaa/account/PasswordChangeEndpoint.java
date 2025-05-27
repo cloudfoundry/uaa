@@ -104,7 +104,7 @@ public class PasswordChangeEndpoint {
             }
         } else {
             if (!userId.equals(currentUser())) {
-                logger.warn("User with id " + currentUser() + " attempting to change password for user " + userId);
+                logger.warn("User with id {} attempting to change password for user {}", currentUser(), userId);
                 throw new InvalidPasswordException("Not permitted to change another user's password");
             }
 

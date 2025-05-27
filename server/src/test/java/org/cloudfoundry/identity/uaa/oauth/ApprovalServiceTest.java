@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -35,7 +36,7 @@ class ApprovalServiceTest {
         timeService = mock(TimeService.class);
         approvalStore = mock(ApprovalStore.class);
         clientDetails = new UaaClientDetails(CLIENT_ID, null, "foo.read,bar.write", null, null);
-        approvalService = new ApprovalService(timeService, approvalStore);
+        approvalService = new ApprovalService(timeService, approvalStore, new IdentityZoneManagerImpl());
     }
 
     @Test

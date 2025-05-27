@@ -107,7 +107,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
         if (bean instanceof SecurityFilterChain fc && !ignore.contains(beanName)) {
-            logger.info("Processing security filter chain " + beanName);
+            logger.info("Processing security filter chain {}", beanName);
 
             if (additionalFilters != null) {
                 for (Entry<FilterPosition, Filter> entry : additionalFilters.entrySet()) {
@@ -202,7 +202,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                 return;
             }
 
-            logger.debug("Bad (non-https) request received from: " + request.getRemoteHost());
+            logger.debug("Bad (non-https) request received from: {}", request.getRemoteHost());
 
             if (dumpRequests) {
                 logger.debug(dumpRequest(request));
@@ -221,7 +221,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
                 // http://tools.ietf.org/html/draft-ietf-websec-strict-transport-sec-14#section-7.2
                 String url = rb.getUrl();
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Redirecting to " + url);
+                    logger.debug("Redirecting to {}", url);
                 }
                 response.setHeader("Location", url);
                 response.setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
@@ -247,8 +247,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
             HttpServletResponse response = (HttpServletResponse) res;
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Filter chain '" + name + "' processing request " + request.getMethod() + " "
-                        + request.getRequestURI());
+                logger.debug("Filter chain '{}' processing request {} {}", name, request.getMethod(), request.getRequestURI());
 
                 if (dumpRequests) {
                     logger.debug(dumpRequest(request));

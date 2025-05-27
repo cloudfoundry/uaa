@@ -130,7 +130,7 @@ class ScimGroupEndpointsTests {
                         createMember(ScimGroupMember.Type.GROUP)))
         );
 
-        ScimExternalGroupBootstrap externalGroupBootstrap = new ScimExternalGroupBootstrap(jdbcScimGroupProvisioning, jdbcScimGroupExternalMembershipManager);
+        ScimExternalGroupBootstrap externalGroupBootstrap = new ScimExternalGroupBootstrap(jdbcScimGroupProvisioning, jdbcScimGroupExternalMembershipManager, identityZoneManager);
         externalGroupBootstrap.setAddNonExistingGroups(true);
 
         Map<String, Map<String, List>> externalGroups = new HashMap<>();

@@ -299,7 +299,7 @@ class CheckTokenEndpointTests {
         userDatabase = mock(UaaUserDatabase.class);
         KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa");
         tokenValidationService = new TokenValidationService(tokenProvisioning, tokenEndpointBuilder, userDatabase, clientDetailsService, keyInfoService);
-        ApprovalService approvalService = new ApprovalService(timeService, approvalStore);
+        ApprovalService approvalService = new ApprovalService(timeService, approvalStore, mockIdentityZoneManager);
         tokenServices = new UaaTokenServices(
                 mock(IdTokenCreator.class),
                 tokenEndpointBuilder,
@@ -729,7 +729,7 @@ class CheckTokenEndpointTests {
                                 -----END RSA PRIVATE KEY-----"""));
                 IdentityZoneHolder.set(zone);
                 KeyInfoService keyInfoService = new KeyInfoService("http://localhost:8080/uaa");
-                ApprovalService approvalService = new ApprovalService(timeService, approvalStore);
+                ApprovalService approvalService = new ApprovalService(timeService, approvalStore, mockIdentityZoneManager);
                 tokenServices = new UaaTokenServices(
                         mock(IdTokenCreator.class),
                         tokenEndpointBuilder,

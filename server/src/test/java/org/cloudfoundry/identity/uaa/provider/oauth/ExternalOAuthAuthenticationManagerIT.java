@@ -217,7 +217,7 @@ class ExternalOAuthAuthenticationManagerIT {
                         identityZoneProvisioning,
                         identityZoneManager)
         );
-        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
+        externalOAuthAuthenticationManager = spy(new ExternalOAuthAuthenticationManager(externalOAuthProviderConfigurator, identityZoneManager, trustingRestTemplate, nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_URL), oidcMetadataFetcher));
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
         externalOAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         externalOAuthAuthenticationManager.setApplicationEventPublisher(publisher);

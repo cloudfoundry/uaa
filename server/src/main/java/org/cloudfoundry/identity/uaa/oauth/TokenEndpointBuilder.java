@@ -24,7 +24,7 @@ public class TokenEndpointBuilder {
         try {
             return UaaTokenUtils.constructTokenEndpointUrl(issuer, identityZone);
         } catch (URISyntaxException e) {
-            logger.error("Failed to get token endpoint for issuer " + issuer, e);
+            logger.error("Failed to get token endpoint for issuer {}", issuer, e);
             throw new IllegalArgumentException(e);
         }
     }

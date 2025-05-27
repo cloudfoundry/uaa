@@ -106,7 +106,7 @@ public class ProfileController {
 
     @ExceptionHandler
     public View handleException(NoSuchClientException nsce) {
-        logger.debug("Unable to find client for approvals:" + nsce.getMessage());
+        logger.debug("Unable to find client for approvals:{}", nsce.getMessage());
         return new RedirectView("profile?error_message_code=request.invalid_parameter", true);
     }
 
@@ -124,8 +124,7 @@ public class ProfileController {
     }
 
     private void extractUaaUserAttributes(Authentication authentication, Model model) {
-        if (authentication.getPrincipal() instanceof UaaPrincipal) {
-            UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
+        if (authentication.getPrincipal() instanceof UaaPrincipal principal) {
             boolean isUaaManagedUser = OriginKeys.UAA.equals(principal.getOrigin());
             model.addAttribute("isUaaManagedUser", isUaaManagedUser);
             if (isUaaManagedUser) {

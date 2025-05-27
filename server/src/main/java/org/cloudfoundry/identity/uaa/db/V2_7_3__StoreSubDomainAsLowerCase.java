@@ -55,7 +55,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
         }
 
         for (String s : duplicates) {
-            logger.debug("Processing zone duplicates for subdomain:" + s);
+            logger.debug("Processing zone duplicates for subdomain:{}", s);
             List<IdentityZone> dupZones = zones.get(s);
             for (int i = 1; i < dupZones.size(); i++) {
                 IdentityZone dupZone = dupZones.get(i);
@@ -66,7 +66,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
                         newsubdomain = potentialsubdomain;
                     }
                 }
-                logger.debug("Updating zone id:%s; old subdomain: %s; new subdomain: %s;".formatted(dupZone.getId(), dupZone.getSubdomain(), newsubdomain));
+                logger.debug("Updating zone id:{}; old subdomain: {}; new subdomain: {}", dupZone.getId(), dupZone.getSubdomain(), newsubdomain);
                 dupZone.setSubdomain(newsubdomain);
                 dupZone = updateIdentityZone(dupZone, jdbcTemplate);
                 zones.put(newsubdomain, Collections.singletonList(dupZone));
@@ -75,7 +75,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
         for (IdentityZone zone : identityZones) {
             String subdomain = zone.getSubdomain();
             if (StringUtils.hasText(subdomain) && !subdomain.toLowerCase().equals(subdomain)) {
-                logger.debug("Lowercasing zone subdomain for id:%s; old subdomain: %s; new subdomain: %s;".formatted(zone.getId(), zone.getSubdomain(), zone.getSubdomain().toLowerCase()));
+                logger.debug("Lowercasing zone subdomain for id:{}; old subdomain: {}; new subdomain: {};", zone.getId(), zone.getSubdomain(), zone.getSubdomain().toLowerCase());
                 zone.setSubdomain(subdomain.toLowerCase());
                 updateIdentityZone(zone, jdbcTemplate);
             }
@@ -127,7 +127,7 @@ public class V2_7_3__StoreSubDomainAsLowerCase extends BaseJavaMigration {
             list.add(zone);
             zones.put(subdomain, list);
         } else {
-            logger.warn("Found duplicate zone for subdomain:" + subdomain);
+            logger.warn("Found duplicate zone for subdomain:{}", subdomain);
             duplicates.add(subdomain);
             zones.get(subdomain).add(zone);
         }

@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -74,12 +74,16 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final SecurityContextAccessor securityContextAccessor;
 
+    private final IdentityZoneManager identityZoneManager;
+
     private final Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
 
-    public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor) {
+    public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor,
+                                         final IdentityZoneManager identityZoneManager) {
         this.securityContextAccessor = securityContextAccessor;
+        this.identityZoneManager = identityZoneManager;
     }
 
     /**
@@ -118,7 +122,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             if (reservedClientIds.contains(clientId)) {
                 throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
             }
-            if (invalidClientIdsCharacters.stream().filter(c -> clientId.indexOf(c) > -1).findAny().isPresent()) {
+            if (invalidClientIdsCharacters.stream().anyMatch(c -> clientId.indexOf(c) > -1)) {
                 throw new InvalidClientDetailsException("Not allowed characters: " + clientId + " must not contain any of " + invalidClientIdsCharacters);
             }
         }
@@ -134,13 +138,13 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         if ((requestedGrantTypes.contains(GRANT_TYPE_AUTHORIZATION_CODE) || requestedGrantTypes.contains(GRANT_TYPE_PASSWORD))
                 && !requestedGrantTypes.contains(GRANT_TYPE_REFRESH_TOKEN)) {
-            logger.debug("requested grant type missing refresh_token: " + clientId);
+            logger.debug("requested grant type missing refresh_token: {}", clientId);
 
             requestedGrantTypes.add(GRANT_TYPE_REFRESH_TOKEN);
         }
 
         if (requestedGrantTypes.contains(GRANT_TYPE_JWT_BEARER) && (client.getScope() == null || client.getScope().isEmpty())) {
-            logger.debug("Invalid client: " + clientId + ". Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
+            logger.debug("Invalid client: {}. Scope cannot be empty for grant_type {}", clientId, GRANT_TYPE_JWT_BEARER);
             throw new InvalidClientDetailsException("Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
         }
 
@@ -165,7 +169,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             String callerId = securityContextAccessor.getClientId();
             ClientDetails caller = null;
             try {
-                caller = clientDetailsService.retrieve(callerId, IdentityZoneHolder.get().getId());
+                caller = clientDetailsService.retrieve(callerId, identityZoneManager.getCurrentIdentityZoneId());
             } catch (Exception e) {
                 // best effort to get the caller, but the caller might not belong to this zone.
             }
@@ -223,10 +227,8 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             client.setScope(Collections.singleton("uaa.none"));
         }
 
-        if (requestedGrantTypes.contains(GRANT_TYPE_IMPLICIT)) {
-            if (StringUtils.hasText(client.getClientSecret())) {
-                throw new InvalidClientDetailsException("Implicit grant should not have a client_secret");
-            }
+        if (requestedGrantTypes.contains(GRANT_TYPE_IMPLICIT) && StringUtils.hasText(client.getClientSecret())) {
+            throw new InvalidClientDetailsException("Implicit grant should not have a client_secret");
         }
         if (create) {
             clientSecretValidator.validate(client.getClientSecret());

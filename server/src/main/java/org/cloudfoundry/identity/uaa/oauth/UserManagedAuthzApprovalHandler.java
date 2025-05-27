@@ -49,7 +49,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         String approvalParameter1 = OAuth2Utils.USER_OAUTH_APPROVAL;
         String flag = authorizationRequest.getApprovalParameters().get(approvalParameter1);
-        boolean userApproval = flag != null && "true".equals(flag.toLowerCase());
+        boolean userApproval = flag != null && "true".equalsIgnoreCase(flag);
 
         if (logger.isDebugEnabled()) {
             StringBuilder builder = new StringBuilder("Looking up user approved authorizations for ");
@@ -78,9 +78,9 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
             Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
             Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
             boolean foundUserApprovalParameter = false;
-            for (String approvalParameter : approvalParameters.keySet()) {
-                if (approvalParameter.startsWith(SCOPE_PREFIX)) {
-                    approvedScopes.add(approvalParameters.get(approvalParameter).substring(SCOPE_PREFIX.length()));
+            for (Map.Entry<String, String> entry : approvalParameters.entrySet()) {
+                if (entry.getKey().startsWith(SCOPE_PREFIX)) {
+                    approvedScopes.add(entry.getValue().substring(SCOPE_PREFIX.length()));
                     foundUserApprovalParameter = true;
                 }
             }
@@ -147,7 +147,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
             }
 
             if (logger.isDebugEnabled()) {
-                logger.debug("Valid user approved/denied scopes are " + validUserApprovedScopes);
+                logger.debug("Valid user approved/denied scopes are {}", validUserApprovedScopes);
             }
 
             // If the requested scopes have already been acted upon by the user,

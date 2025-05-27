@@ -153,7 +153,7 @@ public class SpringSecurityLdapTemplate extends LdapTemplate {
         }
 
         String formattedFilter = MessageFormat.format(filter, encodedParams);
-        logger.debug("Using filter: " + formattedFilter);
+        logger.debug("Using filter: {}", formattedFilter);
 
         final HashSet<Map<String, String[]>> set = new HashSet<>();
 
@@ -164,7 +164,7 @@ public class SpringSecurityLdapTemplate extends LdapTemplate {
                 for (String attributeName : attributeNames) {
                     String[] values = adapter.getStringAttributes(attributeName);
                     if (values == null || values.length == 0) {
-                        logger.debug("No attribute value found for '" + attributeName + "'");
+                        logger.debug("No attribute value found for '{}'", attributeName);
                     } else {
                         record.put(attributeName, values);
                     }
@@ -245,8 +245,7 @@ public class SpringSecurityLdapTemplate extends LdapTemplate {
         final NamingEnumeration<SearchResult> resultsEnum = ctx.search(searchBaseDn, filter, params, buildControls(searchControls));
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Searching for entry under DN '" + ctxBaseDn
-                    + "', base = '" + searchBaseDn + "', filter = '" + filter + "'");
+            logger.debug("Searching for entry under DN '{}', base = '{}', filter = '{}'", ctxBaseDn, searchBaseDn, filter);
         }
 
         Set<DirContextOperations> results = new HashSet<>();
@@ -257,7 +256,7 @@ public class SpringSecurityLdapTemplate extends LdapTemplate {
                 Assert.notNull(dca, "No object returned by search, DirContext is not correctly configured");
 
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Found DN: " + dca.getDn());
+                    logger.debug("Found DN: {}", dca.getDn());
                 }
                 results.add(dca);
             }

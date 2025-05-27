@@ -119,7 +119,7 @@ public class RateLimitingFilter extends HttpFilter {
                 }
             }
             catch (RuntimeException e) {
-                log.error("Unexpected RateLimiter error w/ path '" + request.getRequestURI() + "'", e);
+                log.error("Unexpected RateLimiter error w/ path '{}'", request.getRequestURI(), e);
             }
             filterChain.doFilter(request, response); // just forward it!
         }

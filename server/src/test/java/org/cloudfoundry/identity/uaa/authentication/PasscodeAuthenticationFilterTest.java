@@ -40,7 +40,7 @@ class PasscodeAuthenticationFilterTest {
 
     @BeforeEach
     void setup() {
-        Logger logger = LoggerFactory.getLogger(ExpiringCodeAuthenticationManager.class);
+        Logger logger = LoggerFactory.getLogger(PasscodeAuthenticationFilterTest.class);
         ExpiringCodeStore expiringCodeStore = new InMemoryExpiringCodeStore(new MockTimeService());
         manager = new ExpiringCodeAuthenticationManager(null, null, logger, expiringCodeStore, null);
     }

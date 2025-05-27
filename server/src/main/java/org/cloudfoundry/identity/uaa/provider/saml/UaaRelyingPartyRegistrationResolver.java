@@ -63,7 +63,7 @@ public final class UaaRelyingPartyRegistrationResolver implements Converter<Http
 
         if (relyingPartyRegistrationId == null) {
             if (log.isTraceEnabled()) {
-                log.trace("Attempting to resolve from " + this.registrationRequestMatcher + " since registrationId is null");
+                log.trace("Attempting to resolve from {} since registrationId is null", this.registrationRequestMatcher);
             }
 
             String resolvedEntityId = this.registrationRequestMatcher.matcher(request).getVariables().get("registrationId");

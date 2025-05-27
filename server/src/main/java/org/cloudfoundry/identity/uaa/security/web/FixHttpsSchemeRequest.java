@@ -27,7 +27,7 @@ public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
     @Override
     public String getScheme() {
         String scheme = super.getScheme();
-        logger.debug("Request X-Forwarded-Proto " + super.getHeader("X-Forwarded-Proto"));
+        logger.debug("Request X-Forwarded-Proto {}", super.getHeader("X-Forwarded-Proto"));
 
         if ("http".equals(scheme) &&
                 "https".equals(super.getHeader("X-Forwarded-Proto"))) {

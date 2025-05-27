@@ -244,7 +244,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         int removed;
         do {
             removed = template.update(sql, now);
-            logger.info("Removed " + removed + " expired revocable tokens.");
+            logger.info("Removed {} expired revocable tokens.", removed);
         } while (removed > 0 && (timeService.getCurrentTimeMillis() - now) < maxExpirationRuntime.toMillis());
         return removed >= maxRows;
     }

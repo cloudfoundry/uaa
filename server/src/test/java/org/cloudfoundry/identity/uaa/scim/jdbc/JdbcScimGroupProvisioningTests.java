@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -109,7 +110,7 @@ class JdbcScimGroupProvisioningTests {
 
         users = mock(ScimUserProvisioning.class);
 
-        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate,
+        memberships = new JdbcScimGroupMembershipManager(new IdentityZoneManagerImpl(), jdbcTemplate,
                 new TimeServiceImpl(), users, null, dbUtils);
         memberships.setScimGroupProvisioning(dao);
         dao.setJdbcScimGroupMembershipManager(memberships);

@@ -15,6 +15,7 @@ import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,7 +82,7 @@ class UaaTokenStoreTests {
                 "openid"));
 
         timeService = givenMockedTime();
-        store = new UaaTokenStore(dataSource, timeService);
+        store = new UaaTokenStore(dataSource, timeService, new IdentityZoneManagerImpl());
         legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
         UaaClientDetails client = new UaaClientDetails("clientid", null, "openid", "client_credentials,password", "oauth.login", null);
         Map<String, String> parameters = new HashMap<>();
@@ -308,7 +309,7 @@ class UaaTokenStoreTests {
 
             SameConnectionDataSource sameConnectionDataSource = new SameConnectionDataSource(expirationLoser);
 
-            store = new UaaTokenStore(sameConnectionDataSource, timeService, Duration.ofMillis(1));
+            store = new UaaTokenStore(sameConnectionDataSource, timeService, new IdentityZoneManagerImpl(), Duration.ofMillis(1));
             int count = 10;
             for (int i = 0; i < count; i++) {
                 String code = store.createAuthorizationCode(clientAuthentication);
@@ -334,7 +335,7 @@ class UaaTokenStoreTests {
         // Given, mocked data source to count how often it is used, call performExpirationClean 10 times.
         DataSource mockedDataSource = mock(DataSource.class);
         Instant before = Instant.now();
-        store = new UaaTokenStore(mockedDataSource, timeService);
+        store = new UaaTokenStore(mockedDataSource, timeService, new IdentityZoneManagerImpl());
         // When
         for (int i = 0; i < 10; i++) {
             try {

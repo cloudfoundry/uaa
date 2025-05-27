@@ -83,18 +83,18 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
         try {
-            logger.trace("Yaml document is\n" + yaml);
+            logger.trace("Yaml document is\n{}", yaml);
             configuration = (T) (new Yaml(constructor)).load(yaml);
             Set<ConstraintViolation<T>> errors = validator.validate(configuration);
 
             if (!errors.isEmpty()) {
                 logger.error("YAML configuration failed validation");
                 for (ConstraintViolation<?> error : errors) {
-                    logger.error(error.getPropertyPath() + ": " + error.getMessage());
+                    logger.error("{}: {}", error.getPropertyPath(), error.getMessage());
                 }
                 if (exceptionIfInvalid) {
                     @SuppressWarnings("rawtypes")
-                    ConstraintViolationException summary = new ConstraintViolationException((Set) errors);
+                    ConstraintViolationException summary = new ConstraintViolationException(errors);
                     throw summary;
                 }
             }

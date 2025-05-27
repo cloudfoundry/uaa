@@ -45,7 +45,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.context.support.ReloadableResourceBundleMessageSource;
@@ -145,7 +144,7 @@ public class SpringServletXmlBeansConfiguration {
             SecurityContextAccessor securityContextAccessor,
             @Qualifier("clientDetailsService") QueryableResourceManager<ClientDetails> clientDetailsService,
             @Qualifier("zoneAwareClientSecretPolicyValidator") ClientSecretValidator clientDetailsValidator) {
-        ClientAdminEndpointsValidator bean = new ClientAdminEndpointsValidator(securityContextAccessor);
+        ClientAdminEndpointsValidator bean = new ClientAdminEndpointsValidator(securityContextAccessor, identityZoneManager);
         bean.setClientDetailsService(clientDetailsService);
         bean.setClientSecretValidator(clientDetailsValidator);
         return bean;

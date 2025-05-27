@@ -72,10 +72,10 @@ class TableAndColumnNormalizationTest {
             int count = 0;
             while (rs.next()) {
                 String name = rs.getString("TABLE_NAME");
-                logger.info("Checking table [" + name + "]");
+                logger.info("Checking table [{}]", name);
                 if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
                     count++;
-                    logger.info("Validating table [" + name + "]");
+                    logger.info("Validating table [{}]", name);
                     assertThat(name).as("Table[%s] is not lower case.".formatted(name)).isEqualTo(name.toLowerCase());
                 }
             }
@@ -93,9 +93,9 @@ class TableAndColumnNormalizationTest {
                 hadSomeResults = true;
                 String name = rs.getString("TABLE_NAME");
                 String col = rs.getString("COLUMN_NAME");
-                logger.info("Checking column [" + name + "." + col + "]");
+                logger.info("Checking column [{}.{}]", name, col);
                 if (name != null && DatabaseInformation1_5_3.tableNames.contains(name.toLowerCase())) {
-                    logger.info("Validating column [" + name + "." + col + "]");
+                    logger.info("Validating column [{}.{}]", name, col);
                     assertThat(col.toLowerCase()).as("Column[%s.%s] is not lower case.".formatted(name, col)).isEqualTo(col);
                 }
             }

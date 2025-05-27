@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -208,7 +209,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase, "http://localhost");
+        ResetPasswordController controller = new ResetPasswordController(new IdentityZoneManagerImpl(), resetPasswordService, messageService, templateEngine, codeStore, userDatabase, "http://localhost");
         mockMvc = MockMvcBuilders
                 .standaloneSetup(controller)
                 .setViewResolvers(getResolver())
@@ -383,7 +384,7 @@ class ResetPasswordControllerTest extends TestClassNullifier {
                                                         TemplateEngine mailTemplateEngine,
                                                         ExpiringCodeStore codeStore,
                                                         UaaUserDatabase userDatabase) {
-            return new ResetPasswordController(resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase, "http://localhost");
+            return new ResetPasswordController(new IdentityZoneManagerImpl(), resetPasswordService, messageService, mailTemplateEngine, codeStore, userDatabase, "http://localhost");
         }
     }
 

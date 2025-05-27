@@ -10,10 +10,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,7 +25,7 @@ public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, E
 
     private static final Logger logger = LoggerFactory.getLogger(EnvironmentMapFactoryBean.class);
 
-    private static final Collection<String> STATIC_PROPERTY_SOURCES = Arrays.asList(
+    private static final List<String> STATIC_PROPERTY_SOURCES = List.of(
             StandardEnvironment.SYSTEM_PROPERTIES_PROPERTY_SOURCE_NAME,
             StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
 
@@ -49,21 +48,21 @@ public class EnvironmentMapFactoryBean implements FactoryBean<Map<String, ?>>, E
         // The result is the default application properties overridden with
         // Spring environment values - reversing the
         // order of the placeholder configurers in the application context.
-        for (Object key : defaultProperties.keySet()) {
-            String name = (String) key;
+        for (Map.Entry<String, ?> entry : defaultProperties.entrySet()) {
+            String name = entry.getKey();
             if (environment != null && environment.containsProperty(name)) {
                 Object value = environment.getProperty(name, Object.class);
-                logger.debug("From Environment: " + name);
+                logger.debug("From Environment: {}", name);
                 result.put(name, value);
             } else {
-                logger.debug("From Defaults: " + name);
-                result.put(name, defaultProperties.get(key));
+                logger.debug("From Defaults: {}", name);
+                result.put(name, entry.getValue());
             }
         }
         // Any properties added only in the environment can be picked up here...
         if (environment instanceof ConfigurableEnvironment configurableEnvironment) {
             for (PropertySource<?> source : configurableEnvironment.getPropertySources()) {
-                if (source instanceof EnumerablePropertySource enumerable && !STATIC_PROPERTY_SOURCES.contains(source.getName())) {
+                if (source instanceof EnumerablePropertySource<?> enumerable && !STATIC_PROPERTY_SOURCES.contains(source.getName())) {
                     for (String name : enumerable.getPropertyNames()) {
                         Object value = source.getProperty(name);
                         if (value instanceof String string) {

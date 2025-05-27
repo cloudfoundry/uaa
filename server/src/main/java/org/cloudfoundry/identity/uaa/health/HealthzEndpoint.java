@@ -35,7 +35,7 @@ public class HealthzEndpoint {
             logger.warn("Shutdown hook received, future requests to this endpoint will return 503");
             try {
                 if (sleepTime > 0) {
-                    logger.debug("Healthz is sleeping shutdown thread for " + sleepTime + " ms.");
+                    logger.debug("Healthz is sleeping shutdown thread for {} ms.", sleepTime);
                     Thread.sleep(sleepTime);
                 }
             } catch (InterruptedException e) {
@@ -74,7 +74,7 @@ public class HealthzEndpoint {
             wasLastConnectionSuccessful = true;
             return;
         } catch (Exception ex) {
-            logger.error("Could not establish connection to DB - " + ex.getMessage());
+            logger.error("Could not establish connection to DB - {}", ex.getMessage());
         }
         wasLastConnectionSuccessful = false;
     }

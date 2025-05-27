@@ -62,17 +62,17 @@ public class V1_5_4__NormalizeTableAndColumnNames extends BaseJavaMigration {
 
         List<ColumnInfo> columns;
         if (DbUtils.getDatabaseMajorVersion(jdbcTemplate) < 8) {
-            logger.info("[V1_5_4] Running SQL: " + colQueryForMysql5);
+            logger.info("[V1_5_4] Running SQL: {}", colQueryForMysql5);
             columns = jdbcTemplate.query(colQueryForMysql5, new ColumnMapper());
         } else {
-            logger.info("[V1_5_4] Running SQL: " + colQueryTemplateForMysql8);
+            logger.info("[V1_5_4] Running SQL: {}", colQueryTemplateForMysql8);
             columns = jdbcTemplate.query(colQueryTemplateForMysql8, new ColumnMapper());
         }
 
         for (ColumnInfo column : columns) {
             if (processColumn(column)) {
                 String sql = column.sql.replaceAll("2001-01-01 .*", "'2001-01-01 01:01:01.000001'");
-                logger.info("Renaming column: [" + sql + "]");
+                logger.info("Renaming column: [{}]", sql);
                 jdbcTemplate.execute(sql);
             }
         }

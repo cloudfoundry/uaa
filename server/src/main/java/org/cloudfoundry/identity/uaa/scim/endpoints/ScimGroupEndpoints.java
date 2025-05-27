@@ -342,7 +342,7 @@ public class ScimGroupEndpoints {
     }
 
     private String getGroupId(String displayName) {
-        if (displayName == null || displayName.trim().length() == 0) {
+        if (displayName == null || displayName.trim().isEmpty()) {
             throw new ScimException("Group not found, not name provided", HttpStatus.NOT_FOUND);
         }
 
@@ -357,7 +357,7 @@ public class ScimGroupEndpoints {
     @GetMapping({"/Groups/{groupId}"})
     @ResponseBody
     public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
-        logger.debug("retrieving group with id: " + groupId);
+        logger.debug("retrieving group with id: {}", groupId);
         ScimGroup group = dao.retrieve(groupId, identityZoneManager.getCurrentIdentityZoneId());
         group.setMembers(membershipManager.getMembers(groupId, false, identityZoneManager.getCurrentIdentityZoneId()));
         addETagHeader(httpServletResponse, group);
@@ -377,8 +377,7 @@ public class ScimGroupEndpoints {
                             member,
                             identityZoneManager.getCurrentIdentityZoneId());
                 } catch (ScimException ex) {
-                    logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + created.getId(),
-                            ex);
+                    logger.warn("Attempt to add invalid member: {} to group: {}", member.getMemberId(), created.getId(), ex);
                     dao.delete(created.getId(), created.getVersion(), identityZoneManager.getCurrentIdentityZoneId());
                     throw new InvalidScimResourceException("Invalid group member: " + member.getMemberId());
                 }
@@ -399,7 +398,7 @@ public class ScimGroupEndpoints {
         if (etag == null) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
-        logger.debug("updating group: " + groupId);
+        logger.debug("updating group: {}", groupId);
         int version = getVersion(groupId, etag);
         group.setVersion(version);
         ScimGroup existing = getGroup(groupId, httpServletResponse);
@@ -426,7 +425,7 @@ public class ScimGroupEndpoints {
             dao.update(groupId, existing, identityZoneManager.getCurrentIdentityZoneId());
             throw new ScimException(ex.getMessage(), ex, HttpStatus.CONFLICT);
         } catch (ScimResourceNotFoundException ex) {
-            logger.error("Error updating group, restoring to previous state: " + existing);
+            logger.error("Error updating group, restoring to previous state: {}", existing);
             // restore to correct state before reporting error
             existing.setVersion(getVersion(groupId, "*"));
             dao.update(groupId, existing, identityZoneManager.getCurrentIdentityZoneId());
@@ -443,7 +442,7 @@ public class ScimGroupEndpoints {
         if (etag == null) {
             throw new ScimException("Missing If-Match for PATCH", HttpStatus.BAD_REQUEST);
         }
-        logger.debug("patching group: " + groupId);
+        logger.debug("patching group: {}", groupId);
         int version = getVersion(groupId, etag);
         patch.setVersion(version);
         ScimGroup current = getGroup(groupId, httpServletResponse);
@@ -457,7 +456,7 @@ public class ScimGroupEndpoints {
             @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag,
             HttpServletResponse httpServletResponse) {
         ScimGroup group = getGroup(groupId, httpServletResponse);
-        logger.debug("deleting group: " + group);
+        logger.debug("deleting group: {}", group);
         try {
             membershipManager.removeMembersByGroupId(groupId, identityZoneManager.getCurrentIdentityZoneId());
             membershipManager.removeMembersByMemberId(groupId, identityZoneManager.getCurrentIdentityZoneId());
@@ -586,9 +585,9 @@ public class ScimGroupEndpoints {
             if (status != null) {
                 e = new ScimException(t.getMessage(), t, status);
             } else {
-                for (Class<?> key : statuses.keySet()) {
-                    if (key.isAssignableFrom(clazz)) {
-                        e = new ScimException(t.getMessage(), t, statuses.get(key));
+                for (Map.Entry<Class<? extends Exception>, HttpStatus> entry : statuses.entrySet()) {
+                    if (entry.getKey().isAssignableFrom(clazz)) {
+                        e = new ScimException(t.getMessage(), t, entry.getValue());
                         break;
                     }
                 }

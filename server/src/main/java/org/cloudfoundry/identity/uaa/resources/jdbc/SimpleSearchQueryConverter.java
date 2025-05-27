@@ -161,7 +161,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
             return whereClause;
         } catch (SCIMException e) {
-            logger.debug("Unable to parse " + filter, e);
+            logger.debug("Unable to parse {}", filter, e);
             throw new IllegalArgumentException("Invalid SCIM Filter: " + filter + "; Message: " + e.getMessage());
         }
     }
@@ -184,7 +184,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         try {
             scimFilter = SCIMFilter.parse(filter);
         } catch (SCIMException e) {
-            logger.debug("Attempting legacy scim filter conversion for [" + filter + "]", e);
+            logger.debug("Attempting legacy scim filter conversion for [{}]", filter, e);
             filter = filter.replaceAll("'", "\"");
             scimFilter = SCIMFilter.parse(filter);
         }

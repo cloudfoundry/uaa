@@ -68,7 +68,7 @@ public class MBeanMap extends AbstractMap<String, Object> {
                     Object value = server.getAttribute(name, key);
                     verySafePut(map, key, value);
                 } catch (Exception e) {
-                    logger.trace("Cannot extract attribute: " + key);
+                    logger.trace("Cannot extract attribute: {}", key);
                 }
             }
             MBeanOperationInfo[] operations = info.getOperations();
@@ -83,7 +83,7 @@ public class MBeanMap extends AbstractMap<String, Object> {
                         Object value = server.invoke(name, key, null, null);
                         verySafePut(map, attribute, value);
                     } catch (Exception e) {
-                        logger.trace("Cannot extract operation: " + key);
+                        logger.trace("Cannot extract operation: {}", key);
                     }
                 }
             }

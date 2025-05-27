@@ -38,6 +38,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * An authentication manager that can be used to login to a remote UAA service
@@ -111,7 +112,7 @@ public class RestAuthenticationManager implements AuthenticationManager {
 
         if (response.getStatusCode() == HttpStatus.OK || response.getStatusCode() == HttpStatus.CREATED) {
             if (evaluateResponse(authentication, response)) {
-                logger.info("Successful authentication request for " + authentication.getName());
+                logger.info("Successful authentication request for {}", authentication.getName());
                 return new UsernamePasswordAuthenticationToken(username, nullPassword ? null : "", UaaAuthority.USER_AUTHORITIES);
             }
         } else if (response.getStatusCode() == HttpStatus.UNAUTHORIZED) {
@@ -120,15 +121,15 @@ public class RestAuthenticationManager implements AuthenticationManager {
         } else if (response.getStatusCode() == HttpStatus.INTERNAL_SERVER_ERROR) {
             logger.info("Internal error from UAA. Please Check the UAA logs.");
         } else {
-            logger.error("Unexpected status code " + response.getStatusCode() + " from the UAA." +
-                    " Is a compatible version running?");
+            logger.error("Unexpected status code {} from the UAA." +
+                    " Is a compatible version running?", response.getStatusCode());
         }
         throw new RuntimeException("Could not authenticate with remote server");
     }
 
     protected boolean evaluateResponse(Authentication authentication, ResponseEntity<Map> response) {
-        String userFromUaa = (String) response.getBody().get("username");
-        return userFromUaa.equals(authentication.getPrincipal().toString());
+        String userFromUaa = Optional.ofNullable(response.getBody()).map(b -> b.get("username")).filter(String.class::isInstance).map(String.class::cast).orElse(null);
+        return Optional.ofNullable(userFromUaa).stream().anyMatch(u -> u.equals(authentication.getPrincipal().toString()));
     }
 
     protected Object getParameters(String username, String password) {

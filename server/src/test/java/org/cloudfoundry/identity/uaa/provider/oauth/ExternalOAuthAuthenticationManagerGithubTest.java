@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.provider.oauth.ExternalOAuthAuthenticationM
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -90,7 +91,7 @@ class ExternalOAuthAuthenticationManagerGithubTest {
                 trustingRestTemplate,
                 nonTrustingRestTemplate
         );
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, trustingRestTemplate,
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), trustingRestTemplate,
                 nonTrustingRestTemplate, tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
     }
 

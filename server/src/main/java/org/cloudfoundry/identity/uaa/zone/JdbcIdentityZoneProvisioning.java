@@ -156,7 +156,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, S
                 try {
                     identityZone.setConfig(JsonUtils.readValue(config, IdentityZoneConfiguration.class));
                 } catch (JsonUtils.JsonUtilException e) {
-                    logger.error("Invalid zone configuration found for zone id:" + identityZone.getId(), e);
+                    logger.error("Invalid zone configuration found for zone id:{}", identityZone.getId(), e);
                     identityZone.setConfig(new IdentityZoneConfiguration());
                 }
             }

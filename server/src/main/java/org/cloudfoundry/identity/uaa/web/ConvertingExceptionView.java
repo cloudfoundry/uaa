@@ -133,8 +133,7 @@ public class ConvertingExceptionView implements View {
                             if (contentType == null) {
                                 contentType = acceptedMediaType;
                             }
-                            logger.debug("Written [" + returnValue + "] as \"" + contentType + "\" using ["
-                                    + messageConverter + "]");
+                            logger.debug("Written [{}] as \"{}\" using [{}]", returnValue, contentType, messageConverter);
                         }
                         // this.responseArgumentUsed = true;
                         return;

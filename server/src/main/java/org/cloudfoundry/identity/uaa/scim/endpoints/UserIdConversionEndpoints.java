@@ -147,7 +147,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
             }
         } catch (SCIMException e) {
-            logger.debug("/ids/Users received an invalid filter [" + filter + "]", e);
+            logger.debug("/ids/Users received an invalid filter [{}]", filter, e);
             throw new ScimException("Invalid filter '" + HtmlUtils.htmlEscape(filter) + "'", HttpStatus.BAD_REQUEST);
         }
     }
@@ -157,8 +157,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
      */
     private boolean containsIdOrUserNameClause(SCIMFilter filter) {
         switch (filter.getFilterType()) {
-            case AND:
-            case OR:
+            case AND, OR:
                 // one of the operands must contain a comparison with the "id" or "userName" property
                 final boolean resultLeftOperand = containsIdOrUserNameClause(filter.getFilterComponents().get(0));
                 return containsIdOrUserNameClause(filter.getFilterComponents().get(1)) || resultLeftOperand;
@@ -172,14 +171,9 @@ public class UserIdConversionEndpoints implements InitializingBean {
                 } else {
                     throw new ScimException("Invalid filter attribute.", HttpStatus.BAD_REQUEST);
                 }
-            case PRESENCE:
-            case STARTS_WITH:
-            case CONTAINS:
+            case PRESENCE, STARTS_WITH, CONTAINS:
                 throw new ScimException("Wildcards are not allowed in filter.", HttpStatus.BAD_REQUEST);
-            case GREATER_THAN:
-            case GREATER_OR_EQUAL:
-            case LESS_THAN:
-            case LESS_OR_EQUAL:
+            case GREATER_THAN, GREATER_OR_EQUAL, LESS_THAN, LESS_OR_EQUAL:
                 throw new ScimException("Invalid operator.", HttpStatus.BAD_REQUEST);
         }
         return false;

@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -70,7 +71,7 @@ class ClientAdminEndpointsValidatorTests {
         client.setClientSecret("secret");
         caller = new UaaClientDetails("caller", "", "", "client_credentials", "clients.write");
         SecurityContextAccessor mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
-        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor);
+        validator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor, new IdentityZoneManagerImpl());
         secretValidator = new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         validator.setClientSecretValidator(secretValidator);
 

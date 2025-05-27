@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -72,7 +73,7 @@ class JdbcScimGroupExternalMembershipManagerTests {
         gdao = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
 
         JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
-                jdbcTemplate, new TimeServiceImpl(), null, null, dbUtils);
+                new IdentityZoneManagerImpl(), jdbcTemplate, new TimeServiceImpl(), null, null, dbUtils);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(gdao);
         gdao.setJdbcScimGroupMembershipManager(jdbcScimGroupMembershipManager);
 

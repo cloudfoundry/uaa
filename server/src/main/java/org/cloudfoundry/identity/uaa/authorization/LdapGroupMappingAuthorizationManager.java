@@ -46,7 +46,7 @@ public class LdapGroupMappingAuthorizationManager implements ExternalGroupMappin
                     SimpleGrantedAuthority mapped = new SimpleGrantedAuthority(member.getDisplayName());
                     result.add(mapped);
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Ldap Group Mapped[dn=" + la.getDn() + " scope:" + mapped.getAuthority());
+                        logger.debug("Ldap Group Mapped[dn={} scope:{}", la.getDn(), mapped.getAuthority());
                     }
                 }
             } else {

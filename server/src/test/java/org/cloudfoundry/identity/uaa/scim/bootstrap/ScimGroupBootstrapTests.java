@@ -70,7 +70,7 @@ class ScimGroupBootstrapTests {
         DbUtils dbUtils = new DbUtils();
         gDB = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
         uDB = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new SimpleSearchQueryConverter(), new TimeServiceImpl(), true);
-        mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null, dbUtils);
+        mDB = new JdbcScimGroupMembershipManager(new IdentityZoneManagerImpl(), template, new TimeServiceImpl(), uDB, null, dbUtils);
         mDB.setScimGroupProvisioning(gDB);
 
         uDB.deleteByIdentityZone(IdentityZone.getUaaZoneId());
@@ -87,7 +87,7 @@ class ScimGroupBootstrapTests {
         assertThat(uDB.retrieveAll(IdentityZone.getUaaZoneId())).hasSize(7);
         assertThat(gDB.retrieveAll(IdentityZone.getUaaZoneId())).isEmpty();
 
-        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
+        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB, new IdentityZoneManagerImpl());
     }
 
     @Test
@@ -120,7 +120,7 @@ class ScimGroupBootstrapTests {
         when(gDB.getByName(anyString(), anyString())).thenReturn(multipleBootstrapGroupAfter);
 
         //second bootstrap
-        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
+        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB, new IdentityZoneManagerImpl());
         bootstrap.setGroups(StringUtils.commaDelimitedListToSet("multiple_bootstrap_group").stream().collect(new MapCollector<>(s -> s, s -> s)));
         bootstrap.afterPropertiesSet();
 

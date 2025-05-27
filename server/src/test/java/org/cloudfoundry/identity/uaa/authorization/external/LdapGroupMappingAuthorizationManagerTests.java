@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,7 +70,7 @@ class LdapGroupMappingAuthorizationManagerTests {
         gDB.create(new ScimGroup(null, "acme", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
         gDB.create(new ScimGroup(null, "acme.dev", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
 
-        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
+        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB, new IdentityZoneManagerImpl());
 
         manager = new LdapGroupMappingAuthorizationManager();
         manager.setScimGroupProvisioning(gDB);

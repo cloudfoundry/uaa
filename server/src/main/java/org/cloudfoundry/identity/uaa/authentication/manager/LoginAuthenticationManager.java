@@ -64,18 +64,17 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
     public Authentication authenticate(Authentication request) throws AuthenticationException {
 
         if (!(request instanceof AuthzAuthenticationRequest)) {
-            logger.debug("Cannot process request of type: " + request.getClass().getName());
+            logger.debug("Cannot process request of type: {}", request.getClass().getName());
             return null;
         }
 
         AuthzAuthenticationRequest req = (AuthzAuthenticationRequest) request;
         Map<String, String> info = req.getInfo();
-        logger.debug("Processing authentication request for " + req.getName());
+        logger.debug("Processing authentication request for {}", req.getName());
 
         SecurityContext context = SecurityContextHolder.getContext();
 
-        if (context.getAuthentication() instanceof OAuth2Authentication) {
-            OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
+        if (context.getAuthentication() instanceof OAuth2Authentication authentication) {
             if (authentication.isClientOnly()) {
                 UaaUser user = getUser(req, info);
                 UaaAuthenticationDetails authdetails = (UaaAuthenticationDetails) req.getDetails();

@@ -24,7 +24,7 @@ import org.cloudfoundry.identity.uaa.oauth.provider.code.AuthorizationCodeServic
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -83,6 +83,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
 
     private final DataSource dataSource;
     private final TimeService timeService;
+    private final IdentityZoneManager identityZoneManager;
     private final Duration expirationTime;
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
     private final RowMapper rowMapper = new TokenCodeRowMapper();
@@ -91,13 +92,14 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private Semaphore cleanMutex = new Semaphore(1);
 
     @Autowired
-    public UaaTokenStore(DataSource dataSource, TimeService timeService) {
-        this(dataSource, timeService, DEFAULT_EXPIRATION_TIME);
+    public UaaTokenStore(DataSource dataSource, TimeService timeService, IdentityZoneManager identityZoneManager) {
+        this(dataSource, timeService, identityZoneManager, DEFAULT_EXPIRATION_TIME);
     }
 
-    public UaaTokenStore(DataSource dataSource, TimeService timeService, Duration expirationTime) {
+    public UaaTokenStore(DataSource dataSource, TimeService timeService, IdentityZoneManager identityZoneManager, Duration expirationTime) {
         this.dataSource = dataSource;
         this.timeService = timeService;
+        this.identityZoneManager = identityZoneManager;
         this.expirationTime = expirationTime;
     }
 
@@ -117,7 +119,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 SqlLobValue data = new SqlLobValue(serializeOauth2Authentication(authentication));
                 int updated = template.update(
                         SQL_INSERT_STATEMENT,
-                        new Object[]{code, userId, clientId, expiresAt.toEpochMilli(), data, IdentityZoneHolder.get().getId()},
+                        new Object[]{code, userId, clientId, expiresAt.toEpochMilli(), data, identityZoneManager.getCurrentIdentityZoneId()},
                         new int[]{Types.VARCHAR, Types.VARCHAR, Types.VARCHAR, Types.NUMERIC, Types.BLOB, Types.VARCHAR}
                 );
                 if (updated == 0) {
@@ -141,7 +143,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             if (tokenCode != null) {
                 try {
                     if (tokenCode.isExpired()) {
-                        logger.debug("[oauth_code] Found code, but it expired:" + tokenCode);
+                        logger.debug("[oauth_code] Found code, but it expired:{}", tokenCode);
                         throw new InvalidGrantException("Authorization code expired: " + code);
                     } else {
                         return tokenCode.deserialize();
@@ -178,7 +180,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         //currently not serializing any of the
         //Map<String, Serializable > extensionProperties
         if (auth2Authentication.getOAuth2Request().getExtensions() != null && auth2Authentication.getOAuth2Request().getExtensions().size() > 0) {
-            logger.warn("[oauth_code] Unable to serialize extensions:" + auth2Authentication.getOAuth2Request().getExtensions());
+            logger.warn("[oauth_code] Unable to serialize extensions:{}", auth2Authentication.getOAuth2Request().getExtensions());
         }
         return JsonUtils.writeValueAsBytes(data);
     }
@@ -239,9 +241,9 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         try {
             JdbcTemplate template = new JdbcTemplate(dataSource);
             int expired = template.update(SQL_EXPIRE_STATEMENT, now.toEpochMilli());
-            logger.debug("[oauth_code] Removed " + expired + " expired entries.");
+            logger.debug("[oauth_code] Removed {} expired entries.", expired);
             expired = template.update(SQL_CLEAN_STATEMENT, Timestamp.from(now.minus(LEGACY_CODE_EXPIRATION_TIME)));
-            logger.debug("[oauth_code] Removed " + expired + " old entries.");
+            logger.debug("[oauth_code] Removed {} old entries.", expired);
         } catch (DeadlockLoserDataAccessException e) {
             logger.debug("[oauth code] Deadlock trying to expire entries, ignored.");
         }

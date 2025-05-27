@@ -50,7 +50,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends BaseJavaMigration {
 
     @Override
     public void migrate(Context context) {
-        logger.info("[V1_5_4] Running SQL: " + colQuery);
+        logger.info("[V1_5_4] Running SQL: {}", colQuery);
         JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(
                 context.getConnection(), true));
         List<ColumnInfo> columns = jdbcTemplate.query(colQuery, new ColumnMapper());
@@ -58,7 +58,7 @@ public class V1_5_4__NormalizeTableAndColumnNames extends BaseJavaMigration {
             if (processColumn(column)) {
                 String sql = "ALTER TABLE " + column.tableName + " RENAME \"" + column.columnName + "\" TO \""
                         + column.columnName.toLowerCase() + "\"";
-                logger.info("Renaming column: [" + sql + "]");
+                logger.info("Renaming column: [{}]", sql);
                 jdbcTemplate.execute(sql);
             }
         }

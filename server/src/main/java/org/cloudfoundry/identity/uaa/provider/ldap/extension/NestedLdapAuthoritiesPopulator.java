@@ -111,14 +111,12 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
         if (depth == 0) {
             //back out of recursion
             logger.debug("Search aborted, max depth reached," +
-                    " for roles for user '" + username + "', DN = " + "'" + userDn + "', with filter "
-                    + getGroupSearchFilter() + " in search base '" + getGroupSearchBase() + "'");
+                    " for roles for user '{}', DN = " + "'{}', with filter {} in search base '{}'", username, userDn, getGroupSearchFilter(), getGroupSearchBase());
             return;
         }
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Searching for roles for user '" + username + "', DN = " + "'" + userDn + "', with filter "
-                    + getGroupSearchFilter() + " in search base '" + getGroupSearchBase() + "'");
+            logger.debug("Searching for roles for user '{}', DN = " + "'{}', with filter {} in search base '{}'", username, userDn, getGroupSearchFilter(), getGroupSearchBase());
         }
 
         if (StringUtils.hasText(getGroupRoleAttribute()) && !getAttributeNames().contains(getGroupRoleAttribute())) {
@@ -173,7 +171,7 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
             }
         }
         if (counter > 0) {
-            logger.debug("Roles from LDAP search:" + logDebug);
+            logger.debug("Roles from LDAP search:{}", logDebug);
         } else {
             logger.debug("No Roles from LDAP search returned");
         }

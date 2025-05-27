@@ -95,7 +95,7 @@ public class BootstrapSamlIdentityProviderData implements InitializingBean {
             def.setShowSamlLink(isLegacyShowSamlLink());
             def.setLinkText("Use your corporate credentials");
             def.setZoneId(IdentityZone.getUaaZoneId()); //legacy only has UAA zone
-            log.debug("Legacy SAML provider configured with alias: " + alias);
+            log.debug("Legacy SAML provider configured with alias: {}", alias);
             IdentityProviderWrapper<SamlIdentityProviderDefinition> wrapper = new IdentityProviderWrapper<>(parseSamlProvider(def));
             wrapper.setOverride(true);
             samlProviders.add(wrapper);

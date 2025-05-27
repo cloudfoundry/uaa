@@ -5,8 +5,8 @@ import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -29,7 +29,8 @@ public class JdbcQueryableClientDetailsService
 
     private static final Logger logger = LoggerFactory.getLogger(JdbcQueryableClientDetailsService.class);
 
-    private MultitenantJdbcClientDetailsService delegate;
+    private final MultitenantJdbcClientDetailsService delegate;
+    private final IdentityZoneManager identityZoneManager;
 
     private static final String CLIENT_FIELDS = "client_id, client_secret, resource_ids, scope, "
             + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
@@ -41,9 +42,11 @@ public class JdbcQueryableClientDetailsService
 
     public JdbcQueryableClientDetailsService(
             final @Qualifier("jdbcClientDetailsService") MultitenantJdbcClientDetailsService delegate,
+            final @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager,
             final NamedParameterJdbcTemplate jdbcTemplate,
             final JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ClientDetailsRowMapper());
+        this.identityZoneManager = identityZoneManager;
         this.delegate = delegate;
     }
 
@@ -82,7 +85,7 @@ public class JdbcQueryableClientDetailsService
     @Override
     public ClientDetails delete(String id, int version, String zoneId) {
         ClientDetails client = delegate.loadClientByClientId(id, zoneId);
-        delegate.onApplicationEvent(new EntityDeletedEvent<>(client, SecurityContextHolder.getContext().getAuthentication(), IdentityZoneHolder.getCurrentZoneId()));
+        delegate.onApplicationEvent(new EntityDeletedEvent<>(client, SecurityContextHolder.getContext().getAuthentication(), identityZoneManager.getCurrentIdentityZoneId()));
         return client;
     }
 
@@ -111,7 +114,7 @@ public class JdbcQueryableClientDetailsService
                     Map<String, Object> additionalInformation = JsonUtils.readValue(json, Map.class);
                     details.setAdditionalInformation(additionalInformation);
                 } catch (Exception e) {
-                    logger.warn("Could not decode JSON for additional information: " + details, e);
+                    logger.warn("Could not decode JSON for additional information: {}", details, e);
                 }
             }
             String scopes = rs.getString(11);

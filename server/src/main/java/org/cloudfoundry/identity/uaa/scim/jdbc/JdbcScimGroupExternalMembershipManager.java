@@ -125,8 +125,7 @@ public class JdbcScimGroupExternalMembershipManager
             } catch (DuplicateKeyException e) {
                 // we should not throw, if the mapping exist, we should leave it
                 // there.
-                logger.info("The mapping between group " + group.getDisplayName() + " and external group "
-                        + externalGroup + " already exists");
+                logger.info("The mapping between group {} and external group {} already exists", group.getDisplayName(), externalGroup);
                 // throw new
                 // MemberAlreadyExistsException("The mapping between group " +
                 // group.getDisplayName() + " and external group " +

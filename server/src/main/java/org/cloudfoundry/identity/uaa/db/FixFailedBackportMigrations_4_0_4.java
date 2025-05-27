@@ -61,7 +61,7 @@ public class FixFailedBackportMigrations_4_0_4  extends BaseJavaMigration {
     public void migrate(Context context) {
         if ("hsqldb".equals(type)) {
             //we don't have this problem with hsqldb
-            logger.info("Skipping 4.0.4 migration for " + type + ", not affected by 3.9.9 back ports.");
+            logger.info("Skipping 4.0.4 migration for {}, not affected by 3.9.9 back ports.", type);
             return;
         }
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();

@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,7 +55,7 @@ class ScimExternalGroupBootstrapTests {
         gDB.create(new ScimGroup(null, "acme", IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
         gDB.create(new ScimGroup(null, "acme.dev", IdentityZone.getUaaZoneId()), IdentityZoneHolder.get().getId());
 
-        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
+        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB, new IdentityZoneManagerImpl());
     }
 
     @Test

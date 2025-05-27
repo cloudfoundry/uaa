@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -78,7 +79,7 @@ class SessionResetFilterTests {
         response = mock(HttpServletResponse.class);
         session = mock(HttpSession.class);
         when(request.getSession(anyBoolean())).thenReturn(session);
-        filter = new SessionResetFilter(new DefaultRedirectStrategy(), "/login", userDatabase);
+        filter = new SessionResetFilter(new DefaultRedirectStrategy(), new IdentityZoneManagerImpl(),"/login", userDatabase);
     }
 
     private void addUsersToInMemoryDb() {

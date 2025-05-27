@@ -14,12 +14,11 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.CorsConfiguration;
 import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -30,7 +29,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -79,9 +77,9 @@ import static org.springframework.http.HttpStatus.METHOD_NOT_ALLOWED;
  * https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
  *
  */
+@Slf4j
 public class CorsFilter extends OncePerRequestFilter {
 
-    static final Logger logger = LoggerFactory.getLogger(CorsFilter.class);
     public static final String X_REQUESTED_WITH = "X-Requested-With";
     public static final String WILDCARD = "*";
 
@@ -92,8 +90,8 @@ public class CorsFilter extends OncePerRequestFilter {
 
     public CorsFilter(final IdentityZoneManager identityZoneManager,
             final boolean enforceSystemZoneSettings) {
-        if (logger.isInfoEnabled()) {
-            logger.info("`cors.enforceSystemZonePolicyInAllZones` is set to `{}`. Per-zone CORS policy settings are to be {}.",
+        if (log.isInfoEnabled()) {
+            log.info("`cors.enforceSystemZonePolicyInAllZones` is set to `{}`. Per-zone CORS policy settings are to be {}.",
                     enforceSystemZoneSettings, enforceSystemZoneSettings ? "ignored" : "honored");
         }
 
@@ -132,16 +130,16 @@ public class CorsFilter extends OncePerRequestFilter {
             return;
         }
 
-        if (logger.isDebugEnabled()) {
-            logger.debug("CORS Processing request: " + getRequestInfo(request));
+        if (log.isDebugEnabled()) {
+            log.debug("CORS Processing request: {}", getRequestInfo(request));
         }
         if (isXhrRequest(request)) {
             handleRequest(request, response, filterChain, resolveXhrCorsConfiguration());
         } else {
             handleRequest(request, response, filterChain, resolveDefaultCorsConfiguration());
         }
-        if (logger.isDebugEnabled()) {
-            logger.debug("CORS processing completed for: " + getRequestInfo(request) + " Status:" + response.getStatus());
+        if (log.isDebugEnabled()) {
+            log.debug("CORS processing completed for: {} Status:{}", getRequestInfo(request), response.getStatus());
         }
     }
 
@@ -155,7 +153,7 @@ public class CorsFilter extends OncePerRequestFilter {
         //Validate if this CORS request is allowed for this method
         String method = request.getMethod();
         if (!isPreflightRequest && !isAllowedMethod(method, configuration)) {
-            logger.debug("Request with invalid method was rejected: %s".formatted(method));
+            log.debug("Request with invalid method was rejected: %s".formatted(method));
             response.sendError(METHOD_NOT_ALLOWED.value(), "Illegal method.");
             return true;
         }
@@ -168,20 +166,20 @@ public class CorsFilter extends OncePerRequestFilter {
         try {
             originURI = new URI(origin);
         } catch (URISyntaxException e) {
-            logger.debug("Request with invalid origin was rejected: %s".formatted(origin));
+            log.debug("Request with invalid origin was rejected: %s".formatted(origin));
             response.sendError(FORBIDDEN.value(), "Invalid origin");
             return true;
         }
 
         if (!isAllowedOrigin(origin, configuration)) {
-            logger.debug("Request with origin: %s was rejected because it didn't match allowed origins".formatted(origin));
+            log.debug("Request with origin: %s was rejected because it didn't match allowed origins".formatted(origin));
             response.sendError(FORBIDDEN.value(), "Illegal origin");
             return true;
         }
 
         String requestUri = request.getRequestURI();
         if (!isAllowedRequestUri(requestUri, configuration)) {
-            logger.debug("Request with URI: %s was rejected because it didn't match allowed URIs".formatted(requestUri));
+            log.debug("Request with URI: %s was rejected because it didn't match allowed URIs".formatted(requestUri));
             response.sendError(FORBIDDEN.value(), "Illegal request URI");
             return true;
         }
@@ -195,10 +193,10 @@ public class CorsFilter extends OncePerRequestFilter {
         }
 
         if (isPreflightRequest) {
-            logger.debug("Request is a pre-flight request");
+            log.debug("Request is a pre-flight request");
             buildCorsPreFlightResponse(request, response, configuration);
         } else {
-            logger.debug("Request cross origin request has passed validation.");
+            log.debug("Request cross origin request has passed validation.");
             filterChain.doFilter(request, response);
         }
 
@@ -319,7 +317,7 @@ public class CorsFilter extends OncePerRequestFilter {
                 return true;
             }
         }
-        logger.debug("The '%s' URI does not allow CORS requests.".formatted(uri));
+        log.debug("The '%s' URI does not allow CORS requests.".formatted(uri));
         return false;
     }
 
@@ -330,7 +328,7 @@ public class CorsFilter extends OncePerRequestFilter {
                 return true;
             }
         }
-        logger.debug("The '%s' origin is not allowed to make CORS requests.".formatted(origin));
+        log.debug("The '%s' origin is not allowed to make CORS requests.".formatted(origin));
         return false;
     }
 
@@ -373,9 +371,9 @@ public class CorsFilter extends OncePerRequestFilter {
             for (String allowedUri : configuration.getAllowedUris()) {
                 try {
                     configuration.getAllowedUriPatterns().add(Pattern.compile(allowedUri));
-                    logger.debug("URI '%s' is allowed for a %s CORS requests.".formatted(allowedUri, type));
+                    log.debug("URI '%s' is allowed for a %s CORS requests.".formatted(allowedUri, type));
                 } catch (PatternSyntaxException patternSyntaxException) {
-                    logger.error("Invalid regular expression pattern in cors." + type + ".allowed.uris: " + allowedUri, patternSyntaxException);
+                    log.error("Invalid regular expression pattern in cors.{}.allowed.uris: {}", type, allowedUri, patternSyntaxException);
                 }
             }
         }
@@ -383,9 +381,9 @@ public class CorsFilter extends OncePerRequestFilter {
             for (String allowedOrigin : configuration.getAllowedOrigins()) {
                 try {
                     configuration.getAllowedOriginPatterns().add(Pattern.compile(allowedOrigin));
-                    logger.debug("Origin '%s' is allowed for a %s CORS requests.".formatted(allowedOrigin, type));
+                    log.debug("Origin '%s' is allowed for a %s CORS requests.".formatted(allowedOrigin, type));
                 } catch (PatternSyntaxException patternSyntaxException) {
-                    logger.error("Invalid regular expression pattern in cors." + type + ".allowed.origins: " + allowedOrigin, patternSyntaxException);
+                    log.error("Invalid regular expression pattern in cors.{}.allowed.origins: {}", type, allowedOrigin, patternSyntaxException);
                 }
             }
         }
@@ -412,7 +410,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     public void setCorsXhrAllowedHeaders(List<String> allowedHeaders) {
-        this.xhrConfiguration.setAllowedHeaders(new ArrayList(allowedHeaders));
+        this.xhrConfiguration.setAllowedHeaders(List.copyOf(allowedHeaders));
     }
 
     public void setCorsXhrAllowedCredentials(boolean allowedCredentials) {
@@ -420,7 +418,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     public void setCorsXhrAllowedMethods(List<String> corsXhrAllowedMethods) {
-        this.xhrConfiguration.setAllowedMethods(new ArrayList(corsXhrAllowedMethods));
+        this.xhrConfiguration.setAllowedMethods(List.copyOf(corsXhrAllowedMethods));
     }
 
     public void setCorsXhrMaxAge(int age) {
@@ -438,7 +436,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     public void setCorsAllowedHeaders(List<String> allowedHeaders) {
-        this.defaultConfiguration.setAllowedHeaders(new ArrayList(allowedHeaders));
+        this.defaultConfiguration.setAllowedHeaders(List.copyOf(allowedHeaders));
     }
 
     public void setCorsAllowedCredentials(boolean allowedCredentials) {
@@ -446,7 +444,7 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     public void setCorsAllowedMethods(List<String> corsXhrAllowedMethods) {
-        this.defaultConfiguration.setAllowedMethods(new ArrayList(corsXhrAllowedMethods));
+        this.defaultConfiguration.setAllowedMethods(List.copyOf(corsXhrAllowedMethods));
     }
 
     public void setCorsMaxAge(int age) {

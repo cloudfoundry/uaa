@@ -89,7 +89,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
         String message = request.getRequestURI() + "'; '" + request.getContextPath() + path + "' with parameters="
                 + parameters + " and headers " + expectedHeaders;
         if (logger.isTraceEnabled()) {
-            logger.trace("[" + name + "] Checking match of request : '" + message);
+            logger.trace("[{}] Checking match of request : '{}", name, message);
         }
 
         if (!request.getRequestURI().startsWith(request.getContextPath() + path)) {
@@ -111,15 +111,15 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
             }
         }
 
-        for (String key : parameters.keySet()) {
-            String value = request.getParameter(key);
-            if (value == null || !value.startsWith(parameters.get(key))) {
+        for (Entry<String, String> entry : parameters.entrySet()) {
+            String value = request.getParameter(entry.getKey());
+            if (value == null || !value.startsWith(entry.getValue())) {
                 return false;
             }
         }
 
         if (logger.isDebugEnabled()) {
-            logger.debug("[" + name + "]Matched request " + message);
+            logger.debug("[{}]Matched request {}", name, message);
         }
         return true;
     }
@@ -214,9 +214,9 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
     }
 
     public void setHeaders(Map<String, List<String>> headers) {
-        for (String headerName : headers.keySet()) {
-            List<String> expectedValues = new ArrayList<>(headers.get(headerName));
-            expectedHeaders.put(headerName, expectedValues);
+        for (Entry<String, List<String>> entry : headers.entrySet()) {
+            List<String> expectedValues = new ArrayList<>(entry.getValue());
+            expectedHeaders.put(entry.getKey(), expectedValues);
         }
     }
 

@@ -48,6 +48,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
     //Copy of the value from org.apache.Globals.PARAMETER_PARSE_FAILED_ATTR
     private static final String PARAMETER_PARSE_FAILED_ATTR = "org.apache.catalina.parameter_parse_failed";
+    private static final String HANDLING_ERROR = "Handling error: {}, {}";
 
     private final ResourceServerTokenServices resourceServerTokenServices;
     private final TimeService timeService;
@@ -158,7 +159,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
     @ExceptionHandler(InvalidTokenException.class)
     public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
-        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        logger.info(HANDLING_ERROR, e.getClass().getSimpleName(), e.getMessage());
         // This isn't an oauth resource, so we don't want to send an
         // unauthorized code here.
         // The client has already authenticated successfully with basic auth and
@@ -175,13 +176,13 @@ public class CheckTokenEndpoint implements InitializingBean {
 
     @ExceptionHandler(InvalidScopeException.class)
     public ResponseEntity<OAuth2Exception> handleInvalidScopeException(Exception e) throws Exception {
-        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        logger.info(HANDLING_ERROR, e.getClass().getSimpleName(), e.getMessage());
         return exceptionTranslator.translate(e);
     }
 
     @ExceptionHandler(UaaException.class)
     public ResponseEntity<UaaException> handleInvalidScopeSTUFF(UaaException e) {
-        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        logger.info(HANDLING_ERROR, e.getClass().getSimpleName(), e.getMessage());
         return new ResponseEntity<>(e, HttpStatus.valueOf(e.getHttpStatus()));
     }
 }

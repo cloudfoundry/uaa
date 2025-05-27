@@ -219,7 +219,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         Authentication authResult = null;
         if (GRANT_TYPE_PASSWORD.equals(grantType)) {
             Authentication credentials = extractCredentials(request);
-            log.debug("Authentication credentials found password grant for '" + credentials.getName() + "'");
+            log.debug("Authentication credentials found password grant for '{}'", credentials.getName());
             authResult = authenticationManager.authenticate(credentials);
 
             if (authResult != null && authResult.isAuthenticated() && authResult instanceof UaaAuthentication uaaAuthentication
@@ -253,7 +253,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
                 throw new InsufficientAuthenticationException("SAML Assertion is missing");
             }
         } else if (GRANT_TYPE_JWT_BEARER.equals(grantType)) {
-            log.debug(GRANT_TYPE_JWT_BEARER + " found. Attempting authentication with assertion");
+            log.debug("{} found. Attempting authentication with assertion", GRANT_TYPE_JWT_BEARER);
             String assertion = request.getParameter("assertion");
             if (assertion != null && externalOAuthAuthenticationManager != null) {
                 IdentityProvider<OIDCIdentityProviderDefinition> oidcProxy = externalOAuthAuthenticationManager.getOidcProxyIdpForTokenExchange(request);
@@ -277,7 +277,7 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         }
 
         if (authResult != null && authResult.isAuthenticated()) {
-            log.debug("Authentication success: " + authResult.getName());
+            log.debug("Authentication success: {}", authResult.getName());
             return authResult;
         }
         return null;

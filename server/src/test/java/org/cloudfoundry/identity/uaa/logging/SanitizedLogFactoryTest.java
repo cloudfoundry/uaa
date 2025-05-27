@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.logging;
 
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.logging.log4j.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;

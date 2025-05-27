@@ -101,7 +101,7 @@ public class IsSelfCheck {
                     return true;
                 }
             } catch (EmptyResultDataAccessException x) {
-                logger.debug("Token not found:" + tokenId);
+                logger.debug("Token not found:{}", tokenId);
             }
         }
         return false;

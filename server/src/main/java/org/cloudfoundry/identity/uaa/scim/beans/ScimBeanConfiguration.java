@@ -182,6 +182,7 @@ public class ScimBeanConfiguration {
 
     @Bean(name = "groupMembershipManager")
     public JdbcScimGroupMembershipManager groupMembershipManager(
+            @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager,
             final JdbcTemplate jdbcTemplate,
             final TimeService timeService,
             final IdentityZoneProvisioning identityZoneProvisioning,
@@ -190,6 +191,7 @@ public class ScimBeanConfiguration {
             @Qualifier("scimGroupProvisioning") ScimGroupProvisioning scimGroupProvisioning
     ) throws SQLException {
         JdbcScimGroupMembershipManager bean = new JdbcScimGroupMembershipManager(
+                identityZoneManager,
                 jdbcTemplate,
                 timeService,
                 scimUserProvisioning,
@@ -213,6 +215,7 @@ public class ScimBeanConfiguration {
             ScimUserService scimUserService,
             @Qualifier("scimGroupProvisioning") ScimGroupProvisioning scimGroupProvisioning,
             @Qualifier("groupMembershipManager") ScimGroupMembershipManager membershipManager,
+            @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager,
             @Qualifier("users") List<String> users,
             @Value("${scim.user.override:false}") final boolean override,
             @Value("${delete.users:#{null}}") final List<String> usersToDelete,
@@ -230,6 +233,7 @@ public class ScimBeanConfiguration {
                 scimUserService,
                 scimGroupProvisioning,
                 membershipManager,
+                identityZoneManager,
                 uaaUsers,
                 override,
                 usersToDelete,
@@ -244,6 +248,7 @@ public class ScimBeanConfiguration {
             @Qualifier("scimUserProvisioning") ScimUserProvisioning scimUserProvisioning,
             @Qualifier("scimGroupProvisioning") ScimGroupProvisioning scimGroupProvisioning,
             @Qualifier("groupMembershipManager") ScimGroupMembershipManager scimGroupMembershipManager,
+            @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager,
             @Qualifier("groups") HashMap<String, String> groups,
             @Qualifier("members") List<String> members,
             @Qualifier("defaultUserAuthorities") Set<String> defaultUserGroups,
@@ -251,7 +256,8 @@ public class ScimBeanConfiguration {
         ScimGroupBootstrap scimGroupBootstrap = new ScimGroupBootstrap(
                 scimGroupProvisioning,
                 scimUserProvisioning,
-                scimGroupMembershipManager
+                scimGroupMembershipManager,
+                identityZoneManager
         );
         scimGroupBootstrap.setGroups(groups);
         scimGroupBootstrap.setGroupMembers(members);
@@ -264,10 +270,12 @@ public class ScimBeanConfiguration {
     public ScimExternalGroupBootstrap scimExternalGroupBootstrap(
             @Qualifier("scimGroupProvisioning") ScimGroupProvisioning scimGroupProvisioning,
             @Qualifier("externalGroupMembershipManager") ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
+            @Qualifier("identityZoneManager") IdentityZoneManager identityZoneManager,
             @Qualifier("externalGroups") Map<String, Map<String, List>> externalGroups) {
         ScimExternalGroupBootstrap scimExternalGroupBootstrap = new ScimExternalGroupBootstrap(
                 scimGroupProvisioning,
-                scimGroupExternalMembershipManager
+                scimGroupExternalMembershipManager,
+                identityZoneManager
         );
         scimExternalGroupBootstrap.setExternalGroupMaps(externalGroups);
         scimExternalGroupBootstrap.setAddNonExistingGroups(true);

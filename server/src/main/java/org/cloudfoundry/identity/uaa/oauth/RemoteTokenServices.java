@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
@@ -40,7 +41,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.crypto.codec.Base64;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.util.Assert;
@@ -126,7 +126,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         Map<String, Object> map = postForMap(checkTokenEndpointUrl, formData, headers);
 
         if (map.containsKey("error")) {
-            logger.debug("check_token returned error: " + map.get("error"));
+            logger.debug("check_token returned error: {}", map.get("error"));
             throw new InvalidTokenException(accessToken);
         }
 
@@ -163,8 +163,8 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         Map<String, String> requestParameters = new HashMap<>();
         if (isStoreClaims()) {
             for (Map.Entry<String, Object> entry : map.entrySet()) {
-                if (entry.getValue() != null && entry.getValue() instanceof String) {
-                    requestParameters.put(entry.getKey(), (String) entry.getValue());
+                if (entry.getValue() != null && entry.getValue() instanceof String valueString) {
+                    requestParameters.put(entry.getKey(), valueString);
                 }
             }
         }
@@ -219,7 +219,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 
     private String getAuthorizationHeader(String clientId, String clientSecret) {
         String creds = "%s:%s".formatted(clientId, clientSecret);
-        return "Basic " + new String(Base64.encode(creds.getBytes(StandardCharsets.UTF_8)));
+        return "Basic " + Base64.encodeBase64String((creds.getBytes(StandardCharsets.UTF_8)));
     }
 
     private Map<String, Object> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {

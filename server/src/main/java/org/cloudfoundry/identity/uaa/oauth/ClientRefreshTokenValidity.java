@@ -27,7 +27,7 @@ public class ClientRefreshTokenValidity implements ClientTokenValidity {
         try {
             clientDetails = multitenantClientServices.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
         } catch (ClientRegistrationException e) {
-            logger.info("Could not load details for client " + clientId, e);
+            logger.info("Could not load details for client {}", clientId, e);
             return null;
         }
         return clientDetails.getRefreshTokenValiditySeconds();

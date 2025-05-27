@@ -63,7 +63,7 @@ public final class TestProfileEnvironment {
         factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
         Map<String, Object> properties = factory.getObject();
 
-        logger.debug("Decoding environment properties: " + properties.size());
+        logger.debug("Decoding environment properties: {}", properties.size());
         if (!properties.isEmpty()) {
             for (String name : properties.keySet()) {
                 Object value = properties.get(name);
@@ -83,7 +83,7 @@ public final class TestProfileEnvironment {
         environmentProperties.setEnvironment(environment);
         environmentProperties.setDefaultProperties(properties);
         Map<String, ?> debugProperties = environmentProperties.getObject();
-        logger.debug("Environment properties: " + debugProperties);
+        logger.debug("Environment properties: {}", debugProperties);
     }
 
     /**

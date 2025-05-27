@@ -49,7 +49,7 @@ public class SamlUaaAuthenticationAuthoritiesConverter {
 
     protected Collection<SamlUserAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities, String identityZoneId) {
         Collection<SamlUserAuthority> result = new LinkedList<>();
-        log.debug("Mapping SAML authorities:" + authorities);
+        log.debug("Mapping SAML authorities:{}", authorities);
         for (GrantedAuthority authority : authorities) {
             String externalGroup = authority.getAuthority();
             log.debug("Attempting to map external group: {}", externalGroup);

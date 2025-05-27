@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.approval;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 
 import java.util.Collection;
@@ -15,15 +15,12 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 
+@RequiredArgsConstructor
+@Slf4j
 public class ApprovalService {
-    TimeService timeService;
-    ApprovalStore approvalStore;
-    private final Logger logger = LoggerFactory.getLogger(getClass());
-
-    public ApprovalService(TimeService timeService, ApprovalStore approvalStore) {
-        this.timeService = timeService;
-        this.approvalStore = approvalStore;
-    }
+    private final TimeService timeService;
+    private final ApprovalStore approvalStore;
+    private final IdentityZoneManager identityZoneManager;
 
     public void ensureRequiredApprovals(String userId,
             Collection<String> requestedScopes,
@@ -35,11 +32,11 @@ public class ApprovalService {
         }
         Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
-        List<Approval> approvals = approvalStore.getApprovals(userId, clientDetails.getClientId(), IdentityZoneHolder.get().getId());
+        List<Approval> approvals = approvalStore.getApprovals(userId, clientDetails.getClientId(), identityZoneManager.getCurrentIdentityZoneId());
         for (Approval approval : approvals) {
             if (requestedScopes.contains(approval.getScope()) && approval.getStatus() == Approval.ApprovalStatus.APPROVED) {
                 if (!approval.isActiveAsOf(timeService.getCurrentDate())) {
-                    logger.debug("Approval " + approval + " has expired. Need to re-approve.");
+                    log.debug("Approval {} has expired. Need to re-approve.", approval);
                     throw new InvalidTokenException("Invalid token (approvals expired)");
                 }
                 approvedScopes.add(approval.getScope());
@@ -47,7 +44,7 @@ public class ApprovalService {
         }
 
         if (!approvedScopes.containsAll(requestedScopes)) {
-            logger.debug("All requested scopes " + requestedScopes + " were not approved. Approved scopes: " + approvedScopes);
+            log.debug("All requested scopes {} were not approved. Approved scopes: {}", requestedScopes, approvedScopes);
             Set<String> unapprovedScopes = new HashSet<>(requestedScopes);
             unapprovedScopes.removeAll(approvedScopes);
             throw new InvalidTokenException("Invalid token (some requested scopes are not approved): "

@@ -98,7 +98,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
                 if (update == 1) {
                     return new ExpiringCode(code, expiresAt, data, intent);
                 } else {
-                    logger.warn("Unable to store expiring code:" + code);
+                    logger.warn("Unable to store expiring code:{}", code);
                 }
             } catch (DataIntegrityViolationException x) {
                 if (count == 3) {

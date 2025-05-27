@@ -104,7 +104,7 @@ class JdbcScimGroupMembershipManagerTests {
         jdbcScimGroupProvisioning = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
 
         jdbcScimGroupMembershipManager = new JdbcScimGroupMembershipManager(
-                jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null, dbUtils);
+                new IdentityZoneManagerImpl(), jdbcTemplate, new TimeServiceImpl(), jdbcScimUserProvisioning, null, dbUtils);
         jdbcScimGroupMembershipManager.setScimGroupProvisioning(jdbcScimGroupProvisioning);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
         jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());

@@ -175,7 +175,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         try {
             return jdbcTemplate.queryForObject("select user_id, info from user_info where user_id = ?", userInfoMapper, id);
         } catch (EmptyResultDataAccessException e) {
-            logger.debug("No custom attributes stored for user:" + id);
+            logger.debug("No custom attributes stored for user:{}", id);
             return null;
         }
     }

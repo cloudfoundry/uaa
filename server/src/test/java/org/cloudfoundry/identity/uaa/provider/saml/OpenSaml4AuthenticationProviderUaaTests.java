@@ -215,7 +215,7 @@ class OpenSaml4AuthenticationProviderUaaTests {
                 identityZoneManager.getCurrentIdentityZone().getId());
 
         JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(
-                jdbcTemplate, new TimeServiceImpl(), userProvisioning, null, dbUtils);
+                identityZoneManager, jdbcTemplate, new TimeServiceImpl(), userProvisioning, null, dbUtils);
         membershipManager.setScimGroupProvisioning(groupProvisioning);
 
         final ScimUserAliasHandler aliasHandler = mock(ScimUserAliasHandler.class);
@@ -233,6 +233,7 @@ class OpenSaml4AuthenticationProviderUaaTests {
                 scimUserService,
                 groupProvisioning,
                 membershipManager,
+                identityZoneManager,
                 Collections.emptyList(),
                 false,
                 Collections.emptyList(),

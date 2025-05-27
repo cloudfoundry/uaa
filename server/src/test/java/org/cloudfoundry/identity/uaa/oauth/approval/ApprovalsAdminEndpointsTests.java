@@ -21,9 +21,9 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -58,6 +58,8 @@ class ApprovalsAdminEndpointsTests {
 
     private SecurityContextAccessor mockSecurityContextAccessor;
 
+    private final IdentityZoneManager identityZoneManager = new IdentityZoneManagerImpl();
+
     @Autowired
     JdbcTemplate jdbcTemplate;
 
@@ -74,7 +76,7 @@ class ApprovalsAdminEndpointsTests {
     void initApprovalsAdminEndpointsTests() throws SQLException {
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
         String id = UUID.randomUUID().toString();
-        String userId = testAccounts.addUser(jdbcTemplate, id, IdentityZoneHolder.get().getId());
+        String userId = testAccounts.addUser(jdbcTemplate, id, identityZoneManager.getCurrentIdentityZoneId());
 
         IdentityZoneManager mockIdentityZoneManager = mock(IdentityZoneManager.class);
         when(mockIdentityZoneManager.getCurrentIdentityZoneId()).thenReturn(IdentityZone.getUaaZoneId());
@@ -103,7 +105,8 @@ class ApprovalsAdminEndpointsTests {
                 mockSecurityContextAccessor,
                 dao,
                 userDao,
-                clientDetailsService);
+                clientDetailsService,
+                new IdentityZoneManagerImpl());
     }
 
     private void addApproval(String userName, String scope, int expiresIn, ApprovalStatus status) {
@@ -112,7 +115,7 @@ class ApprovalsAdminEndpointsTests {
                 .setClientId("c1")
                 .setScope(scope)
                 .setExpiresAt(Approval.timeFromNow(expiresIn))
-                .setStatus(status), IdentityZoneHolder.get().getId());
+                .setStatus(status), identityZoneManager.getCurrentIdentityZoneId());
     }
 
     @AfterEach

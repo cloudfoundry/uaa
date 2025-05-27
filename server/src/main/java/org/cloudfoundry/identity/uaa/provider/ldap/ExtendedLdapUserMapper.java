@@ -56,7 +56,7 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
                 Object[] objValues = adapter.getObjectAttributes(attributeName);
                 String[] values = new String[objValues != null ? objValues.length : 0];
                 for (int i = 0; i < values.length; i++) {
-                    if (objValues[i] != null) {
+                    if (objValues != null && objValues[i] != null) {
                         if (objValues[i].getClass().isAssignableFrom(String.class)) {
                             values[i] = (String) objValues[i];
                         } else if (objValues[i] instanceof byte[] bytes) {
@@ -67,12 +67,12 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
                     }
                 }
                 if (values == null || values.length == 0) {
-                    logger.debug("No attribute value found for '" + attributeName + "'");
+                    logger.debug("No attribute value found for '{}'", attributeName);
                 } else {
                     record.put(attributeName, values);
                 }
             } catch (ArrayStoreException x) {
-                logger.debug("Attribute value is not a string for '" + attributeName + "'");
+                logger.debug("Attribute value is not a string for '{}'", attributeName);
             }
         }
         record.put(DN_KEY, new String[]{adapter.getDn().toString()});

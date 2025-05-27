@@ -1,15 +1,24 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.apache.commons.lang3.ArrayUtils;
-import org.cloudfoundry.identity.uaa.scim.*;
-import org.cloudfoundry.identity.uaa.scim.exception.*;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.util.TimeBasedExpiringValueMap;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,7 +31,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptySet;
@@ -68,6 +82,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     private final JdbcTemplate jdbcTemplate;
     private final ScimUserProvisioning userProvisioning;
+    private final IdentityZoneManager identityZoneManager;
     private final IdentityZoneProvisioning zoneProvisioning;
     private final ScimGroupMemberRowMapper rowMapper;
     private final TimeBasedExpiringValueMap<String, ScimGroup> defaultGroupCache;
@@ -77,11 +92,13 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     private ScimGroupProvisioning scimGroupProvisioning;
 
     public JdbcScimGroupMembershipManager(
+            final IdentityZoneManager identityZoneManager,
             final JdbcTemplate jdbcTemplate,
             final TimeService timeService,
             final ScimUserProvisioning userProvisioning,
             final IdentityZoneProvisioning zoneProvisioning,
             final DbUtils dbUtils) throws SQLException {
+        this.identityZoneManager = identityZoneManager;
         this.jdbcTemplate = jdbcTemplate;
         this.userProvisioning = userProvisioning;
         this.zoneProvisioning = zoneProvisioning;
@@ -117,7 +134,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         if (!hasText(zoneId)) {
             return emptySet();
         }
-        IdentityZone currentZone = IdentityZoneHolder.get();
+        IdentityZone currentZone = identityZoneManager.getCurrentIdentityZone();
         List<String> zoneDefaultGroups = zoneId.equals(currentZone.getId()) ?
                 currentZone.getConfig().getUserConfig().getDefaultGroups() :
                 zoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().getDefaultGroups();
@@ -186,10 +203,10 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         if (includeEntities) {
             for (ScimGroupMember member : result) {
                 if (member.getType().equals(ScimGroupMember.Type.USER)) {
-                    ScimUser user = userProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId());
+                    ScimUser user = userProvisioning.retrieve(member.getMemberId(), identityZoneManager.getCurrentIdentityZoneId());
                     member.setEntity(user);
                 } else if (member.getType().equals(ScimGroupMember.Type.GROUP)) {
-                    ScimGroup group = scimGroupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId());
+                    ScimGroup group = scimGroupProvisioning.retrieve(member.getMemberId(), identityZoneManager.getCurrentIdentityZoneId());
                     member.setEntity(group);
                 }
             }
@@ -216,7 +233,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
         if (memberId.isEmpty()) {
             return;
         }
-        if (!IdentityZoneHolder.get().getId().equals(zoneId)) {
+        if (!identityZoneManager.getCurrentIdentityZoneId().equals(zoneId)) {
             return;
         }
         List<ScimGroup> groups = new ArrayList<>();
@@ -298,14 +315,14 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
         List<ScimGroupMember> currentMembersToRemove = new ArrayList<>(currentMembers);
         currentMembersToRemove.removeAll(members);
-        logger.debug("removing members: " + currentMembersToRemove);
+        logger.debug("removing members: {}", currentMembersToRemove);
         for (ScimGroupMember member : currentMembersToRemove) {
             removeMemberById(groupId, member.getMemberId(), zoneId);
         }
 
         List<ScimGroupMember> newMembersToAdd = new ArrayList<>(members);
         newMembersToAdd.removeAll(currentMembers);
-        logger.debug("adding new members: " + newMembersToAdd);
+        logger.debug("adding new members: {}", newMembersToAdd);
         for (ScimGroupMember member : newMembersToAdd) {
             addMember(groupId, member, zoneId);
         }
@@ -332,7 +349,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     @Override
     public List<ScimGroupMember> removeMembersByGroupId(final String groupId, final String zoneId) throws ScimResourceNotFoundException {
         List<ScimGroupMember> members = getMembers(groupId, false, zoneId);
-        logger.debug("removing " + members + " members from group: " + groupId);
+        logger.debug("removing {} members from group: {}", members, groupId);
 
         int deleted = jdbcTemplate.update(DELETE_MEMBERS_IN_GROUP_SQL, ps -> {
             ps.setString(1, groupId);
@@ -349,7 +366,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     @Override
     public Set<ScimGroup> removeMembersByMemberId(final String memberId, final String zoneId) throws ScimResourceNotFoundException {
         Set<ScimGroup> groups = getGroupsWithMember(memberId, false, zoneId);
-        logger.debug("removing " + memberId + " from groups: " + groups);
+        logger.debug("removing {} from groups: {}", memberId, groups);
         int deleted;
         String sql = DELETE_MEMBER_IN_GROUPS_SQL_GROUP;
         if (isUser(memberId)) {
@@ -372,7 +389,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
     @Override
     public Set<ScimGroup> removeMembersByMemberId(final String memberId, final String origin, final String zoneId) throws ScimResourceNotFoundException {
         Set<ScimGroup> groups = getGroupsWithMember(memberId, false, zoneId);
-        logger.debug("removing " + memberId + " from groups: " + groups);
+        logger.debug("removing {} from groups: {}", memberId, groups);
         int deleted;
         deleted = jdbcTemplate.update(DELETE_MEMBER_WITH_ORIGIN_SQL, ps -> {
             ps.setString(1, memberId);
@@ -385,7 +402,7 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     private boolean isUser(String uuid) {
         try {
-            userProvisioning.retrieve(uuid, IdentityZoneHolder.get().getId());
+            userProvisioning.retrieve(uuid, identityZoneManager.getCurrentIdentityZoneId());
             return true;
         } catch (ScimResourceNotFoundException ex) {
             return false;
@@ -405,14 +422,14 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
         // check if the group exists and the member-id is a valid group or user
         // id
-        ScimGroup group = scimGroupProvisioning.retrieve(groupId, IdentityZoneHolder.get().getId()); // this will throw a ScimException
+        ScimGroup group = scimGroupProvisioning.retrieve(groupId, identityZoneManager.getCurrentIdentityZoneId()); // this will throw a ScimException
         String memberZoneId;
         // if the group does not exist
         // this will throw a ScimException if the group or user does not exist
         if (member.getType() == ScimGroupMember.Type.GROUP) {
-            memberZoneId = scimGroupProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
+            memberZoneId = scimGroupProvisioning.retrieve(member.getMemberId(), identityZoneManager.getCurrentIdentityZoneId()).getZoneId();
         } else {
-            memberZoneId = userProvisioning.retrieve(member.getMemberId(), IdentityZoneHolder.get().getId()).getZoneId();
+            memberZoneId = userProvisioning.retrieve(member.getMemberId(), identityZoneManager.getCurrentIdentityZoneId()).getZoneId();
         }
         if (!memberZoneId.equals(group.getZoneId())) {
             throw new ScimResourceConstraintFailedException("The zone of the group and the member must be the same.");

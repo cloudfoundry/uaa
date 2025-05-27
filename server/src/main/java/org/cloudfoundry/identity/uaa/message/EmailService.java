@@ -64,7 +64,7 @@ public class EmailService implements MessageService {
             message.setSubject(subject);
             message.setContent(htmlContent, "text/html");
         } catch (MessagingException | UnsupportedEncodingException e) {
-            logger.error("Exception raised while sending message to " + email, e);
+            logger.error("Exception raised while sending message to {}", email, e);
         }
 
         mailSender.send(message);

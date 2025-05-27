@@ -99,7 +99,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
                 return authorizationRequest;
             }
         } catch (ClientRegistrationException e) {
-            logger.warn("Client registration problem prevent autoapproval check for client=" + clientId);
+            logger.warn("Client registration problem prevent autoapproval check for client={}", clientId);
         }
 
         OAuth2Request storedOAuth2Request = requestFactory.createOAuth2Request(authorizationRequest);
@@ -114,9 +114,9 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
         }
 
         OAuth2AccessToken accessToken = tokenServices.getAccessToken(authentication);
-        logger.debug("Existing access token=" + accessToken);
+        logger.debug("Existing access token={}", accessToken);
         if (accessToken != null && !accessToken.isExpired()) {
-            logger.debug("User already approved with token=" + accessToken);
+            logger.debug("User already approved with token={}", accessToken);
             // A token was already granted and is still valid, so this is already approved
             approved = true;
         } else {
@@ -133,7 +133,7 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
     public AuthorizationRequest updateAfterApproval(AuthorizationRequest authorizationRequest, Authentication userAuthentication) {
         Map<String, String> approvalParameters = authorizationRequest.getApprovalParameters();
         String flag = approvalParameters.get(OAuth2Utils.USER_OAUTH_APPROVAL);
-        boolean approved = flag != null && "true".equals(flag.toLowerCase());
+        boolean approved = flag != null && "true".equalsIgnoreCase(flag);
         authorizationRequest.setApproved(approved);
         return authorizationRequest;
     }

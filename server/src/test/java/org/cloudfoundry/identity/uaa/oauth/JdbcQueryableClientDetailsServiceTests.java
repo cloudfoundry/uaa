@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -50,6 +51,7 @@ class JdbcQueryableClientDetailsServiceTests {
                 passwordEncoder);
         jdbcQueryableClientDetailsService = new JdbcQueryableClientDetailsService(
                 multitenantJdbcClientDetailsService,
+                new IdentityZoneManagerImpl(),
                 namedParameterJdbcTemplate,
                 new JdbcPagingListFactory(
                         namedParameterJdbcTemplate,

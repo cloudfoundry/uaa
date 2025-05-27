@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InvalidClientSecretException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.ZoneAwareClientSecretPolicyValidator;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -122,7 +123,7 @@ class ClientAdminEndpointsTests {
         clientRegistrationService = Mockito.mock(MultitenantClientServices.class, withSettings().extraInterfaces(SystemDeletable.class));
         mockAuthenticationManager = Mockito.mock(AuthenticationManager.class);
         ApprovalStore approvalStore = mock(ApprovalStore.class);
-        clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor);
+        clientDetailsValidator = new ClientAdminEndpointsValidator(mockSecurityContextAccessor, new IdentityZoneManagerImpl());
         clientDetailsValidator.setClientDetailsService(clientDetailsService);
         clientDetailsValidator.setClientSecretValidator(
                 new ZoneAwareClientSecretPolicyValidator(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6)));
@@ -132,6 +133,7 @@ class ClientAdminEndpointsTests {
 
         endpoints = spy(new ClientAdminEndpoints(
                 mockSecurityContextAccessor,
+                new IdentityZoneManagerImpl(),
                 clientDetailsValidator,
                 mockAuthenticationManager,
                 mock(ResourceMonitor.class),
@@ -796,7 +798,7 @@ class ClientAdminEndpointsTests {
 
     @Test
     void clientEndpointCannotBeConfiguredWithAnInvalidMaxCount() {
-        assertThatThrownBy(() -> new ClientAdminEndpoints(null, null, null, null, null, null, null, 0))
+        assertThatThrownBy(() -> new ClientAdminEndpoints(null, null, null, null, null, null, null, null, 0))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Invalid \"clientMaxCount\" value (got 0). Should be positive number.");
     }

@@ -119,10 +119,10 @@ public class ClientAdminBootstrap implements
             try {
                 UaaClientDetails base = (UaaClientDetails) clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
                 base.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
-                logger.debug("Adding autoapprove flag to client: " + clientId);
+                logger.debug("Adding autoapprove flag to client: {}", clientId);
                 clientRegistrationService.updateClientDetails(base, IdentityZone.getUaaZoneId());
             } catch (NoSuchClientException n) {
-                logger.debug("Client not found, unable to set autoapprove: " + clientId);
+                logger.debug("Client not found, unable to set autoapprove: {}", clientId);
             }
         }
     }
@@ -238,7 +238,7 @@ public class ClientAdminBootstrap implements
                 }
             } catch (ClientAlreadyExistsException e) {
                 if (override) {
-                    logger.debug("Overriding client details for " + clientId);
+                    logger.debug("Overriding client details for {}", clientId);
                     clientRegistrationService.updateClientDetails(client, IdentityZone.getUaaZoneId());
                     updatePasswordsIfChanged(clientId, client.getClientSecret(), secondSecret);
                 } else {
@@ -323,11 +323,11 @@ public class ClientAdminBootstrap implements
         for (String clientId : clientsToDelete) {
             try {
                 ClientDetails client = clientRegistrationService.loadClientByClientId(clientId, IdentityZone.getUaaZoneId());
-                logger.debug("Deleting client from manifest:" + clientId);
+                logger.debug("Deleting client from manifest:{}", clientId);
                 EntityDeletedEvent<ClientDetails> delete = new EntityDeletedEvent<>(client, auth, IdentityZoneHolder.getCurrentZoneId());
                 publish(delete);
             } catch (NoSuchClientException e) {
-                logger.debug("Ignoring delete for non existent client:" + clientId);
+                logger.debug("Ignoring delete for non existent client:{}", clientId);
             }
         }
     }

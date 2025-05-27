@@ -68,11 +68,11 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
         validateOrderBy(queryConverter.map(sortBy));
 
         SearchQueryConverter.ProcessedFilter where = queryConverter.convert(filter, sortBy, ascending, zoneId);
-        logger.debug("Filtering groups with SQL: " + where);
+        logger.debug("Filtering groups with SQL: {}", where);
         List<T> result;
         try {
             String completeSql = getQuerySQL(where);
-            logger.debug("complete sql: " + completeSql + ", params: " + where.getParams());
+            logger.debug("complete sql: {}, params: {}", completeSql, where.getParams());
             if (pageSize > 0 && pageSize < Integer.MAX_VALUE) {
                 result = pagingListFactory.createJdbcPagingList(completeSql, where.getParams(), rowMapper, pageSize);
             } else {
@@ -80,7 +80,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
             }
             return result;
         } catch (DataAccessException e) {
-            logger.debug("Filter '" + filter + "' generated invalid SQL", e);
+            logger.debug("Filter '{}' generated invalid SQL", filter, e);
             throw new IllegalArgumentException("Invalid filter: " + filter);
         }
     }

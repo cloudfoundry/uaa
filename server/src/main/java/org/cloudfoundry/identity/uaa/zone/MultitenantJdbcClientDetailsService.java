@@ -208,7 +208,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
 
             json = JsonUtils.writeValueAsString(additionalInformation);
         } catch (Exception e) {
-            logger.warn("Could not serialize additional information: " + clientDetails, e);
+            logger.warn("Could not serialize additional information: {}", clientDetails, e);
             throw new InvalidDataAccessResourceUsageException("Could not serialize additional information:" + clientDetails.getClientId(), e);
         }
 
@@ -391,7 +391,7 @@ public class MultitenantJdbcClientDetailsService extends MultitenantClientServic
                     }
 
                 } catch (Exception e) {
-                    logger.warn("Could not decode JSON for additional information: " + details, e);
+                    logger.warn("Could not decode JSON for additional information: {}", details, e);
                 }
             }
 
