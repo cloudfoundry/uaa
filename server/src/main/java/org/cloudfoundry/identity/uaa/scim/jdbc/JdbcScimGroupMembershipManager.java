@@ -365,19 +365,20 @@ public class JdbcScimGroupMembershipManager implements ScimGroupMembershipManage
 
     @Override
     public Set<ScimGroup> removeMembersByMemberId(final String memberId, final String zoneId) throws ScimResourceNotFoundException {
-        Set<ScimGroup> groups = getGroupsWithMember(memberId, false, zoneId);
-        logger.debug("removing {} from groups: {}", memberId, groups);
+        String memberIdRequest = UaaStringUtils.getCleanedUserControlString(memberId);
+        Set<ScimGroup> groups = getGroupsWithMember(memberIdRequest, false, zoneId);
+        logger.debug("removing {} from groups: {}", memberIdRequest, groups);
         int deleted;
         String sql = DELETE_MEMBER_IN_GROUPS_SQL_GROUP;
-        if (isUser(memberId)) {
+        if (isUser(memberIdRequest)) {
             sql = DELETE_MEMBER_IN_GROUPS_SQL_USER;
         }
         deleted = jdbcTemplate.update(sql, ps -> {
-            ps.setString(1, memberId);
+            ps.setString(1, memberIdRequest);
             ps.setString(2, zoneId);
         });
 
-        int expectedDelete = isUser(memberId) ? groups.size() - getDefaultUserGroups(zoneId).size() : groups.size();
+        int expectedDelete = isUser(memberIdRequest) ? groups.size() - getDefaultUserGroups(zoneId).size() : groups.size();
         if (deleted != expectedDelete) {
             throw new IncorrectResultSizeDataAccessException("unexpected number of members removed", expectedDelete,
                     deleted);

@@ -445,8 +445,9 @@ public class ScimGroupEndpoints {
         if (etag == null) {
             throw new ScimException("Missing If-Match for PATCH", HttpStatus.BAD_REQUEST);
         }
-        logger.debug("patching group: {}", groupId);
-        int version = getVersion(groupId, etag);
+        String groupIdRequest = UaaStringUtils.getCleanedUserControlString(groupId);
+        logger.debug("patching group: {}", groupIdRequest);
+        int version = getVersion(groupIdRequest, etag);
         patch.setVersion(version);
         ScimGroup current = getGroup(groupId, httpServletResponse);
         current.patch(patch);
