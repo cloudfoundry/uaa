@@ -103,8 +103,9 @@ public class PasswordChangeEndpoint {
                 throw new InvalidPasswordException("Previous password is required even for admin");
             }
         } else {
-            if (!userId.equals(currentUser())) {
-                logger.warn("User with id {} attempting to change password for user {}", currentUser(), userId);
+            String currentUserId = currentUser();
+            if (!userId.equals(currentUserId)) {
+                logger.warn("User with id {} attempting to change password for user {}", currentUserId, userId);
                 throw new InvalidPasswordException("Not permitted to change another user's password");
             }
 

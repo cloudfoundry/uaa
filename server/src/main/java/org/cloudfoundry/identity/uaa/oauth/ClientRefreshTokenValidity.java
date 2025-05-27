@@ -22,19 +22,21 @@ public class ClientRefreshTokenValidity implements ClientTokenValidity {
 
     @Override
     public Integer getValiditySeconds(String clientId) {
-        ClientDetails clientDetails;
-
-        try {
-            clientDetails = multitenantClientServices.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (ClientRegistrationException e) {
-            logger.info("Could not load details for client {}", clientId, e);
-            return null;
-        }
-        return clientDetails.getRefreshTokenValiditySeconds();
+        ClientDetails clientDetails = getClientDetails(clientId, multitenantClientServices, identityZoneManager);
+        return clientDetails != null ? clientDetails.getRefreshTokenValiditySeconds() : null;
     }
 
     @Override
     public Integer getZoneValiditySeconds() {
         return identityZoneManager.getCurrentIdentityZone().getConfig().getTokenPolicy().getRefreshTokenValidity();
+    }
+
+    protected static ClientDetails getClientDetails(String clientId, MultitenantClientServices multitenantClientServices, IdentityZoneManager identityZoneManager) {
+        try {
+            return multitenantClientServices.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
+        } catch (ClientRegistrationException e) {
+            logger.info("Could not load details for client {}", clientId, e);
+            return null;
+        }
     }
 }

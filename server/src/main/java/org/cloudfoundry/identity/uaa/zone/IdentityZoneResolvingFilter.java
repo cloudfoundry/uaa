@@ -99,7 +99,9 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
             logger.debug("No root domains configured, UAA is catch-all domain for host:{}", hostname);
             return "";
         }
-        logger.debug("Unable to determine subdomain for host:{}; root domains:{}", hostname, Arrays.toString(defaultZoneHostnames.toArray()));
+        if (logger.isDebugEnabled()) {
+            logger.debug("Unable to determine subdomain for host:{}; root domains:{}", hostname, Arrays.toString(defaultZoneHostnames.toArray()));
+        }
         return null;
     }
 
@@ -138,6 +140,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
     @Override
     public void afterPropertiesSet() throws ServletException {
         super.afterPropertiesSet();
-        logger.info("Zone Resolving Root domains are: {}", Arrays.toString(getDefaultZoneHostnames().toArray()));
+        String domainArray = Arrays.toString(getDefaultZoneHostnames().toArray());
+        logger.info("Zone Resolving Root domains are: {}", domainArray);
     }
 }

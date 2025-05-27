@@ -74,38 +74,36 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 
         SecurityContext context = SecurityContextHolder.getContext();
 
-        if (context.getAuthentication() instanceof OAuth2Authentication authentication) {
-            if (authentication.isClientOnly()) {
-                UaaUser user = getUser(req, info);
-                UaaAuthenticationDetails authdetails = (UaaAuthenticationDetails) req.getDetails();
-                boolean addNewAccounts = authdetails != null && authdetails.isAddNew();
-                try {
-                    if (NotANumber.equals(user.getId())) {
-                        user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
-                    } else {
-                        //we should never add new accounts if we specify user_id
-                        addNewAccounts = false;
-                        user = userDatabase.retrieveUserById(user.getId());
-                    }
-                } catch (UsernameNotFoundException e) {
-                    // Not necessarily fatal
-                    if (addNewAccounts) {
-                        // Register new users automatically
-                        publish(new NewUserAuthenticatedEvent(user));
-                        try {
-                            user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
-                        } catch (UsernameNotFoundException ex) {
-                            throw new BadCredentialsException("Bad credentials");
-                        }
-                    } else {
-                        //if add_new=false then this is a bad user ID
-                        throw new BadCredentialsException("Bad Credentials");
-                    }
+        if (context.getAuthentication() instanceof OAuth2Authentication authentication && authentication.isClientOnly()) {
+            UaaUser user = getUser(req, info);
+            UaaAuthenticationDetails authdetails = (UaaAuthenticationDetails) req.getDetails();
+            boolean addNewAccounts = authdetails != null && authdetails.isAddNew();
+            try {
+                if (NotANumber.equals(user.getId())) {
+                    user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
+                } else {
+                    //we should never add new accounts if we specify user_id
+                    addNewAccounts = false;
+                    user = userDatabase.retrieveUserById(user.getId());
                 }
-                Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
-                return success;
+            } catch (UsernameNotFoundException e) {
+                // Not necessarily fatal
+                if (addNewAccounts) {
+                    // Register new users automatically
+                    publish(new NewUserAuthenticatedEvent(user));
+                    try {
+                        user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
+                    } catch (UsernameNotFoundException ex) {
+                        throw new BadCredentialsException("Bad credentials");
+                    }
+                } else {
+                    //if add_new=false then this is a bad user ID
+                    throw new BadCredentialsException("Bad Credentials");
+                }
             }
+            Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
+            publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
+            return success;
         }
 
         logger.debug("Did not locate login credentials");

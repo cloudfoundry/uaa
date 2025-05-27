@@ -43,10 +43,14 @@ public class LoginClientParametersAuthenticationFilter extends AbstractClientPar
         if (loginInfo.isEmpty()) {
             throw new BadCredentialsException("Request does not contain credentials.");
         } else if (clientAuthenticationManager == null || loginInfo.get(CLIENT_ID) == null) {
-            logger.debug("Insufficient resources to perform client authentication. AuthMgr:{}; clientId:{}", clientAuthenticationManager, UaaStringUtils.getCleanedUserControlString(clientId));
+            if (logger.isDebugEnabled()) {
+                logger.debug("Insufficient resources to perform client authentication. AuthMgr:{}; clientId:{}", clientAuthenticationManager, UaaStringUtils.getCleanedUserControlString(clientId));
+            }
             throw new BadCredentialsException("Request does not contain client credentials.");
         } else {
-            logger.debug("Located credentials in request, with keys: {}", UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
+            if (logger.isDebugEnabled()) {
+                logger.debug("Located credentials in request, with keys: {}", UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
+            }
 
             doClientCredentialLogin(req, loginInfo, clientId);
         }

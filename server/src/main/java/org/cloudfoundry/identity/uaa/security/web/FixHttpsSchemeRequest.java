@@ -23,15 +23,18 @@ import org.slf4j.LoggerFactory;
 public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
 
     private static final Logger logger = LoggerFactory.getLogger(FixHttpsSchemeRequest.class);
+    private static final String HTTPS = "https";
+    private static final String HTTP = "http";
 
     @Override
     public String getScheme() {
         String scheme = super.getScheme();
-        logger.debug("Request X-Forwarded-Proto {}", super.getHeader("X-Forwarded-Proto"));
+        String xForwardedProto = super.getHeader("X-Forwarded-Proto");
+        logger.debug("Request X-Forwarded-Proto {}", xForwardedProto);
 
-        if ("http".equals(scheme) &&
-                "https".equals(super.getHeader("X-Forwarded-Proto"))) {
-            scheme = "https";
+        if (HTTP.equals(scheme) &&
+                HTTPS.equals(xForwardedProto)) {
+            scheme = HTTPS;
         }
         return scheme;
     }
@@ -40,8 +43,8 @@ public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
     public int getServerPort() {
         int port = super.getServerPort();
         String scheme = super.getScheme();
-        if ("http".equals(scheme) &&
-                "https".equals(super.getHeader("X-Forwarded-Proto"))) {
+        if (HTTP.equals(scheme) &&
+                HTTPS.equals(super.getHeader("X-Forwarded-Proto"))) {
             port = 443;
         }
         return port;
@@ -59,8 +62,8 @@ public class FixHttpsSchemeRequest extends HttpServletRequestWrapper {
         url.append(scheme);
         url.append("://");
         url.append(getServerName());
-        if (("http".equals(scheme) && (port != 80))
-                || ("https".equals(scheme) && (port != 443))) {
+        if ((HTTP.equals(scheme) && (port != 80))
+                || (HTTPS.equals(scheme) && (port != 443))) {
             url.append(':');
             url.append(port);
         }
