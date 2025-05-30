@@ -53,7 +53,7 @@ public class SpringServletXmlSecurityConfiguration {
                 .securityMatcher("/healthz/**")
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
-                .csrf(CsrfConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/healthz/**"))
                 .sessionManagement(session -> session
                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -69,7 +69,7 @@ public class SpringServletXmlSecurityConfiguration {
                 .securityMatcher("/saml/metadata/**", "/saml/metadata")
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
-                .csrf(CsrfConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/saml/metadata/**", "/saml/metadata"))
                 .sessionManagement(session -> session
                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -104,7 +104,26 @@ public class SpringServletXmlSecurityConfiguration {
                 )
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
-                .csrf(CsrfConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers(
+                        "/error**",
+                        "/error/**",
+                        "/resources/**",
+                        "/square-logo.png",
+                        "/info",
+                        "/password/**",
+                        "/saml/web/**",
+                        "/vendor/**",
+                        "/email_sent",
+                        "/accounts/email_sent",
+                        "/invalid_request",
+                        "/saml_error",
+                        "/favicon.ico",
+                        "/oauth_error",
+                        "/session",
+                        "/session_management",
+                        "/oauth/token/.well-known/openid-configuration",
+                        "/.well-known/openid-configuration"
+                ))
                 .sessionManagement(session -> session
                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
