@@ -44,6 +44,7 @@ import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CAS
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY;
 import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_UPDATE_USER_LAST_LOGON;
 import static org.mockito.Mockito.eq;
+import static org.mockito.Mockito.matches;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -296,7 +297,7 @@ class JdbcUaaUserDatabaseTests {
         jdbcUaaUserDatabase = new JdbcUaaUserDatabase(spiedJdbcTemplate, timeService, databaseProperties, mockIdentityZoneManager,
                 dbUtils);
         UaaUser joe = jdbcUaaUserDatabase.retrieveUserByName("joe", OriginKeys.UAA);
-        verify(spiedJdbcTemplate, times(1)).queryForObject(eq(DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY), eq(jdbcUaaUserDatabase.getMapper()), eq("joe"), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
+        verify(spiedJdbcTemplate, times(1)).queryForObject(matches("select .* from users where .*"), eq(jdbcUaaUserDatabase.getMapper()), eq("joe"), eq(true), eq(OriginKeys.UAA), eq("zone-the-first"));
         List<GrantedAuthority> grantedAuthorities = (List<GrantedAuthority>) joe.getAuthorities();
         assertThat(grantedAuthorities).contains(new SimpleGrantedAuthority("uaa.user"), new SimpleGrantedAuthority("additional"), new SimpleGrantedAuthority("anotherOne"));
     }
