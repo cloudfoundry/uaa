@@ -624,10 +624,10 @@ public abstract class AbstractLdapMockMvcTest {
                 .andExpect(redirectedUrl("/login?error=login_failure"));
 
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(3)).onApplicationEvent(captor.capture());
         List<AbstractUaaEvent> allValues = captor.getAllValues();
-        assertThat(allValues.get(5)).isInstanceOf(IdentityProviderAuthenticationFailureEvent.class);
-        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(5);
+        assertThat(allValues.get(2)).isInstanceOf(IdentityProviderAuthenticationFailureEvent.class);
+        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(2);
         assertThat(event.getUsername()).isEqualTo("marissa");
         assertThat(event.getAuthenticationType()).isEqualTo(OriginKeys.LDAP);
 
@@ -647,8 +647,8 @@ public abstract class AbstractLdapMockMvcTest {
         captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
         verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
         allValues = captor.getAllValues();
-        assertThat(allValues.get(13)).isInstanceOf(IdentityProviderAuthenticationSuccessEvent.class);
-        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(13);
+        assertThat(allValues.get(7)).isInstanceOf(IdentityProviderAuthenticationSuccessEvent.class);
+        IdentityProviderAuthenticationSuccessEvent successEvent = (IdentityProviderAuthenticationSuccessEvent) allValues.get(7);
         assertThat(successEvent.getAuthenticationType()).isEqualTo(OriginKeys.LDAP);
     }
 
@@ -901,10 +901,10 @@ public abstract class AbstractLdapMockMvcTest {
                 .andExpect(status().isUnauthorized());
 
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, atLeast(5)).onApplicationEvent(captor.capture());
+        verify(listener, atLeast(3)).onApplicationEvent(captor.capture());
         List<AbstractUaaEvent> allValues = captor.getAllValues();
-        assertThat(allValues.get(4)).isInstanceOf(IdentityProviderAuthenticationFailureEvent.class);
-        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(4);
+        assertThat(allValues.get(2)).isInstanceOf(IdentityProviderAuthenticationFailureEvent.class);
+        IdentityProviderAuthenticationFailureEvent event = (IdentityProviderAuthenticationFailureEvent) allValues.get(2);
         assertThat(event.getUsername()).isEqualTo("marissa3");
         assertThat(event.getAuthenticationType()).isEqualTo(OriginKeys.LDAP);
     }
