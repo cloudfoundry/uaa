@@ -27,7 +27,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AnonymousConfigurer;
-import org.springframework.security.config.annotation.web.configurers.CsrfConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutRequestFilter;
 import org.springframework.security.saml2.provider.service.web.authentication.logout.Saml2LogoutResponseFilter;
@@ -46,14 +45,44 @@ import java.util.Map;
 @EnableWebMvc
 public class SpringServletXmlSecurityConfiguration {
 
+    private final String[] noSecurityEndpoints = {
+            "/error**",
+            "/error/**",
+            "/resources/**",
+            "/square-logo.png",
+            "/info",
+            "/password/**",
+            "/saml/web/**",
+            "/vendor/**",
+            "/email_sent",
+            "/accounts/email_sent",
+            "/invalid_request",
+            "/saml_error",
+            "/favicon.ico",
+            "/oauth_error",
+            "/session",
+            "/session_management",
+            "/oauth/token/.well-known/openid-configuration",
+            "/.well-known/openid-configuration"
+    };
+
+    private final String[] secFilterOpenSamlEndPoints = {
+            "/saml/metadata/**",
+            "/saml/metadata"
+    };
+
+    private final String[] secFilterOpenHealthzEndPoints = {
+            "/healthz/**"
+    };
+
     @Bean
     @Order(FilterChainOrder.NO_SECURITY)
     UaaFilterChain secFilterOpen05Healthz(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher("/healthz/**")
+                .securityMatcher(secFilterOpenHealthzEndPoints)
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
-                .csrf(CsrfConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers(secFilterOpenHealthzEndPoints))
                 .sessionManagement(session -> session
                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -66,10 +95,10 @@ public class SpringServletXmlSecurityConfiguration {
     @Order(FilterChainOrder.NO_SECURITY)
     UaaFilterChain secFilterOpen06SAMLMetadata(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher("/saml/metadata/**", "/saml/metadata")
+                .securityMatcher(secFilterOpenSamlEndPoints)
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
-                .csrf(CsrfConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers(secFilterOpenSamlEndPoints))
                 .sessionManagement(session -> session
                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
@@ -82,29 +111,10 @@ public class SpringServletXmlSecurityConfiguration {
     @Order(FilterChainOrder.NO_SECURITY)
     UaaFilterChain noSecurityFilters(HttpSecurity http) throws Exception {
         SecurityFilterChain chain = http
-                .securityMatcher(
-                        "/error**",
-                        "/error/**",
-                        "/resources/**",
-                        "/square-logo.png",
-                        "/info",
-                        "/password/**",
-                        "/saml/web/**",
-                        "/vendor/**",
-                        "/email_sent",
-                        "/accounts/email_sent",
-                        "/invalid_request",
-                        "/saml_error",
-                        "/favicon.ico",
-                        "/oauth_error",
-                        "/session",
-                        "/session_management",
-                        "/oauth/token/.well-known/openid-configuration",
-                        "/.well-known/openid-configuration"
-                )
+                .securityMatcher(noSecurityEndpoints)
                 .authorizeHttpRequests(requests -> requests.anyRequest().permitAll())
                 .anonymous(AnonymousConfigurer::disable)
-                .csrf(CsrfConfigurer::disable)
+                .csrf(csrf -> csrf.ignoringRequestMatchers(noSecurityEndpoints))
                 .sessionManagement(session -> session
                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )

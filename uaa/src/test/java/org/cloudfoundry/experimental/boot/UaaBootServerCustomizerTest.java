@@ -34,7 +34,7 @@ class UaaBootServerCustomizerTest {
     void customizerAddedReportValve() {
         ArgumentCaptor<TomcatServletWebServerFactory> captor = ArgumentCaptor.forClass(TomcatServletWebServerFactory.class);
         Mockito.verify(customizer, Mockito.atMostOnce()).customize(captor.capture());
-        Collection<Valve> valves = captor.getValue().getContextValves();
+        Collection<Valve> valves = captor.getValue().getEngineValves();
         assertThat(valves).isNotEmpty();
         Optional<Valve> valve = valves.stream().filter(v -> v.getClass().equals(ErrorReportValve.class)).findFirst();
         assertThat(valve.isPresent()).isTrue();

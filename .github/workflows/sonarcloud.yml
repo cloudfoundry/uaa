@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: 'liberica'
-          java-version: '17'
+          java-version: '21'
           cache: 'gradle'
       - name: Analyze with SonarCloud
         env:

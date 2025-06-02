@@ -231,11 +231,15 @@ List of relations
 
 ## Running tests
 
-You can run the integration tests with docker
+You can run the integration tesfts with docker
 
     $ run-integration-tests.sh <dbtype>
 
 will create a docker container running uaa + ldap + database whereby integration tests are run against.
+
+    $ run-integration-tests.sh hsqldb boot
+
+will create a docker container and run the integration tests against a Spring Boot instance using HSQLSDB
 
 ### Using Docker to test with postgresql or mysql
 

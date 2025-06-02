@@ -1,9 +1,5 @@
 package org.cloudfoundry.experimental.boot;
 
-import org.apache.catalina.core.ApplicationContext;
-import org.apache.catalina.core.ApplicationContextFacade;
-import org.apache.catalina.core.StandardContext;
-import org.apache.tomcat.util.descriptor.web.ErrorPage;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
@@ -19,10 +15,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import javax.servlet.DispatcherType;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
-import java.lang.reflect.Field;
-
-import static org.springframework.util.ReflectionUtils.findField;
-import static org.springframework.util.ReflectionUtils.getField;
 
 @Configuration
 @EnableConfigurationProperties({UaaBootConfiguration.ServerHttp.class})
@@ -62,40 +54,5 @@ public class UaaBootConfiguration implements ServletContextInitializer, WebMvcCo
     public void onStartup(ServletContext servletContext) throws ServletException {
         HttpSessionEventPublisher publisher = new HttpSessionEventPublisher();
         servletContext.addListener(publisher);
-
-        //<error-page> from web.xml
-        if (servletContext instanceof ApplicationContextFacade) {
-            Field field = findField(ApplicationContextFacade.class, "context", ApplicationContext.class);
-            field.setAccessible(true);
-            ApplicationContext applicationContext = (ApplicationContext) getField(field, servletContext);
-
-            field = findField(ApplicationContext.class, "context", StandardContext.class);
-            field.setAccessible(true);
-            StandardContext standardContext = (StandardContext) getField(field, applicationContext);
-
-            ErrorPage error500 = new ErrorPage();
-            error500.setErrorCode(500);
-            error500.setLocation("/error500");
-            standardContext.addErrorPage(error500);
-
-            ErrorPage error404 = new ErrorPage();
-            error404.setErrorCode(404);
-            error404.setLocation("/error404");
-            standardContext.addErrorPage(error404);
-
-            ErrorPage error429 = new ErrorPage();
-            error429.setErrorCode(429);
-            error429.setLocation("/error429");
-            standardContext.addErrorPage(error429);
-
-            ErrorPage error = new ErrorPage();
-            error.setLocation("/error");
-            standardContext.addErrorPage(error);
-
-            ErrorPage errorEx = new ErrorPage();
-            errorEx.setLocation("/rejected");
-            errorEx.setExceptionType("org.springframework.security.web.firewall.RequestRejectedException");
-            standardContext.addErrorPage(errorEx);
-        }
     }
 }

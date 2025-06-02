@@ -2,6 +2,7 @@
 
 set -xeu -o pipefail
 DB="${1:-hsqldb}"
+BOOT="${2:-false}"
 
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
@@ -51,4 +52,4 @@ docker run --privileged -t -i --shm-size=1G \
   --env RUN_TESTS="${RUN_TESTS:-true}" \
   --publish 8081:8080 \
   "${DOCKER_IMAGE}" \
-  /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}" "${CONTAINER_SCRIPT_DIR}"
+  /root/uaa/scripts/integration-tests.sh "${PROFILE_NAME}" "${CONTAINER_SCRIPT_DIR}" ${BOOT}

@@ -294,7 +294,9 @@ tasks.register('cleanCargoConfDir') {
 tasks.register('integrationTest', Test) {
     dependsOn killUaa
     dependsOn subprojects.integrationTest
-    finalizedBy cargoStopLocal
+    if (runCargoTests) {
+        finalizedBy cargoStopLocal
+    }
 }
 
 // Jacoco report from cargo run

@@ -5,7 +5,10 @@ import org.apache.catalina.valves.ErrorReportValve;
 import org.apache.coyote.http11.Http11NioProtocol;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
+import org.springframework.boot.web.server.ErrorPage;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -20,10 +23,18 @@ public class UaaBootServerCustomizer implements
     public void customize(TomcatServletWebServerFactory factory) {
         //customize tomcat
 
+        //<error-page> from web.xml
+        factory.addErrorPages(
+            new ErrorPage(HttpStatus.INTERNAL_SERVER_ERROR, "/error500"),
+            new ErrorPage(HttpStatus.NOT_FOUND, "/error404"),
+            new ErrorPage(HttpStatus.TOO_MANY_REQUESTS, "/error429"),
+            new ErrorPage("/error"),
+            new ErrorPage(RequestRejectedException.class, "/rejected")
+        );
+
         //add error report valve
         //https://github.com/cloudfoundry/uaa-release/blob/0be1fa547aa975019b957cd9aafe9ca09edf62d9/jobs/uaa/templates/config/tomcat/tomcat.server.xml.erb#L111-L114
-        factory.addContextValves(getErrorReportValve());
-
+        factory.addEngineValves(getErrorReportValve());
 
         if (this.serverHttp.port() > 0) {
             factory.addAdditionalTomcatConnectors(
