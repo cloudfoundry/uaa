@@ -61,7 +61,9 @@ public class SpringServletXmlSecurityConfiguration {
             "/favicon.ico",
             "/oauth_error",
             "/session",
+            "/session/**",
             "/session_management",
+            "/session_management/**",
             "/oauth/token/.well-known/openid-configuration",
             "/.well-known/openid-configuration"
     };
