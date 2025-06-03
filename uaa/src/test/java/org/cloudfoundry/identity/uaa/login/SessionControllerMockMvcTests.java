@@ -26,11 +26,35 @@ class SessionControllerMockMvcTests {
                         .param("messageOrigin", "origin"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("session"));
+
+        mockMvc.perform(get("/session/")
+                        .param("clientId", "1")
+                        .param("messageOrigin", "origin"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("session"));
+
+        mockMvc.perform(get("/session/other")
+                        .param("clientId", "1")
+                        .param("messageOrigin", "origin"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("session"));
     }
 
     @Test
     void sessionManagementEndpointWhichSupportsUaaSingular() throws Exception {
         mockMvc.perform(get("/session_management")
+                        .param("clientId", "1")
+                        .param("messageOrigin", "origin"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("session_management"));
+
+        mockMvc.perform(get("/session_management/")
+                        .param("clientId", "1")
+                        .param("messageOrigin", "origin"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("session_management"));
+
+        mockMvc.perform(get("/session_management/other")
                         .param("clientId", "1")
                         .param("messageOrigin", "origin"))
                 .andExpect(status().isOk())
