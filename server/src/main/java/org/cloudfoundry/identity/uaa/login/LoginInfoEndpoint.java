@@ -628,6 +628,7 @@ public class LoginInfoEndpoint {
         Cookie cookie = new Cookie("Saved-Account-%s".formatted(sanitizedUserId), "");
         cookie.setMaxAge(0);
         cookie.setPath(request.getContextPath() + "/login");
+        cookie.setSecure(true);
         response.addCookie(cookie);
         return "redirect:/login";
     }
