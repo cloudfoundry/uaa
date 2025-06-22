@@ -91,6 +91,22 @@ EOL
   # Delete the temporary data
   rm -rf ${TMP_DIR}
 
+  # Create a PKCS12 Format Keystore (like uaa-release uses)
+  KEYSTORE_FILE=uaa_keystore.p12
+  if command -v openssl &> /dev/null; then
+    cat server.crt > server.cert-and-key.crt
+    cat server.key >> server.cert-and-key.crt
+
+    openssl pkcs12 -export ${FIPS_OPTS} -name uaa_ssl_cert \
+            -in server.cert-and-key.crt \
+            -out uaa_keystore.p12 \
+            -password pass:k0*l*s3cur1tyr0ck$
+    chmod og+r uaa_keystore.p12
+    chmod og+r server.cert-and-key.crt
+  else
+    echo -e "${RED}\`openssl\` does not exist in PATH, please install it!${NC}"
+    KEYSTORE_FILE="<not created>"
+  fi
   chmod og+r server.key
   chmod og+r server.crt
   chmod og+r CA.key
@@ -99,6 +115,7 @@ EOL
   echo -e "${GREEN}Certificates are ready: ${NC}"
   echo -e "\t${GREEN}Server Certificate: ${RED}server.crt${NC}"
   echo -e "\t${GREEN}Server Key        : ${RED}server.key${NC}"
+  echo -e "\t${GREEN}PKCS12 Keystore   : ${RED}${KEYSTORE_FILE}${NC}"
   echo -e "\t${GREEN}CA Certificate    : ${RED}CA.crt${NC}"
   echo -e "\t${GREEN}CA Key            : ${RED}CA.key${NC}"
 popd

@@ -214,6 +214,7 @@ bootRun {
     dependsOn rootProject.cleanBootTomcatDir
     mainClass = "org.cloudfoundry.experimental.boot.UaaBootApplication"
     systemProperty("server.tomcat.basedir", file("../scripts/boot/tomcat/").getAbsolutePath())
+    systemProperty("logging.config", file("../scripts/boot/log4j2.properties/").getAbsolutePath())
     systemProperty("SECRETS_DIR", System.getProperty("SECRETS_DIR", file("../scripts/cargo").getAbsolutePath()))
     systemProperty("spring.profiles.active", System.getProperty("spring.profiles.active", "hsqldb"))
     systemProperty("metrics.perRequestMetrics", System.getProperty("metrics.perRequestMetrics", "true"))

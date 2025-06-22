@@ -41,6 +41,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.security.SecureRandom;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -129,10 +130,12 @@ class AutologinIT {
     @Test
     void simpleAutologinFlow() throws Exception {
         HttpHeaders headers = getAppBasicAuthHttpHeaders();
+        String password = testAccounts.getPassword();
+        String userName = createNewUser(password);
 
         LinkedMultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
-        requestBody.add("username", testAccounts.getUserName());
-        requestBody.add("password", testAccounts.getPassword());
+        requestBody.add("username", userName);
+        requestBody.add("password", password);
 
         //generate an autologin code with our credentials
         ResponseEntity<Map> autologinResponseEntity = restOperations.exchange(baseUrl + "/autologin",
@@ -161,18 +164,18 @@ class AutologinIT {
                         new HttpEntity<>(new HashMap<String, String>(), headers),
                         String.class);
 
-
-        //we are now logged in. retrieve the JSESSIONID
+        //we are now logged in. check that we have the correct cookies set
         List<String> cookies = authorizeResponse.getHeaders().get("Set-Cookie");
-        int cookiesAdded = 0;
+        assertThat(cookies).as("Expected both JSESSIONID and X-Uaa-Csrf cookies to be set")
+                .anySatisfy(s -> assertThat(s).startsWith("JSESSIONID="))
+                .anySatisfy(s -> assertThat(s).startsWith("X-Uaa-Csrf="));
+
         headers = getAppBasicAuthHttpHeaders();
         for (String cookie : cookies) {
             if (cookie.startsWith("X-Uaa-Csrf=") || cookie.startsWith("JSESSIONID=")) {
                 headers.add("Cookie", cookie);
-                cookiesAdded++;
             }
         }
-        assertThat(cookiesAdded).isEqualTo(2);
 
         //if we receive a 200, then we must approve our scopes
         if (HttpStatus.OK == authorizeResponse.getStatusCode()) {
@@ -350,5 +353,16 @@ class AutologinIT {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", testClient.getBasicAuthHeaderValue("app", "appclientsecret"));
         return headers;
+    }
+
+    private String createNewUser(String secretPassword) {
+        int randomInt = new SecureRandom().nextInt();
+        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.admin");
+        String scimClientId = "app" + randomInt;
+        testClient.createScimClient(adminAccessToken, scimClientId);
+        String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
+        String userEmail = "user" + randomInt + "@example.com";
+        testClient.createUser(scimAccessToken, userEmail, userEmail, secretPassword, true);
+        return userEmail;
     }
 }

@@ -1,9 +1,12 @@
 package org.cloudfoundry.identity.uaa.ratelimiting;
 
-import java.io.IOException;
-import java.time.Instant;
-import java.util.Collections;
-import java.util.Enumeration;
+import lombok.RequiredArgsConstructor;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.Limiter;
+import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiter;
+import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
@@ -11,13 +14,10 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpFilter;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-
-import lombok.RequiredArgsConstructor;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.Limiter;
-import org.cloudfoundry.identity.uaa.ratelimiting.core.RateLimiter;
-import org.cloudfoundry.identity.uaa.ratelimiting.internal.RateLimiterStatus;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.io.IOException;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.Enumeration;
 
 public class RateLimitingFilter extends HttpFilter {
     private static final Logger log = LoggerFactory.getLogger(RateLimitingFilter.class);
@@ -110,9 +110,7 @@ public class RateLimitingFilter extends HttpFilter {
         public final void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
                 throws ServletException, IOException {
             try {
-                Limiter limiter = log.isInfoEnabled() ?
-                        getLimiterWithLogging(request) :
-                        getLimiterNoLogging(request);
+                Limiter limiter = getLimiterWithLogging(request);
                 if (limiter.shouldLimit()) {
                     limitRequest(request, response, "429 - Too Many Request - Request limited by Rate Limiter configuration: " + limiter.getLimitingKey().errorString());
                     return;
@@ -124,14 +122,14 @@ public class RateLimitingFilter extends HttpFilter {
             filterChain.doFilter(request, response); // just forward it!
         }
 
-        private Limiter getLimiterNoLogging(HttpServletRequest request) {
-            return rateLimiter.checkRequest(request);
-        }
-
         private Limiter getLimiterWithLogging(HttpServletRequest request) {
             Instant startTime = Instant.now();
             Limiter limiter = rateLimiter.checkRequest(request);
-            limiter.log(request.getRequestURI(), log::info, startTime);
+            if (limiter.shouldLimit() && log.isInfoEnabled()) {
+                limiter.log(request.getRequestURI(), log::info, startTime);
+            } else if (log.isDebugEnabled()) {
+                limiter.log(request.getRequestURI(), log::debug, startTime);
+            }
             return limiter;
         }
 

@@ -46,6 +46,7 @@ logs/**
 # generated certificates
 scripts/certificates/*.key
 scripts/certificates/*.crt
+scripts/certificates/*.p12
 scripts/certificates/tmp/**
 
 # temporary tomcat war file directories

@@ -116,6 +116,7 @@ Two separate gradle tasks can be used to run the Spring Boot application
 - `./gradlew bootRun` - the built in Spring Boot gradle task
 - `./gradlew bootWarRun` - use a `JavaExec` gradle task to launch the runnable .war file
 - Manual run, as show below, to be run after `./gradlew assemble`
+- Using ./scripts/boot/boot-with-tls.sh - runs http/8080 and https/8443
 
 ```text
 java -DCLOUDFOUNDRY_CONFIG_PATH=`pwd`/scripts/cargo \
@@ -124,6 +125,7 @@ java -DCLOUDFOUNDRY_CONFIG_PATH=`pwd`/scripts/cargo \
     -Dmetrics.perRequestMetrics=true \
     -Dserver.servlet.context-path=/uaa \
     -Dserver.tomcat.basedir=`pwd`/scripts/boot/tomcat \
+    -Dlogging.config=`pwd`/scripts/boot/log4j.properties \
     -Dsmtp.host=localhost \
     -Dsmtp.port=2525 \
     -Dspring.profiles.active=hsqldb \
