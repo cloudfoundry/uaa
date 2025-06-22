@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -624,8 +625,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/delete_saved_account"})
     public String deleteSavedAccount(HttpServletRequest request, HttpServletResponse response, String userId) {
-        String sanitizedUserId = URLEncoder.encode(userId, UTF_8);
-        Cookie cookie = new Cookie("Saved-Account-%s".formatted(sanitizedUserId), "");
+        Cookie cookie = UaaUrlUtils.createSavedCookie(userId, null);
         cookie.setMaxAge(0);
         cookie.setPath(request.getContextPath() + "/login");
         cookie.setSecure(true);
