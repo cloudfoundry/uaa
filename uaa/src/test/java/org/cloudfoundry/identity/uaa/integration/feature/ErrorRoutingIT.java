@@ -3,11 +3,14 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
+import org.xmlunit.assertj.XmlAssert;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -51,20 +54,36 @@ class ErrorRoutingIT {
     }
 
     @Test
-    void responseToErrorPage() throws IOException {
-        String body = CallErrorPageAndCheckHttpStatusCode("/info", "TRACE", 405);
-        //DISABLE SINCE BOOT THIS GETS CAUGHT IN StrictHttpFirewall and rejected for all endpoints
-        //assertThat(body).as("Expected no response HTML body, but received: " + body).doesNotContain("<html");
+    void traceRequestsRejected() throws IOException {
+        // org.springframework.security.web.firewall.StrictHttpFirewall rejects TRACE method
+        HttpURLConnection cn = (HttpURLConnection) new URL(baseUrl + "/info").openConnection();
+        cn.setRequestMethod("TRACE");
+
+        cn.connect();
+        assertThat(cn.getResponseCode())
+                .as("Check status code from TRACE method is 405")
+                .isEqualTo(405);
     }
 
-    @Test
-    void requestRejectedExceptionErrorPage() throws IOException {
-        final String rejectedEndpoint = "/login;endpoint=x"; // spring securiy throws RequestRejectedException and by default status 500, but now 400
-        webDriver.get(baseUrl + rejectedEndpoint);
+    @ParameterizedTest
+    @ValueSource(strings = { "/login?param=%00", "/login?param=val%00ue" } )
+    void requestInvalidParameterErrorPage(String invalidParameter) throws IOException {
+        String body = CallErrorPageAndCheckHttpStatusCode(invalidParameter, "GET", 400);
+        XmlAssert.assertThat(body)
+                .hasXPath("//p")
+                .extractingText()
+                .contains("The request contains an invalid parameter that can not be processed.");
+    }
 
-        assertThat(webDriver.findElement(By.tagName("h2")).getText()).as("Check if on the error page").contains("The request was rejected because it contained a potentially malicious character.");
-
-        CallErrorPageAndCheckHttpStatusCode(rejectedEndpoint, "GET", 400);
+    @ParameterizedTest
+    @ValueSource(strings = { "/login;endpoint=x", "/login;?endpoint=x", "/login?%00param=%00value" } )
+    void requestRejectedExceptionErrorPage(String rejectedEndpoint) throws IOException {
+        // spring security throws RequestRejectedException with status code 400
+        String body = CallErrorPageAndCheckHttpStatusCode(rejectedEndpoint, "GET", 400);
+        XmlAssert.assertThat(body)
+                .hasXPath("//h2")
+                .extractingText()
+                .contains("The request was rejected because it contained a potentially malicious character.");
     }
 
     private String CallErrorPageAndCheckHttpStatusCode(String errorPath, String method, int codeExpected) throws IOException {

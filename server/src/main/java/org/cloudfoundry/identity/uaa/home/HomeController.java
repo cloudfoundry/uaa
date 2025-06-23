@@ -119,7 +119,7 @@ public class HomeController {
 
     @RequestMapping("/error500")
     public String error500(Model model, HttpServletRequest request, HttpServletResponse response) {
-        Throwable genericException = (Throwable) request.getAttribute("javax.servlet.error.exception");
+        Throwable genericException = (Throwable) request.getAttribute(RequestDispatcher.ERROR_EXCEPTION);
         logger.error("Internal error", genericException);
 
         // check for common SAML related exceptions and redirect these to bad_request

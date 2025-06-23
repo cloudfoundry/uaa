@@ -40,6 +40,7 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import javax.servlet.RequestDispatcher;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
@@ -172,7 +173,7 @@ class HomeControllerViewTests extends TestClassNullifier {
 
     @Test
     void error500WithGenericException() throws Exception {
-        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception("bad")))
+        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception("bad")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(customFooterText)))
                 .andExpect(content().string(containsString(base64ProductLogo)));
@@ -180,7 +181,7 @@ class HomeControllerViewTests extends TestClassNullifier {
 
     @Test
     void error500WithSAMLExceptionAsCause() throws Exception {
-        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new Saml2Exception("bad"))))
+        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new Saml2Exception("bad"))))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString(customFooterText)))
                 .andExpect(content().string(containsString(base64ProductLogo)));
@@ -188,7 +189,7 @@ class HomeControllerViewTests extends TestClassNullifier {
 
     @Test
     void error500WithMetadataProviderNotFoundExceptionCause() throws Exception {
-        mockMvc.perform(get("/error500").requestAttr("javax.servlet.error.exception", new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
+        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
                 .andExpect(status().isBadRequest())
                 .andExpect(content().string(containsString(customFooterText)))
                 .andExpect(content().string(containsString(base64ProductLogo)));
