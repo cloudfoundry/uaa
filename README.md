@@ -233,7 +233,7 @@ List of relations
 
 ## Running tests
 
-You can run the integration tesfts with docker
+You can run the integration tests with docker
 
     $ run-integration-tests.sh <dbtype>
 
