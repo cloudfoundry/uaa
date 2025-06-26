@@ -107,7 +107,7 @@ class ScimUserLookupMockMvcTests {
         Map<String, Object> map = JsonUtils.readValue(response.getContentAsString(), Map.class);
         List<Map<String, Object>> resources = (List<Map<String, Object>>) map.get("resources");
         assertThat(resources).hasSize(1);
-        assertThat(resources.get(0)).doesNotContainEntry("origin", "test-origin");
+        assertThat(resources.getFirst()).doesNotContainEntry("origin", "test-origin");
     }
 
     @Test

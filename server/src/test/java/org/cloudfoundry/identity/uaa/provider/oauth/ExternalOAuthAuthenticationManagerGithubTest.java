@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
-import java.net.URL;
+import java.net.URI;
 import java.time.Duration;
 import java.util.Map;
 
@@ -62,9 +62,9 @@ class ExternalOAuthAuthenticationManagerGithubTest {
         IdentityProvider<RawExternalOAuthIdentityProviderDefinition> provider = new IdentityProvider<>();
         RawExternalOAuthIdentityProviderDefinition providerConfig = new RawExternalOAuthIdentityProviderDefinition();
         providerConfig.setResponseType("code");
-        providerConfig.setAuthUrl(new URL(AUTH_URL));
-        providerConfig.setTokenUrl(new URL(TOKEN_URL));
-        providerConfig.setUserInfoUrl(new URL(USER_INFO_URL));
+        providerConfig.setAuthUrl(URI.create(AUTH_URL).toURL());
+        providerConfig.setTokenUrl(URI.create(TOKEN_URL).toURL());
+        providerConfig.setUserInfoUrl(URI.create(USER_INFO_URL).toURL());
         providerConfig.setScopes(newArrayList(new String[]{"openid", "email"}));
         providerConfig.setAddShadowUserOnLogin(true); // the default anyway
         providerConfig.setRelyingPartyId("github_app_client_id");

@@ -179,7 +179,7 @@ class PasswordGrantIT {
 
             // get the uaa user in order to update it (use case: IDP user has changed)
             ScimUser user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
-            String oldMail = user.getEmails().get(0).getValue();
+            String oldMail = user.getEmails().getFirst().getValue();
             String newMail = oldMail + "-new";
 
             // verify that the puppy user has the correct family and given name
@@ -188,7 +188,7 @@ class PasswordGrantIT {
             assertThat(puppyUser.getGivenName()).isEqualTo(oldMail);
 
             // update uaa user email
-            user.getEmails().get(0).setValue(newMail);
+            user.getEmails().getFirst().setValue(newMail);
             IntegrationTestUtils.updateUser(clientCredentialsToken, baseUrl, user);
 
             // do password grant again to provision user changes to user with origin "puppy"
@@ -200,12 +200,12 @@ class PasswordGrantIT {
 
             // get new user instance to get current version count and revert the update from above
             user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
-            user.getEmails().get(0).setValue(oldMail);
+            user.getEmails().getFirst().setValue(oldMail);
             IntegrationTestUtils.updateUser(clientCredentialsToken, baseUrl, user);
 
             // verify that the email is the old one
             user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
-            assertThat(user.getEmails().get(0).getValue()).isEqualTo(oldMail);
+            assertThat(user.getEmails().getFirst().getValue()).isEqualTo(oldMail);
         } finally {
             IntegrationTestUtils.deleteProvider(clientCredentialsToken, baseUrl, "uaa", "puppy");
         }

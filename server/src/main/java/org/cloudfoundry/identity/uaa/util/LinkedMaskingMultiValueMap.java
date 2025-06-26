@@ -128,7 +128,7 @@ public class LinkedMaskingMultiValueMap<K, V> implements MultiValueMap<K, V>, Se
     @Override
     public V getFirst(K key) {
         List<V> values = this.targetMap.get(key);
-        return values != null ? values.get(0) : null;
+        return values != null ? values.getFirst() : null;
     }
 
     @Override
@@ -149,7 +149,7 @@ public class LinkedMaskingMultiValueMap<K, V> implements MultiValueMap<K, V>, Se
     public Map<K, V> toSingleValueMap() {
         LinkedHashMap<K, V> singleValueMap = new LinkedHashMap<>(this.targetMap.size());
         for (Entry<K, List<V>> entry : targetMap.entrySet()) {
-            singleValueMap.put(entry.getKey(), entry.getValue().get(0));
+            singleValueMap.put(entry.getKey(), entry.getValue().getFirst());
         }
         return singleValueMap;
     }

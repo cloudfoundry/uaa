@@ -194,7 +194,7 @@ class AutologinIT {
         assertThat(authorizeResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         List<String> location = authorizeResponse.getHeaders().get("Location");
         assertThat(location).hasSize(1);
-        String newCode = location.get(0).substring(location.get(0).indexOf("code=") + 5);
+        String newCode = location.getFirst().substring(location.getFirst().indexOf("code=") + 5);
 
         //request a token using our code
         String tokenUrl = UriComponentsBuilder.fromUriString(baseUrl)

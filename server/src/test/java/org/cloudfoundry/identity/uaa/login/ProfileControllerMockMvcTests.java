@@ -251,7 +251,7 @@ class ProfileControllerMockMvcTests {
 
         assertThat(captor.getAllValues()).hasSize(2);
 
-        DescribedApproval readApproval = captor.getAllValues().get(0);
+        DescribedApproval readApproval = captor.getAllValues().getFirst();
         assertThat(readApproval.getUserId()).isEqualTo(USER_ID);
         assertThat(readApproval.getClientId()).isEqualTo("app");
         assertThat(readApproval.getScope()).isEqualTo("thing.read");

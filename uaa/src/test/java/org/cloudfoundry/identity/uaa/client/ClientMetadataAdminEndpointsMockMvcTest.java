@@ -18,6 +18,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.web.context.WebApplicationContext;
 
+import java.net.URI;
 import java.net.URL;
 import java.util.ArrayList;
 
@@ -101,7 +102,7 @@ class ClientMetadataAdminEndpointsMockMvcTest {
         ClientMetadata client3Metadata = new ClientMetadata();
         client3Metadata.setClientId(clientId3);
         client3Metadata.setIdentityZoneId("uaa");
-        client3Metadata.setAppLaunchUrl(new URL("http://client3.com/app"));
+        client3Metadata.setAppLaunchUrl(URI.create("http://client3.com/app").toURL());
         client3Metadata.setShowOnHomePage(true);
         client3Metadata.setAppIcon("Y2xpZW50IDMgaWNvbg==");
         performUpdate(client3Metadata);
@@ -111,7 +112,7 @@ class ClientMetadataAdminEndpointsMockMvcTest {
         ClientMetadata client4Metadata = new ClientMetadata();
         client4Metadata.setClientId(clientId4);
         client4Metadata.setIdentityZoneId("uaa");
-        client4Metadata.setAppLaunchUrl(new URL("http://client4.com/app"));
+        client4Metadata.setAppLaunchUrl(URI.create("http://client4.com/app").toURL());
         client4Metadata.setAppIcon("aWNvbiBmb3IgY2xpZW50IDQ=");
         performUpdate(client4Metadata);
 
@@ -154,7 +155,7 @@ class ClientMetadataAdminEndpointsMockMvcTest {
 
         ClientMetadata updatedClientMetadata = new ClientMetadata();
         updatedClientMetadata.setClientId(clientId);
-        URL appLaunchUrl = new URL("http://changed.app.launch/url");
+        URL appLaunchUrl = URI.create("http://changed.app.launch/url").toURL();
         updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         ResultActions perform = performUpdate(updatedClientMetadata);
@@ -182,7 +183,7 @@ class ClientMetadataAdminEndpointsMockMvcTest {
 
         ClientMetadata updatedClientMetadata = new ClientMetadata();
         updatedClientMetadata.setClientId(clientId);
-        URL appLaunchUrl = new URL("http://changed.app.launch/url");
+        URL appLaunchUrl = URI.create("http://changed.app.launch/url").toURL();
         updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
@@ -202,7 +203,7 @@ class ClientMetadataAdminEndpointsMockMvcTest {
 
         ClientMetadata updatedClientMetadata = new ClientMetadata();
         updatedClientMetadata.setClientId(null);
-        URL appLaunchUrl = new URL("http://changed.app.launch/url");
+        URL appLaunchUrl = URI.create("http://changed.app.launch/url").toURL();
         updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
@@ -225,7 +226,7 @@ class ClientMetadataAdminEndpointsMockMvcTest {
 
         ClientMetadata clientMetadata = new ClientMetadata();
         clientMetadata.setClientId(clientId);
-        URL appLaunchUrl = new URL("http://changed.app.launch/url");
+        URL appLaunchUrl = URI.create("http://changed.app.launch/url").toURL();
         clientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
@@ -245,7 +246,7 @@ class ClientMetadataAdminEndpointsMockMvcTest {
 
         ClientMetadata clientMetadata = new ClientMetadata();
         clientMetadata.setClientId("other-client-id");
-        URL appLaunchUrl = new URL("http://changed.app.launch/url");
+        URL appLaunchUrl = URI.create("http://changed.app.launch/url").toURL();
         clientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")

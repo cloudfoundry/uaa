@@ -61,6 +61,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.Inet4Address;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -355,7 +356,7 @@ public class OIDCLoginIT {
 
     @Test
     void login_with_wrong_keys() throws Exception {
-        identityProvider.getConfig().setTokenKeyUrl(new URL("https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/discovery/v2.0/keys"));
+        identityProvider.getConfig().setTokenKeyUrl(URI.create("https://login.microsoftonline.com/9bc40aaf-e150-4c30-bb3c-a8b3b677266e/discovery/v2.0/keys").toURL());
         updateProvider();
         webDriver.get(zoneUrl + "/login");
         webDriver.clickAndWait(By.linkText("My OIDC Provider"));
@@ -493,7 +494,7 @@ public class OIDCLoginIT {
             assertThat(userAttributeMap).isNotNull();
             List<String> clientIds = userAttributeMap.get("the_client_id");
             assertThat(clientIds).isNotNull();
-            assertThat(clientIds.get(0)).isEqualTo("identity");
+            assertThat(clientIds.getFirst()).isEqualTo("identity");
             setRefreshTokenRotate(false);
             String refreshToken1 = getRefreshTokenResponse(zoneServerRunning, authCodeTokenResponse.get("refresh_token"));
             String refreshToken2 = getRefreshTokenResponse(zoneServerRunning, refreshToken1);

@@ -1309,7 +1309,7 @@ class ScimGroupEndpointsMockMvcTests {
         if (result.size() > 1) {
             throw new IllegalStateException("Group name should be unique:" + displayName);
         }
-        return result.get(0).getId();
+        return result.getFirst().getId();
     }
 
     void validateMembers(List<String> expected, Collection<ScimGroupExternalMember> actual) {
@@ -1377,8 +1377,8 @@ class ScimGroupEndpointsMockMvcTests {
                     group = groupRepository.create(group, IdentityZoneHolder.get().getId());
                     scimUserGroup = new ScimUser.Group(group.getId(), groupName);
                 } else {
-                    group = scimGroups.get(0);
-                    scimUserGroup = new ScimUser.Group(scimGroups.get(0).getId(), groupName);
+                    group = scimGroups.getFirst();
+                    scimUserGroup = new ScimUser.Group(scimGroups.getFirst().getId(), groupName);
                 }
                 scimUserGroups.add(scimUserGroup);
                 ScimGroupMembershipManager scimGroupMembershipManager = webApplicationContext.getBean(ScimGroupMembershipManager.class);
@@ -1418,8 +1418,8 @@ class ScimGroupEndpointsMockMvcTests {
                     group = groupRepository.create(group, IdentityZoneHolder.get().getId());
                     scimUserGroup = new ScimUser.Group(group.getId(), groupName);
                 } else {
-                    group = scimGroups.get(0);
-                    scimUserGroup = new ScimUser.Group(scimGroups.get(0).getId(), groupName);
+                    group = scimGroups.getFirst();
+                    scimUserGroup = new ScimUser.Group(scimGroups.getFirst().getId(), groupName);
                 }
                 scimUserGroups.add(scimUserGroup);
                 ScimGroupMembershipManager scimGroupMembershipManager = webApplicationContext.getBean(ScimGroupMembershipManager.class);

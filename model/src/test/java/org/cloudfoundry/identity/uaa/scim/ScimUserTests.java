@@ -180,7 +180,7 @@ class ScimUserTests {
         assertThat(user.getEmails().get(1).getValue()).isEqualTo("bjensen@example.com");
         assertThat(user.getEmails().get(2).getValue()).isEqualTo("babs@jensen.org");
         assertThat(user.getPrimaryEmail()).isEqualTo("bjensen@example.com");
-        assertThat(user.getEmails().get(0).isPrimary()).isFalse();
+        assertThat(user.getEmails().getFirst().isPrimary()).isFalse();
     }
 
     @Test
@@ -723,7 +723,7 @@ class ScimUserTests {
         patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
         assertThat(user.getPhoneNumbers()).hasSize(2);
-        assertThat(user.getPhoneNumbers().get(0).getValue()).isEqualTo(newNumber.getValue());
+        assertThat(user.getPhoneNumbers().getFirst().getValue()).isEqualTo(newNumber.getValue());
     }
 
     @Test
@@ -736,7 +736,7 @@ class ScimUserTests {
         patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
         assertThat(user.getPhoneNumbers()).hasSize(1);
-        assertThat(user.getPhoneNumbers().get(0).getValue()).isEqualTo(newNumber.getValue());
+        assertThat(user.getPhoneNumbers().getFirst().getValue()).isEqualTo(newNumber.getValue());
     }
 
     @Test
@@ -751,7 +751,7 @@ class ScimUserTests {
         patch.setPhoneNumbers(Collections.singletonList(newNumber));
         user.patch(patch);
 
-        assertThat(user.getPhoneNumbers().get(0).getValue()).isEqualTo(newNumber.getValue());
+        assertThat(user.getPhoneNumbers().getFirst().getValue()).isEqualTo(newNumber.getValue());
     }
 
     @Test

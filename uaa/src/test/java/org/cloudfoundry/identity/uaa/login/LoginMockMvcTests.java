@@ -78,6 +78,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpSession;
 import java.io.File;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -1114,7 +1115,7 @@ public class LoginMockMvcTests {
 
     @Test
     void accessConfirmationPage() throws Exception {
-        ScimUser marissa = jdbcScimUserProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
+        ScimUser marissa = jdbcScimUserProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).getFirst();
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
 
         UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
@@ -1458,7 +1459,7 @@ public class LoginMockMvcTests {
         String oauthAlias = createOIDCProviderInZone(jdbcIdentityProviderProvisioning, identityZone, oidcMetaEndpoint);
         doAnswer(invocation -> {
             OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
-            definition.setAuthUrl(new URL(oidcAuthUrl));
+            definition.setAuthUrl(URI.create(oidcAuthUrl).toURL());
             return null;
         }).when(oidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
@@ -1534,8 +1535,8 @@ public class LoginMockMvcTests {
 
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
+        definition.setAuthUrl(URI.create("http://auth.url").toURL());
+        definition.setTokenUrl(URI.create("http://token.url").toURL());
         definition.setTokenKey("key");
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");
@@ -1605,8 +1606,8 @@ public class LoginMockMvcTests {
 
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
 
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
+        definition.setAuthUrl(URI.create("http://auth.url").toURL());
+        definition.setTokenUrl(URI.create("http://token.url").toURL());
         definition.setTokenKey("key");
         definition.setRelyingPartyId("UAA");
         definition.setRelyingPartySecret("secret");
@@ -2923,9 +2924,9 @@ public class LoginMockMvcTests {
         String originKey = generator.generate();
         AbstractExternalOAuthIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setEmailDomain(singletonList("test.org"));
-        definition.setAuthUrl(new URL("http://myauthurl.com"));
+        definition.setAuthUrl(URI.create("http://myauthurl.com").toURL());
         definition.setTokenKey("key");
-        definition.setTokenUrl(new URL("http://mytokenurl.com"));
+        definition.setTokenUrl(URI.create("http://mytokenurl.com").toURL());
         definition.setRelyingPartyId("id");
         definition.setRelyingPartySecret("secret");
         definition.setLinkText("my oidc provider");
@@ -2946,8 +2947,8 @@ public class LoginMockMvcTests {
         if (StringUtils.hasText(discoveryUrl)) {
             definition.setDiscoveryUrl(new URL(discoveryUrl));
         } else {
-            definition.setAuthUrl(new URL("http://auth.url"));
-            definition.setTokenUrl(new URL("http://token.url"));
+            definition.setAuthUrl(URI.create("http://auth.url").toURL());
+            definition.setTokenUrl(URI.create("http://token.url").toURL());
         }
         definition.setTokenKey("key");
         definition.setRelyingPartyId("uaa");

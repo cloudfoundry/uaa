@@ -125,7 +125,7 @@ class JdbcPagingListTests {
     @DisabledIfProfile({"postgresql", "mysql"})
     void selectMoreColumnsWithOrderBy_Hsql() {
         list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT foo.id, foo.NAME FrOm foo wHere foo.name = 'FoO' OR foo.name = 'foo' OrDeR By foo.name", new ColumnMapRowMapper(), 3);
-        Map<String, Object> map = list.get(0);
+        Map<String, Object> map = list.getFirst();
         assertThat(map).containsKey("name")
                 .containsEntry("name", "FoO");
         map = list.get(1);
@@ -137,7 +137,7 @@ class JdbcPagingListTests {
     @EnabledIfProfile({"postgresql", "mysql"})
     void selectMoreColumnsWithOrderBy_PostgresMysql() {
         list = new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, "SELECT foo.id, foo.NAME FrOm foo wHere foo.name = 'FoO' OR foo.name = 'foo' OrDeR By foo.name", new ColumnMapRowMapper(), 3);
-        Map<String, Object> map = list.get(0);
+        Map<String, Object> map = list.getFirst();
         assertThat(map).containsEntry("name", "foo");
         map = list.get(1);
         assertThat(map).containsEntry("name", "FoO");

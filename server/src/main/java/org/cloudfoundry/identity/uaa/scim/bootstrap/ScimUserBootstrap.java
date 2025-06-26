@@ -136,7 +136,7 @@ public class ScimUserBootstrap implements
                 logger.debug("Unable to find scim user based on ID:{}", user.getId());
             }
         }
-        return users.isEmpty() ? null : users.get(0);
+        return users.isEmpty() ? null : users.getFirst();
     }
 
     /**
@@ -347,7 +347,7 @@ public class ScimUserBootstrap implements
         if (g == null || g.isEmpty()) {
             return;
         } else {
-            group = g.get(0);
+            group = g.getFirst();
         }
         try {
             membershipManager.removeMemberById(group.getId(), scimUserId, identityZoneManager.getCurrentIdentityZoneId());

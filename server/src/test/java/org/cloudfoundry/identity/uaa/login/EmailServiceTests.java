@@ -53,13 +53,13 @@ class EmailServiceTests {
                 "<html><body>hi</body></html>");
 
         assertThat(mailSender.getSentMessages()).hasSize(1);
-        FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
+        FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().getFirst();
         assertThat(mimeMessageWrapper.getFrom()).hasSize(1);
-        InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().get(0);
+        InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().getFirst();
         assertThat(fromAddress.getAddress()).isEqualTo("admin@login.example.com");
         assertThat(fromAddress.getPersonal()).isEqualTo("Cloud Foundry");
         assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO)).hasSize(1);
-        assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO).get(0)).isEqualTo(new InternetAddress("user@example.com"));
+        assertThat(mimeMessageWrapper.getRecipients(Message.RecipientType.TO).getFirst()).isEqualTo(new InternetAddress("user@example.com"));
         assertThat(mimeMessageWrapper.getContentString()).isEqualTo("<html><body>hi</body></html>");
     }
 
@@ -85,9 +85,9 @@ class EmailServiceTests {
                 "Test Message",
                 "<html><body>hi</body></html>");
 
-        FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
+        FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().getFirst();
         assertThat(mimeMessageWrapper.getFrom()).hasSize(1);
-        InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().get(0);
+        InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().getFirst();
         assertThat(fromAddress.getAddress()).isEqualTo("something-specific@bestcompany.example.com");
         assertThat(fromAddress.getPersonal()).isEqualTo("Best Company");
     }

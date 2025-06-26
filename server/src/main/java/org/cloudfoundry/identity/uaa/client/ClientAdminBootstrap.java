@@ -174,7 +174,7 @@ public class ClientAdminBootstrap implements
             if (map.get("secret") instanceof List) {
                 List<String> secrets = (List<String>) map.get("secret");
                 if (!secrets.isEmpty()) {
-                    client.setClientSecret(secrets.get(0) == null ? "" : secrets.get(0));
+                    client.setClientSecret(secrets.getFirst() == null ? "" : secrets.getFirst());
                     if (secrets.size() > 1) {
                         secondSecret = secrets.get(1) == null ? "" : secrets.get(1);
                     }

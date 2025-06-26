@@ -264,7 +264,7 @@ class ExternalLoginAuthenticationManagerTest {
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher, times(2)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(2);
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().getFirst();
         assertThat(event.getUser().getOrigin()).isEqualTo(origin);
         assertThat(event.getUser().getEmail()).isEqualTo(actual);
 
@@ -297,7 +297,7 @@ class ExternalLoginAuthenticationManagerTest {
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher, times(2)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(2);
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().getFirst();
         assertThat(event.getUser().getOrigin()).isEqualTo(origin);
         assertThat(event.getUser().getEmail()).isEqualTo(actual);
     }
@@ -400,7 +400,7 @@ class ExternalLoginAuthenticationManagerTest {
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher, times(3)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(3);
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().getFirst();
         assertThat(event.getUser().getOrigin()).isEqualTo(origin);
         assertThat(event.getUser().getExternalId()).isEqualTo(dn);
     }
@@ -430,7 +430,7 @@ class ExternalLoginAuthenticationManagerTest {
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher, times(3)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(3);
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().getFirst();
         assertThat(event.getUser().getOrigin()).isEqualTo(origin);
         //incorrect user details - we wont be able to get the correct external ID
         assertThat(event.getUser().getExternalId()).isEqualTo(userName);
@@ -541,7 +541,7 @@ class ExternalLoginAuthenticationManagerTest {
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher, times(1)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(1);
-        IdentityProviderAuthenticationSuccessEvent userevent = (IdentityProviderAuthenticationSuccessEvent) userArgumentCaptor.getAllValues().get(0);
+        IdentityProviderAuthenticationSuccessEvent userevent = (IdentityProviderAuthenticationSuccessEvent) userArgumentCaptor.getAllValues().getFirst();
         assertThat(userevent.getUser().getOrigin()).isEqualTo(origin);
         assertThat(userevent.getUser().getUsername()).isEqualTo(userName);
     }
@@ -565,7 +565,7 @@ class ExternalLoginAuthenticationManagerTest {
         userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(applicationEventPublisher, times(2)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(2);
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().getFirst();
         assertThat(event.getUser().getOrigin()).isEqualTo(origin);
     }
 }

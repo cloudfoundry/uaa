@@ -269,7 +269,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     private ScimUser getUser(String name) {
         List<ScimUser> user = scimUserProvisioning.query(USER_BY_NAME_FILTER.formatted(name), identityZoneManager.getCurrentIdentityZoneId());
         if (user != null && !user.isEmpty()) {
-            return user.get(0);
+            return user.getFirst();
         }
         return null;
     }

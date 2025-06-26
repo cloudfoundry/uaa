@@ -59,7 +59,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -562,8 +562,8 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setName("UAA Provider");
         identityProvider.setOriginKey("my-oauth2-provider");
         AbstractExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition();
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
+        definition.setAuthUrl(URI.create("http://auth.url").toURL());
+        definition.setTokenUrl(URI.create("http://token.url").toURL());
         definition.setTokenKey("token-key");
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");
@@ -667,7 +667,7 @@ class IdentityProviderEndpointDocs extends EndpointDocs {
         identityProvider.setName("UAA Provider");
         identityProvider.setOriginKey("my-oidc-provider-" + new AlphanumericRandomValueStringGenerator().generate().toLowerCase());
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-        definition.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
+        definition.setDiscoveryUrl(URI.create("https://accounts.google.com/.well-known/openid-configuration").toURL());
         definition.setSkipSslValidation(true);
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");

@@ -192,7 +192,7 @@ public class SamlIdentityProviderDefinitionTests {
     void setEmailDomain() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setEmailDomain(Collections.singletonList("test.com"));
-        assertThat(def.getEmailDomain().get(0)).isEqualTo("test.com");
+        assertThat(def.getEmailDomain().getFirst()).isEqualTo("test.com");
     }
 
     @Test
@@ -205,7 +205,7 @@ public class SamlIdentityProviderDefinitionTests {
     void setAuthnContext() {
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setAuthnContext(Collections.singletonList("a-custom-context"));
-        assertThat(def.getAuthnContext().get(0)).isEqualTo("a-custom-context");
+        assertThat(def.getAuthnContext().getFirst()).isEqualTo("a-custom-context");
     }
 
     @Test

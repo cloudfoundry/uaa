@@ -637,7 +637,7 @@ class TokenEndpointDocs extends AbstractTokenMockMvcTests {
 
     @Test
     void getTokenUsingPasscode() throws Exception {
-        ScimUser marissa = jdbcScimUserProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
+        ScimUser marissa = jdbcScimUserProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).getFirst();
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         UaaAuthentication principal = new UaaAuthentication(uaaPrincipal,
                 Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);

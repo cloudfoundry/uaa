@@ -39,7 +39,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
@@ -100,7 +100,7 @@ class JwtClientAuthenticationTest {
         // Then
         assertThat(params).containsKey("client_assertion")
                 .containsKey("client_assertion_type");
-        String clientAssertion = params.get("client_assertion").get(0);
+        String clientAssertion = params.get("client_assertion").getFirst();
         validateClientAssertionOidcCompliant(clientAssertion);
         JWSHeader header = getJwtHeader(clientAssertion);
         assertThat(header.getKeyID()).isEqualTo(KEY_ID);
@@ -152,8 +152,8 @@ class JwtClientAuthenticationTest {
         assertThat(params).containsKey("client_assertion")
                 .containsKey("client_assertion_type")
                 .containsEntry("client_assertion_type", Collections.singletonList(JwtClientAuthentication.GRANT_TYPE));
-        assertThat(params.get("client_assertion").get(0)).isNotNull();
-        validateClientAssertionOidcCompliant(params.get("client_assertion").get(0));
+        assertThat(params.get("client_assertion").getFirst()).isNotNull();
+        validateClientAssertionOidcCompliant(params.get("client_assertion").getFirst());
     }
 
     @Test
@@ -198,7 +198,7 @@ class JwtClientAuthenticationTest {
         // Then
         assertThat(params).containsKey("client_assertion")
                 .containsKey("client_assertion_type");
-        String clientAssertion = params.get("client_assertion").get(0);
+        String clientAssertion = params.get("client_assertion").getFirst();
         validateClientAssertionOidcCompliant(clientAssertion);
         JWSHeader header = getJwtHeader(clientAssertion);
         assertThat(header.getKeyID()).isEqualTo("key-id-321");
@@ -219,7 +219,7 @@ class JwtClientAuthenticationTest {
         // Then
         assertThat(params).containsKey("client_assertion")
                 .containsKey("client_assertion_type");
-        String clientAssertion = params.get("client_assertion").get(0);
+        String clientAssertion = params.get("client_assertion").getFirst();
         validateClientAssertionOidcCompliant(clientAssertion);
         JWSHeader header = getJwtHeader(clientAssertion);
         assertThat(header.getKeyID()).isEqualTo("key-id-321");
@@ -277,7 +277,7 @@ class JwtClientAuthenticationTest {
         // Then
         assertThat(params).containsKey("client_assertion")
                 .containsKey("client_assertion_type");
-        String clientAssertion = params.get("client_assertion").get(0);
+        String clientAssertion = params.get("client_assertion").getFirst();
         validateClientAssertionOidcCompliant(clientAssertion);
         JWSHeader header = getJwtHeader(clientAssertion);
         assertThat(header.getKeyID()).isEqualTo("myKey");
@@ -304,7 +304,7 @@ class JwtClientAuthenticationTest {
         // Then
         assertThat(params).containsKey("client_assertion")
                 .containsKey("client_assertion_type");
-        String clientAssertion = params.get("client_assertion").get(0);
+        String clientAssertion = params.get("client_assertion").getFirst();
         validateClientAssertionOidcCompliant(clientAssertion);
         JWSHeader header = getJwtHeader(clientAssertion);
         assertThat(header.getKeyID()).isEqualTo("key-id-321");
@@ -366,7 +366,7 @@ class JwtClientAuthenticationTest {
         // Then
         assertThat(params).containsKey("client_assertion")
                 .containsKey("client_assertion_type");
-        final String clientAssertion = params.get("client_assertion").get(0);
+        final String clientAssertion = params.get("client_assertion").getFirst();
         validateClientAssertionOidcCompliant(clientAssertion);
         final JWSHeader header = getJwtHeader(clientAssertion);
         assertThat(header.getKeyID()).isEqualTo("key-id-321");
@@ -603,7 +603,7 @@ class JwtClientAuthenticationTest {
 
     private void mockOIDCDefinition(ClientJwtCredential credential) throws MalformedURLException {
         config = new OIDCIdentityProviderDefinition();
-        config.setTokenUrl(new URL("http://localhost:8080/uaa/oauth/token"));
+        config.setTokenUrl(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
         config.setRelyingPartyId("identity");
         if (credential != null) {
             Map<String, Object> claims = new HashMap<>();

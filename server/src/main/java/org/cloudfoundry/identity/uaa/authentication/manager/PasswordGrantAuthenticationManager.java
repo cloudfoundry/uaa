@@ -108,7 +108,7 @@ public class PasswordGrantAuthenticationManager implements AuthenticationManager
     private UaaLoginHint getUaaLoginHintForChainedAuth(List<String> allowedProviders) {
         UaaLoginHint loginHintToUse = null;
         if (allowedProviders.size() == 1) {
-            loginHintToUse = new UaaLoginHint(allowedProviders.get(0));
+            loginHintToUse = new UaaLoginHint(allowedProviders.getFirst());
         } else if (allowedProviders.contains(OriginKeys.UAA)) {
             if (!allowedProviders.contains(OriginKeys.LDAP)) {
                 loginHintToUse = new UaaLoginHint(OriginKeys.UAA);

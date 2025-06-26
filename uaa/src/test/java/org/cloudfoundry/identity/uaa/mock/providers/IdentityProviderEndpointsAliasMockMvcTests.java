@@ -39,7 +39,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.web.context.WebApplicationContext;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -1435,15 +1435,15 @@ class IdentityProviderEndpointsAliasMockMvcTests {
                 definition.setAuthMethod(ClientAuthentication.CLIENT_SECRET_BASIC);
                 try {
                     return definition
-                            .setAuthUrl(new URL("https://www.example.com/oauth/authorize"))
+                            .setAuthUrl(URI.create("https://www.example.com/oauth/authorize").toURL())
                             .setLinkText("link text")
                             .setRelyingPartyId("relying-party-id")
                             .setRelyingPartySecret("relying-party-secret")
                             .setShowLinkText(true)
                             .setSkipSslValidation(true)
                             .setTokenKey("key")
-                            .setTokenKeyUrl(new URL("https://www.example.com/token_keys"))
-                            .setTokenUrl(new URL("https://wwww.example.com/oauth/token"));
+                            .setTokenKeyUrl(URI.create("https://www.example.com/token_keys").toURL())
+                            .setTokenUrl(URI.create("https://wwww.example.com/oauth/token").toURL());
                 } catch (final MalformedURLException e) {
                     throw new RuntimeException(e);
                 }

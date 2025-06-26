@@ -218,7 +218,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     private void extractValues(SCIMFilter filter, MultiValueMap<String, Object> values) throws SCIMException {
         switch (filter.getFilterType()) {
             case AND:
-                extractValues(filter.getFilterComponents().get(0), values);
+                extractValues(filter.getFilterComponents().getFirst(), values);
                 extractValues(filter.getFilterComponents().get(1), values);
                 break;
             case OR:
@@ -250,9 +250,9 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     private String whereClauseFromFilter(SCIMFilter filter, Map<String, Object> values, AttributeNameMapper mapper, String paramPrefix) {
         switch (filter.getFilterType()) {
             case AND:
-                return "(" + whereClauseFromFilter(filter.getFilterComponents().get(0), values, mapper, paramPrefix) + " AND " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
+                return "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " AND " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
             case OR:
-                return "(" + whereClauseFromFilter(filter.getFilterComponents().get(0), values, mapper, paramPrefix) + " OR " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
+                return "(" + whereClauseFromFilter(filter.getFilterComponents().getFirst(), values, mapper, paramPrefix) + " OR " + whereClauseFromFilter(filter.getFilterComponents().get(1), values, mapper, paramPrefix) + ")";
             case EQUALITY:
                 return comparisonClause(filter, "=", values, "", "", paramPrefix);
             case CONTAINS:

@@ -19,6 +19,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -103,7 +104,7 @@ class ScimUtilsTest {
             @Test
             void getVerificationURL() throws MalformedURLException {
                 URL actual = ScimUtils.getVerificationURL(mockExpiringCode, IdentityZone.getUaa());
-                URL expected = new URL("http://localhost:8080/uaa/verify_user?code=code");
+                URL expected = URI.create("http://localhost:8080/uaa/verify_user?code=code").toURL();
                 assertThat(actual).hasToString(expected.toString());
             }
         }
@@ -117,7 +118,7 @@ class ScimUtilsTest {
                 when(mockIdentityZone.getSubdomain()).thenReturn("subdomain");
 
                 URL actual = ScimUtils.getVerificationURL(mockExpiringCode, mockIdentityZone);
-                URL expected = new URL("http://subdomain.localhost:8080/uaa/verify_user?code=code");
+                URL expected = URI.create("http://subdomain.localhost:8080/uaa/verify_user?code=code").toURL();
                 assertThat(actual).hasToString(expected.toString());
             }
         }

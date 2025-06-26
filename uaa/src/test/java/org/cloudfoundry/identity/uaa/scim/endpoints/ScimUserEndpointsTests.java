@@ -430,7 +430,7 @@ class ScimUserEndpointsTests {
 
         //1. this method, 2. user scimUserEndpoints, 3. user provisioning
         assertThat(passwords.getAllValues()).hasSize(3);
-        assertThat(passwords.getAllValues().get(0)).isEqualTo("bla bla");
+        assertThat(passwords.getAllValues().getFirst()).isEqualTo("bla bla");
         assertThat(passwords.getAllValues().get(1)).isEmpty();
     }
 
@@ -655,7 +655,7 @@ class ScimUserEndpointsTests {
 
         assertThat(familyNames.getResources()).hasSize(2);
 
-        Map<String, Object> dSaMap = familyNames.getResources().get(0);
+        Map<String, Object> dSaMap = familyNames.getResources().getFirst();
         assertThat(dSaMap).containsEntry("familyName", "D'sa");
 
         Map<String, Object> oldsMap = familyNames.getResources().get(1);
@@ -663,7 +663,7 @@ class ScimUserEndpointsTests {
 
         assertThat(givenNames.getResources()).hasSize(2);
 
-        Map<String, Object> daleMap = givenNames.getResources().get(0);
+        Map<String, Object> daleMap = givenNames.getResources().getFirst();
         assertThat(daleMap).containsEntry("givenName", "Dale");
 
         Map<String, Object> joelMap = givenNames.getResources().get(1);
@@ -768,7 +768,7 @@ class ScimUserEndpointsTests {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "userName eq \"jdsa\"", null, "ascending", 1, 100);
         assertThat(results.getTotalResults()).isOne();
         assertThat(results.getSchemas()).hasSize(1);
-        assertThat(((Map<String, Object>) results.getResources().iterator().next())).containsEntry("id", joel.getId());
+        assertThat(((Map<String, Object>) results.getResources().getFirst())).containsEntry("id", joel.getId());
     }
 
     @SuppressWarnings("unchecked")
@@ -777,7 +777,7 @@ class ScimUserEndpointsTests {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "emails.value eq \"" + JDSA_VMWARE_COM + "\"", null, "ascending", 1, 100);
         assertThat(results.getTotalResults()).isOne();
         assertThat(results.getSchemas()).hasSize(1);
-        assertThat(((Map<String, Object>) results.getResources().iterator().next())).containsEntry("id", joel.getId());
+        assertThat(((Map<String, Object>) results.getResources().getFirst())).containsEntry("id", joel.getId());
     }
 
     @Test
@@ -828,7 +828,7 @@ class ScimUserEndpointsTests {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "external_id eq \"b2f345ee-d893-44a9-b6ee-0abe865ff886\"", null, "ascending", 1, 100);
         assertThat(results.getTotalResults()).isOne();
         assertThat(results.getSchemas()).hasSize(1);
-        assertThat(((Map<String, Object>) results.getResources().iterator().next())).containsEntry("id", joel.getId());
+        assertThat(((Map<String, Object>) results.getResources().getFirst())).containsEntry("id", joel.getId());
     }
 
     @Test
@@ -903,7 +903,7 @@ class ScimUserEndpointsTests {
         SearchResults<?> results = scimUserEndpoints.findUsers("id", "userName eq 'jdsa'", null, "ascending", 1, 100);
         assertThat(results.getTotalResults()).isOne();
         assertThat(results.getSchemas()).hasSize(1);
-        assertThat(((Map<String, Object>) results.getResources().iterator().next())).containsEntry("id", joel.getId());
+        assertThat(((Map<String, Object>) results.getResources().getFirst())).containsEntry("id", joel.getId());
     }
 
     @Test
@@ -993,7 +993,7 @@ class ScimUserEndpointsTests {
         assertThat(patchedUser.getName().getFamilyName()).isNull();
         assertThat(patchedUser.getName().getGivenName()).isNull();
         assertThat(patchedUser.getPhoneNumbers()).hasSize(1);
-        assertThat(patchedUser.getPhoneNumbers().get(0).getValue()).isEqualTo("0123456789");
+        assertThat(patchedUser.getPhoneNumbers().getFirst().getValue()).isEqualTo("0123456789");
         assertThat(patchedUser.getPrimaryEmail()).isEqualTo("example@example.org");
         assertThat(patchedUser.getVersion()).isEqualTo(createdUser.getVersion() + 1);
     }

@@ -146,7 +146,7 @@ public final class TestCustomOpenSamlObjects {
 
         @Override
         public String getStreet() {
-            return ((XSAny) getOrderedChildren().get(0)).getTextContent();
+            return ((XSAny) getOrderedChildren().getFirst()).getTextContent();
         }
 
         @Override

@@ -233,7 +233,7 @@ public class ExternalOAuthProviderConfigurator implements IdentityProviderProvis
         } else if (providers.size() > 1) {
             throw new IncorrectResultSizeDataAccessException("Duplicate providers with issuer[%s] not found".formatted(issuer), 1);
         }
-        return providers.get(0);
+        return providers.getFirst();
     }
 
     @Override

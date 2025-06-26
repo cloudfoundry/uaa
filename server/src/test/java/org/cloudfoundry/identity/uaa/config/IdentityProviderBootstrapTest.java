@@ -34,7 +34,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -410,14 +410,14 @@ class IdentityProviderBootstrapTest {
 
     private AbstractExternalOAuthIdentityProviderDefinition setCommonProperties(AbstractExternalOAuthIdentityProviderDefinition definition) throws MalformedURLException {
         return definition
-                .setAuthUrl(new URL("http://auth.url"))
+                .setAuthUrl(URI.create("http://auth.url").toURL())
                 .setLinkText("link text")
                 .setRelyingPartyId("relaying party id")
                 .setRelyingPartySecret("relaying party secret")
                 .setShowLinkText(true)
                 .setSkipSslValidation(true)
                 .setTokenKey("key")
-                .setTokenKeyUrl(new URL("http://token.key.url"));
+                .setTokenKeyUrl(URI.create("http://token.key.url").toURL());
     }
 
     @Test

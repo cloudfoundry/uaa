@@ -177,7 +177,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         }
         List<ScimGroup> groups = jdbcTemplate.query(getGroupByNameSql, rowMapper, displayName, zoneId);
         if (groups.size() == 1) {
-            return groups.get(0);
+            return groups.getFirst();
         } else {
             throw new IncorrectResultSizeDataAccessException("Invalid result size found for:" + displayName, 1, groups.size());
         }

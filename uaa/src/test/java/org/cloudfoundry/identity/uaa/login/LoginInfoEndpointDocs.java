@@ -132,7 +132,7 @@ class LoginInfoEndpointDocs extends EndpointDocs {
     @Test
     void passcode_request() throws Exception {
         ScimUserProvisioning userProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
+        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).getFirst();
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         UaaAuthentication principal = new UaaAuthentication(uaaPrincipal,
                 Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);

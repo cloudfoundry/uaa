@@ -581,7 +581,7 @@ public final class TestOpenSamlObjects {
         // update subject
         assertion.getSubject().getNameID().setNameQualifier(NameID.UNSPECIFIED);
         assertion.getSubject().getNameID().setFormat(format);
-        assertion.getSubject().getSubjectConfirmations().get(0).getSubjectConfirmationData().setNotOnOrAfter(until);
+        assertion.getSubject().getSubjectConfirmations().getFirst().getSubjectConfirmationData().setNotOnOrAfter(until);
 
         // update conditions
         final Audience audience = build(Audience.DEFAULT_ELEMENT_NAME);
@@ -599,7 +599,7 @@ public final class TestOpenSamlObjects {
         final AuthnContext authnContext = build(AuthnContext.DEFAULT_ELEMENT_NAME);
         authnContext.setAuthnContextClassRef(authnContextClassRef);
 
-        final AuthnStatement authnStatement = assertion.getAuthnStatements().get(0);
+        final AuthnStatement authnStatement = assertion.getAuthnStatements().getFirst();
         authnStatement.setAuthnInstant(now);
         authnStatement.setSessionIndex("a358a06c15ja8d7a1idjaj07jb52gdi");
         authnStatement.setSessionNotOnOrAfter(until);

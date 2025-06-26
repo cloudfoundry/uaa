@@ -200,7 +200,7 @@ public class SamlIdentityProviderConfiguratorTests {
 
         List<SamlIdentityProviderDefinition> clientIdps = configurator.getIdentityProviderDefinitions(clientIdpAliases, new IdentityZoneManagerImpl().getCurrentIdentityZone());
         assertThat(clientIdps).hasSize(2);
-        assertThat(clientIdpAliases).contains(clientIdps.get(0).getIdpEntityAlias(), clientIdps.get(1).getIdpEntityAlias());
+        assertThat(clientIdpAliases).contains(clientIdps.getFirst().getIdpEntityAlias(), clientIdps.get(1).getIdpEntityAlias());
     }
 
     @Test

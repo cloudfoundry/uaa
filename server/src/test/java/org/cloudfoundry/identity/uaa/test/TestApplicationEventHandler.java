@@ -38,7 +38,7 @@ public class TestApplicationEventHandler<T extends ApplicationEvent> {
     public <K extends T> K getLatestEventOfType(Class<K> type) {
         List<T> matchingEvents = events.stream()
                 .filter(event -> event.getClass().isAssignableFrom(type)).toList();
-        return (K) matchingEvents.get(matchingEvents.size() - 1); // safe cast because we checked that T isAssignableFrom K
+        return (K) matchingEvents.getLast(); // safe cast because we checked that T isAssignableFrom K
     }
 
     public List<T> getEvents() {
@@ -47,7 +47,7 @@ public class TestApplicationEventHandler<T extends ApplicationEvent> {
 
     public T getEarliestEvent() {
         if (!events.isEmpty()) {
-            return events.get(0);
+            return events.getFirst();
         } else {
             return null;
         }
@@ -55,7 +55,7 @@ public class TestApplicationEventHandler<T extends ApplicationEvent> {
 
     public T getLatestEvent() {
         if (!events.isEmpty()) {
-            return events.get(events.size() - 1);
+            return events.getLast();
         } else {
             return null;
         }

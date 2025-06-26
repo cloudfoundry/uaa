@@ -151,7 +151,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         if (results.isEmpty()) {
             return null;
         } else if (results.size() == 1) {
-            return results.get(0);
+            return results.getFirst();
         } else {
             throw new IncorrectResultSizeDataAccessException("Multiple users match email=%s origin=%s".formatted(email, origin), 1, results.size());
         }
@@ -164,7 +164,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         if (results.isEmpty()) {
             return null;
         } else if (results.size() == 1) {
-            return results.get(0);
+            return results.getFirst();
         } else {
             throw new IncorrectResultSizeDataAccessException("Multiple users match email=%s origin=%s".formatted(email, origin), 1, results.size());
         }

@@ -1940,7 +1940,7 @@ class IdentityZoneEndpointsMockMvcTests {
         List<IdentityZone> zones = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
         });
         assertThat(zones).hasSize(1);
-        assertThat(zones.get(0).getSubdomain()).isEqualTo(zone1);
+        assertThat(zones.getFirst().getSubdomain()).isEqualTo(zone1);
 
         //test write your own
         mockMvc.perform(

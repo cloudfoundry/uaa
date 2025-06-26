@@ -39,6 +39,6 @@ public class InterceptingLogger extends SubstituteLogger {
         if (messages.isEmpty()) {
             return null;
         }
-        return messages.get(messages.size() - 1);
+        return messages.getLast();
     }
 }

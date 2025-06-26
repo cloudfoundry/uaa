@@ -31,7 +31,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
-import java.net.URL;
+import java.net.URI;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Iterator;
@@ -171,10 +171,10 @@ class CreateAccountIT {
     void emailDomainRegisteredWithIDPDoesNotAllowAccountCreation() throws Exception {
         String adminToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider<OIDCIdentityProviderDefinition>().setName("oidc_provider").setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
-        oidcProvider.getConfig().setAuthUrl(new URL("http://example.com"));
+        oidcProvider.getConfig().setAuthUrl(URI.create("http://example.com").toURL());
         oidcProvider.getConfig().setShowLinkText(false);
-        oidcProvider.getConfig().setTokenUrl(new URL("http://localhost:8080/uaa/idp_login"));
-        oidcProvider.getConfig().setTokenKeyUrl(new URL("http://localhost:8080/uaa/idp_login"));
+        oidcProvider.getConfig().setTokenUrl(URI.create("http://localhost:8080/uaa/idp_login").toURL());
+        oidcProvider.getConfig().setTokenKeyUrl(URI.create("http://localhost:8080/uaa/idp_login").toURL());
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.com"));
         oidcProvider.getConfig().setRelyingPartyId("client_id");
         oidcProvider.getConfig().setRelyingPartySecret("client_secret");

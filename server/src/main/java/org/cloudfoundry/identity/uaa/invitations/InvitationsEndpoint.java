@@ -99,7 +99,7 @@ public class InvitationsEndpoint {
                 if (email != null && validateEmail(email)) {
                     List<IdentityProvider> providers = filter(activeProviders, client, email);
                     if (providers.size() == 1) {
-                        ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
+                        ScimUser user = findOrCreateUser(email, providers.getFirst().getOriginKey());
                         String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", !IdentityZoneHolder.isUaa(), IdentityZoneHolder.get());
 
                         Map<String, String> data = new HashMap<>();
@@ -147,7 +147,7 @@ public class InvitationsEndpoint {
             user.setActive(true);
             return scimUserProvisioning.createUser(user, new RandomValueStringGenerator(12).generate(), IdentityZoneHolder.get().getId());
         } else if (results.size() == 1) {
-            return results.get(0);
+            return results.getFirst();
         } else {
             throw new ScimResourceConflictException("Ambiguous users found for email:%s with origin:%s".formatted(email, origin));
         }

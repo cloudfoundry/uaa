@@ -48,7 +48,7 @@ abstract class WebMvcRuntime {
             // Spring 2.5 does not have a get bean by type interface. To remain compatible, lookup by name
             if (ctx.containsBean("httpTracing")) {
                 Object bean = ctx.getBean("httpTracing");
-                if (bean instanceof HttpTracing) return (HttpTracing) bean;
+                if (bean instanceof HttpTracing tracing) return tracing;
             }
             throw new NoSuchBeanDefinitionException(HttpTracing.class, "httpTracing");
         }

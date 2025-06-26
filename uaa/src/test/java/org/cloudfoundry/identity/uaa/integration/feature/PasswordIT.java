@@ -77,7 +77,7 @@ class PasswordIT {
             restTemplate.exchange(requestEntity, Void.class);
         } catch (HttpClientErrorException ex) {
             assertThat(ex.getStatusCode().value()).as("Status 401 expected, but received: " + ex.getStatusCode().value()
-                    + " with description " + ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).get(0)).isEqualTo(401);
+                    + " with description " + ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).getFirst()).isEqualTo(401);
             return;
         }
         fail("not expected");

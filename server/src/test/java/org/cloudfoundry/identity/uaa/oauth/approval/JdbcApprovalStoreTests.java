@@ -159,13 +159,13 @@ class JdbcApprovalStoreTests {
         jdbcApprovalStore.addApproval(newApproval, defaultZoneId);
         List<Approval> approvals = jdbcApprovalStore.getApprovals(userId, clientId, defaultZoneId);
 
-        assertThat(approvals.get(0).getClientId()).isEqualTo(clientId);
-        assertThat(approvals.get(0).getUserId()).isEqualTo(userId);
+        assertThat(approvals.getFirst().getClientId()).isEqualTo(clientId);
+        assertThat(approvals.getFirst().getUserId()).isEqualTo(userId);
         //time comparison - we're satisfied if it is within 2 seconds
-        assertThat((int) Math.abs(expiresAt.getTime() / 1000d - approvals.get(0).getExpiresAt().getTime() / 1000d)).isLessThan(2);
-        assertThat((int) Math.abs(lastUpdatedAt.getTime() / 1000d - approvals.get(0).getLastUpdatedAt().getTime() / 1000d)).isLessThan(2);
-        assertThat(approvals.get(0).getScope()).isEqualTo(scope);
-        assertThat(approvals.get(0).getStatus()).isEqualTo(status);
+        assertThat((int) Math.abs(expiresAt.getTime() / 1000d - approvals.getFirst().getExpiresAt().getTime() / 1000d)).isLessThan(2);
+        assertThat((int) Math.abs(lastUpdatedAt.getTime() / 1000d - approvals.getFirst().getLastUpdatedAt().getTime() / 1000d)).isLessThan(2);
+        assertThat(approvals.getFirst().getScope()).isEqualTo(scope);
+        assertThat(approvals.getFirst().getStatus()).isEqualTo(status);
     }
 
     @Test
@@ -186,7 +186,7 @@ class JdbcApprovalStoreTests {
                 .setStatus(APPROVED), defaultZoneId)).isTrue();
         List<Approval> apps = jdbcApprovalStore.getApprovals("u2", "c2", defaultZoneId);
         assertThat(apps).hasSize(1);
-        Approval app = apps.iterator().next();
+        Approval app = apps.getFirst();
         assertThat(app.getScope()).isEqualTo("dash.user");
         assertThat(app.getExpiresAt().after(new Date())).isTrue();
         assertThat(app.getStatus()).isEqualTo(APPROVED);
@@ -225,7 +225,7 @@ class JdbcApprovalStoreTests {
         List<Approval> approvals = jdbcApprovalStore.getApprovalsForUser("u1", defaultZoneId);
         assertThat(approvals).hasSize(2);
 
-        Approval toRevoke = approvals.get(0);
+        Approval toRevoke = approvals.getFirst();
         assertThat(jdbcApprovalStore.revokeApproval(toRevoke, defaultZoneId)).isTrue();
         List<Approval> approvalsAfterRevoke = jdbcApprovalStore.getApprovalsForUser("u1", defaultZoneId);
 
@@ -243,7 +243,7 @@ class JdbcApprovalStoreTests {
                 .setScope("dash.user")
                 .setExpiresAt(timeFromNow)
                 .setStatus(APPROVED), defaultZoneId)).isTrue();
-        Approval app = jdbcApprovalStore.getApprovals("u2", "c2", defaultZoneId).iterator().next();
+        Approval app = jdbcApprovalStore.getApprovals("u2", "c2", defaultZoneId).getFirst();
         //time comparison - we're satisfied if it is within 2 seconds
         assertThat((int) Math.abs(timeFromNow.getTime() / 1000d - app.getExpiresAt().getTime() / 1000d)).isLessThan(2);
 
@@ -255,7 +255,7 @@ class JdbcApprovalStoreTests {
                 .setScope("dash.user")
                 .setExpiresAt(timeFromNow)
                 .setStatus(APPROVED), defaultZoneId)).isTrue();
-        app = jdbcApprovalStore.getApprovals("u2", "c2", defaultZoneId).iterator().next();
+        app = jdbcApprovalStore.getApprovals("u2", "c2", defaultZoneId).getFirst();
         assertThat((int) Math.abs(timeFromNow.getTime() / 1000d - app.getExpiresAt().getTime() / 1000d)).isLessThan(2);
     }
 
@@ -271,7 +271,7 @@ class JdbcApprovalStoreTests {
 
     @Test
     void canRefreshApproval() {
-        Approval app = jdbcApprovalStore.getApprovals("u1", "c1", defaultZoneId).iterator().next();
+        Approval app = jdbcApprovalStore.getApprovals("u1", "c1", defaultZoneId).getFirst();
         Date now = new Date();
 
         jdbcApprovalStore.refreshApproval(new Approval()
@@ -280,7 +280,7 @@ class JdbcApprovalStoreTests {
                 .setScope(app.getScope())
                 .setExpiresAt(now)
                 .setStatus(APPROVED), defaultZoneId);
-        app = jdbcApprovalStore.getApprovals("u1", "c1", defaultZoneId).iterator().next();
+        app = jdbcApprovalStore.getApprovals("u1", "c1", defaultZoneId).getFirst();
         assertThat((int) Math.abs(now.getTime() / 1000d - app.getExpiresAt().getTime() / 1000d)).isLessThan(2);
     }
 

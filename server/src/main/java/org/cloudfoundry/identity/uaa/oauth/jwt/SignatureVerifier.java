@@ -22,7 +22,7 @@ public class SignatureVerifier implements Verifier {
     public SignatureVerifier(String keyId, String alg, JWK verificationKey) {
         if (keyId == null || alg == null) {
             this.jwk = new JWKSet(verificationKey);
-            this.delegate = JsonWebKeyHelper.parseConfiguration(verificationKey.toJSONString()).getKeys().get(0);
+            this.delegate = JsonWebKeyHelper.parseConfiguration(verificationKey.toJSONString()).getKeys().getFirst();
             this.algorithm = this.delegate.getAlgorithm();
         } else {
             this.algorithm = alg;
@@ -55,7 +55,7 @@ public class SignatureVerifier implements Verifier {
             }
             String keyId = verificationKey.getKid();
             if (keyId == null || algorithm == null) {
-                delegate = JsonWebKeyHelper.parseConfiguration(webKey.toJSONString()).getKeys().get(0);
+                delegate = JsonWebKeyHelper.parseConfiguration(webKey.toJSONString()).getKeys().getFirst();
                 jwk = new JWKSet(webKey);
             } else {
                 delegate = createJwkDelegate(verificationKey.getKid(), algorithm, webKey);
@@ -71,7 +71,7 @@ public class SignatureVerifier implements Verifier {
         keyMap.put(HeaderParameterNames.ALGORITHM, alg);
         try {
             this.jwk = new JWKSet(JWK.parse(keyMap));
-            return JsonWebKeyHelper.parseConfiguration(jwk.getKeyByKeyId(keyId).toJSONString()).getKeys().get(0);
+            return JsonWebKeyHelper.parseConfiguration(jwk.getKeyByKeyId(keyId).toJSONString()).getKeys().getFirst();
         } catch (ParseException e) {
             throw new IllegalArgumentException(e);
         }

@@ -58,7 +58,7 @@ public class SamlUaaResponseAuthenticationConverter
         RelyingPartyRegistration relyingPartyRegistration = authenticationToken.getRelyingPartyRegistration();
         String alias = relyingPartyRegistration.getRegistrationId();
         List<String> sessionIndexes = assertions.stream().flatMap(assertion -> assertion.getAuthnStatements().stream().filter(Objects::nonNull).map(AuthnStatement::getSessionIndex).filter(Objects::nonNull)).toList();
-        return userManager.getUaaAuthentication(subjectNameList.get(0), authenticationToken, alias, assertions, sessionIndexes);
+        return userManager.getUaaAuthentication(subjectNameList.getFirst(), authenticationToken, alias, assertions, sessionIndexes);
     }
 
     @Override

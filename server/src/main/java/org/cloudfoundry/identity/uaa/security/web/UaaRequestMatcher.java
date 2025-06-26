@@ -150,7 +150,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
             return false;
         }
         for (String expectedValue : expectedValues) {
-            if (MediaType.parseMediaType(expectedValue).includes(requestValues.get(0))) {
+            if (MediaType.parseMediaType(expectedValue).includes(requestValues.getFirst())) {
                 return true;
             }
         }

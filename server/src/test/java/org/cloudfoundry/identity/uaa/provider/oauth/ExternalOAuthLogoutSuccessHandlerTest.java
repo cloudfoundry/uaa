@@ -21,7 +21,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,7 +74,7 @@ class ExternalOAuthLogoutSuccessHandlerTest {
         identityProvider.setName("name");
         identityProvider.setActive(true);
         oAuthIdentityProviderDefinition = new OIDCIdentityProviderDefinition();
-        oAuthIdentityProviderDefinition.setLogoutUrl(new URL(UAA_ENDSESSION_URL));
+        oAuthIdentityProviderDefinition.setLogoutUrl(URI.create(UAA_ENDSESSION_URL).toURL());
         oAuthIdentityProviderDefinition.setRelyingPartyId("id");
         identityProvider.setConfig(oAuthIdentityProviderDefinition);
         when(providerProvisioning.retrieveByOrigin("test", "uaa")).thenReturn(identityProvider);

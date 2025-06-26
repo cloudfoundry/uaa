@@ -141,7 +141,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
         Assertion assertion = assertion();
         assertion.getSubject()
                 .getSubjectConfirmations()
-                .get(0)
+                .getFirst()
                 .getSubjectConfirmationData()
                 .setNotOnOrAfter(Instant.now().minus(Duration.ofDays(3)));
 
@@ -253,7 +253,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
         Saml2AuthenticationToken token = token(assertion, verifying(registration()));
         Authentication authentication = this.provider.authenticate(token);
         Saml2AuthenticatedPrincipal principal = (Saml2AuthenticatedPrincipal) authentication.getPrincipal();
-        TestCustomOpenSamlObjects.CustomOpenSamlObject address = (TestCustomOpenSamlObjects.CustomOpenSamlObject) principal.getAttribute("Address").get(0);
+        TestCustomOpenSamlObjects.CustomOpenSamlObject address = (TestCustomOpenSamlObjects.CustomOpenSamlObject) principal.getAttribute("Address").getFirst();
         assertThat(address.getStreet()).isEqualTo("Test Street");
         assertThat(address.getStreetNumber()).isEqualTo("1");
         assertThat(address.getZIP()).isEqualTo("11111");
@@ -487,7 +487,7 @@ class Saml2BearerGrantAuthenticationConverterTest {
                 XSDateTime.TYPE_NAME);
         registeredDate.setValue(Instant.parse("1970-01-01T00:00:00Z"));
         registeredDateAttr.getAttributeValues().add(registeredDate);
-        attributeStatements.iterator().next().getAttributes().add(registeredDateAttr);
+        attributeStatements.getFirst().getAttributes().add(registeredDateAttr);
         return attributeStatements;
     }
 

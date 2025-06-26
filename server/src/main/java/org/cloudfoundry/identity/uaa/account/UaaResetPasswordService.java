@@ -150,10 +150,10 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             if (results.isEmpty()) {
                 throw new NotFoundException();
             } else {
-                throw new ConflictException(results.get(0).getId(), results.get(0).getPrimaryEmail());
+                throw new ConflictException(results.getFirst().getId(), results.getFirst().getPrimaryEmail());
             }
         }
-        ScimUser scimUser = results.get(0);
+        ScimUser scimUser = results.getFirst();
 
         PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName(), scimUser.getPasswordLastModified(), clientId, redirectUri);
         String intent = FORGOT_PASSWORD_INTENT_PREFIX + scimUser.getId();

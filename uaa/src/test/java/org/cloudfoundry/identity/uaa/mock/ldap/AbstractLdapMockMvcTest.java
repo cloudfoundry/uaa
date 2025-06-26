@@ -1144,7 +1144,7 @@ public abstract class AbstractLdapMockMvcTest {
                 group = gp.create(group, IdentityZoneHolder.get().getId());
             } catch (ScimResourceAlreadyExistsException e) {
                 String filter = "displayName eq \"" + internalName + "\"";
-                group = gp.query(filter, IdentityZoneHolder.get().getId()).get(0);
+                group = gp.query(filter, IdentityZoneHolder.get().getId()).getFirst();
             }
             exm.mapExternalGroup(group.getId(), externalName, OriginKeys.LDAP, zone.getId());
         }

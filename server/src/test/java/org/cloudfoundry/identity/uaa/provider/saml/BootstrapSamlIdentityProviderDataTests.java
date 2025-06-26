@@ -281,7 +281,7 @@ public class BootstrapSamlIdentityProviderDataTests {
                 }
                 case "custom-authncontext": {
                     assertThat(idp.getAuthnContext()).hasSize(2);
-                    assertThat(idp.getAuthnContext().get(0)).isEqualTo("custom-context");
+                    assertThat(idp.getAuthnContext().getFirst()).isEqualTo("custom-context");
                     assertThat(idp.getAuthnContext().get(1)).isEqualTo("another-context");
                     break;
                 }

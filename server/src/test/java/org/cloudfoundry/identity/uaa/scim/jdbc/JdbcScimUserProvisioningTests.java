@@ -164,14 +164,14 @@ class JdbcScimUserProvisioningTests {
             List<ScimUser> found = jdbcScimUserProvisioning.retrieveByEmailAndZone(joeEmail, UAA, currentIdentityZoneId);
             assertThat(found).hasSize(1);
 
-            ScimUser joe = found.get(0);
+            ScimUser joe = found.getFirst();
             assertThat(joe).isNotNull();
             assertThat(joe.getId()).isEqualTo(joeId);
             assertThat(joe.getGivenName()).isEqualTo("Joe");
             assertThat(joe.getFamilyName()).isEqualTo("User");
             assertThat(joe.getPrimaryEmail()).isEqualTo("joe@joe.com");
             assertThat(joe.getUserName()).isEqualTo("joe");
-            assertThat(joe.getPhoneNumbers().get(0).getValue()).isEqualTo("+1-222-1234567");
+            assertThat(joe.getPhoneNumbers().getFirst().getValue()).isEqualTo("+1-222-1234567");
             assertThat(joe.getGroups()).isNull();
         }
 
@@ -190,14 +190,14 @@ class JdbcScimUserProvisioningTests {
             List<ScimUser> found = jdbcScimUserProvisioning.retrieveByUsernameAndOriginAndZone(JOE_NAME, UAA, currentIdentityZoneId);
             assertThat(found).hasSize(1);
 
-            ScimUser joe = found.get(0);
+            ScimUser joe = found.getFirst();
             assertThat(joe).isNotNull();
             assertThat(joe.getId()).isEqualTo(joeId);
             assertThat(joe.getGivenName()).isEqualTo("Joe");
             assertThat(joe.getFamilyName()).isEqualTo("User");
             assertThat(joe.getPrimaryEmail()).isEqualTo("joe@joe.com");
             assertThat(joe.getUserName()).isEqualTo("joe");
-            assertThat(joe.getPhoneNumbers().get(0).getValue()).isEqualTo("+1-222-1234567");
+            assertThat(joe.getPhoneNumbers().getFirst().getValue()).isEqualTo("+1-222-1234567");
             assertThat(joe.getGroups()).isNull();
         }
 
@@ -216,14 +216,14 @@ class JdbcScimUserProvisioningTests {
             List<ScimUser> found = jdbcScimUserProvisioning.retrieveByUsernameAndZone(JOE_NAME, currentIdentityZoneId);
             assertThat(found).hasSize(1);
 
-            ScimUser joe = found.get(0);
+            ScimUser joe = found.getFirst();
             assertThat(joe).isNotNull();
             assertThat(joe.getId()).isEqualTo(joeId);
             assertThat(joe.getGivenName()).isEqualTo("Joe");
             assertThat(joe.getFamilyName()).isEqualTo("User");
             assertThat(joe.getPrimaryEmail()).isEqualTo("joe@joe.com");
             assertThat(joe.getUserName()).isEqualTo("joe");
-            assertThat(joe.getPhoneNumbers().get(0).getValue()).isEqualTo("+1-222-1234567");
+            assertThat(joe.getPhoneNumbers().getFirst().getValue()).isEqualTo("+1-222-1234567");
             assertThat(joe.getGroups()).isNull();
         }
 
@@ -952,7 +952,7 @@ class JdbcScimUserProvisioningTests {
         assertThat(joe.getFamilyName()).isEqualTo("User");
         assertThat(joe.getPrimaryEmail()).isEqualTo("joe@joe.com");
         assertThat(joe.getUserName()).isEqualTo("joe");
-        assertThat(joe.getPhoneNumbers().get(0).getValue()).isEqualTo("+1-222-1234567");
+        assertThat(joe.getPhoneNumbers().getFirst().getValue()).isEqualTo("+1-222-1234567");
         assertThat(joe.getGroups()).isNull();
     }
 
@@ -1553,7 +1553,7 @@ class JdbcScimUserProvisioningTests {
                 scimUser.getPrimaryEmail(),
                 scimUser.getName().getGivenName(),
                 scimUser.getName().getFamilyName(),
-                scimUser.getPhoneNumbers().get(0),
+                scimUser.getPhoneNumbers().getFirst(),
                 scimUser.getZoneId(),
                 scimUser.getOrigin());
         jdbcTemplate.execute(addUserSql);

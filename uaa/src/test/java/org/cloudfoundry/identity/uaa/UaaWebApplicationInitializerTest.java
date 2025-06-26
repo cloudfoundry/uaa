@@ -72,7 +72,7 @@ class UaaWebApplicationInitializerTest {
         List<EventListener> listeners = listenerArgumentCaptor.getAllValues();
         assertThat(listeners).isNotNull();
         assertThat(listeners.size()).isEqualTo(2);
-        assertThat(listeners.get(0)).isInstanceOf(HttpSessionEventPublisher.class);
+        assertThat(listeners.getFirst()).isInstanceOf(HttpSessionEventPublisher.class);
         assertThat(listeners.get(1)).isInstanceOf(ContextLoaderListener.class);
     }
 

@@ -49,6 +49,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpSession;
 import java.lang.reflect.Modifier;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
@@ -184,7 +185,7 @@ class LoginInfoEndpointTests {
         List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) extendedModelMap.get("savedAccounts");
         assertThat(savedAccounts).hasSize(2);
 
-        SavedAccountOption savedAccount0 = savedAccounts.get(0);
+        SavedAccountOption savedAccount0 = savedAccounts.getFirst();
         assertThat(savedAccount0).isNotNull();
         assertThat(savedAccount0.getUsername()).isEqualTo("bob");
         assertThat(savedAccount0.getEmail()).isEqualTo("bob@example.com");
@@ -252,7 +253,7 @@ class LoginInfoEndpointTests {
         List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) extendedModelMap.get("savedAccounts");
         assertThat(savedAccounts).hasSize(2);
         // evaluate that both cookies can be parsed out has have same values
-        SavedAccountOption savedAccount0 = savedAccounts.get(0);
+        SavedAccountOption savedAccount0 = savedAccounts.getFirst();
         assertThat(savedAccount0).isNotNull();
         assertThat(savedAccount0.getUsername()).isEqualTo("bill");
         assertThat(savedAccount0.getEmail()).isEqualTo("bill@example.com");
@@ -390,7 +391,7 @@ class LoginInfoEndpointTests {
         when(idp.getType()).thenReturn(OriginKeys.OIDC10);
         when(idp.getOriginKey()).thenReturn("oidcOrigin");
         when(idpConfig.getEmailDomain()).thenReturn(Collections.singletonList("fake.com"));
-        when(idpConfig.getAuthUrl()).thenReturn(new URL("https://example.com/oauth/authorize"));
+        when(idpConfig.getAuthUrl()).thenReturn(URI.create("https://example.com/oauth/authorize").toURL());
         when(idpConfig.getResponseType()).thenReturn("code");
         when(idpConfig.getRelyingPartyId()).thenReturn("clientid");
         when(idpConfig.getRelyingPartySecret()).thenReturn("clientSecret");
@@ -818,8 +819,8 @@ class LoginInfoEndpointTests {
 
         RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition();
 
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
+        definition.setAuthUrl(URI.create("http://auth.url").toURL());
+        definition.setTokenUrl(URI.create("http://token.url").toURL());
         definition.setRelyingPartySecret("client-secret");
 
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
@@ -836,8 +837,8 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
         RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
-                .setAuthUrl(new URL("http://auth.url"))
-                .setTokenUrl(new URL("http://token.url"));
+                .setAuthUrl(URI.create("http://auth.url").toURL())
+                .setTokenUrl(URI.create("http://token.url").toURL());
 
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
@@ -856,8 +857,8 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
         RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
-                .setAuthUrl(new URL("http://auth.url"))
-                .setTokenUrl(new URL("http://token.url"));
+                .setAuthUrl(URI.create("http://auth.url").toURL())
+                .setTokenUrl(URI.create("http://token.url").toURL());
 
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
@@ -876,8 +877,8 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
         RawExternalOAuthIdentityProviderDefinition definition = new RawExternalOAuthIdentityProviderDefinition()
-                .setAuthUrl(new URL("http://auth.url"))
-                .setTokenUrl(new URL("http://token.url"));
+                .setAuthUrl(URI.create("http://auth.url").toURL())
+                .setTokenUrl(URI.create("http://token.url").toURL());
 
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
@@ -894,11 +895,11 @@ class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint(IdentityZoneHolder.get());
 
         RawExternalOAuthIdentityProviderDefinition oauthDefinition = new RawExternalOAuthIdentityProviderDefinition()
-                .setAuthUrl(new URL("http://auth.url"))
-                .setTokenUrl(new URL("http://token.url"));
+                .setAuthUrl(URI.create("http://auth.url").toURL())
+                .setTokenUrl(URI.create("http://token.url").toURL());
         OIDCIdentityProviderDefinition oidcDefinition = new OIDCIdentityProviderDefinition()
-                .setAuthUrl(new URL("http://auth.url"))
-                .setTokenUrl(new URL("http://token.url"));
+                .setAuthUrl(URI.create("http://auth.url").toURL())
+                .setTokenUrl(URI.create("http://token.url").toURL());
 
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         oauthProvider.setConfig(oauthDefinition);
@@ -946,7 +947,7 @@ class LoginInfoEndpointTests {
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
         when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
         AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
-        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
+        when(mockOidcConfig.getAuthUrl()).thenReturn(URI.create("http://localhost:8080/uaa").toURL());
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
         when(mockOidcConfig.getRelyingPartySecret()).thenReturn("client-secret");
         when(mockOidcConfig.getResponseType()).thenReturn("token");
@@ -1747,7 +1748,7 @@ class LoginInfoEndpointTests {
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
         when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
         AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
-        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
+        when(mockOidcConfig.getAuthUrl()).thenReturn(URI.create("http://localhost:8080/uaa").toURL());
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
         when(mockOidcConfig.getRelyingPartySecret()).thenReturn("client-secret");
         when(mockOidcConfig.getResponseType()).thenReturn("token");
@@ -1764,7 +1765,7 @@ class LoginInfoEndpointTests {
         when(mockProvider.getOriginKey()).thenReturn("my-OIDC-idp1");
         when(mockProvider.getType()).thenReturn(OriginKeys.OIDC10);
         AbstractExternalOAuthIdentityProviderDefinition mockOidcConfig = mock(OIDCIdentityProviderDefinition.class);
-        when(mockOidcConfig.getAuthUrl()).thenReturn(new URL("http://localhost:8080/uaa"));
+        when(mockOidcConfig.getAuthUrl()).thenReturn(URI.create("http://localhost:8080/uaa").toURL());
         when(mockOidcConfig.getRelyingPartyId()).thenReturn("client-id");
         when(mockOidcConfig.getRelyingPartySecret()).thenReturn("client-secret");
         when(mockOidcConfig.getResponseType()).thenReturn("token");

@@ -301,7 +301,7 @@ class IdentityProviderEndpointsTest {
         assertThat(ldapList).isNotNull();
         assertThat(ldapList.getBody()).isNotNull();
         assertThat(ldapList.getBody()).hasSize(2);
-        IdentityProvider<LdapIdentityProviderDefinition> ldap = ldapList.getBody().get(0);
+        IdentityProvider<LdapIdentityProviderDefinition> ldap = ldapList.getBody().getFirst();
         assertThat(ldap).isNotNull();
         assertThat(ldap.getConfig()).isNotNull();
         assertThat(ldap.getConfig()).isInstanceOf(LdapIdentityProviderDefinition.class);
@@ -322,7 +322,7 @@ class IdentityProviderEndpointsTest {
         assertThat(puppyList).isNotNull();
         assertThat(puppyList.getBody()).isNotNull();
         assertThat(puppyList.getBody()).hasSize(1);
-        IdentityProvider<OIDCIdentityProviderDefinition> oidc = puppyList.getBody().get(0);
+        IdentityProvider<OIDCIdentityProviderDefinition> oidc = puppyList.getBody().getFirst();
         assertThat(oidc).isNotNull();
         assertThat(oidc.getConfig()).isNotNull();
         assertThat(oidc.getConfig()).isInstanceOf(AbstractExternalOAuthIdentityProviderDefinition.class);
@@ -733,7 +733,7 @@ class IdentityProviderEndpointsTest {
                 final ArgumentCaptor<EntityDeletedEvent<?>> entityDeletedEventCaptor = ArgumentCaptor.forClass(EntityDeletedEvent.class);
                 verify(mockEventPublisher, times(2)).publishEvent(entityDeletedEventCaptor.capture());
 
-                final EntityDeletedEvent<?> firstEvent = entityDeletedEventCaptor.getAllValues().get(0);
+                final EntityDeletedEvent<?> firstEvent = entityDeletedEventCaptor.getAllValues().getFirst();
                 assertThat(firstEvent).isNotNull();
                 assertThat(firstEvent.getIdentityZoneId()).isEqualTo(UAA);
                 assertThat(((IdentityProvider<?>) firstEvent.getSource()).getId()).isEqualTo(idp.getId());
@@ -769,7 +769,7 @@ class IdentityProviderEndpointsTest {
                 // should only be called for the original IdP
                 verify(mockEventPublisher, times(1)).publishEvent(entityDeletedEventCaptor.capture());
 
-                final EntityDeletedEvent<?> firstEvent = entityDeletedEventCaptor.getAllValues().get(0);
+                final EntityDeletedEvent<?> firstEvent = entityDeletedEventCaptor.getAllValues().getFirst();
                 assertThat(firstEvent).isNotNull();
                 assertThat(firstEvent.getIdentityZoneId()).isEqualTo(UAA);
                 assertThat(((IdentityProvider<?>) firstEvent.getSource()).getId()).isEqualTo(idpId);

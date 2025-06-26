@@ -19,6 +19,8 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import jakarta.servlet.http.HttpServletResponse;
+
+import java.net.URI;
 import java.net.URL;
 import java.util.Map;
 
@@ -75,11 +77,11 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
         ScimGroupEndpoints scimGroupEndpoints = webApplicationContext.getBean(ScimGroupEndpoints.class);
 
         SearchResults<Map<String, Object>> marissa = (SearchResults<Map<String, Object>>) scimUserEndpoints.findUsers("id,userName", "userName eq \"marissa\"", "userName", "asc", 0, 1);
-        String marissaId = (String) marissa.getResources().iterator().next().get("id");
+        String marissaId = (String) marissa.getResources().getFirst().get("id");
 
         //add marissa to uaa.admin
         SearchResults<Map<String, Object>> uaaAdmin = (SearchResults<Map<String, Object>>) scimGroupEndpoints.listGroups("id,displayName", "displayName eq \"uaa.admin\"", "displayName", "asc", 1, 1);
-        String groupId = (String) uaaAdmin.getResources().iterator().next().get("id");
+        String groupId = (String) uaaAdmin.getResources().getFirst().get("id");
         ScimGroup group = scimGroupEndpoints.getGroup(groupId, mockResponse);
         ScimGroupMember gm = new ScimGroupMember(marissaId, ScimGroupMember.Type.USER);
         group.getMembers().add(gm);
@@ -135,7 +137,7 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
         ClientMetadata client3Metadata = new ClientMetadata();
         client3Metadata.setClientId(clientId3);
         client3Metadata.setIdentityZoneId("uaa");
-        client3Metadata.setAppLaunchUrl(new URL("http://client3.com/app"));
+        client3Metadata.setAppLaunchUrl(URI.create("http://client3.com/app").toURL());
         client3Metadata.setShowOnHomePage(true);
         client3Metadata.setAppIcon("Y2xpZW50IDMgaWNvbg==");
         performUpdate(client3Metadata);
@@ -145,7 +147,7 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
         ClientMetadata client4Metadata = new ClientMetadata();
         client4Metadata.setClientId(clientId4);
         client4Metadata.setIdentityZoneId("uaa");
-        client4Metadata.setAppLaunchUrl(new URL("http://client4.com/app"));
+        client4Metadata.setAppLaunchUrl(URI.create("http://client4.com/app").toURL());
         client4Metadata.setAppIcon("aWNvbiBmb3IgY2xpZW50IDQ=");
         performUpdate(client4Metadata);
 
@@ -179,7 +181,7 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
 
         ClientMetadata updatedClientMetadata = new ClientMetadata();
         updatedClientMetadata.setClientId(clientId);
-        URL appLaunchUrl = new URL("http://changed.app.launch/url");
+        URL appLaunchUrl = URI.create("http://changed.app.launch/url").toURL();
         updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
 
         ResultActions perform = performUpdate(updatedClientMetadata);
@@ -206,7 +208,7 @@ class ClientMetadataAdminEndpointDocs extends AdminClientCreator {
         ClientMetadata clientMetaData = new ClientMetadata();
         clientMetaData.setClientId(clientId);
         clientMetaData.setAppIcon("aWNvbiBmb3IgY2xpZW50IDQ=");
-        clientMetaData.setAppLaunchUrl(new URL("http://myloginpage.com"));
+        clientMetaData.setAppLaunchUrl(URI.create("http://myloginpage.com").toURL());
         clientMetaData.setShowOnHomePage(true);
         performUpdate(clientMetaData);
     }

@@ -117,8 +117,8 @@ class AuthzAuthenticationManagerTests {
         assertThat(((UaaAuthentication) result).getAuthenticationMethods()).containsExactlyInAnyOrder("pwd");
 
         List<ApplicationEvent> events = eventCaptor.getAllValues();
-        assertThat(events.get(0)).isInstanceOf(IdentityProviderAuthenticationSuccessEvent.class);
-        assertThat(((IdentityProviderAuthenticationSuccessEvent) events.get(0)).getUser().getUsername()).isEqualTo("auser");
+        assertThat(events.getFirst()).isInstanceOf(IdentityProviderAuthenticationSuccessEvent.class);
+        assertThat(((IdentityProviderAuthenticationSuccessEvent) events.getFirst()).getUser().getUsername()).isEqualTo("auser");
     }
 
     @Test

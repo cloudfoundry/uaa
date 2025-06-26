@@ -35,7 +35,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.web.UaaSavedRequestAwareAuthenticationSuccessHandler.FORM_REDIRECT_PARAMETER;
@@ -102,7 +102,7 @@ class UaaSavedRequestCacheTests {
         request.setPathInfo("/login.do");
         request.setRequestURI("/login.do");
         request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
-        request.setServerName(new URL(redirectUri).getHost());
+        request.setServerName(URI.create(redirectUri).toURL().getHost());
         assertThat(cache.shouldSaveFormRedirectParameter(request)).isTrue();
         ServletResponse response = new MockHttpServletResponse();
 
@@ -146,7 +146,7 @@ class UaaSavedRequestCacheTests {
         String redirectUri = "http://login";
         request.setSession(session);
         request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
-        request.setServerName(new URL(redirectUri).getHost());
+        request.setServerName(URI.create(redirectUri).toURL().getHost());
 
         spy.saveRequest(request, new MockHttpServletResponse());
         verify(spy).saveClientRedirect(request, request.getParameter(FORM_REDIRECT_PARAMETER));
@@ -177,7 +177,7 @@ class UaaSavedRequestCacheTests {
         assertThat(cache.shouldSaveFormRedirectParameter(request)).isFalse();
 
         request.setParameter(FORM_REDIRECT_PARAMETER, redirectUri);
-        request.setServerName(new URL(redirectUri).getHost());
+        request.setServerName(URI.create(redirectUri).toURL().getHost());
         assertThat(cache.shouldSaveFormRedirectParameter(request)).isTrue();
 
         request.setSession(session);

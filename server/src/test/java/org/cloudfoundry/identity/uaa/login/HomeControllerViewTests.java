@@ -44,7 +44,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -275,13 +275,13 @@ class HomeControllerViewTests extends TestClassNullifier {
             ClientMetadata clientMetadata1 = new ClientMetadata();
             clientMetadata1.setClientId("client-1");
             clientMetadata1.setShowOnHomePage(true);
-            clientMetadata1.setAppLaunchUrl(new URL("http://app.launch/url"));
+            clientMetadata1.setAppLaunchUrl(URI.create("http://app.launch/url").toURL());
             clientMetadata1.setAppIcon(base64EncodedImg);
 
             ClientMetadata clientMetadata2 = new ClientMetadata();
             clientMetadata2.setClientId("client-2");
             clientMetadata2.setShowOnHomePage(true);
-            clientMetadata2.setAppLaunchUrl(new URL("http://second.url/"));
+            clientMetadata2.setAppLaunchUrl(URI.create("http://second.url/").toURL());
             clientMetadata2.setAppIcon("base64-encoded-img");
             clientMetadata2.setClientName("Client 2 Name");
 

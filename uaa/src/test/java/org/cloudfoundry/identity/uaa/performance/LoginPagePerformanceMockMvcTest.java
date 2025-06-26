@@ -34,7 +34,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.io.File;
-import java.net.URL;
+import java.net.URI;
 import java.util.Collections;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -139,9 +139,9 @@ class LoginPagePerformanceMockMvcTest {
     private static String createOIDCProvider(JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning, AlphanumericRandomValueStringGenerator generator, IdentityZone zone, String responseType, String domain) throws Exception {
         String originKey = generator.generate();
         AbstractExternalOAuthIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-        definition.setAuthUrl(new URL("http://myauthurl.com"));
+        definition.setAuthUrl(URI.create("http://myauthurl.com").toURL());
         definition.setTokenKey("key");
-        definition.setTokenUrl(new URL("http://mytokenurl.com"));
+        definition.setTokenUrl(URI.create("http://mytokenurl.com").toURL());
         definition.setRelyingPartyId("id");
         definition.setRelyingPartySecret("secret");
         definition.setLinkText("my oidc provider");

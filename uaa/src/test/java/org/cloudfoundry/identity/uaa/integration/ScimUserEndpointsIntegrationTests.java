@@ -443,7 +443,7 @@ class ScimUserEndpointsIntegrationTests {
         assertThat((Integer) results.get("totalResults")).as("There should be more than zero users").isPositive();
         assertThat(((Collection<?>) results.get("resources"))).as("There should be some resources").isNotEmpty();
         @SuppressWarnings("rawtypes")
-        Map firstUser = (Map) ((List) results.get("resources")).get(0);
+        Map firstUser = (Map) ((List) results.get("resources")).getFirst();
         // [cfid-111] All attributes should be returned if no attributes
         // supplied in query
         assertThat(firstUser).containsKey("id")
@@ -460,7 +460,7 @@ class ScimUserEndpointsIntegrationTests {
         Map<String, Object> results = response.getBody();
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat((Integer) results.get("totalResults")).as("There should be more than zero users").isPositive();
-        Map firstUser = (Map) ((List) results.get("resources")).get(0);
+        Map firstUser = (Map) ((List) results.get("resources")).getFirst();
         // All attributes should be returned if no attributes supplied in query
         assertThat(firstUser).containsKey("id")
                 .containsKey("userName")

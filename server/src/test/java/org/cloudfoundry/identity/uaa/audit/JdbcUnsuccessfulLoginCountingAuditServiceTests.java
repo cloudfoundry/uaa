@@ -58,9 +58,9 @@ class JdbcUnsuccessfulLoginCountingAuditServiceTests {
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         List<AuditEvent> events = auditService.find("1", 0, IdentityZone.getUaaZoneId());
         assertThat(events).hasSize(2);
-        assertThat(events.get(0).getPrincipalId()).isEqualTo("1");
-        assertThat(events.get(0).getData()).isEqualTo("joe");
-        assertThat(events.get(0).getOrigin()).isEqualTo("1.1.1.1");
+        assertThat(events.getFirst().getPrincipalId()).isEqualTo("1");
+        assertThat(events.getFirst().getData()).isEqualTo("joe");
+        assertThat(events.getFirst().getOrigin()).isEqualTo("1.1.1.1");
     }
 
     @Test

@@ -634,7 +634,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         }
 
         if (primaryEmail == null) {
-            primaryEmail = getEmails().get(0);
+            primaryEmail = getEmails().getFirst();
         }
 
         return primaryEmail.getValue();
@@ -663,7 +663,7 @@ public class ScimUser extends ScimCore<ScimUser> implements EntityWithAlias {
         if (currentPrimaryEmail != null) {
             emails.remove(currentPrimaryEmail);
         }
-        emails.add(0, newPrimaryEmail);
+        emails.addFirst(newPrimaryEmail);
     }
 
     @JsonIgnore

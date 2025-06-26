@@ -139,8 +139,8 @@ class UaaHttpRequestUtilsTest {
             // ignored
         }
         assertThat(routePlanner.routes).hasSize(1);
-        assertThat(routePlanner.routes.get(0).getProxyHost().getHostName()).isEqualTo(expectedHost);
-        assertThat(routePlanner.routes.get(0).getProxyHost().getPort()).isEqualTo(expectedPort);
+        assertThat(routePlanner.routes.getFirst().getProxyHost().getHostName()).isEqualTo(expectedHost);
+        assertThat(routePlanner.routes.getFirst().getProxyHost().getPort()).isEqualTo(expectedPort);
         assertThat(httpResponseHandler.wasInvoked()).isEqualTo(wantHandlerInvoked);
     }
 

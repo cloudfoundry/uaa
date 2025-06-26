@@ -20,7 +20,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.jupiter.api.Test;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +37,7 @@ class OIDCIdentityProviderDefinitionTests {
     void serialize_discovery_url() throws MalformedURLException {
         OIDCIdentityProviderDefinition def = JsonUtils.readValue(defaultJson, OIDCIdentityProviderDefinition.class);
         assertThat(def.getDiscoveryUrl()).isNull();
-        def.setDiscoveryUrl(new URL(url));
+        def.setDiscoveryUrl(URI.create(url).toURL());
         assertThat(def.getDiscoveryUrl()).hasToString(url);
         String json = JsonUtils.writeValueAsString(def);
         def = JsonUtils.readValue(json, OIDCIdentityProviderDefinition.class);

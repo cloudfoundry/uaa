@@ -8,7 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Collections;
 import java.util.Map;
 
@@ -21,9 +21,9 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
     @BeforeEach
     void setup() throws MalformedURLException {
         definition = new OIDCIdentityProviderDefinition();
-        definition.setAuthUrl(new URL("http://oidc10.random-made-up-url.com/oauth/authorize"));
-        definition.setTokenUrl(new URL("http://oidc10.random-made-up-url.com/oauth/token"));
-        definition.setTokenKeyUrl(new URL("http://oidc10.random-made-up-url.com/token_key"));
+        definition.setAuthUrl(URI.create("http://oidc10.random-made-up-url.com/oauth/authorize").toURL());
+        definition.setTokenUrl(URI.create("http://oidc10.random-made-up-url.com/oauth/token").toURL());
+        definition.setTokenKeyUrl(URI.create("http://oidc10.random-made-up-url.com/token_key").toURL());
         definition.setShowLinkText(true);
         definition.setLinkText("My OIDC Provider");
         definition.setSkipSslValidation(true);
@@ -38,7 +38,7 @@ class ExternalOAuthIdentityProviderConfigValidatorTest {
         definition.setTokenUrl(null);
         definition.setTokenKeyUrl(null);
         definition.setTokenKey(null);
-        ((OIDCIdentityProviderDefinition) definition).setDiscoveryUrl(new URL("http://localhost:8080/uaa/.well-known/openid-configuration"));
+        ((OIDCIdentityProviderDefinition) definition).setDiscoveryUrl(URI.create("http://localhost:8080/uaa/.well-known/openid-configuration").toURL());
         validator = new ExternalOAuthIdentityProviderConfigValidator();
         validator.validate(definition);
     }

@@ -12,6 +12,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
 
@@ -59,7 +60,7 @@ class JdbcClientMetadataProvisioningTest {
         ClientMetadata clientMetadata = createTestClientMetadata(
                 randomValueStringGenerator.generate(),
                 true,
-                new URL("http://app.launch/url"),
+                URI.create("http://app.launch/url").toURL(),
                 base64EncodedImg,
                 createdBy);
 
@@ -91,7 +92,7 @@ class JdbcClientMetadataProvisioningTest {
         ClientMetadata clientMetadata = createTestClientMetadata(
                 clientId,
                 true,
-                new URL("http://app.launch/url"),
+                URI.create("http://app.launch/url").toURL(),
                 base64EncodedImg,
                 createdBy);
 
@@ -102,7 +103,7 @@ class JdbcClientMetadataProvisioningTest {
         assertThat(retrievedClientMetadata.getClientId()).isEqualTo(clientId);
         assertThat(retrievedClientMetadata.getIdentityZoneId()).isEqualTo(identityZoneId);
         assertThat(retrievedClientMetadata.isShowOnHomePage()).isTrue();
-        assertThat(retrievedClientMetadata.getAppLaunchUrl()).isEqualTo(new URL("http://app.launch/url"));
+        assertThat(retrievedClientMetadata.getAppLaunchUrl()).isEqualTo(URI.create("http://app.launch/url").toURL());
         assertThat(retrievedClientMetadata.getAppIcon()).isEqualTo(base64EncodedImg);
         assertThat(retrievedClientMetadata.getCreatedBy()).contains(createdBy);
     }
@@ -148,7 +149,7 @@ class JdbcClientMetadataProvisioningTest {
         ClientMetadata newClientMetadata = createTestClientMetadata(
                 clientId,
                 false,
-                new URL("http://updated.app/launch/url"),
+                URI.create("http://updated.app/launch/url").toURL(),
                 base64EncodedImg,
                 createdBy);
 

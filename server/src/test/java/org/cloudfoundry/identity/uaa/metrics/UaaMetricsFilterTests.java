@@ -79,7 +79,7 @@ class UaaMetricsFilterTests {
     void url_groups_loaded() throws Exception {
         List<UrlGroup> urlGroups = filter.getUrlGroups();
         assertThat(urlGroups).isNotEmpty();
-        UrlGroup first = urlGroups.get(0);
+        UrlGroup first = urlGroups.getFirst();
         assertThat(first.getPattern()).isEqualTo("/authenticate/**");
         assertThat(first.getLimit()).isEqualTo(1000L);
         assertThat(first.getCategory()).isEqualTo("API");
@@ -126,7 +126,7 @@ class UaaMetricsFilterTests {
         verify(publisher, times(2)).sendNotification(argumentCaptor.capture());
         List<Notification> capturedArg = argumentCaptor.getAllValues();
         assertThat(capturedArg).hasSize(2);
-        assertThat(capturedArg.get(0).getType()).isEqualTo("/api");
+        assertThat(capturedArg.getFirst().getType()).isEqualTo("/api");
     }
 
     @Test

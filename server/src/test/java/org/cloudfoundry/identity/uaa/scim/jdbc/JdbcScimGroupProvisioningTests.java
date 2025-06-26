@@ -340,7 +340,7 @@ class JdbcScimGroupProvisioningTests {
         List<ScimGroupMember> remainingMemberships = jdbcTemplate.query("select " + MEMBERSHIP_FIELDS + " from " + MEMBERSHIP_TABLE,
                 new JdbcScimGroupMembershipManager.ScimGroupMemberRowMapper());
         assertThat(remainingMemberships).hasSize(1);
-        ScimGroupMember survivor = remainingMemberships.get(0);
+        ScimGroupMember survivor = remainingMemberships.getFirst();
         assertThat(survivor.getType()).isEqualTo(ScimGroupMember.Type.USER);
         assertThat(survivor.getMemberId()).isEqualTo(bill.getMemberId());
     }
@@ -402,14 +402,14 @@ class JdbcScimGroupProvisioningTests {
         void queryOnlyReturnsGroupsFromTheSpecifiedIdentityZone_whenThereIsNoFilter() {
             List<ScimGroup> groups = dao.query("", secondZoneId);
             assertThat(groups).hasSize(1);
-            assertThat(groups.get(0).getZoneId()).isEqualTo(secondZoneId);
+            assertThat(groups.getFirst().getZoneId()).isEqualTo(secondZoneId);
         }
 
         @Test
         void queryOnlyReturnsGroupsFromTheSpecifiedIdentityZone_whenThereIsAFilter() {
             List<ScimGroup> groups = dao.query("id pr", secondZoneId);
             assertThat(groups).hasSize(1);
-            assertThat(groups.get(0).getZoneId()).isEqualTo(secondZoneId);
+            assertThat(groups.getFirst().getZoneId()).isEqualTo(secondZoneId);
         }
 
         @Test

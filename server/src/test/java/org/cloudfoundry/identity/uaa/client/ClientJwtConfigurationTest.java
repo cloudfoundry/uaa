@@ -124,7 +124,7 @@ class ClientJwtConfigurationTest {
     void jwtSetValidate() {
         JsonWebKeySet<JsonWebKey> mockedKey = mock(JsonWebKeySet.class);
         List<JsonWebKey> keyList = ClientJwtConfiguration.parse(jsonJwkSet).getJwkSet().getKeys();
-        when(mockedKey.getKeys()).thenReturn(Arrays.asList(keyList.get(0), keyList.get(0)));
+        when(mockedKey.getKeys()).thenReturn(Arrays.asList(keyList.getFirst(), keyList.getFirst()));
         assertThatExceptionOfType(InvalidClientDetailsException.class).isThrownBy(() -> new ClientJwtConfiguration(null, mockedKey));
     }
 
@@ -135,7 +135,7 @@ class ClientJwtConfigurationTest {
         ClientJwtConfiguration addKey = ClientJwtConfiguration.parse(jsonWebKey2);
         configuration = ClientJwtConfiguration.merge(configuration, addKey, false);
         assertThat(configuration.getJwkSet().getKeys()).hasSize(2);
-        assertThat(configuration.getJwkSet().getKeys().get(0).getKeyProperties()).containsEntry("n", nValue);
+        assertThat(configuration.getJwkSet().getKeys().getFirst().getKeyProperties()).containsEntry("n", nValue);
         assertThat(configuration.getJwkSet().getKeys().get(1).getKeyProperties()).containsEntry("n", nValue);
 
         configuration = ClientJwtConfiguration.merge(configuration, addKey, true);
@@ -143,15 +143,15 @@ class ClientJwtConfigurationTest {
 
         configuration = ClientJwtConfiguration.parse(jsonJwkSet);
         assertThat(configuration.getJwkSet().getKeys()).hasSize(1);
-        assertThat(configuration.getJwkSet().getKeys().get(0).getKeyProperties()).containsEntry("n", nValue);
+        assertThat(configuration.getJwkSet().getKeys().getFirst().getKeyProperties()).containsEntry("n", nValue);
 
         configuration = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse(jsonJwkSet), ClientJwtConfiguration.parse(jsonWebKeyDifferentValue), true);
         assertThat(configuration.getJwkSet().getKeys()).hasSize(1);
-        assertThat(configuration.getJwkSet().getKeys().get(0).getKeyProperties()).containsEntry("n", "new");
+        assertThat(configuration.getJwkSet().getKeys().getFirst().getKeyProperties()).containsEntry("n", "new");
 
         configuration = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse(jsonJwkSet), ClientJwtConfiguration.parse(jsonWebKeyDifferentValue), false);
         assertThat(configuration.getJwkSet().getKeys()).hasSize(1);
-        assertThat(configuration.getJwkSet().getKeys().get(0).getKeyProperties()).containsEntry("n", nValue);
+        assertThat(configuration.getJwkSet().getKeys().getFirst().getKeyProperties()).containsEntry("n", nValue);
     }
 
     @Test
@@ -183,7 +183,7 @@ class ClientJwtConfigurationTest {
         configuration = ClientJwtConfiguration.merge(ClientJwtConfiguration.parse("https://any/jwks-uri"), ClientJwtConfiguration.parse(jsonJwkSet), true);
         assertThat(configuration.getJwksUri()).isNull();
         assertThat(configuration.getJwkSet().getKeys()).hasSize(1);
-        assertThat(configuration.getJwkSet().getKeys().get(0).getKeyProperties()).containsEntry("n", nValue);
+        assertThat(configuration.getJwkSet().getKeys().getFirst().getKeyProperties()).containsEntry("n", nValue);
     }
 
     @Test

@@ -37,7 +37,7 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -86,7 +86,7 @@ class PasswordGrantAuthenticationManagerTest {
         when(idp.getType()).thenReturn(OriginKeys.OIDC10);
         when(idp.isActive()).thenReturn(true);
         when(idpConfig.isPasswordGrantEnabled()).thenReturn(true);
-        when(idpConfig.getTokenUrl()).thenReturn(new URL("http://localhost:8080/uaa/oauth/token"));
+        when(idpConfig.getTokenUrl()).thenReturn(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
         when(idpConfig.getRelyingPartyId()).thenReturn("identity");
         when(idpConfig.getRelyingPartySecret()).thenReturn("identitysecret");
 
@@ -299,7 +299,7 @@ class PasswordGrantAuthenticationManagerTest {
         UaaLoginHint loginHint = mock(UaaLoginHint.class);
         when(loginHint.getOrigin()).thenReturn("oidcprovider");
         Authentication auth = mock(Authentication.class);
-        when(idpConfig.getTokenUrl()).thenReturn(null).thenReturn(new URL("http://localhost:8080/uaa/oauth/token"));
+        when(idpConfig.getTokenUrl()).thenReturn(null).thenReturn(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
         when(zoneAwareAuthzAuthenticationManager.extractLoginHint(auth)).thenReturn(loginHint);
 
         try {

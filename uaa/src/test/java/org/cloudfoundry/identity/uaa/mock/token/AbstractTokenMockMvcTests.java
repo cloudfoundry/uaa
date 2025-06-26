@@ -298,7 +298,7 @@ public abstract class AbstractTokenMockMvcTests {
             final String zoneId) {
         List<ScimGroup> scimGroups = groupProvisioning.query("displayName eq \"" + scope + "\"", zoneId);
         if (!scimGroups.isEmpty()) {
-            return scimGroups.get(0);
+            return scimGroups.getFirst();
         } else {
             return groupProvisioning.create(new ScimGroup(null, scope, zoneId), zoneId);
         }

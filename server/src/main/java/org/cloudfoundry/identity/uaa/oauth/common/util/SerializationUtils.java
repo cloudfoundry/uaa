@@ -26,7 +26,7 @@ public class SerializationUtils {
                     "Too many serialization strategies in META-INF/spring.factories");
         }
         if (strategies.size() == 1) {
-            strategy = strategies.get(0);
+            strategy = strategies.getFirst();
         }
     }
 

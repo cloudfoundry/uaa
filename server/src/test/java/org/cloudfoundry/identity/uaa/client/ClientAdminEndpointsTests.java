@@ -1007,7 +1007,7 @@ class ClientAdminEndpointsTests {
         assertThat(modification.getClientJwtCredentials()).size().isEqualTo(1);
         assertThat(modification.getJwkSet()).isNull();
         assertThat(modification.getJwksUri()).isEqualTo("http://localhost:8080/uaa/token_keys");
-        ClientJwtCredential clientJwtCredential = modification.getClientJwtCredentials().get(0);
+        ClientJwtCredential clientJwtCredential = modification.getClientJwtCredentials().getFirst();
         assertThat(clientJwtCredential).isNotNull();
         assertThat(clientJwtCredential.getIssuer()).isEqualTo("issuer");
         assertThat(clientJwtCredential.getSubject()).isEqualTo("subject");

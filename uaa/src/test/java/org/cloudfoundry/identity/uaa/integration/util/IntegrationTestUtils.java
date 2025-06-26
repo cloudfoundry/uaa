@@ -386,7 +386,7 @@ public class IntegrationTestUtils {
             if (resources.isEmpty()) {
                 return null;
             }
-            user = JsonUtils.readValue(JsonUtils.writeValueAsString(resources.get(0)), ScimUser.class);
+            user = JsonUtils.readValue(JsonUtils.writeValueAsString(resources.getFirst()), ScimUser.class);
         }
         return user;
     }
@@ -437,7 +437,7 @@ public class IntegrationTestUtils {
             if (resources.isEmpty()) {
                 return null;
             }
-            HashMap resource = (HashMap) resources.get(0);
+            HashMap resource = (HashMap) resources.getFirst();
             return (String) resource.get("id");
         }
         throw new RuntimeException("Invalid return code:" + userInfoGet.getStatusCode());
@@ -533,7 +533,7 @@ public class IntegrationTestUtils {
         if (findGroup.getBody().getTotalResults() == 0) {
             return null;
         } else {
-            return findGroup.getBody().getResources().iterator().next();
+            return findGroup.getBody().getResources().getFirst();
         }
     }
 
@@ -1121,7 +1121,7 @@ public class IntegrationTestUtils {
                                        String password,
                                        String scopes) {
         RestTemplate template = new RestTemplate();
-        template.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        template.getMessageConverters().addFirst(new StringHttpMessageConverter(StandardCharsets.UTF_8));
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
@@ -1155,7 +1155,7 @@ public class IntegrationTestUtils {
                                        String loginHint,
                                        String scopes) {
         RestTemplate template = new RestTemplate();
-        template.getMessageConverters().add(0, new StringHttpMessageConverter(StandardCharsets.UTF_8));
+        template.getMessageConverters().addFirst(new StringHttpMessageConverter(StandardCharsets.UTF_8));
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "urn:ietf:params:oauth:grant-type:jwt-bearer");

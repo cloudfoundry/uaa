@@ -126,8 +126,8 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).isNotNull();
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getJwtClientAuthentication()).isNotNull();
     }
 
     @Test
@@ -137,8 +137,8 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).isNull();
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getJwtClientAuthentication()).isNull();
     }
 
     @Test
@@ -149,8 +149,8 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).isNull();
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getJwtClientAuthentication()).isNull();
     }
 
     @Test
@@ -163,9 +163,9 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).isNotNull();
-        assertThat((Map<String, String>) ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication())
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getJwtClientAuthentication()).isNotNull();
+        assertThat((Map<String, String>) ((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getJwtClientAuthentication())
                 .containsEntry("iss", "issuer");
     }
 
@@ -181,9 +181,9 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         // then
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).isNotNull();
-        assertThat((((Map<String, String>) ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).get("iss")))
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getJwtClientAuthentication()).isNotNull();
+        assertThat((((Map<String, String>) ((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getJwtClientAuthentication()).get("iss")))
                 .isNotEqualTo("issuer")
                 .isEqualTo("trueIssuer");
     }
@@ -196,12 +196,12 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getDiscoveryUrl()).isNull();
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAuthUrl()).hasToString("http://auth.url");
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getTokenKeyUrl()).hasToString("http://token-key.url");
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getTokenUrl()).hasToString("http://token.url");
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getLogoutUrl()).hasToString("http://logout.url");
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getDiscoveryUrl()).isNull();
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getAuthUrl()).hasToString("http://auth.url");
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getTokenKeyUrl()).hasToString("http://token-key.url");
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getTokenUrl()).hasToString("http://token.url");
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getLogoutUrl()).hasToString("http://logout.url");
     }
 
     @Test
@@ -212,12 +212,12 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getDiscoveryUrl()).hasToString("http://localhost:8080/uaa/.well-known/openid-configuration");
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAuthUrl()).isNull();
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getTokenKeyUrl()).isNull();
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getTokenUrl()).isNull();
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getLogoutUrl()).isNull();
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getDiscoveryUrl()).hasToString("http://localhost:8080/uaa/.well-known/openid-configuration");
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getAuthUrl()).isNull();
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getTokenKeyUrl()).isNull();
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getTokenUrl()).isNull();
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getLogoutUrl()).isNull();
     }
 
     @Test
@@ -236,8 +236,8 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAdditionalAuthzParameters();
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getAdditionalAuthzParameters();
         assertThat(receivedParameters).hasSize(3)
                 .containsEntry("token_format", "jwt")
                 .containsEntry("expires", "0");
@@ -251,8 +251,8 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         definitions.put("test", idpDefinitionMap);
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAdditionalAuthzParameters();
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        Map<String, String> receivedParameters = ((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getAdditionalAuthzParameters();
         assertThat(receivedParameters).isEmpty();
     }
 
@@ -295,9 +295,9 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         factoryBean = new OauthIDPWrapperFactoryBean(definitions);
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
         // then
-        assertThat(factoryBean.getProviders().get(0).getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
-        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getJwtClientAuthentication()).isNotNull();
-        assertThat((((OIDCIdentityProviderDefinition) factoryBean.getProviders().get(0).getProvider().getConfig()).getAuthMethod())).isEqualTo("none");
+        assertThat(factoryBean.getProviders().getFirst().getProvider().getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
+        assertThat(((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getJwtClientAuthentication()).isNotNull();
+        assertThat((((OIDCIdentityProviderDefinition) factoryBean.getProviders().getFirst().getProvider().getConfig()).getAuthMethod())).isEqualTo("none");
     }
 
     /* The following two test cases check whether different values for 'setForwardHeader' and 'passwordGrantEnabled' are
@@ -323,7 +323,7 @@ class OauthIdentityProviderDefinitionFactoryBeanTest {
         factoryBean = new OauthIDPWrapperFactoryBean(Collections.singletonMap("new.idp", idpDefinitionMap));
         factoryBean.setCommonProperties(idpDefinitionMap, providerDefinition);
 
-        final IdentityProvider provider = factoryBean.getProviders().get(0).getProvider();
+        final IdentityProvider provider = factoryBean.getProviders().getFirst().getProvider();
         assertThat(provider.getConfig()).isInstanceOf(OIDCIdentityProviderDefinition.class);
         final OIDCIdentityProviderDefinition providerConfig = (OIDCIdentityProviderDefinition) provider.getConfig();
         assertThat(providerConfig.isSetForwardHeader()).isEqualTo(setForwardHeader);

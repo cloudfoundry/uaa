@@ -431,9 +431,9 @@ class LdapIdentityProviderDefinitionTest {
     void setEmailDomain() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
         def.setEmailDomain(Collections.singletonList("test.com"));
-        assertThat(def.getEmailDomain().get(0)).isEqualTo("test.com");
+        assertThat(def.getEmailDomain().getFirst()).isEqualTo("test.com");
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
-        assertThat(def.getEmailDomain().get(0)).isEqualTo("test.com");
+        assertThat(def.getEmailDomain().getFirst()).isEqualTo("test.com");
     }
 
     @Test

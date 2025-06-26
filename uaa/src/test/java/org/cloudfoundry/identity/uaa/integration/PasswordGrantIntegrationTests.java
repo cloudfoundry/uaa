@@ -59,7 +59,7 @@ class PasswordGrantIntegrationTests {
         UaaClientDetails client = addUserGroupsRequiredClient();
         ResponseEntity<String> responseEntity = makePasswordGrantRequest(testAccounts.getUserName(), testAccounts.getPassword(), client.getClientId(), "secret", serverRunning.getAccessTokenUri());
         assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(responseEntity.getHeaders().get("Content-Type").get(0)).isEqualTo(APPLICATION_JSON_VALUE);
+        assertThat(responseEntity.getHeaders().get("Content-Type").getFirst()).isEqualTo(APPLICATION_JSON_VALUE);
         Map<String, Object> errors = JsonUtils.readValue(responseEntity.getBody(), new TypeReference<Map<String, Object>>() {
         });
         assertThat(errors).containsEntry("error_description", "User does not meet the client's required group criteria.")

@@ -302,8 +302,8 @@ public class InvitationsIT {
         ResponseEntity<InvitationsResponse> response = uaaTemplate.exchange(baseUrl + "/invite_users?client_id=app&redirect_uri=http://localhost:8080/app", POST, request, InvitationsResponse.class);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        String userId = response.getBody().getNewInvites().get(0).getUserId();
-        URL inviteLink = response.getBody().getNewInvites().get(0).getInviteLink();
+        String userId = response.getBody().getNewInvites().getFirst().getUserId();
+        URL inviteLink = response.getBody().getNewInvites().getFirst().getInviteLink();
 
         webDriver.get(inviteLink.toString());
         webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome')]"));

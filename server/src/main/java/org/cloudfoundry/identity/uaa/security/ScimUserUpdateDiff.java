@@ -44,8 +44,8 @@ public class ScimUserUpdateDiff {
     }
 
     private boolean phoneNumbersEquivalent(ScimUser scimUserFromRequest, ScimUser scimUserFromDb) {
-        Object firstPhoneNumberFromDb = scimUserFromDb.getPhoneNumbers() == null ? null : (scimUserFromDb.getPhoneNumbers().isEmpty() ? null : scimUserFromDb.getPhoneNumbers().get(0));
-        Object firstPhoneNumberFromRequest = scimUserFromRequest.getPhoneNumbers() == null ? null : (scimUserFromRequest.getPhoneNumbers().isEmpty() ? null : scimUserFromRequest.getPhoneNumbers().get(0));
+        Object firstPhoneNumberFromDb = scimUserFromDb.getPhoneNumbers() == null ? null : (scimUserFromDb.getPhoneNumbers().isEmpty() ? null : scimUserFromDb.getPhoneNumbers().getFirst());
+        Object firstPhoneNumberFromRequest = scimUserFromRequest.getPhoneNumbers() == null ? null : (scimUserFromRequest.getPhoneNumbers().isEmpty() ? null : scimUserFromRequest.getPhoneNumbers().getFirst());
         return Objects.equals(firstPhoneNumberFromDb, firstPhoneNumberFromRequest);
     }
 

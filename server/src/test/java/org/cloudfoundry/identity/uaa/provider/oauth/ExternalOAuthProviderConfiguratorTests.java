@@ -27,7 +27,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
@@ -91,9 +91,9 @@ class ExternalOAuthProviderConfiguratorTests {
         oauth = new RawExternalOAuthIdentityProviderDefinition();
 
         for (AbstractExternalOAuthIdentityProviderDefinition def : Arrays.asList(oidc, oauth)) {
-            def.setAuthUrl(new URL("http://oidc10.random-made-up-url.com/oauth/authorize"));
-            def.setTokenUrl(new URL("http://oidc10.random-made-up-url.com/oauth/token"));
-            def.setTokenKeyUrl(new URL("http://oidc10.random-made-up-url.com/token_keys"));
+            def.setAuthUrl(URI.create("http://oidc10.random-made-up-url.com/oauth/authorize").toURL());
+            def.setTokenUrl(URI.create("http://oidc10.random-made-up-url.com/oauth/token").toURL());
+            def.setTokenKeyUrl(URI.create("http://oidc10.random-made-up-url.com/token_keys").toURL());
             def.setScopes(Arrays.asList("openid", "password.write"));
             def.setRelyingPartyId("clientId");
             def.setRelyingPartySecret("clientSecret");
@@ -110,7 +110,7 @@ class ExternalOAuthProviderConfiguratorTests {
                 identityZoneManager));
 
         config = new OIDCIdentityProviderDefinition();
-        config.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
+        config.setDiscoveryUrl(URI.create("https://accounts.google.com/.well-known/openid-configuration").toURL());
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.addAttributeMapping("user.attribute." + "the_client_id", "cid");
         config.setStoreCustomAttributes(true);
@@ -498,11 +498,11 @@ class ExternalOAuthProviderConfiguratorTests {
     @Test
     void getIdpAuthenticationUrl_withOnlyDiscoveryUrlForOIDCProvider() throws MalformedURLException, OidcMetadataFetchingException {
         String discoveryUrl = "https://accounts.google.com/.well-known/openid-configuration";
-        oidc.setDiscoveryUrl(new URL(discoveryUrl));
+        oidc.setDiscoveryUrl(URI.create(discoveryUrl).toURL());
         oidc.setAuthUrl(null);
         doAnswer(invocation -> {
             OIDCIdentityProviderDefinition definition = invocation.getArgument(0);
-            definition.setAuthUrl(new URL("https://accounts.google.com/o/oauth2/v2/auth"));
+            definition.setAuthUrl(URI.create("https://accounts.google.com/o/oauth2/v2/auth").toURL());
             return null;
         }).when(mockOidcMetadataFetcher)
                 .fetchMetadataAndUpdateDefinition(any(OIDCIdentityProviderDefinition.class));
@@ -564,7 +564,7 @@ class ExternalOAuthProviderConfiguratorTests {
 
         List<IdentityProvider> providers = configurator.retrieveAll(true, IdentityZone.getUaaZoneId());
         assertThat(providers).hasSize(1);
-        assertThat(providers.get(0).getName()).isEqualTo(oauthProvider.getName());
+        assertThat(providers.getFirst().getName()).isEqualTo(oauthProvider.getName());
         verify(configurator, times(1)).overlay(config);
     }
 

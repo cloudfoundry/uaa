@@ -49,7 +49,7 @@ class SignatureVerifierTest {
         assertThat(cs).isNotNull();
         assertThat(cs.algorithm()).isEqualTo("RS256");
         assertThat(cs.getJwkSet().size()).isOne();
-        assertThat(cs.getJwkSet().getKeys().get(0).getAlgorithm()).isNull();
+        assertThat(cs.getJwkSet().getKeys().getFirst().getAlgorithm()).isNull();
     }
 
     @Test
@@ -63,7 +63,7 @@ class SignatureVerifierTest {
         assertThat(cs).isNotNull();
         assertThat(cs.algorithm()).isEqualTo("HS256");
         assertThat(cs.getJwkSet().size()).isOne();
-        assertThat(cs.getJwkSet().getKeys().get(0).getAlgorithm().getName()).isEqualTo("HS256");
+        assertThat(cs.getJwkSet().getKeys().getFirst().getAlgorithm().getName()).isEqualTo("HS256");
     }
 
     @Test

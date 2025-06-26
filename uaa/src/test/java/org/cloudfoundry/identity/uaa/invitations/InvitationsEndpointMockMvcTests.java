@@ -362,7 +362,7 @@ class InvitationsEndpointMockMvcTests {
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, userToken, null, clientId, "example.com", email);
         assertThat(response.getNewInvites()).isEmpty();
         assertThat(response.getFailedInvites()).hasSize(1);
-        assertThat(response.getFailedInvites().get(0).getErrorCode()).isEqualTo("user.ambiguous");
+        assertThat(response.getFailedInvites().getFirst().getErrorCode()).isEqualTo("user.ambiguous");
     }
 
     @Test
@@ -375,10 +375,10 @@ class InvitationsEndpointMockMvcTests {
         assertThat(response.getNewInvites()).isEmpty();
         assertThat(response.getFailedInvites()).hasSize(3);
 
-        assertThat(response.getFailedInvites().get(0).getErrorCode()).isEqualTo("email.invalid");
+        assertThat(response.getFailedInvites().getFirst().getErrorCode()).isEqualTo("email.invalid");
         assertThat(response.getFailedInvites().get(1).getErrorCode()).isEqualTo("email.invalid");
         assertThat(response.getFailedInvites().get(2).getErrorCode()).isEqualTo("provider.non-existent");
-        assertThat(response.getFailedInvites().get(0).getErrorMessage()).isEqualTo(invalidEmail1 + " is invalid email.");
+        assertThat(response.getFailedInvites().getFirst().getErrorMessage()).isEqualTo(invalidEmail1 + " is invalid email.");
         assertThat(response.getFailedInvites().get(1).getErrorMessage()).isEqualTo(invalidEmail2 + " is invalid email.");
         assertThat(response.getFailedInvites().get(2).getErrorMessage()).isEqualTo("No authentication provider found.");
     }
@@ -497,6 +497,6 @@ class InvitationsEndpointMockMvcTests {
         String userToken = MockMvcUtils.getScimInviteUserToken(mockMvc, clientId, clientSecret, zone, adminClientId, adminClientSecret);
         String email = generator.generate().toLowerCase() + "@" + domain;
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, userToken, zone == null ? null : zone.getSubdomain(), clientId, "example.com", email);
-        return response.getNewInvites().get(0).getInviteLink().toString();
+        return response.getNewInvites().getFirst().getInviteLink().toString();
     }
 }

@@ -22,11 +22,11 @@ class JsonWebKeyTests {
         // given
         Map<String, Object> jsonMap = Map.of("kid", "uaa-key", "kty", "RSA");
         JsonWebKey jsonWebKey = new JsonWebKey(jsonMap);
-        jsonWebKey.setKid(samlKeySet.getKeys().get(0).getKid());
-        jsonWebKey.setX5t(samlKeySet.getKeys().get(0).getX5t());
+        jsonWebKey.setKid(samlKeySet.getKeys().getFirst().getKid());
+        jsonWebKey.setX5t(samlKeySet.getKeys().getFirst().getX5t());
         // then
-        assertThat(jsonWebKey.getKid()).isEqualTo(samlKeySet.getKeys().get(0).getKid());
-        assertThat(jsonWebKey.getX5t()).isEqualTo(samlKeySet.getKeys().get(0).getX5t());
+        assertThat(jsonWebKey.getKid()).isEqualTo(samlKeySet.getKeys().getFirst().getKid());
+        assertThat(jsonWebKey.getX5t()).isEqualTo(samlKeySet.getKeys().getFirst().getX5t());
         assertThat(((ArrayList) samlKeySet.getKeySetMap().get("keys"))).hasSize(3);
     }
 

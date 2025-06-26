@@ -122,7 +122,7 @@ public class SamlMetadataEntityDescriptorCustomizer implements Consumer<OpenSaml
     private void updateAssertionConsumerServices(SPSSODescriptor spSsoDescriptor) {
         List<AssertionConsumerService> assertionConsumerServices = spSsoDescriptor.getAssertionConsumerServices();
 
-        AssertionConsumerService existingService = assertionConsumerServices.get(0);
+        AssertionConsumerService existingService = assertionConsumerServices.getFirst();
         existingService.setIndex(0);
         existingService.setIsDefault(true);
         String existingUrl = existingService.getLocation();

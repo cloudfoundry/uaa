@@ -93,7 +93,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
                 return email.getValue();
             }
         }
-        return scimUser.getEmails().get(0).getValue();
+        return scimUser.getEmails().getFirst().getValue();
     }
 
     Authentication getPrincipal() {

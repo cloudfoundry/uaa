@@ -83,10 +83,10 @@ public class EmailAccountCreationService implements AccountCreationService {
         } catch (ScimResourceAlreadyExistsException e) {
             List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
             if (!users.isEmpty()) {
-                if (users.get(0).isVerified()) {
+                if (users.getFirst().isVerified()) {
                     throw new UaaException("User already active.", HttpStatus.CONFLICT.value());
                 } else {
-                    generateAndSendCode(email, clientId, subject, users.get(0).getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
+                    generateAndSendCode(email, clientId, subject, users.getFirst().getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
                 }
             }
         }

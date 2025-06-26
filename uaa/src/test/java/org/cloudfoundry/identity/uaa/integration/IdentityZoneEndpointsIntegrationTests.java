@@ -133,7 +133,7 @@ class IdentityZoneEndpointsIntegrationTests {
                 new ParameterizedTypeReference<>() {
                 });
 
-        IdentityProvider identityProvider = idpList.getBody().get(0);
+        IdentityProvider identityProvider = idpList.getBody().getFirst();
         assertThat(identityProvider.getIdentityZoneId()).isEqualTo(zoneId);
         assertThat(identityProvider.getOriginKey()).isEqualTo(OriginKeys.UAA);
 

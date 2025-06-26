@@ -58,7 +58,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
         if (results.isEmpty()) {
             throw new ScimResourceNotFoundException("User not found");
         }
-        ScimUser user = results.get(0);
+        ScimUser user = results.getFirst();
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         try {

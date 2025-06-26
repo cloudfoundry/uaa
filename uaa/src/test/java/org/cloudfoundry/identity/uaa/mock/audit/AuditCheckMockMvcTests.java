@@ -314,7 +314,7 @@ class AuditCheckMockMvcTests {
         // When the profile is ldap, an extra event is emitted
         assertThatNumberOfAuditEventsReceivedIsGreaterThanOrEqualTo(3);
 
-        IdentityProviderAuthenticationFailureEvent idpAuthFailEvent = (IdentityProviderAuthenticationFailureEvent) testListener.getEvents().get(0);
+        IdentityProviderAuthenticationFailureEvent idpAuthFailEvent = (IdentityProviderAuthenticationFailureEvent) testListener.getEvents().getFirst();
         assertThat(idpAuthFailEvent.getUsername()).isEqualTo(testUser.getUserName());
         assertThat(idpAuthFailEvent.getAuditEvent().getOrigin()).contains("sessionId=<SESSION>");
 
@@ -442,7 +442,7 @@ class AuditCheckMockMvcTests {
         // When the profile is ldap, an extra event is emitted
         assertThatNumberOfAuditEventsReceivedIsGreaterThanOrEqualTo(3);
 
-        IdentityProviderAuthenticationFailureEvent event1 = (IdentityProviderAuthenticationFailureEvent) testListener.getEvents().get(0);
+        IdentityProviderAuthenticationFailureEvent event1 = (IdentityProviderAuthenticationFailureEvent) testListener.getEvents().getFirst();
         UserAuthenticationFailureEvent event2 = (UserAuthenticationFailureEvent) testListener.getEvents().get(1);
         PrincipalAuthenticationFailureEvent event3 = (PrincipalAuthenticationFailureEvent) testListener.getEvents().get(2);
         assertThat(event1.getUsername()).isEqualTo(testUser.getUserName());
@@ -511,7 +511,7 @@ class AuditCheckMockMvcTests {
         // When the profile is ldap, an extra event is emitted
         assertThatNumberOfAuditEventsReceivedIsGreaterThanOrEqualTo(2);
 
-        UserNotFoundEvent event1 = (UserNotFoundEvent) testListener.getEvents().get(0);
+        UserNotFoundEvent event1 = (UserNotFoundEvent) testListener.getEvents().getFirst();
         assertThat(event1.getAuditEvent().getOrigin()).contains("sessionId=<SESSION>");
         PrincipalAuthenticationFailureEvent event2 = (PrincipalAuthenticationFailureEvent) testListener.getEvents().get(1);
         assertThat(((Authentication) event1.getSource()).getName()).isEqualTo(username);
@@ -704,7 +704,7 @@ class AuditCheckMockMvcTests {
 
         assertThatNumberOfAuditEventsReceivedIsEqualTo(2);
 
-        ClientAuthenticationSuccessEvent event = (ClientAuthenticationSuccessEvent) testListener.getEvents().get(0);
+        ClientAuthenticationSuccessEvent event = (ClientAuthenticationSuccessEvent) testListener.getEvents().getFirst();
         assertThat(event.getClientId()).isEqualTo("login");
         AuditEvent auditEvent = event.getAuditEvent();
         assertThat(auditEvent.getPrincipalId()).isEqualTo("login");
@@ -745,7 +745,7 @@ class AuditCheckMockMvcTests {
 
         assertThatNumberOfAuditEventsReceivedIsEqualTo(2);
 
-        PrincipalAuthenticationFailureEvent event0 = (PrincipalAuthenticationFailureEvent) testListener.getEvents().get(0);
+        PrincipalAuthenticationFailureEvent event0 = (PrincipalAuthenticationFailureEvent) testListener.getEvents().getFirst();
         assertThat(event0.getAuditEvent().getPrincipalId()).isEqualTo("login2");
         ClientAuthenticationFailureEvent event1 = (ClientAuthenticationFailureEvent) testListener.getEvents().get(1);
         assertThat(event1.getClientId()).isEqualTo("login");
@@ -969,7 +969,7 @@ class AuditCheckMockMvcTests {
 
         assertThatNumberOfAuditEventsReceivedIsEqualTo(3);
 
-        UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getEvents().get(0);
+        UserModifiedEvent userModifiedEvent = (UserModifiedEvent) testListener.getEvents().getFirst();
         assertThat(userModifiedEvent.getAuthentication().getName()).isEqualTo("login");
         assertThat(userModifiedEvent.getUsername()).isEqualTo(username);
         assertThat(userModifiedEvent.getAuditEvent().getType()).isEqualTo(UserCreatedEvent);
@@ -1289,7 +1289,7 @@ class AuditCheckMockMvcTests {
         verify(mockAuditService, atLeast(1)).log(captor.capture(), anyString());
         List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType() == eventType).toList();
         assertThat(auditEvents).hasSize(1);
-        AuditEvent auditEvent = auditEvents.get(0);
+        AuditEvent auditEvent = auditEvents.getFirst();
         String auditEventData = auditEvent.getData();
         assertThat(auditEventData).isNotNull();
         Map<String, Object> auditObjects = JsonUtils.readValue(auditEventData, new TypeReference<Map<String, Object>>() {
@@ -1374,7 +1374,7 @@ class AuditCheckMockMvcTests {
         List<AbstractUaaEvent> events = testListener.getEvents().stream().filter(AbstractClientAdminEvent.class::isInstance).toList();
         assertThat(events).hasSize(1);
 
-        AbstractUaaEvent event = events.get(0);
+        AbstractUaaEvent event = events.getFirst();
         assertThat(event.getAuditEvent().getType()).isEqualTo(expectedEventType);
 
         ArgumentCaptor<AuditEvent> captor = ArgumentCaptor.forClass(AuditEvent.class);
@@ -1383,7 +1383,7 @@ class AuditCheckMockMvcTests {
         List<AuditEvent> auditEvents = captor.getAllValues().stream().filter(e -> e.getType() == expectedEventType).toList();
         assertThat(auditEvents).hasSize(1);
 
-        AuditEvent auditEvent = auditEvents.get(0);
+        AuditEvent auditEvent = auditEvents.getFirst();
         String auditEventData = auditEvent.getData();
         assertThat(auditEventData).isNotNull();
 

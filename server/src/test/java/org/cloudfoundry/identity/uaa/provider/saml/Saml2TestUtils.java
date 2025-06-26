@@ -215,7 +215,7 @@ public final class Saml2TestUtils {
                 XSDateTime.TYPE_NAME);
         registeredDate.setValue(Instant.parse("1970-01-01T00:00:00Z"));
         registeredDateAttr.getAttributeValues().add(registeredDate);
-        attributeStatements.iterator().next().getAttributes().add(registeredDateAttr);
+        attributeStatements.getFirst().getAttributes().add(registeredDateAttr);
         return attributeStatements;
     }
 

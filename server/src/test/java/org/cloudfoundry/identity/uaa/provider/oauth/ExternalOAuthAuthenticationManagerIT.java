@@ -75,6 +75,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -251,14 +252,14 @@ class ExternalOAuthAuthenticationManagerIT {
         attributeMappings = new HashMap<>();
 
         config = new OIDCIdentityProviderDefinition()
-                .setAuthUrl(new URL("http://localhost/oauth/authorize"))
-                .setTokenUrl(new URL("http://localhost/oauth/token"))
+                .setAuthUrl(URI.create("http://localhost/oauth/authorize").toURL())
+                .setTokenUrl(URI.create("http://localhost/oauth/token").toURL())
                 .setIssuer("http://localhost/oauth/token")
                 .setShowLinkText(true)
                 .setLinkText("My OIDC Provider")
                 .setRelyingPartyId("identity")
                 .setRelyingPartySecret("identitysecret")
-                .setUserInfoUrl(new URL("http://localhost/userinfo"))
+                .setUserInfoUrl(URI.create("http://localhost/userinfo").toURL())
                 .setTokenKey(PUBLIC_KEY);
         config.setExternalGroupsWhitelist(
                 Collections.singletonList(
@@ -559,7 +560,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
         config.setAuthUrl(null);
         config.setTokenUrl(null);
-        config.setDiscoveryUrl(new URL("http://some.discovery.url"));
+        config.setDiscoveryUrl(URI.create("http://some.discovery.url").toURL());
 
         Map<String, Object> discoveryContent = new HashMap();
         discoveryContent.put("authorization_endpoint", authUrl.toString());
@@ -675,7 +676,7 @@ class ExternalOAuthAuthenticationManagerIT {
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher, times(3)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(3);
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().getFirst();
 
         assertUserCreated(event);
     }
@@ -692,7 +693,7 @@ class ExternalOAuthAuthenticationManagerIT {
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher, times(3)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(3);
-        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().get(0);
+        NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) userArgumentCaptor.getAllValues().getFirst();
 
         assertUserCreated(event);
     }
@@ -874,7 +875,7 @@ class ExternalOAuthAuthenticationManagerIT {
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher, times(2)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(2);
-        ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent) userArgumentCaptor.getAllValues().get(0);
+        ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent) userArgumentCaptor.getAllValues().getFirst();
 
         UaaUser uaaUser = event.getUser();
         assertThat(uaaUser.getGivenName()).isEqualTo("Marissa");
@@ -933,14 +934,14 @@ class ExternalOAuthAuthenticationManagerIT {
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher, times(3)).publishEvent(userArgumentCaptor.capture());
         assertThat(userArgumentCaptor.getAllValues()).hasSize(3);
-        assertThat(userArgumentCaptor.getAllValues().get(0)).isInstanceOf(InvitedUserAuthenticatedEvent.class);
+        assertThat(userArgumentCaptor.getAllValues().getFirst()).isInstanceOf(InvitedUserAuthenticatedEvent.class);
 
         RequestContextHolder.resetRequestAttributes();
     }
 
     @Test
     void loginAndValidateSignatureUsingTokenKeyEndpoint() throws Exception {
-        config.setTokenKeyUrl(new URL("http://localhost/token_key"));
+        config.setTokenKeyUrl(URI.create("http://localhost/token_key").toURL());
         config.setTokenKey(null);
 
         KeyInfo key = KeyInfoBuilder.build("correctKey", PRIVATE_KEY, UAA_ISSUER_URL);

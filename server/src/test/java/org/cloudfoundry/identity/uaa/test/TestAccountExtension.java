@@ -185,7 +185,7 @@ public final class TestAccountExtension implements BeforeAllCallback {
             List<Map<String, ?>> resources = (List<Map<String, ?>>) results.getBody().get("resources");
             Map<String, ?> map;
             if (!resources.isEmpty()) {
-                map = resources.get(0);
+                map = resources.getFirst();
             } else {
                 map = getUserAsMap(user);
                 @SuppressWarnings("rawtypes")

@@ -123,7 +123,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
             }
 
             Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
-            fc.getFilters().add(0, uaaFilter);
+            fc.getFilters().addFirst(uaaFilter);
         }
 
         return bean;

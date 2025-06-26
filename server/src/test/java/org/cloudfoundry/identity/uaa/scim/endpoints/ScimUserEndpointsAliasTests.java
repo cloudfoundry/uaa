@@ -431,10 +431,10 @@ class ScimUserEndpointsAliasTests {
                         zoneIdArgument.capture()
                 );
                 final List<String> capturedMemberIds = memberIdArgument.getAllValues();
-                assertThat(capturedMemberIds.get(0)).isEqualTo(userId);
+                assertThat(capturedMemberIds.getFirst()).isEqualTo(userId);
                 assertThat(capturedMemberIds.get(1)).isEqualTo(aliasId);
                 final List<String> capturedZoneIds = zoneIdArgument.getAllValues();
-                assertThat(capturedZoneIds.get(0)).isEqualTo(zoneId);
+                assertThat(capturedZoneIds.getFirst()).isEqualTo(zoneId);
                 assertThat(capturedZoneIds.get(1)).isEqualTo(aliasZid);
             }
 
@@ -447,7 +447,7 @@ class ScimUserEndpointsAliasTests {
                 final ArgumentCaptor<EntityDeletedEvent<ScimUser>> eventArgument = ArgumentCaptor.forClass(EntityDeletedEvent.class);
                 verify(applicationEventPublisher, times(2)).publishEvent(eventArgument.capture());
                 final List<EntityDeletedEvent<ScimUser>> capturedEvents = eventArgument.getAllValues();
-                final EntityDeletedEvent<ScimUser> eventForOriginalUser = capturedEvents.get(0);
+                final EntityDeletedEvent<ScimUser> eventForOriginalUser = capturedEvents.getFirst();
                 assertThat(eventForOriginalUser.getIdentityZoneId()).isEqualTo(zoneId);
                 assertScimUsersAreEqual(eventForOriginalUser.getDeleted(), originalUser);
                 final EntityDeletedEvent<ScimUser> eventForAliasUser = capturedEvents.get(1);
@@ -471,14 +471,14 @@ class ScimUserEndpointsAliasTests {
                         zoneIdArgument.capture()
                 );
                 final List<String> capturedUserIds = userIdArgument.getAllValues();
-                assertThat(capturedUserIds.get(0)).isEqualTo(userId);
+                assertThat(capturedUserIds.getFirst()).isEqualTo(userId);
                 assertThat(capturedUserIds.get(1)).isEqualTo(aliasId);
                 final List<Integer> capturedVersions = versionArgument.getAllValues();
-                assertThat(capturedVersions.get(0))
+                assertThat(capturedVersions.getFirst())
                         .isEqualTo(-1); // etag in scimUserEndpoints.deleteUser call is null
                 assertThat(capturedVersions.get(1)).isEqualTo(aliasUserVersion);
                 final List<String> capturedZoneIds2 = zoneIdArgument.getAllValues();
-                assertThat(capturedZoneIds2.get(0)).isEqualTo(zoneId);
+                assertThat(capturedZoneIds2.getFirst()).isEqualTo(zoneId);
                 assertThat(capturedZoneIds2.get(1)).isEqualTo(aliasZid);
             }
         }

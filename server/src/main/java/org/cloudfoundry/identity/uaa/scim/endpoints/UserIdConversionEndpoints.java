@@ -159,7 +159,7 @@ public class UserIdConversionEndpoints implements InitializingBean {
         switch (filter.getFilterType()) {
             case AND, OR:
                 // one of the operands must contain a comparison with the "id" or "userName" property
-                final boolean resultLeftOperand = containsIdOrUserNameClause(filter.getFilterComponents().get(0));
+                final boolean resultLeftOperand = containsIdOrUserNameClause(filter.getFilterComponents().getFirst());
                 return containsIdOrUserNameClause(filter.getFilterComponents().get(1)) || resultLeftOperand;
             case EQUALITY:
                 String name = filter.getFilterAttribute().getAttributeName();

@@ -244,7 +244,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             user.setPassword("");
         } else {
             //only validate for UAA users
-            List<IdentityProvider> idpsForEmailDomain = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveActive(identityZoneManager.getCurrentIdentityZoneId()), user.getEmails().get(0).getValue());
+            List<IdentityProvider> idpsForEmailDomain = DomainFilter.getIdpsForEmailDomain(identityProviderProvisioning.retrieveActive(identityZoneManager.getCurrentIdentityZoneId()), user.getEmails().getFirst().getValue());
             idpsForEmailDomain = idpsForEmailDomain.stream().filter(idp -> !idp.getOriginKey().equals(OriginKeys.UAA)).toList();
             if (!idpsForEmailDomain.isEmpty()) {
                 List<String> idpOrigins = idpsForEmailDomain.stream().map(IdentityProvider::getOriginKey).toList();

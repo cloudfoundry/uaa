@@ -313,7 +313,7 @@ public class RsaJsonWebKeyTests {
         PublicKey pk = parseKeyPair(ISSUE_1514_KEY.replace("\\n", "\n")).getPublic();
         assertThat(keys).isNotNull();
         assertThat(keys.getKeys()).isNotNull();
-        JsonWebKey key = keys.getKeys().get(0);
+        JsonWebKey key = keys.getKeys().getFirst();
         assertThat(Base64URL.encode(((RSAPublicKey) pk).getModulus())).hasToString((String) key.getKeyProperties().get("n"));
     }
 }

@@ -50,7 +50,7 @@ class UaaBootServerCustomizerTest {
         List<Connector> connectors = captor.getValue().getAdditionalTomcatConnectors();
         assertThat(connectors).isNotEmpty();
         assertThat(connectors).hasSize(1);
-        Connector httpConnector = connectors.get(0);
+        Connector httpConnector = connectors.getFirst();
         assertThat(httpConnector.getProperty("class")).isEqualTo(Http11NioProtocol.class);
         assertThat(httpConnector.getPort()).isEqualTo(8081);
         assertThat(httpConnector.getProperty("connectionTimeout")).isEqualTo(20000);

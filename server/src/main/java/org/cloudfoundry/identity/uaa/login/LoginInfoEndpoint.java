@@ -589,7 +589,7 @@ public class LoginInfoEndpoint {
                 );
             }
             if (matchingIdentityProviders.size() == 1) {
-                final Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = matchingIdentityProviders.get(0);
+                final Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = matchingIdentityProviders.getFirst();
                 log.debug("Setting redirect from email domain login hint to: {}", idpForRedirect);
                 return idpForRedirect;
             }
@@ -846,7 +846,7 @@ public class LoginInfoEndpoint {
         List<IdentityProvider> identityProviders = DomainFilter.filter(providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), clientDetails, email, false);
 
         if (!StringUtils.hasText(skipDiscovery) && identityProviders.size() == 1) {
-            IdentityProvider matchedIdp = identityProviders.get(0);
+            IdentityProvider matchedIdp = identityProviders.getFirst();
             if (matchedIdp.getType().equals(UAA)) {
                 model.addAttribute(LOGIN_HINT_ATTRIBUTE, new UaaLoginHint("uaa").toString());
                 return goToPasswordPage(email, model);

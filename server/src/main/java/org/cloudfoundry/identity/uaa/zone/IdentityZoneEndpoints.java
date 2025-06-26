@@ -102,7 +102,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         if (result.isEmpty()) {
             throw new ZoneDoesNotExistsException("Zone does not exist or is not accessible.");
         }
-        return removeKeys(result.get(0));
+        return removeKeys(result.getFirst());
     }
 
     protected IdentityZone removeKeys(IdentityZone identityZone) {

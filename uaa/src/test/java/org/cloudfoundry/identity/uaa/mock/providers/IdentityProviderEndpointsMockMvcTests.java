@@ -62,7 +62,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.WebApplicationContext;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -243,7 +243,7 @@ class IdentityProviderEndpointsMockMvcTests {
 
         String originKey = RandomStringUtils.randomAlphabetic(6);
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-        definition.setDiscoveryUrl(new URL("https://accounts.google.com/.well-known/openid-configuration"));
+        definition.setDiscoveryUrl(URI.create("https://accounts.google.com/.well-known/openid-configuration").toURL());
         definition.setSkipSslValidation(true);
         definition.setRelyingPartyId("uaa");
         definition.setRelyingPartySecret("secret");
@@ -701,9 +701,9 @@ class IdentityProviderEndpointsMockMvcTests {
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         OIDCIdentityProviderDefinition config = new OIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-        config.setAuthUrl(new URL("http://oidc10.uaa.com/oauth/authorize"));
-        config.setTokenUrl(new URL("http://oidc10.uaa.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("http://oidc10.uaa.com/token_key"));
+        config.setAuthUrl(URI.create("http://oidc10.uaa.com/oauth/authorize").toURL());
+        config.setTokenUrl(URI.create("http://oidc10.uaa.com/oauth/token").toURL());
+        config.setTokenKeyUrl(URI.create("http://oidc10.uaa.com/token_key").toURL());
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);

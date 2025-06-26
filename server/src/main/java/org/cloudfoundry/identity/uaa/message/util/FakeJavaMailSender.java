@@ -77,7 +77,7 @@ public class FakeJavaMailSender implements JavaMailSender {
         }
 
         while (sentMessages.size() > getMaxMessages()) {
-            sentMessages.remove(0);
+            sentMessages.removeFirst();
         }
     }
 

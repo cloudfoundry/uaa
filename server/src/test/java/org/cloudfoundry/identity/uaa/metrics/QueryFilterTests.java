@@ -43,19 +43,19 @@ class QueryFilterTests {
         long start = System.currentTimeMillis();
         filter.reportFailedQuery("query", null, "name", start, null);
         assertThat(metric.getQueries()).hasSize(1);
-        assertThat(metric.getQueries().get(0).getQuery()).isEqualTo("query");
-        assertThat(metric.getQueries().get(0).getRequestStartTime()).isEqualTo(start);
-        assertThat(metric.getQueries().get(0).isIntolerable()).isFalse();
+        assertThat(metric.getQueries().getFirst().getQuery()).isEqualTo("query");
+        assertThat(metric.getQueries().getFirst().getRequestStartTime()).isEqualTo(start);
+        assertThat(metric.getQueries().getFirst().isIntolerable()).isFalse();
     }
 
     @Test
     void reportQuery() {
         filter.reportQuery("query", null, "name", 0, 1);
         assertThat(metric.getQueries()).hasSize(1);
-        assertThat(metric.getQueries().get(0).getQuery()).isEqualTo("query");
-        assertThat(metric.getQueries().get(0).getRequestStartTime()).isZero();
-        assertThat(metric.getQueries().get(0).getRequestCompleteTime()).isOne();
-        assertThat(metric.getQueries().get(0).isIntolerable()).isFalse();
+        assertThat(metric.getQueries().getFirst().getQuery()).isEqualTo("query");
+        assertThat(metric.getQueries().getFirst().getRequestStartTime()).isZero();
+        assertThat(metric.getQueries().getFirst().getRequestCompleteTime()).isOne();
+        assertThat(metric.getQueries().getFirst().isIntolerable()).isFalse();
     }
 
     @Test
@@ -63,10 +63,10 @@ class QueryFilterTests {
         long delta = filter.getThreshold() + 10;
         filter.reportSlowQuery("query", null, "name", 0, delta);
         assertThat(metric.getQueries()).hasSize(1);
-        assertThat(metric.getQueries().get(0).getQuery()).isEqualTo("query");
-        assertThat(metric.getQueries().get(0).getRequestStartTime()).isZero();
-        assertThat(metric.getQueries().get(0).getRequestCompleteTime()).isEqualTo(delta);
-        assertThat(metric.getQueries().get(0).isIntolerable()).isTrue();
+        assertThat(metric.getQueries().getFirst().getQuery()).isEqualTo("query");
+        assertThat(metric.getQueries().getFirst().getRequestStartTime()).isZero();
+        assertThat(metric.getQueries().getFirst().getRequestCompleteTime()).isEqualTo(delta);
+        assertThat(metric.getQueries().getFirst().isIntolerable()).isTrue();
     }
 
 }

@@ -37,7 +37,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
 
@@ -127,7 +127,7 @@ class AccountsControllerTest {
                 .param("client_id", "app")
                 .param("redirect_uri", "http://example.com/redirect");
         IdentityProvider<OIDCIdentityProviderDefinition> oidcProvider = new IdentityProvider().setActive(true).setType(OriginKeys.OIDC10).setOriginKey(OriginKeys.OIDC10).setConfig(new OIDCIdentityProviderDefinition());
-        oidcProvider.getConfig().setAuthUrl(new URL("http://localhost:8080/uaa/idp_login"));
+        oidcProvider.getConfig().setAuthUrl(URI.create("http://localhost:8080/uaa/idp_login").toURL());
         oidcProvider.getConfig().setEmailDomain(Collections.singletonList("example.com"));
         when(identityProviderProvisioning.retrieveAll(true, OriginKeys.UAA)).thenReturn(Collections.singletonList(oidcProvider));
 

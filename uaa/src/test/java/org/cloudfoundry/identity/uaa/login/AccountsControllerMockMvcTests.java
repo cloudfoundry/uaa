@@ -226,7 +226,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
         JdbcScimUserProvisioning scimUserProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'", IdentityZoneHolder.get().getId()).get(0);
+        ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'", IdentityZoneHolder.get().getId()).getFirst();
         assertThat(scimUser.isVerified()).isFalse();
 
         mockMvc.perform(get("/verify_user")
@@ -304,7 +304,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().getFirst();
         assertThat(message.getContentString()).contains("Cloud Foundry");
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 
@@ -354,7 +354,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().getFirst();
         String link = mockMvcTestClient.extractLink(message.getContentString());
         assertThat(message.getContentString()).contains(subdomain + "zone");
         assertThat(message.getMessage().getHeader("From")).contains(subdomain + "zone <admin@localhost>");
@@ -408,7 +408,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().getFirst();
         String link = mockMvcTestClient.extractLink(message.getContentString());
         assertThat(hasLength(link)).isTrue();
         assertThat(link).contains(subdomain + ".localhost");
@@ -579,7 +579,7 @@ class AccountsControllerMockMvcTests {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
-        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
+        FakeJavaMailSender.MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().getFirst();
         assertThat(message.getContentString()).contains("Cloud Foundry");
         assertThat(message.getMessage().getHeader("From")).contains("Cloud Foundry <admin@localhost>");
 

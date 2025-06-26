@@ -208,7 +208,7 @@ class ScimGroupEndpointsIntegrationTests {
         assertThat((Integer) results.get("totalResults")).as("There should be more than zero users").isPositive();
         assertThat(((Collection<?>) results.get("resources"))).as("There should be some resources").isNotEmpty();
         @SuppressWarnings("rawtypes")
-        Map firstGroup = (Map) ((List) results.get("resources")).get(0);
+        Map firstGroup = (Map) ((List) results.get("resources")).getFirst();
         assertThat(firstGroup).containsKey("id")
                 .containsKey("displayName")
                 .containsKey("schemas")

@@ -64,7 +64,6 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.MalformedURLException;
 import java.net.URI;
-import java.net.URL;
 import java.text.ParseException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -173,7 +172,7 @@ class ExternalOAuthAuthenticationManagerTest {
         IdentityProvider localIdp = mock(IdentityProvider.class);
         OIDCIdentityProviderDefinition localIdpConfig = mock(OIDCIdentityProviderDefinition.class);
         when(localIdpConfig.getRelyingPartyId()).thenReturn("identity");
-        when(localIdpConfig.getTokenUrl()).thenReturn(new URL("http://localhost:8080/uaa/oauth/token"));
+        when(localIdpConfig.getTokenUrl()).thenReturn(URI.create("http://localhost:8080/uaa/oauth/token").toURL());
         when(localIdpConfig.getRelyingPartySecret()).thenReturn(null);
         when(localIdpConfig.getJwtClientAuthentication()).thenReturn(true);
         when(localIdpConfig.getScopes()).thenReturn(Arrays.asList("openid", "email"));
@@ -745,7 +744,7 @@ class ExternalOAuthAuthenticationManagerTest {
                 .containsKey("scope")
                 .containsEntry("scope", Collections.singletonList("openid email"));
         /* verify client assertion according OIDC private_key_jwt */
-        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").get(0)).getJWTClaimsSet();
+        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").getFirst()).getJWTClaimsSet();
         assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
@@ -781,7 +780,7 @@ class ExternalOAuthAuthenticationManagerTest {
                 .containsKey("scope")
                 .containsEntry("scope", Collections.singletonList("openid email"));
         /* verify client assertion according OIDC private_key_jwt */
-        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").get(0)).getJWTClaimsSet();
+        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").getFirst()).getJWTClaimsSet();
         assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
@@ -872,10 +871,10 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
         assertThat(headers).containsKey("Authorization");
         assertThat(headers.get("Authorization")).hasSize(1);
-        assertThat(headers.get("Authorization").get(0)).startsWith("Basic ");
+        assertThat(headers.get("Authorization").getFirst()).startsWith("Basic ");
         assertThat(headers).containsKey("X-Forwarded-For");
         assertThat(headers.get("X-Forwarded-For")).hasSize(1);
-        assertThat(headers.get("X-Forwarded-For").get(0)).isEqualTo("203.0.113.1");
+        assertThat(headers.get("X-Forwarded-For").getFirst()).isEqualTo("203.0.113.1");
     }
 
     @Test
@@ -978,7 +977,7 @@ class ExternalOAuthAuthenticationManagerTest {
         assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
         assertThat(headers).containsKey("Authorization");
         assertThat(headers.get("Authorization")).hasSize(1);
-        assertThat(headers.get("Authorization").get(0)).startsWith("Basic ");
+        assertThat(headers.get("Authorization").getFirst()).startsWith("Basic ");
         assertThat(headers).doesNotContainKey("X-Forwarded-For");
     }
 }

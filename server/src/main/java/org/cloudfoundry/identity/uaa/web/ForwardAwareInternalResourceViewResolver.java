@@ -67,7 +67,7 @@ public class ForwardAwareInternalResourceViewResolver extends InternalResourceVi
         if (StringUtils.hasText(acceptHeader)) {
             try {
                 List<MediaType> acceptableMediaTypes = MediaType.parseMediaTypes(acceptHeader);
-                return acceptableMediaTypes.isEmpty() ? null : acceptableMediaTypes.get(0);
+                return acceptableMediaTypes.isEmpty() ? null : acceptableMediaTypes.getFirst();
             } catch (IllegalArgumentException ex) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Could not parse accept header [" + acceptHeader + "]: " + ex.getMessage());

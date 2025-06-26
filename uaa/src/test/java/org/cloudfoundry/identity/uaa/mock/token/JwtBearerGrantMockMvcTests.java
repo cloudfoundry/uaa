@@ -42,7 +42,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.List;
 import java.util.Map;
 
@@ -118,7 +118,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         Map<String, Object> originUserClaims = JwtTokenUtils.getClaimsForToken(accessTokenForOriginZoneUser);
 
         //Verify values for new shadow user set
-        ScimUser shadowUser = getScimUser(originUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        ScimUser shadowUser = getScimUser(originUser.getEmails().getFirst().getValue(), originZoneOriginKey, targetZone.getId());
         assertThat(originUserClaims).containsEntry("user_name", shadowUser.getUserName());
         assertThat(originUser.getId()).isEqualTo(shadowUser.getExternalId());
 
@@ -126,7 +126,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         performJWTBearerGrantForJWT(targetZone, accessTokenForOriginZoneUser);
 
         //Verify username and External ID not changed after this internal grant
-        ScimUser shadowUserAfterExchange = getScimUser(originUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        ScimUser shadowUserAfterExchange = getScimUser(originUser.getEmails().getFirst().getValue(), originZoneOriginKey, targetZone.getId());
         assertThat(shadowUserAfterExchange.getUserName()).isEqualTo(shadowUser.getUserName());
         assertThat(shadowUserAfterExchange.getExternalId()).isEqualTo(shadowUser.getExternalId());
     }
@@ -155,7 +155,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         Map<String, Object> targetUserClaims = JwtTokenUtils.getClaimsForToken(accessTokenForTargetZoneUser);
 
         //Verify shadow user of same-zone Idp created
-        ScimUser originShadowUser = getScimUser(targetZoneUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        ScimUser originShadowUser = getScimUser(targetZoneUser.getEmails().getFirst().getValue(), originZoneOriginKey, targetZone.getId());
         assertThat(targetUserClaims).containsEntry("user_name", originShadowUser.getUserName());
         assertThat(targetZoneUser.getId()).isEqualTo(originShadowUser.getExternalId());
 
@@ -163,7 +163,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         performJWTBearerGrantForJWT(targetZone, accessTokenForTargetZoneUser);
 
         //Verify username and External ID changed after this internal grant (as they are updated values of registered issuer)
-        ScimUser originShadowUserAfterExchange = getScimUser(targetZoneUser.getEmails().get(0).getValue(), originZoneOriginKey, targetZone.getId());
+        ScimUser originShadowUserAfterExchange = getScimUser(targetZoneUser.getEmails().getFirst().getValue(), originZoneOriginKey, targetZone.getId());
         assertThat(targetUserClaims)
                 .containsEntry("user_name", originShadowUserAfterExchange.getUserName())
                 .containsEntry("sub", originShadowUserAfterExchange.getExternalId());
@@ -333,7 +333,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
 
         List<ScimUser> scimUsers = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(username, origin, zoneId);
         assertThat(scimUsers).hasSize(1);
-        return scimUsers.get(0);
+        return scimUsers.getFirst();
     }
 
     ClientDetails createJwtBearerClient(IdentityZone zone) {
@@ -368,7 +368,7 @@ public class JwtBearerGrantMockMvcTests extends AbstractTokenMockMvcTests {
         String originKey = generator.generate();
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
         definition.setIssuer(issuer);
-        definition.setAuthUrl(new URL("http://myauthurl.com"));
+        definition.setAuthUrl(URI.create("http://myauthurl.com").toURL());
         definition.setTokenKey(tokenKey);
         definition.setTokenUrl(null);
         definition.setRelyingPartyId(relyingPartyId);

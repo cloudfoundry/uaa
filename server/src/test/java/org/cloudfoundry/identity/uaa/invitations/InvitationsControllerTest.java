@@ -60,7 +60,7 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
-import java.net.URL;
+import java.net.URI;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -218,7 +218,7 @@ class InvitationsControllerTest {
         when(expiringCodeStore.peekCode("the_secret_code", zoneId)).thenReturn(createCode(codeData));
 
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-        definition.setAuthUrl(new URL("https://oidc10.auth.url"));
+        definition.setAuthUrl(URI.create("https://oidc10.auth.url").toURL());
 
         IdentityProvider<OIDCIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setConfig(definition);

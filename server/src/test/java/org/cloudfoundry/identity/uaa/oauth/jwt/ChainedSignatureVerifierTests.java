@@ -178,7 +178,7 @@ class ChainedSignatureVerifierTests {
         verifier = new ChainedSignatureVerifier(keySet);
         List<SignatureVerifier> delegates = new ArrayList<>((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
         assertThat(delegates).hasSize(1);
-        assertThat(delegates.get(0).algorithm()).isEqualTo("HS256");
+        assertThat(delegates.getFirst().algorithm()).isEqualTo("HS256");
     }
 
     @Test
@@ -193,8 +193,8 @@ class ChainedSignatureVerifierTests {
         verifier = new ChainedSignatureVerifier(keySet);
         List<SignatureVerifier> delegates = new ArrayList<>((List<SignatureVerifier>) ReflectionTestUtils.getField(verifier, verifier.getClass(), "delegates"));
         assertThat(delegates).hasSize(1);
-        assertThat(delegates.get(0)).isNotNull();
-        assertThat(delegates.get(0).algorithm()).isEqualTo("ES256");
+        assertThat(delegates.getFirst()).isNotNull();
+        assertThat(delegates.getFirst().algorithm()).isEqualTo("ES256");
     }
 
     @Test

@@ -21,7 +21,7 @@ public final class SpanCustomizingAsyncHandlerInterceptor implements HandlerInte
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object o) {
         Object span = request.getAttribute(SpanCustomizer.class.getName());
-        if (span instanceof SpanCustomizer) handlerParser.preHandle(request, o, (SpanCustomizer) span);
+        if (span instanceof SpanCustomizer customizer) handlerParser.preHandle(request, o, customizer);
         return true;
     }
 

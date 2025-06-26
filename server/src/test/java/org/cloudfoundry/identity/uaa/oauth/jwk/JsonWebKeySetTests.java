@@ -159,7 +159,7 @@ class JsonWebKeySetTests {
         JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.deserialize(json);
         assertThat(keys).isNotNull();
         assertThat(keys.getKeys()).isNotNull();
-        JsonWebKey key = keys.getKeys().get(0);
+        JsonWebKey key = keys.getKeys().getFirst();
         assertThat(key.getAlgorithm()).isEqualTo("RS256");
         assertThat(key.getValue()).isEqualTo("-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDHFr+KICms+tuT1OXJwhCUmR2d\nKVy7psa8xzElSyzqx7oJyfJ1JZyOzToj9T5SfTIq396agbHJWVfYphNahvZ/7uMX\nqHxf+ZH9BL1gk9Y6kCnbM5R60gfwjyW1/dQPjOzn9N394zd2FJoFHwdq9Qs0wBug\nspULZVNRxq7veq/fzwIDAQAB\n-----END PUBLIC KEY-----");
         assertThat(key.getUse()).isEqualTo(sig);
@@ -211,7 +211,7 @@ class JsonWebKeySetTests {
         String macKey = "tokenKey";
         JsonWebKeySet<JsonWebKey> keys = JsonWebKeyHelper.parseConfiguration(macKey);
         assertThat(keys.getKeys()).hasSize(1);
-        assertThat(keys.getKeys().get(0).getKty()).isEqualTo(JsonWebKey.KeyType.MAC);
-        assertThat(keys.getKeys().get(0).getValue()).isEqualTo(macKey);
+        assertThat(keys.getKeys().getFirst().getKty()).isEqualTo(JsonWebKey.KeyType.MAC);
+        assertThat(keys.getKeys().getFirst().getValue()).isEqualTo(macKey);
     }
 }

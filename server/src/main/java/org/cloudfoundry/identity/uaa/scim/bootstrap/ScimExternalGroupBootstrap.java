@@ -75,7 +75,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
         } catch (ScimResourceAlreadyExistsException x) {
             List<ScimGroup> groups = getScimGroupProvisioning().query(GROUP_BY_NAME_AND_ZONE_FILTER.formatted(groupName, identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
             if (groups != null && !groups.isEmpty()) {
-                return groups.get(0);
+                return groups.getFirst();
             } else {
                 throw new RuntimeException("Unable to create or return group with name:" + groupName);
             }
@@ -100,7 +100,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
                             } else if (groups == null || groups.isEmpty() && !isAddNonExistingGroups()) {
                                 continue;
                             }
-                            addGroupMap(groups.get(0).getId(), e.getKey(), entry.getKey());
+                            addGroupMap(groups.getFirst().getId(), e.getKey(), entry.getKey());
                         }
                     }
                 }

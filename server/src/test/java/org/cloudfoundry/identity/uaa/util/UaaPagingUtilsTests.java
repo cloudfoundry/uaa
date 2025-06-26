@@ -38,7 +38,7 @@ class UaaPagingUtilsTests {
     void pagingSubListHighCount() {
         List<String> result = UaaPagingUtils.subList(list, 1, 100);
         assertThat(result).hasSize(4);
-        assertThat(result.get(0)).isEqualTo("one");
+        assertThat(result.getFirst()).isEqualTo("one");
         assertThat(result.get(3)).isEqualTo("four");
     }
 
@@ -46,7 +46,7 @@ class UaaPagingUtilsTests {
     void pagingSubListLowCount() {
         List<String> result = UaaPagingUtils.subList(list, 1, 2);
         assertThat(result).hasSize(2);
-        assertThat(result.get(0)).isEqualTo("one");
+        assertThat(result.getFirst()).isEqualTo("one");
         assertThat(result.get(1)).isEqualTo("two");
     }
 
@@ -54,7 +54,7 @@ class UaaPagingUtilsTests {
     void pagingSubListEqualCount() {
         List<String> result = UaaPagingUtils.subList(list, 1, 4);
         assertThat(result).hasSize(4);
-        assertThat(result.get(0)).isEqualTo("one");
+        assertThat(result.getFirst()).isEqualTo("one");
         assertThat(result.get(3)).isEqualTo("four");
 
     }
@@ -63,14 +63,14 @@ class UaaPagingUtilsTests {
     void pagingSubListOneCount() {
         List<String> result = UaaPagingUtils.subList(list, 1, 1);
         assertThat(result).hasSize(1);
-        assertThat(result.get(0)).isEqualTo("one");
+        assertThat(result.getFirst()).isEqualTo("one");
     }
 
     @Test
     void pagingSubListPage() {
         List<String> result = UaaPagingUtils.subList(list, 3, 2);
         assertThat(result).hasSize(2);
-        assertThat(result.get(0)).isEqualTo("three");
+        assertThat(result.getFirst()).isEqualTo("three");
         assertThat(result.get(1)).isEqualTo("four");
     }
 
@@ -78,7 +78,7 @@ class UaaPagingUtilsTests {
     void pagingSubListPageHighCount() {
         List<String> result = UaaPagingUtils.subList(list, 2, 100);
         assertThat(result).hasSize(3);
-        assertThat(result.get(0)).isEqualTo("two");
+        assertThat(result.getFirst()).isEqualTo("two");
         assertThat(result.get(2)).isEqualTo("four");
     }
 

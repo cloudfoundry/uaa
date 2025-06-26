@@ -205,7 +205,7 @@ public final class MockMvcUtils {
         SearchResults<ScimUser> results = JsonUtils.readValue(userResult.getResponse().getContentAsString(),
                 new TypeReference<>() {
                 });
-        return results.getResources().get(0);
+        return results.getResources().getFirst();
     }
 
     public static String extractInvitationCode(String inviteLink) {
@@ -301,7 +301,7 @@ public final class MockMvcUtils {
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(context, mockMvc, userInviteToken, subdomain, clientId, REDIRECT_URI, email);
         assertThat(response.getNewInvites()).hasSize(1);
         assertThat(context.getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class)).isEqualTo(expectedOrigin);
-        return response.getNewInvites().get(0).getInviteLink();
+        return response.getNewInvites().getFirst().getInviteLink();
     }
 
     public static <T extends AbstractIdentityProviderDefinition> IdentityProvider<T> createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, T definition) throws Exception {
@@ -663,7 +663,7 @@ public final class MockMvcUtils {
         if (results == null || results.getResources() == null || results.getResources().isEmpty()) {
             return null;
         } else {
-            return results.getResources().iterator().next();
+            return results.getResources().getFirst();
         }
     }
 
@@ -990,7 +990,7 @@ public final class MockMvcUtils {
         MvcResult result = mockMvc.perform(authRequest).andDo(print()).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
         UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(location);
-        String code = builder.build().getQueryParams().get("code").get(0);
+        String code = builder.build().getQueryParams().get("code").getFirst();
 
         authRequest = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
@@ -1096,7 +1096,7 @@ public final class MockMvcUtils {
 
     public static SecurityContext getUaaSecurityContext(String username, ApplicationContext context, String currentZoneId, Collection<? extends GrantedAuthority> authorities) {
         ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
-        ScimUser user = userProvisioning.query("username eq \"" + username + "\" and origin eq \"uaa\"", currentZoneId).get(0);
+        ScimUser user = userProvisioning.query("username eq \"" + username + "\" and origin eq \"uaa\"", currentZoneId).getFirst();
         UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), currentZoneId);
         UaaAuthentication principal = new UaaAuthentication(uaaPrincipal, null, authorities, new UaaAuthenticationDetails(new MockHttpServletRequest()), true, System.currentTimeMillis());
         SecurityContext securityContext = new SecurityContextImpl();
