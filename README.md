@@ -72,7 +72,7 @@ Security OAuth that can do the heavy lifting if your client is Java.
 ## Quick Start
 
 Requirements:
-* Java 17 or Java 21
+* Java 21
 
 If this works, you are in business:
 
@@ -167,7 +167,7 @@ or
 ```sh
 % docker run --name mysql1 -e MYSQL_ROOT_PASSWORD=changeme -d -p3306:3306 mysql
 ```
-2. Create the `uaa` database (e.g. in mysql interactive session)
+2. Create the `uaa` database (e.g., in mysql interactive session)
 ```sh
 % mysql -h 127.0.0.1 -u root -p
 ...

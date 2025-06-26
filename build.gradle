@@ -57,8 +57,8 @@ allprojects {
 subprojects {
     apply(plugin: "java")
     java {
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     configurations.all {
@@ -174,8 +174,8 @@ cargo {
     containerId = "tomcat10x"
     port = applicationPort
 
-    if (JavaVersion.current() < JavaVersion.VERSION_17) {
-        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_17 + " ] or greater. Your Java version is [ " + JavaVersion.current() + " ]")
+    if (JavaVersion.current() < JavaVersion.VERSION_21) {
+        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_21 + " ] or greater. Your Java version is [ " + JavaVersion.current() + " ]")
     }
 
     deployable {
