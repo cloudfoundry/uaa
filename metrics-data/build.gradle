@@ -6,7 +6,7 @@ dependencies {
 }
 
 processResources {
-  //maven replaces project.artifactId in the log4j.properties file
+  //maven replaces project.artifactId in the log4j2.properties file
   //https://www.pivotaltracker.com/story/show/74344574
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-metrics-data') : line }
 }

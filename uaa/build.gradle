@@ -3,9 +3,9 @@ Project identityServer = parent.subprojects.find { "cloudfoundry-identity-server
 apply(plugin: "war")
 
 processResources {
-    //maven replaces project.artifactId in the log4j.properties file
+    //maven replaces project.artifactId in the log4j2.properties file
     //https://www.pivotaltracker.com/story/show/74344574
-    from(new File('../common/src/main/resources/log4j.properties'))
+    from(new File('../common/src/main/resources/log4j2.properties'))
     filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-uaa') : line }
 }
 
