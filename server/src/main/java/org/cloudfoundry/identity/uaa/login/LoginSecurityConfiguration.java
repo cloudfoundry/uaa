@@ -513,16 +513,20 @@ class LoginSecurityConfiguration {
         var clientRedirectStateCache = new UaaSavedRequestCache();
         clientRedirectStateCache.setRequestMatcher(new AntPathRequestMatcher("/oauth/authorize**"));
 
+        // See: https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html#migrating-to-spring-security-6
+        var csrfRequestHandler = new CsrfTokenRequestAttributeHandler();
+        csrfRequestHandler.setCsrfRequestAttributeName(null);
         var originalChain = http
                 .csrf(csrf -> {
                     csrf.csrfTokenRepository(csrfTokenRepository);
-                    csrf.csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler());
+                    csrf.csrfTokenRequestHandler(csrfRequestHandler);
                 })
                 .authenticationManager(authenticationManager)
                 .authorizeHttpRequests(auth -> {
                     auth.requestMatchers("/force_password_change/**").fullyAuthenticated();
                     auth.requestMatchers("/reset_password**").anonymous();
                     auth.requestMatchers("/create_account*").anonymous();
+                    auth.requestMatchers("/login/idp_discovery").anonymous();
                     auth.requestMatchers("/login/idp_discovery/**").anonymous();
                     auth.requestMatchers("/saml/metadata/**").anonymous();
                     auth.requestMatchers("/origin-chooser").anonymous();
