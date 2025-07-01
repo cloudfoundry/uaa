@@ -82,8 +82,8 @@ subprojects {
 
     [compileJava, compileTestJava]*.options*.compilerArgs = ["-Xlint:none", "-nowarn"]
 
-    java.sourceCompatibility = JavaVersion.VERSION_17
-    java.targetCompatibility = JavaVersion.VERSION_17
+    java.sourceCompatibility = JavaVersion.VERSION_21
+    java.targetCompatibility = JavaVersion.VERSION_21
 
     test {
         maxParallelForks = 1
@@ -160,8 +160,8 @@ cargo {
     containerId = "tomcat9x"
     port = applicationPort
 
-    if (JavaVersion.current() < JavaVersion.VERSION_17) {
-        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_17 + " ] or greater. Your Java version is [ " + JavaVersion.current() + " ]")
+    if (JavaVersion.current() < JavaVersion.VERSION_21) {
+        throw new GradleException("This build must be run with Java version [ " + JavaVersion.VERSION_21 + " ] or greater. Your Java version is [ " + JavaVersion.current() + " ]")
     }
 
     deployable {
