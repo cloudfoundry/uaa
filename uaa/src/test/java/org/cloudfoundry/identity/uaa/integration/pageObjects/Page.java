@@ -10,7 +10,17 @@ import org.openqa.selenium.WebDriver;
 import static org.hamcrest.Matchers.startsWith;
 import static org.junit.Assert.assertThat;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
+import org.assertj.core.api.AbstractStringAssert;
+
+import java.util.function.Consumer;
+
 public class Page {
+    // This is used to control the max time that awaitility will check to see if
+    // an assertion passes, before failing the test.
+    protected static final Duration AWAIT_AT_MOST_SECONDS = Duration.ofSeconds(30);
+
     protected WebDriver driver;
 
     public Page(WebDriver driver) {
@@ -24,6 +34,20 @@ public class Page {
 
     public void validateUrl(Matcher urlMatcher) {
         validateUrl(driver, urlMatcher);
+    }
+
+    private static AbstractStringAssert<?> assertThatUrl(WebDriver driver) {
+        return assertThat(driver.getCurrentUrl());
+    }
+
+    public AbstractStringAssert<?> assertThatUrlEventuallySatisfies(Consumer<AbstractStringAssert<?>> assertUrl) {
+        await().atMost(AWAIT_AT_MOST_SECONDS)
+                .untilAsserted(() -> assertUrl.accept(assertThatUrl(driver)));
+        return assertThatUrl();
+    }
+
+    public AbstractStringAssert<?> assertThatUrl() {
+        return assertThat(driver.getCurrentUrl());
     }
 
     protected static void validatePageSource(WebDriver driver, Matcher matcher) {

@@ -1,13 +1,12 @@
 package org.cloudfoundry.identity.uaa.integration.pageObjects;
 
-import org.hamcrest.Matcher;
 import org.openqa.selenium.WebDriver;
 
 public class CustomErrorPage extends Page {
 
-    public CustomErrorPage(WebDriver driver, Matcher urlMatcher) {
+    public CustomErrorPage(WebDriver driver, String urlContent) {
         super(driver);
-        validateUrl(driver, urlMatcher);
+        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.contains(urlContent));
     }
 }
 

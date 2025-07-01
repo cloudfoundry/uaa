@@ -3,14 +3,13 @@ package org.cloudfoundry.identity.uaa.integration.pageObjects;
 import org.openqa.selenium.WebDriver;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
 
 public class PasscodePage extends Page {
     static final private String urlPath = "/passcode";
 
     public PasscodePage(WebDriver driver) {
         super(driver);
-        validateUrl(driver, endsWith(urlPath));
+        assertThatUrlEventuallySatisfies(assertUrl -> assertUrl.endsWith(urlPath));
         validatePageSource(driver, containsString("Temporary Authentication Code") );
     }
 

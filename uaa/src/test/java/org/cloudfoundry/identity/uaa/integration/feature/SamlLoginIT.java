@@ -273,7 +273,7 @@ public class SamlLoginIT {
                 .login_goesToCustomErrorPage(
                         testAccounts.getUserName(),
                         testAccounts.getPassword(),
-                        containsString(redirectUri + "?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
+                        "%s?error=access_denied&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user.".formatted(redirectUri));
     }
 
     @Test
