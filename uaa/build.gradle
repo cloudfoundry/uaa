@@ -194,6 +194,29 @@ tasks.register('killUaa', Exec) {
     executable = 'scripts/kill_uaa.sh'
 }
 
+// Gradle bootBuildImage task configuration
+tasks.named('bootBuildImage') {
+    bootBuildImage.imageName = "cloudfoundry/uaa:${version}"
+    boolean doDebug = false
+    String activeSpringProfiles = System.getProperty("spring.profiles.active", "").split(',');
+    if (activeSpringProfiles.contains("debugs") || Boolean.valueOf(System.getProperty("xdebugs")) ||
+        activeSpringProfiles.contains("debug") || Boolean.valueOf(System.getProperty("xdebug"))) {
+        doDebug = true
+    }
+    // https://github.com/paketo-buildpacks/bellsoft-liberica
+    // use JRE since JDK gets too big
+    bootBuildImage.environment = [
+            'BP_SPRING_CLOUD_BINDINGS_DISABLED': 'true',
+            'BP_JVM_VERSION'                   : '21',
+            'BP_JVM_TYPE'                      : 'JRE',
+            'BP_JVM_PLATFORM'                  : 'liberica'
+    ]
+    if (doDebug) {
+        bootBuildImage.environment.put("BPL_DEBUG_ENABLED", "true")
+        bootBuildImage.environment.put("BPL_DEBUG_PORT", "5005")
+    }
+}
+
 integrationTest {
     //dependsOn killUaa
 
