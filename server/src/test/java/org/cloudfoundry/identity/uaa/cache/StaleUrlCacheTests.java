@@ -74,6 +74,7 @@ class StaleUrlCacheTests {
     void setup() {
         ticker = new TestTicker(System.nanoTime());
         cache = new StaleUrlCache(CACHE_EXPIRATION, mockTimeService, 2, ticker);
+        reset(httpEntity);
         reset(mockRestTemplate);
     }
 
@@ -106,9 +107,9 @@ class StaleUrlCacheTests {
     }
 
     @Test
-    void entry_refreshes_after_time() {
-        when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> System.currentTimeMillis());
-        when(mockRestTemplate.getForObject(any(URI.class), any())).thenReturn(content1, content2, content3);
+    void entry_refreshes_after_time() throws URISyntaxException {
+        when(mockTimeService.getCurrentTimeMillis()).thenAnswer(e -> ticker.nanos / 1_000_000); // Use ticker's value
+        when(mockRestTemplate.getForObject(eq(new URI(URL)), same(byte[].class))).thenReturn(content1, content2, content3);
 
         // populate the cache
         byte[] c1 = cache.getUrlContent(URL, mockRestTemplate);
