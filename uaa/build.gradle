@@ -208,7 +208,7 @@ tasks.named('bootBuildImage') {
     bootBuildImage.environment.putAll([
             'BP_SPRING_CLOUD_BINDINGS_DISABLED': 'true',
             'BP_JVM_VERSION'                   : '21',
-            'BP_JVM_TYPE'                      : 'JRE',
+            'BP_JVM_TYPE'                      : System.getenv('BP_JVM_TYPE') ?: project.findProperty('BP_JVM_TYPE') ?: 'JRE',
             'BP_JVM_PLATFORM'                  : 'liberica'
     ])
     if (doDebug) {
