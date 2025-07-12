@@ -198,7 +198,7 @@ tasks.register('killUaa', Exec) {
 tasks.named('bootBuildImage') {
     bootBuildImage.imageName = "cloudfoundry/uaa:${version}"
     boolean doDebug = false
-    List<String> activeSpringProfiles = Arrays.asList(System.getProperty("spring.profiles.active", "").split(','));
+    def activeSpringProfiles = (System.getProperty('spring.profiles.active', '')?.split(',') ?: []) as List<String>
     if (activeSpringProfiles.contains("debugs") || Boolean.valueOf(System.getProperty("xdebugs")) ||
         activeSpringProfiles.contains("debug") || Boolean.valueOf(System.getProperty("xdebug"))) {
         doDebug = true
