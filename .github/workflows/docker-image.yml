@@ -28,7 +28,7 @@ jobs:
         run: |
           echo running on branch ${GITHUB_REF##*/}
           if [ "${GITHUB_REF##*/}" == "develop" ]; then
-            export BP_JVM_TYPE=JDK && ./gradlew --no-daemon --max-workers 1 bootBuildImage --imageName docker.io/cloudfoundry/uaa:${{ github.run_number }} --publishImage
+            export BP_JVM_TYPE=JDK && ./gradlew --no-daemon --max-workers 1 bootBuildImage --imageName docker.io/cfidentity/uaa:${{ github.run_number }} --publishImage
           else
-            export BP_JVM_TYPE=JDK && ./gradlew --no-daemon --max-workers 1 -Pversion=${GITHUB_REF##*/} bootBuildImage --imageName docker.io/cloudfoundry/uaa:${GITHUB_REF##*/} --publishImage
+            export BP_JVM_TYPE=JDK && ./gradlew --no-daemon --max-workers 1 -Pversion=${GITHUB_REF##*/} bootBuildImage --imageName docker.io/cfidentity/uaa:${GITHUB_REF##*/} --publishImage
           fi
