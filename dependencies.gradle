@@ -15,7 +15,7 @@ versions.tomcatCargoVersion = "10.1.43"
 versions.guavaVersion = "33.4.8-jre"
 versions.seleniumVersion = "4.34.0"
 versions.braveVersion = "6.3.0"
-versions.jacksonVersion = "2.19.1"
+versions.jacksonVersion = "2.19.2"
 versions.opensaml = "4.0.1"
 versions.byteBuddyVersion = "1.17.6"
 
