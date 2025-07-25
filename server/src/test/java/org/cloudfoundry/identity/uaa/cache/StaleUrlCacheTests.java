@@ -1,10 +1,13 @@
 package org.cloudfoundry.identity.uaa.cache;
 
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import org.cloudfoundry.identity.uaa.impl.config.RestTemplateConfig;
 import org.cloudfoundry.identity.uaa.provider.SlowHttpServer;
 import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -70,10 +73,24 @@ class StaleUrlCacheTests {
         Arrays.fill(content3, (byte) 3);
     }
 
+    static class DetectRemovalListener implements RemovalListener<Object, Object> {
+        volatile int removalCount = 0;
+
+        @Override
+        public void onRemoval(@Nullable Object key, @Nullable Object value, RemovalCause cause) {
+            removalCount++;
+        }
+    }
+
+    private DetectRemovalListener listener;
+
     @BeforeEach
     void setup() {
         ticker = new TestTicker(System.nanoTime());
-        cache = new StaleUrlCache(CACHE_EXPIRATION, mockTimeService, 2, ticker);
+
+        listener = new DetectRemovalListener();
+
+        cache = new StaleUrlCache(CACHE_EXPIRATION, mockTimeService, 2, ticker, listener);
         reset(mockRestTemplate);
     }
 
@@ -115,6 +132,11 @@ class StaleUrlCacheTests {
         ticker.advance(CACHE_EXPIRED);
 
         // the next call after timeout should force async refresh and return the new value
+        // This call is necessary to trigger the cache refresh operation after the timeout period.
+        cache.getUrlContent(URL, mockRestTemplate);
+        await().atMost(5, TimeUnit.SECONDS).untilAsserted(
+                () -> assertThat(listener.removalCount).isGreaterThan(0)
+        );
         byte[] c2 = cache.getUrlContent(URL, mockRestTemplate);
         assertThat(c2).isSameAs(content2);
 

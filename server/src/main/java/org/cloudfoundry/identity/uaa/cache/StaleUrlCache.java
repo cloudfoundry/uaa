@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.cache;
 import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import lombok.extern.slf4j.Slf4j;
@@ -35,8 +36,20 @@ public class StaleUrlCache implements UrlContentCache {
 
     public StaleUrlCache(final Duration cacheExpiration, final TimeService timeService, final int maxEntries,
             final Ticker ticker) {
-        this.cache = Caffeine.newBuilder().refreshAfterWrite(cacheExpiration)
-                .maximumSize(maxEntries).ticker(ticker).build(new UrlCacheLoader(timeService));
+        this(cacheExpiration, timeService, maxEntries, ticker, null);
+    }
+
+    public StaleUrlCache(final Duration cacheExpiration, final TimeService timeService, final int maxEntries,
+                         final Ticker ticker, RemovalListener<Object, Object> listener) {
+        Caffeine<Object, Object> builder = Caffeine.newBuilder()
+                .refreshAfterWrite(cacheExpiration)
+                .maximumSize(maxEntries)
+                .ticker(ticker);
+        if (listener != null) {
+            builder = builder.evictionListener(listener).removalListener(listener);
+        }
+
+        this.cache = builder.build(new UrlCacheLoader(timeService));
     }
 
     @Override
