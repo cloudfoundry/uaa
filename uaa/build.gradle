@@ -24,8 +24,8 @@ war {
 }
 
 repositories {
-    maven { url("https://repo.spring.io/libs-milestone") }
-    maven { url "https://build.shibboleth.net/nexus/content/repositories/releases/" }
+    maven { url = uri("https://repo.spring.io/libs-milestone") }
+    maven { url = uri("https://build.shibboleth.net/nexus/content/repositories/releases/") }
 }
 
 description = "UAA"
