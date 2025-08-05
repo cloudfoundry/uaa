@@ -135,7 +135,7 @@ java -DCLOUDFOUNDRY_CONFIG_PATH=`pwd`/scripts/cargo \
 ```
 
 Running Spring Boot standalone allows us to run the integration tests against it using the
-`./gradlew -Dcargo.tests.run=false integrationTest` with the system property preventing Gradle from starting up Apache Tomcat.
+`./gradlew integrationTest` with the system property preventing Gradle from starting up Apache Tomcat.
 
 ### Debugging local server
 

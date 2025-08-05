@@ -140,32 +140,34 @@ test {
     maxParallelForks = Math.min(availableCpus, 4)
 }
 
-task populateVersionfile {
+tasks.register("populateVersionfile") {
     def versionFile = new File("$projectDir/slateCustomizations/source/versionfile")
     versionFile.createNewFile()
     assert versionFile.exists()
     versionFile.text = version.toString().substring(0, version.toString().lastIndexOf(".")) + ".0"
 }
-task customizeSlate(type: Copy) {
+
+tasks.register( "customizeSlate", Copy) {
     dependsOn populateVersionfile
     from("slate")
     from("slateCustomizations")
     into("build/slate")
 }
-task docsTestRestDocs(type: Test) {
+
+tasks.register("docsTestRestDocs", Test) {
     useJUnitPlatform()
     include("**/*Docs.class")
     systemProperty("docs.build.generated.snippets.dir", snippetsDir.getPath())
 }
 
-task(gemInstallBundle, type: Exec) {
+tasks.register("gemInstallBundle", Exec) {
     dependsOn("customizeSlate")
     workingDir(file("build/slate"))
     executable("gem")
     args("install", "bundler:2.2.22")
 }
 
-task(bundleInstall, type: Exec) {
+tasks.register("bundleInstall", Exec) {
     dependsOn gemInstallBundle
     dependsOn("customizeSlate")
     workingDir(file("build/slate"))
@@ -173,11 +175,11 @@ task(bundleInstall, type: Exec) {
     args("install")
 }
 
-task(deleteDefaultContent, type: Delete) {
+tasks.register("deleteDefaultContent", Delete) {
     delete("build/slate/source/index.html.md")
 }
 
-task(slate, type: Exec) {
+tasks.register("slate", Exec) {
     dependsOn("customizeSlate", "deleteDefaultContent", "bundleInstall", "docsTestRestDocs")
     workingDir(file("build/slate"))
     executable("bundle")
@@ -186,12 +188,6 @@ task(slate, type: Exec) {
 
 generateDocs {
     dependsOn(slate)
-}
-
-//task declarations
-tasks.register('killUaa', Exec) {
-    workingDir '../'
-    executable = 'scripts/kill_uaa.sh'
 }
 
 // Gradle bootBuildImage task configuration
@@ -218,8 +214,6 @@ tasks.named('bootBuildImage') {
 }
 
 integrationTest {
-    //dependsOn killUaa
-
     filter {
         includeTestsMatching("org.cloudfoundry.identity.uaa.integration.*")
         includeTestsMatching("*IT")
@@ -230,7 +224,6 @@ integrationTest {
         systemProperty("integration.test.saml.url", samlUrl)
         project.logger.warn("UAA - Overriding SAML Url:"+samlUrl)
     }
-
 }
 
 bootRun {
@@ -249,7 +242,3 @@ bootRun {
     systemProperty("server.servlet.context-path", "/uaa")
     systemProperty("statsd.enabled", "true")
 }
-
-
-
-

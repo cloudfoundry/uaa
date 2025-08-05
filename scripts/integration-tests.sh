@@ -31,14 +31,6 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source $DIR/start_db_helper.sh
 
 TESTENV="$1"
-BOOT="${2:-false}"
-
-
-SKIP_BOOT_RUN="-Dcargo.tests.run=true"
-if [[ "${BOOT:-false}" = 'boot' ]]; then
-  SKIP_BOOT_RUN="-Dcargo.tests.run=false"
-fi
-
 
 cat <<EOF >>/etc/hosts
 127.0.0.1 testzone1.localhost
@@ -80,30 +72,23 @@ pushd $(dirname $DIR)
             --stacktrace \
             --console=plain"
 
-  readonly integrationTestCode="./gradlew '-Dspring.profiles.active=${TESTENV}' '${SKIP_BOOT_RUN}' \
+  readonly integrationTestCode="./gradlew '-Dspring.profiles.active=${TESTENV}' \
             '-Djava.security.egd=file:/dev/./urandom' \
             integrationTest \
             --no-daemon \
             --stacktrace \
             --console=plain"
-  if [[ "${RUN_TESTS:-true}" = 'true' ]]; then
-    eval "$assembleCode"
 
-    if [[ "${BOOT:-false}" = 'boot' ]]; then
-      eval "$launchBoot"
-      echo $! > boot.pid
-      if isBootRunning ; then
-        echo "Boot started. Can continue to run tests."
-      else
-        echo "Boot did not start - failing"
-        exit 1
-      fi
-    fi
-    eval "$integrationTestCode"
-    kill -9 `cat boot.pid` || true
+  eval "$assembleCode"
+  eval "$launchBoot"
+  echo $! > boot.pid
+  if isBootRunning ; then
+    echo "Boot started. Can continue to run tests."
   else
-    echo "$assembleCode"
-    echo "$integrationTestCode"
-    bash
+    echo "Boot did not start - failing"
+    exit 1
   fi
+  eval "$integrationTestCode"
+  kill -9 `cat boot.pid` || true
+
 popd
