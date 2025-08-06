@@ -105,13 +105,12 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
-import static java.util.Optional.of;
-import static java.util.Optional.ofNullable;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -204,7 +203,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     private Map<String, Object> parseClaimsFromIdTokenString(String idToken) {
-        String claimsString = JwtHelper.decode(ofNullable(idToken).orElse("")).getClaims();
+        String claimsString = JwtHelper.decode(Optional.ofNullable(idToken).orElse("")).getClaims();
         return JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {
         });
     }
@@ -287,7 +286,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             }
             authenticationData.setAuthorities(authorities); //the filter should apply to external authorities - not internal
             authenticationData.setExternalAuthorities(oidcAuthorities);
-            ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
+            Optional.ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
             return authenticationData;
         }
         logger.debug("No identity provider found for origin:{} and zone:{}", getOrigin(), identityZoneManager.getCurrentIdentityZoneId());
@@ -295,7 +294,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     private static List<? extends GrantedAuthority> filterOidcAuthorities(AbstractExternalOAuthIdentityProviderDefinition<? extends ExternalIdentityProviderDefinition> definition, List<? extends GrantedAuthority> oidcAuthorities) {
-        List<String> whiteList = of(definition.getExternalGroupsWhitelist()).orElse(emptyList());
+        List<String> whiteList = Optional.of(definition.getExternalGroupsWhitelist()).orElse(emptyList());
         if (whiteList.isEmpty()) {
             return oidcAuthorities;
         } else {
@@ -360,9 +359,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             }
             authentication.setUserAttributes(userAttributes);
             authentication.setExternalGroups(
-                    ofNullable(
-                            authenticationData.getExternalAuthorities()
-                    )
+                    Optional.ofNullable(authenticationData.getExternalAuthorities())
                             .orElse(emptyList())
                             .stream()
                             .map(GrantedAuthority::getAuthority)
@@ -798,7 +795,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                                 }
                         );
         log.debug("Request completed with status:{}", responseEntity.getStatusCode());
-        return ofNullable(responseEntity.getBody()).map(resBody -> resBody.get(getTokenFieldName(config))).orElse(UaaStringUtils.EMPTY_STRING);
+        return Optional.ofNullable(responseEntity.getBody()).map(resBody -> resBody.get(getTokenFieldName(config))).orElse(UaaStringUtils.EMPTY_STRING);
     }
 
     private String getSessionValue(String value) {
@@ -872,7 +869,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     private boolean providerSupportsTokenExchange(IdentityProvider provider) {
         if (OriginKeys.OIDC10.equals(provider.getType()) && provider.getConfig() instanceof OIDCIdentityProviderDefinition oidcProviderDefinition) {
-            return ofNullable(oidcProviderDefinition.isTokenExchangeEnabled()).orElse(false);
+            return Optional.ofNullable(oidcProviderDefinition.isTokenExchangeEnabled()).orElse(false);
         }
         return false;
     }
@@ -908,7 +905,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
         if (tokenUrl == null) {
             fetchMetadataAndUpdateDefinition(config);
-            tokenUrl = ofNullable(config.getTokenUrl()).orElseThrow(() -> new ProviderConfigurationException("External OpenID Connect metadata is missing after discovery update."));
+            tokenUrl = Optional.ofNullable(config.getTokenUrl()).orElseThrow(() -> new ProviderConfigurationException("External OpenID Connect metadata is missing after discovery update."));
         }
         String calcAuthMethod = ClientAuthentication.getCalculatedMethod(config.getAuthMethod(), clientSecret != null, config.getJwtClientAuthentication() != null);
         RestTemplate rt = config.isSkipSslValidation() ? trustingRestTemplate : nonTrustingRestTemplate;
