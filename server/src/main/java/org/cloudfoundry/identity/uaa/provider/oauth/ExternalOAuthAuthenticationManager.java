@@ -204,7 +204,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     private Map<String, Object> parseClaimsFromIdTokenString(String idToken) {
         String claimsString = JwtHelper.decode(Optional.ofNullable(idToken).orElse("")).getClaims();
-        return JsonUtils.readValue(claimsString, new TypeReference<Map<String, Object>>() {
+        return JsonUtils.readValue(claimsString, new TypeReference<>() {
         });
     }
 
@@ -609,7 +609,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             String data = signedRequests[1];
             Map<String, Object> jsonData = null;
             try {
-                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), StandardCharsets.UTF_8), new TypeReference<Map<String, Object>>() {
+                jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), StandardCharsets.UTF_8), new TypeReference<>() {
                 });
                 //check signature algorithm
                 if (!jsonData.get("algorithm").equals("HMAC-SHA256")) {
@@ -648,7 +648,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             ResponseEntity<Map<String, Object>> responseEntity =
                     getRestTemplate(config)
                             .exchange(requestUri, GET, requestEntity,
-                                    new ParameterizedTypeReference<Map<String, Object>>() {
+                                    new ParameterizedTypeReference<>() {
                                     }
                             );
             log.debug("Request completed with status:{}", responseEntity.getStatusCode());
@@ -659,7 +659,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             Jwt decodeIdToken = jwtToken.getJwt();
             log.debug("Deserializing id_token claims");
 
-            return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>() {
+            return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<>() {
             });
         }
     }
@@ -791,7 +791,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                         .exchange(requestUri,
                                 HttpMethod.POST,
                                 requestEntity,
-                                new ParameterizedTypeReference<Map<String, String>>() {
+                                new ParameterizedTypeReference<>() {
                                 }
                         );
         log.debug("Request completed with status:{}", responseEntity.getStatusCode());
