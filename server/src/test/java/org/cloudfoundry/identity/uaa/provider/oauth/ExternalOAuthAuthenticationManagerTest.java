@@ -846,7 +846,10 @@ class ExternalOAuthAuthenticationManagerTest {
                 .containsKey("scope")
                 .containsEntry("scope", Collections.singletonList("openid email"));
         /* verify client assertion according OIDC private_key_jwt */
-        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").getFirst()).getJWTClaimsSet();
+        assertThat(httpEntityBody).isNotNull();
+        final List<Object> clientAssertion = httpEntityBody.get("client_assertion");
+        assertThat(clientAssertion).isNotNull().isNotEmpty();
+        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) clientAssertion.getFirst()).getJWTClaimsSet();
         assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
@@ -882,7 +885,10 @@ class ExternalOAuthAuthenticationManagerTest {
                 .containsKey("scope")
                 .containsEntry("scope", Collections.singletonList("openid email"));
         /* verify client assertion according OIDC private_key_jwt */
-        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) httpEntityBody.get("client_assertion").getFirst()).getJWTClaimsSet();
+        assertThat(httpEntityBody).isNotNull();
+        final List<Object> clientAssertion = httpEntityBody.get("client_assertion");
+        assertThat(clientAssertion).isNotNull().isNotEmpty();
+        JWTClaimsSet jwtClaimsSet = JWTParser.parse((String) clientAssertion.getFirst()).getJWTClaimsSet();
         assertThat(jwtClaimsSet.getAudience()).isEqualTo(Collections.singletonList("http://localhost:8080/uaa/oauth/token"));
         assertThat(jwtClaimsSet.getSubject()).isEqualTo("identity");
         assertThat(jwtClaimsSet.getIssuer()).isEqualTo("identity");
@@ -971,12 +977,11 @@ class ExternalOAuthAuthenticationManagerTest {
         HttpHeaders headers = httpEntity.getHeaders();
         assertThat(headers.getAccept()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_JSON));
         assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
-        assertThat(headers).containsKey("Authorization");
-        assertThat(headers.get("Authorization")).hasSize(1);
-        assertThat(headers.get("Authorization").getFirst()).startsWith("Basic ");
+        assertAuthorizationHeaderIsSetAndStartsWithBasic(headers);
         assertThat(headers).containsKey("X-Forwarded-For");
-        assertThat(headers.get("X-Forwarded-For")).hasSize(1);
-        assertThat(headers.get("X-Forwarded-For").getFirst()).isEqualTo("203.0.113.1");
+        final List<String> xForwardedForHeaders = headers.get("X-Forwarded-For");
+        assertThat(xForwardedForHeaders).hasSize(1);
+        assertThat(xForwardedForHeaders.getFirst()).isEqualTo("203.0.113.1");
     }
 
     @Test
@@ -1077,9 +1082,14 @@ class ExternalOAuthAuthenticationManagerTest {
         HttpHeaders headers = httpEntity.getHeaders();
         assertThat(headers.getAccept()).isEqualTo(Collections.singletonList(MediaType.APPLICATION_JSON));
         assertThat(headers.getContentType()).isEqualTo(MediaType.APPLICATION_FORM_URLENCODED);
-        assertThat(headers).containsKey("Authorization");
-        assertThat(headers.get("Authorization")).hasSize(1);
-        assertThat(headers.get("Authorization").getFirst()).startsWith("Basic ");
+        assertAuthorizationHeaderIsSetAndStartsWithBasic(headers);
         assertThat(headers).doesNotContainKey("X-Forwarded-For");
+    }
+
+    private static void assertAuthorizationHeaderIsSetAndStartsWithBasic(final HttpHeaders headers) {
+        assertThat(headers).containsKey("Authorization");
+        final List<String> authorizationHeaders = headers.get("Authorization");
+        assertThat(authorizationHeaders).hasSize(1);
+        assertThat(authorizationHeaders.getFirst()).startsWith("Basic ");
     }
 }
