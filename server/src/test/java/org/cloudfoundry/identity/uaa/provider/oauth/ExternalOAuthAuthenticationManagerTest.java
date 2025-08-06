@@ -111,9 +111,10 @@ import static org.mockito.Mockito.when;
 
 class ExternalOAuthAuthenticationManagerTest {
     private static final String OIDC_PROVIDER_KEY = "oidc-provider-key";
+    private static final String ORIGIN = "google-oidc";
+    private static final String ZONE_ID = "zoneId";
+
     private ExternalOAuthAuthenticationManager authManager;
-    private String origin;
-    private String zoneId;
 
     private final String uaaIdentityZoneTokenSigningKey = """
             -----BEGIN RSA PRIVATE KEY-----
@@ -192,10 +193,8 @@ class ExternalOAuthAuthenticationManagerTest {
 
     @BeforeEach
     void beforeEach() throws Exception {
-        origin = "google-oidc";
-        zoneId = "zoneId";
         IdentityZone identityZone = new IdentityZone();
-        identityZone.setId(zoneId);
+        identityZone.setId(ZONE_ID);
         IdentityZoneHolder.set(identityZone);
 
         identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
@@ -212,7 +211,7 @@ class ExternalOAuthAuthenticationManagerTest {
         );
         oidcConfig.setAttributeMappings(externalGroupMapping);
         provider.setConfig(oidcConfig);
-        when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
+        when(identityProviderProvisioning.retrieveByOrigin(ORIGIN, ZONE_ID)).thenReturn(provider);
         uaaIssuerBaseUrl = "http://uaa.example.com";
         tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
         oidcMetadataFetcher = new OidcMetadataFetcher(
@@ -247,7 +246,7 @@ class ExternalOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         assertThatThrownBy(() -> authManager.getExternalAuthenticationDetails(oidcAuthentication))
                 .isInstanceOf(InvalidTokenException.class)
                 .hasMessage("Could not verify token signature.");
@@ -268,7 +267,7 @@ class ExternalOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         assertThatThrownBy(() -> authManager.getExternalAuthenticationDetails(oidcAuthentication))
                 .isInstanceOf(InvalidTokenException.class)
                 .hasMessage("Could not verify token signature.");
@@ -291,7 +290,7 @@ class ExternalOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         assertThatNoException().isThrownBy(() -> authManager.getExternalAuthenticationDetails(oidcAuthentication));
     }
 
@@ -313,7 +312,7 @@ class ExternalOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         assertThatNoException().isThrownBy(() -> authManager.getExternalAuthenticationDetails(oidcAuthentication));
     }
 
@@ -339,9 +338,9 @@ class ExternalOAuthAuthenticationManagerTest {
         // When
         oidcConfig.setGroupMappingMode(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED);
         provider.setConfig(oidcConfig);
-        when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
+        when(identityProviderProvisioning.retrieveByOrigin(ORIGIN, ZONE_ID)).thenReturn(provider);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
         assertThat(authenticationData).isNotNull();
         assertThat(authenticationData.getAuthorities()).isEmpty();
@@ -369,9 +368,9 @@ class ExternalOAuthAuthenticationManagerTest {
         // When
         oidcConfig.setGroupMappingMode(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.AS_SCOPES);
         provider.setConfig(oidcConfig);
-        when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
+        when(identityProviderProvisioning.retrieveByOrigin(ORIGIN, ZONE_ID)).thenReturn(provider);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
         assertThat(authenticationData).isNotNull();
         assertThat(authenticationData.getAuthorities()).hasSize(2);
@@ -496,9 +495,9 @@ class ExternalOAuthAuthenticationManagerTest {
         oidcConfig.setGroupMappingMode(AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.AS_SCOPES);
         oidcConfig.setExternalGroupsWhitelist(List.of("manager.*"));
         provider.setConfig(oidcConfig);
-        when(identityProviderProvisioning.retrieveByOrigin(origin, zoneId)).thenReturn(provider);
+        when(identityProviderProvisioning.retrieveByOrigin(ORIGIN, ZONE_ID)).thenReturn(provider);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken("thecode", ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
         assertThat(authenticationData).isNotNull();
         assertThat(authenticationData.getAuthorities()).hasSize(2);
@@ -535,7 +534,7 @@ class ExternalOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         UaaUser uaaUser = authManager.getUser(oidcAuthentication, authManager.getExternalAuthenticationDetails(oidcAuthentication));
         assertThat(uaaUser).isNotNull();
         assertThat(uaaUser.getFamilyName()).isNull();
@@ -566,7 +565,7 @@ class ExternalOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         ExternalOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = authManager.getExternalAuthenticationDetails(oidcAuthentication);
         assertThatThrownBy(() -> authManager.getUser(oidcAuthentication, externalAuthenticationDetails))
                 .isInstanceOf(BadCredentialsException.class)
@@ -598,7 +597,7 @@ class ExternalOAuthAuthenticationManagerTest {
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
 
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         ExternalOAuthAuthenticationManager.AuthenticationData externalAuthenticationDetails = authManager.getExternalAuthenticationDetails(oidcAuthentication);
         assertThatThrownBy(() -> authManager.getUser(oidcAuthentication, externalAuthenticationDetails))
                 .isInstanceOf(BadCredentialsException.class)
@@ -625,7 +624,7 @@ class ExternalOAuthAuthenticationManagerTest {
         );
         IdentityZoneHolder.get().getConfig().getTokenPolicy().setKeys(Collections.singletonMap("uaa-key", uaaIdentityZoneTokenSigningKey));
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
-        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, origin, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken oidcAuthentication = new ExternalOAuthCodeToken(null, ORIGIN, "http://google.com", idTokenJwt, "accesstoken", "signedrequest");
         ExternalOAuthAuthenticationManager.AuthenticationData authenticationData = authManager.getExternalAuthenticationDetails(oidcAuthentication);
         authenticationData.setExternalAuthorities(List.of(new SimpleGrantedAuthority("uaa-authorities")));
         authManager.populateAuthenticationAttributes(authentication, oidcAuthentication, authenticationData);
@@ -651,7 +650,7 @@ class ExternalOAuthAuthenticationManagerTest {
                 entry(SUB, "abc-def-asdf")
         );
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
-        ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken("thecode", origin, "http://google.com", null, "accesstoken", "signedrequest");
+        ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken("thecode", ORIGIN, "http://google.com", null, "accesstoken", "signedrequest");
 
         authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), null) {
             @Override
