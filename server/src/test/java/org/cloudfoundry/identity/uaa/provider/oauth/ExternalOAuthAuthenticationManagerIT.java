@@ -148,6 +148,17 @@ class ExternalOAuthAuthenticationManagerIT {
             2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=
             -----END RSA PRIVATE KEY-----""";
 
+    private static final String INVALID_RSA_SIGNING_KEY = """
+            -----BEGIN RSA PRIVATE KEY-----
+            MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe
+            GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy
+            sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw
+            gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu
+            xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex
+            uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg
+            z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA
+            -----END RSA PRIVATE KEY-----""";
+
     private MockRestServiceServer mockUaaServer;
     private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
     private UrlContentCache urlContentCache;
@@ -161,7 +172,6 @@ class ExternalOAuthAuthenticationManagerIT {
     private OIDCIdentityProviderDefinition config;
     private JWSSigner signer;
     private Map<String, Object> header;
-    private String invalidRsaSigningKey;
     private ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
     private TokenEndpointBuilder tokenEndpointBuilder;
 
@@ -266,17 +276,6 @@ class ExternalOAuthAuthenticationManagerIT {
         );
 
         mockUaaServer = MockRestServiceServer.createServer(nonTrustingRestTemplate);
-
-        invalidRsaSigningKey = """
-                -----BEGIN RSA PRIVATE KEY-----
-                MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe
-                GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy
-                sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw
-                gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu
-                xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex
-                uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg
-                z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA
-                -----END RSA PRIVATE KEY-----""";
     }
 
     @Test
@@ -722,7 +721,7 @@ class ExternalOAuthAuthenticationManagerIT {
     @Test
     void multi_key_response_without_value() throws Exception {
         String jsonValid = getKeyJson(PRIVATE_KEY, "correctKey", false);
-        String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
+        String jsonInvalid = getKeyJson(INVALID_RSA_SIGNING_KEY, "invalidKey", false);
         Map<String, Object> mapValid = JsonUtils.readValue(jsonValid, new TypeReference<Map<String, Object>>() {
         });
         Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {
@@ -737,8 +736,8 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void multi_key_all_invalid() throws Exception {
-        String jsonInvalid = getKeyJson(invalidRsaSigningKey, "invalidKey", false);
-        String jsonInvalid2 = getKeyJson(invalidRsaSigningKey, "invalidKey2", false);
+        String jsonInvalid = getKeyJson(INVALID_RSA_SIGNING_KEY, "invalidKey", false);
+        String jsonInvalid2 = getKeyJson(INVALID_RSA_SIGNING_KEY, "invalidKey2", false);
         Map<String, Object> mapInvalid = JsonUtils.readValue(jsonInvalid, new TypeReference<Map<String, Object>>() {
         });
         Map<String, Object> mapInvalid2 = JsonUtils.readValue(jsonInvalid2, new TypeReference<Map<String, Object>>() {
@@ -819,7 +818,7 @@ class ExternalOAuthAuthenticationManagerIT {
 
     @Test
     void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
-        configureTokenKeyResponse("http://localhost/token_key", invalidRsaSigningKey, "wrongKey");
+        configureTokenKeyResponse("http://localhost/token_key", INVALID_RSA_SIGNING_KEY, "wrongKey");
 
         assertThatExceptionOfType(InvalidTokenException.class).isThrownBy(() -> externalOAuthAuthenticationManager.authenticate(xCodeToken));
     }
