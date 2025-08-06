@@ -19,6 +19,8 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.ObjectUtils;
@@ -138,7 +140,9 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
     private final OidcMetadataFetcher oidcMetadataFetcher;
+    @Setter
     private TokenEndpointBuilder tokenEndpointBuilder;
+    @Getter
     private final KeyInfoService keyInfoService;
     private final IdentityZoneManager identityZoneManager;
 
@@ -828,14 +832,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return responseType;
     }
 
-    public void setTokenEndpointBuilder(TokenEndpointBuilder tokenEndpointBuilder) {
-        this.tokenEndpointBuilder = tokenEndpointBuilder;
-    }
-
-    public KeyInfoService getKeyInfoService() {
-        return keyInfoService;
-    }
-
     protected void fetchMetadataAndUpdateDefinition(OIDCIdentityProviderDefinition definition) {
         try {
             oidcMetadataFetcher.fetchMetadataAndUpdateDefinition(definition);
@@ -977,52 +973,13 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return idToken;
     }
 
+    @Setter
+    @Getter
     protected static class AuthenticationData {
-
         private Map<String, Object> claims;
         private String username;
         private List<SimpleGrantedAuthority> authorities;
         private List<SimpleGrantedAuthority> externalAuthorities;
         private Map<String, Object> attributeMappings;
-
-        public Map<String, Object> getAttributeMappings() {
-            return attributeMappings;
-        }
-
-        public void setAttributeMappings(Map<String, Object> attributeMappings) {
-            this.attributeMappings = attributeMappings;
-        }
-
-        public void setClaims(Map<String, Object> claims) {
-            this.claims = claims;
-        }
-
-        public Map<String, Object> getClaims() {
-            return claims;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public List<SimpleGrantedAuthority> getAuthorities() {
-            return authorities;
-        }
-
-        public void setAuthorities(List<SimpleGrantedAuthority> authorities) {
-            this.authorities = authorities;
-        }
-
-        public List<SimpleGrantedAuthority> getExternalAuthorities() {
-            return externalAuthorities;
-        }
-
-        public void setExternalAuthorities(List<SimpleGrantedAuthority> externalAuthorities) {
-            this.externalAuthorities = externalAuthorities;
-        }
     }
 }
