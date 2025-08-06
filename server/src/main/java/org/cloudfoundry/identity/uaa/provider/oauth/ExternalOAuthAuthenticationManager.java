@@ -772,7 +772,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             }
         }
         if (ExternalOAuthProviderConfigurator.isPkceNeeded(config)) {
-            // if session is expired or other issues in retrieven code_verifier, then flow fails with 401, which is expected
+            // if session is expired or other issues in retrieving code_verifier, then flow fails with 401, which is expected
             body.add("code_verifier", getSessionValue(SessionUtils.codeVerifierParameterAttributeKeyForIdp(codeToken.getOrigin())));
         }
         headers.add("Accept", "application/json");
