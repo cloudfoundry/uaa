@@ -628,7 +628,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             }
         } else if ("code".equals(config.getResponseType())
                 && RawExternalOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())
-                && ((RawExternalOAuthIdentityProviderDefinition) config).getUserInfoUrl() != null) {
+                && config.getUserInfoUrl() != null) {
             RawExternalOAuthIdentityProviderDefinition narrowedConfig = (RawExternalOAuthIdentityProviderDefinition) config;
 
             HttpHeaders headers = new HttpHeaders();
