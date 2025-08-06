@@ -113,6 +113,7 @@ class ExternalOAuthAuthenticationManagerTest {
     private static final String OIDC_PROVIDER_KEY = "oidc-provider-key";
     private static final String ORIGIN = "google-oidc";
     private static final String ZONE_ID = "zoneId";
+    private static final String UAA_ISSUER_BASE_URL = "http://uaa.example.com";
 
     private static final String UAA_IDENTITY_ZONE_TOKEN_SIGNING_KEY = """
             -----BEGIN RSA PRIVATE KEY-----
@@ -150,7 +151,6 @@ class ExternalOAuthAuthenticationManagerTest {
 
     private ExternalOAuthAuthenticationManager authManager;
     private OIDCIdentityProviderDefinition oidcConfig;
-    private String uaaIssuerBaseUrl;
     private TokenEndpointBuilder tokenEndpointBuilder;
     private IdentityProvider<OIDCIdentityProviderDefinition> provider;
     private IdentityProviderProvisioning identityProviderProvisioning;
@@ -211,14 +211,13 @@ class ExternalOAuthAuthenticationManagerTest {
         oidcConfig.setAttributeMappings(externalGroupMapping);
         provider.setConfig(oidcConfig);
         when(identityProviderProvisioning.retrieveByOrigin(ORIGIN, ZONE_ID)).thenReturn(provider);
-        uaaIssuerBaseUrl = "http://uaa.example.com";
-        tokenEndpointBuilder = new TokenEndpointBuilder(uaaIssuerBaseUrl);
+        tokenEndpointBuilder = new TokenEndpointBuilder(UAA_ISSUER_BASE_URL);
         oidcMetadataFetcher = new OidcMetadataFetcher(
                 new StaleUrlCache(Duration.ofMinutes(2), new TimeServiceImpl(), 10, Ticker.disabledTicker()),
                 new RestTemplate(),
                 new RestTemplate()
         );
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), oidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), oidcMetadataFetcher);
         authManager.setExternalMembershipManager(externalMembershipManager);
         authManager.setUserDatabase(userDatabase);
     }
@@ -651,7 +650,7 @@ class ExternalOAuthAuthenticationManagerTest {
         String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         ExternalOAuthCodeToken codeToken = new ExternalOAuthCodeToken("thecode", ORIGIN, "http://google.com", null, "accesstoken", "signedrequest");
 
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), null) {
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), null) {
             @Override
             protected <T extends AbstractExternalOAuthIdentityProviderDefinition<T>> String getTokenFromCode(
                     ExternalOAuthCodeToken codeToken,
@@ -672,7 +671,7 @@ class ExternalOAuthAuthenticationManagerTest {
     void fetchOidcMetadata() throws OidcMetadataFetchingException {
         OIDCIdentityProviderDefinition mockedProviderDefinition = mock(OIDCIdentityProviderDefinition.class);
         OidcMetadataFetcher mockedOidcMetadataFetcher = mock(OidcMetadataFetcher.class);
-        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(uaaIssuerBaseUrl), mockedOidcMetadataFetcher);
+        authManager = new ExternalOAuthAuthenticationManager(identityProviderProvisioning, new IdentityZoneManagerImpl(), new RestTemplate(), new RestTemplate(), tokenEndpointBuilder, new KeyInfoService(UAA_ISSUER_BASE_URL), mockedOidcMetadataFetcher);
         doThrow(new OidcMetadataFetchingException("error")).when(mockedOidcMetadataFetcher).fetchMetadataAndUpdateDefinition(mockedProviderDefinition);
         assertThatNoException().isThrownBy(() -> authManager.fetchMetadataAndUpdateDefinition(mockedProviderDefinition));
     }
