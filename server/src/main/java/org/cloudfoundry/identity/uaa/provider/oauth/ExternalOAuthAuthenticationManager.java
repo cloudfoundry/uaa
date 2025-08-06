@@ -612,7 +612,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), StandardCharsets.UTF_8), new TypeReference<>() {
                 });
                 //check signature algorithm
-                if (!jsonData.get("algorithm").equals("HMAC-SHA256")) {
+                final var algorithm = Optional.ofNullable(jsonData)
+                        .map(it -> it.get("algorithm"))
+                        .orElse(null);
+                if (algorithm != null && !"HMAC-SHA256".equals(algorithm)) {
                     log.debug("Unknown algorithm was used to sign request! No claims returned.");
                     return null;
                 }
