@@ -611,7 +611,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             String signature = signedRequests[0];
             //parse data and convert to json object
             String data = signedRequests[1];
-            Map<String, Object> jsonData = null;
+            Map<String, Object> jsonData;
             try {
                 jsonData = JsonUtils.readValue(new String(Base64.decodeBase64(data), StandardCharsets.UTF_8), new TypeReference<>() {
                 });
