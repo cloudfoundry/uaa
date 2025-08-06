@@ -125,29 +125,11 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 
 class ExternalOAuthAuthenticationManagerIT {
     private static final String UAA_ORIGIN = "uaa";
-
-    private MockRestServiceServer mockUaaServer;
-    private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
-    private UrlContentCache urlContentCache;
-    private IdentityProviderProvisioning provisioning;
-    private InMemoryUaaUserDatabase userDatabase;
-    private ExternalOAuthCodeToken xCodeToken;
-    private ApplicationEventPublisher publisher;
     private static final String CODE = "the_code";
-
     private static final String ORIGIN = "the_origin";
     private static final String ISSUER = "cf-app.com";
     private static final String UAA_ISSUER_URL = "http://issuer.url";
     private static final List<String> SCOPES_LIST = Arrays.asList("openid", "some.other.scope", "closedid");
-
-    private Map<String, Object> claims;
-    private HashMap<String, Object> attributeMappings;
-    private OIDCIdentityProviderDefinition config;
-    private JWSSigner signer;
-    private Map<String, Object> header;
-    private String invalidRsaSigningKey;
-    private ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
-    private TokenEndpointBuilder tokenEndpointBuilder;
 
     private static final String PUBLIC_KEY = """
             -----BEGIN PUBLIC KEY-----
@@ -165,6 +147,23 @@ class ExternalOAuthAuthenticationManagerIT {
             RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3
             2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=
             -----END RSA PRIVATE KEY-----""";
+
+    private MockRestServiceServer mockUaaServer;
+    private ExternalOAuthAuthenticationManager externalOAuthAuthenticationManager;
+    private UrlContentCache urlContentCache;
+    private IdentityProviderProvisioning provisioning;
+    private InMemoryUaaUserDatabase userDatabase;
+    private ExternalOAuthCodeToken xCodeToken;
+    private ApplicationEventPublisher publisher;
+
+    private Map<String, Object> claims;
+    private HashMap<String, Object> attributeMappings;
+    private OIDCIdentityProviderDefinition config;
+    private JWSSigner signer;
+    private Map<String, Object> header;
+    private String invalidRsaSigningKey;
+    private ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
+    private TokenEndpointBuilder tokenEndpointBuilder;
 
     @AfterEach
     void clearContext() {
