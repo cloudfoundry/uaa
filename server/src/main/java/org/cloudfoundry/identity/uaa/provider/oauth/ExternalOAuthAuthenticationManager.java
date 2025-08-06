@@ -51,6 +51,7 @@ import org.cloudfoundry.identity.uaa.oauth.jwt.SignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.UaaMacSigner;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode;
 import org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -115,6 +116,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
@@ -224,10 +226,10 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     @Override
-    public AuthenticationData getExternalAuthenticationDetails(Authentication authentication) {
-        IdentityProvider provider = null;
-        ExternalOAuthCodeToken codeToken = (ExternalOAuthCodeToken) authentication;
+    public AuthenticationData getExternalAuthenticationDetails(final Authentication authentication) {
+        final ExternalOAuthCodeToken codeToken = (ExternalOAuthCodeToken) authentication;
 
+        IdentityProvider provider = null;
         if (!hasLength(codeToken.getOrigin())) {
             provider = resolveOriginProvider(codeToken.getIdToken());
             codeToken.setOrigin(provider.getOriginKey());
@@ -244,19 +246,19 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
 
         if (provider != null && provider.getConfig() instanceof AbstractExternalOAuthIdentityProviderDefinition config) {
-            AuthenticationData authenticationData = new AuthenticationData();
+            final AuthenticationData authenticationData = new AuthenticationData();
 
-            Map<String, Object> claims = getClaimsFromToken(codeToken, provider);
+            final Map<String, Object> claims = getClaimsFromToken(codeToken, provider);
 
             if (claims == null) {
                 return null;
             }
             authenticationData.setClaims(claims);
 
-            Map<String, Object> attributeMappings = config.getAttributeMappings();
+            final Map<String, Object> attributeMappings = config.getAttributeMappings();
 
-            String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
-            String username;
+            final String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
+            final String username;
             if (hasText(userNameAttributePrefix)) {
                 username = getMappedClaim(userNameAttributePrefix, USER_NAME_ATTRIBUTE_NAME, claims);
                 logger.debug("Extracted username for claim: {} and username is: {}", userNameAttributePrefix, username);
@@ -272,9 +274,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
             List<SimpleGrantedAuthority> oidcAuthorities = extractExternalOAuthUserAuthorities(attributeMappings, claims);
             oidcAuthorities = filterOidcAuthorities(config, oidcAuthorities);
-            List<SimpleGrantedAuthority> authorities;
-            AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode groupMappingMode = config.getGroupMappingMode() != null ?
-                    config.getGroupMappingMode() : AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED;
+
+            final OAuthGroupMappingMode groupMappingMode = Optional.ofNullable(config.getGroupMappingMode())
+                    .orElse(EXPLICITLY_MAPPED);
+
+            final List<SimpleGrantedAuthority> authorities;
             switch (groupMappingMode) {
                 case AS_SCOPES:
                     authorities = new LinkedList<>(oidcAuthorities);
