@@ -222,7 +222,6 @@ class ExternalOAuthAuthenticationManagerIT {
         externalOAuthAuthenticationManager.setUserDatabase(userDatabase);
         externalOAuthAuthenticationManager.setExternalMembershipManager(externalMembershipManager);
         externalOAuthAuthenticationManager.setApplicationEventPublisher(publisher);
-        externalOAuthAuthenticationManager.setTokenEndpointBuilder(tokenEndpointBuilder);
         xCodeToken = new ExternalOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
         claims = map(
                 entry("sub", "12345"),

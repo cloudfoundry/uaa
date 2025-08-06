@@ -140,8 +140,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private final RestTemplate trustingRestTemplate;
     private final RestTemplate nonTrustingRestTemplate;
     private final OidcMetadataFetcher oidcMetadataFetcher;
-    @Setter
-    private TokenEndpointBuilder tokenEndpointBuilder;
+    private final TokenEndpointBuilder tokenEndpointBuilder;
     @Getter
     private final KeyInfoService keyInfoService;
     private final IdentityZoneManager identityZoneManager;
