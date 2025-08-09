@@ -73,7 +73,7 @@ public class JwtClientAuthentication {
     // no signature check with invalid algorithms
     private static final Set<Algorithm> NOT_SUPPORTED_ALGORITHMS = Set.of(Algorithm.NONE, JWSAlgorithm.HS256, JWSAlgorithm.HS384, JWSAlgorithm.HS512);
     private static final Set<String> JWT_REQUIRED_CLAIMS = Set.of(ClaimConstants.ISS, ClaimConstants.SUB, ClaimConstants.AUD,
-            ClaimConstants.EXPIRY_IN_SECONDS, ClaimConstants.JTI);
+            ClaimConstants.EXPIRY_IN_SECONDS);
 
     private final KeyInfoService keyInfoService;
     private final OidcMetadataFetcher oidcMetadataFetcher;
