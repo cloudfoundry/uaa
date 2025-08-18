@@ -148,13 +148,15 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     //origin is per thread during execution
     private final ThreadLocal<String> origin = ThreadLocal.withInitial(() -> "unknown");
 
-    public ExternalOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning,
-                                              IdentityZoneManager identityZoneManager,
-                                              RestTemplate trustingRestTemplate,
-                                              RestTemplate nonTrustingRestTemplate,
-                                              TokenEndpointBuilder tokenEndpointBuilder,
-                                              KeyInfoService keyInfoService,
-                                              OidcMetadataFetcher oidcMetadataFetcher) {
+    public ExternalOAuthAuthenticationManager(
+            IdentityProviderProvisioning providerProvisioning,
+            IdentityZoneManager identityZoneManager,
+            RestTemplate trustingRestTemplate,
+            RestTemplate nonTrustingRestTemplate,
+            TokenEndpointBuilder tokenEndpointBuilder,
+            KeyInfoService keyInfoService,
+            OidcMetadataFetcher oidcMetadataFetcher
+    ) {
         super(providerProvisioning);
         this.identityZoneManager = identityZoneManager;
         this.trustingRestTemplate = trustingRestTemplate;
