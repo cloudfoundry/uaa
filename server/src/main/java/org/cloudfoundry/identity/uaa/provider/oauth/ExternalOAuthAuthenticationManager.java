@@ -19,8 +19,8 @@ import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSAlgorithm;
 import com.nimbusds.jose.JWSHeader;
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.Data;
 import lombok.Getter;
-import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.ObjectUtils;
@@ -972,8 +972,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return idToken;
     }
 
-    @Setter
-    @Getter
+    @Data
     protected static class AuthenticationData {
         private Map<String, Object> claims;
         private String username;
