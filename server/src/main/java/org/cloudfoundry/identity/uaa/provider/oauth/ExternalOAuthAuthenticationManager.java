@@ -110,10 +110,10 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static java.util.Objects.isNull;
+import static java.util.stream.Collectors.toSet;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
@@ -307,7 +307,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (whiteList.isEmpty()) {
             return oidcAuthorities;
         } else {
-            Set<String> authorities = oidcAuthorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toSet());
+            Set<String> authorities = oidcAuthorities.stream().map(GrantedAuthority::getAuthority).collect(toSet());
             Set<String> result = retainAllMatches(authorities, whiteList);
             if (ObjectUtils.isNotEmpty(result)) {
                 log.debug("White listed external OIDC groups:'{}'", result);
@@ -373,7 +373,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                             .orElse(emptyList())
                             .stream()
                             .map(GrantedAuthority::getAuthority)
-                            .collect(Collectors.toSet())
+                            .collect(toSet())
             );
         }
         if (authentication.getAuthenticationMethods() == null) {
@@ -451,7 +451,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             return string;
         }
         if (claimObject instanceof Collection<?> collection) {
-            Set<String> entry = collection.stream().filter(String.class::isInstance).map(String.class::cast).collect(Collectors.toSet());
+            Set<String> entry = collection.stream().filter(String.class::isInstance).map(String.class::cast).collect(toSet());
             if (entry.size() == 1) {
                 return entry.stream().findFirst().orElse(null);
             } else if (entry.isEmpty()) {
