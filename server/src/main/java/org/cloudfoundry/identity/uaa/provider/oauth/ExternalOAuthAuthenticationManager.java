@@ -321,10 +321,11 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         Map<String, Object> claims = authenticationData.getClaims();
         if (claims != null) {
             if (claims.get("amr") != null) {
+                final Collection<String> amrClaims = (Collection<String>) claims.get("amr");
                 if (authentication.getAuthenticationMethods() == null) {
-                    authentication.setAuthenticationMethods(new HashSet<>((Collection<String>) claims.get("amr")));
+                    authentication.setAuthenticationMethods(new HashSet<>(amrClaims));
                 } else {
-                    authentication.getAuthenticationMethods().addAll((Collection<String>) claims.get("amr"));
+                    authentication.getAuthenticationMethods().addAll(amrClaims);
                 }
             }
 
