@@ -100,7 +100,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -112,6 +111,8 @@ import java.util.Optional;
 import java.util.Set;
 
 import static java.util.Collections.emptyList;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
 import static java.util.Objects.isNull;
 import static java.util.stream.Collectors.toSet;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
@@ -222,7 +223,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     private IdentityProvider buildInternalUaaIdpConfig(String issuer, String originKey) {
         OIDCIdentityProviderDefinition uaaOidcProviderConfig = new OIDCIdentityProviderDefinition();
         uaaOidcProviderConfig.setIssuer(issuer);
-        Map<String, Object> userNameMapping = Collections.singletonMap(USER_NAME_ATTRIBUTE_NAME, USER_NAME_ATTRIBUTE_NAME);
+        Map<String, Object> userNameMapping = singletonMap(USER_NAME_ATTRIBUTE_NAME, USER_NAME_ATTRIBUTE_NAME);
         uaaOidcProviderConfig.setAttributeMappings(userNameMapping);
         IdentityProvider<OIDCIdentityProviderDefinition> uaaIdp = new IdentityProvider<>();
         uaaIdp.setOriginKey(originKey);
@@ -341,7 +342,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                         log.debug("Unrecognized ACR claim[{}] for user_id: {}", values, authentication.getPrincipal().getId());
                     }
                 } else if (acr instanceof String string) {
-                    authentication.setAuthContextClassRef(new HashSet(Collections.singletonList(string)));
+                    authentication.setAuthContextClassRef(new HashSet(singletonList(string)));
                 } else {
                     log.debug("Unrecognized ACR claim[{}] for user_id: {}", acr, authentication.getPrincipal().getId());
                 }
@@ -360,9 +361,9 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                                     .toList();
                             userAttributes.put(key, strings);
                         } else if (values instanceof String string) {
-                            userAttributes.put(key, Collections.singletonList(string));
+                            userAttributes.put(key, singletonList(string));
                         } else {
-                            userAttributes.put(key, Collections.singletonList(values.toString()));
+                            userAttributes.put(key, singletonList(values.toString()));
                         }
                     }
                 }
@@ -916,7 +917,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         RestTemplate rt = config.isSkipSslValidation() ? trustingRestTemplate : nonTrustingRestTemplate;
 
         HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(APPLICATION_JSON));
+        headers.setAccept(singletonList(APPLICATION_JSON));
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>(additionalParameters);
 
