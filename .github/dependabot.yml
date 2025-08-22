@@ -24,6 +24,9 @@ updates:
     interval: daily
     time: "11:00"
   open-pull-requests-limit: 10
+  allow:
+  - dependency-name: "org.springframework.boot:*"
+  - dependency-name: "org.apache.tomcat:*"
   ignore:
   - dependency-name: "org.apache.tomcat:*"
     update-types: ["version-update:semver-major"] # Stay in Tomcat major version and do updates manually, based on Spring Boot version.
