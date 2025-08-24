@@ -1,0 +1,10 @@
+uaa:
+  jwt:
+    token:
+      policy:
+        activeKeyId: key-id-1
+        keys:
+          key-id-1:
+            signingAlg: PS256
+            signingKey: key
+            signingCert: cert

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
@@ -43,12 +44,12 @@ class IdentityZoneResolvingMockMvcTest {
     @BeforeEach
     void storeSettings(
             @Autowired MockMvc mockMvc,
-            @Autowired IdentityZoneResolvingFilter identityZoneResolvingFilter
+            @Autowired FilterRegistrationBean<IdentityZoneResolvingFilter> identityZoneResolvingFilter
     ) {
         this.mockMvc = mockMvc;
-        this.identityZoneResolvingFilter = identityZoneResolvingFilter;
+        this.identityZoneResolvingFilter = identityZoneResolvingFilter.getFilter();
 
-        originalHostnames = identityZoneResolvingFilter.getDefaultZoneHostnames();
+        originalHostnames = this.identityZoneResolvingFilter.getDefaultZoneHostnames();
     }
 
     @AfterEach
@@ -57,12 +58,12 @@ class IdentityZoneResolvingMockMvcTest {
     }
 
     @Test
-    void testSwitchingZones() throws Exception {
+    void switchingZones() throws Exception {
         // Authenticate with new Client in new Zone
         mockMvc.perform(
-                get("/login")
-                        .header("Host", "testsomeother.ip.com")
-        )
+                        get("/login")
+                                .header("Host", "testsomeother.ip.com")
+                )
                 .andExpect(status().isOk());
     }
 
@@ -81,9 +82,9 @@ class IdentityZoneResolvingMockMvcTest {
         void isFound(String hostname) throws Exception {
             // Authenticate with new Client in new Zone
             mockMvc.perform(
-                    get("/login")
-                            .header("Host", hostname)
-            )
+                            get("/login")
+                                    .header("Host", hostname)
+                    )
                     .andExpect(status().isOk());
 
         }
@@ -92,9 +93,9 @@ class IdentityZoneResolvingMockMvcTest {
         @ValueSource(strings = {"notlocalhost", "testsomeother2.ip.com"})
         void isNotFound(String hostname) throws Exception {
             mockMvc.perform(
-                    get("/login")
-                            .header("Host", hostname)
-            )
+                            get("/login")
+                                    .header("Host", hostname)
+                    )
                     .andExpect(status().isNotFound());
         }
     }

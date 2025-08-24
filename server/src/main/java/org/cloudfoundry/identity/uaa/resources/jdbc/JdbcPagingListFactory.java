@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -15,9 +16,9 @@ package org.cloudfoundry.identity.uaa.resources.jdbc;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.stereotype.Component;
 
 /**
  * Singleton factory for creating a JdbcPagingList instance with the correct DB
@@ -25,17 +26,18 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
  * 
  * @author Mike Youngstrom
  */
+@Component
 public class JdbcPagingListFactory {
 
-    private NamedParameterJdbcTemplate jdbcTemplate;
-    private LimitSqlAdapter limitSqlAdapter;
+    private final NamedParameterJdbcTemplate jdbcTemplate;
+    private final LimitSqlAdapter limitSqlAdapter;
 
-    public JdbcPagingListFactory(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter) {
-        this.jdbcTemplate = new NamedParameterJdbcTemplate(jdbcTemplate);
+    public JdbcPagingListFactory(NamedParameterJdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter) {
+        this.jdbcTemplate = jdbcTemplate;
         this.limitSqlAdapter = limitSqlAdapter;
     }
 
     public <T> List<T> createJdbcPagingList(String sql, Map<String, ?> args, RowMapper<T> mapper, int pageSize) {
-        return new JdbcPagingList<T>(jdbcTemplate, limitSqlAdapter, sql, args, mapper, pageSize);
+        return new JdbcPagingList<>(jdbcTemplate, limitSqlAdapter, sql, args, mapper, pageSize);
     }
 }

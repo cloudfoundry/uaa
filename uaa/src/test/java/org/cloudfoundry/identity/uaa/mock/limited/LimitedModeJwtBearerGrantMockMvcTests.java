@@ -27,11 +27,11 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getLimitedMod
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.resetLimitedModeStatusFile;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setLimitedModeStatusFile;
 
-public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvcTests {
+class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvcTests {
     private File existingStatusFile;
 
     @BeforeEach
-    public void setUpLimitedModeContext(
+    void setUpLimitedModeContext(
             @Autowired @Qualifier("defaultUserAuthorities") Object defaultAuthorities
     ) throws Exception {
         super.setUpContext(defaultAuthorities);
@@ -40,7 +40,7 @@ public class LimitedModeJwtBearerGrantMockMvcTests extends JwtBearerGrantMockMvc
     }
 
     @AfterEach
-    public void tearDown() {
+    void tearDown() {
         resetLimitedModeStatusFile(webApplicationContext, existingStatusFile);
     }
 }

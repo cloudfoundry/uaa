@@ -10,10 +10,9 @@ dependencies {
     implementation(libraries.springBootStarterWeb)
     implementation(libraries.springBootStarterLog4j2)
     implementation(libraries.statsdClient)
-    testImplementation(libraries.junit)
-    testImplementation(libraries.mockito)
-    testImplementation(libraries.springBootStarterTest)
-
+    testImplementation(libraries.mockitoJunit5)
+    testImplementation(libraries.bytebuddy)
+    testImplementation(libraries.bytebuddyagent)
     implementation(libraries.jacksonDataformatYaml)
     implementation(libraries.jacksonDatabind)
 }

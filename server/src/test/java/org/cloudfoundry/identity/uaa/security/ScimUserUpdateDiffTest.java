@@ -15,8 +15,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -47,11 +46,11 @@ class ScimUserUpdateDiffTest {
     }
 
     private void assertUpdateIsNotAllowed() {
-        assertThat(scimUserUpdateDiff.isAnythingOtherThanNameDifferent(scimUserID, scimUserFromRequest), is(false));
+        assertThat(scimUserUpdateDiff.isAnythingOtherThanNameDifferent(scimUserID, scimUserFromRequest)).isFalse();
     }
 
     private void assertUpdateIsAllowed() {
-        assertThat(scimUserUpdateDiff.isAnythingOtherThanNameDifferent(scimUserID, scimUserFromRequest), is(true));
+        assertThat(scimUserUpdateDiff.isAnythingOtherThanNameDifferent(scimUserID, scimUserFromRequest)).isTrue();
     }
 
     private void setRequestContent() {

@@ -2,19 +2,26 @@ package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.ZoneSeeder;
 import org.cloudfoundry.identity.uaa.test.ZoneSeederExtension;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,9 +30,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -36,25 +40,20 @@ import java.util.Collections;
 import java.util.Map;
 
 import static org.apache.commons.lang3.StringUtils.contains;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.EMAIL;
 import static org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -64,7 +63,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class InvitationsEndpointMockMvcTests {
 
     private String scimInviteToken;
-    private RandomValueStringGenerator generator;
+    private AlphanumericRandomValueStringGenerator generator;
     private String clientId;
     private String clientSecret;
     private ClientDetails clientDetails;
@@ -88,7 +87,7 @@ class InvitationsEndpointMockMvcTests {
 
     @BeforeEach
     void setUp() throws Exception {
-        generator = new RandomValueStringGenerator();
+        generator = new AlphanumericRandomValueStringGenerator();
         adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin uaa.admin", null);
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
@@ -256,7 +255,7 @@ class InvitationsEndpointMockMvcTests {
                     .andReturn();
 
             InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
-            BaseClientDetails defaultClientDetails = new BaseClientDetails();
+            UaaClientDetails defaultClientDetails = new UaaClientDetails();
             defaultClientDetails.setClientId("admin");
             assertResponseAndCodeCorrect(expiringCodeStore, new String[]{email}, redirectUrl, zoneSeeder.getIdentityZone(), invitationsResponse, defaultClientDetails);
 
@@ -267,7 +266,7 @@ class InvitationsEndpointMockMvcTests {
             String zonedClientId = "zonedClientId";
             String zonedClientSecret = "zonedClientSecret";
 
-            BaseClientDetails zonedClientDetails = (BaseClientDetails) MockMvcUtils.createClient(
+            UaaClientDetails zonedClientDetails = (UaaClientDetails) MockMvcUtils.createClient(
                     mockMvc,
                     MockMvcUtils.getZoneAdminToken(
                             mockMvc,
@@ -313,7 +312,7 @@ class InvitationsEndpointMockMvcTests {
             String scimInviteClientId = generator.generate();
             String scimInviteClientSecret = generator.generate();
 
-            BaseClientDetails client = MockMvcUtils.getClientDetailsModification(
+            UaaClientDetails client = MockMvcUtils.getClientDetailsModification(
                     scimInviteClientId,
                     scimInviteClientSecret,
                     Collections.singleton("oauth"),
@@ -334,7 +333,7 @@ class InvitationsEndpointMockMvcTests {
                     zoneSeeder.getPlainTextClientSecret(zoneSeeder.getAdminClientWithClientCredentialsGrant()));
 
             mockMvc.perform(get(acceptInvitationLink)
-                    .header("Host", (zoneSeeder.getIdentityZoneSubdomain() + ".localhost")))
+                            .header("Host", (zoneSeeder.getIdentityZoneSubdomain() + ".localhost")))
                     .andExpect(content().string(containsString("Create your account")))
                     .andExpect(content().string(containsString("Best Company")))
                     .andExpect(content().string(containsString("Create account")));
@@ -361,9 +360,9 @@ class InvitationsEndpointMockMvcTests {
 
         String userToken = MockMvcUtils.getScimInviteUserToken(mockMvc, clientId, clientSecret, null, "admin", "adminsecret");
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, userToken, null, clientId, "example.com", email);
-        assertEquals(0, response.getNewInvites().size());
-        assertEquals(1, response.getFailedInvites().size());
-        assertEquals("user.ambiguous", response.getFailedInvites().get(0).getErrorCode());
+        assertThat(response.getNewInvites()).isEmpty();
+        assertThat(response.getFailedInvites()).hasSize(1);
+        assertThat(response.getFailedInvites().getFirst().getErrorCode()).isEqualTo("user.ambiguous");
     }
 
     @Test
@@ -373,15 +372,15 @@ class InvitationsEndpointMockMvcTests {
         String invalidEmail3 = "user1example@invalid";
         String redirectUrl = "test.com";
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, scimInviteToken, null, clientId, redirectUrl, invalidEmail1, invalidEmail2, invalidEmail3);
-        assertEquals(0, response.getNewInvites().size());
-        assertEquals(3, response.getFailedInvites().size());
+        assertThat(response.getNewInvites()).isEmpty();
+        assertThat(response.getFailedInvites()).hasSize(3);
 
-        assertEquals("email.invalid", response.getFailedInvites().get(0).getErrorCode());
-        assertEquals("email.invalid", response.getFailedInvites().get(1).getErrorCode());
-        assertEquals("provider.non-existent", response.getFailedInvites().get(2).getErrorCode());
-        assertEquals(invalidEmail1 + " is invalid email.", response.getFailedInvites().get(0).getErrorMessage());
-        assertEquals(invalidEmail2 + " is invalid email.", response.getFailedInvites().get(1).getErrorMessage());
-        assertEquals("No authentication provider found.", response.getFailedInvites().get(2).getErrorMessage());
+        assertThat(response.getFailedInvites().getFirst().getErrorCode()).isEqualTo("email.invalid");
+        assertThat(response.getFailedInvites().get(1).getErrorCode()).isEqualTo("email.invalid");
+        assertThat(response.getFailedInvites().get(2).getErrorCode()).isEqualTo("provider.non-existent");
+        assertThat(response.getFailedInvites().getFirst().getErrorMessage()).isEqualTo(invalidEmail1 + " is invalid email.");
+        assertThat(response.getFailedInvites().get(1).getErrorMessage()).isEqualTo(invalidEmail2 + " is invalid email.");
+        assertThat(response.getFailedInvites().get(2).getErrorMessage()).isEqualTo("No authentication provider found.");
     }
 
     @Test
@@ -398,6 +397,7 @@ class InvitationsEndpointMockMvcTests {
         branding.setCompanyName("Best Company");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setBranding(branding);
+        config.setTokenPolicy(IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy());
         IdentityZone defaultZone = IdentityZoneHolder.getUaaZone();
         defaultZone.setConfig(config);
         identityZoneProvisioning.update(defaultZone);
@@ -420,7 +420,7 @@ class InvitationsEndpointMockMvcTests {
         sendRequestWithToken(webApplicationContext, mockMvc, userToken, clientId, "user1@" + emailDomain);
 
         String code = jdbcTemplate.queryForObject("SELECT code FROM expiring_code_store", String.class);
-        assertNotNull("Invite Code Must be Present", code);
+        assertThat(code).as("Invite Code Must be Present").isNotNull();
 
         MockHttpServletRequestBuilder accept = get("/invitations/accept")
                 .param("code", code);
@@ -443,44 +443,44 @@ class InvitationsEndpointMockMvcTests {
 
     private static void sendRequestWithToken(WebApplicationContext webApplicationContext, MockMvc mockMvc, String token, String clientId, String... emails) throws Exception {
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, token, null, clientId, "example.com", emails);
-        assertThat(response.getNewInvites().size(), is(emails.length));
-        assertThat(response.getFailedInvites().size(), is(0));
+        assertThat(response.getNewInvites()).hasSameSizeAs(emails);
+        assertThat(response.getFailedInvites()).isEmpty();
     }
 
     private static void assertResponseAndCodeCorrect(ExpiringCodeStore expiringCodeStore, String[] emails, String redirectUrl, IdentityZone zone, InvitationsResponse response, ClientDetails clientDetails) {
         for (int i = 0; i < emails.length; i++) {
-            assertThat(response.getNewInvites().size(), is(emails.length));
-            assertThat(response.getNewInvites().get(i).getEmail(), is(emails[i]));
-            assertThat(response.getNewInvites().get(i).getOrigin(), is(OriginKeys.UAA));
-            assertThat(response.getNewInvites().get(i).getUserId(), is(notNullValue()));
-            assertThat(response.getNewInvites().get(i).getErrorCode(), is(nullValue()));
-            assertThat(response.getNewInvites().get(i).getErrorMessage(), is(nullValue()));
+            assertThat(response.getNewInvites()).hasSameSizeAs(emails);
+            assertThat(response.getNewInvites().get(i).getEmail()).isEqualTo(emails[i]);
+            assertThat(response.getNewInvites().get(i).getOrigin()).isEqualTo(UAA);
+            assertThat(response.getNewInvites().get(i).getUserId()).isNotNull();
+            assertThat(response.getNewInvites().get(i).getErrorCode()).isNull();
+            assertThat(response.getNewInvites().get(i).getErrorMessage()).isNull();
             String link = response.getNewInvites().get(i).getInviteLink().toString();
-            assertFalse(contains(link, "@"));
-            assertFalse(contains(link, "%40"));
+            assertThat(contains(link, "@")).isFalse();
+            assertThat(contains(link, "%40")).isFalse();
             if (zone != null && StringUtils.hasText(zone.getSubdomain())) {
-                assertThat(link, startsWith("http://" + zone.getSubdomain() + ".localhost/invitations/accept"));
+                assertThat(link).startsWith("http://" + zone.getSubdomain() + ".localhost/invitations/accept");
                 IdentityZoneHolder.set(zone);
             } else {
-                assertThat(link, startsWith("http://localhost/invitations/accept"));
+                assertThat(link).startsWith("http://localhost/invitations/accept");
             }
 
             String query = response.getNewInvites().get(i).getInviteLink().getQuery();
-            assertThat(query, startsWith("code="));
+            assertThat(query).startsWith("code=");
             String code = query.split("=")[1];
 
             ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code, IdentityZoneHolder.get().getId());
             IdentityZoneHolder.clear();
-            assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
-            assertThat(expiringCode.getIntent(), is(ExpiringCodeType.INVITATION.name()));
+            assertThat(expiringCode.getExpiresAt().getTime()).isGreaterThan(System.currentTimeMillis());
+            assertThat(expiringCode.getIntent()).isEqualTo(ExpiringCodeType.INVITATION.name());
             Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
             });
-            assertThat(data, is(not(nullValue())));
-            assertThat(data.get(USER_ID), is(notNullValue()));
-            assertThat(data.get(EMAIL), is(emails[i]));
-            assertThat(data.get(ORIGIN), is(OriginKeys.UAA));
-            assertThat(data.get(CLIENT_ID), is(clientDetails.getClientId()));
-            assertThat(data.get(REDIRECT_URI), is(redirectUrl));
+            assertThat(data).isNotNull()
+                    .containsKey(USER_ID)
+                    .containsEntry(EMAIL, emails[i])
+                    .containsEntry(ORIGIN, UAA)
+                    .containsEntry(CLIENT_ID, clientDetails.getClientId())
+                    .containsEntry(REDIRECT_URI, redirectUrl);
         }
     }
 
@@ -489,7 +489,7 @@ class InvitationsEndpointMockMvcTests {
             MockMvc mockMvc,
             String clientId,
             String clientSecret,
-            RandomValueStringGenerator generator,
+            AlphanumericRandomValueStringGenerator generator,
             String domain,
             IdentityZone zone,
             String adminClientId,
@@ -497,6 +497,6 @@ class InvitationsEndpointMockMvcTests {
         String userToken = MockMvcUtils.getScimInviteUserToken(mockMvc, clientId, clientSecret, zone, adminClientId, adminClientSecret);
         String email = generator.generate().toLowerCase() + "@" + domain;
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(webApplicationContext, mockMvc, userToken, zone == null ? null : zone.getSubdomain(), clientId, "example.com", email);
-        return response.getNewInvites().get(0).getInviteLink().toString();
+        return response.getNewInvites().getFirst().getInviteLink().toString();
     }
 }

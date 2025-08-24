@@ -1,0 +1,1 @@
+ALTER TABLE oauth_client_details MODIFY COLUMN web_server_redirect_uri TEXT;

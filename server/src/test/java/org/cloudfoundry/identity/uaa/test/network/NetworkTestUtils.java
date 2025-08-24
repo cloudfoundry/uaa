@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.test.network;
 
 import com.sun.net.httpserver.*;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 
 import javax.net.ssl.*;
 import java.io.*;
@@ -35,10 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 import static org.cloudfoundry.identity.uaa.util.SocketUtils.getSelfCertificate;
 
-
 public class NetworkTestUtils {
-
-
     static final String commonName = "localhost";
     static final String organizationalUnit = "UAA";
     static final String organization = "Pivotal Software";
@@ -51,40 +48,38 @@ public class NetworkTestUtils {
     static RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     public static File getKeystore(Date issueDate,
-                                   long validityDays) throws Exception {
+            long validityDays) throws Exception {
         File directory = new File(System.getProperty("java.io.tmpdir"));
         String filename = generator.generate() + ".jks";
         return getKeystore(directory, filename, issueDate, validityDays);
     }
 
-
     public static File getKeystore(File directory,
-                                   String filename,
-                                   Date issueDate,
-                                   long validityDays) throws Exception {
+            String filename,
+            Date issueDate,
+            long validityDays) throws Exception {
         return getKeystore(directory,
-          filename,
-          1024,
-          commonName,
-          organizationalUnit,
-          organization,
+                filename,
+                1024,
+                commonName,
+                organizationalUnit,
+                organization,
                 issueDate,
-          validityDays,
-          alias,
-          keyPass);
-
+                validityDays,
+                alias,
+                keyPass);
     }
 
     public static File getKeystore(File directory,
-                                   String filename,
-                                   int keysize,
-                                   String commonName,
-                                   String organizationalUnit,
-                                   String organization,
-                                   Date issueDate,
-                                   long validityDays,
-                                   String keyAlias,
-                                   String keyPass) throws Exception {
+            String filename,
+            int keysize,
+            String commonName,
+            String organizationalUnit,
+            String organization,
+            Date issueDate,
+            long validityDays,
+            String keyAlias,
+            String keyPass) throws Exception {
 
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, null);
@@ -112,7 +107,6 @@ public class NetworkTestUtils {
         httpServer.start();
         return httpServer;
     }
-
 
     public static HttpsServer startHttpsServer(File keystore, String keypass, HttpHandler handler) throws Exception {
         //some stack overflow goodness for testing only
@@ -152,18 +146,15 @@ public class NetworkTestUtils {
         httpsServer.setExecutor(new ThreadPoolExecutor(1, 1, 10, TimeUnit.SECONDS, new LinkedBlockingQueue<>()));
         httpsServer.start();
         return httpsServer;
-
     }
 
     public static class SimpleHttpResponseHandler implements HttpHandler {
 
-        private final int status;
         private final HttpHeaders headers;
         private final String responseBody;
-        private volatile boolean wasInvoked = false;
+        private volatile boolean wasInvoked;
 
-        public SimpleHttpResponseHandler(int status, HttpHeaders headers, String responseBody) {
-            this.status = status;
+        public SimpleHttpResponseHandler(HttpHeaders headers, String responseBody) {
             this.headers = headers;
             this.responseBody = responseBody;
         }
@@ -181,7 +172,6 @@ public class NetworkTestUtils {
                     exchange.getResponseHeaders().add(entry.getKey(), value);
                 }
             }
-
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
             exchange.sendResponseHeaders(200, responseBody.length());
             OutputStream os = exchange.getResponseBody();
@@ -191,6 +181,4 @@ public class NetworkTestUtils {
             httpExchange.close();
         }
     }
-
-
 }

@@ -7,10 +7,11 @@ public class InvitationsRequest {
 
     private String[] emails;
 
-    public InvitationsRequest() {}
+    public InvitationsRequest() {
+    }
 
     public InvitationsRequest(String[] emails) {
-        this.setEmails((emails));
+        this.setEmails(emails);
     }
 
     public String[] getEmails() {

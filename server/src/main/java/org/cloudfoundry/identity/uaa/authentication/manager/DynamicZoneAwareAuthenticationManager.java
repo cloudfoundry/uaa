@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -21,7 +22,6 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticatio
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -54,10 +54,10 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     private ApplicationEventPublisher eventPublisher;
 
     public DynamicZoneAwareAuthenticationManager(final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning,
-                                                 AuthenticationManager internalUaaAuthenticationManager,
-                                                 ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
-                                                 ScimGroupProvisioning scimGroupProvisioning,
-                                                 LdapLoginAuthenticationManager ldapLoginAuthenticationManager) {
+            AuthenticationManager internalUaaAuthenticationManager,
+            ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
+            ScimGroupProvisioning scimGroupProvisioning,
+            LdapLoginAuthenticationManager ldapLoginAuthenticationManager) {
         this.provisioning = provisioning;
         this.internalUaaAuthenticationManager = internalUaaAuthenticationManager;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
@@ -98,17 +98,17 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         List<AuthenticationManagerConfiguration> delegates = new LinkedList<>();
 
         String origin = loginHint == null ? null : loginHint.getOrigin();
-        if (uaaProvider.isActive() && (origin == null || origin.equals("uaa"))) {
+        if (uaaProvider.isActive() && (origin == null || "uaa".equals(origin))) {
             AuthenticationManagerConfiguration uaaConfig = new AuthenticationManagerConfiguration(internalUaaAuthenticationManager, null);
             uaaConfig.setStopIf(
-                AccountNotVerifiedException.class,
-                AuthenticationPolicyRejectionException.class,
-                PasswordChangeRequiredException.class
+                    AccountNotVerifiedException.class,
+                    AuthenticationPolicyRejectionException.class,
+                    PasswordChangeRequiredException.class
             );
             delegates.add(uaaConfig);
         }
 
-        if (ldapProvider.isActive() && (origin == null || origin.equals("ldap"))) {
+        if (ldapProvider.isActive() && (origin == null || "ldap".equals(origin))) {
             //has LDAP IDP config changed since last time?
             DynamicLdapAuthenticationManager existing = getLdapAuthenticationManager(zone, ldapProvider);
             if (!existing.getDefinition().equals(ldapProvider.getConfig())) {
@@ -117,12 +117,12 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
             }
             DynamicLdapAuthenticationManager ldapAuthenticationManager = getLdapAuthenticationManager(zone, ldapProvider);
             AuthenticationManagerConfiguration ldapConfig =
-                new AuthenticationManagerConfiguration(ldapAuthenticationManager,
-                                                       delegates.size()>0 ? ChainedAuthenticationManager.IF_PREVIOUS_FALSE : null);
+                    new AuthenticationManagerConfiguration(ldapAuthenticationManager,
+                            delegates.isEmpty() ? null : ChainedAuthenticationManager.IF_PREVIOUS_FALSE);
             delegates.add(ldapConfig);
         }
 
-        if (delegates.size() == 0 && origin != null) {
+        if (delegates.isEmpty() && origin != null) {
             throw new ProviderNotFoundException("The origin provided in the login hint is invalid.");
         }
 
@@ -134,7 +134,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     protected IdentityProvider getProvider(String origin, IdentityZone zone) {
         try {
             IdentityProvider result = provisioning.retrieveByOrigin(origin, zone.getId());
-            if (result!=null) {
+            if (result != null) {
                 return result;
             }
         } catch (EmptyResultDataAccessException ignored) {
@@ -147,17 +147,17 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
 
     public DynamicLdapAuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
         DynamicLdapAuthenticationManager ldapMgr = ldapAuthManagers.get(zone);
-        if (ldapMgr!=null) {
+        if (ldapMgr != null) {
             return ldapMgr;
         }
-        LdapIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(),LdapIdentityProviderDefinition.class);
-        if (definition==null || !definition.isConfigured()) {
-            throw new IllegalArgumentException("LDAP provider not configured ID:"+provider.getId());
+        LdapIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);
+        if (definition == null || !definition.isConfigured()) {
+            throw new IllegalArgumentException("LDAP provider not configured ID:" + provider.getId());
         }
         ldapMgr = new DynamicLdapAuthenticationManager(definition,
-            scimGroupExternalMembershipManager,
-            scimGroupProvisioning,
-            ldapLoginAuthenticationManager);
+                scimGroupExternalMembershipManager,
+                scimGroupProvisioning,
+                ldapLoginAuthenticationManager);
         ldapMgr.setApplicationEventPublisher(eventPublisher);
         ldapAuthManagers.putIfAbsent(zone, ldapMgr);
         return ldapAuthManagers.get(zone);

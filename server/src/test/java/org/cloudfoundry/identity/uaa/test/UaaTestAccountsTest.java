@@ -1,29 +1,29 @@
 package org.cloudfoundry.identity.uaa.test;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.security.oauth2.client.test.TestAccounts;
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.test.UaaTestAccounts.UAA_TEST_PASSWORD;
 import static org.cloudfoundry.identity.uaa.test.UaaTestAccounts.UAA_TEST_USERNAME;
-import static org.junit.Assert.assertEquals;
 
-public class UaaTestAccountsTest {
+class UaaTestAccountsTest {
 
     private TestAccounts testAccounts;
     private String originalUaaTestUsername;
     private String originalUaaTestPassword;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         testAccounts = UaaTestAccounts.standard(null);
         originalUaaTestUsername = System.getProperty(UAA_TEST_USERNAME);
         originalUaaTestPassword = System.getProperty(UAA_TEST_PASSWORD);
     }
 
-    @After
-    public void restoreProperties() {
+    @AfterEach
+    void restoreProperties() {
         if (originalUaaTestUsername == null) {
             System.clearProperty(UAA_TEST_USERNAME);
         } else {
@@ -37,26 +37,26 @@ public class UaaTestAccountsTest {
     }
 
     @Test
-    public void testGetDefaultUsername() {
-        assertEquals(UaaTestAccounts.DEFAULT_USERNAME, testAccounts.getUserName());
+    void getDefaultUsername() {
+        assertThat(testAccounts.getUserName()).isEqualTo(UaaTestAccounts.DEFAULT_USERNAME);
     }
 
     @Test
-    public void testGetAlternateUsername() {
+    void getAlternateUsername() {
         String username = "marissa2";
         System.setProperty(UAA_TEST_USERNAME, username);
-        assertEquals(username, testAccounts.getUserName());
+        assertThat(testAccounts.getUserName()).isEqualTo(username);
     }
 
     @Test
-    public void testGetDefaultPassword() {
-        assertEquals(UaaTestAccounts.DEFAULT_PASSWORD, testAccounts.getPassword());
+    void getDefaultPassword() {
+        assertThat(testAccounts.getPassword()).isEqualTo(UaaTestAccounts.DEFAULT_PASSWORD);
     }
 
     @Test
-    public void testGetAlternatePassword() {
+    void getAlternatePassword() {
         String password = "koala2";
         System.setProperty(UAA_TEST_PASSWORD, password);
-        assertEquals(password, testAccounts.getPassword());
+        assertThat(testAccounts.getPassword()).isEqualTo(password);
     }
 }

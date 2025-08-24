@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -19,7 +20,9 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -41,7 +44,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
     private final int size;
 
-    private int start = 0;
+    private int start;
 
     private List<E> current;
 
@@ -58,22 +61,22 @@ public class JdbcPagingList<E> extends AbstractList<E> {
     private final LimitSqlAdapter limitSqlAdapter;
 
     public JdbcPagingList(JdbcTemplate jdbTemplate, LimitSqlAdapter limitSqlAdapter, String sql, RowMapper<E> mapper,
-                    int pageSize) {
-        this(jdbTemplate, limitSqlAdapter, sql, Collections.<String, Object> emptyMap(), mapper, pageSize);
+            int pageSize) {
+        this(jdbTemplate, limitSqlAdapter, sql, Collections.<String, Object>emptyMap(), mapper, pageSize);
     }
 
     public JdbcPagingList(JdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter, String sql, Map<String, ?> args,
-                    RowMapper<E> mapper, int pageSize) {
+            RowMapper<E> mapper, int pageSize) {
         this(new NamedParameterJdbcTemplate(jdbcTemplate), limitSqlAdapter, sql, args, mapper, pageSize);
     }
 
     public JdbcPagingList(NamedParameterJdbcTemplate jdbcTemplate, LimitSqlAdapter limitSqlAdapter, String sql,
-                    Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
+            Map<String, ?> args, RowMapper<E> mapper, int pageSize) {
         this.parameterJdbcTemplate = jdbcTemplate;
         this.sql = sql;
         this.args = args;
         this.mapper = mapper;
-        this.size = parameterJdbcTemplate.queryForObject(getCountSql(sql), args, Integer.class);
+        this.size = Optional.ofNullable(parameterJdbcTemplate.queryForObject(getCountSql(sql), args, Integer.class)).orElse(0);
         this.pageSize = pageSize;
         this.limitSqlAdapter = limitSqlAdapter;
     }
@@ -92,7 +95,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
     @Override
     public Iterator<E> iterator() {
-        return new SafeIterator<E>(super.iterator());
+        return new SafeIterator<>(super.iterator());
     }
 
     @Override
@@ -100,11 +103,14 @@ public class JdbcPagingList<E> extends AbstractList<E> {
         if (fromIndex < 0 || toIndex > size || fromIndex > toIndex) {
             throw new IndexOutOfBoundsException("The indexes provided are outside the bounds of this list.");
         }
-        return new SafeIteratorList<E>(super.subList(fromIndex, toIndex));
+        return new SafeIteratorList<>(super.subList(fromIndex, toIndex));
     }
 
     private String getCountSql(String sql) {
-        String result = sql.replaceAll("(?i)select (.*?) from (.*)", "select count(*) from $2");
+        String result = UaaStringUtils.getValidatedString(sql);
+        if (result.toLowerCase().startsWith("select") && result.toLowerCase().contains(" from ")) {
+            result = "select count(*) %s".formatted(result.substring(result.toLowerCase().indexOf(" from ")));
+        }
         int orderByPos = result.toLowerCase().lastIndexOf("order by");
         if (orderByPos >= 0) {
             result = result.substring(0, orderByPos);
@@ -143,7 +149,7 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
         @Override
         public Iterator<T> iterator() {
-            return new SafeIterator<T>(super.iterator());
+            return new SafeIterator<>(super.iterator());
         }
 
         @Override
@@ -161,9 +167,9 @@ public class JdbcPagingList<E> extends AbstractList<E> {
 
         private final Iterator<T> iterator;
 
-        private boolean polled = false;
+        private boolean polled;
 
-        private boolean hasNext = false;
+        private boolean hasNext;
 
         private T next;
 

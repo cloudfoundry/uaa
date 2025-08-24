@@ -22,7 +22,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 
-public class SystemAuthentication implements Authentication {
+public final class SystemAuthentication implements Authentication {
 
     public static final SystemAuthentication SYSTEM_AUTHENTICATION = new SystemAuthentication();
 

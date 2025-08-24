@@ -1,33 +1,33 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Date;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class AuthTimeDateConverterTest {
+class AuthTimeDateConverterTest {
     @Test
-    public void authTimeToDate_whenNull() {
+    void authTimeToDate_whenNull() {
         Date date = AuthTimeDateConverter.authTimeToDate(null);
-        assertNull(date);
+        assertThat(date).isNull();
     }
 
     @Test
-    public void authTimeToDate_whenNotNull() {
-        Date date = AuthTimeDateConverter.authTimeToDate(1l);
-        assertEquals(new Date(1000l), date);
+    void authTimeToDate_whenNotNull() {
+        Date date = AuthTimeDateConverter.authTimeToDate(1L);
+        assertThat(date).isEqualTo(new Date(1000L));
     }
 
     @Test
-    public void dateToAuthTime_whenNull() {
+    void dateToAuthTime_whenNull() {
         Long authTime = AuthTimeDateConverter.dateToAuthTime(null);
-        assertNull(authTime);
+        assertThat(authTime).isNull();
     }
 
     @Test
-    public void dateToAuthTime_whenNotNull() {
-        long authTime = AuthTimeDateConverter.dateToAuthTime(new Date(1000l));
-        assertEquals(1, authTime);
+    void dateToAuthTime_whenNotNull() {
+        long authTime = AuthTimeDateConverter.dateToAuthTime(new Date(1000L));
+        assertThat(authTime).isOne();
     }
 }

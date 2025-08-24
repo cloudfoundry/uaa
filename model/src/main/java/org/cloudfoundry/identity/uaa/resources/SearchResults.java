@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -28,11 +29,13 @@ public class SearchResults<T> {
     private int totalResults;
     private Collection<String> schemas;
 
-    public SearchResults() {}
+    public SearchResults() {
+    }
+
     public SearchResults(Collection<String> schemas, Collection<T> resources, int startIndex, int itemsPerPage,
-                    int totalResults) {
-        this.schemas = new ArrayList<String>(schemas);
-        this.resources = new ArrayList<T>(resources);
+            int totalResults) {
+        this.schemas = new ArrayList<>(schemas);
+        this.resources = new ArrayList<>(resources);
         this.startIndex = startIndex;
         this.itemsPerPage = itemsPerPage;
         this.totalResults = totalResults;

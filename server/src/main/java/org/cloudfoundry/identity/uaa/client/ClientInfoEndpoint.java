@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -15,8 +16,7 @@ package org.cloudfoundry.identity.uaa.client;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -46,9 +46,9 @@ public class ClientInfoEndpoint {
     @ResponseBody
     public ClientDetails clientinfo(Principal principal) {
         String clientId = principal.getName();
-        BaseClientDetails client = new BaseClientDetails(clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId()));
+        UaaClientDetails client = new UaaClientDetails(clientDetailsService.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId()));
         client.setClientSecret(null);
-        client.setAdditionalInformation(Collections.<String, Object> emptyMap());
+        client.setAdditionalInformation(Collections.<String, Object>emptyMap());
         return client;
     }
 }

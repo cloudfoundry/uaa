@@ -14,21 +14,20 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import javax.servlet.FilterChain;
-import java.util.HashSet;
-
 import org.cloudfoundry.identity.uaa.oauth.InteractionRequiredException;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.AuthenticationEntryPoint;
+
+import jakarta.servlet.FilterChain;
+import java.util.HashSet;
 
 import static java.util.Collections.emptyList;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,7 +37,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
-public class PasswordChangeRequiredFilterTests {
+class PasswordChangeRequiredFilterTests {
     private PasswordChangeRequiredFilter filter;
     private MockHttpSession session;
     private MockHttpServletRequest request;
@@ -46,8 +45,8 @@ public class PasswordChangeRequiredFilterTests {
     private AuthenticationEntryPoint entryPoint;
     private FilterChain chain;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         UaaAuthentication authentication = new UaaAuthentication(
                 new UaaPrincipal("fake-id", "fake-username", "email@email.com", "origin", "", "uaa"),
                 emptyList(),
@@ -57,7 +56,7 @@ public class PasswordChangeRequiredFilterTests {
         entryPoint = mock(AuthenticationEntryPoint.class);
         chain = mock(FilterChain.class);
         filter = new PasswordChangeRequiredFilter(
-            entryPoint
+                entryPoint
         );
         session = new MockHttpSession();
         SessionUtils.setPasswordChangeRequired(session, false);
@@ -67,14 +66,14 @@ public class PasswordChangeRequiredFilterTests {
         SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
-    @After
-    public void teardown() {
+    @AfterEach
+    void teardown() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
 
     @Test
-    public void password_change_required() throws Exception {
+    void password_change_required() throws Exception {
         SessionUtils.setPasswordChangeRequired(session, true);
         filter.doFilterInternal(request, response, chain);
         verifyNoInteractions(chain);
@@ -82,14 +81,14 @@ public class PasswordChangeRequiredFilterTests {
     }
 
     @Test
-    public void password_change_not_required() throws Exception {
+    void password_change_not_required() throws Exception {
         filter.doFilterInternal(request, response, chain);
         verifyNoInteractions(entryPoint);
         verify(chain, times(1)).doFilter(same(request), same(response));
     }
 
     @Test
-    public void no_authentication() throws Exception {
+    void no_authentication() throws Exception {
         SecurityContextHolder.clearContext();
         filter.doFilterInternal(request, response, chain);
         verifyNoInteractions(entryPoint);

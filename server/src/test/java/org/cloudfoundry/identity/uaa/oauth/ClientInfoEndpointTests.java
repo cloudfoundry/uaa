@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,16 +12,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -39,7 +37,7 @@ class ClientInfoEndpointTests {
     @BeforeEach
     void setUp() {
         clientId = "clientId-" + UUID.randomUUID().toString();
-        BaseClientDetails baseClientDetails = new BaseClientDetails(clientId, "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
+        UaaClientDetails baseClientDetails = new UaaClientDetails(clientId, "none", "read,write", GRANT_TYPE_AUTHORIZATION_CODE, "uaa.none");
         baseClientDetails.setClientSecret("bar");
         baseClientDetails.setAdditionalInformation(Collections.singletonMap("key", "value"));
 
@@ -53,9 +51,9 @@ class ClientInfoEndpointTests {
     void clientinfo() {
         ClientDetails clientDetails = endpoint.clientinfo(new UsernamePasswordAuthenticationToken(clientId, "<NONE>"));
 
-        assertEquals(clientId, clientDetails.getClientId());
-        assertNull(clientDetails.getClientSecret());
-        assertTrue(clientDetails.getAdditionalInformation().isEmpty());
+        assertThat(clientDetails.getClientId()).isEqualTo(clientId);
+        assertThat(clientDetails.getClientSecret()).isNull();
+        assertThat(clientDetails.getAdditionalInformation()).isEmpty();
     }
 
 }

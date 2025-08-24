@@ -15,16 +15,16 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.validation.Valid;
-import javax.validation.constraints.Email;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
 import java.util.Map;
 
 @Controller
@@ -40,9 +40,9 @@ public class ChangeEmailController {
         this.uaaUserDatabase = uaaUserDatabase;
     }
 
-    @RequestMapping(value = "/change_email", method = RequestMethod.GET)
+    @GetMapping("/change_email")
     public String changeEmailPage(Model model, @RequestParam(value = "client_id", required = false) String clientId,
-                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
+            @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
         model.addAttribute("email", ((UaaPrincipal) securityContext.getAuthentication().getPrincipal()).getEmail());
         model.addAttribute("client_id", clientId);
@@ -50,11 +50,11 @@ public class ChangeEmailController {
         return "change_email";
     }
 
-    @RequestMapping(value = "/change_email.do", method = RequestMethod.POST)
-    public String changeEmail(Model model, @Valid @ModelAttribute("newEmail") ValidEmail newEmail, BindingResult result,
-                              @RequestParam(required = false, value = "client_id") String clientId,
-                              @RequestParam(required = false, value = "redirect_uri") String redirectUri,
-                              RedirectAttributes redirectAttributes, HttpServletResponse response) {
+    @PostMapping("/change_email.do")
+    public String changeEmail(Model model, @Valid @ModelAttribute ValidEmail newEmail, BindingResult result,
+            @RequestParam(required = false, value = "client_id") String clientId,
+            @RequestParam(required = false, value = "redirect_uri") String redirectUri,
+            RedirectAttributes redirectAttributes, HttpServletResponse response) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
 
         if (result.hasErrors()) {
@@ -86,9 +86,9 @@ public class ChangeEmailController {
         return "redirect:email_sent?code=email_change";
     }
 
-    @RequestMapping(value = "/verify_email", method = RequestMethod.GET)
-    public String verifyEmail(Model model, @RequestParam("code") String code, RedirectAttributes redirectAttributes,
-                              HttpServletResponse httpServletResponse, HttpServletRequest request) {
+    @GetMapping("/verify_email")
+    public String verifyEmail(Model model, @RequestParam String code, RedirectAttributes redirectAttributes,
+            HttpServletResponse httpServletResponse, HttpServletRequest request) {
         Map<String, String> response;
 
         try {

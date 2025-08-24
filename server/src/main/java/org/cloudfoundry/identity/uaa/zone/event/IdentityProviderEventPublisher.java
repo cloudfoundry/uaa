@@ -30,9 +30,9 @@ public class IdentityProviderEventPublisher implements ApplicationEventPublisher
     public void idpModified(IdentityProvider identityProvider) {
         publish(IdentityProviderModifiedEvent.identityProviderModified(identityProvider, identityZoneManager.getCurrentIdentityZoneId()));
     }
-    
+
     public void publish(ApplicationEvent event) {
-        if (publisher!=null) {
+        if (publisher != null) {
             publisher.publishEvent(event);
         }
     }

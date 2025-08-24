@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.db;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +11,7 @@ import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 public class TestSchemaValidation {
@@ -23,19 +23,19 @@ public class TestSchemaValidation {
     private DataSource dataSource;
 
     @Test
-    public void test_v2_3_6__That_Users_Perf_Id_Index_Exists() throws Exception {
+    void v2_3_6_that_users_perf_id_index_exists() throws Exception {
         String[] tableNames = {"users", "USERS"};
         validate_index_existence(tableNames, "user_perf_id");
     }
 
     @Test
-    public void test_v3_9_0__That_Group_Membership_Perf_Id_Index_Exists() throws Exception {
+    void v3_9_0_that_group_membership_perf_id_index_exists() throws Exception {
         String tableName = "group_membership";
         validate_index_existence(new String[]{tableName, tableName.toUpperCase()}, "group_membership_perf_idx");
     }
 
     @Test
-    public void test_v4_6_0__That_Group_Membership_Perf_Id_Index_Exists() throws Exception {
+    void v4_6_0_that_group_membership_perf_id_index_exists() throws Exception {
         String tableName = "group_membership";
         validate_index_existence(new String[]{tableName, tableName.toUpperCase()}, "group_membership_perf_group_idx");
         if (ArrayUtils.contains(environment.getActiveProfiles(), "postgresql")) {
@@ -60,7 +60,7 @@ public class TestSchemaValidation {
                     break;
                 }
             }
-            assertTrue(foundIndex, "I was expecting to find index " + lookupIndexName);
+            assertThat(foundIndex).as("I was expecting to find index " + lookupIndexName).isTrue();
         }
     }
 }

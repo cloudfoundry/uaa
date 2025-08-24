@@ -19,9 +19,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import java.sql.Timestamp;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -61,7 +59,7 @@ class CodeStoreEndpointsMockMvcTests {
     }
 
     @Test
-    void testGenerateCode() throws Exception {
+    void generateCode() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
 
@@ -81,7 +79,7 @@ class CodeStoreEndpointsMockMvcTests {
     }
 
     @Test
-    void testGenerateCodeWithInvalidScope() throws Exception {
+    void generateCodeWithInvalidScope() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.read");
@@ -98,7 +96,7 @@ class CodeStoreEndpointsMockMvcTests {
     }
 
     @Test
-    void testGenerateCodeAnonymous() throws Exception {
+    void generateCodeAnonymous() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
 
@@ -113,7 +111,7 @@ class CodeStoreEndpointsMockMvcTests {
     }
 
     @Test
-    void testGenerateCodeWithNullData() throws Exception {
+    void generateCodeWithNullData() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, null, null);
         String requestBody = JsonUtils.writeValueAsString(code);
@@ -129,7 +127,7 @@ class CodeStoreEndpointsMockMvcTests {
     }
 
     @Test
-    void testGenerateCodeWithNullExpiresAt() throws Exception {
+    void generateCodeWithNullExpiresAt() throws Exception {
         ExpiringCode code = new ExpiringCode(null, null, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
@@ -144,7 +142,7 @@ class CodeStoreEndpointsMockMvcTests {
     }
 
     @Test
-    void testGenerateCodeWithExpiresAtInThePast() throws Exception {
+    void generateCodeWithExpiresAtInThePast() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() - 60000);
         ExpiringCode code = new ExpiringCode(null, ts, null, null);
         String requestBody = JsonUtils.writeValueAsString(code);
@@ -160,7 +158,7 @@ class CodeStoreEndpointsMockMvcTests {
     }
 
     @Test
-    void testRetrieveCode() throws Exception {
+    void retrieveCode() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
@@ -186,11 +184,11 @@ class CodeStoreEndpointsMockMvcTests {
 
         ExpiringCode rc1 = JsonUtils.readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
 
-        assertEquals(rc, rc1);
+        assertThat(rc1).isEqualTo(rc);
     }
 
     @Test
-    void testRetrieveCodeThatIsExpired() throws Exception {
+    void retrieveCodeThatIsExpired() throws Exception {
         Timestamp ts = new Timestamp(Long.MAX_VALUE);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
@@ -216,7 +214,7 @@ class CodeStoreEndpointsMockMvcTests {
     }
 
     @Test
-    void testCodeThatIsExpiredIsDeletedOnCreateOfNewCode() throws Exception {
+    void codeThatIsExpiredIsDeletedOnCreateOfNewCode() throws Exception {
         Timestamp ts = new Timestamp(Long.MAX_VALUE);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
@@ -247,7 +245,7 @@ class CodeStoreEndpointsMockMvcTests {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-        assertThat(jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class)).isOne();
     }
 
     @Nested
@@ -298,7 +296,7 @@ class CodeStoreEndpointsMockMvcTests {
                     .andExpect(status().isCreated())
                     .andReturn();
 
-            assertThat(jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class), is(2));
+            assertThat(jdbcTemplate.queryForObject("select count(*) from expiring_code_store", Integer.class)).isEqualTo(2);
         }
     }
 

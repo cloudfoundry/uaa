@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.mock.saml;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
@@ -8,101 +7,74 @@ import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
 import org.apache.logging.log4j.core.config.Configurator;
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.cloudfoundry.identity.uaa.audit.AuditEventType;
-import org.cloudfoundry.identity.uaa.audit.LoggingAuditService;
-import org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.util.InterceptingLogger;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
+import org.opensaml.saml.saml2.core.Response;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.web.context.WebApplicationContext;
-import org.xml.sax.InputSource;
+import org.xmlunit.assertj.XmlAssert;
 
-import javax.xml.xpath.XPath;
-import javax.xml.xpath.XPathConstants;
-import javax.xml.xpath.XPathFactory;
-import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
-import static com.beust.jcommander.internal.Lists.newArrayList;
 import static org.apache.logging.log4j.Level.DEBUG;
 import static org.apache.logging.log4j.Level.WARN;
-import static org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding.X_VCAP_REQUEST_ID_HEADER;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUaaSecurityContext;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
-import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.authentication.MalformedSamlResponseLogger.X_VCAP_REQUEST_ID_HEADER;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.responseWithAssertions;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.serializedResponse;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2TestUtils.xmlNamespaces;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlDecode;
+import static org.cloudfoundry.identity.uaa.provider.saml.Saml2Utils.samlDecodeAndInflate;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_DIGEST_SHA256;
+import static org.opensaml.xmlsec.signature.support.SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpHeaders.HOST;
-import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
-import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
-import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
-import static org.springframework.security.test.web.servlet.response.SecurityMockMvcResultMatchers.authenticated;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @DefaultTestContext
 class SamlAuthenticationMockMvcTests {
+    private static final String SAML_REQUEST = "SAMLRequest";
+    private static final String SAML_RESPONSE = "SAMLResponse";
+    private static final String RELAY_STATE = "RelayState";
+    private static final String SIG_ALG = "SigAlg";
+    private static final String SIGNATURE = "Signature";
 
     private RandomValueStringGenerator generator;
-
     private IdentityZone spZone;
     private IdentityZone idpZone;
     private String spZoneEntityId;
     private IdentityProvider<SamlIdentityProviderDefinition> idp;
-    private SamlServiceProvider samlServiceProvider;
 
     @Autowired
     private MockMvc mockMvc;
@@ -110,290 +82,444 @@ class SamlAuthenticationMockMvcTests {
     @Autowired
     private WebApplicationContext webApplicationContext;
 
-    @Autowired
-    private JdbcScimUserProvisioning jdbcScimUserProvisioning;
     private JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning;
 
-    @Autowired
-    private LoggingAuditService loggingAuditService;
-    private InterceptingLogger testLogger;
-    private Logger originalAuditServiceLogger;
+    private static void createUser(
+            JdbcScimUserProvisioning jdbcScimUserProvisioning,
+            IdentityZone identityZone
+    ) {
+        ScimUser user = new ScimUser(null, "marissa", "first", "last");
+        user.setPrimaryEmail("test@test.org");
+        jdbcScimUserProvisioning.createUser(user, "secret", identityZone.getId());
+    }
 
-    @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @BeforeEach
     void createSamlRelationship(
             @Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning,
-            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning,
             @Autowired JdbcScimUserProvisioning jdbcScimUserProvisioning
     ) throws Exception {
         this.jdbcIdentityProviderProvisioning = jdbcIdentityProviderProvisioning;
         generator = new RandomValueStringGenerator();
-        BaseClientDetails adminClient = new BaseClientDetails("admin", "", "", "client_credentials", "uaa.admin");
+        UaaClientDetails adminClient = new UaaClientDetails("admin", "", "", "client_credentials", "uaa.admin");
         adminClient.setClientSecret("adminsecret");
-        spZone = createZone("uaa-acting-as-saml-proxy-zone-", adminClient);
-        idpZone = createZone("uaa-acting-as-saml-idp-zone-", adminClient);
+
+        String spZoneSubdomain = "uaa-acting-as-saml-proxy-zone-" + generator.generate();
+        spZone = createZoneWithSamlSpConfig(spZoneSubdomain, adminClient, true, true, spZoneSubdomain + "-entity-id");
+
+        String idpZoneSubdomain = "uaa-acting-as-saml-idp-zone-" + generator.generate();
+        idpZone = createZoneWithSamlSpConfig(idpZoneSubdomain, adminClient, true, true, idpZoneSubdomain + "-entity-id");
+
         spZoneEntityId = spZone.getSubdomain() + ".cloudfoundry-saml-login";
-        createSp(jdbcSamlServiceProviderProvisioning);
         createUser(jdbcScimUserProvisioning, idpZone);
     }
 
-    @BeforeEach
-    void installTestLogger() {
-        testLogger = new InterceptingLogger();
-        originalAuditServiceLogger = loggingAuditService.getLogger();
-        loggingAuditService.setLogger(testLogger);
-    }
-
-    @AfterEach
-    void putBackOriginalLogger() {
-        loggingAuditService.setLogger(originalAuditServiceLogger);
-    }
-
     @Test
-    void sendAuthnRequestToIdp() throws Exception {
-        createIdp();
-
-        String idpEntityId = idpZone.getSubdomain() + ".cloudfoundry-saml-login";
+    void sendAuthnRequestToIdpRedirectBindingMode() throws Exception {
         MvcResult mvcResult = mockMvc.perform(
-                get("/uaa/saml/discovery")
-                        .contextPath("/uaa")
-                        .header(HOST, spZone.getSubdomain() + ".localhost:8080")
-                        .param("returnIDParam", "idp")
-                        .param("entityID", spZoneEntityId)
-                        .param("idp", idp.getOriginKey())
-                        .param("isPassive", "true")
-        )
-                .andExpect(status().isFound())
+                        get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                                .contextPath("/uaa")
+                                .header(HOST, "localhost:8080")
+                )
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
                 .andReturn();
 
-        mvcResult = mockMvc.perform(
-                get(mvcResult.getResponse().getRedirectedUrl())
-                        .contextPath("/uaa")
-                        .header(HOST, spZone.getSubdomain() + ".localhost:8080")
-                        .session((MockHttpSession) mvcResult.getRequest().getSession())
+        String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
+        Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
+        // In the redirect binding, the encoded SAMLRequest, RelayState,
+        // SigAlg, Signature are all passed as query parameters
+        assertThat(parameterMap.get(SAML_REQUEST)).as("SAMLRequest is missing").isNotNull();
+        assertThat(parameterMap.get(SIG_ALG)[0]).as("SigAlg is missing").contains(ALGO_ID_SIGNATURE_RSA_SHA256);
+        assertThat(parameterMap.get(SIGNATURE)).as("Signature is missing").isNotNull();
+        assertThat(parameterMap.get(RELAY_STATE)).as("RelayState is missing").isNotNull();
 
-        )
+        // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
+        String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
+        assertThat(samlRequestXml)
+                .contains("<saml2p:AuthnRequest");
+
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                .withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+                .isEqualTo("http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id");
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+                .isEqualTo("integration-saml-entity-id"); // matches login.entityID
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
+    }
+
+    @Test
+    void sendAuthnRequestToIdpPostBindingMode() throws Exception {
+        final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
+
+        MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
+                )
                 .andDo(print())
-                .andExpect(status().isOk())
+                .andExpectAll(
+                        status().isOk(),
+                        content().string(containsString("name=\"SAMLRequest\"")))
                 .andReturn();
 
-        String body = mvcResult.getResponse().getContentAsString();
-        String relayState = extractRelayState(body);
-        String samlRequest = extractSamlRequest(body);
-        mockMvc.perform(
-                post("/uaa/saml/idp/SSO/alias/" + idpEntityId)
+        // Decode the SAMLRequest and check the AssertionConsumerServiceURL
+        String contentHtml = mvcResult.getResponse().getContentAsString();
+        contentHtml = contentHtml.substring(contentHtml.indexOf(samlRequestMatch) + samlRequestMatch.length());
+        contentHtml = contentHtml.substring(0, contentHtml.indexOf("\""));
+        String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
+        assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
+
+        // In the post-binding, Signature is part of the SAML AuthnRequest
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                .withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("/saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+                .isEqualTo("http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id");
+        xmlAssert.valueByXPath("/saml2p:AuthnRequest/saml2:Issuer")
+                .isEqualTo("integration-saml-entity-id"); // matches login.entityID
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
+        xmlAssert.nodesByXPath("/saml2p:AuthnRequest/ds:Signature").exist();
+        xmlAssert.valueByXPath("/saml2p:AuthnRequest/ds:Signature/ds:SignedInfo/ds:SignatureMethod/@Algorithm")
+                .isEqualTo(ALGO_ID_SIGNATURE_RSA_SHA256);
+        xmlAssert.valueByXPath("/saml2p:AuthnRequest/ds:Signature/ds:SignedInfo/ds:CanonicalizationMethod/@Algorithm")
+                .isEqualTo(ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+        xmlAssert.valueByXPath("/saml2p:AuthnRequest/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestMethod/@Algorithm")
+                .isEqualTo(ALGO_ID_DIGEST_SHA256);
+        xmlAssert.valueByXPath("/saml2p:AuthnRequest/ds:Signature/ds:SignatureValue").isNotEmpty();
+        xmlAssert.valueByXPath("/saml2p:AuthnRequest/ds:Signature/ds:SignedInfo/ds:Reference/ds:DigestValue").isNotEmpty();
+    }
+
+    @Test
+    void sendAuthnRequestFromNonDefaultZoneToIdpRedirectBindingMode() throws Exception {
+        // create IDP in non-default zone
+        createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-redirect-binding.xml", "testsaml-redirect-binding");
+
+        // trigger saml login in the non-default zone
+        MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
                         .contextPath("/uaa")
-                        .header(HOST, idpZone.getSubdomain() + ".localhost:8080")
-                        .param("RelayState", relayState)
-                        .param("SAMLRequest", samlRequest)
-        )
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://" + idpZone.getSubdomain() + ".localhost:8080/uaa/login"));
-    }
-
-    @Test
-    void validateStaticAttributes(
-            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
-    ) throws Exception {
-        createIdp();
-
-        samlServiceProvider.getConfig().getStaticCustomAttributes().put("portal_id", "portal");
-        samlServiceProvider.getConfig().getStaticCustomAttributes().put("portal_emails", Arrays.asList("portal1@portal.test", "portal2@portal.test"));
-        jdbcSamlServiceProviderProvisioning.update(samlServiceProvider, idpZone.getId());
-
-        String samlResponse = performIdpAuthentication();
-        String xml = extractAssertion(samlResponse, true);
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        String emails = (String) xpath.evaluate("//*[local-name()='Attribute'][@*[local-name()='Name' and .='portal_emails']]", new InputSource(new StringReader(xml)), XPathConstants.STRING);
-        assertThat(emails, containsString("portal1@portal.test"));
-        assertThat(emails, containsString("portal2@portal.test"));
-    }
-
-    @Test
-    void validateCustomEmailAttribute(
-            @Autowired JdbcSamlServiceProviderProvisioning jdbcSamlServiceProviderProvisioning
-    ) throws Exception {
-        createIdp();
-
-        samlServiceProvider.getConfig().getAttributeMappings().put("email", "primary-email");
-        jdbcSamlServiceProviderProvisioning.update(samlServiceProvider, idpZone.getId());
-
-        String samlResponse = performIdpAuthentication();
-        String xml = extractAssertion(samlResponse, true);
-        XPath xpath = XPathFactory.newInstance().newXPath();
-        String emails = (String) xpath.evaluate("//*[local-name()='Attribute'][@*[local-name()='Name' and .='primary-email']]", new InputSource(new StringReader(xml)), XPathConstants.STRING);
-        assertThat(emails, equalTo("test@test.org"));
-    }
-
-    @Test
-    void spIsAuthenticated() throws Exception {
-        createIdp();
-
-        String samlResponse = performIdpAuthentication();
-        String xml = extractAssertion(samlResponse, false);
-
-        testLogger.reset();
-
-        postSamlResponse(xml)
-                .andExpect(authenticated());
-
-        assertThat(testLogger.getMessageCount(), is(3));
-
-        ScimUser createdUser = jdbcScimUserProvisioning.retrieveAll(spZone.getId())
-                .stream().filter(dbUser -> dbUser.getUserName().equals("marissa")).findFirst().get();
-
-        String userCreatedLogMessage = testLogger.getFirstLogMessageOfType(AuditEventType.UserCreatedEvent);
-        String expectedMessage = String.format(
-                "UserCreatedEvent ('[\"user_id=%s\",\"username=marissa\"]'): principal=%s, origin=[caller=null], identityZoneId=[%s]",
-                createdUser.getId(), createdUser.getId(), spZone.getId()
-        );
-
-        assertThat(userCreatedLogMessage, is(expectedMessage));
-    }
-
-    // see also similar test for LDAP in AbstractLdapMockMvcTest.java
-    @Test
-    void passcodeGrantIdTokenContainsExternalGroupsAsRolesClaim() throws Exception {
-        createIdp((idpDefinition) -> {
-            // External groups will only appear as roles if they are whitelisted
-            idpDefinition.setExternalGroupsWhitelist(newArrayList("*"));
-            // External groups are currently only stored in the db if StoreCustomAttributes is true
-            idpDefinition.setStoreCustomAttributes(true);
-            // External groups will only be found when there is a configured attribute name for them
-            Map<String, Object> attributeMappings = new HashMap<>();
-            attributeMappings.put("external_groups", Collections.singletonList("authorities"));
-            idpDefinition.setAttributeMappings(attributeMappings);
-        });
-
-        String[] expectedExternalGroups = new String[]{"marissagroup1", "marissagroup2"};
-        List<String> samlAuthorityNamesForMockAuthentication = newArrayList(expectedExternalGroups);
-
-        // You need the openid scope in order to get an id_token,
-        // and you need the roles scope in order to have the "roles" claim included into the id_token,
-        // so we put both of these scopes on the client.
-        String clientId = "roles_test_client";
-        createClient(webApplicationContext,
-                new BaseClientDetails(clientId, null, "roles,openid", "password,refresh_token", null),
-                spZone
-        );
-
-        String spZoneHost = spZone.getSubdomain() + ".localhost:8080";
-
-        // Log in to get a session cookie as the user
-        String samlResponse = performIdpAuthentication(samlAuthorityNamesForMockAuthentication);
-        String xml = extractAssertion(samlResponse, false);
-        MockHttpSession session = (MockHttpSession) postSamlResponse(xml)
-                .andExpect(authenticated())
-                .andReturn().getRequest().getSession(false);
-
-        // Using the user's session cookie, get a one-time passcode
-        String content = mockMvc.perform(
-                get("/passcode")
-                        .session(session)
-                        .header(HOST, spZoneHost)
-                        .accept(APPLICATION_JSON)
-        )
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        String passcode = JsonUtils.readValue(content, String.class);
-
-        // Using the passcode, perform a password grant to get back tokens
-        String response = mockMvc.perform(
-                post("/oauth/token")
-                        .param("client_id", clientId)
-                        .param("client_secret", "")
-                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_PASSWORD)
-                        .param("passcode", passcode)
-                        .accept(APPLICATION_JSON)
-                        .contentType(APPLICATION_FORM_URLENCODED)
-                        .header(HOST, spZoneHost)
-        )
+                        .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
+                )
                 .andDo(print())
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
 
-        Map<String, Object> tokens = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {
-        });
+        String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
+        Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
+        assertThat(parameterMap.get(SAML_REQUEST)).as("SAMLRequest is missing").isNotNull();
+        assertThat(parameterMap.get(SIG_ALG)).as("SigAlg is missing").isNotNull();
+        assertThat(parameterMap.get(SIGNATURE)).as("Signature is missing").isNotNull();
+        assertThat(parameterMap.get(RELAY_STATE)).as("RelayState is missing").isNotNull();
 
-        String accessToken = (String) tokens.get(ACCESS_TOKEN);
-        Jwt accessTokenJwt = JwtHelper.decode(accessToken);
-        Map<String, Object> accessTokenClaims = JsonUtils.readValue(accessTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-        });
-        List<String> accessTokenScopes = (List<String>) accessTokenClaims.get("scope");
-        // Check that the user had the roles scope, which is a pre-requisite for getting roles returned in the id_token
-        assertThat(accessTokenScopes, hasItem("roles"));
-
-        Jwt idTokenJwt = JwtHelper.decode((String) tokens.get("id_token"));
-        Map<String, Object> claims = JsonUtils.readValue(idTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-        });
-        List<String> idTokenRoles = (List<String>) claims.get("roles");
-        assertThat(idTokenRoles, containsInAnyOrder(expectedExternalGroups));
-
-        // As an aside, the /userinfo endpoint should also return the user's roles
-        String userInfoContent = mockMvc.perform(
-                get("/userinfo")
-                        .header(HOST, spZoneHost)
-                        .header("Authorization", "Bearer " + accessToken)
-                        .accept(APPLICATION_JSON)
-        )
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-        Map<String, Object> userInfo = JsonUtils.readValue(userInfoContent, new TypeReference<Map<String, Object>>() {
-        });
-        List<String> userInfoRoles = (List<String>) userInfo.get("roles");
-        assertThat(userInfoRoles, containsInAnyOrder(expectedExternalGroups));
-
-        // We also got back a refresh token. When they use it, the refreshed id_token should also have the roles claim.
-        String refreshToken = (String) tokens.get(REFRESH_TOKEN);
-        String refreshTokenResponse = mockMvc.perform(
-                post("/oauth/token")
-                        .param("client_id", clientId)
-                        .param("client_secret", "")
-                        .param(OAuth2Utils.GRANT_TYPE, GRANT_TYPE_REFRESH_TOKEN)
-                        .param("refresh_token", refreshToken)
-                        .accept(APPLICATION_JSON)
-                        .contentType(APPLICATION_FORM_URLENCODED)
-                        .header(HOST, spZoneHost)
-        )
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString();
-
-        Map<String, Object> refreshedTokens = JsonUtils.readValue(refreshTokenResponse, new TypeReference<Map<String, Object>>() {
-        });
-        Jwt refreshedIdTokenJwt = JwtHelper.decode((String) refreshedTokens.get("id_token"));
-        Map<String, Object> refreshedClaims = JsonUtils.readValue(refreshedIdTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-        });
-        List<String> refreshedIdTokenRoles = (List<String>) refreshedClaims.get("roles");
-        assertThat(refreshedIdTokenRoles, containsInAnyOrder(expectedExternalGroups));
+        // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
+        String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml).withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+                .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+                .isEqualTo(spZone.getConfig().getSamlConfig().getEntityID()); // should match zone config's samlConfig.entityID
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
     }
 
-    private ResultActions postSamlResponse(
-            final String xml
-    ) throws Exception {
-        return postSamlResponse(xml, "", "", "");
+    @Test
+    void sendAuthnRequestFromNonDefaultZoneToIdpRedirectBindingMode_ZoneConfigSamlEntityIDNotSet() throws Exception {
+        // create a new zone without zone saml entity ID not set
+        UaaClientDetails adminClient = new UaaClientDetails("admin", "", "", "client_credentials", "uaa.admin");
+        adminClient.setClientSecret("adminsecret");
+        String spZoneSubdomain = "uaa-acting-as-saml-proxy-zone-" + generator.generate();
+        spZone = createZoneWithSamlSpConfig(spZoneSubdomain, adminClient, true, true, null);
+
+        // create IDP in non-default zone
+        createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-redirect-binding.xml", "testsaml-redirect-binding");
+
+        // trigger saml login in the non-default zone
+        MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                        .contextPath("/uaa")
+                        .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
+                )
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                .andReturn();
+
+        String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
+        Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
+        assertThat(parameterMap.get(SAML_REQUEST)).as("SAMLRequest is missing").isNotNull();
+        assertThat(parameterMap.get(SIG_ALG)).as("SigAlg is missing").isNotNull();
+        assertThat(parameterMap.get(SIGNATURE)).as("Signature is missing").isNotNull();
+        assertThat(parameterMap.get(RELAY_STATE)).as("RelayState is missing").isNotNull();
+
+        // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
+        String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml).withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+                .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+                .isEqualTo("%s.%s".formatted(spZone.getSubdomain(), "integration-saml-entity-id")); // should match zone config's samlConfig.entityID; if not set, fail over to zone-subdomain.uaa-wide-saml-entity-id
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
+    }
+
+    @Test
+    void sendAuthnRequestFromNonDefaultZoneToIdpPostBindingMode() throws Exception {
+        // create IDP in non-default zone
+        createMockSamlIdpInSpZone("classpath:test-saml-idp-metadata-post-binding.xml", "testsaml-post-binding");
+
+        final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
+
+        MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
+                        .contextPath("/uaa")
+                        .header(HOST, "%s.localhost:8080".formatted(spZone.getSubdomain()))
+                )
+                .andDo(print())
+                .andExpectAll(
+                        status().isOk(),
+                        content().string(containsString("name=\"SAMLRequest\"")))
+                .andReturn();
+
+        // Decode the SAMLRequest and check the AssertionConsumerServiceURL
+        String contentHtml = mvcResult.getResponse().getContentAsString();
+        contentHtml = contentHtml.substring(contentHtml.indexOf(samlRequestMatch) + samlRequestMatch.length());
+        contentHtml = contentHtml.substring(0, contentHtml.indexOf("\""));
+        String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
+        assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
+
+        XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                .withNamespaceContext(xmlNamespaces());
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+                .isEqualTo("http://%1$s.localhost:8080/uaa/saml/SSO/alias/%1$s.integration-saml-entity-id".formatted(spZone.getSubdomain()));
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2:Issuer")
+                .isEqualTo(spZone.getConfig().getSamlConfig().getEntityID()); // should match zone config's samlConfig.entityID
+        xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress"); // matches login.saml.nameID
+    }
+
+    @Test
+    void receiveAuthnResponseFromIdpToLegacyAliasUrl() throws Exception {
+
+        String encodedSamlResponse = serializedResponse(responseWithAssertions());
+        mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
+                        .param(SAML_RESPONSE, encodedSamlResponse)
+                )
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                // expect redirect to the Uaa Home Page: /uaa/
+                .andExpect(redirectedUrl("/uaa/"))
+                .andReturn();
     }
 
     private ResultActions postSamlResponse(
             final String xml,
             final String queryString,
             final String content,
-            final String xVcapRequestId
-    ) throws Exception {
-        return mockMvc.perform(
-                post("/uaa/saml/SSO/alias/" + spZoneEntityId + queryString)
-                        .contextPath("/uaa")
-                        .header(HOST, spZone.getSubdomain() + ".localhost:8080")
-                        .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                        .header(X_VCAP_REQUEST_ID_HEADER, xVcapRequestId)
-                        .content(content)
-                        .param("SAMLResponse", xml)
+            final String xVcapRequestId) throws Exception {
+
+        return mockMvc.perform(post("/uaa/saml/SSO/alias/%s%s".formatted(spZoneEntityId, queryString))
+                .contextPath("/uaa")
+                .header(HOST, spZone.getSubdomain() + ".localhost:8080")
+                .header(CONTENT_TYPE, MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .header(X_VCAP_REQUEST_ID_HEADER, xVcapRequestId)
+                .content(content)
+                .param(SAML_RESPONSE, xml)
         );
+    }
+
+    private String getSamlMetadata(String subdomain, String url) throws Exception {
+        return mockMvc.perform(
+                        get(url)
+                                .header("Host", subdomain + ".localhost")
+                )
+                .andReturn().getResponse().getContentAsString();
+    }
+
+    void createIdp() throws Exception {
+        createIdp(null);
+    }
+
+    private void createIdp(Consumer<SamlIdentityProviderDefinition> additionalConfigCallback) throws Exception {
+        idp = new IdentityProvider<SamlIdentityProviderDefinition>()
+                .setType(OriginKeys.SAML)
+                .setOriginKey(idpZone.getSubdomain())
+                .setActive(true)
+                .setName("SAML IDP for Mock Tests")
+                .setIdentityZoneId(spZone.getId());
+        SamlIdentityProviderDefinition idpDefinition = new SamlIdentityProviderDefinition()
+                .setMetaDataLocation(getSamlMetadata(idpZone.getSubdomain(), "/saml/idp/metadata"))
+                .setIdpEntityAlias(idp.getOriginKey())
+                .setLinkText(idp.getName())
+                .setZoneId(spZone.getId());
+
+        if (additionalConfigCallback != null) {
+            additionalConfigCallback.accept(idpDefinition);
+        }
+
+        idp.setConfig(idpDefinition);
+        idp = jdbcIdentityProviderProvisioning.create(idp, spZone.getId());
+    }
+
+    private void createMockSamlIdpInSpZone(String metadataLocation, String idpOriginKey) {
+        idp = new IdentityProvider<SamlIdentityProviderDefinition>()
+                .setType(OriginKeys.SAML)
+                .setOriginKey(idpOriginKey)
+                .setActive(true)
+                .setName("SAML IDP for Mock Tests")
+                .setIdentityZoneId(spZone.getId());
+        SamlIdentityProviderDefinition idpDefinition = new SamlIdentityProviderDefinition()
+                .setMetaDataLocation(metadataLocation)
+                .setIdpEntityAlias(idp.getOriginKey())
+                .setLinkText(idp.getName())
+                .setZoneId(spZone.getId());
+
+        idp.setConfig(idpDefinition);
+        idp = jdbcIdentityProviderProvisioning.create(idp, spZone.getId());
+    }
+
+    private IdentityZone createZoneWithSamlSpConfig(String zoneSubdomain, UaaClientDetails adminClient, Boolean samlRequestSigned, Boolean samlWantAssertionSigned, String samlZoneEntityID) throws Exception {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(zoneSubdomain, zoneSubdomain);
+        identityZone.getConfig().getSamlConfig().setRequestSigned(samlRequestSigned);
+        identityZone.getConfig().getSamlConfig().setWantAssertionSigned(samlWantAssertionSigned);
+        identityZone.getConfig().getSamlConfig().setEntityID(samlZoneEntityID);
+        return MockMvcUtils.createOtherIdentityZoneAndReturnResult(mockMvc, webApplicationContext, adminClient, identityZone, true, IdentityZoneHolder.getCurrentZoneId()).getIdentityZone();
     }
 
     @Nested
     @DefaultTestContext
+    @TestPropertySource(properties = {"login.saml.signRequest = false"})
+    class UnsignedConfigMockMvcTests {
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void unsignedAuthnRequestViaIdpRedirectBindingMode() throws Exception {
+            MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
+                    )
+                    .andDo(print())
+                    .andExpect(status().is3xxRedirection())
+                    .andReturn();
+
+            String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
+            Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
+            // In the redirect binding, the encoded SAMLRequest, RelayState,
+            // SigAlg, Signature are all passed as query parameters
+            assertThat(parameterMap.get(SAML_REQUEST)).as("SAMLRequest is missing").isNotNull();
+            assertThat(parameterMap.get(SIG_ALG)).as("SigAlg exists, but SAMLRequest should not be signed").isNull();
+            assertThat(parameterMap.get(SIGNATURE)).as("Signature exists, but SAMLRequest should not be signed").isNull();
+        }
+
+        @Test
+        void unsignedAuthnRequestViaIdpPostBindingMode() throws Exception {
+            final String samlRequestMatch = "name=\"SAMLRequest\" value=\"";
+
+            MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-post-binding"))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
+                    )
+                    .andDo(print())
+                    .andExpectAll(
+                            status().isOk(),
+                            content().string(containsString("name=\"SAMLRequest\"")))
+                    .andReturn();
+
+            // Decode the SAMLRequest and check the AssertionConsumerServiceURL
+            String contentHtml = mvcResult.getResponse().getContentAsString();
+            contentHtml = contentHtml.substring(contentHtml.indexOf(samlRequestMatch) + samlRequestMatch.length());
+            contentHtml = contentHtml.substring(0, contentHtml.indexOf("\""));
+            String samlRequestXml = new String(samlDecode(contentHtml), StandardCharsets.UTF_8);
+            assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
+
+            // In the post-binding, Signature is part of the SAML AuthnRequest
+            XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                    .withNamespaceContext(xmlNamespaces());
+            xmlAssert.valueByXPath("/saml2p:AuthnRequest/@AssertionConsumerServiceURL")
+                    .isEqualTo("http://localhost:8080/uaa/saml/SSO/alias/integration-saml-entity-id");
+            xmlAssert.valueByXPath("/saml2p:AuthnRequest/saml2:Issuer")
+                    .isEqualTo("integration-saml-entity-id"); // matches login.entityID
+            xmlAssert.nodesByXPath("/saml2p:AuthnRequest/ds:Signature").doNotExist();
+        }
+    }
+
+    @Test
+    void AuthnResponseFailsWithWithInvalidInResponseTo() throws Exception {
+
+        Response response = responseWithAssertions();
+        response.setInResponseTo("incorrect");
+        String encodedSamlResponse = serializedResponse(response);
+        mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                        .contextPath("/uaa")
+                        .header(HOST, "localhost:8080")
+                        .param(SAML_RESPONSE, encodedSamlResponse)
+                        .param(RELAY_STATE, "testsaml-post-binding")
+                )
+                .andDo(print())
+                .andExpect(status().is3xxRedirection())
+                // expect redirect to the Error Page: /uaa/saml_error, not the Uaa Home Page
+                .andExpect(redirectedUrl("/uaa/saml_error"))
+                .andReturn();
+    }
+
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "login.saml.disableInResponseToCheck=true")
+    class InResponseToConfigMockMvcTests {
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void AuthnResponseSucceedsWithWithInvalidInResponseTo() throws Exception {
+
+            Response response = responseWithAssertions("https://some.idp.test/saml/idp");
+            response.setInResponseTo("incorrect");
+            String encodedSamlResponse = serializedResponse(response);
+            mockMvc.perform(post("/uaa/saml/SSO/alias/%s".formatted("integration-saml-entity-id"))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
+                            .param(SAML_RESPONSE, encodedSamlResponse)
+                    )
+                    .andDo(print())
+                    .andExpect(status().is3xxRedirection())
+                    // expect redirect to the Uaa Home Page: /uaa/, not error
+                    .andExpect(redirectedUrl("/uaa/"))
+                    .andReturn();
+        }
+    }
+
+    @Nested
+    @DefaultTestContext
+    @TestPropertySource(properties = "login.saml.nameID=urn:oasis:names:tc:SAML:1.1:nameid-format:peaches")
+    class NameIdConfigMockMvcTests {
+        @Autowired
+        private MockMvc mockMvc;
+
+        @Test
+        void sendAuthnRequestToIdpRedirectBindingMode() throws Exception {
+            MvcResult mvcResult = mockMvc.perform(get("/uaa/saml2/authenticate/%s".formatted("testsaml-redirect-binding"))
+                            .contextPath("/uaa")
+                            .header(HOST, "localhost:8080")
+                    )
+                    .andDo(print())
+                    .andExpect(status().is3xxRedirection())
+                    .andReturn();
+
+            String samlRequestUrl = mvcResult.getResponse().getRedirectedUrl();
+            Map<String, String[]> parameterMap = UaaUrlUtils.getParameterMap(samlRequestUrl);
+
+            // Decode & Inflate the SAMLRequest and check the AssertionConsumerServiceURL
+            String samlRequestXml = samlDecodeAndInflate(parameterMap.get(SAML_REQUEST)[0]);
+            assertThat(samlRequestXml).contains("<saml2p:AuthnRequest");
+
+            XmlAssert xmlAssert = XmlAssert.assertThat(samlRequestXml)
+                    .withNamespaceContext(xmlNamespaces());
+            xmlAssert.valueByXPath("//saml2p:AuthnRequest/saml2p:NameIDPolicy/@Format")
+                    .isEqualTo("urn:oasis:names:tc:SAML:1.1:nameid-format:peaches"); // matches login.saml.nameID
+        }
+    }
+
+    @Nested
     class WithCustomLogAppender {
+        private static final String LOGGER_NAME = "org.cloudfoundry.identity.uaa.authentication.SamlResponseLoggerBinding";
         private List<LogEvent> logEvents;
         private AbstractAppender appender;
         private Level originalLevel;
@@ -404,7 +530,7 @@ class SamlAuthenticationMockMvcTests {
             appender = new AbstractAppender("", null, null) {
                 @Override
                 public void append(LogEvent event) {
-                    if (SamlResponseLoggerBinding.class.getName().equals(event.getLoggerName())) {
+                    if (LOGGER_NAME.equals(event.getLoggerName())) {
                         logEvents.add(event);
                     }
                 }
@@ -428,8 +554,6 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void malformedSamlRequestLogsQueryStringAndContentMetadata() throws Exception {
-            performIdpAuthentication();
-
             postSamlResponse(null, "?bogus=query", "someKey=someVal&otherKey=otherVal&emptyKey=", "vcap_request_id_abc123");
 
             assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
@@ -438,8 +562,6 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void malformedSamlRequestWithNoQueryStringAndNoContentMetadata() throws Exception {
-            performIdpAuthentication();
-
             postSamlResponse(null, "", "", "");
 
             assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
@@ -448,161 +570,29 @@ class SamlAuthenticationMockMvcTests {
 
         @Test
         void malformedSamlRequestWithRepeatedParams() throws Exception {
-            performIdpAuthentication();
-
             postSamlResponse(null, "?foo=a&foo=ab&foo=aaabbbccc", "", "");
 
             assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
             assertThatMessageWasLogged(logEvents, DEBUG, "Method: POST, Params (name/size): (foo/1) (foo/2) (foo/9) (SAMLResponse/0), Content-type: application/x-www-form-urlencoded, Request-size: 0, X-Vcap-Request-Id: ");
         }
 
+        @Test
+        void malformedSamlRequest() throws Exception {
+            postSamlResponse("<a/>", "?foo=a", "", "");
+
+            assertThatMessageWasLogged(logEvents, WARN, "Malformed SAML response. More details at log level DEBUG.");
+            assertThatMessageWasLogged(logEvents, DEBUG, "Method: POST, Params (name/size): (foo/1) (SAMLResponse/4), Content-type: application/x-www-form-urlencoded, Request-size: 0, X-Vcap-Request-Id: ");
+        }
+
         private void assertThatMessageWasLogged(
                 final List<LogEvent> logEvents,
                 final Level expectedLevel,
-                final String expectedMessage
-        ) {
-            assertThat(logEvents, hasItem(new MatchesLogEvent(expectedLevel, expectedMessage)));
-        }
-    }
+                final String expectedMessage) {
 
-    private static class MatchesLogEvent extends BaseMatcher<LogEvent> {
-
-        private final Level expectedLevel;
-        private final String expectedMessage;
-
-        public MatchesLogEvent(
-                final Level expectedLevel,
-                final String expectedMessage
-        ) {
-            this.expectedLevel = expectedLevel;
-            this.expectedMessage = expectedMessage;
-        }
-
-        @Override
-        public boolean matches(Object actual) {
-            if (!(actual instanceof LogEvent)) {
-                return false;
-            }
-            LogEvent logEvent = (LogEvent) actual;
-
-            return expectedLevel.equals(logEvent.getLevel())
-                    && expectedMessage.equals(logEvent.getMessage().getFormattedMessage());
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendText(String.format("LogEvent with level of {%s} and message of {%s}", this.expectedLevel, this.expectedMessage));
-        }
-    }
-
-    private String performIdpAuthentication() throws Exception {
-        return performIdpAuthentication(Collections.singletonList("uaa.user"));
-    }
-
-    private String performIdpAuthentication(List<String> authorityNames) throws Exception {
-        List<GrantedAuthority> grantedAuthorityList = authorityNames.stream().map(UaaAuthority::authority).collect(Collectors.toList());
-        RequestPostProcessor marissa = securityContext(getUaaSecurityContext("marissa", webApplicationContext, idpZone.getId(), grantedAuthorityList));
-        return mockMvc.perform(
-                get("/saml/idp/initiate")
-                        .header("Host", idpZone.getSubdomain() + ".localhost")
-                        .param("sp", spZoneEntityId)
-                        .with(marissa)
-        )
-                .andDo(print())
-                .andReturn().getResponse().getContentAsString();
-    }
-
-    private String getSamlMetadata(String subdomain, String url) throws Exception {
-        return mockMvc.perform(
-                get(url)
-                        .header("Host", subdomain + ".localhost")
-        )
-                .andReturn().getResponse().getContentAsString();
-    }
-
-    private static void createUser(
-            JdbcScimUserProvisioning jdbcScimUserProvisioning,
-            IdentityZone identityZone
-    ) {
-        ScimUser user = new ScimUser(null, "marissa", "first", "last");
-        user.setPrimaryEmail("test@test.org");
-        jdbcScimUserProvisioning.createUser(user, "secret", identityZone.getId());
-    }
-
-    private void createSp(SamlServiceProviderProvisioning spProvisioning) throws Exception {
-        SamlServiceProviderDefinition spDefinition = new SamlServiceProviderDefinition();
-        spDefinition.setEnableIdpInitiatedSso(true);
-        spDefinition.setMetaDataLocation(getSamlMetadata(spZone.getSubdomain(), "/saml/metadata"));
-        Map<String, Object> staticAttributes = new HashMap<>();
-        spDefinition.setStaticCustomAttributes(staticAttributes);
-        samlServiceProvider = new SamlServiceProvider()
-                .setIdentityZoneId(idpZone.getId())
-                .setEntityId(spZoneEntityId)
-                .setConfig(spDefinition)
-                .setActive(true)
-                .setName("SAML SP for Mock Tests");
-        samlServiceProvider = spProvisioning.create(samlServiceProvider, idpZone.getId());
-    }
-
-    void createIdp() throws Exception {
-        createIdp(null);
-    }
-
-    private void createIdp(Consumer<SamlIdentityProviderDefinition> additionalConfigCallback) throws Exception {
-        idp = new IdentityProvider<>()
-                .setType(OriginKeys.SAML)
-                .setOriginKey(idpZone.getSubdomain())
-                .setActive(true)
-                .setName("SAML IDP for Mock Tests")
-                .setIdentityZoneId(spZone.getId());
-        SamlIdentityProviderDefinition idpDefinition = new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(getSamlMetadata(idpZone.getSubdomain(), "/saml/idp/metadata"))
-                .setIdpEntityAlias(idp.getOriginKey())
-                .setLinkText(idp.getName())
-                .setZoneId(spZone.getId());
-
-        if (additionalConfigCallback != null) {
-            additionalConfigCallback.accept(idpDefinition);
-        }
-
-        idp.setConfig(idpDefinition);
-        idp = jdbcIdentityProviderProvisioning.create(idp, spZone.getId());
-    }
-
-    private IdentityZone createZone(String zoneIdPrefix, BaseClientDetails adminClient) throws Exception {
-        return MockMvcUtils.createOtherIdentityZoneAndReturnResult(
-                zoneIdPrefix + generator.generate(),
-                mockMvc,
-                webApplicationContext,
-                adminClient, IdentityZoneHolder.getCurrentZoneId()
-        ).getIdentityZone();
-    }
-
-    private static String extractAssertion(String response, boolean decode) {
-        String searchFor = "name=\"SAMLResponse\" value=\"";
-        return extractFormParameter(searchFor, response, decode);
-    }
-
-    private static String extractSamlRequest(String response) {
-        String searchFor = "name=\"SAMLRequest\" value=\"";
-        return extractFormParameter(searchFor, response, false);
-    }
-
-    private static String extractRelayState(String response) {
-        String searchFor = "name=\"RelayState\" value=\"";
-        return extractFormParameter(searchFor, response, false);
-    }
-
-    private static String extractFormParameter(String searchFor, String response, boolean decode) {
-        int start = response.indexOf(searchFor) + searchFor.length();
-        assertThat("Must find the SAML response in output\n" + response, start, greaterThan(searchFor.length()));
-        int end = response.indexOf("\"/>", start);
-        assertThat("Must find the SAML response in output\n" + response, end, greaterThan(start));
-        String encoded = response.substring(start, end);
-        if (decode) {
-            return new String(Base64.getDecoder().decode(encoded));
-        } else {
-            return encoded;
+            assertThat(logEvents).filteredOn(l -> l.getLevel().equals(expectedLevel))
+                    .isNotEmpty()
+                    .first()
+                    .returns(expectedMessage, l -> l.getMessage().getFormattedMessage());
         }
     }
 }

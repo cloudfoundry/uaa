@@ -26,24 +26,25 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static java.util.Collections.EMPTY_LIST;
-import static java.util.Collections.EMPTY_MAP;
-import static java.util.Collections.EMPTY_SET;
+import static java.util.Collections.emptyList;
+import static java.util.Collections.emptyMap;
+import static java.util.Collections.emptySet;
 
 public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentication> implements UaaAuthenticationJsonBase {
     @Override
     public UaaAuthentication deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException {
         UaaAuthenticationDetails details = null;
         UaaPrincipal princpal = null;
-        List<? extends GrantedAuthority> authorities = EMPTY_LIST;
-        Set<String> externalGroups = EMPTY_SET;
-        Set<String> authenticationMethods = EMPTY_SET;
+        List<? extends GrantedAuthority> authorities = emptyList();
+        Set<String> externalGroups = emptySet();
+        Set<String> authenticationMethods = emptySet();
         Set<String> authNContextClassRef = null;
         long expiresAt = -1;
         long authenticatedTime = -1;
         boolean authenticated = false;
         long previousLoginSuccessTime = -1;
-        Map<String,List<String>> userAttributes = EMPTY_MAP;
+        String idpIdToken = null;
+        Map<String, List<String>> userAttributes = emptyMap();
         while (jp.nextToken() != JsonToken.END_OBJECT) {
             if (jp.getCurrentToken() == JsonToken.FIELD_NAME) {
                 String fieldName = jp.getCurrentName();
@@ -55,9 +56,11 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
                 } else if (PRINCIPAL.equals(fieldName)) {
                     princpal = jp.readValueAs(UaaPrincipal.class);
                 } else if (AUTHORITIES.equals(fieldName)) {
-                    authorities = deserializeAuthorites(jp.readValueAs(new TypeReference<List<String>>(){}));
+                    authorities = deserializeAuthorites(jp.readValueAs(new TypeReference<List<String>>(){
+                    }));
                 } else if (EXTERNAL_GROUPS.equals(fieldName)) {
-                    externalGroups = jp.readValueAs(new TypeReference<Set<String>>(){});
+                    externalGroups = jp.readValueAs(new TypeReference<Set<String>>(){
+                    });
                 } else if (EXPIRES_AT.equals(fieldName)) {
                     expiresAt = jp.getLongValue();
                 } else if (AUTH_TIME.equals(fieldName)) {
@@ -65,18 +68,24 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
                 } else if (AUTHENTICATED.equals(fieldName)) {
                     authenticated = jp.getBooleanValue();
                 } else if (USER_ATTRIBUTES.equals(fieldName)) {
-                    userAttributes = jp.readValueAs(new TypeReference<Map<String,List<String>>>() {});
+                    userAttributes = jp.readValueAs(new TypeReference<Map<String, List<String>>>() {
+                    });
                 } else if (AUTHENTICATION_METHODS.equals(fieldName)) {
-                    authenticationMethods = jp.readValueAs(new TypeReference<Set<String>>() {});
+                    authenticationMethods = jp.readValueAs(new TypeReference<Set<String>>() {
+                    });
                 } else if (AUTHN_CONTEXT_CLASS_REF.equals(fieldName)) {
-                    authNContextClassRef = jp.readValueAs(new TypeReference<Set<String>>() {});
-                } else if (PREVIOIUS_LOGIN_SUCCESS_TIME.equals(fieldName)){
+                    authNContextClassRef = jp.readValueAs(new TypeReference<Set<String>>() {
+                    });
+                } else if (PREVIOIUS_LOGIN_SUCCESS_TIME.equals(fieldName)) {
                     previousLoginSuccessTime = jp.getLongValue();
+                } else if (IDP_ID_TOKEN.equals(fieldName)) {
+                    idpIdToken = jp.readValueAs(new TypeReference<String>() {
+                    });
                 }
             }
         }
-        if (princpal==null) {
-            throw new JsonMappingException("Missing "+UaaPrincipal.class.getName());
+        if (princpal == null) {
+            throw new JsonMappingException("Missing " + UaaPrincipal.class.getName());
         }
         UaaAuthentication uaaAuthentication = new UaaAuthentication(princpal,
                 null,
@@ -90,6 +99,7 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
         uaaAuthentication.setAuthenticationMethods(authenticationMethods);
         uaaAuthentication.setAuthContextClassRef(authNContextClassRef);
         uaaAuthentication.setLastLoginSuccessTime(previousLoginSuccessTime);
+        uaaAuthentication.setIdpIdToken(idpIdToken);
         return uaaAuthentication;
     }
 }

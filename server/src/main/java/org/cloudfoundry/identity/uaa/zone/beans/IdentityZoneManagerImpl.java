@@ -4,7 +4,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("identityZoneManager")
 public class IdentityZoneManagerImpl implements IdentityZoneManager {
     @Override
     public IdentityZone getCurrentIdentityZone() {

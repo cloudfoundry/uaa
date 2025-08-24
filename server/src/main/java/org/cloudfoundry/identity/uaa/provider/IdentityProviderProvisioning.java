@@ -21,13 +21,19 @@ public interface IdentityProviderProvisioning {
 
     IdentityProvider update(IdentityProvider identityProvider, String zoneId);
 
+    boolean idpWithAliasExistsInZone(String zoneId);
+
     IdentityProvider retrieve(String id, String zoneId);
 
     List<IdentityProvider> retrieveActive(String zoneId);
 
+    List<IdentityProvider> retrieveActiveByTypes(String zoneId, String... types);
+
     List<IdentityProvider> retrieveAll(boolean activeOnly, String zoneId);
 
     IdentityProvider retrieveByOrigin(String origin, String zoneId);
+
+    IdentityProvider retrieveByExternId(String externId, String type, String zoneId);
 
     default IdentityProvider retrieveByOriginIgnoreActiveFlag(String origin, String zoneId) {
         return retrieveByOrigin(origin, zoneId);

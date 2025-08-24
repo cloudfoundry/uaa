@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -42,13 +43,13 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
 
     public void addUser(UaaUser user) {
         this.ids.put(user.getId(), user);
-        this.users.put(user.getUsername()+"-"+user.getOrigin(), user);
+        this.users.put(user.getUsername() + "-" + user.getOrigin(), user);
     }
 
     @Override
     public UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException {
 
-        UaaUser u = users.get(username+"-"+origin);
+        UaaUser u = users.get(username + "-" + origin);
         if (u == null) {
             throw new UsernameNotFoundException("User " + username + " not found");
         }
@@ -92,8 +93,8 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
     @Override
     public UserInfo storeUserInfo(String id, UserInfo i) {
         UserInfo info = new UserInfo()
-            .setUserAttributes(i.getUserAttributes())
-            .setRoles(i.getRoles());
+                .setUserAttributes(i.getUserAttributes())
+                .setRoles(i.getRoles());
         this.userInfo.put(id, info);
         return i;
     }

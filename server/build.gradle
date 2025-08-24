@@ -1,4 +1,4 @@
-apply plugin: 'java'
+apply(plugin: "war")
 
 description = "CloudFoundry Identity Server JAR"
 
@@ -7,12 +7,12 @@ dependencies {
     implementation(project(":cloudfoundry-identity-model"))
 
     implementation(libraries.tomcatJdbc)
-    provided(libraries.tomcatEmbed)
-    implementation(libraries.javaxMail)
+    providedCompile(libraries.tomcatEmbed)
 
     implementation(libraries.jacksonDatabind)
-    implementation(libraries.jsonPath)
-    implementation(libraries.zxing)
+    implementation(libraries.jsonPath) {
+        exclude(module: "json-smart")
+    }
     implementation(libraries.springBeans)
     implementation(libraries.springContext)
     implementation(libraries.springContextSupport)
@@ -20,37 +20,43 @@ dependencies {
     implementation(libraries.springJdbc)
     implementation(libraries.springWeb)
     implementation(libraries.springSecurityCore)
-    implementation(libraries.springSecurityJwt)
     implementation(libraries.springSecurityWeb)
-    implementation(libraries.springSecuritySaml) {
-        exclude(module: "bcprov-ext-jdk15on")
-    }
+    implementation(libraries.springSecurityConfig)
+    implementation(libraries.springBootStarterMail)
+    implementation(libraries.openSamlApi)
+    implementation(libraries.springSecuritySamlServiceProvider)
+    implementation(libraries.jodaTime)
     implementation(libraries.xmlSecurity)
     implementation(libraries.springSessionJdbc)
 
-    implementation(libraries.springSecurityOauth) {
-        exclude(module: "commons-codec")
-        exclude(module: "jackson-mapper-asl")
-        exclude(module: "spring-security-web")
-    }
-
-    implementation(libraries.bouncyCastleProv)
-    implementation(libraries.bouncyCastlePkix)
+    implementation(libraries.bouncyCastleFipsProv)
+    implementation(libraries.bouncyCastleTlsFips)
+    implementation(libraries.bouncyCastlePkixFips)
 
     implementation(libraries.guava)
 
     implementation(libraries.aspectJRt)
     implementation(libraries.aspectJWeaver)
 
-    implementation(libraries.thymeleafSpring5)
-    implementation(libraries.thymeleafDialect)
-    implementation(libraries.thymeleafExtrasSpringSecurity5)
+    implementation(libraries.thymeLeaf) {
+        exclude(module: "ognl")
+    }
+    implementation(libraries.thymeleafSpring) {
+        exclude(module: "ognl")
+    }
+    implementation(libraries.thymeleafDialect) {
+        exclude(module: "ognl")
+    }
+    implementation(libraries.thymeleafExtrasSpringSecurity) {
+        exclude(module: "ognl")
+    }
 
     implementation(libraries.unboundIdScimSdk) {
         exclude(module: "servlet-api")
         exclude(module: "commons-logging")
         exclude(module: "httpclient")
         exclude(module: "wink-client-apache-httpclient")
+        exclude(module: "json")
     }
 
     implementation(libraries.hibernateValidator)
@@ -59,35 +65,32 @@ dependencies {
     implementation(libraries.hsqldb)
 
     implementation(libraries.snakeyaml)
+    implementation(libraries.velocity)
 
+    implementation(libraries.springWebMvc)
     implementation(libraries.springSecurityLdap)
     implementation(libraries.springLdapCore)
-    implementation(libraries.springLdapCoreTiger)
     implementation(libraries.apacheLdapApi) {
         exclude(module: "slf4j-api")
+        exclude(module: "mina-core")
     }
 
     implementation(libraries.passay)
-    implementation(libraries.beanutils)
-    implementation(libraries.velocity)
-
-    implementation(libraries.googleAuth)
 
     implementation(libraries.slf4jImpl)
     implementation(libraries.log4jCore)
 
-    implementation(libraries.javaxXmlBindApi)
-    implementation(libraries.glassfishJaxb)
-
     implementation(libraries.nimbusJwt)
+    implementation(libraries.orgJson)
+
+    implementation(libraries.apacheHttpClient)
 
     testImplementation(project(":cloudfoundry-identity-model").sourceSets.test.output)
 
     testImplementation(libraries.springTest)
 
-    testImplementation(libraries.junit)
-    testImplementation(libraries.mockito)
-
+    testImplementation(libraries.bytebuddy)
+    testImplementation(libraries.bytebuddyagent)
     testImplementation(libraries.mockitoJunit5)
 
     testImplementation(libraries.postgresql)
@@ -98,11 +101,26 @@ dependencies {
 
     testImplementation(libraries.jsonPathAssert)
     testImplementation(libraries.guavaTestLib)
+    testImplementation(libraries.xmlUnit)
+    testImplementation(libraries.awaitility)
+
+    implementation(libraries.commonsIo)
 }
 
 configurations.all {
     exclude(group: "org.beanshell", module: "bsh-core")
     exclude(group: "org.apache-extras.beanshell", module: "bsh")
+    exclude(group: "com.fasterxml.woodstox", module: "woodstox-core")
+    exclude(group: "commons-beanutils", module: "commons-beanutils")
+    exclude(group: "commons-collections", module: "commons-collections")
+
+    // Exclude non-FIPS bouncycastle libs, and use Shadow library for FIPS compliance
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcutil-jdk15on")
+    exclude(group: "org.bouncycastle", module: "bcprov-jdk18on")
+    exclude(group: "org.bouncycastle", module: "bcpkix-jdk18on")
+    exclude(group: "org.bouncycastle", module: "bcutil-jdk18on")
 }
 
 jar {
@@ -110,7 +128,7 @@ jar {
 }
 
 processResources {
-    //maven replaces project.artifactId in the log4j.properties file
+    //maven replaces project.artifactId in the log4j2.properties file
     //https://www.pivotaltracker.com/story/show/74344574
     filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-server') : line }
 }

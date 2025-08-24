@@ -18,16 +18,15 @@ package org.cloudfoundry.identity.uaa.account;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation.PasswordConfirmationException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Arrays;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -71,7 +70,7 @@ class ResetPasswordAuthenticationEntryPointTests {
     }
 
     @Test
-    void test_invalid_password_match() throws Exception {
+    void invalid_password_match() throws Exception {
         PasswordConfirmationException pe = new PasswordConfirmationException(messageCode, email);
         BadCredentialsException be = new BadCredentialsException("", pe);
 
@@ -85,7 +84,7 @@ class ResetPasswordAuthenticationEntryPointTests {
     }
 
     @Test
-    void test_when_uaa_exception() throws Exception {
+    void when_uaa_exception() throws Exception {
         UaaException e = new UaaException(messageCode);
         InternalAuthenticationServiceException be = new InternalAuthenticationServiceException("", e);
 
@@ -98,8 +97,8 @@ class ResetPasswordAuthenticationEntryPointTests {
     }
 
     @Test
-    void test_when_invalid_password_exception() throws Exception {
-        InvalidPasswordException pe = new InvalidPasswordException(Arrays.asList("one","two"));
+    void when_invalid_password_exception() throws Exception {
+        InvalidPasswordException pe = new InvalidPasswordException(Arrays.asList("one", "two"));
         BadCredentialsException be = new BadCredentialsException("", pe);
 
         entryPoint.commence(request, response, be);

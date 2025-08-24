@@ -15,14 +15,14 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 
 @JsonSerialize(using = CompositeAccessTokenSerializer.class)
 @JsonDeserialize(using = CompositeAccessTokenDeserializer.class)
 public class CompositeToken extends DefaultOAuth2AccessToken {
 
-    public static String ID_TOKEN = "id_token";
+    public static final String ID_TOKEN = "id_token";
 
     public String getIdTokenValue() {
         return idTokenValue;
@@ -41,7 +41,4 @@ public class CompositeToken extends DefaultOAuth2AccessToken {
     public CompositeToken(OAuth2AccessToken accessToken) {
         super(accessToken);
     }
-
-
-
 }

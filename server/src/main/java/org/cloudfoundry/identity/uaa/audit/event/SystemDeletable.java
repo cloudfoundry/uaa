@@ -16,66 +16,59 @@
 package org.cloudfoundry.identity.uaa.audit.event;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mfa.MfaProvider;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.springframework.context.ApplicationListener;
-import org.springframework.security.oauth2.provider.ClientDetails;
 
 public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
     default void onApplicationEvent(EntityDeletedEvent<?> event) {
         if (event == null || event.getDeleted() == null) {
             return;
-        } else if (event.getDeleted() instanceof IdentityZone) {
-            IdentityZone identityZone = (IdentityZone) event.getDeleted();
-
+        }
+        if (event.getDeleted() instanceof IdentityZone identityZone) {
             String zoneId = identityZone.getId();
-            getLogger().debug(String.format("Received zone deletion event for id:%s", zoneId));
+            getLogger().debug("Received zone deletion event for id:{}", zoneId);
             if (identityZone.isUaa()) {
-                getLogger().debug("Attempt to delete default zone ignored:" + event.getDeleted());
+                getLogger().debug("Attempt to delete default zone ignored:{}", event.getDeleted());
                 return;
             }
             deleteByIdentityZone(zoneId);
-        } else if (event.getDeleted() instanceof IdentityProvider) {
-            String zoneId = ((IdentityProvider) event.getDeleted()).getIdentityZoneId();
-            String origin = ((IdentityProvider) event.getDeleted()).getOriginKey();
-            getLogger().debug(String.format("Received provider deletion event for zone_id:%s and origin:%s", zoneId, origin));
+        } else if (event.getDeleted() instanceof IdentityProvider provider) {
+            String zoneId = provider.getIdentityZoneId();
+            String origin = provider.getOriginKey();
+            getLogger().debug("Received provider deletion event for zone_id:{} and origin:{}", zoneId, origin);
             if (OriginKeys.UAA.equals(origin)) {
-                getLogger().debug("Attempt to delete default UAA provider ignored:" + event.getDeleted());
+                getLogger().debug("Attempt to delete default UAA provider ignored:{}", event.getDeleted());
                 return;
             }
             deleteByOrigin(origin, zoneId);
         } else if (event.getDeleted() instanceof ClientDetails) {
             String clientId = ((ClientDetails) event.getDeleted()).getClientId();
             String zoneId = event.getIdentityZoneId();
-            getLogger().debug(String.format("Received client deletion event for zone_id:%s and client:%s", zoneId, clientId));
+            getLogger().debug("Received client deletion event for zone_id:{} and client:{}", zoneId, clientId);
             deleteByClient(clientId, zoneId);
         } else if (event.getDeleted() instanceof UaaUser) {
             String userId = ((UaaUser) event.getDeleted()).getId();
             String zoneId = ((UaaUser) event.getDeleted()).getZoneId();
-            getLogger().debug(String.format("Received UAA user deletion event for zone_id:%s and user:%s", zoneId, userId));
+            getLogger().debug("Received UAA user deletion event for zone_id:{} and user:{}", zoneId, userId);
             deleteByUser(userId, zoneId);
         } else if (event.getDeleted() instanceof ScimUser) {
             String userId = ((ScimUser) event.getDeleted()).getId();
             String zoneId = ((ScimUser) event.getDeleted()).getZoneId();
-            getLogger().debug(String.format("Received SCIM user deletion event for zone_id:%s and user:%s", zoneId, userId));
+            getLogger().debug("Received SCIM user deletion event for zone_id:{} and user:{}", zoneId, userId);
             deleteByUser(userId, zoneId);
-        } else if (event.getDeleted() instanceof MfaProvider<?>) {
-            String providerId = ((MfaProvider) event.getDeleted()).getId();
-            String zoneId = IdentityZoneHolder.get().getId();
-            deleteByMfaProvider(providerId, zoneId);
         } else {
-            getLogger().debug("Unsupported deleted event for deletion of object:" + event.getDeleted());
+            getLogger().debug("Unsupported deleted event for deletion of object:{}", event.getDeleted());
         }
     }
 
     default void onApplicationEvent(AbstractUaaEvent event) {
-        if (event instanceof EntityDeletedEvent) {
-            onApplicationEvent((EntityDeletedEvent) event);
+        if (event instanceof EntityDeletedEvent deletedEvent) {
+            onApplicationEvent(deletedEvent);
         }
     }
 
@@ -92,10 +85,6 @@ public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
     }
 
     default int deleteByUser(String userId, String zoneId) {
-        return 0;
-    }
-
-    default int deleteByMfaProvider(String id, String zoneId) {
         return 0;
     }
 

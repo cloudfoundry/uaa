@@ -14,20 +14,20 @@
  */
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AbstractTokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.token.AbstractTokenGranter;
-import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
 
@@ -37,22 +37,22 @@ public class Saml2TokenGranter extends AbstractTokenGranter {
     private final SecurityContextAccessor securityContextAccessor;
 
     public Saml2TokenGranter(final AuthorizationServerTokenServices tokenServices,
-                             final MultitenantClientServices clientDetailsService,
-                             final OAuth2RequestFactory requestFactory,
-                             final SecurityContextAccessor securityContextAccessor) {
+            final MultitenantClientServices clientDetailsService,
+            final OAuth2RequestFactory requestFactory,
+            final SecurityContextAccessor securityContextAccessor) {
         super(tokenServices, clientDetailsService, requestFactory, GRANT_TYPE_SAML2_BEARER);
         this.securityContextAccessor = securityContextAccessor;
     }
 
     protected Authentication validateRequest(TokenRequest request) {
         // things to validate
-        if(request == null || request.getRequestParameters() == null) {
+        if (request == null || request.getRequestParameters() == null) {
             throw new InvalidGrantException("Missing token request object");
         }
-        if(request.getRequestParameters().get("grant_type") == null) {
+        if (request.getRequestParameters().get("grant_type") == null) {
             throw new InvalidGrantException("Missing grant type");
         }
-        if(!GRANT_TYPE_SAML2_BEARER.equals(request.getRequestParameters().get("grant_type"))) {
+        if (!GRANT_TYPE_SAML2_BEARER.equals(request.getRequestParameters().get("grant_type"))) {
             throw new InvalidGrantException("Invalid grant type");
         }
         // parse the XML to Assertion

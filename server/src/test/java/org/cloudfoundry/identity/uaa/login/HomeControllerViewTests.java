@@ -1,12 +1,21 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import jakarta.annotation.PostConstruct;
+import jakarta.servlet.RequestDispatcher;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.home.HomeController;
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.provider.saml.MetadataProviderNotFoundException;
+import org.cloudfoundry.identity.uaa.util.beans.TestBuildInfo;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,35 +25,43 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.saml2.Saml2Exception;
+import org.springframework.security.web.WebAttributes;
+import org.springframework.security.web.firewall.RequestRejectedException;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.ui.Model;
 import org.springframework.web.context.WebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
-import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
 import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
-@ExtendWith(SpringExtension.class)
 @ExtendWith(PollutionPreventionExtension.class)
 @WebAppConfiguration
-@ContextConfiguration(classes = HomeControllerViewTests.ContextConfiguration.class)
+@SpringJUnitConfig(classes = HomeControllerViewTests.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 class HomeControllerViewTests extends TestClassNullifier {
 
@@ -62,7 +79,7 @@ class HomeControllerViewTests extends TestClassNullifier {
     private HomeController homeController;
 
     @BeforeEach
-    void setUp() {
+    void beforeEach() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
@@ -76,7 +93,7 @@ class HomeControllerViewTests extends TestClassNullifier {
     }
 
     @AfterEach
-    void tearDown() {
+    void afterEach() {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         IdentityZoneHolder.get().setConfig(originalConfiguration);
@@ -136,13 +153,62 @@ class HomeControllerViewTests extends TestClassNullifier {
     @ParameterizedTest
     @ValueSource(strings = {
             "/error",
-            "/error404"
+            "/error404",
+            "/error500",
+            "/oauth_error",
+            "/saml_error"
     })
     void errorBranding(final String errorUrl) throws Exception {
-        mockMvc.perform(get(errorUrl))
+        mockMvc.perform(get(errorUrl).sessionAttr(WebAttributes.AUTHENTICATION_EXCEPTION, new InternalAuthenticationServiceException("auth error")))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(customFooterText)))
                 .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @Test
+    void errorOauthWithExceptionString() throws Exception {
+        mockMvc.perform(get("/oauth_error").sessionAttr("oauth_error", "auth error"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @Test
+    void error500WithGenericException() throws Exception {
+        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception("bad")))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @Test
+    void error500WithSAMLExceptionAsCause() throws Exception {
+        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new Saml2Exception("bad"))))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @Test
+    void error500WithMetadataProviderNotFoundExceptionCause() throws Exception {
+        mockMvc.perform(get("/error500").requestAttr(RequestDispatcher.ERROR_EXCEPTION, new Exception(new MetadataProviderNotFoundException("bad", new RuntimeException()))))
+                .andExpect(status().isBadRequest())
+                .andExpect(content().string(containsString(customFooterText)))
+                .andExpect(content().string(containsString(base64ProductLogo)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "/rejected"
+    })
+    void errorRejection(final String errorUrl) throws Exception {
+        mockMvc.perform(get(errorUrl))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void handleRequestRejected() {
+        assertThat(homeController.handleRequestRejected(mock(Model.class), new RequestRejectedException(""), "")).isEqualTo("external_auth_error");
     }
 
     @Test
@@ -184,7 +250,15 @@ class HomeControllerViewTests extends TestClassNullifier {
 
     @EnableWebMvc
     @Import(ThymeleafConfig.class)
-    static class ContextConfiguration extends WebMvcConfigurerAdapter {
+    static class ContextConfiguration implements WebMvcConfigurer {
+
+        @Autowired
+        private RequestMappingHandlerAdapter requestMappingHandlerAdapter;
+
+        @PostConstruct
+        public void init() {
+            requestMappingHandlerAdapter.setIgnoreDefaultModelOnRedirect(false);
+        }
 
         @Override
         public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
@@ -193,7 +267,7 @@ class HomeControllerViewTests extends TestClassNullifier {
 
         @Bean
         BuildInfo buildInfo() {
-            return new BuildInfo();
+            return new TestBuildInfo();
         }
 
         @Bean
@@ -201,13 +275,13 @@ class HomeControllerViewTests extends TestClassNullifier {
             ClientMetadata clientMetadata1 = new ClientMetadata();
             clientMetadata1.setClientId("client-1");
             clientMetadata1.setShowOnHomePage(true);
-            clientMetadata1.setAppLaunchUrl(new URL("http://app.launch/url"));
+            clientMetadata1.setAppLaunchUrl(URI.create("http://app.launch/url").toURL());
             clientMetadata1.setAppIcon(base64EncodedImg);
 
             ClientMetadata clientMetadata2 = new ClientMetadata();
             clientMetadata2.setClientId("client-2");
             clientMetadata2.setShowOnHomePage(true);
-            clientMetadata2.setAppLaunchUrl(new URL("http://second.url/"));
+            clientMetadata2.setAppLaunchUrl(URI.create("http://second.url/").toURL());
             clientMetadata2.setAppIcon("base64-encoded-img");
             clientMetadata2.setClientName("Client 2 Name");
 

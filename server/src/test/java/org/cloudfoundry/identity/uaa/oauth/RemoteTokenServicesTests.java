@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,39 +13,41 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 /**
  * @author Dave Syer
- *
  */
-public class RemoteTokenServicesTests {
+class RemoteTokenServicesTests {
 
-    private RemoteTokenServices services = new RemoteTokenServices();
+    private final RemoteTokenServices services = new RemoteTokenServices();
 
-    private Map<String, Object> body = new HashMap<String, Object>();
+    private final Map<String, Object> body = new HashMap<>();
 
-    private HttpHeaders headers = new HttpHeaders();
+    private final HttpHeaders headers = new HttpHeaders();
 
-    private HttpStatus status = HttpStatus.OK;
+    private final HttpStatus status = HttpStatus.OK;
 
     public RemoteTokenServicesTests() {
         services.setClientId("client");
@@ -58,60 +61,70 @@ public class RemoteTokenServicesTests {
             @SuppressWarnings("unchecked")
             @Override
             public <T> ResponseEntity<T> exchange(String url, HttpMethod method, HttpEntity<?> requestEntity,
-                            Class<T> responseType, Object... uriVariables) throws RestClientException {
-                return new ResponseEntity<T>((T) body, headers, status);
+                                                  Class<T> responseType, Object... uriVariables) throws RestClientException {
+                return new ResponseEntity<>((T) body, headers, status);
             }
         });
     }
 
     @Test
-    public void testTokenRetrieval() {
+    void tokenRetrieval() {
         OAuth2Authentication result = services.loadAuthentication("FOO");
-        assertNotNull(result);
-        assertEquals("remote", result.getOAuth2Request().getClientId());
-        assertEquals("olds", result.getUserAuthentication().getName());
-        assertEquals("HDGFJSHGDF", ((RemoteUserAuthentication) result.getUserAuthentication()).getId());
-        assertNotNull(result.getOAuth2Request().getRequestParameters());
-        assertNull(result.getOAuth2Request().getRequestParameters().get(ClaimConstants.ISS));
+        assertThat(result).isNotNull();
+        assertThat(result.getOAuth2Request().getClientId()).isEqualTo("remote");
+        assertThat(result.getUserAuthentication().getName()).isEqualTo("olds");
+        assertThat(((RemoteUserAuthentication) result.getUserAuthentication()).getId()).isEqualTo("HDGFJSHGDF");
+        assertThat(result.getOAuth2Request().getRequestParameters()).isNotNull()
+                .doesNotContainKey(ClaimConstants.ISS);
     }
 
     @Test
-    public void testTokenRetrievalWithClaims() {
+    void tokenRetrievalWithClaims() {
         services.setStoreClaims(true);
         OAuth2Authentication result = services.loadAuthentication("FOO");
-        assertNotNull(result);
-        assertEquals("remote", result.getOAuth2Request().getClientId());
-        assertEquals("olds", result.getUserAuthentication().getName());
-        assertEquals("HDGFJSHGDF", ((RemoteUserAuthentication) result.getUserAuthentication()).getId());
-        assertNotNull(result.getOAuth2Request().getRequestParameters());
-        assertNotNull(result.getOAuth2Request().getRequestParameters().get(ClaimConstants.ISS));
+        assertThat(result).isNotNull();
+        assertThat(result.getOAuth2Request().getClientId()).isEqualTo("remote");
+        assertThat(result.getUserAuthentication().getName()).isEqualTo("olds");
+        assertThat(((RemoteUserAuthentication) result.getUserAuthentication()).getId()).isEqualTo("HDGFJSHGDF");
+        assertThat(result.getOAuth2Request().getRequestParameters()).isNotNull()
+                .containsKey(ClaimConstants.ISS);
     }
 
     @Test
-    public void testTokenRetrievalWithClientAuthorities() {
+    void tokenRetrievalWithClientAuthorities() {
         body.put("client_authorities", Collections.singleton("uaa.none"));
         OAuth2Authentication result = services.loadAuthentication("FOO");
-        assertNotNull(result);
-        assertEquals("[uaa.none]", result.getOAuth2Request().getAuthorities().toString());
+        assertThat(result).isNotNull();
+        assertThat(result.getOAuth2Request().getAuthorities()).hasToString("[uaa.none]");
     }
 
     @Test
-    public void testTokenRetrievalWithUserAuthorities() {
+    void tokenRetrievalWithUserAuthorities() {
         body.put("user_authorities", Collections.singleton("uaa.user"));
         OAuth2Authentication result = services.loadAuthentication("FOO");
-        assertNotNull(result);
-        assertEquals("[uaa.user]", result.getUserAuthentication().getAuthorities().toString());
+        assertThat(result).isNotNull();
+        assertThat(result.getUserAuthentication().getAuthorities()).hasToString("[uaa.user]");
     }
 
     @Test
-    public void testTokenRetrievalWithAdditionalAuthorizationAttributes() {
-        Map additionalAuthorizationAttributesMap = Collections.singletonMap("test", 1);
+    void noBodyReceived() {
+        RestTemplate restTemplate = mock(RestTemplate.class);
+        ResponseEntity responseEntity = mock(ResponseEntity.class);
+        when(restTemplate.exchange(anyString(), (HttpMethod) any(), any(), (Class) any())).thenReturn(responseEntity);
+        when(responseEntity.getBody()).thenReturn(null);
+        services.setRestTemplate(restTemplate);
+        assertThatExceptionOfType(IllegalStateException.class).isThrownBy(() -> services.loadAuthentication("FOO"));
+    }
+
+    @Test
+    void tokenRetrievalWithAdditionalAuthorizationAttributes() {
+        Map<String, Integer> additionalAuthorizationAttributesMap = Map.of("test", 1);
         body.put(ClaimConstants.ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributesMap);
 
         OAuth2Authentication result = services.loadAuthentication("FOO");
 
-        assertNotNull(result);
-        assertEquals(JsonUtils.writeValueAsString(additionalAuthorizationAttributesMap), result.getOAuth2Request()
-                        .getRequestParameters().get(ClaimConstants.ADDITIONAL_AZ_ATTR));
+        assertThat(result).isNotNull();
+        assertThat(result.getOAuth2Request()
+                .getRequestParameters()).containsEntry(ClaimConstants.ADDITIONAL_AZ_ATTR, JsonUtils.writeValueAsString(additionalAuthorizationAttributesMap));
     }
 }

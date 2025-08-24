@@ -20,8 +20,6 @@ import org.springframework.core.env.CompositePropertySource;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
-import org.springframework.util.StringUtils;
-import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import java.util.AbstractMap;
@@ -31,7 +29,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
 
 import static java.util.Map.Entry.comparingByKey;
 
@@ -74,14 +71,12 @@ public class UaaMapUtils {
     public static Map<String, Object> getAllProperties(PropertySource<?> aPropSource) {
         Map<String, Object> result = new HashMap<>();
 
-        if (aPropSource instanceof CompositePropertySource) {
-            CompositePropertySource cps = (CompositePropertySource) aPropSource;
+        if (aPropSource instanceof CompositePropertySource cps) {
             cps.getPropertySources().forEach(ps -> addAll(result, getAllProperties(ps)));
             return result;
         }
 
-        if (aPropSource instanceof EnumerablePropertySource<?>) {
-            EnumerablePropertySource<?> ps = (EnumerablePropertySource<?>) aPropSource;
+        if (aPropSource instanceof EnumerablePropertySource<?> ps) {
             Arrays.asList(ps.getPropertyNames()).forEach(key -> result.put(key, ps.getProperty(key)));
             return result;
         }
@@ -113,31 +108,25 @@ public class UaaMapUtils {
         return new AbstractMap.SimpleEntry<>(key, value);
     }
 
-    public static <K extends Comparable<? super K>, V> Map<K, V> sortByKeys(Map<K,V> map) {
+    public static <K extends Comparable<? super K>, V> Map<K, V> sortByKeys(Map<K, V> map) {
         List<Entry<K, V>> sortedEntries = map
-            .entrySet()
-            .stream()
-            .sorted(comparingByKey())
-            .collect(Collectors.toList());
+                .entrySet()
+                .stream()
+                .sorted(comparingByKey())
+                .toList();
         LinkedHashMap<K, V> result = new LinkedHashMap<>();
         for (Map.Entry<K, V> entry : sortedEntries) {
             Object value = entry.getValue();
-            if (value instanceof Map) {
-                value = sortByKeys((Map) value);
+            if (value instanceof Map map1) {
+                value = sortByKeys(map1);
             }
-            result.put(entry.getKey(), (V)value);
+            result.put(entry.getKey(), (V) value);
         }
         return result;
     }
 
-    public static <K extends Comparable<? super K>, V> String prettyPrintYaml(Map<K,V> map) {
-        DumperOptions dump = new DumperOptions();
-        dump.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
-        dump.setPrettyFlow(true);
-        dump.setIndent(2);
-        dump.setCanonical(false);
-        dump.setExplicitStart(true);
-        Yaml yaml = new Yaml(dump);
+    public static <K extends Comparable<? super K>, V> String prettyPrintYaml(Map<K, V> map) {
+        Yaml yaml = new Yaml(UaaYamlUtils.getDefaultDumperOptions());
         return yaml.dump(sortByKeys(map));
     }
 
@@ -154,11 +143,11 @@ public class UaaMapUtils {
             Object value = map.get(key);
             if (value == null) {
                 result.put(key, value);
-             } else if (value instanceof Map) {
+            } else if (value instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, ?> bare = (Map<String, ?>) value;
                 result.put(key, redactValues(bare));
-            } else if (value instanceof String && StringUtils.isEmpty(value)){
+            } else if (value instanceof String strValue && UaaStringUtils.isEmpty(strValue)) {
                 result.put(key, "");
             } else {
                 result.put(key, "<redacted>");

@@ -12,11 +12,15 @@ public final class LegacyTokenKey {
     }
 
     public static void setLegacySigningKey(String legacySigningKey, String uaaUrl) {
+        setLegacySigningKey(legacySigningKey, uaaUrl, null, null);
+    }
+
+    public static void setLegacySigningKey(String legacySigningKey, String uaaUrl, String sigAlg, String signingCert) {
         if (!StringUtils.hasText(legacySigningKey)) {
             return;
         }
 
-        LegacyTokenKey.keyInfo = KeyInfoBuilder.build(LEGACY_TOKEN_KEY_ID, legacySigningKey, uaaUrl);
+        LegacyTokenKey.keyInfo = KeyInfoBuilder.build(LEGACY_TOKEN_KEY_ID, legacySigningKey, uaaUrl, sigAlg, signingCert);
     }
 
     public static KeyInfo getLegacyTokenKeyInfo() {

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -16,7 +17,7 @@ package org.cloudfoundry.identity.uaa.client.event;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 public class SecretFailureEvent extends AbstractClientAdminEvent {
 
@@ -33,7 +34,7 @@ public class SecretFailureEvent extends AbstractClientAdminEvent {
 
     @Override
     public AuditEventType getAuditEventType() {
-        return (getClient() == null) ? AuditEventType.SecretChangeFailure : AuditEventType.SecretChangeFailure;
+        return getClient() == null ? AuditEventType.SecretChangeFailure : AuditEventType.SecretChangeFailure;
     }
 
 }

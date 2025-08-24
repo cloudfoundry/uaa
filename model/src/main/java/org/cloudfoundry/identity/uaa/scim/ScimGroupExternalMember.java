@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -69,23 +70,32 @@ public class ScimGroupExternalMember extends ScimCore<ScimGroupExternalMember> {
 
     @Override
     public String toString() {
-        return String.format(
-            "(Group id: %s, Name: %s, externalGroup: %s, origin: %s)",
-            getGroupId(),
-            getDisplayName(),
-            getExternalGroup(),
-            getOrigin());
+        return "(Group id: %s, Name: %s, externalGroup: %s, origin: %s)".formatted(
+                getGroupId(),
+                getDisplayName(),
+                getExternalGroup(),
+                getOrigin());
     }
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
         ScimGroupExternalMember that = (ScimGroupExternalMember) o;
-        if (!getGroupId().equals(that.getGroupId())) return false;
-        if (!getExternalGroup().equals(that.getExternalGroup())) return false;
-        return !(getOrigin() != null ? !getOrigin().equals(that.getOrigin()) : that.getOrigin() != null);
+        if (!getGroupId().equals(that.getGroupId())) {
+            return false;
+        }
+        if (!getExternalGroup().equals(that.getExternalGroup())) {
+            return false;
+        }
+        return getOrigin() == null ? that.getOrigin() != null : !getOrigin().equals(that.getOrigin());
     }
 
     @Override

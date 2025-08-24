@@ -4,6 +4,8 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -14,10 +16,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,7 +26,7 @@ import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.WebRequest;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -73,7 +73,7 @@ public class AccessController {
 
     @RequestMapping("/oauth/confirm_access")
     public String confirm(Map<String, Object> model, final HttpServletRequest request, Principal principal,
-                          SessionStatus sessionStatus) {
+            SessionStatus sessionStatus) {
 
         if (!(principal instanceof Authentication)) {
             sessionStatus.setComplete();
@@ -87,15 +87,15 @@ public class AccessController {
                     "No authorization request is present, so we cannot confirm access (we don't know what you are asking for).");
         } else {
             String clientId = clientAuthRequest.getClientId();
-            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
-            BaseClientDetails modifiableClient = new BaseClientDetails(client);
+            UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, IdentityZoneHolder.get().getId());
+            UaaClientDetails modifiableClient = new UaaClientDetails(client);
             modifiableClient.setClientSecret(null);
             model.put("auth_request", clientAuthRequest);
             model.put("redirect_uri", getRedirectUri(modifiableClient, clientAuthRequest));
 
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
             String clientDisplayName = (String) additionalInfo.get(ClientConstants.CLIENT_NAME);
-            model.put("client_display_name", (clientDisplayName != null) ? clientDisplayName : clientId);
+            model.put("client_display_name", clientDisplayName != null ? clientDisplayName : clientId);
 
             // Find the auto approved scopes for this clients
             Set<String> autoApproved = client.getAutoApproveScopes();
@@ -108,17 +108,17 @@ public class AccessController {
                 }
             }
 
-            List<Approval> filteredApprovals = new ArrayList<Approval>();
+            List<Approval> filteredApprovals = new ArrayList<>();
             // Remove auto approved scopes
             List<Approval> approvals = approvalStore.getApprovals(Origin.getUserId((Authentication) principal), clientId, IdentityZoneHolder.get().getId());
             for (Approval approval : approvals) {
-                if (!(autoApprovedScopes.contains(approval.getScope()))) {
+                if (!autoApprovedScopes.contains(approval.getScope())) {
                     filteredApprovals.add(approval);
                 }
             }
 
-            ArrayList<String> approvedScopes = new ArrayList<String>();
-            ArrayList<String> deniedScopes = new ArrayList<String>();
+            ArrayList<String> approvedScopes = new ArrayList<>();
+            ArrayList<String> deniedScopes = new ArrayList<>();
 
             for (Approval approval : filteredApprovals) {
                 switch (approval.getStatus()) {
@@ -134,7 +134,7 @@ public class AccessController {
                 }
             }
 
-            ArrayList<String> undecidedScopes = new ArrayList<String>();
+            ArrayList<String> undecidedScopes = new ArrayList<>();
 
             // Filter the scopes approved/denied from the ones requested
             for (String scope : clientAuthRequest.getScope()) {
@@ -160,7 +160,7 @@ public class AccessController {
 
             model.put("message",
                     "To confirm or deny access POST to the following locations with the parameters requested.");
-            Map<String, Object> options = new HashMap<String, Object>() {
+            Map<String, Object> options = new HashMap<>() {
                 {
                     put("confirm", new HashMap<String, String>() {
                         {
@@ -191,9 +191,9 @@ public class AccessController {
 
     private List<Map<String, String>> getScopes(ArrayList<String> scopes) {
 
-        List<Map<String, String>> result = new ArrayList<Map<String, String>>();
+        List<Map<String, String>> result = new ArrayList<>();
         for (String scope : scopes) {
-            HashMap<String, String> map = new HashMap<String, String>();
+            HashMap<String, String> map = new HashMap<>();
             String code = SCOPE_PREFIX + scope;
             map.put("code", code);
 
@@ -248,8 +248,8 @@ public class AccessController {
     public String handleError(WebRequest request, Map<String, Object> model) {
         // There is already an error entry in the model
         Object object = request.getAttribute("error", RequestAttributes.SCOPE_REQUEST);
-        if (object != null) {
-            model.put("error", object);
+        if (object instanceof Exception e) {
+            model.put("error_message", e.getMessage());
         }
         return "access_confirmation_error";
     }

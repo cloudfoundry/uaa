@@ -11,19 +11,18 @@ import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class UserInfoTableTest {
 
-    private static List<TestColumn> TEST_COLUMNS = Arrays.asList(
+    private static List<TestColumn> testColumns = Arrays.asList(
             new TestColumn("user_id", "varchar", 36),
             new TestColumn("info", "longvarchar/mediumtext", 0)
     );
 
     private static boolean testColumn(String name, String type, int size) {
-        return testColumn(TEST_COLUMNS, name, type, size);
+        return testColumn(testColumns, name, type, size);
     }
 
     private static boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
@@ -52,19 +51,19 @@ class UserInfoTableTest {
                 String rscolumnName = rs.getString("COLUMN_NAME");
                 int columnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName)) {
-                    assertTrue(testColumn(rscolumnName, rs.getString("TYPE_NAME"), columnSize), "Testing column:" + rscolumnName);
+                    assertThat(testColumn(rscolumnName, rs.getString("TYPE_NAME"), columnSize)).as("Testing column:" + rscolumnName).isTrue();
                     foundTable = true;
                     foundColumn++;
                 }
             }
             rs.close();
-            assertTrue(foundTable, "Table " + tableName + " not found!");
-            assertEquals(TEST_COLUMNS.size(), foundColumn, "Table " + tableName + " is missing columns!");
+            assertThat(foundTable).as("Table " + tableName + " not found!").isTrue();
+            assertThat(foundColumn).as("Table " + tableName + " is missing columns!").isEqualTo(testColumns.size());
 
             rs = meta.getIndexInfo(connection.getCatalog(), null, tableName, false, false);
             if (!rs.next()) {
                 rs = meta.getIndexInfo(connection.getCatalog(), null, tableName.toUpperCase(), false, false);
-                assertTrue(rs.next());
+                assertThat(rs.next()).isTrue();
             }
         }
     }

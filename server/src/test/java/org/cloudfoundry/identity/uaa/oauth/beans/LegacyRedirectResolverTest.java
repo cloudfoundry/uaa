@@ -5,9 +5,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LogEvent;
 import org.apache.logging.log4j.core.LoggerContext;
 import org.apache.logging.log4j.core.appender.AbstractAppender;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.hamcrest.TypeSafeMatcher;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -15,9 +15,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -26,16 +23,10 @@ import java.util.HashSet;
 import java.util.List;
 
 import static org.apache.logging.log4j.Level.WARN;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -49,7 +40,7 @@ class LegacyRedirectResolverTest {
     private final LegacyRedirectResolver resolver = new LegacyRedirectResolver();
 
     private static ClientDetails createClient(String id, String... redirectUris) {
-        BaseClientDetails clientDetails = new BaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId(id);
         clientDetails.setAuthorizedGrantTypes(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         clientDetails.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUris)));
@@ -58,33 +49,17 @@ class LegacyRedirectResolverTest {
     }
 
     private static String expectedWarning(String clientId, String requested, String configured) {
-        return String.format(LegacyRedirectResolver.MSG_TEMPLATE, clientId, requested, configured);
+        return LegacyRedirectResolver.MSG_TEMPLATE.formatted(clientId, requested, configured);
     }
 
-    private static Matcher<LogEvent> warning(String msg) {
-        return new LogEventMatcher(WARN, msg, "a warning about implicit redirect matching");
-    }
+    private void assertThatMessageWasLogged(
+            final List<LogEvent> logEvents,
+            final Level expectedLevel,
+            final String expectedMessage) {
 
-    private static class LogEventMatcher extends TypeSafeMatcher<LogEvent> {
-        private Level level;
-        private Matcher<String> msgMatcher;
-        private String matchFail;
-
-        LogEventMatcher(Level level, String msg, String matchFail) {
-            this.level = level;
-            this.msgMatcher = is(msg);
-            this.matchFail = matchFail;
-        }
-
-        @Override
-        protected boolean matchesSafely(LogEvent event) {
-            return event.getLevel().equals(level) && msgMatcher.matches(event.getMessage().getFormattedMessage());
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendText(matchFail);
-        }
+        assertThat(logEvents).filteredOn(l -> l.getLevel().equals(expectedLevel))
+                .extracting(l -> l.getMessage().getFormattedMessage())
+                .contains(expectedMessage);
     }
 
     @Nested
@@ -120,9 +95,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
-            );
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri));
         }
 
         @Test
@@ -130,7 +103,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", "http://localhost");
 
             resolver.resolveRedirect(null, client);
-            assertThat(logEvents, empty());
+            assertThat(logEvents).isEmpty();
         }
 
         @Test
@@ -140,9 +113,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
-            );
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri));
         }
 
         @Test
@@ -152,9 +123,17 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
-            );
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri));
+        }
+
+        @Test
+        void warnsOnPortWildCard() {
+            final String configuredRedirectUri = "https://example.com:*/*";
+            final String requestedRedirectUri = "https://example.com:443/callback";
+            ClientDetails client = createClient("foo", configuredRedirectUri);
+
+            resolver.resolveRedirect(requestedRedirectUri, client);
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri));
         }
 
         @Test
@@ -164,7 +143,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri))));
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri));
         }
 
         @Test
@@ -174,7 +153,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri))));
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri));
         }
 
         @Test
@@ -184,9 +163,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri)))
-            );
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredRedirectUri));
         }
 
         @Test
@@ -199,8 +176,8 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredExplicitRedirectUri, configuredImplicitRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredImplicitRedirectUri))));
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredExplicitRedirectUri))));
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredImplicitRedirectUri));
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredExplicitRedirectUri));
         }
 
         @Test
@@ -213,10 +190,11 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredOtherRedirectUri, requestedRedirectUri, configuredImplicitRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-            assertThat(logEvents, hasItem(warning(expectedWarning(client.getClientId(), requestedRedirectUri, configuredImplicitRedirectUri))));
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), requestedRedirectUri, configuredImplicitRedirectUri));
+
             // configured uri which matches both old and new resolvers is not logged
             // and non-matching configured uri is also not logged
-            assertThat(logEvents.size(), is(1));
+            assertThat(logEvents).hasSize(1);
         }
 
         @Test
@@ -227,10 +205,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-
-            assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), "https://example.com/path?foo=REDACTED&foo=REDACTED&baz=REDACTED", configuredRedirectUri)))
-            );
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), "https://example.com/path?foo=REDACTED&foo=REDACTED&baz=REDACTED", configuredRedirectUri));
         }
 
         @Test
@@ -241,10 +216,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("front-end-app", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-
-            assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), "https://example.com/a/b#REDACTED", configuredRedirectUri)))
-            );
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), "https://example.com/a/b#REDACTED", configuredRedirectUri));
         }
 
         @Test
@@ -255,10 +227,7 @@ class LegacyRedirectResolverTest {
             ClientDetails client = createClient("myAppIsCool", configuredRedirectUri);
 
             resolver.resolveRedirect(requestedRedirectUri, client);
-
-            assertThat(logEvents, hasItem(
-                    warning(expectedWarning(client.getClientId(), "https://REDACTED:REDACTED@example.com/", configuredRedirectUri)))
-            );
+            assertThatMessageWasLogged(logEvents, WARN, expectedWarning(client.getClientId(), "https://REDACTED:REDACTED@example.com/", configuredRedirectUri));
         }
 
         @Test
@@ -270,7 +239,7 @@ class LegacyRedirectResolverTest {
 
             resolver.resolveRedirect(requestedRedirectUri, client);
 
-            assertThat(logEvents, empty());
+            assertThat(logEvents).isEmpty();
         }
 
         @Test
@@ -280,10 +249,9 @@ class LegacyRedirectResolverTest {
 
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            assertThrows(RedirectMismatchException.class,
-                    () -> resolver.resolveRedirect(requestedRedirectUri, client));
+            assertThatExceptionOfType(RedirectMismatchException.class).isThrownBy(() -> resolver.resolveRedirect(requestedRedirectUri, client));
 
-            assertThat(logEvents, empty());
+            assertThat(logEvents).isEmpty();
         }
 
         @Test
@@ -293,10 +261,9 @@ class LegacyRedirectResolverTest {
 
             ClientDetails client = createClient("foo", configuredRedirectUri);
 
-            assertThrows(RedirectMismatchException.class,
-                    () -> resolver.resolveRedirect(requestedRedirectUri, client));
+            assertThatExceptionOfType(RedirectMismatchException.class).isThrownBy(() -> resolver.resolveRedirect(requestedRedirectUri, client));
 
-            assertThat(logEvents, empty());
+            assertThat(logEvents).isEmpty();
         }
     }
 
@@ -307,43 +274,43 @@ class LegacyRedirectResolverTest {
 
         @Test
         void allSubdomainsShouldMatch() {
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri)).isTrue();
         }
 
         @Test
         void allPathsShouldMatch() {
-            assertTrue(resolver.redirectMatches("http://domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://domain.com/another", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://domain.com/another", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri)).isTrue();
         }
 
         @Test
         void allPathsInAnySubdomainShouldMatch() {
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri)).isTrue();
 
-            assertTrue(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri)).isTrue();
 
-            assertTrue(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri)).isTrue();
         }
 
         @Test
         void doesNotMatchDifferentTld() {
-            assertFalse(resolver.redirectMatches("http://other-domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://domain.io", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://other-domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://domain.io", clientRedirectUri)).isFalse();
         }
 
         @Test
         void doesNotMatchDifferentProtocol() {
-            assertFalse(resolver.redirectMatches("https://domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("ws://domain.com", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("ws://domain.com", clientRedirectUri)).isFalse();
         }
     }
 
@@ -354,43 +321,43 @@ class LegacyRedirectResolverTest {
 
         @Test
         void shouldNotMatchSubdomains() {
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri)).isFalse();
         }
 
         @Test
         void allPathsShouldMatch() {
-            assertTrue(resolver.redirectMatches("http://domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://domain.com/another", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://domain.com/another", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri)).isFalse();
         }
 
         @Test
         void shouldNotMatchSubdomainsWithPaths() {
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri)).isFalse();
 
-            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri)).isFalse();
 
-            assertFalse(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri)).isFalse();
         }
 
         @Test
         void doesNotMatchDifferentTld() {
-            assertFalse(resolver.redirectMatches("http://other-domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://domain.io", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://other-domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://domain.io", clientRedirectUri)).isFalse();
         }
 
         @Test
         void doesNotMatchDifferentProtocol() {
-            assertFalse(resolver.redirectMatches("https://domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("ws://domain.com", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("ws://domain.com", clientRedirectUri)).isFalse();
         }
     }
 
@@ -401,43 +368,43 @@ class LegacyRedirectResolverTest {
 
         @Test
         void shouldNotMatchSubdomains() {
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com", clientRedirectUri)).isFalse();
         }
 
         @Test
         void allPathsShouldMatch() {
-            assertTrue(resolver.redirectMatches("http://domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://domain.com/another", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://domain.com/another", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://domain.com/one/two", clientRedirectUri)).isTrue();
         }
 
         @Test
         void shouldNotMatchSubdomainsWithPaths() {
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/another", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri)).isFalse();
 
-            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/one", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/another", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://another-subdomain.domain.com/one/two", clientRedirectUri)).isFalse();
 
-            assertFalse(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/one", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/another", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://one.two.domain.com/one/two", clientRedirectUri)).isFalse();
         }
 
         @Test
         void doesNotMatchDifferentTld() {
-            assertFalse(resolver.redirectMatches("http://other-domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://domain.io", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://other-domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://domain.io", clientRedirectUri)).isFalse();
         }
 
         @Test
         void doesNotMatchDifferentProtocol() {
-            assertFalse(resolver.redirectMatches("https://domain.com", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("ws://domain.com", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://domain.com", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("ws://domain.com", clientRedirectUri)).isFalse();
         }
     }
 
@@ -452,203 +419,202 @@ class LegacyRedirectResolverTest {
         void trailingSlash() {
             final String clientRedirectUri = "http://subdomain.domain.com/";
 
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri)).isTrue();
         }
 
         @Test
         void trailingPath() {
             final String clientRedirectUri = "http://subdomain.domain.com/one";
 
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri)).isTrue();
         }
 
         @Test
         void singleTrailingAsterisk() {
             final String clientRedirectUri = "http://subdomain.domain.com/*";
 
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri)).isFalse();
         }
 
         @Test
         void singleTrailingAsterisk_withPath() {
             final String clientRedirectUri = "http://subdomain.domain.com/one*";
 
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one-foo-bar", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one-foo-bar", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two/three", clientRedirectUri)).isFalse();
         }
 
         @Test
         void singleAsterisk_insidePath() {
             String clientRedirectUri = "http://subdomain.domain.com/one/*/four";
 
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/four", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/one/middle/four", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("http://subdomain.domain.com/one/two/three/four", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/four", clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/middle/four", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/one/two/three/four", clientRedirectUri)).isFalse();
         }
 
         @Test
         void matchesSchemeWildcard() {
             String clientRedirectUri = "http*://subdomain.domain.com/**";
 
-            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
-            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+            assertThat(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri)).isTrue();
         }
 
         @Test
         void matchesSchemeHttp() {
             String clientRedirectUri = "http://subdomain.domain.com/**";
 
-            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
-            assertFalse(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+            assertThat(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri)).isFalse();
         }
 
         @Test
         void matchesSchemeHttps() {
             String clientRedirectUri = "https://subdomain.domain.com/**";
 
-            assertFalse(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
-            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+            assertThat(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri)).isTrue();
         }
 
         @Test
         void matchesSchemeCustom() {
-            assertTrue(resolver.redirectMatches("myapp://callback", "myapp://callback"));
-            assertTrue(resolver.redirectMatches("myapp://callback#token=xyz123", "myapp://callback*"));
+            assertThat(resolver.redirectMatches("myapp://callback", "myapp://callback")).isTrue();
+            assertThat(resolver.redirectMatches("myapp://callback#token=xyz123", "myapp://callback*")).isTrue();
         }
 
         @Test
         void matchesPathContainingAntPathMatcher() {
             String clientRedirectUri = "http*://subdomain.domain.com/path1/path2**";
 
-            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
-            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+            assertThat(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri)).isTrue();
 
             clientRedirectUri = "http*://subdomain.domain.com/path1/<invalid>**";
 
-            assertFalse(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
-            assertFalse(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
+            assertThat(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri)).isFalse();
         }
 
         @Test
         void matchesHashFragments() {
-            assertTrue(resolver.redirectMatches("http://uaa.com/#fragment", "http://uaa.com"));
+            assertThat(resolver.redirectMatches("http://uaa.com/#fragment", "http://uaa.com")).isTrue();
         }
 
         @Test
         void redirectSubdomain() {
             String clientRedirectUri = "http*://*.domain.com/path1/path2**";
 
-            assertTrue(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
-            assertTrue(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+            assertThat(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri)).isTrue();
 
             clientRedirectUri = "http*://*.domain.com/path1/<invalid>**";
 
-            assertFalse(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri));
-            assertFalse(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri));
+            assertThat(resolver.redirectMatches(requestedRedirectHttps, clientRedirectUri)).isFalse();
+            assertThat(resolver.redirectMatches(requestedRedirectHttp, clientRedirectUri)).isFalse();
         }
 
         @Test
         void redirectSupportsMultipleSubdomainWildcards() {
             String clientRedirectUri = "http://*.*.domain.com/";
-            assertTrue(resolver.redirectMatches("http://sub1.sub2.domain.com/", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://sub1.sub2.domain.com/", clientRedirectUri)).isTrue();
         }
 
         @Test
         void subdomainMatchingRejectsDomainRedirectOnWildcardSubdomain() {
             String clientRedirectUri = "http://*.domain.com/";
-            assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri)).isFalse();
         }
 
         @Test
         void subdomainMatchingRejectsDomainRedirectOnMultilevelWildcardSubdomain() {
             String clientRedirectUri = "http://**.domain.com/";
-            assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri)).isFalse();
         }
 
         @Test
         void subdomainMatchingRejectsDomainRedirectOnWildcardSuffixedSubdomain() {
             String clientRedirectUri = "http://sub*.example.com";
-            assertFalse(resolver.redirectMatches("http://sub.other-domain.com?stuff.example.com", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://sub.other-domain.com?stuff.example.com", clientRedirectUri)).isFalse();
         }
 
         @Test
         void subdomainMatchingDoesNotBlowUpWhenRequestedRedirectIsShorterThanConfiguredRedirect() {
             String clientRedirectUri = "http://sub*.domain.com/";
-            assertFalse(resolver.redirectMatches("http://domain.com/", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://domain.com/", clientRedirectUri)).isFalse();
         }
 
         @Test
         void subdomainMatchingOnWildcardSubdomainWithBasicAuth() {
             String clientRedirectUri = "http://u:p@*.domain.com/";
-            assertTrue(resolver.redirectMatches("http://u:p@sub.domain.com/", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://u:p@sub.domain.com/", clientRedirectUri)).isTrue();
         }
 
         @Test
         void matchesHostsWithPort() {
             String clientRedirectUri = "http://*.domain.com:8080/";
-            assertTrue(resolver.redirectMatches("http://any.domain.com:8080/", clientRedirectUri));
+            assertThat(resolver.redirectMatches("http://any.domain.com:8080/", clientRedirectUri)).isTrue();
         }
 
         @Test
         void subdomainMatchingRejectsDomainRedirectOnAntPathVariableSubdomain() {
-            String clientRedirectUri = "http://{foo:.*}.domain.com/";
-            assertFalse(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri));
+            String clientRedirectUri = "http://foo.*.domain.com/";
+            assertThat(resolver.redirectMatches("http://other-domain.com?stuff.domain.com/", clientRedirectUri)).isFalse();
         }
 
         @Test
         void matchesPortWithWildcardPort() {
             final String clientRedirectUri = "https://example.com:*/";
-            assertTrue(resolver.redirectMatches("https://example.com:65000/", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://example.com:65000/", clientRedirectUri)).isTrue();
         }
 
         @Test
         void matchesPortWithWildcardPortAndPath() {
             final String clientRedirectUri = "https://example.com:*/**";
-            assertTrue(resolver.redirectMatches("https://example.com:65000/path/subpath", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://example.com:65000/path/subpath", clientRedirectUri)).isTrue();
         }
 
         @Test
         void matchesEmptyPortWithWildcardPort() {
             final String clientRedirectUri = "https://example.com:*/";
-            assertTrue(resolver.redirectMatches("https://example.com:80/", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("https://example.com/", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://example.com:80/", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("https://example.com/", clientRedirectUri)).isFalse();
         }
 
         @Test
         void matchesEmptyPortWithWildcardPortAndPath() {
             final String clientRedirectUri = "https://example.com:*/**";
-            assertTrue(resolver.redirectMatches("https://example.com:80/path1/path2/path3", clientRedirectUri));
-            assertFalse(resolver.redirectMatches("https://example.com/path1/path2/path3", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://example.com:80/path1/path2/path3", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("https://example.com/path1/path2/path3", clientRedirectUri)).isFalse();
         }
 
         @Test
-        public void testIllegalUnderscoreDomain() {
+        void illegalUnderscoreDomain() {
             final String clientRedirectUri = "http*://*.example.com/**";
-            assertFalse(resolver.redirectMatches("https://invalid_redirect.example.com/login/callback", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://invalid_redirect.example.com/login/callback", clientRedirectUri)).isFalse();
         }
 
         @Test
-        public void testLegalDomain() {
+        void legalDomain() {
             final String clientRedirectUri = "http*://*.example.com/**";
-            assertTrue(resolver.redirectMatches("https://valid-redirect.example.com/login/callback", clientRedirectUri));
+            assertThat(resolver.redirectMatches("https://valid-redirect.example.com/login/callback", clientRedirectUri)).isTrue();
         }
-
     }
 
     @Nested
@@ -662,11 +628,11 @@ class LegacyRedirectResolverTest {
             final String clientRedirectUriQuery = "http://SubDomain.Domain.com?rock=Steady";
             final String clientRedirectUriFragment = "http://SubDomain.Domain.com";
 
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com:8080", clientRedirectUriPort));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com/bee/Bop", clientRedirectUriPath));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com?rock=Steady", clientRedirectUriQuery));
-            assertTrue(resolver.redirectMatches("http://subdomain.domain.com#Shredder", clientRedirectUriFragment));
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com:8080", clientRedirectUriPort)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com/bee/Bop", clientRedirectUriPath)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com?rock=Steady", clientRedirectUriQuery)).isTrue();
+            assertThat(resolver.redirectMatches("http://subdomain.domain.com#Shredder", clientRedirectUriFragment)).isTrue();
         }
 
         @Test
@@ -677,11 +643,11 @@ class LegacyRedirectResolverTest {
             final String clientRedirectUriQuery = "http://subdomain.domain.com?rock=Steady";
             final String clientRedirectUriFragment = "http://subdomain.domain.com";
 
-            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com:8080", clientRedirectUriPort));
-            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com/bee/Bop", clientRedirectUriPath));
-            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com?rock=Steady", clientRedirectUriQuery));
-            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com#Shredder", clientRedirectUriFragment));
+            assertThat(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com:8080", clientRedirectUriPort)).isTrue();
+            assertThat(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com/bee/Bop", clientRedirectUriPath)).isTrue();
+            assertThat(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com?rock=Steady", clientRedirectUriQuery)).isTrue();
+            assertThat(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com#Shredder", clientRedirectUriFragment)).isTrue();
         }
 
         @Test
@@ -690,9 +656,9 @@ class LegacyRedirectResolverTest {
             final String clientRedirectUriPort = "http://SubDomain.Domain.com:8080/**";
             final String clientRedirectUriPath = "http://SubDomain.Domain.com/bee/Bop/**";
 
-            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com", clientRedirectUri));
-            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com:8080/", clientRedirectUriPort));
-            assertTrue(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com/bee/Bop/", clientRedirectUriPath));
+            assertThat(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com", clientRedirectUri)).isTrue();
+            assertThat(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com:8080/", clientRedirectUriPort)).isTrue();
+            assertThat(resolver.redirectMatches("http://sUBdOMAIN.dOMAIN.com/bee/Bop/", clientRedirectUriPath)).isTrue();
         }
     }
 
@@ -702,7 +668,7 @@ class LegacyRedirectResolverTest {
 
         @BeforeEach
         void setUp() {
-            mockClientDetails = mock(BaseClientDetails.class);
+            mockClientDetails = mock(UaaClientDetails.class);
             when(mockClientDetails.getAuthorizedGrantTypes()).thenReturn(Collections.singleton(GRANT_TYPE_AUTHORIZATION_CODE));
         }
 
@@ -710,9 +676,9 @@ class LegacyRedirectResolverTest {
         void clientMissingRedirectUri() {
             when(mockClientDetails.getRegisteredRedirectUri()).thenReturn(new HashSet<>());
 
-            assertThrowsWithMessageThat(RedirectMismatchException.class,
-                    () -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails),
-                    containsString("Client registration is missing redirect_uri"));
+            assertThatThrownBy(() -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails))
+                    .isInstanceOf(RedirectMismatchException.class)
+                    .hasMessageContaining("Client registration is missing redirect_uri");
         }
 
         @Test
@@ -720,11 +686,10 @@ class LegacyRedirectResolverTest {
             final String invalidRedirectUri = "*, */*";
             mockRegisteredRedirectUri(invalidRedirectUri);
 
-            RedirectMismatchException exception = assertThrows(RedirectMismatchException.class,
-                    () -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails));
-
-            assertThat(exception.getMessage(), containsString("Client registration contains invalid redirect_uri"));
-            assertThat(exception.getMessage(), containsString(invalidRedirectUri));
+            assertThatThrownBy(() -> resolver.resolveRedirect("http://somewhere.com", mockClientDetails))
+                    .isInstanceOf(RedirectMismatchException.class)
+                    .hasMessageContaining("Client registration contains invalid redirect_uri")
+                    .hasMessageContaining(invalidRedirectUri);
         }
 
         private void mockRegisteredRedirectUri(String allowedRedirectUri) {
@@ -745,8 +710,8 @@ class LegacyRedirectResolverTest {
                 "/%2525252e/bar",   // path may be url decoded multiple times when passing through web servers, proxies and browser
         })
         void singleDotTraversal(String requestedSuffix) {
-            assertTrue(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI));
-            assertTrue(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI + "/**"));
+            assertThat(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI)).isTrue();
+            assertThat(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI + "/**")).isTrue();
         }
 
         @ParameterizedTest(name = "\"" + BASE_URI + "{0}\" should not match \"" + BASE_URI + "\" or \"" + BASE_URI + "/**\"")
@@ -759,8 +724,8 @@ class LegacyRedirectResolverTest {
                 "/%25252525252525252525252e./bar",
         })
         void doubleDotTraversal(String requestedSuffix) {
-            assertFalse(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI));
-            assertFalse(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI + "/**"));
+            assertThat(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI)).isFalse();
+            assertThat(resolver.redirectMatches(BASE_URI + requestedSuffix, BASE_URI + "/**")).isFalse();
         }
     }
 }

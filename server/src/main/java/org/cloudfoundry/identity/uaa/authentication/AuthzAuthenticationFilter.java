@@ -1,34 +1,35 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.cloudfoundry.identity.uaa.util.SessionUtils;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,7 @@ public class AuthzAuthenticationFilter implements Filter {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
     private List<String> parameterNames = Collections.emptyList();
 
@@ -117,7 +118,7 @@ public class AuthzAuthenticationFilter implements Filter {
         HttpServletRequest req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
 
-        Map<String, String> loginInfo = getCredentials(req);
+        Map<String, String> loginInfo = UaaHttpRequestUtils.getCredentials(req, parameterNames);
 
         boolean buggyVmcAcceptHeader = false;
 
@@ -125,7 +126,7 @@ public class AuthzAuthenticationFilter implements Filter {
             if (loginInfo.isEmpty()) {
                 throw new BadCredentialsException("Request does not contain credentials.");
             } else {
-                logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+                logger.debug("Located credentials in request, with keys: {}", UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
                 if (methods != null && !methods.contains(req.getMethod().toUpperCase())) {
                     throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
                 }
@@ -165,7 +166,7 @@ public class AuthzAuthenticationFilter implements Filter {
 
                     @Override
                     public String getHeader(String name) {
-                        if (name.equalsIgnoreCase("accept")) {
+                        if ("accept".equalsIgnoreCase(name)) {
                             return "application/json";
                         } else {
                             return ((HttpServletRequest) getRequest()).getHeader(name);
@@ -183,29 +184,6 @@ public class AuthzAuthenticationFilter implements Filter {
         chain.doFilter(request, response);
     }
 
-    private Map<String, String> getCredentials(HttpServletRequest request) {
-        Map<String, String> credentials = new HashMap<>();
-
-        for (String paramName : parameterNames) {
-            String value = request.getParameter(paramName);
-            if (value != null) {
-                if (value.startsWith("{")) {
-                    try {
-                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
-                                new TypeReference<>() {
-                                });
-                        credentials.putAll(jsonCredentials);
-                    } catch (JsonUtils.JsonUtilException e) {
-                        logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
-                    }
-                } else {
-                    credentials.put(paramName, value);
-                }
-            }
-        }
-
-        return credentials;
-    }
 
     @Override
     public void init(FilterConfig filterConfig) {

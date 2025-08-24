@@ -1,47 +1,42 @@
 package org.cloudfoundry.identity.uaa.oauth.pkce.verifiers;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier;
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 
  * @author Zoltan Maradics
- *
  */
-public class PlainPkceVerifierTest {
-    
+class PlainPkceVerifierTest {
+
     private PlainPkceVerifier plainPkceVerifier;
-    
-    private final String matchParameter = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
-    private final String mismatchParameter = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
-    
-    @Before
-    public void createPlainCodeChallengeMethod() throws Exception {
+
+    private static final String MATCH_PARAMETER = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+    private static final String MISMATCH_PARAMETER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+
+    @BeforeEach
+    void createPlainCodeChallengeMethod() {
         plainPkceVerifier = new PlainPkceVerifier();
     }
-    
+
     @Test
-    public void testCodeVerifierMethodWithMatchParameters() throws Exception {
-        assertTrue(plainPkceVerifier.verify(matchParameter, matchParameter));
-    }
-    
-    @Test
-    public void testCodeVerifierMethodWithMismatchParameters() throws Exception {
-        assertFalse(plainPkceVerifier.verify(matchParameter, mismatchParameter));
-    }
-    
-    @Test
-    public void testCodeChallengeIsNull() throws Exception {
-        assertFalse(plainPkceVerifier.verify(matchParameter, null));
-    }
-    
-    @Test
-    public void testCodeVerifierIsNull() throws Exception {
-        assertFalse(plainPkceVerifier.verify(null, matchParameter));
+    void codeVerifierMethodWithMatchParameters() {
+        assertThat(plainPkceVerifier.verify(MATCH_PARAMETER, MATCH_PARAMETER)).isTrue();
     }
 
+    @Test
+    void codeVerifierMethodWithMismatchParameters() {
+        assertThat(plainPkceVerifier.verify(MATCH_PARAMETER, MISMATCH_PARAMETER)).isFalse();
+    }
+
+    @Test
+    void codeChallengeIsNull() {
+        assertThat(plainPkceVerifier.verify(MATCH_PARAMETER, null)).isFalse();
+    }
+
+    @Test
+    void codeVerifierIsNull() {
+        assertThat(plainPkceVerifier.verify(null, MATCH_PARAMETER)).isFalse();
+    }
 }

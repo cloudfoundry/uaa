@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -13,9 +14,9 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.context.i18n.LocaleContextHolder;
 import org.springframework.context.support.GenericApplicationContext;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -25,61 +26,60 @@ import org.springframework.web.servlet.View;
 
 import java.util.Locale;
 
-import static org.junit.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Dave Syer
- *
  */
-public class ForwardAwareInternalResourceViewResolverTests {
+class ForwardAwareInternalResourceViewResolverTests {
 
-    private ForwardAwareInternalResourceViewResolver resolver = new ForwardAwareInternalResourceViewResolver();
+    private final ForwardAwareInternalResourceViewResolver resolver = new ForwardAwareInternalResourceViewResolver();
 
-    private MockHttpServletRequest request = new MockHttpServletRequest();
+    private final MockHttpServletRequest request = new MockHttpServletRequest();
 
-    private GenericApplicationContext context = new GenericApplicationContext();
+    private final GenericApplicationContext context = new GenericApplicationContext();
 
-    @Before
-    public void start() {
+    @BeforeEach
+    void start() {
         ServletRequestAttributes attributes = new ServletRequestAttributes(request);
         LocaleContextHolder.setLocale(request.getLocale());
         RequestContextHolder.setRequestAttributes(attributes);
         context.refresh();
     }
 
-    @After
-    public void clean() {
+    @AfterEach
+    void clean() {
         RequestContextHolder.resetRequestAttributes();
     }
 
     @Test
-    public void testResolveNonForward() throws Exception {
+    void resolveNonForward() throws Exception {
         resolver.setApplicationContext(context);
         View view = resolver.resolveViewName("foo", Locale.US);
-        assertNotNull(view);
+        assertThat(view).isNotNull();
     }
 
     @Test
-    public void testResolveRedirect() throws Exception {
+    void resolveRedirect() throws Exception {
         resolver.setApplicationContext(context);
         View view = resolver.resolveViewName("redirect:foo", Locale.US);
-        assertNotNull(view);
+        assertThat(view).isNotNull();
     }
 
     @Test
-    public void testResolveForwardWithAccept() throws Exception {
+    void resolveForwardWithAccept() throws Exception {
         request.addHeader("Accept", "application/json");
         resolver.setApplicationContext(context);
         View view = resolver.resolveViewName("forward:foo", Locale.US);
-        assertNotNull(view);
+        assertThat(view).isNotNull();
     }
 
     @Test
-    public void testResolveForwardWithUnparseableAccept() throws Exception {
+    void resolveForwardWithUnparseableAccept() throws Exception {
         request.addHeader("Accept", "bar");
         resolver.setApplicationContext(context);
         View view = resolver.resolveViewName("forward:foo", Locale.US);
-        assertNotNull(view);
+        assertThat(view).isNotNull();
     }
 
 }

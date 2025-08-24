@@ -13,7 +13,7 @@ public class ConflictException extends RuntimeException {
     public String getUserId() {
         return userId;
     }
-    
+
     public String getEmail() {
         return email;
     }

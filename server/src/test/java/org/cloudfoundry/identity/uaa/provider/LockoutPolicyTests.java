@@ -14,19 +14,18 @@
 
 package org.cloudfoundry.identity.uaa.provider;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class LockoutPolicyTests {
+class LockoutPolicyTests {
 
     @Test
-    public void allPresentAndPositive_makesSureNothingUnset() {
+    void allPresentAndPositive_makesSureNothingUnset() {
         LockoutPolicy lockoutPolicy = new LockoutPolicy();
-        assertFalse(lockoutPolicy.allPresentAndPositive());
-        assertFalse(lockoutPolicy.setCountFailuresWithin(1).allPresentAndPositive());
-        assertFalse(lockoutPolicy.setLockoutAfterFailures(10).allPresentAndPositive());
-        assertTrue(lockoutPolicy.setLockoutPeriodSeconds(20).allPresentAndPositive());
+        assertThat(lockoutPolicy.allPresentAndPositive()).isFalse();
+        assertThat(lockoutPolicy.setCountFailuresWithin(1).allPresentAndPositive()).isFalse();
+        assertThat(lockoutPolicy.setLockoutAfterFailures(10).allPresentAndPositive()).isFalse();
+        assertThat(lockoutPolicy.setLockoutPeriodSeconds(20).allPresentAndPositive()).isTrue();
     }
 }

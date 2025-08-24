@@ -1,0 +1,1 @@
+CREATE INDEX CONCURRENTLY IF NOT EXISTS active_and_type_in_zone on identity_provider (identity_zone_id, active, type);

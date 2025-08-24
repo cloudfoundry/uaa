@@ -7,8 +7,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 class UserAuthenticationSuccessEventTests {
@@ -26,8 +25,8 @@ class UserAuthenticationSuccessEventTests {
                 "foobar");
         String origin = event.getOrigin(details);
 
-        assertThat(origin, containsString("remoteAddress=127.10.10.10"));
-        assertThat(origin, containsString("clientId=client-id"));
-        assertThat(origin, containsString("sessionId=<SESSION>"));
+        assertThat(origin).contains("remoteAddress=127.10.10.10")
+                .contains("clientId=client-id")
+                .contains("sessionId=<SESSION>");
     }
 }

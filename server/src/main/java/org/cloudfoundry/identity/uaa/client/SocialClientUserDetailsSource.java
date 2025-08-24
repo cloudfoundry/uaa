@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -13,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -20,7 +22,6 @@ import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails.Source;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.util.Assert;
 import org.springframework.web.client.RestOperations;
 
@@ -97,6 +98,9 @@ public class SocialClientUserDetailsSource implements InitializingBean, PreAuthe
     public Authentication getPrincipal() {
         @SuppressWarnings("unchecked")
         Map<String, String> map = restTemplate.getForObject(userInfoUrl, Map.class);
+        if (map == null) {
+            map = Collections.emptyMap();
+        }
         String userName = getUserName(map);
         String email = null;
         if (map.containsKey("email")) {
@@ -107,7 +111,7 @@ public class SocialClientUserDetailsSource implements InitializingBean, PreAuthe
         }
         if (userName == null) {
             userName = map.get("id"); // no user-friendly identifier for linked
-                                      // in and google
+            // in and google
         }
         List<UaaAuthority> authorities = UaaAuthority.USER_AUTHORITIES;
         SocialClientUserDetails user = new SocialClientUserDetails(userName, authorities);

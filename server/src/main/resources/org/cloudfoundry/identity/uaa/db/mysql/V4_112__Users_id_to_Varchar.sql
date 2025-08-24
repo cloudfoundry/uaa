@@ -1,0 +1,2 @@
+ALTER TABLE users MODIFY id VARCHAR(36) NOT NULL;
+ALTER TABLE oauth_client_details MODIFY created_by VARCHAR(36) NULL;

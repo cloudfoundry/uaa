@@ -8,12 +8,13 @@ import java.util.List;
 
 public class InvitationsResponse {
 
-    @JsonProperty(value="new_invites")
+    @JsonProperty(value = "new_invites")
     private List<Invitee> newInvites = new ArrayList<>();
-    @JsonProperty(value="failed_invites")
+    @JsonProperty(value = "failed_invites")
     private List<Invitee> failedInvites = new ArrayList<>();
 
-    public InvitationsResponse() {}
+    public InvitationsResponse() {
+    }
 
     public List<Invitee> getNewInvites() {
         return newInvites;
@@ -111,9 +112,13 @@ public class InvitationsResponse {
             this.errorMessage = errorMessage;
         }
 
-        public URL getInviteLink() { return inviteLink; }
+        public URL getInviteLink() {
+            return inviteLink;
+        }
 
-        public void setInviteLink(URL inviteLink) { this.inviteLink = inviteLink; }
+        public void setInviteLink(URL inviteLink) {
+            this.inviteLink = inviteLink;
+        }
 
     }
 

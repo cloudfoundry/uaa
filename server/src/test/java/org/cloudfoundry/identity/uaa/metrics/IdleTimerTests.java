@@ -15,85 +15,78 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.CountDownLatch;
 
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class IdleTimerTests {
 
     public static final int LOOP_COUNT = 100000;
     private IdleTimer timer;
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
     public static final int THREAD_COUNT = 10;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         timer = new IdleTimer();
     }
 
     @Test
-    public void timer_started() throws Exception {
+    void timer_started() throws Exception {
         Thread.sleep(10);
-        assertEquals(0, timer.getInflightRequests());
-        assertThat(timer.getRunTime(), greaterThan(0l));
-        assertThat(timer.getIdleTime(), greaterThan(0l));
+        assertThat(timer.getInflightRequests()).isZero();
+        assertThat(timer.getRunTime()).isPositive();
+        assertThat(timer.getIdleTime()).isPositive();
     }
 
     @Test
-    public void illegal_end_request() {
-        exception.expect(IllegalStateException.class);
-        exception.expectMessage("Illegal end request invocation, no request in flight");
-        timer.endRequest();
+    void illegal_end_request() {
+        assertThatThrownBy(() -> timer.endRequest())
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("Illegal end request invocation, no request in flight");
     }
 
     @Test
-    public void while_inflight() throws Exception {
+    void while_inflight() throws Exception {
         timer.startRequest();
         long idleTime = timer.getIdleTime();
-        assertEquals(1, timer.getInflightRequests());
+        assertThat(timer.getInflightRequests()).isOne();
         timer.startRequest();
-        assertEquals(2, timer.getInflightRequests());
+        assertThat(timer.getInflightRequests()).isEqualTo(2);
         timer.endRequest();
-        assertEquals(1, timer.getInflightRequests());
+        assertThat(timer.getInflightRequests()).isOne();
         Thread.sleep(10);
-        assertEquals("Idle time should not have changed.", idleTime, timer.getIdleTime());
+        assertThat(timer.getIdleTime()).as("Idle time should not have changed.").isEqualTo(idleTime);
         timer.endRequest();
-        assertEquals(0, timer.getInflightRequests());
+        assertThat(timer.getInflightRequests()).isZero();
         Thread.sleep(10);
-        assertThat("Idle time should have changed.", timer.getIdleTime(), greaterThan(idleTime));
+        assertThat(timer.getIdleTime()).as("Idle time should have changed.").isGreaterThan(idleTime);
     }
 
     @Test
-    public void concurrency_test() throws Exception {
+    void concurrency_test() throws Exception {
         final CountDownLatch latch = new CountDownLatch(THREAD_COUNT);
         Thread[] threads = new Thread[THREAD_COUNT];
-        for (int i = 0; i< THREAD_COUNT; i++) {
+        for (int i = 0; i < THREAD_COUNT; i++) {
             threads[i] = new Thread(() -> {
-               for (int loop = 0; loop< LOOP_COUNT; loop++) {
-                   try {
-                       timer.startRequest();
-                   } finally {
-                       timer.endRequest();
-                   }
-               }
-               latch.countDown();
+                for (int loop = 0; loop < LOOP_COUNT; loop++) {
+                    try {
+                        timer.startRequest();
+                    } finally {
+                        timer.endRequest();
+                    }
+                }
+                latch.countDown();
             });
         }
-        for (int i = 0; i< THREAD_COUNT; i++) {
+        for (int i = 0; i < THREAD_COUNT; i++) {
             threads[i].start();
         }
         latch.await();
-        assertEquals(THREAD_COUNT * LOOP_COUNT, timer.getRequestCount());
-        assertEquals(0, timer.getInflightRequests());
+        assertThat(timer.getRequestCount()).isEqualTo(THREAD_COUNT * LOOP_COUNT);
+        assertThat(timer.getInflightRequests()).isZero();
     }
-
 }

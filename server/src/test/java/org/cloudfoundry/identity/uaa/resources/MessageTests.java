@@ -1,5 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry 
+/*
+ * *****************************************************************************
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,29 +14,26 @@
 
 package org.cloudfoundry.identity.uaa.resources;
 
-import static org.junit.Assert.assertEquals;
-
-import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 
  * @author Dave Syer
- * 
  */
-public class MessageTests {
+class MessageTests {
 
     @Test
-    public void testSerialize() {
-        assertEquals("{\"status\":\"ok\",\"message\":\"done\"}", JsonUtils.writeValueAsString(new ActionResult("ok", "done")));
+    void serialize() {
+        assertThat(JsonUtils.writeValueAsString(new ActionResult("ok", "done"))).isEqualTo("{\"status\":\"ok\",\"message\":\"done\"}");
     }
 
     @Test
-    public void testDeserialize() {
+    void deserialize() {
         String value = "{\"status\":\"ok\",\"message\":\"done\"}";
         ActionResult message = JsonUtils.readValue(value, ActionResult.class);
-        assertEquals(new ActionResult("ok", "done"), message);
+        assertThat(message).isEqualTo(new ActionResult("ok", "done"));
     }
 
 }

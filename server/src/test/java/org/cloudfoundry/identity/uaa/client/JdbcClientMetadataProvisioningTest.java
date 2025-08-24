@@ -1,28 +1,25 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.extensions.profiles.DisabledIfProfile;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.net.URI;
 import java.net.URL;
 import java.util.List;
-import java.util.stream.Collectors;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @WithDatabaseContext
 class JdbcClientMetadataProvisioningTest {
@@ -31,7 +28,7 @@ class JdbcClientMetadataProvisioningTest {
             JdbcClientMetadataProvisioningTest.class,
             "base64EncodedImg");
 
-    private RandomValueStringGenerator randomValueStringGenerator;
+    private AlphanumericRandomValueStringGenerator randomValueStringGenerator;
     private String createdBy;
     private String identityZoneId;
     private String clientId;
@@ -42,16 +39,19 @@ class JdbcClientMetadataProvisioningTest {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    private NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
     void createDatasource() {
-        randomValueStringGenerator = new RandomValueStringGenerator(8);
+        randomValueStringGenerator = new AlphanumericRandomValueStringGenerator(8);
         createdBy = "createdBy-" + randomValueStringGenerator.generate();
         identityZoneId = "identityZoneId-" + randomValueStringGenerator.generate();
         clientId = "clientId-" + randomValueStringGenerator.generate();
 
-        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(jdbcTemplate, null, passwordEncoder);
+        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(namedJdbcTemplate, null, passwordEncoder);
         jdbcClientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientService, jdbcTemplate);
     }
 
@@ -60,15 +60,22 @@ class JdbcClientMetadataProvisioningTest {
         ClientMetadata clientMetadata = createTestClientMetadata(
                 randomValueStringGenerator.generate(),
                 true,
-                new URL("http://app.launch/url"),
+                URI.create("http://app.launch/url").toURL(),
                 base64EncodedImg,
                 createdBy);
 
-        assertThrows(EmptyResultDataAccessException.class,
-                () -> jdbcClientMetadataProvisioning.update(clientMetadata, identityZoneId));
+        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcClientMetadataProvisioning.update(clientMetadata, identityZoneId));
     }
 
+    /**
+     * In MySQL, characters are stored with a padding, but when they are retrieved, the padding is trimmed.
+     * To disable this behavior, you must add the {@code sql_mode} to include {@code PAD_CHAR_TO_FULL_LENGTH}.
+     *
+     * @see <a href="https://dev.mysql.com/doc/refman/8.4/en/char.html">CHAR type docs</a>
+     * @see <a href="https://dev.mysql.com/doc/refman/8.4/en/sql-mode.html#sqlmode_pad_char_to_full_length"> PAD_CHAR_TO_FULL_LENGTH </a>
+     */
     @Test
+    @DisabledIfProfile("mysql")
     void createdByPadsTo36Chars() {
         jdbcTemplate.execute(insertIntoOauthClientDetails(clientId, identityZoneId, "abcdef"));
 
@@ -76,7 +83,7 @@ class JdbcClientMetadataProvisioningTest {
                 clientId,
                 identityZoneId);
 
-        assertThat(retrievedClientMetadata.getCreatedBy().length(), is(36));
+        assertThat(retrievedClientMetadata.getCreatedBy()).hasSize(36);
     }
 
     @Test
@@ -85,7 +92,7 @@ class JdbcClientMetadataProvisioningTest {
         ClientMetadata clientMetadata = createTestClientMetadata(
                 clientId,
                 true,
-                new URL("http://app.launch/url"),
+                URI.create("http://app.launch/url").toURL(),
                 base64EncodedImg,
                 createdBy);
 
@@ -93,12 +100,12 @@ class JdbcClientMetadataProvisioningTest {
 
         ClientMetadata retrievedClientMetadata = jdbcClientMetadataProvisioning.retrieve(clientId, identityZoneId);
 
-        assertThat(retrievedClientMetadata.getClientId(), is(clientId));
-        assertThat(retrievedClientMetadata.getIdentityZoneId(), is(identityZoneId));
-        assertThat(retrievedClientMetadata.isShowOnHomePage(), is(true));
-        assertThat(retrievedClientMetadata.getAppLaunchUrl(), is(new URL("http://app.launch/url")));
-        assertThat(retrievedClientMetadata.getAppIcon(), is(base64EncodedImg));
-        assertThat(retrievedClientMetadata.getCreatedBy(), containsString(createdBy));
+        assertThat(retrievedClientMetadata.getClientId()).isEqualTo(clientId);
+        assertThat(retrievedClientMetadata.getIdentityZoneId()).isEqualTo(identityZoneId);
+        assertThat(retrievedClientMetadata.isShowOnHomePage()).isTrue();
+        assertThat(retrievedClientMetadata.getAppLaunchUrl()).isEqualTo(URI.create("http://app.launch/url").toURL());
+        assertThat(retrievedClientMetadata.getAppIcon()).isEqualTo(base64EncodedImg);
+        assertThat(retrievedClientMetadata.getCreatedBy()).contains(createdBy);
     }
 
     @Test
@@ -108,16 +115,13 @@ class JdbcClientMetadataProvisioningTest {
         jdbcTemplate.execute(insertIntoOauthClientDetailsWithMetadata(clientId1, "zone1", "createdBy", "appLaunchUrl"));
         jdbcTemplate.execute(insertIntoOauthClientDetailsWithMetadata(clientId2, "zone2", "createdBy", "appLaunchUrl"));
 
-
-        assertDoesNotThrow(
+        assertThatNoException().isThrownBy(
                 () -> jdbcClientMetadataProvisioning.retrieve(clientId1, "zone1"));
-        assertDoesNotThrow(
+        assertThatNoException().isThrownBy(
                 () -> jdbcClientMetadataProvisioning.retrieve(clientId2, "zone2"));
 
-        assertThrows(EmptyResultDataAccessException.class,
-                () -> jdbcClientMetadataProvisioning.retrieve(clientId1, "zone2"));
-        assertThrows(EmptyResultDataAccessException.class,
-                () -> jdbcClientMetadataProvisioning.retrieve(clientId2, "zone1"));
+        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcClientMetadataProvisioning.retrieve(clientId1, "zone2"));
+        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcClientMetadataProvisioning.retrieve(clientId2, "zone1"));
     }
 
     @Test
@@ -133,11 +137,10 @@ class JdbcClientMetadataProvisioningTest {
                 .retrieveAll(identityZoneId)
                 .stream()
                 .map(ClientMetadata::getClientId)
-                .collect(Collectors.toList());
+                .toList();
 
-        assertThat(clientIds, hasItem(clientId1));
-        assertThat(clientIds, hasItem(clientId2));
-        assertThat(clientIds, not(hasItem(clientId3)));
+        assertThat(clientIds).contains(clientId1, clientId2)
+                .doesNotContain(clientId3);
     }
 
     @Test
@@ -146,17 +149,17 @@ class JdbcClientMetadataProvisioningTest {
         ClientMetadata newClientMetadata = createTestClientMetadata(
                 clientId,
                 false,
-                new URL("http://updated.app/launch/url"),
+                URI.create("http://updated.app/launch/url").toURL(),
                 base64EncodedImg,
                 createdBy);
 
         ClientMetadata updatedClientMetadata = jdbcClientMetadataProvisioning.update(newClientMetadata, identityZoneId);
 
-        assertThat(updatedClientMetadata.getClientId(), is(clientId));
-        assertThat(updatedClientMetadata.getIdentityZoneId(), is(identityZoneId));
-        assertThat(updatedClientMetadata.isShowOnHomePage(), is(newClientMetadata.isShowOnHomePage()));
-        assertThat(updatedClientMetadata.getAppLaunchUrl(), is(newClientMetadata.getAppLaunchUrl()));
-        assertThat(updatedClientMetadata.getAppIcon(), is(newClientMetadata.getAppIcon()));
+        assertThat(updatedClientMetadata.getClientId()).isEqualTo(clientId);
+        assertThat(updatedClientMetadata.getIdentityZoneId()).isEqualTo(identityZoneId);
+        assertThat(updatedClientMetadata.isShowOnHomePage()).isEqualTo(newClientMetadata.isShowOnHomePage());
+        assertThat(updatedClientMetadata.getAppLaunchUrl()).isEqualTo(newClientMetadata.getAppLaunchUrl());
+        assertThat(updatedClientMetadata.getAppIcon()).isEqualTo(newClientMetadata.getAppIcon());
     }
 
     @Test
@@ -172,7 +175,7 @@ class JdbcClientMetadataProvisioningTest {
         data.setClientName(clientName);
         jdbcClientMetadataProvisioning.update(data, identityZoneId);
         data = jdbcClientMetadataProvisioning.retrieve(clientId, identityZoneId);
-        assertEquals(clientName, data.getClientName());
+        assertThat(data.getClientName()).isEqualTo(clientName);
     }
 
     private static ClientMetadata createTestClientMetadata(
@@ -194,7 +197,7 @@ class JdbcClientMetadataProvisioningTest {
             final String clientId,
             final String identityZoneId
     ) {
-        return String.format("insert into oauth_client_details(client_id, identity_zone_id) values ('%s', '%s')",
+        return "insert into oauth_client_details(client_id, identity_zone_id) values ('%s', '%s')".formatted(
                 clientId,
                 identityZoneId);
     }
@@ -204,7 +207,7 @@ class JdbcClientMetadataProvisioningTest {
             final String identityZoneId,
             final String createdBy
     ) {
-        return String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')",
+        return "insert into oauth_client_details(client_id, identity_zone_id, created_by) values ('%s', '%s', '%s')".formatted(
                 clientId,
                 identityZoneId,
                 createdBy);
@@ -216,7 +219,7 @@ class JdbcClientMetadataProvisioningTest {
             final String createdBy,
             final String appLaunchUrl
     ) {
-        return String.format("insert into oauth_client_details(client_id, identity_zone_id, created_by, app_launch_url) values ('%s', '%s', '%s', '%s')",
+        return "insert into oauth_client_details(client_id, identity_zone_id, created_by, app_launch_url) values ('%s', '%s', '%s', '%s')".formatted(
                 clientId,
                 identityZoneId,
                 createdBy,

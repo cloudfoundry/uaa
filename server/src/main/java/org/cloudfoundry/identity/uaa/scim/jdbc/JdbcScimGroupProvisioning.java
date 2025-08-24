@@ -11,7 +11,13 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UserConfig;
+import org.cloudfoundry.identity.uaa.zone.ZoneDoesNotExistsException;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,10 +25,15 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.getSystemScopes;
@@ -44,92 +55,89 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     private static final String GROUP_MEMBERSHIP_TABLE = "group_membership";
     private static final String EXTERNAL_GROUP_TABLE = "external_group_mapping";
 
-    static final String ADD_GROUP_SQL = String.format(
-            "insert into %s ( %s ) values (?,?,?,?,?,?,?)",
-            GROUP_TABLE,
-            GROUP_FIELDS
-    );
-
-    private static final String UPDATE_GROUP_SQL = String.format(
-            "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=? and identity_zone_id=?",
-            GROUP_TABLE
-    );
-
-    private static final String GET_GROUP_SQL = String.format(
-            "select %s from %s where id=? and identity_zone_id=?",
-            GROUP_FIELDS,
-            GROUP_TABLE
-    );
-
-    private static final String GET_GROUP_BY_NAME_SQL = String.format(
-            "select %s from %s where LOWER(displayName)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)",
-            GROUP_FIELDS,
-            GROUP_TABLE
-    );
-
-    private static final String QUERY_FOR_FILTER = String.format(
-            "select %s from %s",
-            GROUP_FIELDS,
-            GROUP_TABLE
-    );
-
-    private static final String DELETE_GROUP_SQL = String.format(
-            "delete from %s where id=? and identity_zone_id=?",
-            GROUP_TABLE
-    );
-
-    private static final String DELETE_GROUP_BY_ZONE = String.format(
-            "delete from %s where identity_zone_id=?",
-            GROUP_TABLE
-    );
-
-    private static final String DELETE_GROUP_MEMBERSHIP_BY_ZONE = String.format(
-            "delete from %s where identity_zone_id = ?",
-            GROUP_MEMBERSHIP_TABLE
-    );
-
-    private static final String DELETE_EXTERNAL_GROUP_BY_ZONE = String.format(
-            "delete from %s where identity_zone_id = ?",
-            EXTERNAL_GROUP_TABLE
-    );
-
-    private static final String DELETE_ZONE_ADMIN_MEMBERSHIP_BY_ZONE = String.format(
-            "delete from %s where group_id in (select id from %s where identity_zone_id=? and displayName like ?)",
-            GROUP_MEMBERSHIP_TABLE,
-            GROUP_TABLE
-    );
-
-    private static final String DELETE_ZONE_ADMIN_GROUPS_BY_ZONE = String.format(
-            "delete from %s where identity_zone_id=? and displayName like ?",
-            GROUP_TABLE
-    );
-
-    private static final String DELETE_GROUP_MEMBERSHIP_BY_PROVIDER = String.format(
-            "delete from %s where identity_zone_id = ? and origin = ?",
-            GROUP_MEMBERSHIP_TABLE
-    );
-
-    private static final String DELETE_EXTERNAL_GROUP_BY_PROVIDER = String.format(
-            "delete from %s where identity_zone_id = ? and origin = ?",
-            EXTERNAL_GROUP_TABLE
-    );
-
-    private static final String DELETE_MEMBER_SQL = String.format(
-            "delete from %s where member_id=? and member_id in (select id from users where id=? and identity_zone_id=?)",
-            GROUP_MEMBERSHIP_TABLE
-    );
+    final String addGroupSql;
+    private final String updateGroupSql;
+    private final String getGroupSql;
+    private final String getGroupByNameSql;
+    private final String queryForFilter;
+    private final String deleteGroupSql;
+    private final String deleteGroupSqlByIdZoneVersion;
+    private final String deleteGroupByZone;
+    private final String deleteGroupMembershipByZone;
+    private final String deleteExternalGroupByZone;
+    private final String deleteZoneAdminMembershipByZone;
+    private final String deleteZoneAdminGroupsByZone;
+    private final String deleteGroupMembershipByProvider;
+    private final String deleteExternalGroupByProvider;
+    private final String deleteMemberSql;
 
     private final JdbcTemplate jdbcTemplate;
 
     private JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager;
     private JdbcScimGroupMembershipManager jdbcScimGroupMembershipManager;
+    private JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning;
 
     public JdbcScimGroupProvisioning(
-            final JdbcTemplate jdbcTemplate,
-            final JdbcPagingListFactory pagingListFactory) {
-        super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
+            final NamedParameterJdbcTemplate namedJdbcTemplate,
+            final JdbcPagingListFactory pagingListFactory,
+            final DbUtils dbUtils) throws SQLException {
+        super(namedJdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
 
-        this.jdbcTemplate = jdbcTemplate;
+        this.jdbcTemplate = namedJdbcTemplate.getJdbcTemplate();
+
+        final String quotedGroupsTableName = dbUtils.getQuotedIdentifier(GROUP_TABLE, jdbcTemplate);
+        updateGroupSql = "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=? and identity_zone_id=?".formatted(
+                quotedGroupsTableName
+        );
+        getGroupSql = "select %s from %s where id=? and identity_zone_id=?".formatted(
+                GROUP_FIELDS,
+                quotedGroupsTableName
+        );
+        getGroupByNameSql = "select %s from %s where LOWER(displayName)=LOWER(?) and LOWER(identity_zone_id)=LOWER(?)".formatted(
+                GROUP_FIELDS,
+                quotedGroupsTableName
+        );
+        queryForFilter = "select %s from %s".formatted(
+                GROUP_FIELDS,
+                quotedGroupsTableName
+        );
+        deleteGroupSql = "delete from %s where id=? and identity_zone_id=?".formatted(
+                quotedGroupsTableName
+        );
+
+        deleteGroupSqlByIdZoneVersion = "delete from %s where id=? and identity_zone_id=? and version=?".formatted(
+                quotedGroupsTableName
+        );
+
+        deleteGroupByZone = "delete from %s where identity_zone_id=?".formatted(
+                quotedGroupsTableName
+        );
+        deleteGroupMembershipByZone = "delete from %s where identity_zone_id = ?".formatted(
+                GROUP_MEMBERSHIP_TABLE
+        );
+        deleteExternalGroupByZone = "delete from %s where identity_zone_id = ?".formatted(
+                EXTERNAL_GROUP_TABLE
+        );
+        deleteZoneAdminMembershipByZone = "delete from %s where group_id in (select id from %s where identity_zone_id=? and displayName like ?)".formatted(
+                GROUP_MEMBERSHIP_TABLE,
+                quotedGroupsTableName
+        );
+        deleteZoneAdminGroupsByZone = "delete from %s where identity_zone_id=? and displayName like ?".formatted(
+                quotedGroupsTableName
+        );
+        deleteGroupMembershipByProvider = "delete from %s where identity_zone_id = ? and origin = ?".formatted(
+                GROUP_MEMBERSHIP_TABLE
+        );
+        deleteExternalGroupByProvider = "delete from %s where identity_zone_id = ? and origin = ?".formatted(
+                EXTERNAL_GROUP_TABLE
+        );
+        deleteMemberSql = "delete from %s where member_id=? and member_id in (select id from users where id=? and identity_zone_id=?)".formatted(
+                GROUP_MEMBERSHIP_TABLE
+        );
+        addGroupSql = "insert into %s ( %s ) values (?,?,?,?,?,?,?)".formatted(
+                quotedGroupsTableName,
+                GROUP_FIELDS
+        );
     }
 
     public void setJdbcScimGroupExternalMembershipManager(final JdbcScimGroupExternalMembershipManager jdbcScimGroupExternalMembershipManager) {
@@ -140,10 +148,15 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         this.jdbcScimGroupMembershipManager = jdbcScimGroupMembershipManager;
     }
 
+    public void setJdbcIdentityZoneProvisioning(JdbcIdentityZoneProvisioning jdbcIdentityZoneProvisioning) {
+        this.jdbcIdentityZoneProvisioning = jdbcIdentityZoneProvisioning;
+    }
+
     void createAndIgnoreDuplicate(final String name, final String zoneId) {
         try {
             create(new ScimGroup(null, name, zoneId), zoneId);
         } catch (ScimResourceAlreadyExistsException ignore) {
+            // ignore
         }
     }
 
@@ -162,9 +175,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         if (!hasText(displayName)) {
             throw new IncorrectResultSizeDataAccessException("group name must contain text", 1, 0);
         }
-        List<ScimGroup> groups = jdbcTemplate.query(GET_GROUP_BY_NAME_SQL, rowMapper, displayName, zoneId);
+        List<ScimGroup> groups = jdbcTemplate.query(getGroupByNameSql, rowMapper, displayName, zoneId);
         if (groups.size() == 1) {
-            return groups.get(0);
+            return groups.getFirst();
         } else {
             throw new IncorrectResultSizeDataAccessException("Invalid result size found for:" + displayName, 1, groups.size());
         }
@@ -172,21 +185,37 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public void onApplicationEvent(AbstractUaaEvent event) {
-        if (event instanceof IdentityZoneModifiedEvent) {
-            IdentityZoneModifiedEvent zevent = (IdentityZoneModifiedEvent) event;
-            if (zevent.getEventType() == AuditEventType.IdentityZoneCreatedEvent) {
-                final String zoneId = ((IdentityZone) event.getSource()).getId();
-                getSystemScopes().forEach(
-                        scope -> createAndIgnoreDuplicate(scope, zoneId)
-                );
-            }
+        if (event instanceof IdentityZoneModifiedEvent zevent && zevent.getEventType() == AuditEventType.IdentityZoneCreatedEvent) {
+            final IdentityZone zone = (IdentityZone) event.getSource();
+            final String zoneId = zone.getId();
+            getEffectiveSystemScopes(zone).forEach(
+                    scope -> createAndIgnoreDuplicate(scope, zoneId)
+            );
         }
         SystemDeletable.super.onApplicationEvent(event);
     }
 
+    /**
+     * Determine the system scopes and remove those that are not part in the groups allow list for the given zone. If no
+     * such allow list is defined, all system scopes are returned.
+     */
+    private List<String> getEffectiveSystemScopes(final IdentityZone zone) {
+        final List<String> systemScopes = new ArrayList<>(getSystemScopes());
+
+        final Optional<Set<String>> allowedGroupsForZoneOpt = Optional.ofNullable(zone.getConfig())
+                .map(IdentityZoneConfiguration::getUserConfig)
+                .map(UserConfig::resultingAllowedGroups);
+        if (allowedGroupsForZoneOpt.isEmpty()) {
+            return systemScopes;
+        }
+
+        final Set<String> allowedGroupsForZone = allowedGroupsForZoneOpt.get();
+        return systemScopes.stream().filter(allowedGroupsForZone::contains).toList();
+    }
+
     @Override
     protected String getBaseSqlQuery() {
-        return QUERY_FOR_FILTER;
+        return queryForFilter;
     }
 
     @Override
@@ -203,19 +232,35 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public ScimGroup retrieve(String id, final String zoneId) throws ScimResourceNotFoundException {
         try {
-            return jdbcTemplate.queryForObject(GET_GROUP_SQL, rowMapper, id, zoneId);
+            return jdbcTemplate.queryForObject(getGroupSql, rowMapper, id, zoneId);
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("Group " + id + " does not exist");
         }
     }
 
+    @SuppressWarnings("java:S1874")
+    private Set<String> getAllowedUserGroups(String zoneId) {
+        Set<String> zoneAllowedGroups = null; // default: all groups allowed
+        try {
+            IdentityZone currentZone = IdentityZoneHolder.get();
+            zoneAllowedGroups = currentZone.getId().equals(zoneId) ?
+                    currentZone.getConfig().getUserConfig().resultingAllowedGroups() :
+                    jdbcIdentityZoneProvisioning.retrieve(zoneId).getConfig().getUserConfig().resultingAllowedGroups();
+        } catch (ZoneDoesNotExistsException e) {
+            logger.debug("could not retrieve identity zone with id: {}", zoneId);
+        }
+        return zoneAllowedGroups;
+    }
+
     @Override
     public ScimGroup create(final ScimGroup group, final String zoneId) throws InvalidScimResourceException {
+        validateZoneId(zoneId);
+        validateAllowedUserGroups(zoneId, group);
         final String id = UUID.randomUUID().toString();
-        logger.debug("creating new group with id: " + id);
+        logger.debug("creating new group with id: {}", id);
         try {
             validateGroup(group);
-            jdbcTemplate.update(ADD_GROUP_SQL, ps -> {
+            jdbcTemplate.update(addGroupSql, ps -> {
                 int pos = 1;
                 ps.setString(pos++, id);
                 ps.setString(pos++, group.getDisplayName());
@@ -235,10 +280,12 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public ScimGroup update(final String id, final ScimGroup group, final String zoneId) throws InvalidScimResourceException,
             ScimResourceNotFoundException {
+        validateAllowedUserGroups(zoneId, group);
         try {
+            validateZoneId(zoneId);
             validateGroup(group);
 
-            int updated = jdbcTemplate.update(UPDATE_GROUP_SQL, ps -> {
+            int updated = jdbcTemplate.update(updateGroupSql, ps -> {
                 int pos = 1;
                 ps.setInt(pos++, group.getVersion() + 1);
                 ps.setString(pos++, group.getDisplayName());
@@ -260,14 +307,15 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public ScimGroup delete(String id, int version, String zoneId) throws ScimResourceNotFoundException {
+        validateZoneId(zoneId);
         ScimGroup group = retrieve(id, zoneId);
         jdbcScimGroupMembershipManager.removeMembersByGroupId(id, zoneId);
         jdbcScimGroupExternalMembershipManager.unmapAll(id, zoneId);
         int deleted;
         if (version > 0) {
-            deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, zoneId, version);
+            deleted = jdbcTemplate.update(deleteGroupSqlByIdZoneVersion, id, zoneId, version);
         } else {
-            deleted = jdbcTemplate.update(DELETE_GROUP_SQL, id, zoneId);
+            deleted = jdbcTemplate.update(deleteGroupSql, id, zoneId);
         }
         if (deleted != 1) {
             throw new IncorrectResultSizeDataAccessException(1, deleted);
@@ -275,26 +323,32 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         return group;
     }
 
+    @Override
     public int deleteByIdentityZone(String zoneId) {
-        jdbcTemplate.update(DELETE_ZONE_ADMIN_MEMBERSHIP_BY_ZONE, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
-        jdbcTemplate.update(DELETE_ZONE_ADMIN_GROUPS_BY_ZONE, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
-        jdbcTemplate.update(DELETE_EXTERNAL_GROUP_BY_ZONE, zoneId);
-        jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_ZONE, zoneId);
-        return jdbcTemplate.update(DELETE_GROUP_BY_ZONE, zoneId);
+        jdbcTemplate.update(deleteZoneAdminMembershipByZone, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
+        jdbcTemplate.update(deleteZoneAdminGroupsByZone, IdentityZone.getUaaZoneId(), "zones." + zoneId + ".%");
+        jdbcTemplate.update(deleteExternalGroupByZone, zoneId);
+        jdbcTemplate.update(deleteGroupMembershipByZone, zoneId);
+        return jdbcTemplate.update(deleteGroupByZone, zoneId);
     }
 
+    @Override
     public int deleteByOrigin(String origin, String zoneId) {
-        jdbcTemplate.update(DELETE_EXTERNAL_GROUP_BY_PROVIDER, zoneId, origin);
-        return jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_PROVIDER, zoneId, origin);
+        jdbcTemplate.update(deleteExternalGroupByProvider, zoneId, origin);
+        return jdbcTemplate.update(deleteGroupMembershipByProvider, zoneId, origin);
     }
 
     @Override
     public int deleteByUser(String userId, String zoneId) {
-        return jdbcTemplate.update(DELETE_MEMBER_SQL, userId, userId, zoneId);
+        return jdbcTemplate.update(deleteMemberSql, userId, userId, zoneId);
     }
 
     private void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {
-        if (!hasText(group.getZoneId())) {
+        validateZoneId(group.getZoneId());
+    }
+
+    private void validateZoneId(String zoneId) throws ScimResourceConstraintFailedException {
+        if (!hasText(zoneId)) {
             throw new ScimResourceConstraintFailedException("zoneId is a required field");
         }
     }
@@ -302,6 +356,14 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
         super.validateOrderBy(orderBy, GROUP_FIELDS);
+    }
+
+    private void validateAllowedUserGroups(String zoneId, ScimGroup group) {
+        Set<String> allowedGroups = getAllowedUserGroups(zoneId);
+        if ((allowedGroups != null) && (!allowedGroups.contains(group.getDisplayName()))) {
+            throw new InvalidScimResourceException("The group with displayName: " + group.getDisplayName()
+                    + " is not allowed in Identity Zone " + zoneId);
+        }
     }
 
 }

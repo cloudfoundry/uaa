@@ -21,7 +21,7 @@ import org.springframework.security.core.Authentication;
 
 public class InvitationsAuthenticationTrustResolver implements AuthenticationTrustResolver {
 
-    private AuthenticationTrustResolver delegate = new AuthenticationTrustResolverImpl();
+    private final AuthenticationTrustResolver delegate = new AuthenticationTrustResolverImpl();
 
     @Override
     public boolean isAnonymous(Authentication authentication) {

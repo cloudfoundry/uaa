@@ -9,7 +9,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -77,7 +77,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     void check_token_get() throws Exception {
         check_token(get("/check_token"), status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value("Request method 'GET' not supported"));
+                .andExpect(jsonPath("$.error_description").value("Request method 'GET' is not supported"));
 
     }
 
@@ -85,7 +85,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     void check_token_put() throws Exception {
         check_token(put("/check_token"), status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value("Request method 'PUT' not supported"));
+                .andExpect(jsonPath("$.error_description").value("Request method 'PUT' is not supported"));
 
     }
 
@@ -104,7 +104,7 @@ class CheckTokenEndpointMockMvcTest extends AbstractTokenMockMvcTests {
     void check_token_delete() throws Exception {
         check_token(MockMvcRequestBuilders.delete("/check_token"), status().isMethodNotAllowed())
                 .andExpect(jsonPath("$.error").value("method_not_allowed"))
-                .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' not supported"));
+                .andExpect(jsonPath("$.error_description").value("Request method 'DELETE' is not supported"));
     }
 
     @Test

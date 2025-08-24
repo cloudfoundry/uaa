@@ -32,7 +32,7 @@ import static org.cloudfoundry.identity.uaa.metrics.MetricsUtil.addAverages;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 @JsonInclude(NON_NULL)
-public class MetricsQueue  {
+public class MetricsQueue {
 
     public static final int MAX_ENTRIES = 5;
 
@@ -40,12 +40,12 @@ public class MetricsQueue  {
     private Map<StatusCodeGroup, RequestMetricSummary> statistics;
 
     public MetricsQueue() {
-        this(null,null);
+        this(null, null);
     }
 
     @JsonCreator
     public MetricsQueue(@JsonProperty("lastRequests") ConcurrentLinkedDeque<RequestMetric> queue,
-                        @JsonProperty("detailed") Map<StatusCodeGroup, RequestMetricSummary> statistics) {
+            @JsonProperty("detailed") Map<StatusCodeGroup, RequestMetricSummary> statistics) {
         this.queue = ofNullable(queue).orElse(new ConcurrentLinkedDeque<>());
         this.statistics = ofNullable(statistics).orElse(new ConcurrentHashMap<>());
     }
@@ -64,11 +64,11 @@ public class MetricsQueue  {
         RequestMetricSummary totals = statistics.get(statusCode);
         long time = metric.getRequestCompleteTime() - metric.getRequestStartTime();
         totals.add(time,
-                   time < metric.getUriGroup().getLimit(),
-                   metric.getNrOfDatabaseQueries(),
-                   metric.getDatabaseQueryTime(),
-                   metric.getQueries().stream().filter(QueryMetric::isIntolerable).count(),
-                   metric.getQueries().stream().filter(QueryMetric::isIntolerable).mapToLong(q -> q.getRequestCompleteTime()-q.getRequestStartTime()).sum()
+                time < metric.getUriGroup().getLimit(),
+                metric.getNrOfDatabaseQueries(),
+                metric.getDatabaseQueryTime(),
+                metric.getQueries().stream().filter(QueryMetric::isIntolerable).count(),
+                metric.getQueries().stream().filter(QueryMetric::isIntolerable).mapToLong(q -> q.getRequestCompleteTime() - q.getRequestStartTime()).sum()
         );
         return true;
     }
@@ -111,7 +111,7 @@ public class MetricsQueue  {
                     averageDatabaseQueryTime.get(),
                     summary.getDatabaseQueryCount(),
                     summary.getAverageDatabaseQueryTime()
-                    )
+            )
             );
             databaseQueryCount.add(summary.getDatabaseQueryCount());
 
@@ -119,19 +119,19 @@ public class MetricsQueue  {
                     averageDatabaseIntolerableQueryTime.get(),
                     summary.getDatabaseIntolerableQueryCount(),
                     summary.getAverageDatabaseIntolerableQueryTime()
-                    )
+            )
             );
             databaseIntolerableQueryCount.add(summary.getDatabaseIntolerableQueryCount());
 
         });
         return new RequestMetricSummary(count.get(),
-                                        averageTime.get(),
-                                        intolerableCount.get(),
-                                        averageIntolerableTime.get(),
-                                        databaseQueryCount.get(),
-                                        averageDatabaseQueryTime.get(),
-                                        databaseIntolerableQueryCount.get(),
-                                        averageDatabaseIntolerableQueryTime.get());
+                averageTime.get(),
+                intolerableCount.get(),
+                averageIntolerableTime.get(),
+                databaseQueryCount.get(),
+                averageDatabaseQueryTime.get(),
+                databaseIntolerableQueryCount.get(),
+                averageDatabaseIntolerableQueryTime.get());
     }
 
 }

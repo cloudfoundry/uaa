@@ -15,37 +15,34 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
-
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.csrf.CsrfToken;
 
-import java.util.Arrays;
-import javax.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 
-public class CookieBasedCsrfTokenRepositoryTests {
+class CookieBasedCsrfTokenRepositoryTests {
 
     @Test
-    public void testGetHeader_and_Parameter_Name() {
+    void getHeaderAndParameterName() {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
-        assertEquals(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, repo.getParameterName());
+        assertThat(repo.getParameterName()).isEqualTo(DEFAULT_CSRF_COOKIE_NAME);
         repo.setParameterName("testcookie");
-        assertEquals("testcookie", repo.getParameterName());
+        assertThat(repo.getParameterName()).isEqualTo("testcookie");
 
-        assertEquals(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_HEADER_NAME, repo.getHeaderName());
+        assertThat(repo.getHeaderName()).isEqualTo(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_HEADER_NAME);
         repo.setHeaderName("testheader");
-        assertEquals("testheader", repo.getHeaderName());
+        assertThat(repo.getHeaderName()).isEqualTo("testheader");
 
         repo.setGenerator(new RandomValueStringGenerator() {
             @Override
@@ -55,88 +52,113 @@ public class CookieBasedCsrfTokenRepositoryTests {
         });
 
         CsrfToken token = repo.generateToken(new MockHttpServletRequest());
-        assertEquals("testheader", token.getHeaderName());
-        assertEquals("testcookie", token.getParameterName());
-        assertEquals("token-id", token.getToken());
+        assertThat(token.getHeaderName()).isEqualTo("testheader");
+        assertThat(token.getParameterName()).isEqualTo("testcookie");
+        assertThat(token.getToken()).isEqualTo("token-id");
     }
 
+    @ParameterizedTest
+    @ValueSource(strings = {"", "/uaa"})
+    void saveAndLoadToken(String contextPath) {
+        String expectedCookiePath = contextPath + "/";
+        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        request.setPathInfo("/login/somepath");
+        request.setContextPath(contextPath);
+        CsrfToken token = repo.generateToken(request);
+        assertThat(token.getToken().length()).as("The token is at least 22 characters long.").isGreaterThanOrEqualTo(22);
+        repo.saveToken(token, request, response);
 
+        Cookie cookie = response.getCookie(token.getParameterName());
+        assertThat(cookie).isNotNull();
+        assertThat(cookie.getValue()).isEqualTo(token.getToken());
+        assertThat(cookie.getMaxAge()).isEqualTo(repo.getCookieMaxAge());
+        assertThat(cookie.getPath()).isNotNull()
+                .isEqualTo(expectedCookiePath);
 
-    @Test
-    public void testSave_and_Load_Token() {
-        for (String contextPath : Arrays.asList("", "/uaa")) {
-            String expectedCookiePath = contextPath + "/";
-            CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
-            MockHttpServletRequest request = new MockHttpServletRequest();
-            MockHttpServletResponse response = new MockHttpServletResponse();
-            request.setPathInfo("/login/somepath");
-            request.setContextPath(contextPath);
-            CsrfToken token = repo.generateToken(request);
-            assertTrue("The token is at least 22 characters long.", token.getToken().length() >= 22);
-            repo.saveToken(token, request, response);
+        request.setCookies(cookie);
 
-            Cookie cookie = response.getCookie(token.getParameterName());
-            assertNotNull(cookie);
-            assertEquals(token.getToken(), cookie.getValue());
-            assertTrue(cookie.isHttpOnly());
-            assertEquals(repo.getCookieMaxAge(), cookie.getMaxAge());
-            assertNotNull(cookie.getPath());
-            assertEquals(expectedCookiePath, cookie.getPath());
-
-            request.setCookies(cookie);
-
-            CsrfToken saved = repo.loadToken(request);
-            assertEquals(token.getToken(), saved.getToken());
-            assertEquals(token.getHeaderName(), saved.getHeaderName());
-            assertEquals(token.getParameterName(), saved.getParameterName());
-        }
+        CsrfToken saved = repo.loadToken(request);
+        assertThat(saved.getToken()).isEqualTo(token.getToken());
+        assertThat(saved.getHeaderName()).isEqualTo(token.getHeaderName());
+        assertThat(saved.getParameterName()).isEqualTo(token.getParameterName());
     }
 
     @Test
-    public void testLoad_Token_During_Get() {
+    void loadTokenDuringGet() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setMethod(HttpMethod.GET.name());
-        request.setCookies(new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "should-be-removed"));
+        request.setCookies(new Cookie(DEFAULT_CSRF_COOKIE_NAME, "should-be-removed"));
 
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
 
         CsrfToken csrfToken = repo.loadToken(request);
-        assertThat(csrfToken, nullValue());
+        assertThat(csrfToken).isNull();
     }
 
     @Test
-    public void csrfCookie_alwaysHttpOnly() {
-        Cookie cookie = getCookie(false);
-        assertTrue(cookie.isHttpOnly());
-        assertFalse(cookie.getSecure());
+    void saveToken_sameSiteIsLax() {
+        HttpServletResponse response = saveTokenAndReturnResponse(false, "http");
+        assertThat(response.getHeader("Set-Cookie")).contains("SameSite=Lax");
     }
 
     @Test
-    public void csrfCookie_SecureIfHttpsRequired() {
-        Cookie cookie = getCookie(true);
-        assertTrue(cookie.getSecure());
+    void saveToken_sameSiteIsNone() {
+        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+        repo.setSameSiteCookies("None");
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        CsrfToken token = repo.generateToken(null);
+        repo.saveToken(token, request, response);
+
+        assertThat(response.getHeader("Set-Cookie")).contains("SameSite=None");
     }
 
     @Test
-    public void csrfCookie_SecureIfRequestIsOverHttps() {
+    void saveToken_alwaysHttpOnly() {
+        Cookie cookie = saveTokenAndReturnCookie(false, "http");
+        assertThat(cookie.isHttpOnly()).isTrue();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void saveToken_usesSecureAttributeForNonTls(boolean secure) {
+        Cookie cookie = saveTokenAndReturnCookie(secure, "http");
+        assertThat(cookie.getSecure()).isEqualTo(secure);
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void saveToken_SecureIfRequestIsOverHttps(boolean secure) {
+        Cookie cookie = saveTokenAndReturnCookie(secure, "https");
+        assertThat(cookie.getSecure()).isTrue();
+    }
+
+    @Test
+    void saveToken_MakeAnExpiredTokenInResponse_whenNoTokenInRequest() {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setScheme("https");
         MockHttpServletResponse response = new MockHttpServletResponse();
-        CsrfToken token = repo.generateToken(request);
-        repo.saveToken(token, request, response);
-        Cookie cookie = response.getCookie(token.getParameterName());
-        assertTrue(cookie.getSecure());
+        repo.saveToken(null, request, response);
+
+        Cookie cookie = response.getCookie("X-Uaa-Csrf");
+        assertThat(cookie.getMaxAge()).isZero();
+        assertThat(cookie.getValue()).isNotEmpty();
     }
 
-    private Cookie getCookie(boolean isSecure) {
+    private MockHttpServletResponse saveTokenAndReturnResponse(boolean isSecure, String protocol) {
         CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
         repo.setSecure(isSecure);
         MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme(protocol);
+        CsrfToken token = repo.generateToken(null);
         MockHttpServletResponse response = new MockHttpServletResponse();
-        CsrfToken token = repo.generateToken(request);
         repo.saveToken(token, request, response);
+        return response;
+    }
 
-        return response.getCookie(token.getParameterName());
+    private Cookie saveTokenAndReturnCookie(boolean isSecure, String protocol) {
+        return saveTokenAndReturnResponse(isSecure, protocol).getCookie("X-Uaa-Csrf");
     }
 }

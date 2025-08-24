@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.security.beans;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.expression.OAuth2ExpressionUtils;
 import org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2SecurityExpressionMethods;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -9,8 +11,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
@@ -42,12 +42,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
         if (a instanceof UaaAuthentication) {
             return true;
         }
-
-        if (a != null && a.getPrincipal() instanceof UaaPrincipal) {
-            return true;
-        }
-
-        return false;
+        return a != null && a.getPrincipal() instanceof UaaPrincipal;
     }
 
     @Override
@@ -59,8 +54,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
         }
 
         boolean result = false;
-        if (a instanceof OAuth2Authentication) {
-            OAuth2Authentication oa = (OAuth2Authentication) a;
+        if (a instanceof OAuth2Authentication oa) {
             result = OAuth2ExpressionUtils.hasAnyScope(oa, adminRoles);
         } else {
             result = hasAnyAdminScope(a, adminRoles);
@@ -68,14 +62,14 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
 
         String zoneAdminRole = "zones." + IdentityZoneHolder.get().getId() + ".admin";
         if (!result) {
-            ContextSensitiveOAuth2SecurityExpressionMethods eval = new ContextSensitiveOAuth2SecurityExpressionMethods(a, IdentityZone.getUaa());
+            ContextSensitiveOAuth2SecurityExpressionMethods eval = new ContextSensitiveOAuth2SecurityExpressionMethods(a);
             result = eval.hasScopeInAuthZone(zoneAdminRole);
         }
         return result;
     }
 
     private boolean hasAnyAdminScope(Authentication a, String... adminRoles) {
-        Set<String> authorites = (a == null ? Collections.<String>emptySet() : AuthorityUtils.authorityListToSet(a.getAuthorities()));
+        Set<String> authorites = a == null ? Collections.emptySet() : AuthorityUtils.authorityListToSet(a.getAuthorities());
         for (String s : adminRoles) {
             if (authorites.contains(s)) {
                 return true;
@@ -100,8 +94,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
     public String getAuthenticationInfo() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
 
-        if (a instanceof OAuth2Authentication) {
-            OAuth2Authentication oauth = ((OAuth2Authentication) a);
+        if (a instanceof OAuth2Authentication oauth) {
 
             String info = getClientId();
             if (!oauth.isClientOnly()) {

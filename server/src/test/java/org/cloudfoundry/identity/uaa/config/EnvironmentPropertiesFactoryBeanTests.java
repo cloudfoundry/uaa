@@ -1,5 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry 
+/*
+ * *****************************************************************************
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,7 +15,7 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.impl.config.EnvironmentPropertiesFactoryBean;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.util.StringUtils;
@@ -22,35 +23,33 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 import java.util.Properties;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Dave Syer
- * 
  */
-public class EnvironmentPropertiesFactoryBeanTests {
+class EnvironmentPropertiesFactoryBeanTests {
 
     @Test
-    public void testDefaultProperties() {
+    void defaultProperties() {
         EnvironmentPropertiesFactoryBean factory = new EnvironmentPropertiesFactoryBean();
         factory.setDefaultProperties(getProperties("foo=foo"));
         Properties properties = factory.getObject();
-        assertEquals("foo", properties.get("foo"));
+        assertThat(properties).containsEntry("foo", "foo");
     }
 
     @Test
-    public void testNullProperties() {
+    void nullProperties() {
         EnvironmentPropertiesFactoryBean factory = new EnvironmentPropertiesFactoryBean();
         StandardEnvironment environment = new StandardEnvironment();
         environment.getPropertySources().addFirst(new MapPropertySource("foo", Collections.singletonMap("foo", null)));
         factory.setEnvironment(environment);
         Properties properties = factory.getObject();
-        assertEquals("", properties.get("foo"));
+        assertThat(properties).containsEntry("foo", "");
     }
 
     private Properties getProperties(String input) {
         return StringUtils.splitArrayElementsIntoProperties(
-                        StringUtils.commaDelimitedListToStringArray(input), "=");
+                StringUtils.commaDelimitedListToStringArray(input), "=");
     }
-
 }

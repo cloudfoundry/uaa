@@ -25,7 +25,7 @@ public class PasswordPolicy extends GenericPasswordPolicy<PasswordPolicy> {
         final int prime = 31;
         int result = super.hashCode();
         result = prime * result + expirePasswordInMonths;
-        result = prime * result + ((passwordNewerThan == null)
+        result = prime * result + (passwordNewerThan == null
                 ? 0
                 : passwordNewerThan.hashCode());
         return result;
@@ -33,8 +33,12 @@ public class PasswordPolicy extends GenericPasswordPolicy<PasswordPolicy> {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null || getClass() != obj.getClass()) {
+            return false;
+        }
 
         PasswordPolicy that = (PasswordPolicy) obj;
         return super.equals(obj) && this.expirePasswordInMonths == that.expirePasswordInMonths;
@@ -46,19 +50,18 @@ public class PasswordPolicy extends GenericPasswordPolicy<PasswordPolicy> {
     private int expirePasswordInMonths;
 
 
-
     public PasswordPolicy() {
         super();
         this.expirePasswordInMonths = -1;
     }
 
     public PasswordPolicy(int minLength,
-                          int maxLength,
-                          int requireUpperCaseCharacter,
-                          int requireLowerCaseCharacter,
-                          int requireDigit,
-                          int requireSpecialCharacter,
-                          int expirePasswordInMonths) {
+            int maxLength,
+            int requireUpperCaseCharacter,
+            int requireLowerCaseCharacter,
+            int requireDigit,
+            int requireSpecialCharacter,
+            int expirePasswordInMonths) {
 
         super(minLength,
                 maxLength,

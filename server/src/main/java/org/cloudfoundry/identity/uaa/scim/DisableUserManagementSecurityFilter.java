@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -11,12 +15,7 @@ import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
-import org.springframework.web.util.NestedServletException;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +28,7 @@ public class DisableUserManagementSecurityFilter extends OncePerRequestFilter {
     private final IdentityZoneManager identityZoneManager;
 
     private static String regex1 = "";
+
     static {
         // scim user endpoints
         // ui controllers
@@ -50,8 +50,8 @@ public class DisableUserManagementSecurityFilter extends OncePerRequestFilter {
         regex1 += "|^/reset_password.do";
     }
 
-    private Pattern pattern1 = Pattern.compile(regex1);
-    private List<String> methods1 = Arrays.asList("GET", "POST", "PUT", "DELETE");
+    private final Pattern pattern1 = Pattern.compile(regex1);
+    private final List<String> methods1 = Arrays.asList("GET", "POST", "PUT", "DELETE");
 
     public DisableUserManagementSecurityFilter(
             final IdentityProviderProvisioning identityProviderProvisioning,
@@ -78,7 +78,7 @@ public class DisableUserManagementSecurityFilter extends OncePerRequestFilter {
             filterChain.doFilter(request, response);
         } catch (InternalUserManagementDisabledException x) {
             handleInternalUserManagementDisabledException(response, x);
-        } catch (NestedServletException x) {
+        } catch (ServletException x) {
             if (x.getRootCause() instanceof InternalUserManagementDisabledException) {
                 handleInternalUserManagementDisabledException(response, (InternalUserManagementDisabledException) x.getRootCause());
             } else {

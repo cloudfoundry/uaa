@@ -9,9 +9,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -29,7 +28,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public abstract class AdminClientCreator extends EndpointDocs {
-    protected String adminToken = null;
+    protected String adminToken;
     protected UaaTestAccounts testAccounts;
 
     public static final String SECRET = "secret";
@@ -67,7 +66,7 @@ public abstract class AdminClientCreator extends EndpointDocs {
     }
 
     protected ClientDetails createClient(String token, String id, String clientSecret, Collection<String> grantTypes) throws Exception {
-        BaseClientDetails client = createBaseClient(id, clientSecret, grantTypes);
+        ClientDetails client = createBaseClient(id, clientSecret, grantTypes);
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + token)
                 .accept(APPLICATION_JSON)
@@ -79,7 +78,7 @@ public abstract class AdminClientCreator extends EndpointDocs {
 
     protected ClientDetails createAdminClient(String token) throws Exception {
         List<String> scopes = Arrays.asList("uaa.admin", "oauth.approvals", "clients.read", "clients.write");
-        BaseClientDetails client = createBaseClient(null, SECRET, Arrays.asList("password", "client_credentials"), scopes, scopes);
+        ClientDetails client = createBaseClient(null, SECRET, Arrays.asList("password", "client_credentials"), scopes, scopes);
 
         MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                 .header("Authorization", "Bearer " + token)

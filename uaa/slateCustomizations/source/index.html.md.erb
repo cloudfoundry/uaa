@@ -4,12 +4,12 @@ title: UAA API Reference
 search: true
 
 toc_footers:
-  - <a href="./propMappings/">Internal Property Mappings</a>
+  - <a href="https://docs.cloudfoundry.org/uaa">CF UAA Documentation</a>
 
 ---
 
 <%
-  def render(doc_relative_path)
+  def self.render(doc_relative_path)
     ERB.new(File.read('../../build/generated-snippets/' + doc_relative_path)).result(binding)
   end
 %>
@@ -39,7 +39,7 @@ The User Account and Authentication Service (UAA):
 
 _Request Parameters_
 
-<%= render('AuthorizeEndpointDocs/browserCodeRequest/request-parameters.md') %>
+<%= render('AuthorizeEndpointDocs/browserCodeRequest/query-parameters.md') %>
 
 ### Api flow
 
@@ -49,7 +49,7 @@ _Request Parameters_
 
 _Request Parameters_
 
-<%= render('AuthorizeEndpointDocs/apiCodeRequest/request-parameters.md') %>
+<%= render('AuthorizeEndpointDocs/apiCodeRequest/query-parameters.md') %>
 
 _Request Headers_
 
@@ -69,7 +69,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('AuthorizeEndpointDocs/implicitGrant_browserRequest/request-parameters.md') %>
+<%= render('AuthorizeEndpointDocs/implicitGrant_browserRequest/query-parameters.md') %>
 
 _Response Headers_
 
@@ -83,7 +83,7 @@ _Response Headers_
 
 _Request Parameters_
 
-<%= render('AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/request-parameters.md') %>
+<%= render('AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/query-parameters.md') %>
 
 _Response Headers_
 
@@ -114,7 +114,7 @@ _Response Fields_
 
 _Request Parameters_
 
-<%= render('AuthorizeEndpointDocs/getIdToken/request-parameters.md') %>
+<%= render('AuthorizeEndpointDocs/getIdToken/query-parameters.md') %>
 
 _Response Headers_
 
@@ -131,7 +131,7 @@ _Response Headers_
 
 _Request Parameters_
 
-<%= render('AuthorizeEndpointDocs/getIdTokenAndAccessToken/request-parameters.md') %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndAccessToken/query-parameters.md') %>
 
 _Response Headers_
 
@@ -148,7 +148,7 @@ _Response Headers_
 
 _Request Parameters_
 
-<%= render('AuthorizeEndpointDocs/getIdTokenAndCode/request-parameters.md') %>
+<%= render('AuthorizeEndpointDocs/getIdTokenAndCode/query-parameters.md') %>
 
 _Response Headers_
 
@@ -156,9 +156,12 @@ _Response Headers_
 
 # Token
 
-The `/oauth/token` endpoint requires client authentication to be accessed. Client Authentication can be passed as
-as part of the request authorization header, using basic authentication, or as part of the request parameters, using the `client_id` and `client_secret` parameter
-names.
+The `/oauth/token` endpoint requires client authentication to be accessed, except you allow the public usage. For more details about public usage see
+allowpublic flag in client details configuration. For confidential client usages, the client authentication can be passed as part of the request
+authorization header, using basic authentication, or as part of the request parameters, using the combination of `client_id` and `client_secret` or
+`client_assertion_type` and `client_assertion` parameter names. The client authentication methods are explained in the
+[OpenID Core specification](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication). UAA supports currently none, client_secret_basic,
+client_secret_post and private_key_jwt.
 
 ## Authorization Code Grant
 
@@ -172,7 +175,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingAuthCodeGrant/form-parameters.md') %>
 
 _Response Fields_
 
@@ -188,7 +191,7 @@ _Response Fields_
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/request-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrant/form-parameters.md') %>
 
 _Response Fields_
 
@@ -206,7 +209,7 @@ _Request Header_
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/form-parameters.md') %>
 
 _Response Fields_
 
@@ -221,32 +224,12 @@ _Response Fields_
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/request-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/form-parameters.md') %>
 
 _Response Fields_
 
 <%= render('TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md') %>
 
-### Password Grant with MFA
-
-<aside class="warning">
-  MFA support is in active development and is not ready for production use.
-</aside>
-
-A password grant can be completed when multi-factor authentication is enabled.
-
-
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/curl-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-request.md') %>
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/http-response.md') %>
-
-_Request Parameters_
-
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/request-parameters.md') %>
-
-_Response Fields_
-
-<%= render('TokenEndpointDocs/getTokenUsingMfaPasswordGrant/response-fields.md') %>
 
 ### One-time Passcode
 
@@ -260,7 +243,7 @@ _Request Header_
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingPasscode/request-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingPasscode/form-parameters.md') %>
 
 _Response Fields_
 
@@ -291,7 +274,7 @@ The `refresh_token` that results from this grant, is opaque, and can only be exc
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/request-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingUserTokenGrant/form-parameters.md') %>
 
 _Response Fields_
 
@@ -311,7 +294,7 @@ _Response Fields_
 
 The SAML 2.0 bearer grant allows to request an OAuth 2.0 access token with a SAML 2.0 bearer assertion. The flow is defined in
 [RFC 7522](https://tools.ietf.org/html/rfc7522). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:saml2-bearer`.
-In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
+In addition, the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
 The trust to the assertion issuer is reused from the SAML 2.0 WebSSO profiles.
 
 This grant enables an App2App mechanism with SSO. Typical scenarios are applications outside of CF, which consume a service within the CF world.
@@ -324,7 +307,7 @@ the bearer assertion must point to the corresponding URI, e.g. http://localhost:
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/request-parameters.md') %>
+<%= render('TokenEndpointDocs/getTokenUsingSaml2BearerGrant/form-parameters.md') %>
 
 _Response Fields_
 
@@ -339,7 +322,7 @@ _Response Fields_
 The _JSON Web Token (JWT) Profile for OAuth 2.0 Client Authentication and Authorization Grants_
 allows to request an OAuth 2.0 access token with a JWT id_token bearer assertion. The flow is defined in
 [RFC 7523](https://tools.ietf.org/html/rfc7523). The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer`.
-In addition the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
+In addition, the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
 The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the
 UAA database. If multiple providers exists that have the same issuer, the grant will fail.
 
@@ -353,11 +336,83 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/request-parameters.md') %>
+<%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/form-parameters.md') %>
 
 _Response Fields_
 
 <%= render('JwtBearerGrantEndpointDocs/document_jwt_bearer_grant/response-fields.md') %>
+
+## Token Exchange Grant
+
+<aside class="success">
+  Added in 78.0
+</aside>
+
+The _Token Exchange Grant_ is a partial implementation of [RFC 8693](https://www.rfc-editor.org/rfc/rfc8693.html)
+and is a HTTP- and JSON-based Security Token Service (STS) that allows impersonation of clients and users
+via a JWT token exchange. The subject_token must be a JWT token and may be an access token or an id_token
+The requesting client, must have `grant_type=urn:ietf:params:oauth:grant-type:token-exchange`.
+In addition, the requesting client must either allow the IDP in `allowedproviders` or omit the property so that any trusted IDP is allowed.
+The trust to the assertion, the issuer claim is used to select an OIDC provider (IDP) configured in the
+UAA database. If multiple providers exists that have the same issuer, the grant will fail. If
+the IDP has `addShadowUserOnLogin` set to false and the user does not exist, the grant will fail.
+If the IDP has `addShadowUserOnLogin` set to true, the origin of the newly created user will be the same
+as that of the IDP.
+
+### Basic Client Authentication
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_basic_auth/curl-request.md') %>
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_basic_auth/http-request.md') %>
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_basic_auth/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_basic_auth/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_basic_auth/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_basic_auth/response-fields.md') %>
+
+### Form Client Authentication
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_form_auth/curl-request.md') %>
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_form_auth/http-request.md') %>
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_form_auth/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_form_auth/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_form_auth/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_form_auth/response-fields.md') %>
+
+### Client Assertion Authentication
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_client_assertion/curl-request.md') %>
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_client_assertion/http-request.md') %>
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_client_assertion/http-response.md') %>
+
+_Request Headers_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_client_assertion/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_client_assertion/form-parameters.md') %>
+
+_Response Fields_
+
+<%= render('TokenExchangeGrantEndpointDocs/document_token_exchange_grant_using_client_assertion/response-fields.md') %>
+
 
 ## Refresh Token
 
@@ -367,7 +422,7 @@ _Response Fields_
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/refreshToken/request-parameters.md') %>
+<%= render('TokenEndpointDocs/refreshToken/form-parameters.md') %>
 
 _Response Fields_
 
@@ -383,7 +438,7 @@ The token endpoint can provide an ID token as defined by OpenID Connect.
 
 _Request Parameters_
 
-<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/request-parameters.md') %>
+<%= render('TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/form-parameters.md') %>
 
 _Response Fields_
 
@@ -394,6 +449,39 @@ _Response Fields_
 <aside class="success">
   Added in UAA 3.3.0
 </aside>
+
+Both access and refresh tokens can be passed to the ``/revoke`` endpoint.
+
+When the ``/revoke`` endpoint is successfully invoked with an access token, and then when the same token is
+passed to the UAA Introspect Token endpoint (``/introspect``), the UAA Introspect Token endpoint
+will respond with ``"active": false``.
+
+If the access token is in the JWT format (as opposed to the opaque format), the server config ``uaa.jwt.revocable`` or
+the Identity Zone config ``config.tokenPolicy.jwtRevocable`` must be set to ``true`` for
+the revocation to work. However, OAuth resource servers are not required to call the UAA Introspect
+Token endpoint to validate the token. Once issued, from a security point of view, a valid access token
+in the JWT format should be considered valid until its expiry. Hence, we do not recommend
+relying on this endpoint to revoke access tokens in the JWT format. If the ability
+to remove/limit access after the tokens are issued is important to you, we recommend the following instead:
+
+* Ask the OAuth client to use opaque tokens only, so that the OAuth resource server is required to use
+the UAA Introspect Token endpoint to validate that the tokens have not been revoked.
+* If the access tokens are in the JWT format, configure the access tokens to be short-lived
+(e.g. a few minutes), and when needed, revoke the more long-lived refresh tokens so that they
+may no longer be used to obtain refreshed access tokens.
+
+When the ``/revoke`` endpoint is successfully invoked with a refresh token,
+the refresh token can no longer be used to perform the Refresh Token grant.
+
+Refresh tokens in any format can be revoked using the "Revoke all tokens for a user" endpoint (``/oauth/token/revoke/user/{userId}``),
+the "Revoke all tokens for a client" endpoint (``/oauth/token/revoke/client/{clientId}``), or
+the "Revoke all tokens for a user and client combination" endpoint (``/oauth/token/revoke/user/{userId}/client/{clientId}``).
+
+Refresh tokens in the opaque format can be individually revoked using
+the "Revoke a single token" endpoint (``/oauth/token/revoke/{tokenId}``).
+However, refresh tokens in the JWT format can only be individually revoked using
+the "Revoke a single token" endpoint when the server config ``uaa.jwt.revocable`` or
+the Identity Zone config ``config.tokenPolicy.jwtRevocable`` is set to ``true``.
 
 ### Revoke all tokens for a user
 
@@ -520,7 +608,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IntrospectTokenEndpointDocs/introspectToken/request-parameters.md') %>
+<%= render('IntrospectTokenEndpointDocs/introspectToken/form-parameters.md') %>
 
 _Response Fields_
 
@@ -542,7 +630,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('CheckTokenEndpointDocs/checkToken/request-parameters.md') %>
+<%= render('CheckTokenEndpointDocs/checkToken/form-parameters.md') %>
 
 _Response Fields_
 
@@ -632,7 +720,7 @@ _Error Codes_
 ## Logout.do
 
 The logout endpoint is meant to be used by applications to log the user out of the UAA session. UAA will only log a user out of the UAA session if they also hit this endpoint, and may also perform Single Logout with SAML providers if configured to do so.
-UAA will also log users out of OIDC proxied authenticated sessions based on [OpenID Connect Session Management](https://openid.net/specs/openid-connect-session-1_0.html).
+UAA may also log users out of OIDC proxied authenticated sessions based on [OpenID Connect Session Management](https://openid.net/specs/openid-connect-session-1_0.html) if configured to do so.
 The recommendation for application authors is to:
 
 * provide a local logout feature specific to the client application
@@ -650,7 +738,7 @@ If the chosen redirect URI is not whitelisted, users will land on the UAA login 
 
 _Request Parameters_
 
-<%= render('LogoutInfoEndpointDocs/logout/request-parameters.md') %>
+<%= render('LogoutInfoEndpointDocs/logout/query-parameters.md') %>
 
 _Response Headers_
 
@@ -855,6 +943,7 @@ _Error Codes_
 | 401        | Unauthorized - Invalid token                                                |
 | 403        | Forbidden - Insufficient scope (zone admins can only delete their own zone) |
 | 404        | Not Found - Zone does not exist                                             |
+| 422        | Unprocessable Entity - at least one IdP with alias exists in the zone       |
 
 
 # Identity Providers
@@ -877,7 +966,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/createSAMLIdentityProvider/query-parameters.md') %>
 
 _Request Fields_
 
@@ -922,7 +1011,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/create_Simple_Bind_LDAPIdentityProvider/query-parameters.md') %>
 
 _Request Fields_
 
@@ -954,7 +1043,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/query-parameters.md') %>
 
 _Request Fields_
 
@@ -986,7 +1075,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/query-parameters.md') %>
 
 _Request Fields_
 
@@ -1022,7 +1111,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/createOAuthIdentityProvider/query-parameters.md') %>
 
 _Request Fields_
 
@@ -1056,7 +1145,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/createOidcIdentityProvider/query-parameters.md') %>
 
 _Request Fields_
 
@@ -1087,7 +1176,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/getAllIdentityProviders/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/getAllIdentityProviders/query-parameters.md') %>
 
 _Response Fields_
 
@@ -1098,6 +1187,31 @@ _Error Codes_
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
+
+## Retrieve with Filtering
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/curl-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/http-request.md') %>
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/http-response.md') %>
+
+_Request Headers_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/request-headers.md') %>
+
+_Request Parameters_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/query-parameters.md') %>
+
+_Response Fields_
+
+<%= render('IdentityProviderEndpointDocs/getFilteredIdentityProviders/response-fields.md') %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+
 
 ## Retrieve
 
@@ -1115,7 +1229,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/getIdentityProvider/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/getIdentityProvider/query-parameters.md') %>
 
 _Response Fields_
 
@@ -1143,7 +1257,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/request-parameters.md') %>
+<%= render('IdentityProviderEndpointDocs/updateIdentityProvider/query-parameters.md') %>
 
 <aside class="notice">
   This example is for updating the internal (uaa) identity provider. <br/>
@@ -1157,10 +1271,10 @@ _Request and Response Fields_
 
 _Error Codes_
 
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-| 422        | Unprocessable Entity - Invalid config                                 |
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                                                         |
+| 422        | Unprocessable Entity - Invalid config or updating IdP with alias while `aliasEntitiesEnabled` is false |
 
 ## Delete
 
@@ -1176,20 +1290,16 @@ _Request Headers_
 
 <%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/request-headers.md') %>
 
-_Request Parameters_
-
-<%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/request-parameters.md') %>
-
 _Response Fields_
 
 <%= render('IdentityProviderEndpointDocs/deleteIdentityProvider/response-fields.md') %>
 
 _Error Codes_
 
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-| 422        | Unprocessable Entity                                                  |
+| Error Code | Description                                                                                |
+|------------|--------------------------------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                                             |
+| 422        | Unprocessable Entity (e.g., deleting IdP with alias while `aliasEntitiesEnabled` is false) |
 
 ## Force password change for Users
 <%= render('IdentityProviderEndpointDocs/patchIdentityProviderStatus/curl-request.md') %>
@@ -1221,308 +1331,23 @@ _Error Codes_
 | 422        | Unprocessable Entity - Invalid config                                 |
 
 
-# Service Providers
-
-UAA is capable of acting as a SAML Identity Provider (IdP). When UAA receives a SAML authentication request from a recognized SAML Service Provider (SP), UAA will authenticate the user then send a SAML authentication response back to the SAML SP. If UAA succesfully authenticated the user the SAML authentication response will contain a SAML assertion as per specification.
-
-Obtaining the UAA SAML IdP metadata:
-
-In order to establish trust, a SAML IdP and SAML SP exchange SAML metadata which contains pulbic certificates as well as the endpoints used to communicate amongst each other. Your SAML SP will likely require the UAA SAML IdP metadata in order to make authentication requests to UAA. You can obtain this metadata by making a GET request to the /saml/idp/metadata endpoint.
-
-GET http://localhost:8080/uaa/saml/idp/metadata
-
-## Initiate IDP Login Flow
-
-When the UAA is an IdP, you can initiate the login flow to the Service Provider, SP, by using the `initiate` endpoint
-This is a browser flow.
-
-<%= render('UaaSamlIDPEndpointDocs/document_idp_initiated_flow/curl-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/document_idp_initiated_flow/http-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/document_idp_initiated_flow/response-body.md') %>
-
-_Request Parameters_
-
-<%= render('UaaSamlIDPEndpointDocs/document_idp_initiated_flow/request-parameters.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                             |
-|------------|-----------------------------------------------------------------------------------------|
-| 400        | If IDP initiated login is not enabled, the SP parameter is incorrect or SP is disabled. |
-
-
-## List
-
-<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/curl-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/http-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/http-response.md') %>
-
-_Request Headers_
-
-<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/request-headers.md') %>
-
-_Response Fields_
-
-<%= render('UaaSamlIDPEndpointDocs/getAllServiceProviders/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-
-## Get
-
-<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/curl-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/http-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/request-headers.md') %>
-
-_Path Parameters_
-
-<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/path-parameters.md') %>
-
-_Response Fields_
-
-<%= render('UaaSamlIDPEndpointDocs/getServiceProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-
-## Create
-
-<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/curl-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/http-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/request-headers.md') %>
-
-_Request Fields_
-
-<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/request-fields.md') %>
-
-_Response Fields_
-
-<%= render('UaaSamlIDPEndpointDocs/createServiceProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-| 422        | Unprocessable Entity                                                  |
-| 409        | Conflict - A provider with the same entity id and zone id exists.     |
-
-
-## Update
-
-<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/curl-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/http-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/request-headers.md') %>
-
-_Request Fields_
-
-<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/request-fields.md') %>
-
-_Path Parameters_
-
-<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/path-parameters.md') %>
-
-_Response Fields_
-
-<%= render('UaaSamlIDPEndpointDocs/updateServiceProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-| 422        | Unprocessable Entity                                                  |
-| 409        | Conflict - A provider with the same entity id and zone id exists.     |
-
-## Delete
-
-<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/curl-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/http-request.md') %>
-<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/request-headers.md') %>
-
-_Path Parameters_
-
-<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/path-parameters.md') %>
-
-_Response Fields_
-
-<%= render('UaaSamlIDPEndpointDocs/deleteServiceProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope                                        |
-
-
-# MFA Providers
-
-## Create
-
-<aside class="success">
-  Added in UAA 4.13.0
-</aside>
-
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/curl-request.md') %>
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/http-request.md') %>
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/request-headers.md') %>
-
-_Request Fields_
-
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/request-fields.md') %>
-
-
-_Response Fields_
-
-<%= render('MfaProviderEndpointDocs/testCreateGoogleMfaProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - JSON body was malformed or missing fields                                                |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
-| 422        | Unprocessable Entity - Some values in the MFA configuration are invalid                                |
-
-
-## Update
-
-<aside class="warning">
-  Update is not supported for MFA provider.
-</aside>
-
-
-
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 405        | Method Not Allowed                                                                                     |
-
-
-## Get
-
-<aside class="success">
-  Added in UAA 4.13.0
-</aside>
-
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/curl-request.md') %>
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/http-request.md') %>
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/request-headers.md') %>
-
-_Response Fields_
-
-<%= render('MfaProviderEndpointDocs/testGetMfaProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
-| 404        | Not Found - Provider id not found                                                                      |
-
-
-## Delete
-
-<aside class="success">
-  Added in UAA 4.13.0
-</aside>
-
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/curl-request.md') %>
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/http-request.md') %>
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/http-response.md') %>
-
-_Request Headers_
-
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/request-headers.md') %>
-
-_Response Fields_
-
-<%= render('MfaProviderEndpointDocs/testDeleteMfaProvider/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
-| 404        | Not Found - Provider id not found                                                                      |
-
-## List
-
-<aside class="success">
-  Added in UAA 4.13.0
-</aside>
-
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/curl-request.md') %>
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/http-request.md') %>
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/http-response.md') %>
-
-_Request Headers_
-
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/request-headers.md') %>
-
-_Response Fields_
-
-<%= render('MfaProviderEndpointDocs/testListMfaProviders/response-fields.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`uaa.admin` or `zones.<zoneId>.admin` is required to create a MFA provider)|
-
 # Users
 
 Users can be queried, created and updated via the `/Users` endpoint.
 
 ## Get
 
-<%= render('ScimUserEndpointDocs/test_Get_User/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Get_User/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Get_User/http-response.md') %>
+<%= render('ScimUserEndpointDocs/get_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/get_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/get_user/http-response.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_Get_User/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/get_user/request-headers.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_Get_User/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/get_user/response-fields.md') %>
 
 _Error Codes_
 
@@ -1546,24 +1371,24 @@ uaac user get testuser
 ## List
 
 Listing users supports <a href="http://www.simplecloud.info/specs/draft-scim-api-01.html#query-resources">SCIM filtering</a> on the available attributes.
-By default users are returned with their group memberships and approvals, a rather expensive operation.
+By default, users are returned with their group memberships and approvals, a rather expensive operation.
 To avoid this, perform the search by including the `attributes` parameter to reduce the results.
 
-<%= render('ScimUserEndpointDocs/test_Find_Users/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Find_Users/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Find_Users/http-response.md') %>
+<%= render('ScimUserEndpointDocs/find_users/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/find_users/http-request.md') %>
+<%= render('ScimUserEndpointDocs/find_users/http-response.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_Find_Users/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/find_users/request-headers.md') %>
 
 _Request Parameters_
 
-<%= render('ScimUserEndpointDocs/test_Find_Users/request-parameters.md') %>
+<%= render('ScimUserEndpointDocs/find_users/query-parameters.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_Find_Users/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/find_users/response-fields.md') %>
 
 _Error Codes_
 
@@ -1590,48 +1415,49 @@ When users are searched we can return only selected amount of data using filteri
 The attribute `groups` will cause the UAA to query the group memberships and include them in the result making the operation more expensive.
 The attribute `approvals` will cause the UAA to query the user approvals and include them in the result making the operation more expensive.
 
-<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/http-response.md') %>
+<%= render('ScimUserEndpointDocs/find_with_attributes_users/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/find_with_attributes_users/http-request.md') %>
+<%= render('ScimUserEndpointDocs/find_with_attributes_users/http-response.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/find_with_attributes_users/request-headers.md') %>
 
 _Request Parameters_
 
-<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/request-parameters.md') %>
+<%= render('ScimUserEndpointDocs/find_with_attributes_users/query-parameters.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_Find_With_Attributes_Users/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/find_with_attributes_users/response-fields.md') %>
 
 ## Create
 
-<%= render('ScimUserEndpointDocs/test_Create_User/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Create_User/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Create_User/http-response.md') %>
+<%= render('ScimUserEndpointDocs/create_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/create_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/create_user/http-response.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_Create_User/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/create_user/request-headers.md') %>
 
 _Request Fields_
 
-<%= render('ScimUserEndpointDocs/test_Create_User/request-fields.md') %>
+<%= render('ScimUserEndpointDocs/create_user/request-fields.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_Create_User/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/create_user/response-fields.md') %>
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)                             |
-| 409        | Conflict - Username already exists                                                                     |
+| Error Code | Description                                                                         |
+|------------|-------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields                                 |
+| 401        | Unauthorized - Invalid token                                                        |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to create a user)          |
+| 409        | Conflict - Username already exists                                                  |
+| 422        | Unprocessable Entity - `alias_zid` set, but error occurred during creation of alias |
 
 >Example using uaac to view users:
 
@@ -1649,30 +1475,31 @@ uaac user add testuser --given_name About --family_name Schmidt --emails testuse
   Users can only be updated when internal user management is enabled.
 </aside>
 
-<%= render('ScimUserEndpointDocs/test_Update_User/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Update_User/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Update_User/http-response.md') %>
+<%= render('ScimUserEndpointDocs/update_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/update_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/update_user/http-response.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_Update_User/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/update_user/request-headers.md') %>
 
 _Request Fields_
 
-<%= render('ScimUserEndpointDocs/test_Update_User/request-fields.md') %>
+<%= render('ScimUserEndpointDocs/update_user/request-fields.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_Update_User/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/update_user/response-fields.md') %>
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to update user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
+| 422        | Unprocessable Entity - error occurred during creation or update of alias                                                  |
 
 >Example using uaac to view users:
 
@@ -1690,30 +1517,30 @@ uaac user update testuser --given_name About --family_name Schmidt --emails test
   Users can only be patched when internal user management is enabled.
 </aside>
 
-<%= render('ScimUserEndpointDocs/test_Patch_User/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Patch_User/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Patch_User/http-response.md') %>
+<%= render('ScimUserEndpointDocs/patch_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/patch_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/patch_user/http-response.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_Patch_User/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/patch_user/request-headers.md') %>
 
 _Request Fields_
 
-<%= render('ScimUserEndpointDocs/test_Patch_User/request-fields.md') %>
+<%= render('ScimUserEndpointDocs/patch_user/request-fields.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_Patch_User/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/patch_user/response-fields.md') %>
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to update user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to update a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
 
 >Example using uaac to patch users:
 
@@ -1727,26 +1554,26 @@ uaac user update testuser --given_name About --family_name Schmidt --emails test
 
 ## Delete
 
-<%= render('ScimUserEndpointDocs/test_Delete_User/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Delete_User/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Delete_User/http-response.md') %>
+<%= render('ScimUserEndpointDocs/delete_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/delete_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/delete_user/http-response.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_Delete_User/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/delete_user/request-headers.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_Delete_User/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/delete_user/response-fields.md') %>
 
 _Error Codes_
 
-| Error Code | Description                                                                                            |
-|------------|--------------------------------------------------------------------------------------------------------|
-| 400        | Bad Request - Invalid JSON format or missing fields                                                    |
-| 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                             |
-| 404        | Not Found - User id not found                                                                          |
+| Error Code | Description                                                                                                               |
+|------------|---------------------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - Invalid JSON format or missing fields; trying to delete user with alias while `aliasEntitiesEnabled` is off |
+| 401        | Unauthorized - Invalid token                                                                                              |
+| 403        | Forbidden - Insufficient scope (`scim.write` is required to delete a user)                                                |
+| 404        | Not Found - User id not found                                                                                             |
 
 >Example using uaac to delete users:
 
@@ -1762,17 +1589,17 @@ uaac user delete testuser
 
 An OAuth2 protected resource and an OpenID Connect endpoint. Given an appropriate access_token, returns information about a user. Defined fields include various standard user profile fields. The response may include other user information such as group membership.
 
-<%= render('UserInfoEndpointDocs/test_Get_UserInfo/curl-request.md') %>
-<%= render('UserInfoEndpointDocs/test_Get_UserInfo/http-request.md') %>
-<%= render('UserInfoEndpointDocs/test_Get_UserInfo/http-response.md') %>
+<%= render('UserInfoEndpointDocs/get_user_info/curl-request.md') %>
+<%= render('UserInfoEndpointDocs/get_user_info/http-request.md') %>
+<%= render('UserInfoEndpointDocs/get_user_info/http-response.md') %>
 
 _Request Headers_
 
-<%= render('UserInfoEndpointDocs/test_Get_UserInfo/request-headers.md') %>
+<%= render('UserInfoEndpointDocs/get_user_info/request-headers.md') %>
 
 _Response Fields_
 
-<%= render('UserInfoEndpointDocs/test_Get_UserInfo/response-fields.md') %>
+<%= render('UserInfoEndpointDocs/get_user_info/response-fields.md') %>
 
 _Error Codes_
 
@@ -1795,21 +1622,21 @@ uaac curl -X GET /userinfo -k
 
 ## Change user password
 
-<%= render('ScimUserEndpointDocs/test_Change_Password/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Change_Password/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_Change_Password/http-response.md') %>
+<%= render('ScimUserEndpointDocs/change_password/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/change_password/http-request.md') %>
+<%= render('ScimUserEndpointDocs/change_password/http-response.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_Change_Password/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/change_password/request-headers.md') %>
 
 _Request Fields_
 
-<%= render('ScimUserEndpointDocs/test_Change_Password/request-fields.md') %>
+<%= render('ScimUserEndpointDocs/change_password/request-fields.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_Change_Password/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/change_password/response-fields.md') %>
 
 _Error Codes_
 
@@ -1836,25 +1663,25 @@ uaac password change -o secret -p newsecret
   Added in UAA 3.7.0
 </aside>
 
-<%= render('ScimUserEndpointDocs/test_status_unlock_user/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_status_unlock_user/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_status_unlock_user/http-response.md') %>
+<%= render('ScimUserEndpointDocs/status_unlock_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/status_unlock_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/status_unlock_user/http-response.md') %>
 
 _Path Parameters_
 
-<%= render('ScimUserEndpointDocs/test_status_unlock_user/path-parameters.md') %>
+<%= render('ScimUserEndpointDocs/status_unlock_user/path-parameters.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_status_unlock_user/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/status_unlock_user/request-headers.md') %>
 
 _Request Fields_
 
-<%= render('ScimUserEndpointDocs/test_status_unlock_user/request-fields.md') %>
+<%= render('ScimUserEndpointDocs/status_unlock_user/request-fields.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_status_unlock_user/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/status_unlock_user/response-fields.md') %>
 
 _Error Codes_
 
@@ -1871,25 +1698,25 @@ _Error Codes_
   Added in UAA 3.9.0
 </aside>
 
-<%= render('ScimUserEndpointDocs/test_status_password_expire_user/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/test_status_password_expire_user/http-request.md') %>
-<%= render('ScimUserEndpointDocs/test_status_password_expire_user/http-response.md') %>
+<%= render('ScimUserEndpointDocs/status_password_expire_user/curl-request.md') %>
+<%= render('ScimUserEndpointDocs/status_password_expire_user/http-request.md') %>
+<%= render('ScimUserEndpointDocs/status_password_expire_user/http-response.md') %>
 
 _Path Parameters_
 
-<%= render('ScimUserEndpointDocs/test_status_password_expire_user/path-parameters.md') %>
+<%= render('ScimUserEndpointDocs/status_password_expire_user/path-parameters.md') %>
 
 _Request Headers_
 
-<%= render('ScimUserEndpointDocs/test_status_password_expire_user/request-headers.md') %>
+<%= render('ScimUserEndpointDocs/status_password_expire_user/request-headers.md') %>
 
 _Request Fields_
 
-<%= render('ScimUserEndpointDocs/test_status_password_expire_user/request-fields.md') %>
+<%= render('ScimUserEndpointDocs/status_password_expire_user/request-fields.md') %>
 
 _Response Fields_
 
-<%= render('ScimUserEndpointDocs/test_status_password_expire_user/response-fields.md') %>
+<%= render('ScimUserEndpointDocs/status_password_expire_user/response-fields.md') %>
 
 _Error Codes_
 
@@ -1916,7 +1743,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('ScimUserEndpointDocs/getUserVerificationLink/request-parameters.md') %>
+<%= render('ScimUserEndpointDocs/getUserVerificationLink/query-parameters.md') %>
 
 _Response Fields_
 
@@ -1951,27 +1778,6 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope or internal user management disabled   |
 | 404        | Not Found - User not found                                            |
 
-## Delete MFA registration
-
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/curl-request.md') %>
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/http-request.md') %>
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/http-response.md') %>
-
-_Path Parameters_
-
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/path-parameters.md') %>
-
-_Request Headers_
-
-<%= render('ScimUserEndpointDocs/deleteMfaRegistration/request-headers.md') %>
-
-_Error Codes_
-
-| Error Code | Description                                                           |
-|------------|-----------------------------------------------------------------------|
-| 403        | Forbidden - Insufficient scope or internal user management disabled   |
-| 404        | Not Found - User not found                                            |
-
 ## Lookup User IDs/Usernames
 
 <%= render('UserIdConversionEndpointDocs/lookUpIds/curl-request.md') %>
@@ -1984,7 +1790,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('UserIdConversionEndpointDocs/lookUpIds/request-parameters.md') %>
+<%= render('UserIdConversionEndpointDocs/lookUpIds/query-parameters.md') %>
 
 _Response Fields_
 
@@ -2013,7 +1819,7 @@ _Request Fields_
 
 _Request Parameters_
 
-<%= render('InvitationsEndpointDocs/inviteUsers/request-parameters.md') %>
+<%= render('InvitationsEndpointDocs/inviteUsers/query-parameters.md') %>
 
 _Response Fields_
 
@@ -2166,7 +1972,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('ScimGroupEndpointDocs/listScimGroups/request-parameters.md') %>
+<%= render('ScimGroupEndpointDocs/listScimGroups/query-parameters.md') %>
 
 _Response Fields_
 
@@ -2270,7 +2076,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('ScimGroupEndpointDocs/listMembersOfGroup/request-parameters.md') %>
+<%= render('ScimGroupEndpointDocs/listMembersOfGroup/query-parameters.md') %>
 
 _Response Fields_
 
@@ -2472,6 +2278,52 @@ _Request Fields_
 
 <%= render('ClientAdminEndpointDocs/changeClientSecret/request-fields.md') %>
 
+## Change Client JWT
+This configuration can be done if client authentication is performed with method private_key_jwt
+instead of secret based client authentication. See details for client authentication with [OAuth2](https://oauth.net/2/client-authentication/).
+The authentication with a client JWT (parameter client_assertion) is similar to the user authentication with a user JWT (JWT bearer, e.g. [RFC 7522](https://tools.ietf.org/html/rfc7522)).
+Client JWT is available and specified from either the OAuth2 standard, defined in [RFC 7523](https://tools.ietf.org/html/rfc7523), and from
+[OpenID Connect](https://openid.net/specs/openid-connect-core-1_0.html#ClientAuthentication).
+
+UAA supports both standards for private_key_jwt, the OAuth2 and OpenID Connect standard.
+
+<aside class="success">
+  Added in 77.25.0
+</aside>
+
+
+The client can send a client_assertion for authentication instead of client_secret or Authorization header.
+The signature of the JWT from client_assertion is validated and assures the client authentication. The structure of the JWT
+sent with parameter client_assertion differentiates between the OAuth2 and OpenID Connect standard and with this, both standards
+can be supported in parallel.
+
+The OpenID Connect standard is supported either with the jwks_uri or the internal jwks public keys. The JWT here has only a reference to
+the current client using the client_id for issuer and subject, therefore the trust anchor is only the key which can be retrieved or is set already.
+
+The OAuth2 standard is supported either with plain issuer or a pre-configured Identity Provider object. The IdP must be from type OIDC (`oidc1.0`).
+If an Identity Provider is set up before, then the key material can be configured with `tokenKey` or `tokenKeyUrl`. If no Identity Provider is used, then
+the configured issuer must support the [discovery standard](https://openid.net/specs/openid-connect-discovery-1_0.html). If no audience (`aud`) is set, then
+the UAA own token endpoint URL is expected.
+
+The limits are 10 keys and/or 10 external combinations of issuer and subject. Use jwks_uri/jwks for single entities and issuer/subject/audience for system entities, e.g. another UAA landscapes, external system integrations,
+[work load identities](https://www.ietf.org/archive/id/draft-ietf-wimse-workload-identity-bcp-01.html) or [SPIFFE](https://www.ietf.org/archive/id/draft-ietf-wimse-workload-identity-practices-00.html).
+
+<%= render('ClientAdminEndpointDocs/changeClientJwt/curl-request.md') %>
+<%= render('ClientAdminEndpointDocs/changeClientJwt/http-request.md') %>
+<%= render('ClientAdminEndpointDocs/changeClientJwt/http-response.md') %>
+
+_Path Parameters_
+
+<%= render('ClientAdminEndpointDocs/changeClientJwt/path-parameters.md') %>
+
+_Request Headers_
+
+<%= render('ClientAdminEndpointDocs/changeClientJwt/request-headers.md') %>
+
+_Request Fields_
+
+<%= render('ClientAdminEndpointDocs/changeClientJwt/request-fields.md') %>
+
 ## List
 
 <%= render('ClientAdminEndpointDocs/listClients/curl-request.md') %>
@@ -2484,7 +2336,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('ClientAdminEndpointDocs/listClients/request-parameters.md') %>
+<%= render('ClientAdminEndpointDocs/listClients/query-parameters.md') %>
 
 _Response Fields_
 
@@ -2661,7 +2513,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('LoginInfoEndpointDocs/info_endpoint_for_json/request-parameters.md') %>
+<%= render('LoginInfoEndpointDocs/info_endpoint_for_json/query-parameters.md') %>
 
 _Response Fields_
 
@@ -2734,7 +2586,7 @@ and the UAA remembers the URL that was accessed.
 
 _Request Parameters_
 
-<%= render('LoginInfoEndpointDocs/perform_auto_login/request-parameters.md') %>
+<%= render('LoginInfoEndpointDocs/perform_auto_login/query-parameters.md') %>
 
 # External Login Server
 
@@ -2759,7 +2611,7 @@ _Request Headers_
 
 _Request Parameters_
 
-<%= render('PasswordEndpointDocs/document_password_reset/request-parameters.md') %>
+<%= render('PasswordEndpointDocs/document_password_reset/query-parameters.md') %>
 
 _Request Body_
 

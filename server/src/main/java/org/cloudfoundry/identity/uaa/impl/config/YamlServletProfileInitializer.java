@@ -2,8 +2,10 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.LoggerContext;
-import org.cloudfoundry.identity.uaa.impl.config.YamlProcessor.ResolutionMethod;
+import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 import org.slf4j.MDC;
+import org.springframework.beans.factory.config.YamlMapFactoryBean;
+import org.springframework.beans.factory.config.YamlProcessor;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.PropertySource;
@@ -11,31 +13,31 @@ import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.security.util.InMemoryResource;
-import org.springframework.security.web.session.HttpSessionEventPublisher;
 import org.springframework.util.ResourceUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.util.SystemPropertyUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.WebApplicationContextUtils;
-import org.yaml.snakeyaml.Yaml;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletContext;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
+import java.util.Optional;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
 import static org.springframework.util.StringUtils.commaDelimitedListToStringArray;
+import static org.springframework.util.StringUtils.hasLength;
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it
@@ -81,13 +83,16 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         ServletContext servletContext = applicationContext.getServletContext();
         final String contextPath = servletContext != null ? servletContext.getContextPath() : "/";
 
-        if (servletContext != null) {
-            HttpSessionEventPublisher publisher = new HttpSessionEventPublisher();
-            servletContext.addListener(publisher);
-        }
+        JacksonObjectMapperConfig.configureJsonPathForJackson();
 
+        ServletConfig servletConfig = null;
+        try {
+            servletConfig = applicationContext.getServletConfig();
+        } catch (UnsupportedOperationException ignore) {
+            System.err.println("Unable to load Servlet Context - are you testing?");
+        }
         WebApplicationContextUtils.initServletPropertySources(applicationContext.getEnvironment().getPropertySources(),
-                servletContext, applicationContext.getServletConfig());
+                servletContext, servletConfig);
 
         List<Resource> resources = new ArrayList<>();
 
@@ -108,12 +113,12 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         try {
             System.out.println("Loading YAML environment properties from location: " + resources.toString());
             YamlMapFactoryBean factory = new YamlMapFactoryBean();
-            factory.setResolutionMethod(ResolutionMethod.OVERRIDE_AND_IGNORE);
+            factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
 
             factory.setResources(resources.toArray(new Resource[0]));
 
-            Map<String, Object> map = factory.getObject();
-            String yamlStr = (new Yaml()).dump(map);
+            Map<String, Object> map = Optional.ofNullable(factory.getObject()).orElse(Collections.emptyMap());
+            String yamlStr = UaaYamlUtils.dump(map);
             map.put(DEFAULT_YAML_KEY, yamlStr);
             NestedMapPropertySource properties = new NestedMapPropertySource("servletConfigYaml", map);
             applicationContext.getEnvironment().getPropertySources().addLast(properties);
@@ -145,8 +150,8 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         return Arrays.stream(secretFiles)
                 .map(File::getAbsolutePath)
-                .map(path -> String.format("file:%s", path))
-                .collect(Collectors.toList());
+                .map("file:%s"::formatted)
+                .toList();
     }
 
     private Resource getYamlFromEnvironmentVariable() {
@@ -166,17 +171,17 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     ) {
         final List<String> resolvedLocations = fileConfigLocations.stream()
                 .map(applicationContext.getEnvironment()::resolvePlaceholders)
-                .collect(Collectors.toList());
+                .toList();
 
         resolvedLocations.stream()
-                .map(location -> String.format("Testing for YAML resources at: %s", location))
+                .map("Testing for YAML resources at: %s"::formatted)
                 .forEach(System.out::println);
 
         return resolvedLocations.stream()
                 .map(applicationContext::getResource)
                 .filter(Objects::nonNull)
                 .filter(Resource::exists)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private void applyLog4jConfiguration(ConfigurableEnvironment environment, String contextPath) {
@@ -187,9 +192,9 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             //we do not want that variable
             //this variable starts with -D, so we can ignore it.
             String location = environment.getProperty("logging.config");
-            if (location != null && location.trim().length() > 0) {
+            if (location != null && !location.trim().isEmpty()) {
                 PropertySource<?> environmentPropertySource = environment.getPropertySources().get(StandardEnvironment.SYSTEM_ENVIRONMENT_PROPERTY_SOURCE_NAME);
-                if ((location.startsWith("-D") && environmentPropertySource != null && location.equals(environmentPropertySource.getProperty("LOGGING_CONFIG")))) {
+                if (location.startsWith("-D") && environmentPropertySource != null && location.equals(environmentPropertySource.getProperty("LOGGING_CONFIG"))) {
                     System.out.println("Ignoring Log Config Location: " + location + ". Location is suspect to be a Tomcat startup script environment variable");
                 } else {
                     System.out.println("Setting Log Config Location: " + location + " based on logging.config setting.");
@@ -213,15 +218,14 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             System.err.println("Error loading log4j config from location: " + log4jConfigLocation);
             e.printStackTrace();
         }
-
         MDC.put("context", contextPath); // used to fill in %X{context} in our `property.log_pattern` log format
     }
 
     static void applySpringProfiles(ConfigurableEnvironment environment) {
         environment.setDefaultProfiles(new String[0]);
 
-        System.out.println(String.format("System property spring.profiles.active=[%s]", System.getProperty("spring.profiles.active")));
-        System.out.println(String.format("Environment property spring_profiles=[%s]", environment.getProperty("spring_profiles")));
+        System.out.printf("System property spring.profiles.active=[%s]%n", System.getProperty("spring.profiles.active"));
+        System.out.printf("Environment property spring_profiles=[%s]%n", environment.getProperty("spring_profiles"));
 
         if (environment.containsProperty("spring_profiles")) {
             setActiveProfiles(environment, StringUtils.tokenizeToStringArray(environment.getProperty("spring_profiles"), ",", true, true));
@@ -229,7 +233,7 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         }
 
         String systemProfiles = System.getProperty("spring.profiles.active");
-        if (!isEmpty(systemProfiles)) {
+        if (hasLength(systemProfiles)) {
             setActiveProfiles(environment, commaDelimitedListToStringArray(systemProfiles));
             return;
         }

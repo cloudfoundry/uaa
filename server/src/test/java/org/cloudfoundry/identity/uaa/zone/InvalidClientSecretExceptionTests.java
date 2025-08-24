@@ -15,20 +15,20 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class InvalidClientSecretExceptionTests {
+class InvalidClientSecretExceptionTests {
     @Test
-    public void getMessagesAsOneString() {
+    void getMessagesAsOneString() {
         String msg1 = "Message 1.";
         String msg2 = "Message 2.";
-        InvalidClientSecretException exception = new InvalidClientSecretException(Arrays.asList(msg1,msg2));
-        assertEquals(msg1+" "+msg2, exception.getMessagesAsOneString());
-        assertEquals(msg1+" "+msg2, exception.getMessage());
+        InvalidClientSecretException exception = new InvalidClientSecretException(Arrays.asList(msg1, msg2));
+        assertThat(exception.getMessagesAsOneString()).isEqualTo(msg1 + " " + msg2);
+        assertThat(exception.getMessage()).isEqualTo(msg1 + " " + msg2);
     }
 
 }

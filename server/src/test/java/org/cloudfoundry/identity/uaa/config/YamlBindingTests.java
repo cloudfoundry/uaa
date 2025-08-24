@@ -1,5 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry 
+/*
+ * *****************************************************************************
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,9 +14,25 @@
 
 package org.cloudfoundry.identity.uaa.config;
 
-import static java.lang.annotation.RetentionPolicy.RUNTIME;
-import static org.junit.Assert.assertEquals;
+import org.cloudfoundry.identity.uaa.config.YamlBindingTests.OAuthConfiguration.OAuthConfigurationValidator;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.BeanWrapperImpl;
+import org.springframework.beans.MutablePropertyValues;
+import org.springframework.beans.PropertyValue;
+import org.springframework.beans.factory.config.YamlPropertiesFactoryBean;
+import org.springframework.context.support.StaticMessageSource;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.util.StringUtils;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.DataBinder;
+import org.springframework.validation.FieldError;
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 
+import jakarta.validation.Constraint;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
+import jakarta.validation.Payload;
+import jakarta.validation.constraints.NotNull;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -25,116 +42,92 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
-import javax.validation.Payload;
-import javax.validation.constraints.NotNull;
-
-import org.cloudfoundry.identity.uaa.config.YamlBindingTests.OAuthConfiguration.OAuthConfigurationValidator;
-import org.cloudfoundry.identity.uaa.impl.config.YamlPropertiesFactoryBean;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.springframework.beans.BeanWrapperImpl;
-import org.springframework.beans.MutablePropertyValues;
-import org.springframework.beans.PropertyValue;
-import org.springframework.context.support.StaticMessageSource;
-import org.springframework.core.io.ByteArrayResource;
-import org.springframework.util.StringUtils;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.DataBinder;
-import org.springframework.validation.FieldError;
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * @author Dave Syer
- * 
  */
-public class YamlBindingTests {
-
-    @Rule
-    public ExpectedException expected = ExpectedException.none();
+class YamlBindingTests {
 
     @Test
-    public void testBindString() {
+    void bindString() {
         VanillaTarget target = new VanillaTarget();
         bind(target, "foo: bar");
-        assertEquals("bar", target.getFoo());
+        assertThat(target.getFoo()).isEqualTo("bar");
     }
 
     @Test
-    public void testBindNumber() {
+    void bindNumber() {
         VanillaTarget target = new VanillaTarget();
         bind(target, "foo: bar\nvalue: 123");
-        assertEquals(123, target.getValue());
+        assertThat(target.getValue()).isEqualTo(123);
     }
 
     @Test
-    public void testSimpleValidation() {
+    void simpleValidation() {
         ValidatedTarget target = new ValidatedTarget();
         BindingResult result = bind(target, "");
-        assertEquals(1, result.getErrorCount());
+        assertThat(result.getErrorCount()).isOne();
     }
 
     @Test
-    public void testRequiredFieldsValidation() {
+    void requiredFieldsValidation() {
         TargetWithValidatedMap target = new TargetWithValidatedMap();
         BindingResult result = bind(target, "info:\n  foo: bar");
-        assertEquals(2, result.getErrorCount());
+        assertThat(result.getErrorCount()).isEqualTo(2);
         for (FieldError error : result.getFieldErrors()) {
             System.err.println(new StaticMessageSource().getMessage(error, Locale.getDefault()));
         }
     }
 
     @Test
-    public void testBindNested() {
+    void bindNested() {
         TargetWithNestedObject target = new TargetWithNestedObject();
         bind(target, "nested:\n  foo: bar\n  value: 123");
-        assertEquals(123, target.getNested().getValue());
+        assertThat(target.getNested().getValue()).isEqualTo(123);
     }
 
     @Test
-    public void testBindNestedMap() {
+    void bindNestedMap() {
         TargetWithNestedMap target = new TargetWithNestedMap();
         bind(target, "nested:\n  foo: bar\n  value: 123");
-        assertEquals(123, target.getNested().get("value"));
+        assertThat(target.getNested()).containsEntry("value", 123);
     }
 
     @Test
-    public void testBindNestedMapBracketReferenced() {
+    void bindNestedMapBracketReferenced() {
         TargetWithNestedMap target = new TargetWithNestedMap();
         bind(target, "nested[foo]: bar\nnested[value]: 123");
-        assertEquals(123, target.getNested().get("value"));
+        assertThat(target.getNested()).containsEntry("value", 123);
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    public void testBindDoubleNestedMap() {
+    void bindDoubleNestedMap() {
         TargetWithNestedMap target = new TargetWithNestedMap();
         bind(target, "nested:\n  foo: bar\n  oof:\n    spam: bucket\n    value: 123");
-        assertEquals(123, ((Map<String, Object>) target.getNested().get("oof")).get("value"));
+        assertThat(((Map<String, Object>) target.getNested().get("oof"))).containsEntry("value", 123);
     }
 
     @Test
-    public void testBindErrorTypeMismatch() {
+    void bindErrorTypeMismatch() {
         VanillaTarget target = new VanillaTarget();
         BindingResult result = bind(target, "foo: bar\nvalue: foo");
-        assertEquals(1, result.getErrorCount());
+        assertThat(result.getErrorCount()).isOne();
     }
 
     @Test
-    public void testBindErrorNotWritable() {
-        expected.expectMessage("property 'spam'");
-        expected.expectMessage("not writable");
+    void bindErrorNotWritable() {
         VanillaTarget target = new VanillaTarget();
-        BindingResult result = bind(target, "spam: bar\nvalue: 123");
-        assertEquals(1, result.getErrorCount());
+        assertThatThrownBy(() -> bind(target, "foo: bar\nreadonly: bar"))
+                .isInstanceOf(Exception.class);
     }
 
     private BindingResult bind(Object target, String values) {
         YamlPropertiesFactoryBean factory = new YamlPropertiesFactoryBean();
-        factory.setResources(new ByteArrayResource[] { new ByteArrayResource(values.getBytes()) });
+        factory.setResources(new ByteArrayResource[]{new ByteArrayResource(values.getBytes())});
         Map<Object, Object> map = factory.getObject();
         DataBinder binder = new DataBinder(target) {
 
@@ -164,13 +157,12 @@ public class YamlBindingTests {
                         Class<?> type = bw.getPropertyType(base);
                         if (type != null && Map.class.isAssignableFrom(type)) {
                             String suffix = name.substring(base.length());
-                            Map<String, Object> nested = new LinkedHashMap<String, Object>();
+                            Map<String, Object> nested = new LinkedHashMap<>();
                             if (bw.getPropertyValue(base) != null) {
                                 @SuppressWarnings("unchecked")
                                 Map<String, Object> existing = (Map<String, Object>) bw.getPropertyValue(base);
                                 nested = existing;
-                            }
-                            else {
+                            } else {
                                 bw.setPropertyValue(base, nested);
                             }
                             Map<String, Object> value = nested;
@@ -202,7 +194,7 @@ public class YamlBindingTests {
     }
 
     @Documented
-    @Target({ ElementType.TYPE })
+    @Target({ElementType.TYPE})
     @Retention(RUNTIME)
     @Constraint(validatedBy = OAuthConfigurationValidator.class)
     public @interface ValidOAuthConfiguration {
@@ -260,7 +252,7 @@ public class YamlBindingTests {
         }
 
         public static class OAuthConfigurationValidator implements
-                        ConstraintValidator<ValidOAuthConfiguration, OAuthConfiguration> {
+                ConstraintValidator<ValidOAuthConfiguration, OAuthConfiguration> {
 
             @Override
             public void initialize(ValidOAuthConfiguration constraintAnnotation) {
@@ -273,7 +265,7 @@ public class YamlBindingTests {
                     if (value.clients != null) {
                         context.buildConstraintViolationWithTemplate(
                                         "Please use oauth.clients to specifiy autoapprove not client.autoapprove")
-                                        .addConstraintViolation();
+                                .addConstraintViolation();
                         valid = false;
                     }
                 }
@@ -285,7 +277,7 @@ public class YamlBindingTests {
     }
 
     @Documented
-    @Target({ ElementType.FIELD })
+    @Target({ElementType.FIELD})
     @Retention(RUNTIME)
     @Constraint(validatedBy = RequiredKeysValidator.class)
     public @interface RequiredKeys {
@@ -315,7 +307,7 @@ public class YamlBindingTests {
             for (String key : requiredKeys) {
                 if (!value.containsKey(key)) {
                     context.buildConstraintViolationWithTemplate("Missing key ''" + key + "''")
-                                    .addConstraintViolation();
+                            .addConstraintViolation();
                     valid = false;
                 }
             }
@@ -326,7 +318,7 @@ public class YamlBindingTests {
 
     public static class TargetWithValidatedMap {
 
-        @RequiredKeys({ "foo", "baz" })
+        @RequiredKeys({"foo", "baz"})
         private Map<String, Object> info;
 
         public Map<String, Object> getInfo() {

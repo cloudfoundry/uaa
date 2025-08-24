@@ -1,0 +1,58 @@
+name: uaa
+
+services:
+  postgresql:
+    image: "postgres:15"
+    ports:
+      - 5432:5432
+    volumes:
+      - ./postgresql:/docker-entrypoint-initdb.d/
+      - type: tmpfs
+        target: /var/lib/postgresql/data
+        tmpfs:
+          size: 1073741824 # 1024 * 2^20 bytes = 1024Mb
+    environment:
+      - POSTGRES_PASSWORD=changeme
+    command:
+      - postgres
+      - -c
+      - max_connections=250
+  mysql:
+    image: "mysql:8"
+    ports:
+      - 3306:3306
+    volumes:
+      - ./mysql:/docker-entrypoint-initdb.d/
+      - /etc/localtime:/localtime-from-host
+      - type: tmpfs
+        target: /var/lib/mysql
+        tmpfs:
+          size: 1073741824 # 1024 * 2^20 bytes = 1024Mb
+    environment:
+      - MYSQL_ROOT_PASSWORD=changeme
+      - TZ=${TZ}
+    command:
+      - --sql_mode=ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION,PAD_CHAR_TO_FULL_LENGTH
+
+  openldap:
+    build:
+      context: .
+      dockerfile: ldap/Dockerfile
+    ports:
+      - '389:389'
+      - '636:636'
+    entrypoint: [ "/bin/bash", "-c" ]
+    command:
+      - "/uaa/ldap/ldap-start-and-populate.sh"
+    tty: true
+    volumes:
+      - ./ldap:/uaa/ldap/
+      - ./certificates:/uaa/certificates/
+
+  simplesamlphp:
+    image: kenchan0130/simplesamlphp:1.19.9
+    ports:
+      - '9090:8080'
+    volumes:
+      - ./saml/saml20-sp-remote.php:/var/www/simplesamlphp/metadata/saml20-sp-remote.php
+      - ./saml/authsources.php:/var/www/simplesamlphp/config/authsources.php

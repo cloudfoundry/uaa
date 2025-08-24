@@ -1,16 +1,27 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
-import javax.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
 public class CurrentUserCookieFactory {
     public String CURRENT_USER_COOKIE_NAME = "Current-User";
     private final boolean secure;
-    private int sessionTimeout;
+    private final int sessionTimeout;
+
+    @Autowired
+    public CurrentUserCookieFactory(UaaProperties.Servlet servletProps, UaaProperties.RootLevel rootProps) {
+        this(Optional.ofNullable(servletProps.sessionCookie().maxAge()).orElse(1800), rootProps.require_https());
+    }
 
     public CurrentUserCookieFactory(int sessionTimeout, boolean secure) {
         this.sessionTimeout = sessionTimeout;

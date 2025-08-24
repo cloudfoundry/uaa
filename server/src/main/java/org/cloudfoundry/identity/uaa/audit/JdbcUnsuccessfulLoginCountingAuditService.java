@@ -9,7 +9,6 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicLong;
 
-import static org.cloudfoundry.identity.uaa.audit.AuditEventType.MfaAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 
 /**
@@ -40,20 +39,10 @@ public class JdbcUnsuccessfulLoginCountingAuditService extends JdbcAuditService 
     @Override
     public void log(AuditEvent auditEvent, String zoneId) {
         switch (auditEvent.getType()) {
-            case MfaAuthenticationSuccess:
-                resetAuthenticationEvents(auditEvent, zoneId, MfaAuthenticationFailure);
-
-                break;
-            case UserAuthenticationSuccess:
-            case PasswordChangeSuccess:
+            case UserAuthenticationSuccess, PasswordChangeSuccess, UserAccountUnlockedEvent:
                 resetAuthenticationEvents(auditEvent, zoneId, UserAuthenticationFailure);
-                break;
-            case UserAccountUnlockedEvent:
-                resetAuthenticationEvents(auditEvent, zoneId, UserAuthenticationFailure);
-                resetAuthenticationEvents(auditEvent, zoneId, MfaAuthenticationFailure);
                 break;
             case UserAuthenticationFailure:
-            case MfaAuthenticationFailure:
                 periodicDelete();
                 super.log(auditEvent, zoneId);
                 break;

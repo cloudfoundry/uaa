@@ -15,18 +15,25 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.HttpServletResponse;
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.matches;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.same;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class ReAuthenticationRequiredFilterTests {
+class ReAuthenticationRequiredFilterTests {
 
     private ReAuthenticationRequiredFilter filter;
     private UaaAuthentication authentication;
@@ -34,9 +41,9 @@ public class ReAuthenticationRequiredFilterTests {
     private HttpServletResponse response;
     private FilterChain chain;
 
-    @Before
-    public void setup() {
-        filter = new ReAuthenticationRequiredFilter();
+    @BeforeEach
+    void setup() {
+        filter = new ReAuthenticationRequiredFilter("cloudfoundry-login");
         authentication = mock(UaaAuthentication.class);
         request = new MockHttpServletRequest();
         response = mock(HttpServletResponse.class);
@@ -44,13 +51,13 @@ public class ReAuthenticationRequiredFilterTests {
         request.setContextPath("");
     }
 
-    @After
-    public void clear () {
+    @AfterEach
+    void clear() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void request_with_prompt_login() throws Exception {
+    void request_with_prompt_login() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         request.setParameter("client_id", "testclient");
         request.setParameter("prompt", "login");
@@ -62,7 +69,7 @@ public class ReAuthenticationRequiredFilterTests {
     }
 
     @Test
-    public void request_with_prompt_none() throws Exception {
+    void request_with_prompt_none() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         request.setParameter("prompt", "none");
         filter.doFilterInternal(request, response, chain);
@@ -71,7 +78,7 @@ public class ReAuthenticationRequiredFilterTests {
     }
 
     @Test
-    public void request_with_max_age_redirect_expected() throws Exception {
+    void request_with_max_age_redirect_expected() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(authentication.getAuthenticatedTime()).thenReturn(System.currentTimeMillis() - 2000);
         request.setParameter("client_id", "testclient");
@@ -84,7 +91,7 @@ public class ReAuthenticationRequiredFilterTests {
     }
 
     @Test
-    public void request_with_max_age_redirect_not_expected() throws Exception {
+    void request_with_max_age_redirect_not_expected() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         when(authentication.getAuthenticatedTime()).thenReturn(System.currentTimeMillis());
         request.setParameter("client_id", "testclient");
@@ -96,8 +103,9 @@ public class ReAuthenticationRequiredFilterTests {
     }
 
     @Test
-    public void request_without_prompt_and_max_age() throws Exception {
+    void request_without_prompt_and_max_age() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
+        request.setServletPath("/saml/SingleLogout/alias/cloudfoundry-login");
         request.setParameter("client_id", "testclient");
         request.setParameter("scope", "openid");
         filter.doFilterInternal(request, response, chain);

@@ -1,40 +1,40 @@
 package org.cloudfoundry.identity.uaa.provider;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class ExternalIdentityProviderDefinitionTest {
+class ExternalIdentityProviderDefinitionTest {
 
     ExternalIdentityProviderDefinition definition;
 
-    @Before
-    public void createDefinition() {
+    @BeforeEach
+    void createDefinition() {
         definition = new ExternalIdentityProviderDefinition();
     }
 
     @Test
-    public void testEquals() {
+    void equals() {
         ExternalIdentityProviderDefinition definition1 = new ExternalIdentityProviderDefinition();
         definition1.setAddShadowUserOnLogin(true);
         ExternalIdentityProviderDefinition definition2 = new ExternalIdentityProviderDefinition();
         definition2.setAddShadowUserOnLogin(false);
 
-        assertNotEquals(definition1, definition2);
+        assertThat(definition2).isNotEqualTo(definition1);
         definition2.setAddShadowUserOnLogin(true);
-        assertEquals(definition1, definition2);
+        assertThat(definition2).isEqualTo(definition1);
     }
 
     @Test
-    public void testDefaultValueForStoreCustomAttributes() {
-        assertTrue(definition.isStoreCustomAttributes());
+    void defaultValueForStoreCustomAttributes() {
+        assertThat(definition.isStoreCustomAttributes()).isTrue();
     }
 
     @Test
-    public void testEquals2() {
+    void equals2() {
         ExternalIdentityProviderDefinition def = new ExternalIdentityProviderDefinition();
         def.setStoreCustomAttributes(false);
-        assertNotEquals(definition, def);
+        assertThat(def).isNotEqualTo(definition);
     }
 }

@@ -22,8 +22,9 @@ class PurgeableSessionMapTest {
         sessions.put(SESSION_ID, createSession(SESSION_ID, false));
 
         sessions.purge();
-        assertThat(sessions).hasSize(1);
-        assertThat(sessions).containsKey(SESSION_ID);
+        assertThat(sessions)
+                .hasSize(1)
+                .containsKey(SESSION_ID);
     }
 
     @Test
@@ -31,7 +32,7 @@ class PurgeableSessionMapTest {
         sessions.put(SESSION_ID, createSession(SESSION_ID, true));
 
         sessions.purge();
-        assertThat(sessions).hasSize(0);
+        assertThat(sessions).isEmpty();
     }
 
     private Session createSession(String id, boolean expired) {

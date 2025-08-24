@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -21,7 +22,7 @@ public interface SearchQueryConverter {
 
     final class ProcessedFilter {
         public static final String ORDER_BY_NO_SPACE = "ORDER BY";
-        public static final String ORDER_BY = " "+ORDER_BY_NO_SPACE+" ";
+        public static final String ORDER_BY = " " + ORDER_BY_NO_SPACE + " ";
         private final String sql;
         private final Map<String, Object> params;
         private final boolean hasOrderBy;
@@ -56,14 +57,15 @@ public interface SearchQueryConverter {
 
         @Override
         public String toString() {
-            return String.format("sql: %s, params: %s", sql, params);
+            return "sql: %s, params: %s".formatted(sql, params);
         }
     }
 
     ProcessedFilter convert(String filter, String sortBy, boolean ascending, String zoneId);
 
-    MultiValueMap<String,Object> getFilterValues(String filter, List<String> validAttributes) throws IllegalArgumentException;
+    MultiValueMap<String, Object> getFilterValues(String filter, List<String> validAttributes) throws IllegalArgumentException;
 
     String map(String attribute);
 
+    String getJoinName();
 }

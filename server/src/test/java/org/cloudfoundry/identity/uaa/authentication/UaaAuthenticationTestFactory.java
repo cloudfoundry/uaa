@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -16,9 +17,9 @@ import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-import javax.validation.constraints.NotNull;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import jakarta.validation.constraints.NotNull;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,8 +39,8 @@ public class UaaAuthenticationTestFactory {
 
     public static UaaAuthentication getAuthentication(String id, String name, String email, @NotNull Set<String> scopes) {
         return new UaaAuthentication(getPrincipal(id, name, email),
-                                     scopes.stream().map(scope -> new SimpleGrantedAuthority(scope)).collect(Collectors.toSet()),
-                                     null);
+                scopes.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toSet()),
+                null);
     }
 
     public static AuthzAuthenticationRequest getAuthenticationRequest(String name) {
@@ -62,6 +63,8 @@ public class UaaAuthenticationTestFactory {
 
             when(req.getParameter("client_id")).thenReturn(name);
             when(req.getParameter(UaaAuthenticationDetails.ADD_NEW)).thenReturn(String.valueOf(addNew));
+            when(req.getContextPath()).thenReturn("");
+            when(req.getRequestURI()).thenReturn("");
             details = new UaaAuthenticationDetails(req);
         }
         return new AuthzAuthenticationRequest(name, "password", details);

@@ -11,7 +11,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.View;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class CodeStoreEndpoints {
@@ -29,7 +29,7 @@ public class CodeStoreEndpoints {
         this.identityZoneManager = identityZoneManager;
     }
 
-    @RequestMapping(value = {"/Codes"}, method = RequestMethod.POST)
+    @PostMapping({"/Codes"})
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ExpiringCode generateCode(@RequestBody ExpiringCode expiringCode) {
@@ -44,7 +44,7 @@ public class CodeStoreEndpoints {
         }
     }
 
-    @RequestMapping(value = "/Codes/{code}", method = RequestMethod.GET)
+    @GetMapping("/Codes/{code}")
     @ResponseBody
     public ExpiringCode retrieveCode(@PathVariable String code) {
         ExpiringCode result;
@@ -64,12 +64,12 @@ public class CodeStoreEndpoints {
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws CodeStoreException {
         CodeStoreException e = new CodeStoreException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
-        if (t instanceof CodeStoreException) {
-            e = (CodeStoreException) t;
+        if (t instanceof CodeStoreException exception) {
+            e = exception;
         }
         // User can supply trace=true or just trace (unspecified) to get stack
         // traces
-        boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
+        boolean trace = request.getParameter("trace") != null && !"false".equals(request.getParameter("trace"));
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e, trace),
                 e.getStatus()), messageConverters);
     }

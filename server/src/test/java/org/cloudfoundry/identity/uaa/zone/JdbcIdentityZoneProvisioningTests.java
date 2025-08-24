@@ -2,23 +2,18 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.List;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 @WithDatabaseContext
 class JdbcIdentityZoneProvisioningTests {
@@ -37,43 +32,43 @@ class JdbcIdentityZoneProvisioningTests {
     }
 
     @Test
-    void test_delete_zone() {
+    void delete_zone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
 
         IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{createdIdZone.getId()}, Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", Integer.class, new Object[]{createdIdZone.getId()})).isOne();
         jdbcIdentityZoneProvisioning.onApplicationEvent(new EntityDeletedEvent<>(identityZone, null, IdentityZoneHolder.getCurrentZoneId()));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{createdIdZone.getId()}, Integer.class), is(0));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", Integer.class, new Object[]{createdIdZone.getId()})).isZero();
     }
 
     @Test
-    void test_cannot_delete_uaa_zone() {
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{IdentityZone.getUaaZoneId()}, Integer.class), is(1));
+    void cannot_delete_uaa_zone() {
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", Integer.class, new Object[]{IdentityZone.getUaaZoneId()})).isOne();
         jdbcIdentityZoneProvisioning.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa(), null, IdentityZoneHolder.getCurrentZoneId()));
-        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", new Object[]{IdentityZone.getUaaZoneId()}, Integer.class), is(1));
+        assertThat(jdbcTemplate.queryForObject("select count(*) from identity_zone where id = ?", Integer.class, new Object[]{IdentityZone.getUaaZoneId()})).isOne();
     }
 
     @Test
-    void testCreateIdentityZone() {
+    void createIdentityZone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
 
         IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
 
-        assertEquals(identityZone.getId(), createdIdZone.getId());
-        assertEquals(identityZone.getSubdomain(), createdIdZone.getSubdomain());
-        assertEquals(identityZone.getName(), createdIdZone.getName());
-        assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
-        assertEquals(3600, createdIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
-        assertEquals(7200, createdIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
-        assertTrue(createdIdZone.isActive());
+        assertThat(createdIdZone.getId()).isEqualTo(identityZone.getId());
+        assertThat(createdIdZone.getSubdomain()).isEqualTo(identityZone.getSubdomain());
+        assertThat(createdIdZone.getName()).isEqualTo(identityZone.getName());
+        assertThat(createdIdZone.getDescription()).isEqualTo(identityZone.getDescription());
+        assertThat(createdIdZone.getConfig().getTokenPolicy().getAccessTokenValidity()).isEqualTo(3600);
+        assertThat(createdIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity()).isEqualTo(7200);
+        assertThat(createdIdZone.isActive()).isTrue();
     }
 
     @Test
-    void testCreateIdentityZone_Subdomain_Becomes_LowerCase() {
+    void createIdentityZoneSubdomainBecomesLowerCase() {
         String subdomain = randomValueStringGenerator.generate().toUpperCase();
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), subdomain);
         identityZone.setId(randomValueStringGenerator.generate());
@@ -81,29 +76,28 @@ class JdbcIdentityZoneProvisioningTests {
         identityZone.setSubdomain(subdomain);
         IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
 
-        assertEquals(identityZone.getId(), createdIdZone.getId());
-        assertEquals(subdomain.toLowerCase(), createdIdZone.getSubdomain());
-        assertEquals(identityZone.getName(), createdIdZone.getName());
-        assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
+        assertThat(createdIdZone.getId()).isEqualTo(identityZone.getId());
+        assertThat(createdIdZone.getSubdomain()).isEqualTo(subdomain.toLowerCase());
+        assertThat(createdIdZone.getName()).isEqualTo(identityZone.getName());
+        assertThat(createdIdZone.getDescription()).isEqualTo(identityZone.getDescription());
     }
 
     @Test
-    void test_null_subdomain() {
-        assertThrows(EmptyResultDataAccessException.class,
-                () -> jdbcIdentityZoneProvisioning.retrieveBySubdomain(null));
+    void null_subdomain() {
+        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.retrieveBySubdomain(null));
     }
 
     @Test
-    void testUpdateIdentityZone() {
+    void updateIdentityZone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
 
         IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
 
-        assertEquals(identityZone.getId(), createdIdZone.getId());
-        assertEquals(identityZone.getSubdomain(), createdIdZone.getSubdomain());
-        assertEquals(identityZone.getName(), createdIdZone.getName());
-        assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
+        assertThat(createdIdZone.getId()).isEqualTo(identityZone.getId());
+        assertThat(createdIdZone.getSubdomain()).isEqualTo(identityZone.getSubdomain());
+        assertThat(createdIdZone.getName()).isEqualTo(identityZone.getName());
+        assertThat(createdIdZone.getDescription()).isEqualTo(identityZone.getDescription());
 
         String newDomain = new RandomValueStringGenerator().generate();
         createdIdZone.setSubdomain(newDomain);
@@ -111,24 +105,24 @@ class JdbcIdentityZoneProvisioningTests {
         createdIdZone.setName("new name");
         IdentityZone updatedIdZone = jdbcIdentityZoneProvisioning.update(createdIdZone);
 
-        assertEquals(createdIdZone.getId(), updatedIdZone.getId());
-        assertEquals(createdIdZone.getSubdomain().toLowerCase(), updatedIdZone.getSubdomain());
-        assertEquals(createdIdZone.getName(), updatedIdZone.getName());
-        assertEquals(createdIdZone.getDescription(), updatedIdZone.getDescription());
-        assertEquals(createdIdZone.isActive(), updatedIdZone.isActive());
+        assertThat(updatedIdZone.getId()).isEqualTo(createdIdZone.getId());
+        assertThat(updatedIdZone.getSubdomain()).isEqualTo(createdIdZone.getSubdomain().toLowerCase());
+        assertThat(updatedIdZone.getName()).isEqualTo(createdIdZone.getName());
+        assertThat(updatedIdZone.getDescription()).isEqualTo(createdIdZone.getDescription());
+        assertThat(updatedIdZone.isActive()).isEqualTo(createdIdZone.isActive());
     }
 
     @Test
-    void testUpdateIdentityZone_SubDomain_Is_LowerCase() {
+    void updateIdentityZoneSubDomainIsLowerCase() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
 
         IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
 
-        assertEquals(identityZone.getId(), createdIdZone.getId());
-        assertEquals(identityZone.getSubdomain(), createdIdZone.getSubdomain());
-        assertEquals(identityZone.getName(), createdIdZone.getName());
-        assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
+        assertThat(createdIdZone.getId()).isEqualTo(identityZone.getId());
+        assertThat(createdIdZone.getSubdomain()).isEqualTo(identityZone.getSubdomain());
+        assertThat(createdIdZone.getName()).isEqualTo(identityZone.getName());
+        assertThat(createdIdZone.getDescription()).isEqualTo(identityZone.getDescription());
 
         String newDomain = new RandomValueStringGenerator().generate();
         createdIdZone.setSubdomain(newDomain.toUpperCase());
@@ -136,40 +130,40 @@ class JdbcIdentityZoneProvisioningTests {
         createdIdZone.setName("new name");
         IdentityZone updatedIdZone = jdbcIdentityZoneProvisioning.update(createdIdZone);
 
-        assertEquals(createdIdZone.getId(), updatedIdZone.getId());
-        assertEquals(createdIdZone.getSubdomain().toLowerCase(), updatedIdZone.getSubdomain());
-        assertEquals(createdIdZone.getName(), updatedIdZone.getName());
-        assertEquals(createdIdZone.getDescription(), updatedIdZone.getDescription());
+        assertThat(updatedIdZone.getId()).isEqualTo(createdIdZone.getId());
+        assertThat(updatedIdZone.getSubdomain()).isEqualTo(createdIdZone.getSubdomain().toLowerCase());
+        assertThat(updatedIdZone.getName()).isEqualTo(createdIdZone.getName());
+        assertThat(updatedIdZone.getDescription()).isEqualTo(createdIdZone.getDescription());
     }
 
     @Test
-    void testCreateIdentityZoneInactive() {
+    void createIdentityZoneInactive() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         identityZone.setActive(false);
 
         IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
 
-        assertFalse(createdIdZone.isActive());
+        assertThat(createdIdZone.isActive()).isFalse();
     }
 
     @Test
-    void testUpdateIdentityZoneSetInactive() {
+    void updateIdentityZoneSetInactive() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
 
         IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
 
-        assertTrue(createdIdZone.isActive());
+        assertThat(createdIdZone.isActive()).isTrue();
 
         createdIdZone.setActive(false);
         IdentityZone updatedIdZone = jdbcIdentityZoneProvisioning.update(createdIdZone);
 
-        assertFalse(updatedIdZone.isActive());
+        assertThat(updatedIdZone.isActive()).isFalse();
     }
 
     @Test
-    void testDeleteInactiveIdentityZone() {
+    void deleteInactiveIdentityZone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         identityZone.setActive(false);
@@ -177,19 +171,18 @@ class JdbcIdentityZoneProvisioningTests {
 
         int deletedZones = jdbcIdentityZoneProvisioning.deleteByIdentityZone(createdIdZone.getId());
 
-        assertEquals(1, deletedZones);
+        assertThat(deletedZones).isOne();
     }
 
     @Test
-    void testUpdateNonExistentIdentityZone() {
+    void updateNonExistentIdentityZone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
-        assertThrows(ZoneDoesNotExistsException.class,
-                () -> jdbcIdentityZoneProvisioning.update(identityZone));
+        assertThatExceptionOfType(ZoneDoesNotExistsException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.update(identityZone));
     }
 
     @Test
-    void testCreateDuplicateIdentityZone() {
+    void createDuplicateIdentityZone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one", "there-can-be-only-one");
         identityZone.setId(randomValueStringGenerator.generate());
         jdbcIdentityZoneProvisioning.create(identityZone);
@@ -202,7 +195,7 @@ class JdbcIdentityZoneProvisioningTests {
     }
 
     @Test
-    void testCreateDuplicateIdentityZoneSubdomain() {
+    void createDuplicateIdentityZoneSubdomain() {
         IdentityZone identityZone = MultitenancyFixture.identityZone("there-can-be-only-one", "there-can-be-only-one");
         identityZone.setId(randomValueStringGenerator.generate());
         jdbcIdentityZoneProvisioning.create(identityZone);
@@ -216,53 +209,54 @@ class JdbcIdentityZoneProvisioningTests {
     }
 
     @Test
-    void testGetIdentityZone() {
+    void getIdentityZone() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         jdbcIdentityZoneProvisioning.create(identityZone);
 
         IdentityZone retrievedIdZone = jdbcIdentityZoneProvisioning.retrieve(identityZone.getId());
 
-        assertEquals(identityZone.getId(), retrievedIdZone.getId());
-        assertEquals(identityZone.getSubdomain(), retrievedIdZone.getSubdomain());
-        assertEquals(identityZone.getName(), retrievedIdZone.getName());
-        assertEquals(identityZone.getDescription(), retrievedIdZone.getDescription());
-        assertEquals(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
-        assertEquals(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
-        assertTrue(retrievedIdZone.isActive());
+        assertThat(retrievedIdZone.getId()).isEqualTo(identityZone.getId());
+        assertThat(retrievedIdZone.getSubdomain()).isEqualTo(identityZone.getSubdomain());
+        assertThat(retrievedIdZone.getName()).isEqualTo(identityZone.getName());
+        assertThat(retrievedIdZone.getDescription()).isEqualTo(identityZone.getDescription());
+        assertThat(retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity()).isEqualTo(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity());
+        assertThat(retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity()).isEqualTo(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
+        assertThat(retrievedIdZone.isActive()).isTrue();
     }
 
     @Test
-    void testGetAllIdentityZones() {
+    void getAllIdentityZones() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         jdbcIdentityZoneProvisioning.create(identityZone);
 
         List<IdentityZone> identityZones = jdbcIdentityZoneProvisioning.retrieveAll();
 
-        assertEquals(2, identityZones.size());
-        assertTrue(identityZones.contains(identityZone));
+        assertThat(identityZones)
+                .hasSize(2)
+                .contains(identityZone);
     }
 
     @Test
-    void testGetIdentityZoneBySubdomain() {
+    void getIdentityZoneBySubdomain() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         jdbcIdentityZoneProvisioning.create(identityZone);
 
         IdentityZone retrievedIdZone = jdbcIdentityZoneProvisioning.retrieveBySubdomain(identityZone.getSubdomain());
 
-        assertEquals(identityZone.getId(), retrievedIdZone.getId());
-        assertEquals(identityZone.getSubdomain(), retrievedIdZone.getSubdomain());
-        assertEquals(identityZone.getName(), retrievedIdZone.getName());
-        assertEquals(identityZone.getDescription(), retrievedIdZone.getDescription());
-        assertEquals(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
-        assertEquals(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
-        assertTrue(retrievedIdZone.isActive());
+        assertThat(retrievedIdZone.getId()).isEqualTo(identityZone.getId());
+        assertThat(retrievedIdZone.getSubdomain()).isEqualTo(identityZone.getSubdomain());
+        assertThat(retrievedIdZone.getName()).isEqualTo(identityZone.getName());
+        assertThat(retrievedIdZone.getDescription()).isEqualTo(identityZone.getDescription());
+        assertThat(retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity()).isEqualTo(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity());
+        assertThat(retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity()).isEqualTo(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
+        assertThat(retrievedIdZone.isActive()).isTrue();
     }
 
     @Test
-    void testGetInactiveIdentityZoneFails() {
+    void getInactiveIdentityZoneFails() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         identityZone.setActive(false);
@@ -273,12 +267,12 @@ class JdbcIdentityZoneProvisioningTests {
             jdbcIdentityZoneProvisioning.retrieve(createdIdZone.getId());
             fail("Able to retrieve inactive zone.");
         } catch (ZoneDoesNotExistsException e) {
-            assertThat(e.getMessage(), containsString(createdIdZone.getId()));
+            assertThat(e.getMessage()).contains(createdIdZone.getId());
         }
     }
 
     @Test
-    void testGetInactiveIdentityZoneIgnoringActiveFlag() {
+    void getInactiveIdentityZoneIgnoringActiveFlag() {
         IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
         identityZone.setId(randomValueStringGenerator.generate());
         identityZone.setActive(false);
@@ -287,13 +281,52 @@ class JdbcIdentityZoneProvisioningTests {
 
         IdentityZone retrievedIdZone = jdbcIdentityZoneProvisioning.retrieveIgnoreActiveFlag(createdIdZone.getId());
 
-        assertEquals(identityZone.getId(), retrievedIdZone.getId());
-        assertEquals(identityZone.getSubdomain(), retrievedIdZone.getSubdomain());
-        assertEquals(identityZone.getName(), retrievedIdZone.getName());
-        assertEquals(identityZone.getDescription(), retrievedIdZone.getDescription());
-        assertEquals(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
-        assertEquals(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity(), retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
-        assertFalse(retrievedIdZone.isActive());
+        assertThat(retrievedIdZone.getId()).isEqualTo(identityZone.getId());
+        assertThat(retrievedIdZone.getSubdomain()).isEqualTo(identityZone.getSubdomain());
+        assertThat(retrievedIdZone.getName()).isEqualTo(identityZone.getName());
+        assertThat(retrievedIdZone.getDescription()).isEqualTo(identityZone.getDescription());
+        assertThat(retrievedIdZone.getConfig().getTokenPolicy().getAccessTokenValidity()).isEqualTo(identityZone.getConfig().getTokenPolicy().getAccessTokenValidity());
+        assertThat(retrievedIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity()).isEqualTo(identityZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
+        assertThat(retrievedIdZone.isActive()).isFalse();
     }
 
+    @Test
+    void identityZoneRetrieveZoneIdNull() {
+        assertThatExceptionOfType(ZoneDoesNotExistsException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.retrieve(null));
+        assertThatExceptionOfType(ZoneDoesNotExistsException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.retrieveIgnoreActiveFlag(null));
+    }
+
+    @Test
+    void identityZoneUpdateSubDomainSame() {
+        String subDomain = randomValueStringGenerator.generate();
+        IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), subDomain);
+        identityZone.setConfig(null);
+        IdentityZone identityZone2 = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
+
+        IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
+        IdentityZone createdIdZone2 = jdbcIdentityZoneProvisioning.create(identityZone2);
+
+        assertThat(createdIdZone2.getSubdomain()).isNotEqualTo(createdIdZone.getSubdomain());
+        createdIdZone2.setConfig(null);
+        createdIdZone2.setSubdomain(subDomain);
+        assertThatExceptionOfType(ZoneAlreadyExistsException.class).isThrownBy(() -> jdbcIdentityZoneProvisioning.update(createdIdZone2));
+    }
+
+    @Test
+    void createIdentityZoneInvalidZoneConfigResetConfigIntialValues() {
+        String zoneId = randomValueStringGenerator.generate();
+        IdentityZone identityZone = MultitenancyFixture.identityZone(randomValueStringGenerator.generate(), randomValueStringGenerator.generate());
+        identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
+        IdentityZone createdIdZone = jdbcIdentityZoneProvisioning.create(identityZone);
+        assertThat(createdIdZone).isNotNull();
+        assertThat(createdIdZone.getConfig()).isNotNull();
+        assertThat(createdIdZone.getConfig().getTokenPolicy().getAccessTokenValidity()).isEqualTo(3600);
+        // corrupt the config entry
+        jdbcTemplate.update("update identity_zone set config=? where id=?", "invalid", identityZone.getId());
+        // retrieve zone again
+        createdIdZone = jdbcIdentityZoneProvisioning.retrieve(identityZone.getId());
+        assertThat(createdIdZone).isNotNull();
+        assertThat(createdIdZone.getConfig()).isNotNull();
+        assertThat(createdIdZone.getConfig().getTokenPolicy().getAccessTokenValidity()).isEqualTo(-1);
+    }
 }

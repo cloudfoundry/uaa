@@ -1,30 +1,38 @@
 package org.cloudfoundry.identity.uaa.scim.test;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.stream.Stream;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.core.Is.is;
+import static org.assertj.core.api.Assertions.assertThat;
 
 public class TestUtils {
 
     public static void deleteFrom(
             final JdbcTemplate jdbcTemplate,
             final String... tables) {
+        DbUtils dbUtils = new DbUtils();
         Stream.of(tables)
-                .map(table -> "delete from " + table)
+                .map(table -> {
+                    try {
+                        return "delete from " + dbUtils.getQuotedIdentifier(table, jdbcTemplate);
+                    } catch (SQLException e) {
+                        throw new RuntimeException(e);
+                    }
+                })
                 .forEach(jdbcTemplate::update);
     }
 
     public static void assertNoSuchUser(
             final JdbcTemplate template,
             final String userId) {
-        String sql = String.format("select count(id) from users where id='%s'",
+        String sql = "select count(id) from users where id='%s'".formatted(
                 userId);
-        assertThat(template.queryForObject(sql, Integer.class), is(0));
+        assertThat(template.queryForObject(sql, Integer.class)).isZero();
     }
 
     public static ScimUser scimUserInstance(String email) {

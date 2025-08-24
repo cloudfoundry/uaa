@@ -26,10 +26,10 @@ import static org.cloudfoundry.identity.uaa.authentication.SystemAuthentication.
  */
 public class PasswordChangeEventPublisher implements ApplicationEventPublisherAware {
 
-    private IdentityZoneManager identityZoneManager;
+    private final IdentityZoneManager identityZoneManager;
 
     static final String DEFAULT_EMAIL_DOMAIN = "this-default-was-not-configured.invalid";
-    private ScimUserProvisioning dao;
+    private final ScimUserProvisioning dao;
 
     private ApplicationEventPublisher publisher;
 
@@ -93,7 +93,7 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
                 return email.getValue();
             }
         }
-        return scimUser.getEmails().get(0).getValue();
+        return scimUser.getEmails().getFirst().getValue();
     }
 
     Authentication getPrincipal() {

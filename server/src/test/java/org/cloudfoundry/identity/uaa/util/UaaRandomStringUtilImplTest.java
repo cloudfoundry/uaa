@@ -8,9 +8,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import java.security.NoSuchAlgorithmException;
 import java.security.NoSuchProviderException;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasLength;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 class UaaRandomStringUtilImplTest {
 
@@ -28,12 +27,12 @@ class UaaRandomStringUtilImplTest {
             100,
     })
     void secureRandom(final int length) {
-        assertThat(uaaRandomStringUtil.getSecureRandom(length), hasLength(length));
+        assertThat(uaaRandomStringUtil.getSecureRandom(length)).hasSize(length);
     }
 
     @Test
     void invalidLength() {
-        assertThrows(IllegalArgumentException.class, () -> uaaRandomStringUtil.getSecureRandom(-1));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> uaaRandomStringUtil.getSecureRandom(-1));
     }
 
 }

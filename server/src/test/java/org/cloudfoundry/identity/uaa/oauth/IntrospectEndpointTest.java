@@ -1,18 +1,20 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.oauth.token.IntrospectionClaims;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.ResourceServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.token.IntrospectionClaims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(MockitoExtension.class)
@@ -39,7 +41,7 @@ class IntrospectEndpointTest {
         when(token.getValue()).thenReturn(validToken);
 
         IntrospectionClaims claims = introspectEndpoint.introspect(validToken);
-        assertTrue(claims.isActive());
+        assertThat(claims.isActive()).isTrue();
 
         verify(resourceServerTokenServices).readAccessToken(validToken);
         verify(resourceServerTokenServices).loadAuthentication(validToken);
@@ -54,14 +56,14 @@ class IntrospectEndpointTest {
         when(token.isExpired()).thenReturn(true);
 
         IntrospectionClaims claims = introspectEndpoint.introspect(validToken);
-        assertFalse(claims.isActive());
+        assertThat(claims.isActive()).isFalse();
     }
 
     @Test
     void invalidToken_inReadAccessToken() {
         when(resourceServerTokenServices.readAccessToken(validToken)).thenThrow(new InvalidTokenException("Bla"));
         IntrospectionClaims claims = introspectEndpoint.introspect(validToken);
-        assertFalse(claims.isActive());
+        assertThat(claims.isActive()).isFalse();
     }
 
     @Test
@@ -70,7 +72,7 @@ class IntrospectEndpointTest {
         when(resourceServerTokenServices.readAccessToken(validToken)).thenReturn(token);
         when(resourceServerTokenServices.loadAuthentication(validToken)).thenThrow(new InvalidTokenException("Bla"));
         IntrospectionClaims claims = introspectEndpoint.introspect(validToken);
-        assertFalse(claims.isActive());
+        assertThat(claims.isActive()).isFalse();
     }
 
     @Test
@@ -82,8 +84,8 @@ class IntrospectEndpointTest {
 
         IntrospectionClaims claimsResult = introspectEndpoint.introspect(validToken);
 
-        assertTrue(claimsResult.isActive());
-        assertEquals("UAA username", claimsResult.getName());
+        assertThat(claimsResult.isActive()).isTrue();
+        assertThat(claimsResult.getName()).isEqualTo("UAA username");
     }
 
     @Test
@@ -97,7 +99,7 @@ class IntrospectEndpointTest {
 
         IntrospectionClaims claimsResult = introspectEndpoint.introspect(invalidToken);
 
-        assertFalse(claimsResult.isActive());
-        assertNull(claimsResult.getName());
+        assertThat(claimsResult.isActive()).isFalse();
+        assertThat(claimsResult.getName()).isNull();
     }
 }

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -14,45 +15,50 @@ package org.cloudfoundry.identity.uaa.db.postgresql;
 
 import java.util.List;
 
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3;
-import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
+import static org.cloudfoundry.identity.uaa.db.DatabaseInformation1_5_3.*;
 
 
 /**
  * Created by fhanik on 3/5/14.
  */
-public class V1_5_4__NormalizeTableAndColumnNames extends DatabaseInformation1_5_3 implements SpringJdbcMigration {
+public class V1_5_4__NormalizeTableAndColumnNames extends BaseJavaMigration {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
-    private String colQuery = "SELECT 'noop', \n" +
-                    "  c.relname as table_name,\n" +
-                    "  a.attname as column_name \n" +
-                    "FROM pg_catalog.pg_class c\n" +
-                    "     LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace\n" +
-                    "     LEFT JOIN pg_catalog.pg_attribute a ON a.attrelid = c.relname::regclass    \n" +
-                    "WHERE\n" +
-                    "       n.nspname <> 'pg_catalog'\n" +
-                    "      AND n.nspname <> 'information_schema'\n" +
-                    "      AND n.nspname !~ '^pg_toast'\n" +
-                    "  AND pg_catalog.pg_table_is_visible(c.oid)\n" +
-                    "  AND c.relkind = 'r'\n" +
-                    "  AND a.attnum > 0\n" +
-                    "ORDER BY 1,2";
+    private final String colQuery = """
+            SELECT 'noop',\s
+              c.relname as table_name,
+              a.attname as column_name\s
+            FROM pg_catalog.pg_class c
+                 LEFT JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+                 LEFT JOIN pg_catalog.pg_attribute a ON a.attrelid = c.relname::regclass   \s
+            WHERE
+                   n.nspname <> 'pg_catalog'
+                  AND n.nspname <> 'information_schema'
+                  AND n.nspname !~ '^pg_toast'
+              AND pg_catalog.pg_table_is_visible(c.oid)
+              AND c.relkind = 'r'
+              AND a.attnum > 0
+            ORDER BY 1,2""";
 
     @Override
-    public void migrate(JdbcTemplate jdbcTemplate) {
-        logger.info("[V1_5_4] Running SQL: " + colQuery);
+    public void migrate(Context context) {
+        logger.info("[V1_5_4] Running SQL: {}", colQuery);
+        JdbcTemplate jdbcTemplate = new JdbcTemplate(new SingleConnectionDataSource(
+                context.getConnection(), true));
         List<ColumnInfo> columns = jdbcTemplate.query(colQuery, new ColumnMapper());
         for (ColumnInfo column : columns) {
             if (processColumn(column)) {
                 String sql = "ALTER TABLE " + column.tableName + " RENAME \"" + column.columnName + "\" TO \""
-                                + column.columnName.toLowerCase() + "\"";
-                logger.info("Renaming column: [" + sql + "]");
+                        + column.columnName.toLowerCase() + "\"";
+                logger.info("Renaming column: [{}]", sql);
                 jdbcTemplate.execute(sql);
             }
         }

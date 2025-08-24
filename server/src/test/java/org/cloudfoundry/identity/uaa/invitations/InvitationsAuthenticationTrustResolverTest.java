@@ -15,26 +15,25 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 
 import java.util.Collections;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 
-public class InvitationsAuthenticationTrustResolverTest {
+class InvitationsAuthenticationTrustResolverTest {
 
     @Test
-    public void testIsAnonymous() {
+    void isAnonymous() {
         InvitationsAuthenticationTrustResolver resolver = new InvitationsAuthenticationTrustResolver();
         AnonymousAuthenticationToken invitedAuthenticationToken = new AnonymousAuthenticationToken("key", new Object(),
                 Collections.singletonList(UaaAuthority.UAA_INVITED));
-        assertFalse(resolver.isAnonymous(invitedAuthenticationToken));
+        assertThat(resolver.isAnonymous(invitedAuthenticationToken)).isFalse();
 
         AnonymousAuthenticationToken anonymousAuthenticationToken = new AnonymousAuthenticationToken("key", new Object(),
                 Collections.singletonList(UaaAuthority.UAA_USER));
-        assertTrue(resolver.isAnonymous(anonymousAuthenticationToken));
+        assertThat(resolver.isAnonymous(anonymousAuthenticationToken)).isTrue();
     }
 }

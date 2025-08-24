@@ -6,30 +6,33 @@ dependencies {
     implementation(libraries.jacksonDatabind)
     implementation(libraries.jacksonAnnotations)
 
-    implementation(libraries.javaxValidationApi)
+    implementation(libraries.jakartaValidationApi)
 
+    implementation(libraries.commonsCodec)
     implementation(libraries.commonsIo)
 
     implementation(libraries.springWeb)
     implementation(libraries.springWebMvc)
     implementation(libraries.springSecurityConfig)
 
-    implementation(libraries.springSecurityOauth) {
-        exclude(module: "jackson-mapper-asl")
-        exclude(module: "spring-security-web")
-    }
+    implementation(libraries.nimbusJwt)
 
     implementation(libraries.slf4jApi)
 
-    testImplementation(libraries.junit)
+    testImplementation(libraries.springBootStarterTest)
+    testImplementation(libraries.hamcrest)
+    testImplementation(libraries.junit5JupiterApi)
+    testImplementation(libraries.junit5JupiterParams)
 
     testImplementation(libraries.jsonAssert)
+
+    implementation(libraries.nimbusJwt)
 }
 
 apply(from: file("build_properties.gradle"))
 
 processResources {
-    //maven replaces project.artifactId in the log4j.properties file
+    //maven replaces project.artifactId in the log4j2.properties file
     //https://www.pivotaltracker.com/story/show/74344574
     filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-model') : line }
 }

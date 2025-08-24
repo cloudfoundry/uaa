@@ -14,7 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import org.apache.commons.collections.ListUtils;
+import org.apache.commons.collections4.ListUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
 import java.util.*;

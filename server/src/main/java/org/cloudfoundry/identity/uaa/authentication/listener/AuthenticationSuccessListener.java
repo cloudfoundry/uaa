@@ -16,9 +16,7 @@ package org.cloudfoundry.identity.uaa.authentication.listener;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.event.AbstractUaaAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.authentication.event.MfaAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 
@@ -32,33 +30,20 @@ import org.springframework.security.core.Authentication;
 public class AuthenticationSuccessListener implements ApplicationListener<AbstractUaaAuthenticationEvent>, ApplicationEventPublisherAware {
 
     private final ScimUserProvisioning scimUserProvisioning;
-    private final MfaChecker checker;
     private ApplicationEventPublisher publisher;
 
-    public AuthenticationSuccessListener(ScimUserProvisioning scimUserProvisioning,
-                                         MfaChecker checker) {
+    public AuthenticationSuccessListener(ScimUserProvisioning scimUserProvisioning) {
         this.scimUserProvisioning = scimUserProvisioning;
-        this.checker = checker;
     }
 
     @Override
     public void onApplicationEvent(AbstractUaaAuthenticationEvent event) {
-        if (event instanceof UserAuthenticationSuccessEvent) {
-            onApplicationEvent((UserAuthenticationSuccessEvent) event, event.getIdentityZoneId());
-        } else if (event instanceof IdentityProviderAuthenticationSuccessEvent) {
-            IdentityProviderAuthenticationSuccessEvent passwordAuthEvent = (IdentityProviderAuthenticationSuccessEvent) event;
+        if (event instanceof UserAuthenticationSuccessEvent successEvent) {
+            onApplicationEvent(successEvent, event.getIdentityZoneId());
+        } else if (event instanceof IdentityProviderAuthenticationSuccessEvent passwordAuthEvent) {
             UserAuthenticationSuccessEvent userEvent = new UserAuthenticationSuccessEvent(
-                passwordAuthEvent.getUser(),
-                (Authentication) passwordAuthEvent.getSource(), IdentityZoneHolder.getCurrentZoneId()
-            );
-            if (!checker.isMfaEnabledForZoneId(userEvent.getIdentityZoneId())) {
-                publisher.publishEvent(userEvent);
-            }
-        } else if (event instanceof MfaAuthenticationSuccessEvent) {
-            MfaAuthenticationSuccessEvent mfaEvent = (MfaAuthenticationSuccessEvent) event;
-            UserAuthenticationSuccessEvent userEvent = new UserAuthenticationSuccessEvent(
-                mfaEvent.getUser(),
-                (Authentication) mfaEvent.getSource(), IdentityZoneHolder.getCurrentZoneId()
+                    passwordAuthEvent.getUser(),
+                    (Authentication) passwordAuthEvent.getSource(), IdentityZoneHolder.getCurrentZoneId()
             );
             publisher.publishEvent(userEvent);
         }

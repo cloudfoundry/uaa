@@ -1,9 +1,7 @@
 package org.cloudfoundry.identity.uaa.web;
 
-import org.cloudfoundry.identity.uaa.web.ExceptionReport;
-import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -20,27 +18,27 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-public class ExceptionReportHttpMessageConverterTest {
+class ExceptionReportHttpMessageConverterTest {
 
     private ExceptionReportHttpMessageConverter exceptionReportHttpMessageConverter;
     private HttpMessageConverter httpMessageConverter;
     private HttpOutputMessage httpOutputMessage;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         exceptionReportHttpMessageConverter = new ExceptionReportHttpMessageConverter();
 
         httpMessageConverter = mock(HttpMessageConverter.class);
         httpOutputMessage = new MockHttpOutputMessage();
         exceptionReportHttpMessageConverter.setMessageConverters(
-            new HttpMessageConverter<?>[]{httpMessageConverter});
+                new HttpMessageConverter<?>[]{httpMessageConverter});
 
         when(httpMessageConverter.canWrite(any(Class.class), any(MediaType.class))).thenReturn(true);
         when(httpMessageConverter.getSupportedMediaTypes()).thenReturn(Collections.singletonList(APPLICATION_JSON));
     }
 
     @Test
-    public void testWriteInternal() throws Exception {
+    void writeInternal() throws Exception {
         ExceptionReport report = new ExceptionReport(new Exception("oh noes!"));
 
         exceptionReportHttpMessageConverter.writeInternal(report, httpOutputMessage);
@@ -53,7 +51,7 @@ public class ExceptionReportHttpMessageConverterTest {
     }
 
     @Test
-    public void testWriteInteralWithExtraInfo() throws Exception {
+    void writeInteralWithExtraInfo() throws Exception {
         Map<String, Object> extraInfo = new HashMap<>();
         extraInfo.put("user_id", "cba09242-aa43-4247-9aa0-b5c75c281f94");
         extraInfo.put("active", true);

@@ -20,19 +20,19 @@ class SessionControllerMockMvcTests {
     }
 
     @Test
-    void testSessionEndpointWhichSupportsLegacyUaaSingular() throws Exception {
+    void sessionEndpointWhichSupportsLegacyUaaSingular() throws Exception {
         mockMvc.perform(get("/session")
-                .param("clientId", "1")
-                .param("messageOrigin", "origin"))
+                        .param("clientId", "1")
+                        .param("messageOrigin", "origin"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("session"));
     }
 
     @Test
-    void testSessionManagementEndpointWhichSupportsUaaSingular() throws Exception {
+    void sessionManagementEndpointWhichSupportsUaaSingular() throws Exception {
         mockMvc.perform(get("/session_management")
-                .param("clientId", "1")
-                .param("messageOrigin", "origin"))
+                        .param("clientId", "1")
+                        .param("messageOrigin", "origin"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("session_management"));
     }

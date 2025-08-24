@@ -16,8 +16,8 @@ under the License.
 <% language_tabs = current_page.data.language_tabs || [] %>
 <% page_content = yield %>
 <%
-  def get_version
-    version = File.exists?('source/versionfile') ? File.read('source/versionfile') : 'local'
+  def self.get_version
+    version = File.exist?('source/versionfile') ? File.read('source/versionfile') : 'local'
     if version =~ /release-candidate/
       "Release Candidate"
     else
@@ -45,7 +45,7 @@ under the License.
     <title><%= current_page.data.title || "API Documentation" %></title>
 
     <style>
-      <%= Rouge::Themes::MonokaiSublime.render(:scope => '.highlight') %>
+      <%= Rouge::Themes::MonokaiSublimeSlate.render(:scope => '.highlight') %>
     </style>
     <%= stylesheet_link_tag :screen, media: :screen %>
     <%= stylesheet_link_tag :print, media: :print %>
@@ -99,7 +99,7 @@ under the License.
 
       <% if current_page.data.search %>
         <div class="search">
-          <input type="text" class="search" id="input-search" placeholder="Search">
+          <input type="text" class="search" id="input-search" placeholder="Search" aria-label="Search">
         </div>
         <ul class="search-results"></ul>
       <% end %>

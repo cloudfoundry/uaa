@@ -15,9 +15,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.util.stream.Stream;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class TestThatClientIdIsVchar255 {
@@ -40,27 +38,9 @@ class TestThatClientIdIsVchar255 {
         }
     }
 
-//    @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
-//    public static Collection<Object[]> data() {
-//        return Arrays.asList(new Object[][]{
-//                {null, "authz_approvals", "client_id"},
-//                {null, "oauth_client_details", "client_id"},
-//                {null, "sec_audit", "principal_id"},
-////            {"hsqldb", "authz_approvals", "client_id"},
-////            {"hsqldb", "oauth_client_details", "client_id"},
-////            {"hsqldb", "sec_audit", "principal_id"},
-////            {"postgresql", "authz_approvals", "client_id"},
-////            {"postgresql", "oauth_client_details", "client_id"},
-////            {"postgresql", "sec_audit", "principal_id"},
-////            {"mysql", "authz_approvals", "client_id"},
-////            {"mysql", "oauth_client_details", "client_id"},
-////            {"mysql", "sec_audit", "principal_id"},
-//        });
-//    }
-
     @ParameterizedTest
     @ArgumentsSource(ClientIdArgumentsProvider.class)
-    void test_That_ClientId_Is_Varchar_255(
+    void that_client_id_is_varchar_255(
             final String tableName,
             final String columnName
     ) throws Exception {
@@ -75,20 +55,20 @@ class TestThatClientIdIsVchar255 {
                 int columnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName) && columnName.equalsIgnoreCase(rscolumnName)) {
 
-                    assertEquals(255, columnSize, "Table:" + rstableName + " Column:" + rscolumnName + " should be 255 in size.");
+                    assertThat(columnSize).as("Table:" + rstableName + " Column:" + rscolumnName + " should be 255 in size.").isEqualTo(255);
                     foundTable = true;
                     foundColumn = true;
                     String columnType = rs.getString("TYPE_NAME");
-                    assertNotNull(columnType, "Table:" + rstableName + " Column:" + rscolumnName + " should have a column type.");
-                    assertEquals("varchar", columnType.toLowerCase(), "Table:" + rstableName + " Column:" + rscolumnName + " should be varchar");
+                    assertThat(columnType).as("Table:" + rstableName + " Column:" + rscolumnName + " should have a column type.").isNotNull();
+                    assertThat(columnType.toLowerCase()).as("Table:" + rstableName + " Column:" + rscolumnName + " should be varchar").isEqualTo("varchar");
 
                 }
             }
             rs.close();
 
             final String springProfile = String.join(", ", configurableEnvironment.getActiveProfiles());
-            assertTrue(foundTable, "[" + springProfile + "] I was expecting to find table:" + tableName);
-            assertTrue(foundColumn, "[" + springProfile + "] I was expecting to find column: client_id");
+            assertThat(foundTable).as("[" + springProfile + "] I was expecting to find table:" + tableName).isTrue();
+            assertThat(foundColumn).as("[" + springProfile + "] I was expecting to find column: client_id").isTrue();
         }
     }
 }

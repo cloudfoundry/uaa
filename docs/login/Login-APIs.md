@@ -36,7 +36,7 @@ Browser POSTs to `/login.do` with user credentials (same as UAA).
 Login Server returns a cookie that can be used to authenticate future
 requests (until the session expires or the user logs out).
 
-In order to use this endpoint, a Cross-Site Request Forgery (CSRF) token needs to first
+To use this endpoint, a Cross-Site Request Forgery (CSRF) token needs to first
 be received from ``GET /login``, which will set it as a response cookie called ``X-Uaa-Csrf``.  Furthermore, the following headers are required in the POST for successful authentication:
 
 | Header        | Value            |
@@ -45,7 +45,7 @@ be received from ``GET /login``, which will set it as a response cookie called `
 | Content-Type  | application/x-www-form-urlencoded  |
 | Referer       | http://login.cloudfoundry.example.com/login |
 
-The raw data for the request must be submitted in the following format, and must include the CSRF token (sample below):
+The raw data for the request must be submitted in the following format and must include the CSRF token (sample below):
 ```
 'username=admin&password=mypassword&X-Uaa-Csrf=abcdef'
 ```
@@ -53,7 +53,7 @@ Finally, in addition to being submitted as part of the raw data, the CSRF token 
 ## Logout: `GET /logout.do`
 
 The Login Server is a Single Sign On server for the Cloud Foundry
-platform (and possibly user apps as well), so if a user logs out he
+platform (and possibly user apps as well), so if a user logs out, he
 logs out of all the apps.  Users need to be reminded of the
 consequences of their actions, so the recommendation for application
 authors is to
@@ -64,8 +64,8 @@ authors is to
   Server logout endpoint with a message telling the user what will
   happen if he clicks it
 * provide a redirect in the link to the logout endpoint (see below) so
-  that the user come back to a familiar place when logged out,
-  otherwise he will just get the logged out success page from the
+  that the user comes back to a familiar place when logged out,
+  otherwise he will just get the logged-out success page from the
   Login Server
 
 Request: `GET /logout.do?redirect=http://myclient/loggedout`  
@@ -84,7 +84,7 @@ HTML.
 
 ### Start Authorization: `GET /oauth/authorize`
 
-Client applications usually send a redirect to User's browser with the
+Client applications usually send a redirect to the user's browser with the
 request URI appropriate to the Client.  Exactly the same as the UAA,
 but the response is rendered differently.
 
@@ -122,8 +122,8 @@ Returns "ok" in the response body if the server is up and running
 
 ## Autologin
 
-For user-facing account management UIs (e.g. portal) that need to set
-or reset users' passwords it is convenient to be able to log them in
+For user-facing account management UIs (e.g., portal) that need to set
+or reset users' passwords, it is convenient to be able to log them in
 immediately, rather than waiting for them to come back to the Login
 Server and enter the new password explicitly.
 
@@ -142,7 +142,7 @@ Server and enter the new password explicitly.
 authenticated user (as if the user had authenticated with the Login
 Server manually)
 
-7. User's browser now has SSO cookie for Login Server, and remains
+7. User's browser now has SSO cookie for Login Server and remains
 logged in for the duration of that session.
 
 ### Obtain Autologin Code: `POST /autologin`
@@ -164,7 +164,7 @@ Response Body:
 
     { "code"="aiuynklj", "path"="/oauth/authorize" }
 
-By default the password is required and is checked using the
+By default, the password is required and is checked using the
 `login.do` endpoint at the UAA, but could be made optional or changed
 to other authentication credentials with a configuration change in the
 Login Server (by adding a different `AuthenticationManager` to the

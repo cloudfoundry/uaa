@@ -1,0 +1,33 @@
+ratelimit:
+  loggingOption: AllCalls
+  credentialID: 'JWT:Claims+"sub"\s*:\s*"(.*?)"'
+  limiterMappings:
+    - name: AuthToken
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/oauth/token"
+    - name: AuthAuthorize
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/oauth/authorize"
+    - name: LoginPage
+      withCallerRemoteAddressID: 50r/1s
+      pathSelectors:
+        - "equals:/login"
+    - name: LoginDo
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/login.do"
+    - name: InfoLimit
+      withCallerRemoteAddressID: 20r/s
+      pathSelectors:
+        - "equals:/info"
+    - name: SCIM
+      withCallerCredentialsID: 500r/s
+      pathSelectors:
+        - "startsWith:/Users"
+        - "startsWith:/Groups"
+    - name: EverythingElse
+      global: 200r/s
+      pathSelectors:
+        - "other"

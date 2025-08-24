@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,6 +13,34 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.ResourceServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.util.Assert;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.DefaultResponseErrorHandler;
+import org.springframework.web.client.RestOperations;
+import org.springframework.web.client.RestTemplate;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -20,33 +49,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
-import org.springframework.http.client.ClientHttpResponse;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
-import org.springframework.util.Assert;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.DefaultResponseErrorHandler;
-import org.springframework.web.client.RestOperations;
-import org.springframework.web.client.RestTemplate;
 
 /**
  * Queries the /check_token endpoint to obtain the contents of an access token.
@@ -70,7 +72,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
 
     private String clientSecret;
 
-    private boolean storeClaims = false;
+    private boolean storeClaims;
 
     public RemoteTokenServices() {
         restTemplate = new RestTemplate();
@@ -78,7 +80,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
             @Override
             // Ignore 400
             public void handleError(ClientHttpResponse response) throws IOException {
-                if (response.getRawStatusCode() != 400) {
+                if (response.getStatusCode().value() != 400) {
                     super.handleError(response);
                 }
             }
@@ -117,21 +119,21 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
     @Override
     public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", accessToken);
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", getAuthorizationHeader(clientId, clientSecret));
         Map<String, Object> map = postForMap(checkTokenEndpointUrl, formData, headers);
 
         if (map.containsKey("error")) {
-            logger.debug("check_token returned error: " + map.get("error"));
+            logger.debug("check_token returned error: {}", map.get("error"));
             throw new InvalidTokenException(accessToken);
         }
 
         Assert.state(map.containsKey("client_id"), "Client id must be present in response from auth server");
         String remoteClientId = (String) map.get("client_id");
 
-        Set<String> scope = new HashSet<String>();
+        Set<String> scope = new HashSet<>();
         if (map.containsKey("scope")) {
             @SuppressWarnings("unchecked")
             Collection<String> values = (Collection<String>) map.get("scope");
@@ -140,19 +142,19 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         AuthorizationRequest clientAuthentication = new AuthorizationRequest(remoteClientId, scope);
 
         if (map.containsKey("resource_ids") || map.containsKey("client_authorities")) {
-            Set<String> resourceIds = new HashSet<String>();
+            Set<String> resourceIds = new HashSet<>();
             if (map.containsKey("resource_ids")) {
                 @SuppressWarnings("unchecked")
                 Collection<String> values = (Collection<String>) map.get("resource_ids");
                 resourceIds.addAll(values);
             }
-            Set<GrantedAuthority> clientAuthorities = new HashSet<GrantedAuthority>();
+            Set<GrantedAuthority> clientAuthorities = new HashSet<>();
             if (map.containsKey("client_authorities")) {
                 @SuppressWarnings("unchecked")
                 Collection<String> values = (Collection<String>) map.get("client_authorities");
                 clientAuthorities.addAll(getAuthorities(values));
             }
-            BaseClientDetails clientDetails = new BaseClientDetails();
+            UaaClientDetails clientDetails = new UaaClientDetails();
             clientDetails.setClientId(remoteClientId);
             clientDetails.setResourceIds(resourceIds);
             clientDetails.setAuthorities(clientAuthorities);
@@ -161,8 +163,8 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         Map<String, String> requestParameters = new HashMap<>();
         if (isStoreClaims()) {
             for (Map.Entry<String, Object> entry : map.entrySet()) {
-                if (entry.getValue()!=null && entry.getValue() instanceof String) {
-                    requestParameters.put(entry.getKey(), (String)entry.getValue());
+                if (entry.getValue() != null && entry.getValue() instanceof String valueString) {
+                    requestParameters.put(entry.getKey(), valueString);
                 }
             }
         }
@@ -187,13 +189,12 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
         if (username == null) {
             return null;
         }
-        Set<GrantedAuthority> userAuthorities = new HashSet<GrantedAuthority>();
+        Set<GrantedAuthority> userAuthorities = new HashSet<>();
         if (map.containsKey("user_authorities")) {
             @SuppressWarnings("unchecked")
             Collection<String> values = (Collection<String>) map.get("user_authorities");
             userAuthorities.addAll(getAuthorities(values));
-        }
-        else {
+        } else {
             // User authorities had better not be empty or we might mistake user
             // for unauthenticated
             userAuthorities.addAll(getAuthorities(scope));
@@ -209,7 +210,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
     }
 
     private Set<GrantedAuthority> getAuthorities(Collection<String> authorities) {
-        Set<GrantedAuthority> result = new HashSet<GrantedAuthority>();
+        Set<GrantedAuthority> result = new HashSet<>();
         for (String authority : authorities) {
             result.add(new SimpleGrantedAuthority(authority));
         }
@@ -217,8 +218,8 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
     }
 
     private String getAuthorizationHeader(String clientId, String clientSecret) {
-        String creds = String.format("%s:%s", clientId, clientSecret);
-        return "Basic " + new String(Base64.encode(creds.getBytes(StandardCharsets.UTF_8)));
+        String creds = "%s:%s".formatted(clientId, clientSecret);
+        return "Basic " + Base64.encodeBase64String((creds.getBytes(StandardCharsets.UTF_8)));
     }
 
     private Map<String, Object> postForMap(String path, MultiValueMap<String, String> formData, HttpHeaders headers) {
@@ -226,10 +227,12 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
             headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         }
         @SuppressWarnings("rawtypes")
-        Map map = restTemplate.exchange(path, HttpMethod.POST,
-                        new HttpEntity<MultiValueMap<String, String>>(formData, headers), Map.class).getBody();
+        ResponseEntity<Map> response = restTemplate.exchange(path, HttpMethod.POST,
+                new HttpEntity<MultiValueMap<String, String>>(formData, headers), Map.class);
+        @SuppressWarnings("rawtypes")
+        Map map = response != null && response.getBody() != null ? response.getBody() : Collections.emptyMap();
         @SuppressWarnings("unchecked")
-        Map<String, Object> result = map;
+        Map<String, Object> result = map != null ? map : Collections.emptyMap();
         return result;
     }
 

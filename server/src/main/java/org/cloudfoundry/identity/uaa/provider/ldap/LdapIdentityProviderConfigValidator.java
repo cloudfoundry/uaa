@@ -29,7 +29,7 @@ public class LdapIdentityProviderConfigValidator extends BaseIdentityProviderVal
     public void validate(IdentityProvider<? extends AbstractIdentityProviderDefinition> provider) {
         super.validate(provider);
         if (!LDAP.equals(provider.getOriginKey())) {
-            throw new IllegalArgumentException(String.format("LDAP provider originKey must be set to '%s'", LDAP));
+            throw new IllegalArgumentException("LDAP provider originKey must be set to '%s'".formatted(LDAP));
         }
     }
 

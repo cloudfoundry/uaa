@@ -12,14 +12,18 @@ import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -29,9 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class LdapGroupMappingAuthorizationManagerTests {
@@ -43,32 +45,32 @@ class LdapGroupMappingAuthorizationManagerTests {
     private Set<? extends GrantedAuthority> nonLdapGroups;
     private Set<? extends GrantedAuthority> ldapGroups;
 
-    private LdapAuthority
-            la1 = new LdapAuthority("engineering", "cn=Engineering,ou=groups,dc=example,dc=com"),
-            la2 = new LdapAuthority("HR", "cn=HR,ou=groups,dc=example,dc=com"),
-            la3 = new LdapAuthority("mgmt", "cn=mgmt,ou=groups,dc=example,dc=com");
+    private LdapAuthority la1 = new LdapAuthority("engineering", "cn=Engineering,ou=groups,dc=example,dc=com");
+    private LdapAuthority la2 = new LdapAuthority("HR", "cn=HR,ou=groups,dc=example,dc=com");
+    private LdapAuthority la3 = new LdapAuthority("mgmt", "cn=mgmt,ou=groups,dc=example,dc=com");
 
-    private SimpleGrantedAuthority
-            sa1 = new SimpleGrantedAuthority("acme"),
-            sa2 = new SimpleGrantedAuthority("acme.dev"),
-            sa3 = new SimpleGrantedAuthority("acme.notmapped");
+    private SimpleGrantedAuthority sa1 = new SimpleGrantedAuthority("acme");
+    private SimpleGrantedAuthority sa2 = new SimpleGrantedAuthority("acme.dev");
+    private SimpleGrantedAuthority sa3 = new SimpleGrantedAuthority("acme.notmapped");
 
     @BeforeEach
     void initLdapGroupMappingAuthorizationManagerTests(
             @Autowired JdbcTemplate jdbcTemplate,
-            @Autowired LimitSqlAdapter limitSqlAdapter
-    ) {
+            @Autowired LimitSqlAdapter limitSqlAdapter,
+            @Autowired NamedParameterJdbcTemplate namedJdbcTemplate
+    ) throws SQLException {
         TestUtils.cleanAndSeedDb(jdbcTemplate);
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
-        gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
-        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate);
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter);
+        DbUtils dbUtils = new DbUtils();
+        gDB = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
+        eDB = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, dbUtils);
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
-        assertEquals(0, gDB.retrieveAll(IdentityZoneHolder.get().getId()).size());
+        assertThat(gDB.retrieveAll(IdentityZoneHolder.get().getId())).isEmpty();
 
         gDB.create(new ScimGroup(null, "acme", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
         gDB.create(new ScimGroup(null, "acme.dev", IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
 
-        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
+        bootstrap = new ScimExternalGroupBootstrap(gDB, eDB, new IdentityZoneManagerImpl());
 
         manager = new LdapGroupMappingAuthorizationManager();
         manager.setScimGroupProvisioning(gDB);
@@ -91,14 +93,14 @@ class LdapGroupMappingAuthorizationManagerTests {
     void allLdapGroups() {
         Set<? extends GrantedAuthority> result = manager.findScopesFromAuthorities(ldapGroups);
         String[] list = getAuthorities(Arrays.asList(sa1, sa2));
-        assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
+        assertThat(list).containsExactlyInAnyOrder(getAuthorities(result));
     }
 
     @Test
     void allNonLdapGroups() {
         Set<? extends GrantedAuthority> result = manager.findScopesFromAuthorities(nonLdapGroups);
         String[] list = getAuthorities(Arrays.asList(sa1, sa2, sa3));
-        assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
+        assertThat(list).containsExactlyInAnyOrder(getAuthorities(result));
     }
 
     @Test
@@ -109,7 +111,7 @@ class LdapGroupMappingAuthorizationManagerTests {
         mixed.add(la1);
         Set<? extends GrantedAuthority> result = manager.findScopesFromAuthorities(nonLdapGroups);
         String[] list = getAuthorities(Arrays.asList(sa1, sa2, sa3));
-        assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
+        assertThat(list).containsExactlyInAnyOrder(getAuthorities(result));
     }
 
     private static String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {

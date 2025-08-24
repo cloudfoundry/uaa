@@ -5,6 +5,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -20,18 +22,25 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.View;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.CREATED;
+import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
+import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 @Controller
 public class PasswordResetEndpoint {
@@ -46,7 +55,7 @@ public class PasswordResetEndpoint {
             final ExpiringCodeStore codeStore,
             final IdentityZoneManager identityZoneManager) {
         this.resetPasswordService = resetPasswordService;
-        this.messageConverters = new HttpMessageConverter[] {
+        this.messageConverters = new HttpMessageConverter[]{
                 new ExceptionReportHttpMessageConverter(),
                 new MappingJackson2HttpMessageConverter()
         };
@@ -54,14 +63,13 @@ public class PasswordResetEndpoint {
         this.identityZoneManager = identityZoneManager;
     }
 
-    @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
+    @PostMapping("/password_resets")
     public ResponseEntity<PasswordResetResponse> resetPassword(@RequestBody String email,
-                                                               @RequestParam(required = false, value = "client_id") String clientId,
-                                                               @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
+            @RequestParam(required = false, value = "client_id") String clientId,
+            @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
         if (clientId == null) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication instanceof OAuth2Authentication) {
-                OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
+            if (authentication instanceof OAuth2Authentication oAuth2Authentication) {
                 clientId = oAuth2Authentication.getOAuth2Request().getClientId();
             }
         }
@@ -87,7 +95,7 @@ public class PasswordResetEndpoint {
         return expiringCode;
     }
 
-    @RequestMapping(value = "/password_change", method = RequestMethod.POST)
+    @PostMapping("/password_change")
     public ResponseEntity<LostPasswordChangeResponse> changePassword(@RequestBody LostPasswordChangeRequest passwordChangeRequest) {
         ResponseEntity<LostPasswordChangeResponse> responseEntity;
         if (passwordChangeRequest.getChangeCode() != null) {
@@ -129,14 +137,14 @@ public class PasswordResetEndpoint {
     @ExceptionHandler(InvalidPasswordException.class)
     public View handleException(InvalidPasswordException t) throws ScimException {
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
-                t, false), UNPROCESSABLE_ENTITY),
+                        t, false), UNPROCESSABLE_ENTITY),
                 messageConverters);
     }
 
     @ExceptionHandler(InvalidCodeException.class)
     public View handleCodeException(InvalidCodeException t) throws ScimException {
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
-                t, false), UNPROCESSABLE_ENTITY),
+                        t, false), UNPROCESSABLE_ENTITY),
                 messageConverters);
     }
 }

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -57,7 +58,7 @@ public class AuthzAuthenticationRequest implements Authentication {
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         if (null != info.get("authorities")) {
-            Collection<ExtendedUaaAuthority> returnAuthorities = new LinkedHashSet<ExtendedUaaAuthority>();
+            Collection<ExtendedUaaAuthority> returnAuthorities = new LinkedHashSet<>();
 
             String[] authorities = StringUtils.commaDelimitedListToStringArray(info.get("authorities"));
 

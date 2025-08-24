@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,30 +13,27 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import java.util.List;
-
-import static org.hamcrest.Matchers.contains;
-import static org.junit.Assert.assertThat;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.web.client.RestOperations;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
-public class XFrameOptionsIT {
+import java.util.List;
 
-    @Autowired @Rule
-    public IntegrationTestRule integrationTestRule;
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
+class XFrameOptionsIT {
+
+    @Autowired
+    @RegisterExtension
+    private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
     WebDriver webDriver;
@@ -46,12 +44,12 @@ public class XFrameOptionsIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
-    @Before
-    @After
-    public void logout_and_clear_cookies() {
+    @BeforeEach
+    @AfterEach
+    void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -59,9 +57,9 @@ public class XFrameOptionsIT {
     }
 
     @Test
-    public void testHeaderOnLogin() {
+    void headerOnLogin() {
         ResponseEntity<Void> response = restOperations.getForEntity(baseUrl + "/login", Void.class);
         List<String> xFrameOptionsHeaders = response.getHeaders().get("X-Frame-Options");
-        assertThat(xFrameOptionsHeaders, contains("DENY"));
+        assertThat(xFrameOptionsHeaders).containsExactly("DENY");
     }
 }

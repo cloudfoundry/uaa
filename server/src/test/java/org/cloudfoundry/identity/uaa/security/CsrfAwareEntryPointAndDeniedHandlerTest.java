@@ -14,9 +14,9 @@
 
 package org.cloudfoundry.identity.uaa.security;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -25,86 +25,87 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.WebAttributes;
 import org.springframework.security.web.csrf.MissingCsrfTokenException;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
-public class CsrfAwareEntryPointAndDeniedHandlerTest {
+class CsrfAwareEntryPointAndDeniedHandlerTest {
 
     protected CsrfAwareEntryPointAndDeniedHandler handler = new CsrfAwareEntryPointAndDeniedHandler("/csrf", "/login");
     protected MockHttpServletRequest request = new MockHttpServletRequest();
     protected MockHttpServletResponse response = new MockHttpServletResponse();
 
-    @Before
-    public void setUpCsrfAccessDeniedHandler() {
+    @BeforeEach
+    void setUpCsrfAccessDeniedHandler() {
         response.setCommitted(false);
     }
 
-    @After
-    public void cleanUpAuth() {
+    @AfterEach
+    void cleanUpAuth() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void testHandleWhenNotLoggedInAndNoCsrf() throws Exception {
+    void handleWhenNotLoggedInAndNoCsrf() throws Exception {
         AccessDeniedException ex = new MissingCsrfTokenException("something");
         handler.handle(request, response, ex);
-        assertEquals(HttpServletResponse.SC_FOUND, response.getStatus());
-        assertSame(request.getAttribute(WebAttributes.ACCESS_DENIED_403), ex);
-        assertTrue(response.isCommitted());
-        assertEquals("http://localhost/login", response.getHeader("Location"));
-        assertEquals(HttpServletResponse.SC_MOVED_TEMPORARILY, response.getStatus());
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_FOUND);
+        assertThat(ex).isSameAs(request.getAttribute(WebAttributes.ACCESS_DENIED_403));
+        assertThat(response.isCommitted()).isTrue();
+        assertThat(response.getHeader("Location")).isEqualTo("http://localhost/login");
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_MOVED_TEMPORARILY);
     }
 
     @Test
-    public void testHandleWhenCsrfMissingForJson() throws Exception {
+    void handleWhenCsrfMissingForJson() throws Exception {
         request.addHeader("Accept", MediaType.APPLICATION_JSON_VALUE);
         AccessDeniedException ex = new MissingCsrfTokenException("something");
         handler.handle(request, response, ex);
-        assertEquals(HttpServletResponse.SC_FORBIDDEN, response.getStatus());
-        assertEquals("{\"error\":\"Could not verify the provided CSRF token because your session was not found.\"}", response.getContentAsString());
-        assertNull(response.getErrorMessage());
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_FORBIDDEN);
+        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"" + ex.getMessage() + "\"}");
+        assertThat(response.getErrorMessage()).isNull();
     }
 
     @Test
-    public void testHandleWhenNotLoggedIn() throws Exception {
+    void handleWhenNotLoggedIn() throws Exception {
         AccessDeniedException ex = new AccessDeniedException("something");
         handler.handle(request, response, ex);
-        assertEquals(HttpServletResponse.SC_FOUND, response.getStatus());
-        assertSame(request.getAttribute(WebAttributes.ACCESS_DENIED_403), ex);
-        assertTrue(response.isCommitted());
-        assertEquals("http://localhost/login", response.getHeader("Location"));
-        assertEquals(HttpServletResponse.SC_MOVED_TEMPORARILY, response.getStatus());
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_FOUND);
+        assertThat(ex).isSameAs(request.getAttribute(WebAttributes.ACCESS_DENIED_403));
+        assertThat(response.isCommitted()).isTrue();
+        assertThat(response.getHeader("Location")).isEqualTo("http://localhost/login");
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_MOVED_TEMPORARILY);
     }
 
     @Test
-    public void testHandleWhenNotLoggedInJson() throws Exception {
+    void handleWhenNotLoggedInJson() throws Exception {
         request.addHeader("Accept", MediaType.APPLICATION_JSON_VALUE);
         AccessDeniedException ex = new AccessDeniedException("something");
         handler.handle(request, response, ex);
-        assertEquals(HttpServletResponse.SC_FORBIDDEN, response.getStatus());
-        assertEquals("{\"error\":\"something\"}", response.getContentAsString());
-        assertNull(response.getErrorMessage());
+        assertThat(response.getStatus()).isEqualTo(HttpServletResponse.SC_FORBIDDEN);
+        assertThat(response.getContentAsString()).isEqualTo("{\"error\":\"something\"}");
+        assertThat(response.getErrorMessage()).isNull();
     }
 
-    @Test(expected = NullPointerException.class)
-    public void testNullCsrfUrl() {
-        new CsrfAwareEntryPointAndDeniedHandler(null, "/login");
+    @Test
+    void nullCsrfUrl() {
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler(null, "/login"));
     }
 
-    @Test(expected = NullPointerException.class)
-    public void testInvalidCsrfUrl() {
-        new CsrfAwareEntryPointAndDeniedHandler("csrf", "/login");
+    @Test
+    void invalidCsrfUrl() {
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("csrf", "/login"));
     }
 
-    @Test(expected = NullPointerException.class)
-    public void testNullLoginfUrl() {
-        new CsrfAwareEntryPointAndDeniedHandler("/csrf", null);
+    @Test
+    void nullLoginfUrl() {
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("/csrf", null));
     }
 
-    @Test(expected = NullPointerException.class)
-    public void testInvalidLoginUrl() {
-        new CsrfAwareEntryPointAndDeniedHandler("/csrf", "login");
+    @Test
+    void invalidLoginUrl() {
+        assertThatExceptionOfType(NullPointerException.class).isThrownBy(() -> new CsrfAwareEntryPointAndDeniedHandler("/csrf", "login"));
     }
 
 }

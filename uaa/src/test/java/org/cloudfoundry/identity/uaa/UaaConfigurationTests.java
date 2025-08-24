@@ -1,5 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry 
+/*
+ * *****************************************************************************
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,21 +13,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import static org.junit.Assert.assertTrue;
-
-import javax.validation.ConstraintViolationException;
-
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+
+import jakarta.validation.ConstraintViolationException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 /**
  * @author Luke Taylor
  */
-public class UaaConfigurationTests {
+class UaaConfigurationTests {
 
-    private YamlConfigurationValidator<UaaConfiguration> validator = new YamlConfigurationValidator<UaaConfiguration>(
-                    new UaaConfiguration.UaaConfigConstructor());
+    private final YamlConfigurationValidator<UaaConfiguration> validator = new YamlConfigurationValidator<>(
+            new UaaConfiguration.UaaConfigConstructor());
 
     private void createValidator(final String yaml) {
         validator.setExceptionIfInvalid(true);
@@ -35,37 +37,41 @@ public class UaaConfigurationTests {
     }
 
     @Test
-    public void validYamlIsOk() throws Exception {
+    void validYamlIsOk() {
         createValidator(
-            "name: uaa\n" +
-            "issuer.uri: http://foo.com\n" +
-            "oauth:\n" +
-            "  clients:\n" +
-            "    cf:\n" +
-            "      id: cf\n" +
-            "      authorized-grant-types: implicit\n" +
-            "  user:\n" +
-            "    authorities:\n" +
-            "      - openid\n" +
-            "      - scim.me\n" +
-            "  openid:\n" +
-            "    fallbackToAuthcode: false");
+                """
+                        name: uaa
+                        issuer.uri: http://foo.com
+                        oauth:
+                          clients:
+                            cf:
+                              id: cf
+                              authorized-grant-types: implicit
+                          user:
+                            authorities:
+                              - openid
+                              - scim.me
+                          openid:
+                            fallbackToAuthcode: false""");
     }
 
     @Test
-    public void validClientIsOk() throws Exception {
+    void validClientIsOk() {
         createValidator(
-        "oauth:\n" +
-                        "  clients:\n" +
-                        "    cf:\n" +
-                        "      id: cf\n" +
-                        "      autoapprove: true\n" +
-                        "      authorized-grant-types: implicit\n");
-        assertTrue(validator.getObject().oauth.clients.containsKey("cf"));
+                """
+                        oauth:
+                          clients:
+                            cf:
+                              id: cf
+                              autoapprove: true
+                              authorized-grant-types: implicit
+                        """);
+        assertThat(validator.getObject().oauth.clients).containsKey("cf");
     }
 
-    @Test(expected = ConstraintViolationException.class)
-    public void invalidIssuerUriCausesException() throws Exception {
-        createValidator("name: uaa\nissuer.uri: notauri\n");
+    @Test
+    void invalidIssuerUriCausesException() {
+        assertThatExceptionOfType(ConstraintViolationException.class).isThrownBy(() ->
+                createValidator("name: uaa\nissuer.uri: notauri\n"));
     }
 }

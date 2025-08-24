@@ -5,12 +5,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.sql.DataSource;
-
-import static org.junit.jupiter.api.Assertions.assertFalse;
-
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class OldAuthzTableDropped {
@@ -23,10 +22,10 @@ class OldAuthzTableDropped {
             ResultSet rs = meta.getTables(connection.getCatalog(), null, null, null);
             String tableName = "authz_approvals_old";
             while (rs.next() && !foundTable) {
-                foundTable = (tableName.equalsIgnoreCase(rs.getString("TABLE_NAME")));
+                foundTable = tableName.equalsIgnoreCase(rs.getString("TABLE_NAME"));
             }
             rs.close();
-            assertFalse(foundTable, "Table " + tableName + " found!");
+            assertThat(foundTable).as("Table " + tableName + " found!").isFalse();
         }
     }
 }

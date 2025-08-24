@@ -1,18 +1,17 @@
 package org.cloudfoundry.identity.uaa.db;
 
 import org.flywaydb.core.Flyway;
-import org.flywaydb.core.api.MigrationInfo;
-import org.flywaydb.core.api.callback.BaseFlywayCallback;
-import org.junit.Assert;
+import org.flywaydb.core.api.callback.BaseCallback;
+import org.flywaydb.core.api.callback.Context;
+import org.flywaydb.core.api.callback.Event;
+import org.flywaydb.core.api.configuration.ClassicConfiguration;
 
-import java.sql.Connection;
-import java.sql.SQLException;
-
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.flywaydb.core.api.callback.Event.AFTER_EACH_MIGRATE;
 
 public class MigrationTestRunner {
-    private Flyway flyway;
+    private final Flyway flyway;
 
     public MigrationTestRunner(Flyway flyway) {
         this.flyway = flyway;
@@ -20,32 +19,40 @@ public class MigrationTestRunner {
 
     public void run(MigrationTest... tests) {
         final int[] assertionsRan = {0};
-        flyway.setCallbacks(new BaseFlywayCallback() {
-            @Override
-            public void afterEachMigrate(Connection connection, MigrationInfo info) {
-                super.afterEachMigrate(connection, info);
-                try {
-                    if (!connection.getAutoCommit()) {
-                        connection.commit();
-                    }
-                } catch (SQLException e) {
-                    Assert.fail(e.getMessage());
-                }
 
-                for (MigrationTest test : tests) {
-                    if (test.getTargetMigration().equals(info.getVersion().getVersion())) {
-                        try {
-                            test.runAssertions();
-                        } catch (Exception e) {
-                            Assert.fail(e.getMessage());
+        ClassicConfiguration config = (ClassicConfiguration) flyway.getConfiguration();
+        config.setCallbacks(new BaseCallback() {
+            @Override
+            public void handle(Event event, Context context) {
+                if (AFTER_EACH_MIGRATE == event) {
+                    assertThatNoException().isThrownBy(() -> {
+                        if (!context.getConnection().getAutoCommit()) {
+                            context.getConnection().commit();
                         }
-                        assertionsRan[0]++;
+                    });
+
+                    for (MigrationTest test : tests) {
+                        if (test.getTargetMigration().equals(
+                                context.getMigrationInfo().getVersion().getVersion())) {
+                            assertThatNoException().isThrownBy(test::runAssertions);
+                            assertionsRan[0]++;
+                        }
                     }
                 }
             }
         });
-        flyway.migrate();
 
-        assertThat("Not every db migration ran", assertionsRan[0], is(tests.length));
+        // Flyway 7+ does not support modifying an already initialized Flyway instance,
+        // So we need to initialize a new Flyway instance (that has identical configs as the runtime Flyway,
+        // except with an additional callback) to use in tests
+        Flyway afterEachMigrateCallbackFlyway = new Flyway(config);
+
+        try {
+            afterEachMigrateCallbackFlyway.migrate();
+            assertThat(assertionsRan[0]).as("Not every db migration ran").isEqualTo(tests.length);
+        } finally {
+            afterEachMigrateCallbackFlyway.clean();
+            afterEachMigrateCallbackFlyway.migrate();
+        }
     }
 }

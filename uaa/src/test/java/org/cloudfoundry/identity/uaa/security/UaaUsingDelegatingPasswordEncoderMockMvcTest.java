@@ -29,7 +29,7 @@ class UaaUsingDelegatingPasswordEncoderMockMvcTest {
         jdbcTemplate.execute("INSERT INTO oauth_client_details (client_id, client_secret, authorized_grant_types, authorities) VALUES ('client_id_with_bcrypt', '{bcrypt}$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG', 'client_credentials', 'amazing.powers')");
         jdbcTemplate.execute("INSERT INTO oauth_client_details (client_id, client_secret, authorized_grant_types, authorities) VALUES ('client_id_with_no_algorithm_id', 'password', 'client_credentials', 'amazing.powers')");
         jdbcTemplate.execute("INSERT INTO oauth_client_details (client_id, client_secret, authorized_grant_types, authorities) VALUES ('client_id_with_no_password', NULL, 'client_credentials', 'amazing.powers')");
-        jdbcTemplate.execute("INSERT INTO oauth_client_details (client_id, client_secret, authorized_grant_types, authorities) VALUES ('client_id_with_empty_password', '', 'client_credentials', 'amazing.powers')");
+        jdbcTemplate.execute("INSERT INTO oauth_client_details (client_id, client_secret, authorized_grant_types, authorities) VALUES ('client_id_with_empty_password', '{noop}', 'client_credentials', 'amazing.powers')");
     }
 
     @AfterEach
@@ -54,17 +54,30 @@ class UaaUsingDelegatingPasswordEncoderMockMvcTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "client_id_with_no_password",
             "client_id_with_empty_password"
     })
-    void tryToGetTokenWithNoPasswordSucceeds(String clientId) throws Exception {
+    void tryToGetTokenWithEmtpyPasswordMustFail(String clientId) throws Exception {
         mockMvc.perform(post("/oauth/token")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .accept(MediaType.APPLICATION_JSON)
                 .param("client_id", clientId)
                 .param("client_secret", "")
                 .param("grant_type", "client_credentials"))
-                .andExpect(status().isOk());
+                .andExpect(status().isBadRequest());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "client_id_with_no_password"
+    })
+    void tryToGetTokenWithEmtpyPasswordFails(String clientId) throws Exception {
+        mockMvc.perform(post("/oauth/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .accept(MediaType.APPLICATION_JSON)
+                .param("client_id", clientId)
+                .param("client_secret", "")
+                .param("grant_type", "client_credentials"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

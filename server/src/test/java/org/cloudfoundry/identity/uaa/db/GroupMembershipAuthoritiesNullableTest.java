@@ -10,8 +10,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class GroupMembershipAuthoritiesNullableTest {
@@ -27,10 +26,10 @@ class GroupMembershipAuthoritiesNullableTest {
                 if ("GROUP_MEMBERSHIP".equalsIgnoreCase(rs.getString("TABLE_NAME")) &&
                         "AUTHORITIES".equalsIgnoreCase(rs.getString("COLUMN_NAME"))) {
                     call = true;
-                    assertEquals("YES", rs.getString("IS_NULLABLE").toUpperCase());
+                    assertThat(rs.getString("IS_NULLABLE").toUpperCase()).isEqualTo("YES");
                 }
             }
-            assertTrue(call, "authorities column not found.");
+            assertThat(call).as("authorities column not found.").isTrue();
         }
     }
 

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
+import jakarta.annotation.PostConstruct;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
@@ -8,6 +9,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.login.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetailsService;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
@@ -23,16 +25,18 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.beans.TestBuildInfo;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.Consent;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
@@ -42,10 +46,8 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -56,21 +58,19 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerAdapter;
 
-import java.net.URL;
+import java.net.URI;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -90,11 +90,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
-@RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
-@ContextConfiguration(classes = InvitationsControllerTest.ContextConfiguration.class)
+@SpringJUnitConfig(classes = InvitationsControllerTest.ContextConfiguration.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-public class InvitationsControllerTest {
+class InvitationsControllerTest {
 
     private MockMvc mockMvc;
 
@@ -111,9 +110,6 @@ public class InvitationsControllerTest {
     PasswordValidator passwordValidator;
 
     @Autowired
-    ClientDetailsService clientDetailsService;
-
-    @Autowired
     IdentityProviderProvisioning providerProvisioning;
 
     @Autowired
@@ -123,62 +119,59 @@ public class InvitationsControllerTest {
     DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
 
     @Autowired
-    CookieBasedCsrfTokenRepository loginCookieCsrfRepository;
-
-    @Autowired
     ScimUserProvisioning scimUserProvisioning;
 
     @Autowired
     ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         IdentityZoneHolder.clear();
         SecurityContextHolder.clearContext();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .build();
+                .build();
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void testAcceptInvitationsPage() throws Exception {
+    void acceptInvitationsPage() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
-        Map<String,String> codeData = new HashMap<>();
+        Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", "user-id-001");
         codeData.put("email", "user@example.com");
         codeData.put("client_id", "client-id");
         codeData.put("redirect_uri", "blah.test.com");
         when(expiringCodeStore.peekCode("code", zoneId)).thenReturn(createCode(codeData), null);
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider provider = new IdentityProvider<>();
         provider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(any(), any())).thenReturn(provider);
 
         mockMvc.perform(get("/invitations/accept").param("code", "code"))
-            .andExpect(status().isOk())
-            .andExpect(model().attribute("email", "user@example.com"))
-            .andExpect(model().attribute("code", "code"))
-            .andExpect(view().name("invitations/accept_invite"));
+                .andExpect(status().isOk())
+                .andExpect(model().attribute("email", "user@example.com"))
+                .andExpect(model().attribute("code", "code"))
+                .andExpect(view().name("invitations/accept_invite"));
 
-        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-        assertTrue(SecurityContextHolder.getContext().getAuthentication() instanceof AnonymousAuthenticationToken);
-        assertEquals("user-id-001", principal.getId());
-        assertEquals("user@example.com", principal.getName());
-        assertEquals("user@example.com", principal.getEmail());
+        UaaPrincipal principal = (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isInstanceOf(AnonymousAuthenticationToken.class);
+        assertThat(principal.getId()).isEqualTo("user-id-001");
+        assertThat(principal.getName()).isEqualTo("user@example.com");
+        assertThat(principal.getEmail()).isEqualTo("user@example.com");
 
         mockMvc.perform(get("/invitations/accept").param("code", "code"))
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("invitations/accept_invite"))
-            .andExpect(model().attribute("error_message_code", "code_expired"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("invitations/accept_invite"))
+                .andExpect(model().attribute("error_message_code", "code_expired"));
     }
 
     @Test
-    public void incorrectCodeIntent() throws Exception {
+    void incorrectCodeIntent() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
-        Map<String,String> codeData = new HashMap<>();
+        Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", "user-id-001");
         codeData.put("email", "user@example.com");
         codeData.put("client_id", "client-id");
@@ -186,25 +179,24 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
-            .param("code", "the_secret_code");
+                .param("code", "the_secret_code");
 
         mockMvc.perform(get).andExpect(status().isUnprocessableEntity());
     }
 
-
     @Test
-    public void acceptInvitePage_for_unverifiedSamlUser() throws Exception {
-        Map<String,String> codeData = getInvitationsCode("test-saml");
+    void acceptInvitePage_for_unverifiedSamlUser() throws Exception {
+        Map<String, String> codeData = getInvitationsCode("test-saml");
         String zoneId = IdentityZoneHolder.get().getId();
         when(expiringCodeStore.peekCode("the_secret_code", zoneId)).thenReturn(createCode(codeData));
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition()
-            .setMetaDataLocation("http://test.saml.com")
-            .setIdpEntityAlias("test-saml")
-            .setNameID("test")
-            .setLinkText("testsaml")
-            .setIconUrl("test.com")
-            .setZoneId(zoneId);
+                .setMetaDataLocation("http://test.saml.com")
+                .setIdpEntityAlias("test-saml")
+                .setNameID("test")
+                .setLinkText("testsaml")
+                .setIconUrl("test.com")
+                .setZoneId(zoneId);
         provider.setConfig(definition);
         provider.setType(OriginKeys.SAML);
         when(providerProvisioning.retrieveByOrigin(eq("test-saml"), anyString())).thenReturn(provider);
@@ -212,28 +204,27 @@ public class InvitationsControllerTest {
                 .param("code", "the_secret_code");
 
         MvcResult result = mockMvc.perform(get)
-                .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=sp-entity-id&idp=test-saml&isPassive=true"))
+                .andExpect(redirectedUrl("/saml2/authenticate/test-saml"))
                 .andReturn();
 
-        assertEquals(true, result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE"));
-        assertEquals("user-id-001", result.getRequest().getSession().getAttribute("user_id"));
+        assertThat(result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE")).isEqualTo(true);
+        assertThat(result.getRequest().getSession().getAttribute("user_id")).isEqualTo("user-id-001");
     }
 
     @Test
-    public void acceptInvitePage_for_unverifiedOIDCUser() throws Exception {
-        Map<String,String> codeData = getInvitationsCode("test-oidc");
+    void acceptInvitePage_for_unverifiedOIDCUser() throws Exception {
+        Map<String, String> codeData = getInvitationsCode("test-oidc");
         String zoneId = IdentityZoneHolder.get().getId();
         when(expiringCodeStore.peekCode("the_secret_code", zoneId)).thenReturn(createCode(codeData));
 
         OIDCIdentityProviderDefinition definition = new OIDCIdentityProviderDefinition();
-        definition.setAuthUrl(new URL("https://oidc10.auth.url"));
+        definition.setAuthUrl(URI.create("https://oidc10.auth.url").toURL());
 
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider<OIDCIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setConfig(definition);
         provider.setType(OriginKeys.OIDC10);
         when(providerProvisioning.retrieveByOrigin(eq("test-oidc"), anyString())).thenReturn(provider);
         when(externalOAuthProviderConfigurator.getIdpAuthenticationUrl(any(), any(), any())).thenReturn("http://example.com");
-
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                 .param("code", "the_secret_code");
@@ -242,17 +233,17 @@ public class InvitationsControllerTest {
                 .andExpect(redirectedUrl("http://example.com"))
                 .andReturn();
 
-        assertEquals(true, result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE"));
-        assertEquals("user-id-001", result.getRequest().getSession().getAttribute("user_id"));
+        assertThat(result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE")).isEqualTo(true);
+        assertThat(result.getRequest().getSession().getAttribute("user_id")).isEqualTo("user-id-001");
     }
 
     @Test
-    public void acceptInvitePage_for_unverifiedLdapUser() throws Exception {
+    void acceptInvitePage_for_unverifiedLdapUser() throws Exception {
         Map<String, String> codeData = getInvitationsCode(LDAP);
         String zoneId = IdentityZoneHolder.get().getId();
         when(expiringCodeStore.peekCode("the_secret_code", zoneId)).thenReturn(createCode(codeData));
 
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider provider = new IdentityProvider<>();
         provider.setType(LDAP);
         when(providerProvisioning.retrieveByOrigin(eq(LDAP), anyString())).thenReturn(provider);
 
@@ -280,7 +271,7 @@ public class InvitationsControllerTest {
     }
 
     @Test
-    public void unverifiedLdapUser_acceptsInvite_byLoggingIn() throws Exception {
+    void unverifiedLdapUser_acceptsInvite_byLoggingIn() throws Exception {
         Map<String, String> codeData = getInvitationsCode(LDAP);
         String zoneId = IdentityZoneHolder.get().getId();
         when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
@@ -309,10 +300,10 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")
-                .param("enterprise_username", "test-ldap-user")
-                .param("enterprise_password", "password")
-                .param("enterprise_email", "email")
-                .param("code", "the_secret_code"))
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
                 .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=blah.test.com"))
                 .andReturn();
 
@@ -320,13 +311,13 @@ public class InvitationsControllerTest {
         ArgumentCaptor<ScimUser> userArgumentCaptor = ArgumentCaptor.forClass(ScimUser.class);
         verify(scimUserProvisioning).update(anyString(), userArgumentCaptor.capture(), eq(zoneId));
         ScimUser value = userArgumentCaptor.getValue();
-        assertEquals("test-ldap-user", value.getUserName());
-        assertEquals("user@example.com", value.getPrimaryEmail());
+        assertThat(value.getUserName()).isEqualTo("test-ldap-user");
+        assertThat(value.getPrimaryEmail()).isEqualTo("user@example.com");
         verify(ldapAuthenticationManager).authenticate(any());
     }
 
     @Test
-    public void unverifiedLdapUser_acceptsInvite_byLoggingIn_bad_credentials() throws Exception {
+    void unverifiedLdapUser_acceptsInvite_byLoggingIn_bad_credentials() throws Exception {
         Map<String, String> codeData = getInvitationsCode("ldap");
         String zoneId = IdentityZoneHolder.get().getId();
         when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
@@ -342,18 +333,18 @@ public class InvitationsControllerTest {
         when(ldapActual.authenticate(any())).thenThrow(new BadCredentialsException("bad creds"));
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")
-          .param("enterprise_username", "test-ldap-user")
-          .param("enterprise_password", "password")
-          .param("enterprise_email", "email")
-          .param("code", "the_secret_code"))
-          .andExpect(model().attribute("ldap", true))
-          .andExpect(model().attribute("email", "email"))
-          .andExpect(model().attribute("error_message", "bad_credentials"))
-          .andReturn();
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
+                .andExpect(model().attribute("ldap", true))
+                .andExpect(model().attribute("email", "email"))
+                .andExpect(model().attribute("error_message", "bad_credentials"))
+                .andReturn();
     }
 
     @Test
-    public void unverifiedLdapUser_acceptsInvite_byLoggingIn_whereEmailDoesNotMatchAuthenticatedEmail() throws Exception {
+    void unverifiedLdapUser_acceptsInvite_byLoggingIn_whereEmailDoesNotMatchAuthenticatedEmail() throws Exception {
         Map<String, String> codeData = getInvitationsCode(LDAP);
         String zoneId = IdentityZoneHolder.get().getId();
         when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
@@ -375,10 +366,10 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")
-                .param("enterprise_username", "test-ldap-user")
-                .param("enterprise_password", "password")
-                .param("enterprise_email", "email")
-                .param("code", "the_secret_code"))
+                        .param("enterprise_username", "test-ldap-user")
+                        .param("enterprise_password", "password")
+                        .param("enterprise_email", "email")
+                        .param("code", "the_secret_code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("invitations/accept_invite"))
                 .andExpect(content().string(containsString("Email: " + "user@example.com")))
@@ -392,20 +383,20 @@ public class InvitationsControllerTest {
     }
 
     @Test
-    public void acceptInvitePage_for_verifiedUser() throws Exception {
+    void acceptInvitePage_for_verifiedUser() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
         UaaUser user = new UaaUser("user@example.com", "", "user@example.com", "Given", "family");
         user.modifyId("verified-user");
         user.setVerified(true);
         when(userDatabase.retrieveUserById("verified-user")).thenReturn(user);
-        Map<String,String> codeData = new HashMap<>();
+        Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", "verified-user");
         codeData.put("email", "user@example.com");
         codeData.put("origin", "some-origin");
 
         when(expiringCodeStore.peekCode("the_secret_code", zoneId)).thenReturn(createCode(codeData), null);
         when(invitationsService.acceptInvitation(anyString(), eq(""))).thenReturn(new AcceptedInvitation("blah.test.com", new ScimUser()));
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider provider = new IdentityProvider<>();
         provider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
         MockHttpServletRequestBuilder get = get("/invitations/accept")
@@ -420,119 +411,117 @@ public class InvitationsControllerTest {
     }
 
     @Test
-    public void incorrectGeneratedCodeIntent_for_verifiedUser() throws Exception {
+    void incorrectGeneratedCodeIntent_for_verifiedUser() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
         UaaUser user = new UaaUser("user@example.com", "", "user@example.com", "Given", "family");
         user.modifyId("verified-user");
         user.setVerified(true);
         when(userDatabase.retrieveUserById("verified-user")).thenReturn(user);
 
-        Map<String,String> codeData = new HashMap<>();
+        Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", "verified-user");
         codeData.put("email", "user@example.com");
         when(expiringCodeStore.retrieveCode("the_secret_code", zoneId)).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));
         when(expiringCodeStore.generateCode(anyString(), any(), eq(null), eq(zoneId))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), "incorrect-code-intent"));
-        doThrow(new HttpClientErrorException(BAD_REQUEST)).when(invitationsService).acceptInvitation(eq("incorrect-code-intent"), eq(""));
+        when(invitationsService.acceptInvitation("incorrect-code-intent", "")).thenThrow(new HttpClientErrorException(BAD_REQUEST));
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
-            .param("code", "the_secret_code");
+                .param("code", "the_secret_code");
 
         mockMvc.perform(get).andExpect(status().isUnprocessableEntity());
     }
 
     @Test
-    public void testAcceptInvitePageWithExpiredCode() throws Exception {
+    void acceptInvitePageWithExpiredCode() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
         when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId))).thenReturn(null);
         MockHttpServletRequestBuilder get = get("/invitations/accept").param("code", "the_secret_code");
         mockMvc.perform(get)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(model().attribute("error_message_code", "code_expired"))
-            .andExpect(view().name("invitations/accept_invite"))
-            .andExpect(xpath("//*[@class='email-display']").doesNotExist())
-            .andExpect(xpath("//form").doesNotExist());
-        assertNull(SecurityContextHolder.getContext().getAuthentication());
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"))
+                .andExpect(view().name("invitations/accept_invite"))
+                .andExpect(xpath("//*[@class='email-display']").doesNotExist())
+                .andExpect(xpath("//form").doesNotExist());
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
     @Test
-    public void missing_code() throws Exception {
+    void missing_code() throws Exception {
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a", "a");
 
         String zoneId = IdentityZoneHolder.get().getId();
         when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(null);
 
-        IdentityProvider identityProvider = new IdentityProvider();
+        IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(identityProvider);
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(model().attribute("error_message_code", "code_expired"))
-            .andExpect(view().name("invitations/accept_invite"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"))
+                .andExpect(view().name("invitations/accept_invite"));
         verify(expiringCodeStore).retrieveCode("thecode", zoneId);
         verify(expiringCodeStore, never()).generateCode(anyString(), any(), anyString(), eq(zoneId));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
-
     }
 
     @Test
-    public void invalid_principal_id() throws Exception {
+    void invalid_principal_id() throws Exception {
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a", "a");
 
         String zoneId = IdentityZoneHolder.get().getId();
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         codeData.put("user_id", "invalid id");
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
 
-        IdentityProvider identityProvider = new IdentityProvider();
+        IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(identityProvider);
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(model().attribute("error_message_code", "code_expired"))
-            .andExpect(view().name("invitations/accept_invite"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"))
+                .andExpect(view().name("invitations/accept_invite"));
         verify(expiringCodeStore).retrieveCode("thecode", zoneId);
         verify(expiringCodeStore, never()).generateCode(anyString(), any(), anyString(), eq(zoneId));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
-
     }
 
     @Test
-    public void testAcceptInviteWithContraveningPassword() throws Exception {
+    void acceptInviteWithContraveningPassword() throws Exception {
         doThrow(new InvalidPasswordException(Arrays.asList("Msg 2c", "Msg 1c"))).when(passwordValidator).validate("a");
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a", "a");
 
         String zoneId = IdentityZoneHolder.get().getId();
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.retrieveCode("thenewcode", zoneId)).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(zoneId))).thenReturn(
-            new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()),
-            new ExpiringCode("thenewcode2", new Timestamp(1), codeDataString, INVITATION.name())
+                new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()),
+                new ExpiringCode("thenewcode2", new Timestamp(1), codeDataString, INVITATION.name())
         );
 
-        IdentityProvider identityProvider = new IdentityProvider();
+        IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(identityProvider);
         mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
-            .andExpect(model().attribute("code", "thenewcode2"))
-            .andExpect(view().name("redirect:accept"));
+                .andExpect(status().isFound())
+                .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
+                .andExpect(model().attribute("code", "thenewcode2"))
+                .andExpect(view().name("redirect:accept"));
         verify(expiringCodeStore).retrieveCode("thecode", zoneId);
         verify(expiringCodeStore, times(2)).generateCode(anyString(), any(), anyString(), eq(zoneId));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
     }
 
     @Test
-    public void testAcceptInvite() throws Exception {
-        ScimUser user = new ScimUser("user-id-001", "user@example.com","fname", "lname");
+    void acceptInvite() throws Exception {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "fname", "lname");
         user.setPrimaryEmail(user.getUserName());
-        MockHttpServletRequestBuilder post = startAcceptInviteFlow("passw0rd","passw0rd");
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow("passw0rd", "passw0rd");
 
         String zoneId = IdentityZoneHolder.get().getId();
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         ExpiringCode thecode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
         ExpiringCode thenewcode = new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name());
@@ -540,14 +529,14 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(thecode, null);
         when(expiringCodeStore.retrieveCode("thenewcode", zoneId)).thenReturn(thenewcode, null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(zoneId)))
-            .thenReturn(thenewcode)
-            .thenReturn(thenewcode2);
+                .thenReturn(thenewcode)
+                .thenReturn(thenewcode2);
 
         when(invitationsService.acceptInvitation(anyString(), eq("passw0rd"))).thenReturn(new AcceptedInvitation("/home", user));
 
-        MvcResult res = mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login?success=invite_accepted")).andReturn();
+        mockMvc.perform(post)
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?success=invite_accepted")).andReturn();
 
         verify(invitationsService).acceptInvitation(anyString(), eq("passw0rd"));
     }
@@ -559,48 +548,48 @@ public class InvitationsControllerTest {
         SecurityContextHolder.getContext().setAuthentication(token);
 
         return post("/invitations/accept.do")
-            .param("code","thecode")
-            .param("password", password)
-            .param("password_confirmation", passwordConfirmation);
+                .param("code", "thecode")
+                .param("password", password)
+                .param("password_confirmation", passwordConfirmation);
     }
 
     @Test
-    public void acceptInviteWithValidClientRedirect() throws Exception {
+    void acceptInviteWithValidClientRedirect() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null,zoneId);
-        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(),"fname", "lname");
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null, zoneId);
+        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(), "fname", "lname");
         user.setPrimaryEmail(user.getUserName());
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(zoneId))).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()));
         when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new AcceptedInvitation("valid.redirect.com", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
-            .param("password", "password")
-            .param("password_confirmation", "password")
-            .param("code", "thecode");
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("code", "thecode");
 
         mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=valid.redirect.com"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=valid.redirect.com"));
     }
 
     @Test
-    public void acceptInviteWithInvalidClientRedirect() throws Exception {
+    void acceptInviteWithInvalidClientRedirect() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null,zoneId);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null, zoneId);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
-        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(),"fname", "lname");
+        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(), "fname", "lname");
         user.setPrimaryEmail(user.getUserName());
 
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(zoneId))).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()));
@@ -608,23 +597,23 @@ public class InvitationsControllerTest {
         when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new AcceptedInvitation("/home", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
-            .param("code","thecode")
-            .param("password", "password")
-            .param("password_confirmation", "password");
+                .param("code", "thecode")
+                .param("password", "password")
+                .param("password_confirmation", "password");
 
         mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/login?success=invite_accepted"));
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login?success=invite_accepted"));
     }
 
     @Test
-    public void invalidCodeOnAcceptPost() throws Exception {
+    void invalidCodeOnAcceptPost() throws Exception {
         String zoneId = IdentityZoneHolder.get().getId();
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null,zoneId);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null, zoneId);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(zoneId))).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()));
@@ -632,149 +621,148 @@ public class InvitationsControllerTest {
         doThrow(new HttpClientErrorException(BAD_REQUEST)).when(invitationsService).acceptInvitation(anyString(), anyString());
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
-            .param("code","thecode")
-            .param("password", "password")
-            .param("password_confirmation", "password");
+                .param("code", "thecode")
+                .param("password", "password")
+                .param("password_confirmation", "password");
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(model().attribute("error_message_code", "code_expired"))
-            .andExpect(view().name("invitations/accept_invite"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "code_expired"))
+                .andExpect(view().name("invitations/accept_invite"));
     }
 
     @Test
-    public void testAcceptInviteWithoutMatchingPasswords() throws Exception {
-        MockHttpServletRequestBuilder post = startAcceptInviteFlow("a","b");
+    void acceptInviteWithoutMatchingPasswords() throws Exception {
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow("a", "b");
 
         String zoneId = IdentityZoneHolder.get().getId();
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         when(expiringCodeStore.retrieveCode("thecode", zoneId)).thenReturn(new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.retrieveCode("thenewcode", zoneId)).thenReturn(new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()), null);
         when(expiringCodeStore.generateCode(eq(codeDataString), any(), eq(INVITATION.name()), eq(zoneId))).thenReturn(
-            new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()),
-            new ExpiringCode("thenewcode2", new Timestamp(1), codeDataString, INVITATION.name())
+                new ExpiringCode("thenewcode", new Timestamp(1), codeDataString, INVITATION.name()),
+                new ExpiringCode("thenewcode2", new Timestamp(1), codeDataString, INVITATION.name())
         );
 
-
-        IdentityProvider identityProvider = new IdentityProvider();
+        IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin("uaa", "uaa")).thenReturn(identityProvider);
         mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(model().attribute("error_message_code", "form_error"))
-            .andExpect(model().attribute("code", "thenewcode2"))
-            .andExpect(view().name("redirect:accept"));
+                .andExpect(status().isFound())
+                .andExpect(model().attribute("error_message_code", "form_error"))
+                .andExpect(model().attribute("code", "thenewcode2"))
+                .andExpect(view().name("redirect:accept"));
         verify(expiringCodeStore).retrieveCode("thecode", zoneId);
         verify(expiringCodeStore, times(2)).generateCode(anyString(), any(), anyString(), eq(zoneId));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
     }
 
     @Test
-    public void testAcceptInvite_displaysConsentText() throws Exception {
+    void acceptInviteDisplaysConsentText() throws Exception {
         IdentityZone defaultZone = IdentityZoneHolder.get();
         String zoneId = IdentityZoneHolder.get().getId();
         BrandingInformation branding = new BrandingInformation();
         branding.setConsent(new Consent("paying Jaskanwal Pawar & Jennifer Hamon each a million dollars", null));
         defaultZone.getConfig().setBranding(branding);
 
-        IdentityProvider identityProvider = new IdentityProvider();
+        IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(identityProvider);
 
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         ExpiringCode expiringCode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
         when(expiringCodeStore.peekCode("thecode", zoneId))
-            .thenReturn(expiringCode, null);
+                .thenReturn(expiringCode, null);
 
         mockMvc.perform(get("/invitations/accept")
-            .param("code", "thecode"))
-            .andExpect(content().string(containsString("Jaskanwal")));
+                        .param("code", "thecode"))
+                .andExpect(content().string(containsString("Jaskanwal")));
 
         // cleanup changes to default zone
         defaultZone.getConfig().setBranding(null);
     }
 
     @Test
-    public void testAcceptInvite_doesNotDisplayConsentCheckboxWhenNotConfiguredForZone() throws Exception {
-        IdentityProvider identityProvider = new IdentityProvider();
+    void acceptInviteDoesNotDisplayConsentCheckboxWhenNotConfiguredForZone() throws Exception {
+        IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(identityProvider);
 
         String zoneId = IdentityZoneHolder.get().getId();
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         ExpiringCode expiringCode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
         when(expiringCodeStore.retrieveCode("thecode", zoneId))
-            .thenReturn(expiringCode, null);
+                .thenReturn(expiringCode, null);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId)))
-            .thenReturn(expiringCode);
+                .thenReturn(expiringCode);
 
         mockMvc.perform(get("/invitations/accept")
-            .param("code", "thecode"))
-            .andExpect(content().string(not(containsString("I agree"))));
+                        .param("code", "thecode"))
+                .andExpect(content().string(not(containsString("I agree"))));
     }
 
     @Test
-    public void testAcceptInvite_displaysErrorMessageIfConsentNotChecked() throws Exception {
+    void acceptInviteDisplaysErrorMessageIfConsentNotChecked() throws Exception {
         IdentityZone defaultZone = IdentityZoneHolder.get();
         String zoneId = IdentityZoneHolder.get().getId();
         BrandingInformation branding = new BrandingInformation();
         branding.setConsent(new Consent("paying Jaskanwal Pawar & Jennifer Hamon each a million dollars", null));
         defaultZone.getConfig().setBranding(branding);
 
-        IdentityProvider identityProvider = new IdentityProvider();
+        IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(identityProvider);
 
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         ExpiringCode expiringCode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
         when(expiringCodeStore.peekCode(anyString(), eq(zoneId)))
-            .thenReturn(expiringCode);
+                .thenReturn(expiringCode);
         when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId)))
-            .thenReturn(expiringCode);
+                .thenReturn(expiringCode);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId)))
-            .thenReturn(expiringCode);
+                .thenReturn(expiringCode);
 
         MvcResult mvcResult = mockMvc.perform(startAcceptInviteFlow("password", "password"))
-            .andReturn();
+                .andReturn();
 
         mockMvc.perform(get("/invitations/" + mvcResult.getResponse().getHeader("Location")))
-            .andExpect(model().attribute("error_message_code", "missing_consent"));
+                .andExpect(model().attribute("error_message_code", "missing_consent"));
 
         // cleanup changes to default zone
         defaultZone.getConfig().setBranding(null);
     }
 
     @Test
-    public void testAcceptInvite_worksWithConsentProvided() throws Exception {
+    void acceptInviteWorksWithConsentProvided() throws Exception {
         IdentityZone defaultZone = IdentityZoneHolder.get();
         String zoneId = IdentityZoneHolder.get().getId();
         BrandingInformation branding = new BrandingInformation();
         branding.setConsent(new Consent("paying Jaskanwal Pawar & Jennifer Hamon each a million dollars", null));
         defaultZone.getConfig().setBranding(branding);
 
-        IdentityProvider identityProvider = new IdentityProvider();
+        IdentityProvider identityProvider = new IdentityProvider<>();
         identityProvider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(identityProvider);
 
-        Map<String,String> codeData = getInvitationsCode(OriginKeys.UAA);
+        Map<String, String> codeData = getInvitationsCode(OriginKeys.UAA);
         String codeDataString = JsonUtils.writeValueAsString(codeData);
         ExpiringCode expiringCode = new ExpiringCode("thecode", new Timestamp(1), codeDataString, INVITATION.name());
         when(expiringCodeStore.retrieveCode(anyString(), eq(zoneId)))
-            .thenReturn(expiringCode);
+                .thenReturn(expiringCode);
         when(expiringCodeStore.generateCode(anyString(), any(), eq(INVITATION.name()), eq(zoneId)))
-            .thenReturn(expiringCode);
+                .thenReturn(expiringCode);
 
         when(invitationsService.acceptInvitation(anyString(), anyString()))
-            .thenReturn(new AcceptedInvitation(codeData.get("redirect_uri"), null));
+                .thenReturn(new AcceptedInvitation(codeData.get("redirect_uri"), null));
 
         MvcResult mvcResult = mockMvc.perform(startAcceptInviteFlow("password", "password")
-            .param("does_user_consent", "true"))
-            .andReturn();
-        assertThat(mvcResult.getResponse().getHeader("Location"), containsString(codeData.get("redirect_uri")));
+                        .param("does_user_consent", "true"))
+                .andReturn();
+        assertThat(mvcResult.getResponse().getHeader("Location")).contains(codeData.get("redirect_uri"));
 
         // cleanup changes to default zone
         defaultZone.getConfig().setBranding(null);
@@ -784,6 +772,14 @@ public class InvitationsControllerTest {
     @Import(ThymeleafConfig.class)
     static class ContextConfiguration implements WebMvcConfigurer {
 
+        @Autowired
+        private RequestMappingHandlerAdapter requestMappingHandlerAdapter;
+
+        @PostConstruct
+        public void init() {
+            requestMappingHandlerAdapter.setIgnoreDefaultModelOnRedirect(false);
+        }
+
         @Override
         public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
             configurer.enable();
@@ -791,15 +787,15 @@ public class InvitationsControllerTest {
 
         @Bean
         BuildInfo buildInfo() {
-            return new BuildInfo();
+            return new TestBuildInfo();
         }
 
         @Bean
         public UaaUserDatabase userDatabase() {
             UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-            UaaUser user = new UaaUser("user@example.com","","user@example.com","Given","family");
+            UaaUser user = new UaaUser("user@example.com", "", "user@example.com", "Given", "family");
             user = user.modifyId("user-id-001");
-            when (userDatabase.retrieveUserById(user.getId())).thenReturn(user);
+            when(userDatabase.retrieveUserById(user.getId())).thenReturn(user);
             return userDatabase;
         }
 
@@ -829,11 +825,11 @@ public class InvitationsControllerTest {
         InvitationsController invitationsController(final InvitationsService invitationsService,
                                                     final ExpiringCodeStore codeStore,
                                                     final PasswordValidator passwordPolicyValidator,
-                                                    final IdentityProviderProvisioning providerProvisioning,
+                                                    final @Qualifier("providerProvisioning") IdentityProviderProvisioning providerProvisioning,
                                                     final UaaUserDatabase userDatabase,
                                                     final ScimUserProvisioning provisioning,
-                                                    final DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager,
-                                                    final ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator) {
+                                                    final @Qualifier("zoneAwareAuthenticationManager") DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager,
+                                                    final @Qualifier("externalOAuthProviderConfigurator") ExternalOAuthProviderConfigurator externalOAuthProviderConfigurator) {
             return new InvitationsController(
                     invitationsService,
                     codeStore,
@@ -841,8 +837,8 @@ public class InvitationsControllerTest {
                     providerProvisioning,
                     zoneAwareAuthenticationManager,
                     userDatabase,
-                    "sp-entity-id",
                     provisioning,
+                    new IdentityZoneManagerImpl(),
                     externalOAuthProviderConfigurator);
         }
 
@@ -852,12 +848,14 @@ public class InvitationsControllerTest {
         }
 
         @Bean
-        PasswordValidator uaaPasswordValidator() { return mock(PasswordValidator.class); }
+        PasswordValidator uaaPasswordValidator() {
+            return mock(PasswordValidator.class);
+        }
 
         @Bean
         IdentityProviderProvisioning providerProvisioning() {
 
-            return mock (IdentityProviderProvisioning.class);
+            return mock(IdentityProviderProvisioning.class);
         }
 
         @Bean

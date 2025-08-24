@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -17,18 +18,32 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.login.Prompt;
 
 import java.net.URL;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
+import static java.util.Collections.emptyMap;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class OIDCIdentityProviderDefinition extends AbstractExternalOAuthIdentityProviderDefinition<OIDCIdentityProviderDefinition>
-implements Cloneable {
+        implements Cloneable {
     private URL discoveryUrl;
-    private boolean passwordGrantEnabled = false;
-    private boolean setForwardHeader = false;
+    // Enable Resource Owner Password Grant flow for this identity provider.
+    private boolean passwordGrantEnabled;
+    // Set X-Forward-For header in Password Grant request to this identity provider.
+    private boolean setForwardHeader;
+    // Enable JWT Bearer Token Exchange Grant flow for this identity provider.
+    private Boolean tokenExchangeEnabled;
     @JsonInclude(JsonInclude.Include.NON_NULL)
-    private List<Prompt> prompts = null;
+    private List<Prompt> prompts;
+    // Enables private_key_jwt towards identity provider.
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Object jwtClientAuthentication;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    // Add additional parameters in request towards identity provider.
+    private Map<String, String> additionalAuthzParameters;
 
     public URL getDiscoveryUrl() {
         return discoveryUrl;
@@ -62,6 +77,33 @@ implements Cloneable {
         this.prompts = prompts;
     }
 
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public Object getJwtClientAuthentication() {
+        return this.jwtClientAuthentication;
+    }
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public void setJwtClientAuthentication(final Object jwtClientAuthentication) {
+        this.jwtClientAuthentication = jwtClientAuthentication;
+    }
+
+    public Map<String, String> getAdditionalAuthzParameters() {
+        return this.additionalAuthzParameters != null ? Collections.unmodifiableMap(this.additionalAuthzParameters) : null;
+    }
+
+    public void setAdditionalAuthzParameters(final Map<String, String> additonalAuthzParameters) {
+        this.additionalAuthzParameters = new HashMap<>(additonalAuthzParameters != null ? additonalAuthzParameters : emptyMap());
+    }
+
+
+    public Boolean isTokenExchangeEnabled() {
+        return tokenExchangeEnabled;
+    }
+
+    public void setTokenExchangeEnabled(Boolean tokenExchangeEnabled) {
+        this.tokenExchangeEnabled = tokenExchangeEnabled;
+    }
+
     @Override
     public Object clone() throws CloneNotSupportedException {
         return super.clone();
@@ -69,14 +111,33 @@ implements Cloneable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         OIDCIdentityProviderDefinition that = (OIDCIdentityProviderDefinition) o;
 
-        if (this.passwordGrantEnabled != that.passwordGrantEnabled) return false;
-        if (this.setForwardHeader != that.setForwardHeader) return false;
+        if (this.passwordGrantEnabled != that.passwordGrantEnabled) {
+            return false;
+        }
+        if (this.setForwardHeader != that.setForwardHeader) {
+            return false;
+        }
+        if (!Objects.equals(this.jwtClientAuthentication, that.jwtClientAuthentication)) {
+            return false;
+        }
+        if (!Objects.equals(this.additionalAuthzParameters, that.additionalAuthzParameters)) {
+            return false;
+        }
+        if (!Objects.equals(this.tokenExchangeEnabled, that.tokenExchangeEnabled)) {
+            return false;
+        }
         return Objects.equals(discoveryUrl, that.discoveryUrl);
 
     }
@@ -87,6 +148,9 @@ implements Cloneable {
         result = 31 * result + (discoveryUrl != null ? discoveryUrl.hashCode() : 0);
         result = 31 * result + (passwordGrantEnabled ? 1 : 0);
         result = 31 * result + (setForwardHeader ? 1 : 0);
+        result = 31 * result + (jwtClientAuthentication != null ? jwtClientAuthentication.hashCode() : 0);
+        result = 31 * result + (additionalAuthzParameters != null ? additionalAuthzParameters.hashCode() : 0);
+        result = 31 * result + (tokenExchangeEnabled != null ? tokenExchangeEnabled.hashCode() : 0);
         return result;
     }
 }

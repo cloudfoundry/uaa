@@ -17,21 +17,20 @@ package org.cloudfoundry.identity.uaa.zone.event;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
-
-public class IdentityZoneModifiedEventTest {
+class IdentityZoneModifiedEventTest {
 
     private IdentityZone zone;
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         zone = new IdentityZone();
         zone.setId("id");
         zone.setSubdomain("subdomain");
@@ -44,25 +43,20 @@ public class IdentityZoneModifiedEventTest {
         Map<String, String> keys = new HashMap<>();
         keys.put("kid", "key");
         zone.getConfig().getTokenPolicy().setKeys(keys);
-
     }
 
     @Test
-    public void identityZoneCreated() {
+    void identityZoneCreated() {
         evaluateZoneAuditData(IdentityZoneModifiedEvent.identityZoneCreated(zone));
     }
 
     @Test
-    public void identityZoneModified() {
+    void identityZoneModified() {
         evaluateZoneAuditData(IdentityZoneModifiedEvent.identityZoneModified(zone));
     }
 
     public void evaluateZoneAuditData(IdentityZoneModifiedEvent event) {
         String s = event.getAuditEvent().getData();
-        assertEquals(String.format(IdentityZoneModifiedEvent.dataFormat,
-                                   zone.getId(),
-                                   zone.getSubdomain()),
-                     s);
+        assertThat(s).isEqualTo(IdentityZoneModifiedEvent.dataFormat.formatted(zone.getId(), zone.getSubdomain()));
     }
-
 }

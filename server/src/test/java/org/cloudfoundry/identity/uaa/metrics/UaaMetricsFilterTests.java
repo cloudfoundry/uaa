@@ -15,22 +15,16 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import javax.management.Notification;
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.metrics.UaaMetricsFilter.FALLBACK;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.anyLong;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
@@ -63,8 +57,8 @@ class UaaMetricsFilterTests {
     void group_static_content() {
         for (String path : Arrays.asList("/vendor/test", "/resources/test")) {
             setRequestData(path);
-            assertEquals("/static-content", filter.getUriGroup(request).getGroup());
-            assertNull(MetricsAccessor.getCurrent());
+            assertThat(filter.getUriGroup(request).getGroup()).isEqualTo("/static-content");
+            assertThat(MetricsAccessor.getCurrent()).isNull();
         }
     }
 
@@ -84,13 +78,12 @@ class UaaMetricsFilterTests {
     @Test
     void url_groups_loaded() throws Exception {
         List<UrlGroup> urlGroups = filter.getUrlGroups();
-        assertNotNull(urlGroups);
-        assertThat(urlGroups.size(), greaterThan(0));
-        UrlGroup first = urlGroups.get(0);
-        assertEquals("/authenticate/**", first.getPattern());
-        assertEquals(1000l, first.getLimit());
-        assertEquals("API", first.getCategory());
-        assertEquals("/api", first.getGroup());
+        assertThat(urlGroups).isNotEmpty();
+        UrlGroup first = urlGroups.getFirst();
+        assertThat(first.getPattern()).isEqualTo("/authenticate/**");
+        assertThat(first.getLimit()).isEqualTo(1000L);
+        assertThat(first.getCategory()).isEqualTo("API");
+        assertThat(first.getGroup()).isEqualTo("/api");
     }
 
     @Test
@@ -98,8 +91,8 @@ class UaaMetricsFilterTests {
         filter = spy(new UaaMetricsFilter(false, false, new TimeServiceImpl()));
         performTwoSimpleRequests();
         MetricsQueue queue = JsonUtils.readValue(filter.getGlobals(), MetricsQueue.class);
-        assertNotNull(queue);
-        assertEquals(0, queue.getTotals().getCount());
+        assertThat(queue).isNotNull();
+        assertThat(queue.getTotals().getCount()).isZero();
     }
 
     String performTwoSimpleRequests() throws ServletException, IOException {
@@ -118,24 +111,22 @@ class UaaMetricsFilterTests {
         filter.setNotificationPublisher(publisher);
         String path = performTwoSimpleRequests();
         Map<String, String> summary = filter.getSummary();
-        assertNotNull(summary);
-        assertFalse(summary.isEmpty());
-        assertEquals(2, summary.size());
+        assertThat(summary).hasSize(2);
         for (String uri : Arrays.asList(path, MetricsUtil.GLOBAL_GROUP)) {
             MetricsQueue totals = readValue(summary.get(filter.getUriGroup(request).getGroup()), MetricsQueue.class);
-            assertNotNull(totals, "URI:" + uri);
+            assertThat(totals).as("URI:" + uri).isNotNull();
             for (StatusCodeGroup status : Arrays.asList(StatusCodeGroup.SUCCESS, StatusCodeGroup.SERVER_ERROR)) {
                 RequestMetricSummary total = totals.getDetailed().get(status);
-                assertEquals(1, total.getCount(), "URI:" + uri);
+                assertThat(total.getCount()).as("URI:" + uri).isOne();
             }
         }
-        assertNull(MetricsAccessor.getCurrent());
+        assertThat(MetricsAccessor.getCurrent()).isNull();
         ArgumentCaptor<Notification> argumentCaptor = ArgumentCaptor.forClass(Notification.class);
 
         verify(publisher, times(2)).sendNotification(argumentCaptor.capture());
         List<Notification> capturedArg = argumentCaptor.getAllValues();
-        assertEquals(2, capturedArg.size());
-        assertEquals("/api", capturedArg.get(0).getType());
+        assertThat(capturedArg).hasSize(2);
+        assertThat(capturedArg.getFirst().getType()).isEqualTo("/api");
     }
 
     @Test
@@ -159,13 +150,13 @@ class UaaMetricsFilterTests {
             filter.doFilterInternal(request, response, chain);
             MetricsQueue metricsQueue = filter.getMetricsQueue(filter.getUriGroup(request).getGroup());
             RequestMetricSummary totals = metricsQueue.getTotals();
-            assertEquals(1, totals.getCount());
-            assertEquals(timeService == slowRequestTimeService ? 1 : 0, totals.getIntolerableCount());
+            assertThat(totals.getCount()).isOne();
+            assertThat(totals.getIntolerableCount()).isEqualTo(timeService == slowRequestTimeService ? 1 : 0);
 
             ArgumentCaptor<Notification> argumentCaptor = ArgumentCaptor.forClass(Notification.class);
             verify(publisher).sendNotification(argumentCaptor.capture());
             Notification capturedArg = argumentCaptor.getValue();
-            assertEquals("/api", capturedArg.getType());
+            assertThat(capturedArg.getType()).isEqualTo("/api");
         }
     }
 
@@ -201,7 +192,7 @@ class UaaMetricsFilterTests {
         }
         Map<String, String> summary = filter.getSummary();
         MetricsQueue metricSummary = readValue(summary.get(filter.getUriGroup(request).getGroup()), MetricsQueue.class);
-        assertEquals(2, metricSummary.getTotals().getCount());
+        assertThat(metricSummary.getTotals().getCount()).isEqualTo(2);
     }
 
     @Test
@@ -210,7 +201,7 @@ class UaaMetricsFilterTests {
         setRequestData("/uaa/authenticate");
         request.setPathInfo("/authenticate");
         request.setContextPath("/uaa");
-        assertEquals("/api", filter.getUriGroup(request).getGroup());
+        assertThat(filter.getUriGroup(request).getGroup()).isEqualTo("/api");
     }
 
     @Test
@@ -240,7 +231,6 @@ class UaaMetricsFilterTests {
         map.add("/login/callback", "/login/callback/some-value");
         map.add("/identity-providers", "/identity-providers");
         map.add("/identity-providers", "/identity-providers/some-value");
-        map.add("/saml/service-providers", "/saml/service-providers");
         map.add("/Groups/external", "/Groups/external");
         map.add("/Groups/external", "/Groups/external/some-value");
         map.add("/Groups/zones", "/Groups/zones");
@@ -249,14 +239,12 @@ class UaaMetricsFilterTests {
         map.add("/identity-zones", "/identity-zones");
         map.add("/identity-zones", "/identity-zones/some/value");
         map.add("/saml/login", "/saml/login/value");
-        map.entrySet().forEach(
-                entry -> {
-                    for (String s : entry.getValue()) {
-                        setRequestData(s);
-                        assertEquals(FALLBACK.getGroup(), filter.getUriGroup(request).getGroup(), "Testing URL: " + s);
-                    }
-                }
-        );
+        map.forEach((key, value) -> {
+            for (String s : value) {
+                setRequestData(s);
+                assertThat(filter.getUriGroup(request).getGroup()).as("Testing URL: " + s).isEqualTo(FALLBACK.getGroup());
+            }
+        });
     }
 
     @Test
@@ -264,6 +252,6 @@ class UaaMetricsFilterTests {
         //validates that patterns that end with /** still match at parent level
         setRequestData("/some/path");
         AntPathRequestMatcher matcher = new AntPathRequestMatcher("/some/path/**");
-        assertTrue(matcher.matches(request));
+        assertThat(matcher.matches(request)).isTrue();
     }
 }

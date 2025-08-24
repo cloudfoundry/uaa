@@ -9,8 +9,8 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 /**
  * Event publisher for client registration changes with the resulting event type
@@ -110,6 +110,14 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
 
     public void secretChange(String clientId) {
         publish(new SecretChangeEvent(getClient(clientId), getPrincipal(), identityZoneManager.getCurrentIdentityZoneId()));
+    }
+
+    public void clientJwtFailure(String clientId, Exception e) {
+        publish(new ClientJwtFailureEvent(e.getMessage(), getClient(clientId), getPrincipal(), identityZoneManager.getCurrentIdentityZoneId()));
+    }
+
+    public void clientJwtChange(String clientId) {
+        publish(new ClientJwtChangeEvent(getClient(clientId), getPrincipal(), identityZoneManager.getCurrentIdentityZoneId()));
     }
 
     private ClientDetails getClient(String clientId) {

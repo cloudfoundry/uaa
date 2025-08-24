@@ -4,9 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpSession;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
 class SessionUtilsTest {
     private MockHttpSession mockHttpSession;
@@ -18,24 +17,24 @@ class SessionUtilsTest {
 
     @Test
     void isPasswordChangeRequiredIfNull() {
-        assertFalse(SessionUtils.isPasswordChangeRequired(mockHttpSession));
+        assertThat(SessionUtils.isPasswordChangeRequired(mockHttpSession)).isFalse();
     }
 
     @Test
     void isPasswordChangeRequiredIfSetFalse() {
         SessionUtils.setPasswordChangeRequired(mockHttpSession, false);
-        assertFalse(SessionUtils.isPasswordChangeRequired(mockHttpSession));
+        assertThat(SessionUtils.isPasswordChangeRequired(mockHttpSession)).isFalse();
     }
 
     @Test
     void isPasswordChangeRequiredIfSetTrue() {
         SessionUtils.setPasswordChangeRequired(mockHttpSession, true);
-        assertTrue(SessionUtils.isPasswordChangeRequired(mockHttpSession));
+        assertThat(SessionUtils.isPasswordChangeRequired(mockHttpSession)).isTrue();
     }
 
     @Test
     void isPasswordChangeRequiredIfSetNotBoolean() {
         mockHttpSession.setAttribute(SessionUtils.PASSWORD_CHANGE_REQUIRED, "true");
-        assertThrows(IllegalArgumentException.class, () -> SessionUtils.isPasswordChangeRequired(mockHttpSession));
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() -> SessionUtils.isPasswordChangeRequired(mockHttpSession));
     }
 }

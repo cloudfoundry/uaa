@@ -15,53 +15,50 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static java.util.Collections.emptyList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.authentication.SystemAuthentication.PRINCIPAL;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertTrue;
 
-public class SystemAuthenticationTest {
+class SystemAuthenticationTest {
 
-    private SystemAuthentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
+    private final SystemAuthentication auth = SystemAuthentication.SYSTEM_AUTHENTICATION;
 
     @Test
-    public void getAuthorities() {
-        assertSame(emptyList(), auth.getAuthorities());
+    void getAuthorities() {
+        assertThat(auth.getAuthorities()).isSameAs(emptyList());
     }
 
     @Test
-    public void getCredentials() {
-        assertNull(auth.getCredentials());
+    void getCredentials() {
+        assertThat(auth.getCredentials()).isNull();
     }
 
     @Test
-    public void getDetails() {
-        assertEquals(PRINCIPAL, auth.getDetails());
+    void getDetails() {
+        assertThat(auth.getDetails()).isEqualTo(PRINCIPAL);
     }
 
     @Test
-    public void getPrincipal() {
-        assertEquals(PRINCIPAL, auth.getPrincipal());
+    void getPrincipal() {
+        assertThat(auth.getPrincipal()).isEqualTo(PRINCIPAL);
     }
 
     @Test
-    public void isAuthenticated() {
-        assertTrue(auth.isAuthenticated());
+    void isAuthenticated() {
+        assertThat(auth.isAuthenticated()).isTrue();
     }
 
     @Test
-    public void setAuthenticated() {
+    void setAuthenticated() {
         auth.setAuthenticated(false);
         isAuthenticated();
     }
 
     @Test
-    public void getName() {
-        assertEquals(PRINCIPAL, auth.getName());
+    void getName() {
+        assertThat(auth.getName()).isEqualTo(PRINCIPAL);
     }
 
 }

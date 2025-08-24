@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableList;
 import org.cloudfoundry.identity.uaa.oauth.AuthTimeDateConverter;
+import org.cloudfoundry.identity.uaa.provider.oauth.TokenActor;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -13,6 +15,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACR;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ACT;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
@@ -69,32 +72,33 @@ public class IdToken {
     public final String jti;
     @JsonProperty(REVOCATION_SIGNATURE)
     public final String revSig;
+    private Map<String,Object> tokenActor;
 
     public IdToken(String sub,
-                   List<String> aud,
-                   String iss,
-                   Date exp,
-                   Date iat,
-                   Date authTime,
-                   Set<String> amr,
-                   Set<String> acr,
-                   String azp,
-                   String givenName,
-                   String familyName,
-                   Long previousLogonTime,
-                   String phoneNumber,
-                   Set<String> roles,
-                   Map<String, List<String>> userAttributes,
-                   Boolean emailVerified,
-                   String nonce,
-                   String email,
-                   String clientId,
-                   String grantType,
-                   String userName,
-                   String zid,
-                   String origin,
-                   String jti,
-                   String revSig) {
+            List<String> aud,
+            String iss,
+            Date exp,
+            Date iat,
+            Date authTime,
+            Set<String> amr,
+            Set<String> acr,
+            String azp,
+            String givenName,
+            String familyName,
+            Long previousLogonTime,
+            String phoneNumber,
+            Set<String> roles,
+            Map<String, List<String>> userAttributes,
+            Boolean emailVerified,
+            String nonce,
+            String email,
+            String clientId,
+            String grantType,
+            String userName,
+            String zid,
+            String origin,
+            String jti,
+            String revSig) {
         this.sub = sub;
         this.aud = aud;
         this.iss = iss;
@@ -155,5 +159,23 @@ public class IdToken {
     @JsonProperty(USER_ID)
     public String userId() {
         return sub;
+    }
+
+    @JsonProperty(ACT)
+    public Map<String, Object> getTokenActor() {
+        return this.tokenActor;
+    }
+
+    public void setTokenActor(Map<String, Object> tokenActor) {
+        this.tokenActor = tokenActor;
+    }
+
+    public void setTokenActor(TokenActor tokenActor) {
+        this.tokenActor = tokenActor == null ? null : tokenActor.getClaims();
+    }
+
+    @JsonIgnore
+    public Map<String, Object> getClaimMap() {
+        return JsonUtils.convertValue(this, HashMap.class);
     }
 }

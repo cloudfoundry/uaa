@@ -20,6 +20,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.HashSet;
 import java.util.List;
 
 public class UserInfo {
@@ -29,7 +30,8 @@ public class UserInfo {
     @JsonProperty("user_attributes")
     private LinkedMultiValueMap<String, String> userAttributes;
 
-    public UserInfo(){}
+    public UserInfo() {
+    }
 
 
     @JsonIgnore
@@ -56,22 +58,26 @@ public class UserInfo {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (!(o instanceof UserInfo)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof UserInfo)) {
+            return false;
+        }
 
         UserInfo userInfo = (UserInfo) o;
 
-        if (!compareRoles(getRoles(), ((UserInfo) o).getRoles())) return false;
+        if (!compareRoles(getRoles(), ((UserInfo) o).getRoles())) {
+            return false;
+        }
         return getUserAttributes() != null ? getUserAttributes().equals(userInfo.getUserAttributes()) : userInfo.getUserAttributes() == null;
     }
 
     protected boolean compareRoles(List<String> l1, List<String> l2) {
-        if (l1==null && l2==null) {
-            return true;
-        } else if (l1==null || l2==null) {
-            return false;
+        if (l1 == null || l2 == null) {
+            return l1 == l2;
         }
-        return l1.containsAll(l2) && l2.containsAll(l1);
+        return new HashSet<>(l1).equals(new HashSet<>(l2));
     }
 
     @Override

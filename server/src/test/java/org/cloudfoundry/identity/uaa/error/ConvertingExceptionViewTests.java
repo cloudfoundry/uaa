@@ -1,5 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry 
+/*
+ * *****************************************************************************
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,14 +14,9 @@
 
 package org.cloudfoundry.identity.uaa.error;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.util.HashMap;
-
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -29,35 +25,37 @@ import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
+import java.util.HashMap;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * @author Dave Syer
- * 
  */
-public class ConvertingExceptionViewTests {
+class ConvertingExceptionViewTests {
 
     private ConvertingExceptionView view;
 
-    private HttpMessageConverter<?>[] messageConverters = new HttpMessageConverter<?>[] { new StringHttpMessageConverter() };
+    private final HttpMessageConverter<?>[] messageConverters = new HttpMessageConverter<?>[]{new StringHttpMessageConverter()};
 
-    private MockHttpServletRequest request = new MockHttpServletRequest();
+    private final MockHttpServletRequest request = new MockHttpServletRequest();
 
-    private MockHttpServletResponse response = new MockHttpServletResponse();
+    private final MockHttpServletResponse response = new MockHttpServletResponse();
 
     @Test
-    public void testGetContentType() {
+    void getContentType() {
         RuntimeException e = new RuntimeException("Unexpected error");
-        view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e),
-                        HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
-        assertEquals(MediaType.APPLICATION_JSON_UTF8_VALUE, view.getContentType());
+        view = new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e),
+                HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
+        assertThat(view.getContentType()).isEqualTo(MediaType.APPLICATION_JSON_VALUE);
     }
 
     @Test
-    public void testRender() throws Exception {
+    void render() throws Exception {
         RuntimeException e = new RuntimeException("Unexpected error");
-        view = new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e),
-                        HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
-        view.render(new HashMap<String, Object>(), request, response);
-        assertNotNull(response.getContentAsString());
+        view = new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(e),
+                HttpStatus.INTERNAL_SERVER_ERROR), messageConverters);
+        view.render(new HashMap<>(), request, response);
+        assertThat(response.getContentAsString()).isNotNull();
     }
-
 }

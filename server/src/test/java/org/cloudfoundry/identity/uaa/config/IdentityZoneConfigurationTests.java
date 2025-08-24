@@ -23,241 +23,219 @@ import org.cloudfoundry.identity.uaa.zone.CorsPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.Links;
-import org.cloudfoundry.identity.uaa.zone.MfaConfig;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.UserConfig;
 import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.http.HttpHeaders.ACCEPT;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
-public class IdentityZoneConfigurationTests {
+class IdentityZoneConfigurationTests {
 
     private IdentityZoneConfiguration definition;
 
-    @Before
-    public void configure() {
+    @BeforeEach
+    void configure() {
         definition = new IdentityZoneConfiguration();
     }
 
     @Test
-    public void default_user_groups_when_json_is_deserialized() {
+    void default_user_groups_when_json_is_deserialized() {
         definition.setUserConfig(null);
         String s = JsonUtils.writeValueAsString(definition);
-        assertThat(s, not(containsString("userConfig")));
+        assertThat(s).doesNotContain("userConfig");
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
-        assertNotNull(definition.getUserConfig());
-        assertThat(definition.getUserConfig().getDefaultGroups(), containsInAnyOrder(
-            "openid",
-            "password.write",
-            "uaa.user",
-            "approvals.me",
-            "profile",
-            "roles",
-            "user_attributes",
-            "uaa.offline_token"
-        ));
+        assertThat(definition.getUserConfig()).isNotNull();
+        assertThat(definition.getUserConfig().getDefaultGroups()).contains("openid", "password.write", "uaa.user", "approvals.me", "profile", "roles", "user_attributes", "uaa.offline_token");
+        assertThat(definition.getUserConfig().resultingAllowedGroups()).isNull();
         s = JsonUtils.writeValueAsString(definition);
-        assertThat(s, containsString("userConfig"));
-        assertThat(s, containsString("uaa.offline_token"));
+        assertThat(s).contains("userConfig")
+                .contains("uaa.offline_token");
     }
 
     @Test
-    public void deserializeIdentityZoneJSON_withUnknownProperties_doesNotFail() {
+    void deserializeIdentityZoneJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, IdentityZone.class);
     }
 
     @Test
-    public void deserializeJSON_withUnknownProperties_doesNotFail() {
+    void deserializeJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, IdentityZoneConfiguration.class);
     }
 
     @Test
-    public void deserializeBrandingJSON_withUnknownProperties_doesNotFail() {
+    void deserializeBrandingJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, BrandingInformation.class);
     }
 
     @Test
-    public void deserializeClientSecretPolicyJSON_withUnknownProperties_doesNotFail() {
+    void deserializeClientSecretPolicyJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, ClientSecretPolicy.class);
     }
 
     @Test
-    public void deserializeMfaConfigJSON_withUnknownProperties_doesNotFail() {
-        String config = "{ \"unknown-property\": \"unknown-value\"}";
-        JsonUtils.readValue(config, MfaConfig.class);
-    }
-
-    @Test
-    public void deserializeLinksJSON_withUnknownProperties_doesNotFail() {
+    void deserializeLinksJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, Links.class);
     }
 
     @Test
-    public void deserializeConsentJSON_withUnknownProperties_doesNotFail() {
+    void deserializeConsentJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, Consent.class);
     }
 
     @Test
-    public void deserializeCorsConfigurationJSON_withUnknownProperties_doesNotFail() {
+    void deserializeCorsConfigurationJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, CorsConfiguration.class);
     }
 
     @Test
-    public void deserializeCorsPolicyJSON_withUnknownProperties_doesNotFail() {
+    void deserializeCorsPolicyJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, CorsPolicy.class);
     }
 
     @Test
-    public void deserializeSamlConfigJSON_withUnknownProperties_doesNotFail() {
+    void deserializeSamlConfigJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, SamlConfig.class);
     }
 
     @Test
-    public void deserializeTokenPolicyJSON_withUnknownProperties_doesNotFail() {
+    void deserializeTokenPolicyJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, TokenPolicy.class);
     }
 
     @Test
-    public void deserializeUserConfigJSON_withUnknownProperties_doesNotFail() {
+    void deserializeUserConfigJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, UserConfig.class);
     }
 
     @Test
-    public void deserializeZmsJSON_withUnknownProperties_doesNotFail() {
+    void deserializeZmsJSON_withUnknownProperties_doesNotFail() {
         String config = "{ \"unknown-property\": \"unknown-value\"}";
         JsonUtils.readValue(config, ZoneManagementScopes.class);
     }
 
     @Test
-    public void test_want_assertion_signed_setters() {
-        assertTrue(definition.getSamlConfig().isRequestSigned());
+    void want_assertion_signed_setters() {
+        assertThat(definition.getSamlConfig().isRequestSigned()).isTrue();
         definition = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), IdentityZoneConfiguration.class);
-        assertTrue(definition.getSamlConfig().isRequestSigned());
+        assertThat(definition.getSamlConfig().isRequestSigned()).isTrue();
         definition.getSamlConfig().setRequestSigned(false);
-        assertFalse(definition.getSamlConfig().isRequestSigned());
+        assertThat(definition.getSamlConfig().isRequestSigned()).isFalse();
     }
 
     @Test
-    public void test_disable_redirect_flag_vestigial() {
+    void disable_redirect_flag_vestigial() {
         definition.getLinks().getLogout().setDisableRedirectParameter(true);
 
-        assertFalse("setting disableRedirectParameter should not have worked.", definition.getLinks().getLogout().isDisableRedirectParameter());
+        assertThat(definition.getLinks().getLogout().isDisableRedirectParameter()).as("setting disableRedirectParameter should not have worked.").isFalse();
     }
 
     @Test
-    public void test_request_signed_setters() {
-        assertTrue(definition.getSamlConfig().isWantAssertionSigned());
+    void request_signed_setters() {
+        assertThat(definition.getSamlConfig().isWantAssertionSigned()).isTrue();
         definition = JsonUtils.readValue(JsonUtils.writeValueAsString(definition), IdentityZoneConfiguration.class);
-        assertTrue(definition.getSamlConfig().isWantAssertionSigned());
+        assertThat(definition.getSamlConfig().isWantAssertionSigned()).isTrue();
         definition.getSamlConfig().setWantAssertionSigned(false);
-        assertFalse(definition.getSamlConfig().isWantAssertionSigned());
+        assertThat(definition.getSamlConfig().isWantAssertionSigned()).isFalse();
     }
 
     @Test
-    public void testDeserialize_Without_SamlConfig() {
+    void deserializeWithoutSamlConfig() {
         String s = JsonUtils.writeValueAsString(definition);
-        s = s.replace(",\"samlConfig\":{\"requestSigned\":false,\"wantAssertionSigned\":true}","");
+        s = s.replace(",\"samlConfig\":{\"requestSigned\":false,\"wantAssertionSigned\":true}", "");
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
-        assertTrue(definition.getSamlConfig().isRequestSigned());
-        assertTrue(definition.getSamlConfig().isWantAssertionSigned());
+        assertThat(definition.getSamlConfig().isRequestSigned()).isTrue();
+        assertThat(definition.getSamlConfig().isWantAssertionSigned()).isTrue();
         definition.getSamlConfig().setWantAssertionSigned(true);
         definition.getSamlConfig().setRequestSigned(true);
         s = JsonUtils.writeValueAsString(definition);
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
-        assertTrue(definition.getSamlConfig().isRequestSigned());
-        assertTrue(definition.getSamlConfig().isWantAssertionSigned());
+        assertThat(definition.getSamlConfig().isRequestSigned()).isTrue();
+        assertThat(definition.getSamlConfig().isWantAssertionSigned()).isTrue();
         definition.getSamlConfig().setWantAssertionSigned(false);
         definition.getSamlConfig().setRequestSigned(false);
         s = JsonUtils.writeValueAsString(definition);
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
-        assertFalse(definition.getSamlConfig().isRequestSigned());
-        assertFalse(definition.getSamlConfig().isWantAssertionSigned());
+        assertThat(definition.getSamlConfig().isRequestSigned()).isFalse();
+        assertThat(definition.getSamlConfig().isWantAssertionSigned()).isFalse();
     }
 
     @Test
-    public void testDeserialize_With_SamlConfig() {
-        assertFalse(definition.getSamlConfig().isDisableInResponseToCheck());
+    void deserializeWithSamlConfig() {
+        assertThat(definition.getSamlConfig().isDisableInResponseToCheck()).isFalse();
         String s = JsonUtils.writeValueAsString(definition);
-        s = s.replace("\"wantAssertionSigned\":true","\"wantAssertionSigned\":false");
-        s = s.replace("\"disableInResponseToCheck\":false","\"disableInResponseToCheck\":true");
+        s = s.replace("\"wantAssertionSigned\":true", "\"wantAssertionSigned\":false");
+        s = s.replace("\"disableInResponseToCheck\":false", "\"disableInResponseToCheck\":true");
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
-        assertTrue(definition.getSamlConfig().isRequestSigned());
-        assertFalse(definition.getSamlConfig().isWantAssertionSigned());
-        assertTrue(definition.getSamlConfig().isDisableInResponseToCheck());
-        s = s.replace("\"disableInResponseToCheck\":true,","");
-        s = s.replace(",\"disableInResponseToCheck\":true","");
+        assertThat(definition.getSamlConfig().isRequestSigned()).isTrue();
+        assertThat(definition.getSamlConfig().isWantAssertionSigned()).isFalse();
+        assertThat(definition.getSamlConfig().isDisableInResponseToCheck()).isTrue();
+        s = s.replace("\"disableInResponseToCheck\":true,", "");
+        s = s.replace(",\"disableInResponseToCheck\":true", "");
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
-        assertFalse(definition.getSamlConfig().isDisableInResponseToCheck());
+        assertThat(definition.getSamlConfig().isDisableInResponseToCheck()).isFalse();
     }
 
     @Test
-    public void testDefaultCorsConfiguration() {
-        assertEquals(Arrays.asList(new String[] {ACCEPT, AUTHORIZATION, CONTENT_TYPE}), definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders());
-        assertEquals(Collections.singletonList(GET.toString()), definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods());
-        assertEquals(Collections.singletonList(".*"), definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris());
-        assertEquals(Collections.EMPTY_LIST, definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns());
-        assertEquals(Collections.singletonList(".*"), definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins());
-        assertEquals(Collections.EMPTY_LIST, definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns());
-        assertEquals(1728000, definition.getCorsPolicy().getDefaultConfiguration().getMaxAge());
+    void defaultCorsConfiguration() {
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders()).isEqualTo(Arrays.asList(new String[]{ACCEPT, AUTHORIZATION, CONTENT_TYPE}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods()).isEqualTo(Collections.singletonList(GET.toString()));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris()).isEqualTo(Collections.singletonList(".*"));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns()).isEqualTo(Collections.emptyList());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins()).isEqualTo(Collections.singletonList(".*"));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()).isEqualTo(Collections.emptyList());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getMaxAge()).isEqualTo(1728000);
     }
 
     @Test
-    public void testDeserialize_DefaultCorsConfiguration() {
+    void deserializeDefaultCorsConfiguration() {
         String s = JsonUtils.writeValueAsString(definition);
-        s = s.replace("\"allowedHeaders\":"+String.format("[\"%s\",\"%s\",\"%s\"]", ACCEPT, AUTHORIZATION, CONTENT_TYPE), "\"allowedHeaders\":[\"" + ACCEPT +"\"]" );
-        s = s.replace("\"allowedMethods\":"+String.format("[\"%s\"]", GET.toString()), "\"allowedMethods\":" +String.format("[\"%s\",\"%s\"]",GET.toString(), POST.toString()));
-        s = s.replace("\"allowedOrigins\":[\".*\"]", "\"allowedOrigins\":[\"^localhost$\",\"^.*\\\\.localhost$\"]" );
+        s = s.replace("\"allowedHeaders\":" + "[\"%s\",\"%s\",\"%s\"]".formatted(ACCEPT, AUTHORIZATION, CONTENT_TYPE), "\"allowedHeaders\":[\"" + ACCEPT + "\"]");
+        s = s.replace("\"allowedMethods\":" + "[\"%s\"]".formatted(GET.toString()), "\"allowedMethods\":" + "[\"%s\",\"%s\"]".formatted(GET.toString(), POST.toString()));
+        s = s.replace("\"allowedOrigins\":[\".*\"]", "\"allowedOrigins\":[\"^localhost$\",\"^.*\\\\.localhost$\"]");
         s = s.replace("\"allowedUris\":[\".*\"]", "\"allowedUris\":[\"^/uaa/userinfo$\",\"^/uaa/logout\\\\.do$\"]");
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
 
-        assertEquals(Arrays.asList(new String[] {ACCEPT}), definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders());
-        assertEquals(Arrays.asList(new String[] {GET.toString(), POST.toString()}), definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods());
-        assertEquals(Arrays.asList(new String[] {"^/uaa/userinfo$", "^/uaa/logout\\.do$"}), definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris());
-        assertEquals(Collections.EMPTY_LIST, definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns());
-        assertEquals(Arrays.asList(new String[] {"^localhost$", "^.*\\.localhost$"}), definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins());
-        assertEquals(Collections.EMPTY_LIST, definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns());
-        assertEquals(1728000, definition.getCorsPolicy().getDefaultConfiguration().getMaxAge());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedHeaders()).isEqualTo(Arrays.asList(new String[]{ACCEPT}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedMethods()).isEqualTo(Arrays.asList(new String[]{GET.toString(), POST.toString()}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUris()).isEqualTo(Arrays.asList(new String[]{"^/uaa/userinfo$", "^/uaa/logout\\.do$"}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedUriPatterns()).isEqualTo(Collections.emptyList());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOrigins()).isEqualTo(Arrays.asList(new String[]{"^localhost$", "^.*\\.localhost$"}));
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getAllowedOriginPatterns()).isEqualTo(Collections.emptyList());
+        assertThat(definition.getCorsPolicy().getDefaultConfiguration().getMaxAge()).isEqualTo(1728000);
     }
 
     @Test
-    public void testSerializeDefaultIdentityProvider() {
+    void serializeDefaultIdentityProvider() {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setDefaultIdentityProvider("originkey");
 
         String configString = JsonUtils.writeValueAsString(config);
-        assertThat(configString, containsString("\"defaultIdentityProvider\""));
-        assertThat(configString, containsString("\"originkey\""));
+        assertThat(configString).contains("\"defaultIdentityProvider\"")
+                .contains("\"originkey\"");
 
         IdentityZoneConfiguration deserializedConfig = JsonUtils.readValue(configString, IdentityZoneConfiguration.class);
-        assertEquals(config.getDefaultIdentityProvider(), deserializedConfig.getDefaultIdentityProvider());
+        assertThat(deserializedConfig.getDefaultIdentityProvider()).isEqualTo(config.getDefaultIdentityProvider());
     }
 }

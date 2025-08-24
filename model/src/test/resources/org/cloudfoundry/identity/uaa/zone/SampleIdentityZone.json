@@ -16,14 +16,17 @@
       "jwtRevocable": false,
       "refreshTokenUnique": false,
       "refreshTokenFormat": "jwt",
-      "activeKeyId": null
+      "activeKeyId": "key-id-1",
+      "keys" : {
+        "key-id-1":{
+          "signingKey":"some-signing-key-1",
+          "signingCert":"some-cert",
+          "signingAlg":"RS256"}
+      }
     },
     "samlConfig": {
-      "assertionSigned": true,
       "requestSigned": true,
       "wantAssertionSigned": true,
-      "wantAuthnRequestSigned": false,
-      "assertionTimeToLiveSeconds": 600,
       "keys": {
       },
       "disableInResponseToCheck": true
@@ -116,7 +119,13 @@
         "roles",
         "user_attributes",
         "uaa.offline_token"
-      ]
+      ],
+      "allowedGroups": [
+        "scim.me",
+        "cloud_controller.user"
+      ],
+      "maxUsers": 1000,
+      "checkOriginEnabled": true
     }
   },
   "name": "Demo Login Page",

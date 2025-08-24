@@ -12,20 +12,20 @@ import java.util.HashSet;
 import static java.util.Optional.ofNullable;
 
 public class LdapGroupsConfig {
-  @Bean
-  public LdapAuthoritiesPopulator nestedLdapAuthoritiesPopulator(ContextSource contextSource, Environment environment, String configuredGroupRoleAttribute) {
-    String searchBase = ofNullable(environment.getProperty("ldap.groups.searchBase")).orElse("ou=scopes,dc=test,dc=com");
-    boolean searchSubtree = ofNullable(environment.getProperty("ldap.groups.searchSubtree")).map(Boolean::parseBoolean).orElse(true);
-    String groupSearchFilter = ofNullable(environment.getProperty("ldap.groups.groupSearchFilter")).orElse("member={0}");
-    NestedLdapAuthoritiesPopulator nestedLdapAuthoritiesPopulator = new NestedLdapAuthoritiesPopulator(contextSource, searchBase);
-    nestedLdapAuthoritiesPopulator.setGroupRoleAttribute(configuredGroupRoleAttribute);
-    nestedLdapAuthoritiesPopulator.setSearchSubtree(searchSubtree);
-    nestedLdapAuthoritiesPopulator.setRolePrefix("");
-    nestedLdapAuthoritiesPopulator.setConvertToUpperCase(false);
-    nestedLdapAuthoritiesPopulator.setGroupSearchFilter(groupSearchFilter);
-    nestedLdapAuthoritiesPopulator.setMaxSearchDepth(ofNullable(Integer.parseInt(environment.getProperty("ldap.groups.maxSearchDepth"))).orElse(10));
-    nestedLdapAuthoritiesPopulator.setAttributeNames(new HashSet<>(Collections.singletonList("cn")));
-    nestedLdapAuthoritiesPopulator.setIgnorePartialResultException(ofNullable(environment.getProperty("ldap.groups.ignorePartialResultException")).map(Boolean::parseBoolean).orElse(true));
-    return nestedLdapAuthoritiesPopulator;
-  }
+    @Bean
+    public LdapAuthoritiesPopulator nestedLdapAuthoritiesPopulator(ContextSource contextSource, Environment environment, String configuredGroupRoleAttribute) {
+        String searchBase = ofNullable(environment.getProperty("ldap.groups.searchBase")).orElse("ou=scopes,dc=test,dc=com");
+        boolean searchSubtree = ofNullable(environment.getProperty("ldap.groups.searchSubtree")).map(Boolean::parseBoolean).orElse(true);
+        String groupSearchFilter = ofNullable(environment.getProperty("ldap.groups.groupSearchFilter")).orElse("member={0}");
+        NestedLdapAuthoritiesPopulator nestedLdapAuthoritiesPopulator = new NestedLdapAuthoritiesPopulator(contextSource, searchBase);
+        nestedLdapAuthoritiesPopulator.setGroupRoleAttribute(configuredGroupRoleAttribute);
+        nestedLdapAuthoritiesPopulator.setSearchSubtree(searchSubtree);
+        nestedLdapAuthoritiesPopulator.setRolePrefix("");
+        nestedLdapAuthoritiesPopulator.setConvertToUpperCase(false);
+        nestedLdapAuthoritiesPopulator.setGroupSearchFilter(groupSearchFilter);
+        nestedLdapAuthoritiesPopulator.setMaxSearchDepth(ofNullable(Integer.parseInt(environment.getProperty("ldap.groups.maxSearchDepth"))).orElse(10));
+        nestedLdapAuthoritiesPopulator.setAttributeNames(new HashSet<>(Collections.singletonList("cn")));
+        nestedLdapAuthoritiesPopulator.setIgnorePartialResultException(ofNullable(environment.getProperty("ldap.groups.ignorePartialResultException")).map(Boolean::parseBoolean).orElse(true));
+        return nestedLdapAuthoritiesPopulator;
+    }
 }

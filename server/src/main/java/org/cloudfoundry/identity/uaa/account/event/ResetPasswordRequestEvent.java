@@ -22,8 +22,8 @@ import org.springframework.security.core.Authentication;
 
 public class ResetPasswordRequestEvent extends AbstractUaaEvent {
 
-    private String code;
-    private String email;
+    private final String code;
+    private final String email;
 
     public ResetPasswordRequestEvent(String username, String email, String code, Authentication authentication, String zoneId) {
         super(username, authentication, zoneId);

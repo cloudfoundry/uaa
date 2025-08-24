@@ -1,0 +1,1 @@
+http\://www.springframework.org/schema/security/oauth2=org.cloudfoundry.identity.uaa.oauth.provider.config.xml.OAuth2SecurityNamespaceHandler

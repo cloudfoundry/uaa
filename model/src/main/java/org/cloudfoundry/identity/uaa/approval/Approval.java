@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -110,7 +111,9 @@ public class Approval {
 
     @JsonDeserialize(using = JsonDateDeserializer.class)
     public Approval setLastUpdatedAt(Date lastUpdatedAt) {
-        if (lastUpdatedAt == null) throw new IllegalArgumentException("lastUpdatedAt cannot be null");
+        if (lastUpdatedAt == null) {
+            throw new IllegalArgumentException("lastUpdatedAt cannot be null");
+        }
         this.lastUpdatedAt = lastUpdatedAt;
         return this;
     }
@@ -138,13 +141,13 @@ public class Approval {
         }
         Approval other = (Approval) o;
         return userId.equals(other.userId) && clientId.equals(other.clientId) && scope.equals(other.scope)
-                        && status == other.status;
+                && status == other.status;
     }
 
     @Override
     public String toString() {
-        return String.format("[%s, %s, %s, %s, %s, %s]", userId, scope, clientId, expiresAt, status.toString(),
-                        lastUpdatedAt);
+        return "[%s, %s, %s, %s, %s, %s]".formatted(userId, scope, clientId, expiresAt, status.toString(),
+                lastUpdatedAt);
     }
 
     public Approval setStatus(ApprovalStatus status) {

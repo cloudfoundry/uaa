@@ -8,7 +8,7 @@ import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DefaultTestContext
 class PollutionPreventionExtensionTests {
@@ -20,17 +20,17 @@ class PollutionPreventionExtensionTests {
     private MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService;
 
     @Test
-    void testPollutionOfIdentityZoneHolderStaticThreadLocalZoneVariable() {
+    void pollutionOfIdentityZoneHolderStaticThreadLocalZoneVariable() {
         IdentityZone identityZone = IdentityZoneHolder.get();
         // Test to see if we were polluted by another test
-        assertEquals("uaa", identityZone.getName());
+        assertThat(identityZone.getName()).isEqualTo("uaa");
 
         // Cause pollution
         identityZone.setName("newName");
     }
 
     @Test
-    void testPollutionOfIdentityZoneHolderStaticProvisioningVariable() {
+    void pollutionOfIdentityZoneHolderStaticProvisioningVariable() {
         IdentityZone uaaZone = jdbcIdentityZoneProvisioning.retrieve("uaa");
         uaaZone.setDescription("newDescription");
         jdbcIdentityZoneProvisioning.update(uaaZone);
@@ -38,14 +38,14 @@ class PollutionPreventionExtensionTests {
         // Test to see if we were polluted by another test.
         // The following would fail if IdentityZoneHolder.provisioning is null, because
         // in that case getUaaZone() returns a fresh new uaa zone instance with the default description.
-        assertEquals("newDescription", IdentityZoneHolder.getUaaZone().getDescription());
+        assertThat(IdentityZoneHolder.getUaaZone().getDescription()).isEqualTo("newDescription");
 
         // Cause pollution
         IdentityZoneHolder.setProvisioning(null);
     }
 
     @Test
-    void testPollutionOfUaaIdentityZoneInTheDatabase() {
+    void pollutionOfUaaIdentityZoneInTheDatabase() {
         // Test to see if we were polluted by another test.
         // The following line throws an exception when the zone is inactive.
         jdbcIdentityZoneProvisioning.retrieve("uaa");
@@ -57,7 +57,7 @@ class PollutionPreventionExtensionTests {
     }
 
     @Test
-    void testPollutionOfClientInTheDatabase() {
+    void pollutionOfClientInTheDatabase() {
         // Test to see if we were polluted by another test.
         // The following line throws an exception when the client cannot be found.
         multitenantJdbcClientDetailsService.loadClientByClientId("admin");

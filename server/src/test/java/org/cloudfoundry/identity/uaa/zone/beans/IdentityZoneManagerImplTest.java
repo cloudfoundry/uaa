@@ -9,8 +9,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 import java.util.UUID;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -29,7 +28,7 @@ class IdentityZoneManagerImplTest {
 
     @Test
     void getCurrentIdentityZone() {
-        assertThat(identityZoneManager.getCurrentIdentityZone(), is(mockIdentityZone));
+        assertThat(identityZoneManager.getCurrentIdentityZone()).isEqualTo(mockIdentityZone);
     }
 
     @Test
@@ -37,7 +36,7 @@ class IdentityZoneManagerImplTest {
         String zoneId = UUID.randomUUID().toString();
         when(mockIdentityZone.getId()).thenReturn(zoneId);
 
-        assertThat(identityZoneManager.getCurrentIdentityZoneId(), is(zoneId));
+        assertThat(identityZoneManager.getCurrentIdentityZoneId()).isEqualTo(zoneId);
     }
 
     @Nested
@@ -49,7 +48,7 @@ class IdentityZoneManagerImplTest {
 
         @Test
         void isCurrentZoneUaa() {
-            assertThat(identityZoneManager.isCurrentZoneUaa(), is(true));
+            assertThat(identityZoneManager.isCurrentZoneUaa()).isTrue();
         }
     }
 
@@ -62,7 +61,7 @@ class IdentityZoneManagerImplTest {
 
         @Test
         void isCurrentZoneUaa() {
-            assertThat(identityZoneManager.isCurrentZoneUaa(), is(false));
+            assertThat(identityZoneManager.isCurrentZoneUaa()).isFalse();
         }
     }
 }

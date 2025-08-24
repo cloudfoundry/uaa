@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Tail the UAA log file.
+# Usage: tail-uaa-log.sh [tail_arg]
+#   tail_arg: The argument to pass to the tail command. Default is -F.
+# Environment variables:
+#   PORT: The port on which UAA is listening. Default is 8080.
+# Example: PORT=8081 tail-uaa-log.sh -100
+
+# Main function
+function main() {
+  local port=${PORT:-8080}
+  local log_file_path="${TMPDIR}/uaa-${port}/logs/uaa.log"
+  local tail_arg="${1:--F}"
+
+  echo "Tailing log for UAA listening on '${port}':"
+  echo "# tail ${tail_arg} ${log_file_path}"
+  echo ""
+
+  tail ${tail_arg} "${log_file_path}"
+}
+
+main "$@"

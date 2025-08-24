@@ -1,24 +1,55 @@
 package org.cloudfoundry.identity.uaa.oauth.jwt;
 
+import com.nimbusds.jose.Algorithm;
+import com.nimbusds.jose.Header;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jose.JWSAlgorithm;
+import com.nimbusds.jose.JWSHeader;
+import com.nimbusds.jose.JWSObject;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.KeyLengthException;
+import com.nimbusds.jose.Payload;
+import com.nimbusds.jose.crypto.bc.BouncyCastleFIPSProviderSingleton;
+import com.nimbusds.jose.jwk.JWKSet;
+import com.nimbusds.jose.jwk.source.ImmutableJWKSet;
+import com.nimbusds.jose.jwk.source.JWKSource;
+import com.nimbusds.jose.proc.BadJOSEException;
+import com.nimbusds.jose.proc.BadJWSException;
+import com.nimbusds.jose.proc.JWSKeySelector;
+import com.nimbusds.jose.proc.JWSVerificationKeySelector;
+import com.nimbusds.jose.proc.SecurityContext;
+import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.JWTParser;
+import com.nimbusds.jwt.proc.BadJWTException;
+import com.nimbusds.jwt.proc.ConfigurableJWTProcessor;
+import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
+import com.nimbusds.jwt.proc.DefaultJWTProcessor;
+import org.cloudfoundry.identity.uaa.oauth.InvalidSignatureException;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.springframework.security.jwt.BinaryFormat;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.springframework.util.StringUtils;
 
-import java.nio.CharBuffer;
-
-import static org.springframework.security.jwt.codec.Codecs.b64UrlDecode;
-import static org.springframework.security.jwt.codec.Codecs.b64UrlEncode;
-import static org.springframework.security.jwt.codec.Codecs.concat;
-import static org.springframework.security.jwt.codec.Codecs.utf8Decode;
-import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.X509Certificate;
+import java.text.ParseException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
 
 /**
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class JwtHelper {
-    static byte[] PERIOD = utf8Encode(".");
+public final class JwtHelper {
+    private JwtHelper() {
+
+    }
 
     /**
      * Creates a token from an encoded token string.
@@ -27,41 +58,44 @@ public class JwtHelper {
      *              by "." characters)
      */
     public static Jwt decode(String token) {
-        int firstPeriod = token.indexOf('.');
-        int lastPeriod = token.lastIndexOf('.');
-
-        if (firstPeriod <= 0 || lastPeriod <= firstPeriod) {
-            throw new IllegalArgumentException("JWT must have 3 tokens");
-        }
-        CharBuffer buffer = CharBuffer.wrap(token, 0, firstPeriod);
-        JwtHeader header = JwtHeaderHelper.create(buffer.toString());
-
-        buffer.limit(lastPeriod).position(firstPeriod + 1);
-        byte[] claims = b64UrlDecode(buffer);
-        boolean emptyCrypto = lastPeriod == token.length() - 1;
-
-        byte[] crypto;
-
-        if (emptyCrypto) {
-            if (!"none".equals(header.parameters.alg)) {
-                throw new IllegalArgumentException(
-                  "Signed or encrypted token must have non-empty crypto segment");
-            }
-            crypto = new byte[0];
-        } else {
-            buffer.limit(token.length()).position(lastPeriod + 1);
-            crypto = b64UrlDecode(buffer);
-        }
-        return new JwtImpl(header, claims, crypto);
+        return new JwtImpl(token);
     }
 
-    public static Jwt encode(CharSequence content, KeyInfo keyInfo) {
-        JwtHeader header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
-        byte[] claims = utf8Encode(content);
-        byte[] crypto = keyInfo.getSigner()
-          .sign(concat(b64UrlEncode(header.bytes()), PERIOD, b64UrlEncode(claims)));
-        return new JwtImpl(header, claims, crypto);
+    public static Jwt encodePlusX5t(Map<String, Object> payLoad, KeyInfo keyInfo, X509Certificate x509Certificate) {
+        JwtHeader header;
+        HeaderParameters headerParameters = new HeaderParameters(keyInfo.algorithm(), keyInfo.keyId(), null);
+        headerParameters.setX5t(getX509CertThumbprint(getX509CertEncoded(x509Certificate), "SHA-1"));
+        header = JwtHeaderHelper.create(headerParameters);
+        return createJwt(header, payLoad, keyInfo);
     }
+
+    public static Jwt encode(Map<String, Object> payLoad, KeyInfo keyInfo) {
+        JwtHeader header;
+        header = JwtHeaderHelper.create(keyInfo.algorithm(), keyInfo.keyId(), keyInfo.keyURL());
+        return new JwtImpl(header, payLoad, keyInfo.getSigner());
+    }
+
+    private static JwtImpl createJwt(JwtHeader header, Map<String, Object> payLoad, KeyInfo keyInfo) {
+        return new JwtImpl(header, payLoad, keyInfo.getSigner());
+    }
+
+    public static byte[] getX509CertEncoded(X509Certificate x509Certificate) {
+        try {
+            return x509Certificate.getEncoded();
+        } catch (RuntimeException | CertificateEncodingException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
+    public static String getX509CertThumbprint(byte[] derEncodedCert, String alg) {
+        try {
+            MessageDigest sha256 = MessageDigest.getInstance(alg);
+            return Base64URL.encode(sha256.digest(derEncodedCert)).toString();
+        } catch (RuntimeException | NoSuchAlgorithmException e) {
+            throw new IllegalArgumentException(e);
+        }
+    }
+
 }
 
 /**
@@ -69,122 +103,169 @@ public class JwtHelper {
  * <p>
  * Handles the JSON parsing and serialization.
  */
-class JwtHeaderHelper {
-    static JwtHeader create(String header) {
-        byte[] decodedBytes = b64UrlDecode(header);
+final class JwtHeaderHelper {
+    private JwtHeaderHelper() {
 
-        return new JwtHeader(decodedBytes, JsonUtils.readValue(decodedBytes, HeaderParameters.class));
+    }
+
+    static JwtHeader create(String header) {
+        Header jwtHeader;
+        try {
+            jwtHeader = Header.parse(new Base64URL(header));
+        } catch (ParseException e) {
+            throw new IllegalArgumentException(e);
+        }
+        return new JwtHeader(JsonUtils.convertValue(jwtHeader.toJSONObject(), HeaderParameters.class));
     }
 
     static JwtHeader create(String algorithm, String kid, String jku) {
         HeaderParameters headerParameters = new HeaderParameters(algorithm, kid, jku);
 
-        return new JwtHeader(JsonUtils.writeValueAsBytes(headerParameters), headerParameters);
+        return create(headerParameters);
+    }
+
+    static JwtHeader create(HeaderParameters headerParameters) {
+        return new JwtHeader(headerParameters);
     }
 }
 
 /**
  * Header part of JWT
  */
-class JwtHeader implements BinaryFormat {
-    private final byte[] bytes;
-
+class JwtHeader {
     final HeaderParameters parameters;
 
     /**
-     * @param bytes      the decoded header
      * @param parameters the parameter values contained in the header
      */
-    JwtHeader(byte[] bytes, HeaderParameters parameters) {
-        this.bytes = bytes;
+    JwtHeader(HeaderParameters parameters) {
         this.parameters = parameters;
     }
 
     @Override
-    public byte[] bytes() {
-        return bytes;
-    }
-
-    @Override
     public String toString() {
-        return utf8Decode(bytes);
+        return parameters.toString();
     }
 }
 
 class JwtImpl implements Jwt {
+
+    private static final String INVALID_TOKEN = "Invalid token";
+    private final JWT parsedJwtObject;
+    private final JWSObject signedJwsObject;
     private final JwtHeader header;
-
-    private final byte[] content;
-
-    private final byte[] crypto;
-
-    private String claims;
+    private final JWSSigner signature;
+    private final JWTClaimsSet claimsSet;
 
     /**
      * @param header  the header, containing the JWS/JWE algorithm information.
-     * @param content the base64-decoded "claims" segment (may be encrypted, depending on
+     * @param payLoad the "claims" segment (may be encrypted, depending on
      *                header information).
-     * @param crypto  the base64-decoded "crypto" segment.
+     * @param signature  the base64-decoded "signature" segment.
      */
-    JwtImpl(JwtHeader header, byte[] content, byte[] crypto) {
+    JwtImpl(JwtHeader header, Map<String, Object> payLoad, JWSSigner signature) {
         this.header = header;
-        this.content = content;
-        this.crypto = crypto;
-        claims = utf8Decode(content);
+        this.signature = signature;
+        this.parsedJwtObject = null;
+        try {
+            this.claimsSet = JWTClaimsSet.parse(Optional.ofNullable(payLoad).orElseThrow(() -> new JOSEException("Payload null")));
+            JWSObject jwsObject = new JWSObject(JWSHeader.parse(JsonUtils.convertValue(header.parameters, HashMap.class)), new Payload(payLoad));
+            jwsObject.sign(signature);
+            signedJwsObject = jwsObject;
+        } catch (ParseException | JOSEException e) {
+            throw new InvalidTokenException(INVALID_TOKEN, e);
+        }
+    }
+
+    JwtImpl(String token) {
+        if (!StringUtils.hasLength(token)) {
+            throw new InsufficientAuthenticationException("Unable to decode expected id_token");
+        }
+        try {
+            this.parsedJwtObject = JWTParser.parse(token);
+            this.claimsSet = parsedJwtObject.getJWTClaimsSet();
+            this.header = new JwtHeader(JsonUtils.convertValue(parsedJwtObject.getHeader().toJSONObject(), HeaderParameters.class));
+        } catch (ParseException e) {
+            throw new InvalidTokenException(INVALID_TOKEN, e);
+        }
+        this.signedJwsObject = null;
+        this.signature = null;
     }
 
     /**
-     * Validates a signature contained in the 'crypto' segment.
+     * Validates a signature contained in the 'signature' segment.
      *
      * @param verifier the signature verifier
      */
     @Override
-    public void verifySignature(SignatureVerifier verifier) {
-        verifier.verify(signingInput(), crypto);
-    }
-
-    private byte[] signingInput() {
-        return concat(safeB64UrlEncode(header.bytes()), JwtHelper.PERIOD,
-          safeB64UrlEncode(content));
-    }
-
-    private byte[] safeB64UrlEncode(byte[] bytes) {
-        if (bytes.length == 0) {
-            return bytes;
-        } else {
-            return b64UrlEncode(bytes);
+    public void verifySignature(Verifier verifier) {
+        if (parsedJwtObject != null && verifier instanceof SignatureVerifier signatureVerifier) {
+            validateClientJWToken(parsedJwtObject, signatureVerifier.getJwkSet());
+            return;
+        } else if (parsedJwtObject != null && verifier instanceof ChainedSignatureVerifier chainedSignatureVerifier) {
+            Exception last = new InvalidSignatureException("No matching keys found.");
+            for (SignatureVerifier delegate : chainedSignatureVerifier.getDelegates()) {
+                try {
+                    validateClientJWToken(parsedJwtObject, delegate.getJwkSet(((JWSHeader) parsedJwtObject.getHeader()).getKeyID()));
+                    //success
+                    return;
+                } catch (Exception e) {
+                    last = e;
+                }
+            }
+            throw last instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(last);
         }
+        throw new InvalidSignatureException("Signature validation failed");
     }
 
-    /**
-     * Allows retrieval of the full token.
-     *
-     * @return the encoded header, claims and crypto segments concatenated with "."
-     * characters
-     */
-    @Override
-    public byte[] bytes() {
-        return concat(b64UrlEncode(header.bytes()), JwtHelper.PERIOD,
-          b64UrlEncode(content), JwtHelper.PERIOD, b64UrlEncode(crypto));
-    }
-
-    @Override
     public String getClaims() {
-        return utf8Decode(content);
+        return claimsSet.toString();
+    }
+
+    @Override
+    public JWTClaimsSet getClaimSet() {
+        return claimsSet != null ? claimsSet : new JWTClaimsSet.Builder().build();
     }
 
     @Override
     public String getEncoded() {
-        return utf8Decode(bytes());
+        return isJwtParsedOrCreated() ? parsedJwtObject.serialize() : getEncodedSignedJwt();
+    }
+
+    private boolean isJwtParsedOrCreated() {
+        return parsedJwtObject != null;
+    }
+
+    private String getEncodedSignedJwt() {
+        return signature != null && signedJwsObject != null ? signedJwsObject.serialize() : "";
     }
 
     @Override
     public String toString() {
-        return header + " " + claims + " [" + crypto.length + " crypto bytes]";
+        return getClaims();
     }
 
-    @Override
+
     public HeaderParameters getHeader() {
         return header == null ? null : header.parameters;
+    }
+
+    private JWTClaimsSet validateClientJWToken(JWT jwtAssertion, JWKSet jwkSet) {
+        Algorithm algorithm = jwtAssertion.getHeader().getAlgorithm();
+        JWKSource<SecurityContext> keySource = new ImmutableJWKSet<>(jwkSet);
+        JWSKeySelector<SecurityContext> keySelector = new JWSVerificationKeySelector<>((JWSAlgorithm) algorithm, keySource);
+        ConfigurableJWTProcessor<SecurityContext> jwtProcessor = new DefaultJWTProcessor<>();
+        jwtProcessor.setJWSKeySelector(keySelector);
+        jwtProcessor.setJWTClaimsSetVerifier(new DefaultJWTClaimsVerifier<>(null, null));
+        jwtProcessor.getJWSVerifierFactory().getJCAContext().setProvider(BouncyCastleFIPSProviderSingleton.getInstance());
+        try {
+            return jwtProcessor.process(jwtAssertion, null);
+        } catch (BadJWSException | BadJWTException jwtException) { // signature failed
+            throw new InvalidSignatureException("Unauthorized token", jwtException);
+        } catch (KeyLengthException ke) {
+            return UaaMacSigner.verify(jwtAssertion.getParsedString(), jwkSet);
+        } catch (BadJOSEException | JOSEException e) { // key resolution, structure of JWT failed
+            throw new InvalidSignatureException("Untrusted token", e);
+        }
     }
 }

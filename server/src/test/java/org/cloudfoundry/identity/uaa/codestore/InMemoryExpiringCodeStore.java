@@ -1,9 +1,8 @@
 package org.cloudfoundry.identity.uaa.codestore;
 
 import org.cloudfoundry.identity.uaa.util.TimeService;
-import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
 
 import java.sql.Timestamp;
@@ -14,7 +13,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(6);
 
-    private ConcurrentMap<String, ExpiringCode> store = new ConcurrentHashMap<String, ExpiringCode>();
+    private final ConcurrentMap<String, ExpiringCode> store = new ConcurrentHashMap<>();
 
     private final TimeService timeService;
 
@@ -85,7 +84,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
     @Override
     public void expireByIntent(String intent, String zoneId) {
-        Assert.hasText(intent);
+        Assert.hasText(intent, "must have text");
 
         store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode() + zoneId));
     }

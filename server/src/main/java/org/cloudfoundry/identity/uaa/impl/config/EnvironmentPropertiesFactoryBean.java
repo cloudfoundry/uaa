@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -16,8 +17,10 @@ import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 
 /**
@@ -31,7 +34,7 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Properties>
 
     private Environment environment;
 
-    private Map<String, Object> defaultProperties = new HashMap<String, Object>();
+    private final Map<String, Object> defaultProperties = new HashMap<>();
 
     public void setDefaultProperties(Properties defaultProperties) {
         this.defaultProperties.clear();
@@ -52,7 +55,7 @@ public class EnvironmentPropertiesFactoryBean implements FactoryBean<Properties>
         EnvironmentMapFactoryBean factory = new EnvironmentMapFactoryBean();
         factory.setEnvironment(environment);
         factory.setDefaultProperties(defaultProperties);
-        Map<String, ?> map = factory.getObject();
+        Map<String, ?> map = Optional.ofNullable(factory.getObject()).orElse(Collections.emptyMap());
         for (Object key : map.keySet()) {
             Object value = map.get(key);
             if (value == null) {

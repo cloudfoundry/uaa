@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -19,9 +20,9 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
  */
 public interface LoginPolicy {
     Result isAllowed(String principalId);
-    
+
     LockoutPolicyRetriever getLockoutPolicyRetriever();
-    
+
     class Result {
         private final boolean isAllowed;
         private final int failureCount;

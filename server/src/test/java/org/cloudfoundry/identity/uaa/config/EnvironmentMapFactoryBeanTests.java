@@ -9,7 +9,7 @@ import org.springframework.core.env.StandardEnvironment;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class EnvironmentMapFactoryBeanTests {
 
@@ -26,8 +26,8 @@ class EnvironmentMapFactoryBeanTests {
         inputProperties.put("foo", "foo");
 
         factory.setDefaultProperties(inputProperties);
-        Map<String, ?> properties = factory.getObject();
-        assertEquals("foo", properties.get("foo"));
+        Map<String, Object> properties = factory.getObject();
+        assertThat(properties).containsEntry("foo", "foo");
     }
 
     @Test
@@ -36,8 +36,8 @@ class EnvironmentMapFactoryBeanTests {
         inputProperties.put("foo", "${bar}");
 
         factory.setDefaultProperties(inputProperties);
-        Map<String, ?> properties = factory.getObject();
-        assertEquals("${bar}", properties.get("foo"));
+        Map<String, Object> properties = factory.getObject();
+        assertThat(properties).containsEntry("foo", "${bar}");
     }
 
     @Test
@@ -52,9 +52,10 @@ class EnvironmentMapFactoryBeanTests {
         environment.getPropertySources().addLast(new NestedMapPropertySource("override", overrideProperties));
         factory.setEnvironment(environment);
         factory.setDefaultProperties(inputProperties);
-        Map<String, ?> properties = factory.getObject();
-        assertEquals("baz", properties.get("foo"));
-        assertEquals("${spam}", properties.get("bar"));
+        Map<String, Object> properties = factory.getObject();
+        assertThat(properties)
+                .containsEntry("foo", "baz")
+                .containsEntry("bar", "${spam}");
     }
 
     @Test
@@ -69,8 +70,7 @@ class EnvironmentMapFactoryBeanTests {
         StandardEnvironment environment = new StandardEnvironment();
         environment.getPropertySources().addLast(new NestedMapPropertySource("override", overrideProperties));
         factory.setEnvironment(environment);
-        Map<String, ?> properties = factory.getObject();
-        assertEquals("bar", properties.get("foo"));
+        Map<String, Object> properties = factory.getObject();
+        assertThat(properties).containsEntry("foo", "bar");
     }
-
 }

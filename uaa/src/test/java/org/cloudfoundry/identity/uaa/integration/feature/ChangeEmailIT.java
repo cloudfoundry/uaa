@@ -2,38 +2,31 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.security.SecureRandom;
 import java.util.Iterator;
 
 import static org.apache.commons.lang3.StringUtils.contains;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
-public class ChangeEmailIT {
-
-    @Autowired @Rule
-    public IntegrationTestRule integrationTestRule;
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
+class ChangeEmailIT {
 
     @Autowired
-    WebDriver webDriver;
+    @RegisterExtension
+    private IntegrationTestExtension integrationTestExtension;
+
+    @Autowired
+    UaaWebDriver webDriver;
 
     @Value("${integration.test.base_url}")
     String baseUrl;
@@ -46,20 +39,20 @@ public class ChangeEmailIT {
 
     private String userEmail;
 
-    @Before
-    @After
-    public void logout_and_clear_cookies() {
+    @BeforeEach
+    @AfterEach
+    void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.manage().deleteAllCookies();
     }
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         int randomInt = new SecureRandom().nextInt();
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
@@ -74,52 +67,52 @@ public class ChangeEmailIT {
     }
 
     @Test
-    public void testChangeEmailWithLogout() {
-        String newEmail = testChangeEmail(true);
+    void changeEmailWithLogout() {
+        String newEmail = changeEmail(true);
 
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome"));
-        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Email address successfully verified. Login to access your account."));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Welcome");
+        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText()).contains("Email address successfully verified. Login to access your account.");
 
         signIn(newEmail, "secr3T");
 
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
     }
 
     @Test
-    public void testChangeEmailWithoutLogout() {
-        String newEmail = testChangeEmail(false);
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Account Settings"));
-        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText(), containsString("Email address successfully verified."));
-        assertThat(webDriver.findElement(By.cssSelector(".nav")).getText(), containsString(newEmail));
-        assertThat(webDriver.findElement(By.cssSelector(".profile")).getText(), containsString(newEmail));
+    void changeEmailWithoutLogout() {
+        String newEmail = changeEmail(false);
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Account Settings");
+        assertThat(webDriver.findElement(By.cssSelector(".alert-success")).getText()).contains("Email address successfully verified.");
+        assertThat(webDriver.findElement(By.cssSelector(".nav")).getText()).contains(newEmail);
+        assertThat(webDriver.findElement(By.cssSelector(".profile")).getText()).contains(newEmail);
     }
 
-    public String testChangeEmail(boolean logout) {
+    private String changeEmail(boolean logout) {
         signIn(userEmail, "secr3T");
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         webDriver.get(baseUrl + "/profile");
-        Assert.assertEquals(userEmail, webDriver.findElement(By.cssSelector(".profile .email")).getText());
-        webDriver.findElement(By.linkText("Change Email")).click();
+        assertThat(webDriver.findElement(By.cssSelector(".profile .email")).getText()).isEqualTo(userEmail);
+        webDriver.clickAndWait(By.linkText("Change Email"));
 
-        Assert.assertEquals("Current Email Address: " + userEmail, webDriver.findElement(By.cssSelector(".email-display")).getText());
+        assertThat(webDriver.findElement(By.cssSelector(".email-display")).getText()).isEqualTo("Current Email Address: " + userEmail);
         String newEmail = userEmail.replace("user", "new");
         webDriver.findElement(By.name("newEmail")).sendKeys(newEmail);
-        webDriver.findElement(By.xpath("//input[@value='Send Verification Link']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Send Verification Link']"));
 
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Instructions Sent"));
-        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Instructions Sent");
+        assertThat(simpleSmtpServer.getReceivedEmailSize()).isEqualTo(receivedEmailSize + 1);
 
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        Iterator<SmtpMessage> receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = receivedEmail.next();
         receivedEmail.remove();
 
-        assertEquals(newEmail, message.getHeaderValue("To"));
-        assertThat(message.getBody(), containsString("Verify your email"));
+        assertThat(message.getHeaderValue("To")).isEqualTo(newEmail);
+        assertThat(message.getBody()).contains("Verify your email");
 
         String link = testClient.extractLink(message.getBody());
-        assertFalse(contains(link, "@"));
-        assertFalse(contains(link, "%40"));
+        assertThat(contains(link, "@")).isFalse();
+        assertThat(contains(link, "%40")).isFalse();
 
         if (logout) {
             webDriver.get(baseUrl + "/logout.do");
@@ -131,14 +124,14 @@ public class ChangeEmailIT {
     }
 
     @Test
-    public void testChangeEmailWithClientRedirect() {
+    void changeEmailWithClientRedirect() {
         signIn(userEmail, "secr3T");
 
         webDriver.get(baseUrl + "/change_email?client_id=app");
 
         String newEmail = userEmail.replace("user", "new");
         webDriver.findElement(By.name("newEmail")).sendKeys(newEmail);
-        webDriver.findElement(By.xpath("//input[@value='Send Verification Link']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Send Verification Link']"));
 
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
@@ -146,8 +139,10 @@ public class ChangeEmailIT {
         String link = testClient.extractLink(message.getBody());
 
         webDriver.get(link);
-        webDriver.findElement(By.id("authorize")).click();
-        assertThat(webDriver.getCurrentUrl(), startsWith("http://localhost:8080/app/"));
+        //simulate redirect to app and back
+        webDriver.get(baseUrl + "/oauth/authorize?client_id=app&redirect_uri=http://localhost:8080/app/&response_type=code&state=3e5u7U");
+        webDriver.clickAndWait(By.id("authorize"));
+        assertThat(webDriver.getCurrentUrl()).startsWith("http://localhost:8080/app/?code=");
     }
 
     private void signIn(String userName, String password) {
@@ -155,7 +150,7 @@ public class ChangeEmailIT {
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Where to?");
     }
 }

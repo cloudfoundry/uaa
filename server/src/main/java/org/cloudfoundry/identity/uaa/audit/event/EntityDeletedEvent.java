@@ -42,7 +42,7 @@ public class EntityDeletedEvent<T> extends AbstractUaaEvent {
                 getAuthentication().getName(),
                 AuditEventType.EntityDeletedEvent,
                 getOrigin(getAuthentication()),
-                String.format(dataFormat, source.getClass().getName(), getObjectId())
+                dataFormat.formatted(source.getClass().getName(), getObjectId())
         );
     }
 

@@ -6,12 +6,12 @@ import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -33,7 +33,6 @@ import java.util.Date;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.http.MediaType.APPLICATION_JSON_UTF8;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
@@ -48,7 +47,7 @@ import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -93,6 +92,18 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String passwordDescription = "User's password, required if origin is set to `uaa`. May be be subject to validations if the UAA is configured with a password policy.";
     private final String phoneNumbersListDescription = "The user's phone numbers.";
     private final String phoneNumbersDescription = "The phone number.";
+    private final String aliasIdDescription = "The ID of the alias user.";
+    private final String aliasIdCreateRequestDescription = aliasIdDescription + " Must be set to `null`.";
+    private final String aliasIdUpdateRequestDescription = aliasIdDescription + " If the existing user had this field set, it must be set to the same value in the update request. " +
+            "If not, this field must be set to `null`.";
+    private final String aliasIdPatchRequestDescription = aliasIdDescription + " If set, this field must have the same value as in the existing user.";
+    private final String aliasZidDescription = "The ID of the identity zone in which an alias of this user is maintained.";
+    private final String aliasZidRequestDescription = aliasZidDescription + " If set, an alias user is created in this zone and `aliasId` is set accordingly. " +
+            "Must reference an existing identity zone that is different to the one referenced in `identityZoneId`. " +
+            "Alias users can only be created from or to the \"uaa\" identity zone, i.e., one of `identityZoneId` or `aliasZid` must be set to \"uaa\". " +
+            "Furthermore, alias users can only be created if the IdP referenced in `origin` also has an alias to the **same** zone as the user.";
+    private final String aliasZidUpdateRequestDescription = aliasZidRequestDescription + " If the existing user had this field set, it must be set to the same value in the update request.";
+    private final String aliasZidPatchRequestDescription = aliasZidRequestDescription + " If the existing user had this field set, it must not be set to a different value in the patch request.";
 
     private final String metaDesc = "SCIM object meta data.";
     private final String metaVersionDesc = "Object version.";
@@ -104,7 +115,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
 
     private final String requiredUserUpdateScopes = "Access token with `scim.write`, `uaa.admin`, or `openid` required. The `openid` scope only allows the user to update their **own** first and last name, when `origin` is `uaa`.";
 
-    private FieldDescriptor[] searchResponseFields = {
+    private final FieldDescriptor[] searchResponseFields = {
             fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
             fieldWithPath("itemsPerPage").type(NUMBER).description(countAndItemsPerPageDescription),
             fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
@@ -140,13 +151,15 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
             fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
             fieldWithPath("resources[].externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("resources[].aliasId").optional(null).type(STRING).description(aliasIdDescription),
+            fieldWithPath("resources[].aliasZid").optional(null).type(STRING).description(aliasZidDescription),
             fieldWithPath("resources[].meta").type(OBJECT).description(metaDesc),
             fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
             fieldWithPath("resources[].meta.lastModified").type(STRING).description(metaLastModifiedDesc),
             fieldWithPath("resources[].meta.created").type(STRING).description(metaCreatedDesc)
     };
 
-    private Snippet createFields = requestFields(
+    private final Snippet createFields = requestFields(
             fieldWithPath("userName").required().type(STRING).description(usernameDescription),
             fieldWithPath("password").optional(null).type(STRING).description(passwordDescription),
             fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
@@ -162,11 +175,13 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("verified").optional(true).type(BOOLEAN).description(userVerifiedDescription),
             fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
             fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional(null).type(STRING).description(aliasIdCreateRequestDescription),
+            fieldWithPath("aliasZid").optional(null).type(STRING).description(aliasZidRequestDescription),
             fieldWithPath("schemas").optional().ignored().type(ARRAY).description(schemasDescription),
             fieldWithPath("meta.*").optional().ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
-    private FieldDescriptor[] createResponse = {
+    private final FieldDescriptor[] createResponse = {
             fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
             fieldWithPath("id").type(STRING).description(userIdDescription),
             fieldWithPath("userName").type(STRING).description(usernameDescription),
@@ -189,13 +204,15 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
             fieldWithPath("externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional().type(STRING).description(aliasIdDescription),
+            fieldWithPath("aliasZid").optional().type(STRING).description(aliasZidDescription),
             fieldWithPath("meta").type(OBJECT).description(metaDesc),
             fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
             fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
             fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
     };
 
-    private Snippet updateFields = requestFields(
+    private final Snippet updateFields = requestFields(
             fieldWithPath("schemas").ignored().type(ARRAY).description(schemasDescription),
             fieldWithPath("id").ignored().type(STRING).description(userIdDescription),
             fieldWithPath("userName").required().type(STRING).description(usernameDescription),
@@ -211,14 +228,16 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
             fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
             fieldWithPath("verified").optional(true).type(BOOLEAN).description(userVerifiedDescription),
-            fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
+            fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription + " The `origin` value cannot be changed in an update operation."),
             fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
             fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional(null).type(STRING).description(aliasIdUpdateRequestDescription),
+            fieldWithPath("aliasZid").optional(null).type(STRING).description(aliasZidUpdateRequestDescription),
             fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read.")
     );
 
-    private FieldDescriptor[] updateResponse = {
+    private final FieldDescriptor[] updateResponse = {
             fieldWithPath("schemas").type(ARRAY).description(schemasDescription),
             fieldWithPath("id").type(STRING).description(userIdDescription),
             fieldWithPath("userName").type(STRING).description(usernameDescription),
@@ -249,13 +268,15 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("lastLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
             fieldWithPath("previousLogonTime").optional(null).type(NUMBER).description(userLastLogonTimeDescription),
             fieldWithPath("externalId").type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional().type(STRING).description(aliasIdDescription),
+            fieldWithPath("aliasZid").optional().type(STRING).description(aliasZidDescription),
             fieldWithPath("meta").type(OBJECT).description(metaDesc),
             fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
             fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
             fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
     };
 
-    private Snippet patchFields = requestFields(
+    private final Snippet patchFields = requestFields(
             fieldWithPath("schemas").ignored().type(ARRAY).description(schemasDescription),
             fieldWithPath("id").ignored().type(STRING).description(userIdDescription),
             fieldWithPath("userName").required().type(STRING).description(usernameDescription),
@@ -271,10 +292,12 @@ class ScimUserEndpointDocs extends EndpointDocs {
             fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
             fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
             fieldWithPath("verified").optional(true).type(BOOLEAN).description(userVerifiedDescription),
-            fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
+            fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription + " The `origin` value cannot be changed in a patch operation."),
             fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
             fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
             fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("aliasId").optional(null).type(STRING).description(aliasIdPatchRequestDescription),
+            fieldWithPath("aliasZid").optional(null).type(STRING).description(aliasZidPatchRequestDescription),
             fieldWithPath("meta.*").ignored().type(OBJECT).description("SCIM object meta data not read."),
             fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)
     );
@@ -285,7 +308,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     private final String sortOrderDescription = "Sort order, ascending/descending";
     private final String countDescription = "Max number of results to be returned";
 
-    private ParameterDescriptor[] searchUsersParameters = {
+    private final ParameterDescriptor[] searchUsersParameters = {
             parameterWithName("filter").optional(null).description(scimFilterDescription).attributes(key("type").value(STRING)),
             parameterWithName("sortBy").optional("created").description(sortByDescription).attributes(key("type").value(STRING)),
             parameterWithName("sortOrder").optional("ascending").description(sortOrderDescription).attributes(key("type").value(STRING)),
@@ -293,11 +316,11 @@ class ScimUserEndpointDocs extends EndpointDocs {
             parameterWithName("count").optional("100").description(countDescription).attributes(key("type").value(NUMBER))
     };
 
-    private ParameterDescriptor[] searchWithAttributes = ArrayUtils.addAll(
+    private final ParameterDescriptor[] searchWithAttributes = ArrayUtils.addAll(
             searchUsersParameters,
             parameterWithName("attributes").optional(null).description(scimAttributeDescription).attributes(key("type").value(STRING)));
 
-    private FieldDescriptor[] searchWithAttributesResponseFields = {
+    private final FieldDescriptor[] searchWithAttributesResponseFields = {
             fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
             fieldWithPath("itemsPerPage").type(NUMBER).description(countAndItemsPerPageDescription),
             fieldWithPath("totalResults").type(NUMBER).description(totalResultsDescription),
@@ -354,7 +377,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     }
 
     ScimUser createScimUserObject() {
-        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        String username = new AlphanumericRandomValueStringGenerator().generate() + "@test.org";
         ScimUser user = new ScimUser(null, username, "given name", "family name");
         user.setPrimaryEmail(username);
         user.setPassword("secret");
@@ -364,23 +387,23 @@ class ScimUserEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void test_Find_Users() throws Exception {
+    void find_users() throws Exception {
         Snippet responseFields = responseFields(searchResponseFields);
-        Snippet requestParameters = requestParameters(searchUsersParameters);
+        Snippet queryParameters = queryParameters(searchUsersParameters);
 
         webApplicationContext.getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
         webApplicationContext.getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
 
         mockMvc.perform(
-                get("/Users")
-                        .accept(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + scimReadToken)
-                        .param("filter", String.format("id eq \"%s\" or email eq \"%s\"", user.getId(), user.getUserName()))
-                        .param("sortBy", "email")
-                        .param("count", "50")
-                        .param("sortOrder", "ascending")
-                        .param("startIndex", "1")
-        )
+                        get("/Users")
+                                .accept(APPLICATION_JSON)
+                                .header("Authorization", "Bearer " + scimReadToken)
+                                .param("filter", "id eq \"%s\" or email eq \"%s\"".formatted(user.getId(), user.getUserName()))
+                                .param("sortBy", "email")
+                                .param("count", "50")
+                                .param("sortOrder", "ascending")
+                                .param("startIndex", "1")
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resources[0].previousLogonTime").exists())
                 .andExpect(jsonPath("$.resources[0].lastLogonTime").exists())
@@ -393,28 +416,28 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                         IDENTITY_ZONE_ID_HEADER,
                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                                 ),
-                                requestParameters,
+                                queryParameters,
                                 responseFields
                         )
                 );
     }
 
     @Test
-    void test_Find_With_Attributes_Users() throws Exception {
+    void find_with_attributes_users() throws Exception {
         Snippet responseFields = responseFields(searchWithAttributesResponseFields);
-        Snippet requestParameters = requestParameters(searchWithAttributes);
+        Snippet queryParameters = queryParameters(searchWithAttributes);
 
         mockMvc.perform(
-                get("/Users")
-                        .accept(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + scimReadToken)
-                        .param("attributes", "id,userName,emails,active")
-                        .param("filter", String.format("id eq \"%s\"", user.getId()))
-                        .param("sortBy", "email")
-                        .param("count", "50")
-                        .param("sortOrder", "ascending")
-                        .param("startIndex", "1")
-        )
+                        get("/Users")
+                                .accept(APPLICATION_JSON)
+                                .header("Authorization", "Bearer " + scimReadToken)
+                                .param("attributes", "id,userName,emails,active")
+                                .param("filter", "id eq \"%s\"".formatted(user.getId()))
+                                .param("sortBy", "email")
+                                .param("count", "50")
+                                .param("sortOrder", "ascending")
+                                .param("startIndex", "1")
+                )
                 .andExpect(status().isOk())
                 .andDo(print())
                 .andDo(
@@ -426,24 +449,24 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                         IDENTITY_ZONE_ID_HEADER,
                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                                 ),
-                                requestParameters,
+                                queryParameters,
                                 responseFields
                         )
                 );
     }
 
     @Test
-    void test_Create_User() throws Exception {
+    void create_user() throws Exception {
 
         user = createScimUserObject();
 
         mockMvc.perform(
-                RestDocumentationRequestBuilders.post("/Users")
-                        .accept(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + scimWriteToken)
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .content(JsonUtils.writeValueAsString(user))
-        )
+                        RestDocumentationRequestBuilders.post("/Users")
+                                .accept(APPLICATION_JSON)
+                                .header("Authorization", "Bearer " + scimWriteToken)
+                                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                .content(JsonUtils.writeValueAsString(user))
+                )
                 .andExpect(status().isCreated())
                 .andDo(
                         document("{ClassName}/{methodName}",
@@ -461,7 +484,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void test_status_unlock_user() throws Exception {
+    void status_unlock_user() throws Exception {
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setLocked(false);
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
@@ -475,7 +498,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
@@ -494,7 +517,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void test_status_password_expire_user() throws Exception {
+    void status_password_expire_user() throws Exception {
         UserAccountStatus alteredAccountStatus = new UserAccountStatus();
         alteredAccountStatus.setPasswordChangeRequired(true);
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
@@ -508,7 +531,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                 .content(jsonStatus)
                 )
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(APPLICATION_JSON_UTF8))
+                .andExpect(content().contentTypeCompatibleWith(APPLICATION_JSON))
                 .andExpect(content().string(jsonStatus))
                 .andDo(
                         document("{ClassName}/{methodName}",
@@ -527,7 +550,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void test_Update_User() throws Exception {
+    void update_user() throws Exception {
         ApprovalStore store = webApplicationContext.getBean(ApprovalStore.class);
         Approval approval = new Approval()
                 .setUserId(user.getId())
@@ -540,13 +563,13 @@ class ScimUserEndpointDocs extends EndpointDocs {
         user.setGroups(Collections.emptyList());
 
         mockMvc.perform(
-                RestDocumentationRequestBuilders.put("/Users/{userId}", user.getId())
-                        .accept(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + scimWriteToken)
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .header("If-Match", user.getVersion())
-                        .content(JsonUtils.writeValueAsString(user))
-        )
+                        RestDocumentationRequestBuilders.put("/Users/{userId}", user.getId())
+                                .accept(APPLICATION_JSON)
+                                .header("Authorization", "Bearer " + scimWriteToken)
+                                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                .header("If-Match", user.getVersion())
+                                .content(JsonUtils.writeValueAsString(user))
+                )
                 .andExpect(status().isOk())
                 .andDo(
                         document("{ClassName}/{methodName}",
@@ -566,7 +589,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void test_Patch_User() throws Exception {
+    void patch_user() throws Exception {
         ApprovalStore store = webApplicationContext.getBean(ApprovalStore.class);
         Approval approval = new Approval()
                 .setUserId(user.getId())
@@ -579,13 +602,13 @@ class ScimUserEndpointDocs extends EndpointDocs {
         user.setGroups(Collections.emptyList());
 
         mockMvc.perform(
-                RestDocumentationRequestBuilders.patch("/Users/{userId}", user.getId())
-                        .accept(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + scimWriteToken)
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .header("If-Match", user.getVersion())
-                        .content(JsonUtils.writeValueAsString(user))
-        )
+                        RestDocumentationRequestBuilders.patch("/Users/{userId}", user.getId())
+                                .accept(APPLICATION_JSON)
+                                .header("Authorization", "Bearer " + scimWriteToken)
+                                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                .header("If-Match", user.getVersion())
+                                .content(JsonUtils.writeValueAsString(user))
+                )
                 .andExpect(status().isOk())
                 .andDo(
                         document("{ClassName}/{methodName}",
@@ -603,7 +626,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void test_Delete_User() throws Exception {
+    void delete_user() throws Exception {
         ApprovalStore store = webApplicationContext.getBean(ApprovalStore.class);
         Approval approval = new Approval()
                 .setUserId(user.getId())
@@ -615,12 +638,12 @@ class ScimUserEndpointDocs extends EndpointDocs {
         store.addApproval(approval, IdentityZoneHolder.get().getId());
 
         mockMvc.perform(
-                RestDocumentationRequestBuilders.delete("/Users/{userId}", user.getId())
-                        .accept(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + scimWriteToken)
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .header("If-Match", user.getVersion())
-        )
+                        RestDocumentationRequestBuilders.delete("/Users/{userId}", user.getId())
+                                .accept(APPLICATION_JSON)
+                                .header("Authorization", "Bearer " + scimWriteToken)
+                                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                .header("If-Match", user.getVersion())
+                )
                 .andExpect(status().isOk())
                 .andDo(
                         document("{ClassName}/{methodName}",
@@ -640,7 +663,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     }
 
     @Test
-    void test_Get_User() throws Exception {
+    void get_user() throws Exception {
         ApprovalStore store = webApplicationContext.getBean(ApprovalStore.class);
         Approval approval = new Approval()
                 .setUserId(user.getId())
@@ -655,12 +678,12 @@ class ScimUserEndpointDocs extends EndpointDocs {
         webApplicationContext.getBean(UaaUserDatabase.class).updateLastLogonTime(user.getId());
 
         mockMvc.perform(
-                RestDocumentationRequestBuilders.get("/Users/{userId}", user.getId())
-                        .accept(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + scimReadToken)
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .header("If-Match", user.getVersion())
-        )
+                        RestDocumentationRequestBuilders.get("/Users/{userId}", user.getId())
+                                .accept(APPLICATION_JSON)
+                                .header("Authorization", "Bearer " + scimReadToken)
+                                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                .header("If-Match", user.getVersion())
+                )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.previousLogonTime").exists())
                 .andExpect(jsonPath("$.lastLogonTime").exists())
@@ -675,15 +698,13 @@ class ScimUserEndpointDocs extends EndpointDocs {
                                         IDENTITY_ZONE_ID_HEADER,
                                         IDENTITY_ZONE_SUBDOMAIN_HEADER
                                 ),
-
                                 responseFields(updateResponse)
                         )
                 );
     }
 
-
     @Test
-    void test_Change_Password() throws Exception {
+    void change_password() throws Exception {
         PasswordChangeRequest request = new PasswordChangeRequest();
         request.setOldPassword("secret");
         request.setPassword("newsecret");
@@ -691,12 +712,12 @@ class ScimUserEndpointDocs extends EndpointDocs {
         String myToken = MockMvcUtils.getUserOAuthAccessToken(mockMvc, "app", "appclientsecret", user.getUserName(), "secret", null, null, true);
 
         mockMvc.perform(
-                RestDocumentationRequestBuilders.put("/Users/{userId}/password", user.getId())
-                        .accept(APPLICATION_JSON)
-                        .header("Authorization", "Bearer " + myToken)
-                        .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                        .content(JsonUtils.writeValueAsString(request))
-        )
+                        RestDocumentationRequestBuilders.put("/Users/{userId}/password", user.getId())
+                                .accept(APPLICATION_JSON)
+                                .header("Authorization", "Bearer " + myToken)
+                                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                .content(JsonUtils.writeValueAsString(request))
+                )
                 .andExpect(status().isOk())
                 .andDo(
                         document("{ClassName}/{methodName}",
@@ -724,7 +745,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
     void getUserVerificationLink() throws Exception {
         String accessToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "uaa.admin");
 
-        String email = "joel" + new RandomValueStringGenerator().generate() + "@example.com";
+        String email = "joel" + new AlphanumericRandomValueStringGenerator().generate() + "@example.com";
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
         joel.setVerified(false);
         joel.addEmail(email);
@@ -736,7 +757,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                 .accept(APPLICATION_JSON);
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("The bearer token, with a pre-amble of `Bearer`"), IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER);
-        Snippet requestParameters = requestParameters(parameterWithName("redirect_uri").required().description("Location where the user will be redirected after verifying by clicking the verification link").attributes(key("type").value(STRING)));
+        Snippet queryParameters = queryParameters(parameterWithName("redirect_uri").required().description("Location where the user will be redirected after verifying by clicking the verification link").attributes(key("type").value(STRING)));
         Snippet responseFields = responseFields(fieldWithPath("verify_link").description("Location the user must visit and authenticate to verify"));
 
         Snippet pathParameters = pathParameters(
@@ -746,7 +767,7 @@ class ScimUserEndpointDocs extends EndpointDocs {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
-                        pathParameters, requestHeaders, requestParameters, responseFields))
+                        pathParameters, requestHeaders, queryParameters, responseFields))
         ;
     }
 
@@ -776,34 +797,6 @@ class ScimUserEndpointDocs extends EndpointDocs {
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(get)
-                .andExpect(status().isOk())
-                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
-                        pathParameters, requestHeaders))
-        ;
-    }
-
-    @Test
-    void deleteMfaRegistration() throws Exception {
-        String accessToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "uaa.admin");
-
-        String email = "tom.mugwort@example.com";
-        ScimUser tommy = new ScimUser(null, email, "Tom", "Mugwort");
-        tommy.setVerified(false);
-        tommy.addEmail(email);
-        tommy = userProvisioning.createUser(tommy, "pas5Word", IdentityZoneHolder.get().getId());
-
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Access token with `zones.<zoneId>.admin` or `uaa.admin` required."),
-                IDENTITY_ZONE_ID_HEADER,
-                IDENTITY_ZONE_SUBDOMAIN_HEADER);
-
-        Snippet pathParameters = pathParameters(
-                RequestDocumentation.parameterWithName("userId").description("Unique user identifier.")
-        );
-
-        MockHttpServletRequestBuilder delete = RestDocumentationRequestBuilders.delete("/Users/{userId}/mfa", tommy.getId())
-                .header("Authorization", "Bearer " + accessToken);
-
-        mockMvc.perform(delete)
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
                         pathParameters, requestHeaders))

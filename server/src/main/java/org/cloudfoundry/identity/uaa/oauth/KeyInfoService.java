@@ -15,20 +15,27 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.util.StringUtils;
 
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 
 public class KeyInfoService {
-    private String uaaBaseURL;
+    private final String uaaBaseURL;
 
     public KeyInfoService(String uaaBaseURL) {
         this.uaaBaseURL = uaaBaseURL;
+    }
+
+    public KeyInfo getKey(String keyId, String sigAlg) {
+        return getKeys(sigAlg).get(keyId);
     }
 
     public KeyInfo getKey(String keyId) {
@@ -36,14 +43,20 @@ public class KeyInfoService {
     }
 
     public Map<String, KeyInfo> getKeys() {
+        return getKeys(null);
+    }
+
+    public Map<String, KeyInfo> getKeys(String sigAlg) {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         if (config == null || config.getTokenPolicy().getKeys() == null || config.getTokenPolicy().getKeys().isEmpty()) {
             config = IdentityZoneHolder.getUaaZone().getConfig();
         }
 
         Map<String, KeyInfo> keys = new HashMap<>();
-        for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
-            KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue(), addSubdomainToUrl(uaaBaseURL, IdentityZoneHolder.get().getSubdomain()));
+        for (Map.Entry<String, TokenPolicy.KeyInformation> entry : config.getTokenPolicy().getKeys().entrySet()) {
+            KeyInfo keyInfo = KeyInfoBuilder.build(entry.getKey(), entry.getValue().getSigningKey(), addSubdomainToUrl(uaaBaseURL, IdentityZoneHolder.get().getSubdomain()),
+                    sigAlg != null ? sigAlg : entry.getValue().getSigningAlg(),
+                    entry.getValue().getSigningCert());
             keys.put(entry.getKey(), keyInfo);
         }
 
@@ -60,7 +73,9 @@ public class KeyInfoService {
 
     private String getActiveKeyId() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        if (config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        if (config == null) {
+            return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        }
         String activeKeyId = config.getTokenPolicy().getActiveKeyId();
 
         Map<String, KeyInfo> keys;
@@ -77,5 +92,9 @@ public class KeyInfoService {
         }
 
         return activeKeyId;
+    }
+
+    public String getTokenEndpointUrl() throws URISyntaxException {
+        return UaaTokenUtils.constructTokenEndpointUrl(uaaBaseURL, IdentityZoneHolder.get());
     }
 }

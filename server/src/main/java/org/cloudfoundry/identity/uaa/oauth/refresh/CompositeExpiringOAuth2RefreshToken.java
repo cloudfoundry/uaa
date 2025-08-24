@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.oauth.refresh;
 
-import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultExpiringOAuth2RefreshToken;
 
 import java.util.Date;
 

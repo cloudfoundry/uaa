@@ -15,30 +15,29 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -50,14 +49,18 @@ import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.endsWith;
-import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @DefaultTestContext
 public class InvitationsServiceMockMvcTests {
@@ -73,13 +76,12 @@ public class InvitationsServiceMockMvcTests {
 
     @SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
     @Autowired
-    @Qualifier("emailService")
     EmailService emailService;
 
     public static final String REDIRECT_URI = "http://invitation.redirect.test";
     private JavaMailSender originalSender;
-    private FakeJavaMailSender fakeJavaMailSender = new FakeJavaMailSender();
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private final FakeJavaMailSender fakeJavaMailSender = new FakeJavaMailSender();
+    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private String clientId;
     private String userInviteToken;
 
@@ -114,36 +116,36 @@ public class InvitationsServiceMockMvcTests {
 
     @Test
     void inviteUserCorrectOriginSet() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
     }
 
     @Test
-    void testAuthorizeWithInvitationLogin() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+    void authorizeWithInvitationLogin() throws Exception {
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
-        assertEquals(OriginKeys.UAA, jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", new Object[]{email}, String.class));
+        assertThat(jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", String.class, new Object[]{email})).isEqualTo(OriginKeys.UAA);
 
         String code = extractInvitationCode(inviteLink.toString());
         MvcResult result = mockMvc.perform(
-                get("/invitations/accept")
-                        .param("code", code)
-                        .accept(MediaType.TEXT_HTML)
-        )
+                        get("/invitations/accept")
+                                .param("code", code)
+                                .accept(MediaType.TEXT_HTML)
+                )
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
         MockHttpSession inviteSession = (MockHttpSession) result.getRequest().getSession(false);
-        assertNotNull(inviteSession);
-        assertNotNull(inviteSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
+        assertThat(inviteSession).isNotNull();
+        assertThat(inviteSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY)).isNotNull();
         String redirectUri = "https://example.com/dashboard/?appGuid=app-guid";
-        String clientId = "authclient-" + new RandomValueStringGenerator().generate();
-        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", redirectUri);
+        String clientId = "authclient-" + new AlphanumericRandomValueStringGenerator().generate();
+        UaaClientDetails client = new UaaClientDetails(clientId, "", "openid", GRANT_TYPE_AUTHORIZATION_CODE, "", redirectUri);
         client.setClientSecret("secret");
         String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
         MockMvcUtils.createClient(mockMvc, adminToken, client);
 
-        String state = new RandomValueStringGenerator().generate();
+        String state = new AlphanumericRandomValueStringGenerator().generate();
         MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
                 .session(inviteSession)
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
@@ -157,60 +159,59 @@ public class InvitationsServiceMockMvcTests {
                 .andExpect(status().is3xxRedirection())
                 .andReturn();
         String location = result.getResponse().getHeader("Location");
-        assertThat(location, endsWith("/login"));
-        assertEquals(-1, location.indexOf("code"));
+        assertThat(location).endsWith("/login")
+                .doesNotContain("code");
     }
 
     @Test
     void acceptInvitationShouldNotLogYouIn() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
-        assertEquals(OriginKeys.UAA, jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", new Object[]{email}, String.class));
+        assertThat(jdbcTemplate.queryForObject("SELECT origin FROM users WHERE username=?", String.class, new Object[]{email})).isEqualTo(OriginKeys.UAA);
 
         String code = extractInvitationCode(inviteLink.toString());
         MvcResult result = mockMvc.perform(get("/invitations/accept")
-                .param("code", code)
-                .accept(MediaType.TEXT_HTML)
-        )
+                        .param("code", code)
+                        .accept(MediaType.TEXT_HTML)
+                )
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(
-                get("/profile")
-                        .session(session)
-                        .accept(MediaType.TEXT_HTML)
-        )
+                        get("/profile")
+                                .session(session)
+                                .accept(MediaType.TEXT_HTML)
+                )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrlPattern("**/login"));
-
     }
 
     @Test
     void acceptInvitationForVerifiedUserSendsRedirect() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
 
         jdbcTemplate.update("UPDATE users SET verified=true WHERE email=?", email);
-        assertTrue("User should not be verified", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
-        assertEquals(OriginKeys.UAA, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should not be verified").isTrue();
+        assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(OriginKeys.UAA);
 
         String code = extractInvitationCode(inviteLink.toString());
         mockMvc.perform(
-                get("/invitations/accept")
-                        .param("code", code)
-                        .accept(MediaType.TEXT_HTML)
-        )
+                        get("/invitations/accept")
+                                .param("code", code)
+                                .accept(MediaType.TEXT_HTML)
+                )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl(REDIRECT_URI));
     }
 
     @Test
     void acceptInvitationForUaaUserShouldNotExpireInvitelink() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
-        assertEquals(OriginKeys.UAA, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
+        assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(OriginKeys.UAA);
 
         String code = extractInvitationCode(inviteLink.toString());
         MockHttpServletRequestBuilder get = get("/invitations/accept")
@@ -219,99 +220,102 @@ public class InvitationsServiceMockMvcTests {
         mockMvc.perform(get)
                 .andExpect(status().isOk());
         mockMvc.perform(get)
-            .andExpect(status().isOk());
+                .andExpect(status().isOk());
         mockMvc.perform(get)
                 .andExpect(status().isOk());
     }
 
     @Test
     void invalid_code() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
-        String invalid = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String invalid = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
         URL invalidLink = inviteUser(webApplicationContext, mockMvc, invalid, userInviteToken, null, clientId, OriginKeys.UAA);
 
-        assertFalse("User should not be verified", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
-        assertEquals(OriginKeys.UAA, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should not be verified").isFalse();
+        assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(OriginKeys.UAA);
 
         String code = extractInvitationCode(inviteLink.toString());
         String invalidCode = extractInvitationCode(invalidLink.toString());
 
         MvcResult result = mockMvc.perform(get("/invitations/accept")
-                .param("code", code)
-                .accept(MediaType.TEXT_HTML)
-        )
+                        .param("code", code)
+                        .accept(MediaType.TEXT_HTML)
+                )
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
 
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         result = mockMvc.perform(
-                post("/invitations/accept.do")
-                        .session(session)
-                        .param("password", "s3cret")
-                        .param("password_confirmation", "s3cret")
-                        .param("code", invalidCode)
-                        .with(cookieCsrf())
-        )
+                        post("/invitations/accept.do")
+                                .session(session)
+                                .param("password", "s3cret")
+                                .param("password_confirmation", "s3cret")
+                                .param("code", invalidCode)
+                                .with(cookieCsrf())
+                )
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(model().attribute("error_message_code", "code_expired"))
                 .andExpect(view().name("invitations/accept_invite"))
                 .andReturn();
 
-        assertFalse("User should be not yet be verified", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
-        assertNull(session.getAttribute("SPRING_SECURITY_CONTEXT"));
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should be not yet be verified").isFalse();
+        assertThat(session.getAttribute("SPRING_SECURITY_CONTEXT")).isNull();
 
         session = (MockHttpSession) result.getRequest().getSession(false);
         //not logged in anymore
         mockMvc.perform(
-                get("/profile")
-                        .session(session)
-                        .accept(MediaType.TEXT_HTML)
-        )
+                        get("/profile")
+                                .session(session)
+                                .accept(MediaType.TEXT_HTML)
+                )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://localhost/login"));
     }
 
     @Test
     void acceptInvitationSetsYourPassword() throws Exception {
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, userInviteToken, null, clientId, OriginKeys.UAA);
 
-        assertFalse("User should not be verified", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
-        assertEquals(OriginKeys.UAA, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should not be verified").isFalse();
+        assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(OriginKeys.UAA);
 
         String code = extractInvitationCode(inviteLink.toString());
         MvcResult result = mockMvc.perform(get("/invitations/accept")
-                .param("code", code)
-                .accept(MediaType.TEXT_HTML)
-        )
+                        .param("code", code)
+                        .accept(MediaType.TEXT_HTML)
+                )
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Email: " + email)))
                 .andReturn();
 
         code = jdbcTemplate.queryForObject("SELECT code FROM expiring_code_store", String.class);
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        MockHttpServletRequestBuilder post = post("/invitations/accept.do")
+                .param("password", "s3cret")
+                .param("password_confirmation", "s3cret")
+                .param("code", code)
+                .with(cookieCsrf());
+        if (session!=null) {
+            post = post.session(session);
+        }
         result = mockMvc.perform(
-                post("/invitations/accept.do")
-                        .session(session)
-                        .param("password", "s3cret")
-                        .param("password_confirmation", "s3cret")
-                        .param("code", code)
-                        .with(cookieCsrf())
-        )
+                        post
+                )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login?success=invite_accepted&form_redirect_uri=" + REDIRECT_URI))
                 .andReturn();
 
-        assertTrue("User should be verified after password reset", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should be verified after password reset").isTrue();
 
         session = (MockHttpSession) result.getRequest().getSession(false);
         mockMvc.perform(
-                get("/profile")
-                        .session(session)
-                        .accept(MediaType.TEXT_HTML)
-        )
+                        get("/profile")
+                                .session(session)
+                                .accept(MediaType.TEXT_HTML)
+                )
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrlPattern("**/login"));
     }
@@ -324,12 +328,12 @@ public class InvitationsServiceMockMvcTests {
         String domain = generator.generate().toLowerCase() + ".com";
         definition.setEmailDomain(Collections.singletonList(domain));
         IdentityProvider provider = createIdentityProvider(mockMvc, zone.getZone(), OriginKeys.LDAP, definition);
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
         String code = extractInvitationCode(inviteLink.toString());
 
-        assertFalse("User should not be verified", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
-        assertEquals(OriginKeys.LDAP, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should not be verified").isFalse();
+        assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(OriginKeys.LDAP);
 
         ResultActions actions = mockMvc.perform(get("/invitations/accept")
                 .param("code", code)
@@ -340,7 +344,7 @@ public class InvitationsServiceMockMvcTests {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Email: " + email)));
 
-        assertFalse("LDAP user should not be verified after accepting invite until logging in", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("LDAP user should not be verified after accepting invite until logging in").isFalse();
     }
 
     @Test
@@ -352,34 +356,27 @@ public class InvitationsServiceMockMvcTests {
         SamlIdentityProviderDefinition definition = getSamlIdentityProviderDefinition(zone.getZone(), entityID);
         definition.setEmailDomain(Collections.singletonList(domain));
         definition.setIdpEntityAlias(originKey);
-        IdentityProvider provider = createIdentityProvider(mockMvc, zone.getZone(), originKey, definition);
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider(mockMvc, zone.getZone(), originKey, definition);
 
-        String email = new RandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
+        String email = new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@" + domain;
         URL inviteLink = inviteUser(webApplicationContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
         String code = extractInvitationCode(inviteLink.toString());
 
-        assertFalse("User should not be verified", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
-        assertEquals(originKey, queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("User should not be verified").isFalse();
+        assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(originKey);
 
         //should redirect to saml provider
         mockMvc.perform(
-                get("/invitations/accept")
-                        .param("code", code)
-                        .accept(MediaType.TEXT_HTML)
-                        .header("Host", zone.getZone().getIdentityZone().getSubdomain() + ".localhost")
-        )
+                        get("/invitations/accept")
+                                .param("code", code)
+                                .accept(MediaType.TEXT_HTML)
+                                .header("Host", zone.getZone().getIdentityZone().getSubdomain() + ".localhost")
+                )
                 .andExpect(status().is3xxRedirection())
-                .andExpect(
-                        redirectedUrl(
-                                String.format("/saml/discovery?returnIDParam=idp&entityID=%s.cloudfoundry-saml-login&idp=%s&isPassive=true",
-                                        zone.getZone().getIdentityZone().getId(),
-                                        originKey)
-                        )
-                );
+                .andExpect(redirectedUrl("/saml2/authenticate/%s".formatted(originKey)));
 
-
-        assertEquals(provider.getOriginKey(), queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class));
-        assertFalse("Saml user should not yet be verified after clicking on the accept link", queryUserForField(jdbcTemplate, email, "verified", Boolean.class));
+        assertThat(queryUserForField(jdbcTemplate, email, OriginKeys.ORIGIN, String.class)).isEqualTo(provider.getOriginKey());
+        assertThat(queryUserForField(jdbcTemplate, email, "verified", Boolean.class)).as("Saml user should not yet be verified after clicking on the accept link").isFalse();
     }
 
     private static <T> T queryUserForField(JdbcTemplate jdbcTemplate, String email, String field, Class<T> type) {
@@ -390,13 +387,13 @@ public class InvitationsServiceMockMvcTests {
         return MockMvcUtils.createZoneForInvites(mockMvc, webApplicationContext, clientId, REDIRECT_URI, IdentityZoneHolder.getCurrentZoneId());
     }
 
-    private static IdentityProvider createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
+    private static <T extends AbstractIdentityProviderDefinition> IdentityProvider<T> createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, T definition) throws Exception {
         return MockMvcUtils.createIdentityProvider(mockMvc, zone, nameAndOriginKey, definition);
     }
 
     private static SamlIdentityProviderDefinition getSamlIdentityProviderDefinition(IdentityZoneCreationResult zone, String entityID) {
         return new SamlIdentityProviderDefinition()
-                .setMetaDataLocation(String.format(MockMvcUtils.IDP_META_DATA, entityID))
+                .setMetaDataLocation(MockMvcUtils.IDP_META_DATA.formatted(entityID))
                 .setIdpEntityAlias(entityID)
                 .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
                 .setLinkText("Test Saml Provider")
@@ -410,5 +407,4 @@ public class InvitationsServiceMockMvcTests {
     private static String extractInvitationCode(String inviteLink) {
         return MockMvcUtils.extractInvitationCode(inviteLink);
     }
-
 }

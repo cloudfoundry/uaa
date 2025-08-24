@@ -1,45 +1,11 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-  <script type="application/javascript" th:inline="text">
-      /*<![CDATA[*/
-      window.addEventListener('message', handleMessage, false);
-
-      function handleMessage(e) {
-          var origin = '[[${messageOrigin}]]';
-          var messageOrigin = e.origin === 'null' ? null : e.origin;
-          if ((messageOrigin || 'file://') !== origin) return;
-
-          try {
-              var messageTokens = e.data.split(' ');
-              var clientId = messageTokens[0];
-              var expectedClientId = '[[${clientId}]]';
-
-              if (clientId !== expectedClientId) {
-                  throw 'Client ID mismatch';
-              }
-
-              var lastUserId = messageTokens[1];
-
-              var nextUserId = '~';
-              var cookies = document.cookie.split(';');
-              for (var i in cookies) {
-                  var cookieNameValue = cookies[i].split('=');
-                  var cookieName = cookieNameValue[0];
-                  if (cookieName !== 'Current-User') continue;
-
-                  var cookieValue = JSON.parse(decodeURIComponent(cookieNameValue[1]));
-                  nextUserId = cookieValue.userId;
-                  break;
-              }
-
-              var status = (nextUserId === lastUserId) ? 'unchanged' : 'changed';
-              e.source.postMessage(status, messageOrigin||'*');
-          } catch (err) {
-              e.source.postMessage('error', messageOrigin||'*');
-          }
-      }
-      /*]]>*/
-  </script>
+  <script type="text/javascript" src="/resources/javascripts/session/session_message_handler.js"
+          th:src="@{'/resources/javascripts/session/session_message_handler.js'}"></script>
 </head>
+<body>
+  <input type="hidden" id="clientId" th:value="${clientId}">
+  <input type="hidden" id="messageOrigin" th:value="${messageOrigin}">
+</body>
 </html>

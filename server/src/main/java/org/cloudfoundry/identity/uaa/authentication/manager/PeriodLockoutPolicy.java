@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -33,12 +34,9 @@ public class PeriodLockoutPolicy implements AccountLoginPolicy {
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private final LoginPolicy loginPolicy;
-    private final LoginPolicy mfaPolicy;
 
-
-    public PeriodLockoutPolicy(LoginPolicy loginPolicy, LoginPolicy mfaPolicy) {
+    public PeriodLockoutPolicy(LoginPolicy loginPolicy) {
         this.loginPolicy = loginPolicy;
-        this.mfaPolicy = mfaPolicy;
     }
 
     public LockoutPolicy getDefaultLockoutPolicy() {
@@ -48,13 +46,10 @@ public class PeriodLockoutPolicy implements AccountLoginPolicy {
     @Override
     public boolean isAllowed(UaaUser user, Authentication a) throws AuthenticationException {
         Result loginResult = loginPolicy.isAllowed(user.getId());
-        Result mfaResult = mfaPolicy.isAllowed(user.getId());
-        if (loginResult.isAllowed() && mfaResult.isAllowed()) {
+        if (loginResult.isAllowed()) {
             return true;
         }
-        logger.warn("User " + user.getUsername() + " and id " + user.getId() + " has "
-          + loginResult.getFailureCount() + " failed user logins within the last checking period."
-          + " and " + mfaResult.getFailureCount() + " failed  mfa attempts within the last checking period.");
+        logger.warn("User {} and id {} has {} failed user logins within the last checking period.", user.getUsername(), user.getId(), loginResult.getFailureCount());
         return false;
     }
 }

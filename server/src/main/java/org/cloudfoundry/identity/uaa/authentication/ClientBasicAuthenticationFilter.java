@@ -1,4 +1,3 @@
-
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.springframework.security.authentication.AuthenticationDetailsSource;
@@ -15,10 +14,10 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 import org.springframework.util.Assert;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -37,9 +36,9 @@ import java.util.Base64;
  */
 public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
     private AuthenticationDetailsSource<HttpServletRequest, ?> authenticationDetailsSource = new WebAuthenticationDetailsSource();
-    private AuthenticationEntryPoint authenticationEntryPoint;
-    private AuthenticationManager authenticationManager;
-    private boolean enableUriEncodingCompatibilityMode;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
+    private final AuthenticationManager authenticationManager;
+    private final boolean enableUriEncodingCompatibilityMode;
 
     /**
      * Creates an instance which will authenticate against the supplied
@@ -51,8 +50,8 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
      * Typically an instance of {@link BasicAuthenticationEntryPoint}.
      */
     public ClientBasicAuthenticationFilter(AuthenticationManager authenticationManager,
-                                           AuthenticationEntryPoint authenticationEntryPoint,
-                                           boolean enableUriEncodingCompatibilityMode) {
+            AuthenticationEntryPoint authenticationEntryPoint,
+            boolean enableUriEncodingCompatibilityMode) {
         Assert.notNull(authenticationManager, "authenticationManager cannot be null");
         Assert.notNull(authenticationEntryPoint,
                 "authenticationEntryPoint cannot be null");
@@ -70,13 +69,13 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     public void afterPropertiesSet() {
-        Assert.notNull(this.authenticationManager,"An AuthenticationManager is required");
-        Assert.notNull(this.authenticationEntryPoint,"An AuthenticationEntryPoint is required");
+        Assert.notNull(this.authenticationManager, "An AuthenticationManager is required");
+        Assert.notNull(this.authenticationEntryPoint, "An AuthenticationEntryPoint is required");
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response, FilterChain chain)
+            HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         final boolean debug = this.logger.isDebugEnabled();
 
@@ -98,7 +97,7 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
                 headerEncodedCreds = "false";
             }
 
-            if (enableUriEncodingCompatibilityMode && !headerEncodedCreds.toLowerCase().equals("true")) {
+            if (enableUriEncodingCompatibilityMode && !"true".equals(headerEncodedCreds.toLowerCase())) {
                 clientId = tokens[0];
                 clientSecret = tokens[1];
             } else {
@@ -168,7 +167,7 @@ public class ClientBasicAuthenticationFilter extends OncePerRequestFilter {
         if (delim == -1) {
             throw new BadCredentialsException("Invalid basic authentication token");
         }
-        return new String[] { token.substring(0, delim), token.substring(delim + 1) };
+        return new String[]{token.substring(0, delim), token.substring(delim + 1)};
     }
 
     private String getCredentialsCharset(HttpServletRequest httpRequest) {

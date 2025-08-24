@@ -10,9 +10,9 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import java.sql.Timestamp;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.PrincipalAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @WithDatabaseContext
 class JdbcAuditServiceTests {
@@ -37,21 +37,21 @@ class JdbcAuditServiceTests {
         Thread.sleep(100);
         auditService.log(getAuditEvent(UserAuthenticationFailure, "1", "joe"), getAuditEvent(UserAuthenticationFailure, "1", "joe").getIdentityZoneId());
         List<AuditEvent> events = auditService.find("1", 0, IdentityZone.getUaaZoneId());
-        assertEquals(2, events.size());
-        assertEquals("1", events.get(0).getPrincipalId());
-        assertEquals("joe", events.get(0).getData());
-        assertEquals("1.1.1.1", events.get(0).getOrigin());
-        assertEquals(IdentityZone.getUaaZoneId(), events.get(0).getIdentityZoneId());
+        assertThat(events).hasSize(2);
+        assertThat(events.getFirst().getPrincipalId()).isEqualTo("1");
+        assertThat(events.getFirst().getData()).isEqualTo("joe");
+        assertThat(events.getFirst().getOrigin()).isEqualTo("1.1.1.1");
+        assertThat(events.getFirst().getIdentityZoneId()).isEqualTo(IdentityZone.getUaaZoneId());
     }
 
     @Test
     void principalAuthenticationFailureAuditSucceeds() {
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientA"), getAuditEvent(PrincipalAuthenticationFailure, "clientA").getIdentityZoneId());
         List<AuditEvent> events = auditService.find("clientA", 0, IdentityZone.getUaaZoneId());
-        assertEquals(1, events.size());
-        assertEquals("clientA", events.get(0).getPrincipalId());
-        assertEquals("1.1.1.1", events.get(0).getOrigin());
-        assertEquals(IdentityZone.getUaaZoneId(), events.get(0).getIdentityZoneId());
+        assertThat(events).hasSize(1);
+        assertThat(events.getFirst().getPrincipalId()).isEqualTo("clientA");
+        assertThat(events.getFirst().getOrigin()).isEqualTo("1.1.1.1");
+        assertThat(events.getFirst().getIdentityZoneId()).isEqualTo(IdentityZone.getUaaZoneId());
     }
 
     @Test
@@ -64,7 +64,7 @@ class JdbcAuditServiceTests {
         auditService.log(getAuditEvent(PrincipalAuthenticationFailure, "clientB"), getAuditEvent(PrincipalAuthenticationFailure, "clientB").getIdentityZoneId());
         // Find events within last 2 mins
         List<AuditEvent> events = auditService.find("clientA", now - 120 * 1000, IdentityZone.getUaaZoneId());
-        assertEquals(1, events.size());
+        assertThat(events).hasSize(1);
     }
 
     private AuditEvent getAuditEvent(AuditEventType type, String principal) {

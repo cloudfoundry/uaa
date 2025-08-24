@@ -19,8 +19,7 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 
 import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -77,9 +76,9 @@ class AuthzAuthenticationFilterTests {
         ArgumentCaptor<AuthenticationException> captor = ArgumentCaptor.forClass(AuthenticationException.class);
         verify(entryPoint, times(1)).commence(same(request), same(response), captor.capture());
 
-        assertEquals(1, captor.getAllValues().size());
-        assertEquals(PasswordChangeRequiredException.class, captor.getValue().getClass());
-        assertEquals("password change required", captor.getValue().getMessage());
-        assertSame(mockUaaAuthentication, ((PasswordChangeRequiredException) captor.getValue()).getAuthentication());
+        assertThat(captor.getAllValues()).hasSize(1);
+        assertThat(captor.getValue().getClass()).isEqualTo(PasswordChangeRequiredException.class);
+        assertThat(captor.getValue().getMessage()).isEqualTo("password change required");
+        assertThat(((PasswordChangeRequiredException) captor.getValue()).getAuthentication()).isSameAs(mockUaaAuthentication);
     }
 }

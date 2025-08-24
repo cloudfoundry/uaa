@@ -12,7 +12,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -60,29 +60,26 @@ class UaaStartupFailureListenerTest {
         @Test
         void rethrowsAnyExceptions() throws LifecycleException {
             doThrow(new LifecycleException()).when(server).stop();
-            assertThrows(RuntimeException.class, ()-> listener.lifecycleEvent(mockLifecycleEvent(server, Lifecycle.AFTER_START_EVENT)));
+            assertThatExceptionOfType(RuntimeException.class).isThrownBy(() -> listener.lifecycleEvent(mockLifecycleEvent(server, Lifecycle.AFTER_START_EVENT)));
             verify(server, times(1)).stop();
             verify(server, times(0)).destroy();
         }
     }
 
-    private LifecycleEvent mockLifecycleEvent(Server server, String type)
-    {
+    private LifecycleEvent mockLifecycleEvent(Server server, String type) {
         LifecycleEvent mockEvent = mock(LifecycleEvent.class);
         when(mockEvent.getType()).thenReturn(type);
         when(mockEvent.getLifecycle()).thenReturn(server);
         return mockEvent;
     }
 
-    private Server mockServer(Service service)
-    {
+    private Server mockServer(Service service) {
         Server mockServer = mock(Server.class);
-        when(mockServer.findServices()).thenReturn(new Service[]{ service });
+        when(mockServer.findServices()).thenReturn(new Service[]{service});
         return mockServer;
     }
 
-    private Service mockService(LifecycleState state)
-    {
+    private Service mockService(LifecycleState state) {
         Engine mockContainer = mock(Engine.class);
         when(mockContainer.getState()).thenReturn(state);
         when(mockContainer.findChildren()).thenReturn(new Container[]{});

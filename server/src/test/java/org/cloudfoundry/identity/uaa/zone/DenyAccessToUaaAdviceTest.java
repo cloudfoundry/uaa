@@ -5,9 +5,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.access.AccessDeniedException;
 
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DenyAccessToUaaAdviceTest {
 
@@ -28,17 +27,17 @@ class DenyAccessToUaaAdviceTest {
 
         @Test
         void checkIdentityZone() {
-            assertThrowsWithMessageThat(AccessDeniedException.class,
-                    () -> denyAccessToUaaAdvice.checkIdentityZone(identityZone),
-                    is("Access to UAA is not allowed."));
+            assertThatThrownBy(() -> denyAccessToUaaAdvice.checkIdentityZone(identityZone))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("Access to UAA is not allowed.");
         }
 
         @Test
         void checkIdentityZoneId() {
-
-            assertThrowsWithMessageThat(AccessDeniedException.class,
-                    () -> denyAccessToUaaAdvice.checkIdentityZoneId(identityZone.getId()),
-                    is("Access to UAA is not allowed."));
+            String id = identityZone.getId();
+            assertThatThrownBy(() -> denyAccessToUaaAdvice.checkIdentityZoneId(id))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("Access to UAA is not allowed.");
         }
     }
 
@@ -53,15 +52,15 @@ class DenyAccessToUaaAdviceTest {
 
         @Test
         void checkIdentityZone_isNotUaa() {
-            assertDoesNotThrow(() -> denyAccessToUaaAdvice.checkIdentityZone(identityZone));
-            assertDoesNotThrow(() -> denyAccessToUaaAdvice.checkIdentityZone(null));
+            assertThatNoException().isThrownBy(() -> denyAccessToUaaAdvice.checkIdentityZone(identityZone));
+            assertThatNoException().isThrownBy(() -> denyAccessToUaaAdvice.checkIdentityZone(null));
         }
 
         @Test
         void checkIdentityZoneId_isNotUaa() {
-            assertDoesNotThrow(() -> denyAccessToUaaAdvice.checkIdentityZoneId(identityZone.getId()));
-            assertDoesNotThrow(() -> denyAccessToUaaAdvice.checkIdentityZoneId(""));
-            assertDoesNotThrow(() -> denyAccessToUaaAdvice.checkIdentityZoneId(null));
+            assertThatNoException().isThrownBy(() -> denyAccessToUaaAdvice.checkIdentityZoneId(identityZone.getId()));
+            assertThatNoException().isThrownBy(() -> denyAccessToUaaAdvice.checkIdentityZoneId(""));
+            assertThatNoException().isThrownBy(() -> denyAccessToUaaAdvice.checkIdentityZoneId(null));
         }
     }
 }

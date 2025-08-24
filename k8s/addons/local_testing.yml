@@ -27,9 +27,9 @@ encryption:
 #@overlay/replace
 login:
   saml:
-    activeKeyId: FAKE_SAML_KEY_ID
+    activeKeyId: fake_saml_key_id
     keys:
-      FAKE_SAML_KEY_ID:
+      fake_saml_key_id:
         key: |
           -----BEGIN RSA PRIVATE KEY-----
           MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5

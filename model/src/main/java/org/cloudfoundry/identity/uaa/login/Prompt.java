@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -25,8 +26,8 @@ public class Prompt {
 
     @JsonCreator
     public Prompt(@JsonProperty("name") String name,
-                  @JsonProperty("type") String type,
-                  @JsonProperty("text") String text) {
+            @JsonProperty("type") String type,
+            @JsonProperty("text") String text) {
         this.name = name;
         this.type = type;
         this.text = text;
@@ -46,7 +47,7 @@ public class Prompt {
 
     @JsonIgnore
     public String[] getDetails() {
-        return new String[] { type, text };
+        return new String[]{type, text};
     }
 
     public static Prompt valueOf(String text) {
@@ -65,7 +66,7 @@ public class Prompt {
 
     @Override
     public String toString() {
-        return String.format("\"%s\":[\"%s\",\"%s\"]", name, type, text);
+        return "\"%s\":[\"%s\",\"%s\"]".formatted(name, type, text);
     }
 
     @Override
@@ -75,12 +76,15 @@ public class Prompt {
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         Prompt other = (Prompt) obj;
         return toString().equals(other.toString());
     }

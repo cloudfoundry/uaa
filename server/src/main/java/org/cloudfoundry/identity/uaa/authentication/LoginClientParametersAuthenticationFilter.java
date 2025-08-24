@@ -14,10 +14,13 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 
 /**
@@ -26,20 +29,28 @@ import java.util.Map;
  * It sets the authentication to a client only
  * Oauth2Authentication object as that is expected by
  * the LoginAuthenticationManager.
- *
  */
 public class LoginClientParametersAuthenticationFilter extends AbstractClientParametersAuthenticationFilter {
+
+    public LoginClientParametersAuthenticationFilter(
+            @Qualifier("clientAuthenticationManager") AuthenticationManager authenticationManager
+    ) {
+        this.setClientAuthenticationManager(authenticationManager);
+    }
 
     @Override
     public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) {
         if (loginInfo.isEmpty()) {
             throw new BadCredentialsException("Request does not contain credentials.");
-        } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {
-            logger.debug("Insufficient resources to perform client authentication. AuthMgr:"+
-                    clientAuthenticationManager + "; clientId:"+clientId);
+        } else if (clientAuthenticationManager == null || loginInfo.get(CLIENT_ID) == null) {
+            if (logger.isDebugEnabled()) {
+                logger.debug("Insufficient resources to perform client authentication. AuthMgr:{}; clientId:{}", clientAuthenticationManager, UaaStringUtils.getCleanedUserControlString(clientId));
+            }
             throw new BadCredentialsException("Request does not contain client credentials.");
         } else {
-            logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+            if (logger.isDebugEnabled()) {
+                logger.debug("Located credentials in request, with keys: {}", UaaStringUtils.getCleanedUserControlString(loginInfo.keySet().toString()));
+            }
 
             doClientCredentialLogin(req, loginInfo, clientId);
         }

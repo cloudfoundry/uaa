@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,25 +13,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.cookie.BasicClientCookie;
-import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.apache.hc.client5.http.cookie.BasicCookieStore;
+import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.DefaultUserAuthenticationConverter;
+import org.cloudfoundry.identity.uaa.test.TestAccountExtension;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.token.DefaultUserAuthenticationConverter;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -39,56 +38,45 @@ import java.util.Collections;
 import java.util.Map;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
-import static org.junit.Assert.*;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
  * @author Dave Syer
  */
-public class CheckTokenEndpointIntegrationTests {
+class CheckTokenEndpointIntegrationTests {
 
-    @Rule
-    public ServerRunning serverRunning = ServerRunning.isRunning();
+    @RegisterExtension
+    private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private static final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
-    @Rule
-    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    @RegisterExtension
+    private static final TestAccountExtension testAccountExtension = TestAccountExtension.standard(serverRunning, testAccounts);
 
     @Test
-    public void testDecodeToken() {
+    void decodeToken() {
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
         BasicCookieStore cookies = new BasicCookieStore();
 
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
-                        .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
-                        .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
+                .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
+                .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
         ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), getHeaders(cookies));
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         String location = result.getHeaders().getLocation().toString();
-
-        if (result.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
-            }
-        }
+        IntegrationTestUtils.extractCookies(result, cookies);
 
         ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
+        IntegrationTestUtils.extractCookies(response, cookies);
 
-        if (response.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : response.getHeaders().get("Set-Cookie")) {
-                int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
-            }
-        }
         // should be directed to the login screen...
-        assertTrue(response.getBody().contains("/login.do"));
-        assertTrue(response.getBody().contains("username"));
-        assertTrue(response.getBody().contains("password"));
+        assertThat(response.getBody()).contains("/login.do")
+                .contains("username")
+                .contains("password");
         String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -98,40 +86,28 @@ public class CheckTokenEndpointIntegrationTests {
 
         // Should be redirected to the original URL, but now authenticated
         result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
-
-        if (result.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
-            }
-        }
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        IntegrationTestUtils.extractCookies(result, cookies);
 
         response = serverRunning.getForString(result.getHeaders().getLocation().toString(), getHeaders(cookies));
-        if (response.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : response.getHeaders().get("Set-Cookie")) {
-                int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength+1)));
-            }
-        }
+        IntegrationTestUtils.extractCookies(response, cookies);
+
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
-            assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
+            assertThat(response.getBody()).contains("<h1>Application Authorization</h1>");
 
             formData.clear();
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             formData.add(USER_OAUTH_APPROVAL, "true");
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
-            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = result.getHeaders().getLocation().toString();
-        }
-        else {
+        } else {
             // Token cached so no need for second approval
-            assertEquals(HttpStatus.FOUND, response.getStatusCode());
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = response.getHeaders().getLocation().toString();
         }
-        assertTrue("Wrong location: " + location,
-                        location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
+        assertThat(location).as("Wrong location: " + location).matches(resource.getPreEstablishedRedirectUri() + ".*code=.+");
 
         formData.clear();
         formData.add("client_id", resource.getClientId());
@@ -140,52 +116,52 @@ public class CheckTokenEndpointIntegrationTests {
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
 
         HttpHeaders headers = new HttpHeaders();
-        formData = new LinkedMultiValueMap<String, String>();
+        formData = new LinkedMultiValueMap<>();
         headers.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         formData.add("token", accessToken.getValue());
 
         tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
-        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
-        assertNotNull(map.get("iss"));
-        assertEquals(testAccounts.getUserName(), map.get("user_name"));
-        assertEquals(testAccounts.getEmail(), map.get("email"));
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
 
         // Test that Spring's default converter can create an auth from the response.
-        Authentication auth = (new DefaultUserAuthenticationConverter()).extractAuthentication(map);
+        (new DefaultUserAuthenticationConverter()).extractAuthentication(map);
     }
 
     @Test
-    public void testUnauthorized() {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+    void unauthorized() {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
-        assertTrue(map.containsKey("error"));
+        assertThat(map).containsKey("error");
     }
 
     @Test
-    public void testForbidden() {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+    void forbidden() {
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
         headers.set("Authorization", "Basic " + new String(Base64.encode("cf:".getBytes(UTF_8))));
@@ -193,18 +169,18 @@ public class CheckTokenEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/check_token", formData, headers);
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
-        assertTrue(map.containsKey("error"));
+        assertThat(map).containsKey("error");
     }
 
     @Test
-    public void testInvalidScope() {
+    void invalidScope() {
         OAuth2AccessToken accessToken = getAdminToken();
 
-        String requestBody = String.format("token=%s&scopes=%s", accessToken.getValue(), "uaa.resource%");
+        String requestBody = "token=%s&scopes=%s".formatted(accessToken.getValue(), "uaa.resource%");
 
         HttpHeaders headers = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
@@ -214,80 +190,81 @@ public class CheckTokenEndpointIntegrationTests {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/check_token", requestBody, headers);
         System.out.println(response.getBody());
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
-        assertEquals("parameter_parsing_error", map.get("error"));
-        assertTrue(map.containsKey("error_description"));
+        assertThat(map)
+                .containsEntry("error", "parameter_parsing_error")
+                .containsKey("error_description");
     }
 
     @Test
-    public void testValidPasswordGrant() {
+    void validPasswordGrant() {
         OAuth2AccessToken accessToken = getUserToken(null);
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         HttpHeaders tokenHeaders = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         formData.add("token", accessToken.getValue());
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        assertNotNull(tokenResponse.getBody());
+        assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(tokenResponse.getBody()).isNotNull();
         System.out.println(tokenResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
-        assertNotNull(map.get("iss"));
-        assertEquals(testAccounts.getUserName(), map.get("user_name"));
-        assertEquals(testAccounts.getEmail(), map.get("email"));
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
     }
 
     @Test
-    public void testAddidionalAttributes() {
+    void addidionalAttributes() {
         OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":\"domain\\\\group1\",\"external_id\":\"abcd1234\"}}");
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         HttpHeaders tokenHeaders = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         formData.add("token", accessToken.getValue());
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        assertNotNull(tokenResponse.getBody());
+        assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(tokenResponse.getBody()).isNotNull();
         System.out.println(tokenResponse.getBody());
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
-        assertNotNull(map.get("iss"));
-        assertEquals(testAccounts.getUserName(), map.get("user_name"));
-        assertEquals(testAccounts.getEmail(), map.get("email"));
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
     }
 
     @Test
-    public void testInvalidAddidionalAttributes() {
+    void invalidAddidionalAttributes() {
         OAuth2AccessToken accessToken = getUserToken("{\"az_attr\":{\"external_group\":true,\"external_id\":{\"nested_group\":true,\"nested_id\":1234}} }");
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         HttpHeaders tokenHeaders = new HttpHeaders();
         ClientCredentialsResourceDetails resource = testAccounts.getClientCredentialsResource("app", null, "app", "appclientsecret");
         tokenHeaders.set("Authorization",
-                        testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+                testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         formData.add("token", accessToken.getValue());
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/check_token", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        assertThat(tokenResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
-        assertNull(map.get("az_attr"));
+        assertThat(map).doesNotContainKey("az_attr");
     }
 
     @SuppressWarnings("unchecked")
@@ -303,7 +280,7 @@ public class CheckTokenEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         return DefaultOAuth2AccessToken.valueOf(response.getBody());
     }
@@ -318,15 +295,15 @@ public class CheckTokenEndpointIntegrationTests {
         formData.set("response_type", "token");
         formData.set("grant_type", "password");
         formData.set("token_format", "jwt");
-        if(optAdditionAttributes != null) {
-           formData.set("authorities", optAdditionAttributes);
+        if (optAdditionAttributes != null) {
+            formData.set("authorities", optAdditionAttributes);
         }
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         return DefaultOAuth2AccessToken.valueOf(response.getBody());
     }

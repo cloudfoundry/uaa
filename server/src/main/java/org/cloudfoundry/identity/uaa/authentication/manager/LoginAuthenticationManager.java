@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -18,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.IdentityProviderAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -34,22 +36,23 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.stereotype.Component;
 
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.NotANumber;
 
+@Component
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
     private final Logger logger = LoggerFactory.getLogger(getClass());
     private final IdentityZoneManager identityZoneManager;
+    private final UaaUserDatabase userDatabase;
 
     private ApplicationEventPublisher eventPublisher;
 
-    private UaaUserDatabase userDatabase;
-
-    public LoginAuthenticationManager(IdentityZoneManager identityZoneManager) {
+    public LoginAuthenticationManager(IdentityZoneManager identityZoneManager, UaaUserDatabase userDatabase) {
         this.identityZoneManager = identityZoneManager;
+        this.userDatabase = userDatabase;
     }
 
     @Override
@@ -57,60 +60,50 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         this.eventPublisher = eventPublisher;
     }
 
-    /**
-     * @param userDatabase the userDatabase to set
-     */
-    public void setUserDatabase(UaaUserDatabase userDatabase) {
-        this.userDatabase = userDatabase;
-    }
-
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
 
         if (!(request instanceof AuthzAuthenticationRequest)) {
-            logger.debug("Cannot process request of type: " + request.getClass().getName());
+            logger.debug("Cannot process request of type: {}", request.getClass().getName());
             return null;
         }
 
         AuthzAuthenticationRequest req = (AuthzAuthenticationRequest) request;
         Map<String, String> info = req.getInfo();
-        logger.debug("Processing authentication request for " + req.getName());
+        logger.debug("Processing authentication request for {}", req.getName());
 
         SecurityContext context = SecurityContextHolder.getContext();
 
-        if (context.getAuthentication() instanceof OAuth2Authentication) {
-            OAuth2Authentication authentication = (OAuth2Authentication) context.getAuthentication();
-            if (authentication.isClientOnly()) {
-                UaaUser user = getUser(req, info);
-                UaaAuthenticationDetails authdetails = (UaaAuthenticationDetails) req.getDetails();
-                boolean addNewAccounts = authdetails != null && authdetails.isAddNew();
-                try {
-                    if (NotANumber.equals(user.getId())) {
-                        user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
-                    } else {
-                        //we should never add new accounts if we specify user_id
-                        addNewAccounts = false;
-                        user = userDatabase.retrieveUserById(user.getId());
-                    }
-                } catch (UsernameNotFoundException e) {
-                    // Not necessarily fatal
-                    if (addNewAccounts) {
-                        // Register new users automatically
-                        publish(new NewUserAuthenticatedEvent(user));
-                        try {
-                            user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
-                        } catch (UsernameNotFoundException ex) {
-                            throw new BadCredentialsException("Bad credentials");
-                        }
-                    } else  {
-                        //if add_new=false then this is a bad user ID
-                        throw new BadCredentialsException("Bad Credentials");
-                    }
+        if (context.getAuthentication() instanceof OAuth2Authentication authentication && authentication.isClientOnly()) {
+            UaaUser user = getUser(req, info);
+            UaaAuthenticationDetails authdetails = (UaaAuthenticationDetails) req.getDetails();
+            boolean addNewAccounts = authdetails != null && authdetails.isAddNew();
+            try {
+                if (NotANumber.equals(user.getId())) {
+                    user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
+                } else {
+                    //we should never add new accounts if we specify user_id
+                    addNewAccounts = false;
+                    user = userDatabase.retrieveUserById(user.getId());
                 }
-                Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
-                publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
-                return success;
+            } catch (UsernameNotFoundException e) {
+                // Not necessarily fatal
+                if (addNewAccounts) {
+                    // Register new users automatically
+                    publish(new NewUserAuthenticatedEvent(user));
+                    try {
+                        user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());
+                    } catch (UsernameNotFoundException ex) {
+                        throw new BadCredentialsException("Bad credentials");
+                    }
+                } else {
+                    //if add_new=false then this is a bad user ID
+                    throw new BadCredentialsException("Bad Credentials");
+                }
             }
+            Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), authdetails);
+            publish(new IdentityProviderAuthenticationSuccessEvent(user, success, user.getOrigin(), identityZoneManager.getCurrentIdentityZoneId()));
+            return success;
         }
 
         logger.debug("Did not locate login credentials");
@@ -124,7 +117,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
     }
 
     protected UaaUser getUser(AuthzAuthenticationRequest req, Map<String, String> info) {
-        if(info.get(OriginKeys.ORIGIN)!=null && info.get(OriginKeys.ORIGIN).equals(OriginKeys.UAA)){
+        if (info.get(OriginKeys.ORIGIN) != null && info.get(OriginKeys.ORIGIN).equals(OriginKeys.UAA)) {
             throw new BadCredentialsException("uaa origin not allowed for external login server");
         }
 
@@ -136,16 +129,16 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
 
         String name = req.getName();
         return UaaUser.createWithDefaults(u ->
-            u.withId(info.getOrDefault("user_id", NotANumber))
-                .withUsername(name)
-                .withEmail(info.get("email"))
-                .withGivenName(info.get("given_name"))
-                .withFamilyName(info.get("family_name"))
-                .withPassword("")
-                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-                .withOrigin(info.getOrDefault(OriginKeys.ORIGIN, OriginKeys.LOGIN_SERVER))
-                .withExternalId(name)
-                .withZoneId(identityZoneManager.getCurrentIdentityZoneId())
+                u.withId(info.getOrDefault("user_id", NotANumber))
+                        .withUsername(name)
+                        .withEmail(info.get("email"))
+                        .withGivenName(info.get("given_name"))
+                        .withFamilyName(info.get("family_name"))
+                        .withPassword("")
+                        .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                        .withOrigin(info.getOrDefault(OriginKeys.ORIGIN, OriginKeys.LOGIN_SERVER))
+                        .withExternalId(name)
+                        .withZoneId(identityZoneManager.getCurrentIdentityZoneId())
         );
     }
 }

@@ -7,7 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class LimitSqlAdapterTests {
@@ -42,8 +42,8 @@ class LimitSqlAdapterTests {
 
     @Test
     void deleteTopRows() {
-        assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'X'", Integer.class));
-        assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'A'", Integer.class));
+        assertThat((int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'X'", Integer.class)).isOne();
+        assertThat((int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'A'", Integer.class)).isOne();
         jdbcTemplate.update(
                 limitSqlAdapter.getDeleteExpiredQuery(
                         "delete_top_rows_test",
@@ -53,9 +53,9 @@ class LimitSqlAdapterTests {
                 ),
                 5
         );
-        assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'K'", Integer.class));
-        assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'D'", Integer.class));
-        assertEquals(1, (int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'A'", Integer.class));
-        assertEquals(3, (int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test", Integer.class));
+        assertThat((int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'K'", Integer.class)).isOne();
+        assertThat((int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'D'", Integer.class)).isOne();
+        assertThat((int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test where id = 'A'", Integer.class)).isOne();
+        assertThat((int) jdbcTemplate.queryForObject("select count(*) from delete_top_rows_test", Integer.class)).isEqualTo(3);
     }
 }

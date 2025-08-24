@@ -17,8 +17,8 @@ import org.slf4j.LoggerFactory;
  */
 public class S256PkceVerifier implements PkceVerifier {
 
-	private static Logger logger = LoggerFactory.getLogger(S256PkceVerifier.class);
-	private final String codeChallengeMethod = "S256";
+    private static final Logger logger = LoggerFactory.getLogger(S256PkceVerifier.class);
+    private final String codeChallengeMethod = "S256";
 
     public S256PkceVerifier() {
     }
@@ -39,9 +39,9 @@ public class S256PkceVerifier implements PkceVerifier {
             byte[] digest = md.digest();
             return Base64.encodeBase64URLSafeString(digest);
         } catch (UnsupportedEncodingException e) {
-            logger.debug(e.getMessage(),e);
+            logger.debug(e.getMessage(), e);
         } catch (NoSuchAlgorithmException e) {
-            logger.debug(e.getMessage(),e);
+            logger.debug(e.getMessage(), e);
         }
         return null;
     }

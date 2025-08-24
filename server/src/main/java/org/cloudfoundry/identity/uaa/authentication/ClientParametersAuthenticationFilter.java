@@ -17,8 +17,8 @@ package org.cloudfoundry.identity.uaa.authentication;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.http.MediaType;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Map;
 
 /**
@@ -33,7 +33,7 @@ public class ClientParametersAuthenticationFilter extends AbstractClientParamete
 
     @Override
     public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) {
-        if (!StringUtils.hasText(req.getHeader("Authorization"))  && isUrlEncodedForm(req)) {
+        if (!StringUtils.hasText(req.getHeader("Authorization")) && isUrlEncodedForm(req)) {
             doClientCredentialLogin(req, loginInfo, clientId);
         }
     }

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -14,12 +15,14 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.util.StringUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
@@ -30,19 +33,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+
 @JsonIgnoreProperties(ignoreUnknown = true)
+@Data
+@NoArgsConstructor
 public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
-
-    public enum MetadataLocation {
-        URL,
-        DATA,
-        UNKNOWN
-    }
-
-    public enum ExternalGroupMappingMode {
-        EXPLICITLY_MAPPED,
-        AS_SCOPES
-    }
 
     private String metaDataLocation;
     private String idpEntityAlias;
@@ -54,19 +49,21 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String linkText;
     private String iconUrl;
     private ExternalGroupMappingMode groupMappingMode = ExternalGroupMappingMode.EXPLICITLY_MAPPED;
-    private boolean skipSslValidation = false;
+    private boolean skipSslValidation;
     private List<String> authnContext;
 
-    public SamlIdentityProviderDefinition() {}
+    @JsonIgnore
+    private String idpEntityId;
 
     public SamlIdentityProviderDefinition clone() {
         List<String> emailDomain = getEmailDomain() != null ? new ArrayList<>(getEmailDomain()) : null;
         List<String> externalGroupsWhitelist = getExternalGroupsWhitelist() != null ? new ArrayList<>(getExternalGroupsWhitelist()) : null;
         List<String> authnContext = getAuthnContext() != null ? new ArrayList<>(getAuthnContext()) : null;
-        Map<String, Object> attributeMappings = getAttributeMappings() != null ? new HashMap(getAttributeMappings()) : null;
+        Map<String, Object> attributeMappings = getAttributeMappings() != null ? new HashMap<>(getAttributeMappings()) : null;
         SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation(metaDataLocation);
         def.setIdpEntityAlias(idpEntityAlias);
+        def.setIdpEntityId(idpEntityId);
         def.setZoneId(zoneId);
         def.setNameID(nameID);
         def.setAssertionConsumerIndex(assertionConsumerIndex);
@@ -90,16 +87,22 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     @JsonIgnore
     public MetadataLocation getType() {
-        String trimmedLocation = metaDataLocation.trim();
-        if (trimmedLocation.startsWith("<?xml") ||
-            trimmedLocation.startsWith("<md:EntityDescriptor") ||
-            trimmedLocation.startsWith("<EntityDescriptor")) {
-            if(validateXml(trimmedLocation)) {
+        return getType(this.metaDataLocation);
+    }
+
+    public static MetadataLocation getType(String urlOrXmlData) {
+        String trimmedValue = urlOrXmlData.trim();
+
+        if (trimmedValue.startsWith("<?xml") ||
+                trimmedValue.startsWith("<md:EntityDescriptor") ||
+                trimmedValue.startsWith("<EntityDescriptor")) {
+            if (validateXml(trimmedValue)) {
                 return MetadataLocation.DATA;
             }
-        } else if (trimmedLocation.startsWith("http")) {
+        } else if (trimmedValue.startsWith("http")) {
             try {
-                URL uri = new URL(trimmedLocation);
+                // Check if it is a valid URL
+                new URL(trimmedValue);
                 return MetadataLocation.URL;
             } catch (MalformedURLException e) {
                 //invalid URL
@@ -108,14 +111,22 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return MetadataLocation.UNKNOWN;
     }
 
-    private boolean validateXml(String xml) {
-        if (xml==null || xml.toUpperCase().contains("<!DOCTYPE")) {
+    @JsonIgnore
+    public String getIdpEntityId() {
+        return this.idpEntityId;
+    }
+
+    @JsonIgnore
+    public void setIdpEntityId(final String idpEntityId) {
+        this.idpEntityId = idpEntityId;
+    }
+
+    private static boolean validateXml(String xml) {
+        if (xml == null || xml.toUpperCase().contains("<!DOCTYPE")) {
             return false;
         }
         try {
-            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-            factory.setExpandEntityReferences(false);
-            DocumentBuilder builder = factory.newDocumentBuilder();
+            DocumentBuilder builder = ObjectUtils.getDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
         } catch (ParserConfigurationException | SAXException | IOException e) {
             return false;
@@ -124,17 +135,9 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return true;
     }
 
-    public String getMetaDataLocation() {
-        return metaDataLocation;
-    }
-
     public SamlIdentityProviderDefinition setMetaDataLocation(String metaDataLocation) {
         this.metaDataLocation = metaDataLocation;
         return this;
-    }
-
-    public String getIdpEntityAlias() {
-        return idpEntityAlias;
     }
 
     public SamlIdentityProviderDefinition setIdpEntityAlias(String idpEntityAlias) {
@@ -142,17 +145,9 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return this;
     }
 
-    public String getNameID() {
-        return nameID;
-    }
-
     public SamlIdentityProviderDefinition setNameID(String nameID) {
         this.nameID = nameID;
         return this;
-    }
-
-    public List<String> getAuthnContext() {
-        return authnContext;
     }
 
     public SamlIdentityProviderDefinition setAuthnContext(List<String> authnContext) {
@@ -160,17 +155,9 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return this;
     }
 
-    public int getAssertionConsumerIndex() {
-        return assertionConsumerIndex;
-    }
-
     public SamlIdentityProviderDefinition setAssertionConsumerIndex(int assertionConsumerIndex) {
         this.assertionConsumerIndex = assertionConsumerIndex;
         return this;
-    }
-
-    public boolean isMetadataTrustCheck() {
-        return metadataTrustCheck;
     }
 
     public SamlIdentityProviderDefinition setMetadataTrustCheck(boolean metadataTrustCheck) {
@@ -178,21 +165,9 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return this;
     }
 
-    public boolean isShowSamlLink() {
-        return showSamlLink;
-    }
-
     public SamlIdentityProviderDefinition setShowSamlLink(boolean showSamlLink) {
         this.showSamlLink = showSamlLink;
         return this;
-    }
-
-    public ExternalGroupMappingMode getGroupMappingMode() {
-        return groupMappingMode;
-    }
-
-    public void setGroupMappingMode(ExternalGroupMappingMode asScopes) {
-        this.groupMappingMode = asScopes;
     }
 
     public String getSocketFactoryClassName() {
@@ -213,17 +188,9 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return this;
     }
 
-    public String getIconUrl() {
-        return iconUrl;
-    }
-
     public SamlIdentityProviderDefinition setIconUrl(String iconUrl) {
         this.iconUrl = iconUrl;
         return this;
-    }
-
-    public String getZoneId() {
-        return zoneId;
     }
 
     public SamlIdentityProviderDefinition setZoneId(String zoneId) {
@@ -231,19 +198,17 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return this;
     }
 
-    public boolean isSkipSslValidation() {
-        return skipSslValidation;
-    }
-
-    public void setSkipSslValidation(boolean skipSslValidation) {
-        this.skipSslValidation = skipSslValidation;
-    }
-
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         SamlIdentityProviderDefinition that = (SamlIdentityProviderDefinition) o;
 
@@ -253,30 +218,40 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     @Override
     public int hashCode() {
         String alias = getUniqueAlias();
-        return alias==null ? 0 : alias.hashCode();
+        return alias == null ? 0 : alias.hashCode();
     }
 
     @JsonIgnore
     public String getUniqueAlias() {
-        return getIdpEntityAlias()+"###"+getZoneId();
+        return getIdpEntityAlias() + "###" + getZoneId();
     }
 
     @Override
     public String toString() {
         return "SamlIdentityProviderDefinition{" +
-            "idpEntityAlias='" + idpEntityAlias + '\'' +
-            ", metaDataLocation='" + metaDataLocation + '\'' +
-            ", nameID='" + nameID + '\'' +
-            ", assertionConsumerIndex=" + assertionConsumerIndex +
-            ", metadataTrustCheck=" + metadataTrustCheck +
-            ", showSamlLink=" + showSamlLink +
-            ", socketFactoryClassName='deprected-not used'" +
-            ", skipSslValidation=" + skipSslValidation +
-            ", linkText='" + linkText + '\'' +
-            ", iconUrl='" + iconUrl + '\'' +
-            ", zoneId='" + zoneId + '\'' +
-            ", addShadowUserOnLogin='" + isAddShadowUserOnLogin() + '\'' +
-            '}';
+                "idpEntityAlias='" + idpEntityAlias + '\'' +
+                ", metaDataLocation='" + metaDataLocation + '\'' +
+                ", nameID='" + nameID + '\'' +
+                ", assertionConsumerIndex=" + assertionConsumerIndex +
+                ", metadataTrustCheck=" + metadataTrustCheck +
+                ", showSamlLink=" + showSamlLink +
+                ", socketFactoryClassName='deprected-not used'" +
+                ", skipSslValidation=" + skipSslValidation +
+                ", linkText='" + linkText + '\'' +
+                ", iconUrl='" + iconUrl + '\'' +
+                ", zoneId='" + zoneId + '\'' +
+                ", addShadowUserOnLogin='" + isAddShadowUserOnLogin() + '\'' +
+                '}';
     }
 
- }
+    public enum MetadataLocation {
+        URL,
+        DATA,
+        UNKNOWN
+    }
+
+    public enum ExternalGroupMappingMode {
+        EXPLICITLY_MAPPED,
+        AS_SCOPES
+    }
+}

@@ -14,14 +14,14 @@
  */
 package org.cloudfoundry.identity.uaa.web;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,7 +37,7 @@ public class BackwardsCompatibleScopeParsingFilter implements Filter {
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        chain.doFilter(new ScopeRewriteRequestWrapper((HttpServletRequest)request), response);
+        chain.doFilter(new ScopeRewriteRequestWrapper((HttpServletRequest) request), response);
     }
 
     @Override
@@ -75,7 +75,7 @@ public class BackwardsCompatibleScopeParsingFilter implements Filter {
         public String[] getParameterValues(String name) {
             String[] values = super.getParameterValues(name);
             if ("scope".equals(name)) {
-                for (int i=0; values!=null && i<values.length; i++) {
+                for (int i = 0; values != null && i < values.length; i++) {
                     values[i] = translateScope(values[i]);
                 }
             }

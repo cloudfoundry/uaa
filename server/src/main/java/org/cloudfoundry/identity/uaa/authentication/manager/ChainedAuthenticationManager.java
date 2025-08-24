@@ -50,12 +50,12 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
             return null;
         }
         UsernamePasswordAuthenticationToken output = null;
-        if (authentication instanceof UsernamePasswordAuthenticationToken) {
-            output = (UsernamePasswordAuthenticationToken) authentication;
+        if (authentication instanceof UsernamePasswordAuthenticationToken token) {
+            output = token;
         } else {
             output = new UsernamePasswordAuthenticationToken(authentication.getPrincipal(),
-                                                             (authentication.getCredentials() != null ? authentication.getCredentials().toString() : null),
-                                                             authentication.getAuthorities());
+                    (authentication.getCredentials() != null ? authentication.getCredentials().toString() : null),
+                    authentication.getAuthorities());
             output.setDetails(authentication.getDetails());
         }
         boolean authenticated = false;
@@ -63,56 +63,56 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
         AuthenticationException lastException = null;
         boolean lastResult = false;
         boolean shallContinue = true;
-        if (delegates==null || delegates.length==0) {
+        if (delegates == null || delegates.length == 0) {
             throw new ProviderNotFoundException("No available authentication providers.");
         }
-        for (int i=0; shallContinue && i<delegates.length; i++) {
+        for (int i = 0; shallContinue && i < delegates.length; i++) {
 
-                boolean shallAuthenticate = (i==0) ||
+            boolean shallAuthenticate = (i == 0) ||
                     (lastResult && IF_PREVIOUS_TRUE.equals(delegates[i].getRequired())) ||
                     ((!lastResult) && IF_PREVIOUS_FALSE.equals(delegates[i].getRequired()));
 
-                if (shallAuthenticate) {
+            if (shallAuthenticate) {
+                if (logger.isDebugEnabled()) {
+                    logger.debug("Attempting chained authentication of " + output + " with manager:" + delegates[i].getAuthenticationManager() + " required:" + delegates[i].getRequired());
+                }
+                Authentication thisAuth = null;
+                try {
+                    thisAuth = delegates[i].getAuthenticationManager().authenticate(auth != null ? auth : output);
+                } catch (AuthenticationException x) {
                     if (logger.isDebugEnabled()) {
-                        logger.debug("Attempting chained authentication of " + output + " with manager:" + delegates[i].getAuthenticationManager() + " required:" + delegates[i].getRequired());
+                        logger.debug("Chained authentication exception:" + x.getMessage() + " at:" + (x.getStackTrace().length > 0 ? x.getStackTrace()[0] : "(no stack trace)"));
                     }
-                    Authentication thisAuth = null;
-                    try {
-                        thisAuth = delegates[i].getAuthenticationManager().authenticate(auth!=null ? auth : output);
-                    } catch (AuthenticationException x) {
-                        if (logger.isDebugEnabled()) {
-                            logger.debug("Chained authentication exception:"+x.getMessage()+" at:"+(x.getStackTrace().length>0?x.getStackTrace()[0]:"(no stack trace)"));
-                        }
-                        lastException = x;
-                        if (delegates[i].getStopIf()!=null) {
-                            for (Class<? extends AuthenticationException> exceptionClass : delegates[i].getStopIf()) {
-                                if (exceptionClass.isAssignableFrom(x.getClass())) {
-                                    shallContinue = false;
-                                    break;
-                                }
+                    lastException = x;
+                    if (delegates[i].getStopIf() != null) {
+                        for (Class<? extends AuthenticationException> exceptionClass : delegates[i].getStopIf()) {
+                            if (exceptionClass.isAssignableFrom(x.getClass())) {
+                                shallContinue = false;
+                                break;
                             }
                         }
                     }
-                    lastResult = thisAuth != null && thisAuth.isAuthenticated();
-
-                    if (lastResult) {
-                        authenticated = true;
-                        auth = thisAuth;
-                    } else {
-                        authenticated = false;
-                        auth = null;
-                    }
-
-                } else {
-                    shallContinue = false;
                 }
+                lastResult = thisAuth != null && thisAuth.isAuthenticated();
+
+                if (lastResult) {
+                    authenticated = true;
+                    auth = thisAuth;
+                } else {
+                    authenticated = false;
+                    auth = null;
+                }
+
+            } else {
+                shallContinue = false;
+            }
             if (logger.isDebugEnabled()) {
-                logger.debug("Chained Authentication status of "+output+ " with manager:"+delegates[i]+"; Authenticated:"+authenticated);
+                logger.debug("Chained Authentication status of " + output + " with manager:" + delegates[i] + "; Authenticated:" + authenticated);
             }
         }
         if (authenticated) {
             return auth;
-        } else if (lastException!=null) {
+        } else if (lastException != null) {
             //we had at least one authentication exception, throw it
             throw lastException;
         } else {
@@ -123,7 +123,7 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
 
     public static class AuthenticationManagerConfiguration {
         private AuthenticationManager authenticationManager;
-        private String required = null;
+        private String required;
         private Class<? extends AuthenticationException>[] stopIf;
 
         public Class<? extends AuthenticationException>[] getStopIf() {
@@ -157,12 +157,12 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
         public void setRequired(String required) {
             boolean valid = false;
             if (IF_PREVIOUS_FALSE.equals(required) ||
-                IF_PREVIOUS_TRUE.equals(required)) {
+                    IF_PREVIOUS_TRUE.equals(required)) {
                 valid = true;
             }
 
             if (!valid) {
-                throw new IllegalArgumentException(required+ " is not a valid value for property 'required'");
+                throw new IllegalArgumentException(required + " is not a valid value for property 'required'");
             }
 
             this.required = required;

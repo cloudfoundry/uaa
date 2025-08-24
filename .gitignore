@@ -42,3 +42,13 @@ uaa/slateCustomizations/source/versionfile
 
 ci/dockerfile/Dockerfile
 logs/**
+
+# generated certificates
+scripts/certificates/*.key
+scripts/certificates/*.crt
+scripts/certificates/*.p12
+scripts/certificates/tmp/**
+
+# temporary tomcat war file directories
+scripts/boot/tomcat/**
+

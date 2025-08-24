@@ -14,6 +14,15 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
+import lombok.Getter;
+import lombok.Setter;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtClientAuthentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,24 +31,21 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 /**
  * Filter which processes and authenticates a client based on
@@ -52,26 +58,16 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
 
     public static final String CLIENT_ID = "client_id";
     public static final String CLIENT_SECRET = "client_secret";
+    public static final String CLIENT_ASSERTION = "client_assertion";
+
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
+    @Setter
+    @Getter
     protected AuthenticationManager clientAuthenticationManager;
 
+    @Setter
     protected AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
-
-    public AuthenticationManager getClientAuthenticationManager() {
-        return clientAuthenticationManager;
-    }
-
-    public void setClientAuthenticationManager(AuthenticationManager clientAuthenticationManager) {
-        this.clientAuthenticationManager = clientAuthenticationManager;
-    }
-
-    /**
-     * @param authenticationEntryPoint the authenticationEntryPoint to set
-     */
-    public void setAuthenticationEntryPoint(AuthenticationEntryPoint authenticationEntryPoint) {
-        this.authenticationEntryPoint = authenticationEntryPoint;
-    }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
@@ -83,6 +79,9 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
         String clientId = loginInfo.get(CLIENT_ID);
 
         try {
+            if (clientId == null) {
+                clientId = Optional.ofNullable(loginInfo.get(CLIENT_ASSERTION)).map(JwtClientAuthentication::getClientIdOidcAssertion).orElse(null);
+            }
             wrapClientCredentialLogin(req, res, loginInfo, clientId);
         } catch (AuthenticationException ex) {
             logger.debug("Could not authenticate with client credentials.");
@@ -101,12 +100,11 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     }
 
     private Map<String, String> getSingleValueMap(HttpServletRequest request) {
-        Map<String, String> map = new HashMap<String, String>();
-        @SuppressWarnings("unchecked")
+        Map<String, String> map = new HashMap<>();
         Map<String, String[]> parameters = request.getParameterMap();
-        for (String key : parameters.keySet()) {
-            String[] values = parameters.get(key);
-            map.put(key, values != null && values.length > 0 ? values[0] : null);
+        for (Map.Entry<String, String[]> entry : parameters.entrySet()) {
+            String[] values = parameters.get(entry.getKey());
+            map.put(entry.getKey(), values != null && values.length > 0 ? values[0] : null);
         }
         return map;
     }
@@ -116,7 +114,8 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     }
 
     private Authentication performClientAuthentication(HttpServletRequest req, Map<String, String> loginInfo, String clientId) {
-        String clientSecret = loginInfo.get(CLIENT_SECRET);
+        // spring security 6.x requires a credential to be present
+        String clientSecret = Optional.ofNullable(loginInfo.get(CLIENT_SECRET)).orElse(UaaStringUtils.EMPTY_STRING);
         UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(clientId, clientSecret);
         authentication.setDetails(new UaaAuthenticationDetails(req, clientId));
         try {
@@ -128,6 +127,12 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
             AuthorizationRequest authorizationRequest = new AuthorizationRequest(clientId, getScope(req));
             authorizationRequest.setRequestParameters(getSingleValueMap(req));
             authorizationRequest.setApproved(true);
+
+            if (auth.getDetails() instanceof UaaAuthenticationDetails clientDetails
+                    && clientDetails.getAuthenticationMethod() != null) {
+                authorizationRequest.setExtensions(Map.of(ClaimConstants.CLIENT_AUTH_METHOD, clientDetails.getAuthenticationMethod()));
+            }
+
             //must set this to true in order for
             //Authentication.isAuthenticated to return true
             OAuth2Authentication result = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
@@ -136,15 +141,19 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
         } catch (AuthenticationException e) {
             throw new BadCredentialsException(e.getMessage(), e);
         } catch (Exception e) {
-            logger.debug("Unable to authenticate client: " + clientId, e);
+            logger.debug("Unable to authenticate client: {}", UaaStringUtils.getCleanedUserControlString(clientId), e);
             throw new BadCredentialsException(e.getMessage(), e);
         }
     }
 
     private Map<String, String> getCredentials(HttpServletRequest request) {
         Map<String, String> credentials = new HashMap<>();
-        credentials.put(CLIENT_ID, request.getParameter(CLIENT_ID));
+        String clientId = request.getParameter(CLIENT_ID);
+        credentials.put(CLIENT_ID, clientId);
         credentials.put(CLIENT_SECRET, request.getParameter(CLIENT_SECRET));
+        if (clientId == null) {
+            credentials.put(CLIENT_ASSERTION, request.getParameter(CLIENT_ASSERTION));
+        }
         return credentials;
     }
 
@@ -155,5 +164,4 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     @Override
     public void destroy() {
     }
-
 }

@@ -1,26 +1,11 @@
-/*
- * Copyright 2002-2011 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package org.cloudfoundry.identity.uaa.oauth.beans.org.springframework.security.oauth2.provider.endpoint;
 
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.common.exceptions.RedirectMismatchException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.RedirectResolver;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidRequestException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.RedirectMismatchException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -78,7 +63,7 @@ public class DefaultRedirectResolver implements RedirectResolver {
      * @param redirectGrantTypes the redirect grant types to set
      */
     public void setRedirectGrantTypes(Collection<String> redirectGrantTypes) {
-        this.redirectGrantTypes = new HashSet<String>(redirectGrantTypes);
+        this.redirectGrantTypes = new HashSet<>(redirectGrantTypes);
     }
 
     public String resolveRedirect(String requestedRedirect, ClientDetails client) throws OAuth2Exception {
@@ -96,11 +81,9 @@ public class DefaultRedirectResolver implements RedirectResolver {
 
         if (redirectUris != null && !redirectUris.isEmpty()) {
             return obtainMatchingRedirect(redirectUris, requestedRedirect);
-        }
-        else if (StringUtils.hasText(requestedRedirect)) {
+        } else if (StringUtils.hasText(requestedRedirect)) {
             return requestedRedirect;
-        }
-        else {
+        } else {
             throw new InvalidRequestException("A redirect_uri must be supplied.");
         }
 

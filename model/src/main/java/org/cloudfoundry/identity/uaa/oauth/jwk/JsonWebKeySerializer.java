@@ -16,7 +16,6 @@
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 
@@ -29,7 +28,7 @@ import java.util.Map;
 
 public class JsonWebKeySerializer extends JsonSerializer<JsonWebKey> {
     @Override
-    public void serialize(JsonWebKey value, JsonGenerator gen, SerializerProvider serializers) throws IOException, JsonProcessingException {
+    public void serialize(JsonWebKey value, JsonGenerator gen, SerializerProvider serializers) throws IOException {
         gen.writeStartObject();
         for (Map.Entry<String, Object> entry : value.getKeyProperties().entrySet()) {
             gen.writeFieldName(entry.getKey());

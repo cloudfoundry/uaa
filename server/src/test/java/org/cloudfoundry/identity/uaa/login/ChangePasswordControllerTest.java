@@ -5,8 +5,8 @@ import org.cloudfoundry.identity.uaa.account.ChangePasswordService;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.jupiter.api.AfterEach;
@@ -25,16 +25,20 @@ import java.util.LinkedHashSet;
 import java.util.List;
 
 import static java.util.Arrays.asList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.TestClassNullifier.getResolver;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class ChangePasswordControllerTest {
@@ -59,7 +63,7 @@ class ChangePasswordControllerTest {
                 Collections.singletonList(UaaAuthority.UAA_USER),
                 new UaaAuthenticationDetails(false, null, UAA, "12345")
         );
-        authMethods = asList("pwd", "mfa", "otp");
+        authMethods = asList("pwd", "otp");
         authentication.setAuthenticationMethods(new LinkedHashSet<>(authMethods));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -86,9 +90,8 @@ class ChangePasswordControllerTest {
 
         verify(changePasswordService).changePassword("bob", "secret", "new secret");
         Authentication afterAuth = SecurityContextHolder.getContext().getAuthentication();
-        assertThat(((UaaAuthentication) afterAuth).getAuthenticationMethods(),
-                containsInAnyOrder(authMethods.toArray()));
-        assertSame(authentication, afterAuth);
+        assertThat(((UaaAuthentication) afterAuth).getAuthenticationMethods()).containsExactlyInAnyOrderElementsOf(authMethods);
+        assertThat(afterAuth).isSameAs(authentication);
     }
 
     @Test

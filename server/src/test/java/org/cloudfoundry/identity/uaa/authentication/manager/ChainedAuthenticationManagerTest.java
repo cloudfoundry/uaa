@@ -1,17 +1,15 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -26,7 +24,7 @@ class ChainedAuthenticationManagerTest {
     private AuthenticationManager authenticateFalse;
     private AuthenticationManager authenticateThrow;
     private ChainedAuthenticationManager.AuthenticationManagerConfiguration[] managers;
-    private ChainedAuthenticationManager authMgr = new ChainedAuthenticationManager();
+    private final ChainedAuthenticationManager authMgr = new ChainedAuthenticationManager();
     private AuthenticationManager loginAuthenticationManager;
 
     private class UsernamePasswordAuthenticationManager implements AuthenticationManager {
@@ -38,7 +36,7 @@ class ChainedAuthenticationManagerTest {
             return authentication;
         }
     }
-    
+
     @BeforeEach
     void setUp() {
         success = mock(Authentication.class);
@@ -66,41 +64,41 @@ class ChainedAuthenticationManagerTest {
     }
 
     @Test
-    void testUaaAuthTrue() {
+    void uaaAuthTrue() {
         managers[0].setAuthenticationManager(authenticateTrue);
         managers[1].setAuthenticationManager(authenticateFalse);
         Authentication result = authMgr.authenticate(failure);
-        assertNotNull(result);
-        assertTrue(result.isAuthenticated());
+        assertThat(result).isNotNull();
+        assertThat(result.isAuthenticated()).isTrue();
         verify(authenticateTrue, times(1)).authenticate(any(Authentication.class));
         verify(authenticateFalse, times(0)).authenticate(any(Authentication.class));
         verify(loginAuthenticationManager, times(0)).authenticate(any(Authentication.class));
     }
 
     @Test
-    void testUaaAuthFalseLdapTrue() {
+    void uaaAuthFalseLdapTrue() {
         managers[0].setAuthenticationManager(authenticateFalse);
         managers[1].setAuthenticationManager(authenticateTrue);
         Authentication result = authMgr.authenticate(failure);
-        assertNotNull(result);
-        assertTrue(result.isAuthenticated());
+        assertThat(result).isNotNull();
+        assertThat(result.isAuthenticated()).isTrue();
         verify(authenticateTrue, times(1)).authenticate(any(Authentication.class));
         verify(authenticateFalse, times(1)).authenticate(any(Authentication.class));
         verify(loginAuthenticationManager, times(1)).authenticate(any(Authentication.class));
     }
 
     @Test
-    void testUaaAuthFalseLdapFalse() {
+    void uaaAuthFalseLdapFalse() {
         managers[0].setAuthenticationManager(authenticateFalse);
         managers[1].setAuthenticationManager(authenticateFalse);
         Authentication result = authMgr.authenticate(failure);
-        assertNull(result);
+        assertThat(result).isNull();
         verify(authenticateFalse, times(2)).authenticate(any(Authentication.class));
         verify(loginAuthenticationManager, times(0)).authenticate(any(Authentication.class));
     }
 
     @Test
-    void testUaaAuthThrowLdapAuthFalse() {
+    void uaaAuthThrowLdapAuthFalse() {
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(authenticateFalse);
         try {
@@ -115,32 +113,32 @@ class ChainedAuthenticationManagerTest {
     }
 
     @Test
-    void testUaaAuthThrowLdapAuthTrue() {
+    void uaaAuthThrowLdapAuthTrue() {
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(authenticateTrue);
         Authentication result = authMgr.authenticate(failure);
-        assertNotNull(result);
-        assertTrue(result.isAuthenticated());
+        assertThat(result).isNotNull();
+        assertThat(result.isAuthenticated()).isTrue();
         verify(authenticateThrow, times(1)).authenticate(any(Authentication.class));
         verify(authenticateTrue, times(1)).authenticate(any(Authentication.class));
         verify(loginAuthenticationManager, times(1)).authenticate(any(Authentication.class));
     }
-    
+
     @Test
-    void testNonStringCredential() {
+    void nonStringCredential() {
         when(success.getCredentials()).thenReturn(new Object());
-        
+
         managers[0].setAuthenticationManager(authenticateThrow);
         managers[1].setAuthenticationManager(new UsernamePasswordAuthenticationManager());
         Authentication result = authMgr.authenticate(success);
-        assertNotNull(result);
-        assertTrue(result.isAuthenticated());
+        assertThat(result).isNotNull();
+        assertThat(result.isAuthenticated()).isTrue();
         verify(authenticateThrow, times(1)).authenticate(any(Authentication.class));
     }
 
     @Test
-    void testNullAuthentication() {
+    void nullAuthentication() {
         Authentication result = authMgr.authenticate(null);
-        assertNull(result);
+        assertThat(result).isNull();
     }
 }

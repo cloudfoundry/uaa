@@ -15,9 +15,9 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
 
 public class UaaOauth2Authentication extends OAuth2Authentication {
 

@@ -1,23 +1,25 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.advice.HttpMethodNotSupportedAdvice;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestValidator;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.TokenEndpoint;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.OAuth2RequestValidator;
-import org.springframework.security.oauth2.provider.TokenGranter;
-import org.springframework.security.oauth2.provider.endpoint.TokenEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.Arrays;
 import java.util.Collections;
@@ -27,8 +29,6 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.springframework.util.StringUtils.hasText;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller
 @RequestMapping(value = "/oauth/token") //used simply because TokenEndpoint wont match /oauth/token/alias/saml-entity-id
@@ -38,7 +38,7 @@ public class UaaTokenEndpoint extends TokenEndpoint {
 
     public UaaTokenEndpoint(
             final @Qualifier("authorizationRequestManager") OAuth2RequestFactory oAuth2RequestFactory,
-            final @Qualifier("jdbcClientDetailsService") ClientDetailsService clientDetailsService,
+            final @Qualifier("jdbcClientDetailsService") MultitenantClientServices clientDetailsService,
             final @Qualifier("oauth2RequestValidator") OAuth2RequestValidator oAuth2RequestValidator,
             final @Qualifier("oauth2TokenGranter") TokenGranter tokenGranter,
             final @Qualifier("allowQueryStringForTokens") Boolean allowQueryStringForTokens
@@ -52,23 +52,23 @@ public class UaaTokenEndpoint extends TokenEndpoint {
                 .ofNullable(allowQueryStringForTokens)
                 .orElse(Boolean.TRUE));
 
-        if(allowQueryString) {
+        if (allowQueryString) {
             super.setAllowedRequestMethods(new HashSet<>(Arrays.asList(HttpMethod.GET, HttpMethod.POST)));
         } else {
             super.setAllowedRequestMethods(Collections.singleton(HttpMethod.POST));
         }
     }
 
-    @RequestMapping(value = "**", method = GET)
+    @GetMapping("**")
     public ResponseEntity<OAuth2AccessToken> doDelegateGet(Principal principal,
-                                                           @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
+            @RequestParam Map<String, String> parameters) throws HttpRequestMethodNotSupportedException {
         return getAccessToken(principal, parameters);
     }
 
-    @RequestMapping(value = "**", method = POST)
+    @PostMapping("**")
     public ResponseEntity<OAuth2AccessToken> doDelegatePost(Principal principal,
-                                                            @RequestParam Map<String, String> parameters,
-                                                            HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
+            @RequestParam Map<String, String> parameters,
+            HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
         if (hasText(request.getQueryString()) && !this.allowQueryString) {
             logger.debug("Call to /oauth/token contains a query string. Aborting.");
             throw new HttpRequestMethodNotSupportedException("POST");

@@ -16,69 +16,69 @@ package org.cloudfoundry.identity.uaa.provider.ldap;
 
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.DefaultTlsDirContextAuthenticationStrategy;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExternalTlsDirContextAuthenticationStrategy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.ldap.core.support.SimpleDirContextAuthenticationStrategy;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_EXTERNAL;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
 import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.LDAP_SOCKET_FACTORY;
 import static org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties.LDAP_SSL_SOCKET_FACTORY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
-public class ProcessLdapPropertiesTest {
+class ProcessLdapPropertiesTest {
 
     @Test
-    public void testProcess() throws Exception {
-        Map<String,String> properties = new HashMap<>();
+    void process() throws Exception {
+        Map<String, String> properties = new HashMap<>();
         ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false, LDAP_TLS_NONE);
-        assertNull(process.process(properties).get(LDAP_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.process(properties).get(LDAP_SSL_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.getSSLSocketFactory().getClass().getName());
+        assertThat(process.process(properties)).doesNotContainKey(LDAP_SOCKET_FACTORY)
+                .containsEntry(LDAP_SSL_SOCKET_FACTORY, ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY);
+        assertThat(process.getSSLSocketFactory().getClass().getName()).isEqualTo(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY);
         process.setDisableSslVerification(true);
-        assertNull(process.process(properties).get(LDAP_SOCKET_FACTORY));
+        assertThat(process.process(properties)).doesNotContainKey(LDAP_SOCKET_FACTORY);
         process.setBaseUrl("ldaps://localhost:636");
-        assertEquals(ProcessLdapProperties.SKIP_SSL_VERIFICATION_SOCKET_FACTORY, process.process(properties).get(LDAP_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.SKIP_SSL_VERIFICATION_SOCKET_FACTORY, process.process(properties).get(LDAP_SSL_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.SKIP_SSL_VERIFICATION_SOCKET_FACTORY, process.getSSLSocketFactory().getClass().getName());
-
+        assertThat(process.process(properties)).containsEntry(LDAP_SOCKET_FACTORY, ProcessLdapProperties.SKIP_SSL_VERIFICATION_SOCKET_FACTORY)
+                .containsEntry(LDAP_SSL_SOCKET_FACTORY, ProcessLdapProperties.SKIP_SSL_VERIFICATION_SOCKET_FACTORY);
+        assertThat(process.getSSLSocketFactory().getClass().getName()).isEqualTo(ProcessLdapProperties.SKIP_SSL_VERIFICATION_SOCKET_FACTORY);
     }
 
     @Test
-    public void process_whenSslValidationIsEnabled() throws Exception {
-        Map<String,String> properties = new HashMap<>();
+    void process_whenSslValidationIsEnabled() throws Exception {
+        Map<String, String> properties = new HashMap<>();
         ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false, LDAP_TLS_NONE);
-        assertNull(process.process(properties).get(LDAP_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.process(properties).get(LDAP_SSL_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.getSSLSocketFactory().getClass().getName());
+        assertThat(process.process(properties)).doesNotContainKey(LDAP_SOCKET_FACTORY)
+                .containsEntry(LDAP_SSL_SOCKET_FACTORY, ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY);
+        assertThat(process.getSSLSocketFactory().getClass().getName()).isEqualTo(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY);
         process.setDisableSslVerification(false);
-        assertNull(process.process(properties).get(LDAP_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.process(properties).get(LDAP_SSL_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.getSSLSocketFactory().getClass().getName());
+        assertThat(process.process(properties)).doesNotContainKey(LDAP_SOCKET_FACTORY)
+                .containsEntry(LDAP_SSL_SOCKET_FACTORY, ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY);
+        assertThat(process.getSSLSocketFactory().getClass().getName()).isEqualTo(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY);
         process.setBaseUrl("ldaps://localhost:636");
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.process(properties).get(LDAP_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.process(properties).get(LDAP_SSL_SOCKET_FACTORY));
-        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.getSSLSocketFactory().getClass().getName());
+        assertThat(process.process(properties)).containsEntry(LDAP_SOCKET_FACTORY, ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY)
+                .containsEntry(LDAP_SSL_SOCKET_FACTORY, ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY);
+        assertThat(process.getSSLSocketFactory().getClass().getName()).isEqualTo(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY);
     }
 
     @Test
-    public void test_authentication_strategy() throws Exception {
+    void authentication_strategy() throws Exception {
         ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false, null);
-        assertEquals(SimpleDirContextAuthenticationStrategy.class, process.getAuthenticationStrategy().getClass());
+        assertThat(process.getAuthenticationStrategy().getClass()).isEqualTo(SimpleDirContextAuthenticationStrategy.class);
         process = new ProcessLdapProperties("ldap://localhost:389", false, LDAP_TLS_NONE);
-        assertEquals(SimpleDirContextAuthenticationStrategy.class, process.getAuthenticationStrategy().getClass());
+        assertThat(process.getAuthenticationStrategy().getClass()).isEqualTo(SimpleDirContextAuthenticationStrategy.class);
         process = new ProcessLdapProperties("ldap://localhost:389", false, LDAP_TLS_SIMPLE);
-        assertEquals(DefaultTlsDirContextAuthenticationStrategy.class, process.getAuthenticationStrategy().getClass());
+        assertThat(process.getAuthenticationStrategy().getClass()).isEqualTo(DefaultTlsDirContextAuthenticationStrategy.class);
         process = new ProcessLdapProperties("ldap://localhost:389", false, LDAP_TLS_EXTERNAL);
-        assertEquals(ExternalTlsDirContextAuthenticationStrategy.class, process.getAuthenticationStrategy().getClass());
+        assertThat(process.getAuthenticationStrategy().getClass()).isEqualTo(ExternalTlsDirContextAuthenticationStrategy.class);
     }
 
-    @Test(expected = IllegalArgumentException.class)
-    public void invalid_authentication_strategy() throws Exception {
+    @Test
+    void invalid_authentication_strategy() {
         ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false, "asdadasda");
-        process.getAuthenticationStrategy();
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(process::getAuthenticationStrategy);
     }
-
 }

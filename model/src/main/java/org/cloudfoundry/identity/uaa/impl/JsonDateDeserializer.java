@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2017] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -40,7 +41,7 @@ public class JsonDateDeserializer extends JsonDeserializer<Date> {
         try {
             return new SimpleDateFormat(DATE_FORMATTER).parse(text);
         } catch (ParseException e) {
-            throw new JsonParseException("Could not parse date:"+ text, loc, e);
+            throw new JsonParseException("Could not parse date:" + text, loc, e);
         }
     }
 

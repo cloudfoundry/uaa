@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,39 +13,34 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.dumbster.smtp.SimpleSmtpServer;
 import com.google.common.collect.Lists;
-import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.ServerRunningExtension;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.integration.endpoints.SamlLogoutAuthSourceEndpoint;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
+import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFailExtension;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.util.RetryRule;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
@@ -53,40 +49,22 @@ import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
-
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @ExtendWith(PollutionPreventionExtension.class)
+@ExtendWith(ScreenshotOnFailExtension.class)
 public class InvitationsIT {
 
     @Autowired
-    TestAccounts testAccounts;
+    @RegisterExtension
+    private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
-    @Rule
-    public IntegrationTestRule integrationTestRule;
-
-    @Rule
-    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
-    @Rule
-    public RetryRule retryRule = new RetryRule(3);
-
-    @Autowired
-    WebDriver webDriver;
-
-    @Autowired
-    SimpleSmtpServer simpleSmtpServer;
+    UaaWebDriver webDriver;
 
     @Autowired
     TestClient testClient;
@@ -94,20 +72,62 @@ public class InvitationsIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
-    @Value("${integration.test.app_url}")
-    String appUrl;
+    @Autowired
+    SamlServerConfig samlServerConfig;
 
-    ServerRunning serverRunning = ServerRunning.isRunning();
+
+    @RegisterExtension
+    private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
     private String scimToken;
     private String loginToken;
     private String testInviteEmail;
 
-    @Before
-    public void setup() {
+    public static String createInvitation(String baseUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "Bearer " + scimToken);
+        RestTemplate uaaTemplate = new RestTemplate();
+        ScimUser scimUser = new ScimUser();
+        scimUser.setPassword("password");
+        scimUser.setUserName(username);
+        scimUser.setPrimaryEmail(userEmail);
+        scimUser.setOrigin(origin);
+        scimUser.setVerified(false);
+
+        String userId = null;
+        try {
+            userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
+            scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
+        } catch (RuntimeException ignored) {
+            // ignored
+        }
+        if (userId == null) {
+            HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
+            ResponseEntity<ScimUser> response = uaaTemplate.exchange(baseUrl + "/Users", POST, request, ScimUser.class);
+            if (response.getStatusCode().value() != HttpStatus.CREATED.value()) {
+                throw new IllegalStateException("Unable to create test user:" + scimUser);
+            }
+            userId = response.getBody().getId();
+        } else {
+            scimUser.setVerified(false);
+            IntegrationTestUtils.updateUser(scimToken, baseUrl, scimUser);
+        }
+
+        HttpHeaders invitationHeaders = new HttpHeaders();
+        invitationHeaders.add("Authorization", "Bearer " + loginToken);
+
+        Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
+        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}", null);
+        HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, invitationHeaders);
+        ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(baseUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
+        expiringCode = expiringCodeResponse.getBody();
+        return expiringCode.getCode();
+    }
+
+    @BeforeEach
+    void setup() {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write,clients.admin");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
-        screenShootRule.setWebDriver(webDriver);
 
         testInviteEmail = "testinvite@test.org";
 
@@ -130,29 +150,25 @@ public class InvitationsIT {
         }
     }
 
-    @Before
-    @After
-    public void logout_and_clear_cookies() {
+    @BeforeEach
+    @AfterEach
+    void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
         } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl + "/j_spring_security_logout");
-        webDriver.get(IntegrationTestUtils.SIMPLESAMLPHP_UAA_ACCEPTANCE + "/module.php/core/authenticate.php?as=example-userpass&logout");
-        webDriver.manage().deleteAllCookies();
-
-        webDriver.get("http://localhost:8080/app/");
+        SamlLogoutAuthSourceEndpoint.assertThatLogoutAuthSource_goesToSamlWelcomePage(webDriver, samlServerConfig);
         webDriver.manage().deleteAllCookies();
     }
 
     @Test
-    public void invite_fails() {
+    void invite_fails() {
         RestTemplate uaaTemplate = new RestTemplate();
         uaaTemplate.setErrorHandler(new DefaultResponseErrorHandler() {
             @Override
-            protected boolean hasError(HttpStatus statusCode) {
+            protected boolean hasError(HttpStatusCode statusCode) {
                 return statusCode.is5xxServerError();
             }
         });
@@ -160,11 +176,11 @@ public class InvitationsIT {
         headers.setContentType(APPLICATION_JSON);
         HttpEntity<String> request = new HttpEntity<>("{\"emails\":[\"marissa@test.org\"]}", headers);
         ResponseEntity<Void> response = uaaTemplate.exchange(baseUrl + "/invite_users/?client_id=admin&redirect_uri={uri}", POST, request, Void.class, "https://www.google.com");
-        assertThat(response.getStatusCode(), is(HttpStatus.UNAUTHORIZED));
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
-    public void testInviteUserWithClientRedirect() throws Exception {
+    void inviteUserWithClientRedirect() {
         String userEmail = "user-" + new RandomValueStringGenerator().generate() + "@example.com";
         //user doesn't exist
         performInviteUser(userEmail, false);
@@ -186,40 +202,41 @@ public class InvitationsIT {
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
         } catch (RuntimeException ignored) {
+            // ignored
         }
-        assertEquals(invitedUserId, currentUserId);
+        assertThat(currentUserId).isEqualTo(invitedUserId);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         if (!isVerified) {
-            assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
+            assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Create your account");
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
             webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
-            webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
+            webDriver.clickAndWait(By.xpath("//input[@value='Create account']"));
 
-            assertTrue(IntegrationTestUtils.getUser(scimToken, baseUrl, OriginKeys.UAA, email).isVerified());
+            assertThat(IntegrationTestUtils.getUser(scimToken, baseUrl, OriginKeys.UAA, email).isVerified()).isTrue();
 
             webDriver.findElement(By.name("username")).sendKeys(email);
             webDriver.findElement(By.name("password")).sendKeys("secr3T");
-            webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+            webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
-            Assert.assertEquals(redirectUri, webDriver.getCurrentUrl());
+            assertThat(webDriver.getCurrentUrl()).isEqualTo(redirectUri);
         } else {
             //redirect to the home page to login
-            Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome!"));
+            assertThat(webDriver.findElement(By.cssSelector("h1")).getText()).contains("Welcome!");
         }
         String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
         if (currentUserId == null) {
-            assertEquals(invitedUserId, acceptedUserId);
+            assertThat(acceptedUserId).isEqualTo(invitedUserId);
         } else {
-            assertEquals(currentUserId, acceptedUserId);
+            assertThat(acceptedUserId).isEqualTo(currentUserId);
         }
     }
 
     @Test
-    public void acceptInvitation_for_samlUser() throws Exception {
+    void acceptInvitation_for_samlUser() {
         webDriver.get(baseUrl + "/logout.do");
 
-        BaseClientDetails appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");
+        UaaClientDetails appClient = IntegrationTestUtils.getClient(scimToken, baseUrl, "app");
         appClient.setScope(Lists.newArrayList("cloud_controller.read", "password.write", "scim.userids", "cloud_controller.write", "openid", "organizations.acme"));
         appClient.setAutoApproveScopes(Lists.newArrayList("openid"));
         IntegrationTestUtils.updateClient(baseUrl, scimToken, appClient);
@@ -227,48 +244,48 @@ public class InvitationsIT {
         String code = createInvitation(testInviteEmail, testInviteEmail, "http://localhost:8080/app/", "simplesamlphp");
 
         String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, "simplesamlphp", "email", testInviteEmail);
-        IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
+        IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning, samlServerConfig.getSamlServerUrl());
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
-        webDriver.findElement(By.xpath(SIMPLESAMLPHP_LOGIN_PROMPT_XPATH_EXPR));
+        webDriver.findElement(By.xpath(samlServerConfig.getLoginPromptXpathExpr()));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
-        WebElement loginButton = webDriver.findElement(By.xpath("//input[@value='Login']"));
-
-        loginButton.click();
-
+        webDriver.clickAndWait(By.id("submit_button"));
+        //now we land on the /app
+        //simulate a redirect from /app to /uaa
+        webDriver.get(baseUrl + "/oauth/authorize?client_id=app&redirect_uri=http://localhost:8080/app/&response_type=code&state=iknaID");
         //wait until UAA page has loaded
         webDriver.findElement(By.id("application_authorization"));
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
         //webdriver follows redirects so we should be on the UAA authorization page
-        assertEquals("user_only_for_invitations_test", acceptedUsername);
+        assertThat(acceptedUsername).isEqualTo("user_only_for_invitations_test");
 
         //external users should default to not being "verified" since we can't determine this
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
-        assertFalse(user.isVerified());
+        assertThat(user.isVerified()).isFalse();
     }
 
     @Test
-    public void testInsecurePasswordDisplaysErrorMessage() {
+    void insecurePasswordDisplaysErrorMessage() {
         String code = createInvitation();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
-        assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
+        assertThat(webDriver.findElement(By.tagName("h1")).getText()).isEqualTo("Create your account");
 
         String newPassword = new RandomValueStringGenerator(260).generate();
         webDriver.findElement(By.name("password")).sendKeys(newPassword);
         webDriver.findElement(By.name("password_confirmation")).sendKeys(newPassword);
 
-        webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-        assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), containsString("Password must be no more than 255 characters in length."));
+        webDriver.clickAndWait(By.xpath("//input[@value='Create account']"));
+        assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText()).contains("Password must be no more than 255 characters in length.");
         webDriver.findElement(By.name("password"));
         webDriver.findElement(By.name("password_confirmation"));
     }
 
     @Test
-    public void invitedOIDCUserVerified() throws Exception {
+    void invitedOIDCUserVerified() throws Exception {
         String clientId = "invite-client" + new RandomValueStringGenerator().generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, null, "client_credentials", "scim.invite");
+        UaaClientDetails clientDetails = new UaaClientDetails(clientId, null, null, "client_credentials", "scim.invite");
         clientDetails.setClientSecret("invite-client-secret");
         testClient.createClient(scimToken, clientDetails);
         String inviteToken = testClient.getOAuthAccessToken(clientId, "invite-client-secret", "client_credentials", "scim.invite");
@@ -282,21 +299,21 @@ public class InvitationsIT {
         String[] emailList = new String[]{"marissa@test.org"};
         body.setEmails(emailList);
         HttpEntity<InvitationsRequest> request = new HttpEntity<>(body, headers);
-        ResponseEntity<InvitationsResponse> response = uaaTemplate.exchange(baseUrl + "/invite_users?client_id=app&redirect_uri=" + appUrl, POST, request, InvitationsResponse.class);
-        assertThat(response.getStatusCode(), is(HttpStatus.OK));
+        ResponseEntity<InvitationsResponse> response = uaaTemplate.exchange(baseUrl + "/invite_users?client_id=app&redirect_uri=http://localhost:8080/app", POST, request, InvitationsResponse.class);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
-        String userId = response.getBody().getNewInvites().get(0).getUserId();
-        URL inviteLink = response.getBody().getNewInvites().get(0).getInviteLink();
+        String userId = response.getBody().getNewInvites().getFirst().getUserId();
+        URL inviteLink = response.getBody().getNewInvites().getFirst().getInviteLink();
 
         webDriver.get(inviteLink.toString());
         webDriver.findElement(By.xpath("//h1[contains(text(), 'Welcome')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("marissa");
         webDriver.findElement(By.name("password")).sendKeys("koala");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        webDriver.clickAndWait(By.xpath("//input[@value='Sign in']"));
 
         ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
-        assertTrue(user.isVerified());
+        assertThat(user.isVerified()).isTrue();
 
         webDriver.get(IntegrationTestUtils.OIDC_ACCEPTANCE_URL + "logout.do");
         IntegrationTestUtils.deleteProvider(getZoneAdminToken(baseUrl, serverRunning), baseUrl, "uaa", "puppy-invite");
@@ -309,45 +326,5 @@ public class InvitationsIT {
 
     private String createInvitation(String username, String userEmail, String redirectUri, String origin) {
         return createInvitation(baseUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
-    }
-
-    public static String createInvitation(String baseUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer " + scimToken);
-        RestTemplate uaaTemplate = new RestTemplate();
-        ScimUser scimUser = new ScimUser();
-        scimUser.setPassword("password");
-        scimUser.setUserName(username);
-        scimUser.setPrimaryEmail(userEmail);
-        scimUser.setOrigin(origin);
-        scimUser.setVerified(false);
-
-        String userId = null;
-        try {
-            userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
-            scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
-        } catch (RuntimeException ignored) {
-        }
-        if (userId == null) {
-            HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
-            ResponseEntity<ScimUser> response = uaaTemplate.exchange(baseUrl + "/Users", POST, request, ScimUser.class);
-            if (response.getStatusCode().value()!= HttpStatus.CREATED.value()) {
-                throw new IllegalStateException("Unable to create test user:"+scimUser);
-            }
-            userId = response.getBody().getId();
-        } else {
-            scimUser.setVerified(false);
-            IntegrationTestUtils.updateUser(scimToken, baseUrl, scimUser);
-        }
-
-        HttpHeaders invitationHeaders = new HttpHeaders();
-        invitationHeaders.add("Authorization", "Bearer " + loginToken);
-
-        Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
-        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}", null);
-        HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, invitationHeaders);
-        ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(baseUrl + "/Codes", POST, expiringCodeRequest, ExpiringCode.class);
-        expiringCode = expiringCodeResponse.getBody();
-        return expiringCode.getCode();
     }
 }

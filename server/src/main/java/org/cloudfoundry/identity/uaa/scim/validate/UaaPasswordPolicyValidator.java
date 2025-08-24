@@ -3,21 +3,16 @@ package org.cloudfoundry.identity.uaa.scim.validate;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.passay.CharacterRule;
-import org.passay.EnglishCharacterData;
-import org.passay.LengthRule;
 import org.passay.PasswordData;
 import org.passay.PropertiesMessageResolver;
-import org.passay.Rule;
 import org.passay.RuleResult;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -38,6 +33,7 @@ import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.validator
  * subcomponent's license, as noted in the LICENSE file.
  * *****************************************************************************
  */
+@Component
 public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     private final IdentityProviderProvisioning provisioning;
@@ -45,26 +41,20 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     public static final String DEFAULT_MESSAGE_PATH = "/messages.properties";
 
-    private static PropertiesMessageResolver messageResolver;
+    private static final PropertiesMessageResolver messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
 
-    static {
-            messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
-    }
-
-    public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy,
-                                      final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning) {
+    public UaaPasswordPolicyValidator(
+            final @Qualifier("globalPasswordPolicy") PasswordPolicy globalDefaultPolicy,
+            final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning provisioning
+    ) {
         this.globalDefaultPolicy = globalDefaultPolicy;
         this.provisioning = provisioning;
     }
 
     @Override
     public void validate(String password) throws InvalidPasswordException {
-        if (password == null) {
-            password = "";
-        }
-
         IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOriginIgnoreActiveFlag(OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        if (idp==null) {
+        if (idp == null) {
             //should never happen
             return;
         }
@@ -77,35 +67,12 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         }
 
         org.passay.PasswordValidator validator = validator(policy, messageResolver);
-        RuleResult result = validator.validate(new PasswordData(password));
+        RuleResult result = validator.validate(new PasswordData(password != null ? password : ""));
         if (!result.isValid()) {
             List<String> errorMessages = new LinkedList<>(validator.getMessages(result));
             if (!errorMessages.isEmpty()) {
                 throw new InvalidPasswordException(errorMessages);
             }
         }
-    }
-
-    public org.passay.PasswordValidator getPasswordValidator(PasswordPolicy policy) {
-        List<Rule> rules = new ArrayList<>();
-
-        //length is always a rule. We do not allow blank password
-        int minLength = Math.max(1, policy.getMinLength());
-        int maxLength = policy.getMaxLength()>0 ? policy.getMaxLength() : Integer.MAX_VALUE;
-        rules.add(new LengthRule(minLength, maxLength));
-
-        if (policy.getRequireUpperCaseCharacter()>0) {
-            rules.add(new CharacterRule(EnglishCharacterData.UpperCase, policy.getRequireUpperCaseCharacter()));
-        }
-        if (policy.getRequireLowerCaseCharacter()>0) {
-            rules.add(new CharacterRule(EnglishCharacterData.LowerCase, policy.getRequireLowerCaseCharacter()));
-        }
-        if (policy.getRequireDigit()>0) {
-            rules.add(new CharacterRule(EnglishCharacterData.Digit, policy.getRequireDigit()));
-        }
-        if (policy.getRequireSpecialCharacter() > 0) {
-            rules.add(new CharacterRule(EnglishCharacterData.Special, policy.getRequireSpecialCharacter()));
-        }
-        return new org.passay.PasswordValidator(rules);
     }
 }

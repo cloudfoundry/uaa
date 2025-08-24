@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,52 +13,50 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.ServerRunningExtension;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextConfiguration;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextExtension;
+import org.cloudfoundry.identity.uaa.test.TestAccountExtension;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
+import org.springframework.boot.test.json.BasicJsonTester;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
-import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 
-import static com.jayway.jsonpath.matchers.JsonPathMatchers.hasJsonPath;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.isA;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Dave Syer
  */
 @OAuth2ContextConfiguration
-public class UserInfoEndpointIntegrationTests {
+class UserInfoEndpointIntegrationTests {
+    private final BasicJsonTester json = new BasicJsonTester(getClass());
 
-    @Rule
-    public ServerRunning serverRunning = ServerRunning.isRunning();
+    @RegisterExtension
+    private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    private static final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
-    @Rule
-    public OAuth2ContextSetup context = OAuth2ContextSetup.withTestAccounts(serverRunning, testAccounts);
+    @RegisterExtension
+    private static final TestAccountExtension testAccountExtension = TestAccountExtension.standard(serverRunning, testAccounts);
 
-    @Rule
-    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    @RegisterExtension
+    private static final OAuth2ContextExtension context = OAuth2ContextExtension.withTestAccounts(serverRunning, testAccountExtension);
 
     /**
      * tests a happy-day flow of the <code>/userinfo</code> endpoint
      */
     @Test
-    public void testHappyDay() {
+    void happyDay() {
         ResponseEntity<String> user = serverRunning.getForString("/userinfo");
-        assertEquals(HttpStatus.OK, user.getStatusCode());
+        assertThat(user.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         String infoResponseString = user.getBody();
-
-        assertThat(infoResponseString, hasJsonPath("user_id"));
-        assertThat(infoResponseString, hasJsonPath("sub"));
-        assertThat(infoResponseString, hasJsonPath("email", is(testAccounts.getEmail())));
-        assertThat(infoResponseString, hasJsonPath("email_verified", isA(Boolean.class)));
+        assertThat(json.from(infoResponseString))
+                .hasJsonPath("user_id")
+                .hasJsonPath("sub")
+                .hasJsonPathValue("email", testAccounts.getEmail())
+                .hasJsonPathBooleanValue("email_verified");
     }
 }

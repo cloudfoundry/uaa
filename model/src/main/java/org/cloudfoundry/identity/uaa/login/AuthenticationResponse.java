@@ -25,7 +25,8 @@ public class AuthenticationResponse {
     private String error;
     private String username;
     private String origin;
-    @JsonProperty("user_id") private String userId;
+    @JsonProperty("user_id")
+    private String userId;
     private String email;
 
     public void setError(String error) {

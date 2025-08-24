@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -13,19 +14,19 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.oauth.client.http.AccessTokenRequiredException;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.UserRedirectRequiredException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.oauth2.client.http.AccessTokenRequiredException;
-import org.springframework.security.oauth2.client.resource.UserRedirectRequiredException;
 import org.springframework.security.web.authentication.preauth.AbstractPreAuthenticatedProcessingFilter;
 import org.springframework.security.web.authentication.preauth.PreAuthenticatedAuthenticationToken;
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.security.Principal;
 
@@ -69,7 +70,7 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
 
     private PreAuthenticatedPrincipalSource<?> principalSource;
 
-    private boolean oauth2Available = false;
+    private boolean oauth2Available;
 
     /**
      * @param principalSource the PreAuthenticatedPrincipalSource to set
@@ -84,7 +85,7 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
         super.afterPropertiesSet();
         try {
             oauth2Available = ClassUtils.isPresent(AccessTokenRequiredException.class.getName(),
-                            ClassUtils.getDefaultClassLoader());
+                    ClassUtils.getDefaultClassLoader());
         } catch (NoClassDefFoundError e) {
             // ignore
         }
@@ -96,11 +97,11 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
 
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                    AuthenticationException failed) throws IOException, ServletException {
+            AuthenticationException failed) throws IOException, ServletException {
         // Need to force a redirect via the OAuth client filter, so rethrow here
         // if OAuth related
-        if (oauth2Available && failed instanceof SocialRedirectException) {
-            throw ((SocialRedirectException) failed).getUserRedirectException();
+        if (oauth2Available && failed instanceof SocialRedirectException exception) {
+            throw exception.getUserRedirectException();
         }
         // If the exception is not a Spring Security exception this will
         // result in a default error page
@@ -129,15 +130,13 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
             boolean authenticated = authentication.isAuthenticated();
 
             // If not already authenticated (the default) from the parent class
-            if (authentication instanceof PreAuthenticatedAuthenticationToken && !authenticated) {
-
-                PreAuthenticatedAuthenticationToken preAuth = (PreAuthenticatedAuthenticationToken) authentication;
+            if (authentication instanceof PreAuthenticatedAuthenticationToken preAuth && !authenticated) {
                 // Look inside the principal and see if that was marked as
                 // authenticated
                 if (preAuth.getPrincipal() instanceof Authentication) {
                     Authentication principal = (Authentication) preAuth.getPrincipal();
                     preAuth = new PreAuthenticatedAuthenticationToken(principal, preAuth.getCredentials(),
-                                    principal.getAuthorities());
+                            principal.getAuthorities());
                     authenticated = principal.isAuthenticated();
                 }
                 preAuth.setAuthenticated(authenticated);

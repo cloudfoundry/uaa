@@ -1,75 +1,77 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.rules.ExpectedException;
+import org.junit.jupiter.api.Test;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-public class KeyInfoTest {
-    @Rule
-    public ExpectedException expectedException = ExpectedException.none();
+class KeyInfoTest {
 
-    private static final String sampleRsaPrivateKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
-      "MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3\n" +
-      "AnkyB06wFZ02sBLB7hko42LIsVEOyTuUBird/3vlyHFKytG7UEt60Fl88SbAEfsU\n" +
-      "JN1i1aSUlunPS/NCz+BKwwKFP9Ss3rNImE9Uc2LMvGy153LHFVW2zrjhTwIDAQAB\n" +
-      "AoGBAJDh21LRcJITRBQ3CUs9PR1DYZPl+tUkE7RnPBMPWpf6ny3LnDp9dllJeHqz\n" +
-      "a3ACSgleDSEEeCGzOt6XHnrqjYCKa42Z+Opnjx/OOpjyX1NAaswRtnb039jwv4gb\n" +
-      "RlwT49Y17UAQpISOo7JFadCBoMG0ix8xr4ScY+zCSoG5v0BhAkEA8llNsiWBJF5r\n" +
-      "LWQ6uimfdU2y1IPlkcGAvjekYDkdkHiRie725Dn4qRiXyABeaqNm2bpnD620Okwr\n" +
-      "sf7LY+BMdwJBAOvgt/ZGwJrMOe/cHhbujtjBK/1CumJ4n2r5V1zPBFfLNXiKnpJ6\n" +
-      "J/sRwmjgg4u3Anu1ENF3YsxYabflBnvOP+kCQCQ8VBCp6OhOMcpErT8+j/gTGQUL\n" +
-      "f5zOiPhoC2zTvWbnkCNGlqXDQTnPUop1+6gILI2rgFNozoTU9MeVaEXTuLsCQQDC\n" +
-      "AGuNpReYucwVGYet+LuITyjs/krp3qfPhhByhtndk4cBA5H0i4ACodKyC6Zl7Tmf\n" +
-      "oYaZoYWi6DzbQQUaIsKxAkEA2rXQjQFsfnSm+w/9067ChWg46p4lq5Na2NpcpFgH\n" +
-      "waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==\n" +
-      "-----END RSA PRIVATE KEY-----";
+    private static final String sampleRsaPrivateKey = """
+            -----BEGIN RSA PRIVATE KEY-----
+            MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3
+            AnkyB06wFZ02sBLB7hko42LIsVEOyTuUBird/3vlyHFKytG7UEt60Fl88SbAEfsU
+            JN1i1aSUlunPS/NCz+BKwwKFP9Ss3rNImE9Uc2LMvGy153LHFVW2zrjhTwIDAQAB
+            AoGBAJDh21LRcJITRBQ3CUs9PR1DYZPl+tUkE7RnPBMPWpf6ny3LnDp9dllJeHqz
+            a3ACSgleDSEEeCGzOt6XHnrqjYCKa42Z+Opnjx/OOpjyX1NAaswRtnb039jwv4gb
+            RlwT49Y17UAQpISOo7JFadCBoMG0ix8xr4ScY+zCSoG5v0BhAkEA8llNsiWBJF5r
+            LWQ6uimfdU2y1IPlkcGAvjekYDkdkHiRie725Dn4qRiXyABeaqNm2bpnD620Okwr
+            sf7LY+BMdwJBAOvgt/ZGwJrMOe/cHhbujtjBK/1CumJ4n2r5V1zPBFfLNXiKnpJ6
+            J/sRwmjgg4u3Anu1ENF3YsxYabflBnvOP+kCQCQ8VBCp6OhOMcpErT8+j/gTGQUL
+            f5zOiPhoC2zTvWbnkCNGlqXDQTnPUop1+6gILI2rgFNozoTU9MeVaEXTuLsCQQDC
+            AGuNpReYucwVGYet+LuITyjs/krp3qfPhhByhtndk4cBA5H0i4ACodKyC6Zl7Tmf
+            oYaZoYWi6DzbQQUaIsKxAkEA2rXQjQFsfnSm+w/9067ChWg46p4lq5Na2NpcpFgH
+            waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==
+            -----END RSA PRIVATE KEY-----""";
 
 
     @Test
-    public void HmacKeyShouldSetFieldsCorrectly() {
-        HmacKeyInfo hmacKeyInfo = new HmacKeyInfo("key-id", "secret", "https://localhost");
+    void HmacKeyShouldSetFieldsCorrectly() {
+        KeyInfo hmacKeyInfo = new KeyInfo("key-id", "secret", "https://localhost");
 
-        assertThat(hmacKeyInfo.type(), is("MAC"));
+        assertThat(hmacKeyInfo.type()).isEqualTo("MAC");
     }
 
     @Test
-    public void HmacKeyShouldSetKeyUrlWithASecureProtocol() {
-        HmacKeyInfo hmacKeyInfo = new HmacKeyInfo("key-id", "secret", "http://localhost/path2");
+    void HmacKeyShouldSetKeyUrlWithASecureProtocol() {
+        KeyInfo hmacKeyInfo = new KeyInfo("key-id", "secret", "http://localhost/path2");
 
-        assertThat(hmacKeyInfo.keyURL(), is("https://localhost/path2/token_keys"));
+        assertThat(hmacKeyInfo.keyURL()).isEqualTo("https://localhost/path2/token_keys");
     }
 
     @Test
-    public void RsaKeyShouldSetFieldsCorrectly() {
-        RsaKeyInfo hmacKeyInfo = new RsaKeyInfo("key-id", sampleRsaPrivateKey, "https://localhost");
+    void RsaKeyShouldSetFieldsCorrectly() {
+        KeyInfo keyInfo = new KeyInfo("key-id", sampleRsaPrivateKey, "https://localhost");
 
-        assertThat(hmacKeyInfo.type(), is("RSA"));
+        assertThat(keyInfo.type()).isEqualTo("RSA");
     }
 
     @Test
-    public void RsaKeyShouldSetKeyUrlWithASecureProtocol() {
-        RsaKeyInfo hmacKeyInfo = new RsaKeyInfo("key-id", sampleRsaPrivateKey, "http://localhost/path");
+    void Rsa512KeyShouldSetFieldsCorrectly() {
+        KeyInfo keyInfo = new KeyInfo("key-id", sampleRsaPrivateKey, "https://localhost", "RS512", null);
 
-        assertThat(hmacKeyInfo.keyURL(), is("https://localhost/path/token_keys"));
+        assertThat(keyInfo.type()).isEqualTo("RSA");
+        assertThat(keyInfo.algorithm()).isEqualTo("RS512");
     }
 
     @Test
-    public void creatingHmacKeyWithInvalidUrlShouldFail() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid Key URL");
+    void RsaKeyShouldSetKeyUrlWithASecureProtocol() {
+        KeyInfo keyInfo = new KeyInfo("key-id", sampleRsaPrivateKey, "http://localhost/path");
 
-        new HmacKeyInfo("id", "secret", "foo bar");
+        assertThat(keyInfo.keyURL()).isEqualTo("https://localhost/path/token_keys");
     }
 
+    @Test
+    void creatingHmacKeyWithInvalidUrlShouldFail() {
+        assertThatThrownBy(() -> new KeyInfo("id", "secret", "foo bar"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid Key URL");
+    }
 
     @Test
-    public void creatingRsaKeyWithInvalidUrlShouldFail() {
-        expectedException.expect(IllegalArgumentException.class);
-        expectedException.expectMessage("Invalid Key URL");
-
-        new RsaKeyInfo("id", "secret", "foo bar");
+    void creatingRsaKeyWithInvalidUrlShouldFail() {
+        assertThatThrownBy(() -> new KeyInfo("id", "secret", "foo bar"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid Key URL");
     }
 }

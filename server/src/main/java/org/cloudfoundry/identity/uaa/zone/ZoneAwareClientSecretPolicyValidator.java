@@ -18,13 +18,13 @@ import org.passay.PasswordData;
 import org.passay.PasswordValidator;
 import org.passay.PropertiesMessageResolver;
 import org.passay.RuleResult;
+import org.springframework.util.StringUtils;
 
 import java.util.LinkedList;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.messageResolver;
 import static org.cloudfoundry.identity.uaa.util.PasswordValidatorUtil.validator;
-
 
 
 /**
@@ -58,11 +58,12 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
 
     public static final String DEFAULT_MESSAGE_PATH = "/clientsecret-messages.properties";
 
-    private static PropertiesMessageResolver messageResolver;
+    private static final PropertiesMessageResolver messageResolver;
 
     static {
         messageResolver = messageResolver(DEFAULT_MESSAGE_PATH);
     }
+
     private final ClientSecretPolicy globalDefaultClientSecretPolicy;
 
     public ZoneAwareClientSecretPolicyValidator(ClientSecretPolicy globalDefaultClientSecretPolicy) {
@@ -71,19 +72,19 @@ public class ZoneAwareClientSecretPolicyValidator implements ClientSecretValidat
 
     @Override
     public void validate(String clientSecret) throws InvalidClientSecretException {
-        if(clientSecret == null) {
-            throw new InvalidClientSecretException("Client Secret cannot be null.");
+        if (!StringUtils.hasText(clientSecret)) {
+            return;
         }
 
         ClientSecretPolicy clientSecretPolicy = this.globalDefaultClientSecretPolicy;
 
         IdentityZone zone = IdentityZoneHolder.get();
-        if(zone.getConfig().getClientSecretPolicy().getMinLength() != -1) {
+        if (zone.getConfig().getClientSecretPolicy().getMinLength() != -1) {
             clientSecretPolicy = zone.getConfig().getClientSecretPolicy();
         }
 
         PasswordValidator clientSecretValidator = validator(clientSecretPolicy,
-                                                        messageResolver);
+                messageResolver);
         RuleResult result = clientSecretValidator.validate(new PasswordData(clientSecret));
         if (!result.isValid()) {
             List<String> errorMessages = new LinkedList<>(clientSecretValidator.getMessages(result));

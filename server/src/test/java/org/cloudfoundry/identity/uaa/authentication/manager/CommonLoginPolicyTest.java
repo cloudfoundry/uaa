@@ -6,15 +6,13 @@ import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -29,7 +27,7 @@ class CommonLoginPolicyTest {
     private UaaAuditService auditService;
     private AuditEventType failureEventType;
     private AuditEventType successEventType;
-    private boolean enabled = true;
+    private final boolean enabled = true;
 
     @BeforeEach
     void setup() {
@@ -43,11 +41,11 @@ class CommonLoginPolicyTest {
     }
 
     @Test
-    void test_is_disabled() {
+    void is_disabled() {
         commonLoginPolicy = spy(new CommonLoginPolicy(auditService, lockoutPolicyRetriever, successEventType, failureEventType, timeService, false));
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
-        assertTrue(result.isAllowed());
-        assertEquals(0, result.getFailureCount());
+        assertThat(result.isAllowed()).isTrue();
+        assertThat(result.getFailureCount()).isZero();
         verifyNoInteractions(lockoutPolicyRetriever);
         verifyNoInteractions(timeService);
         verifyNoInteractions(auditService);
@@ -59,8 +57,8 @@ class CommonLoginPolicyTest {
 
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
 
-        assertTrue(result.isAllowed());
-        assertEquals(0, result.getFailureCount());
+        assertThat(result.isAllowed()).isTrue();
+        assertThat(result.getFailureCount()).isZero();
     }
 
     @Test
@@ -73,8 +71,8 @@ class CommonLoginPolicyTest {
 
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
 
-        assertFalse(result.isAllowed());
-        assertEquals(1, result.getFailureCount());
+        assertThat(result.isAllowed()).isFalse();
+        assertThat(result.getFailureCount()).isOne();
     }
 
     @Test
@@ -87,7 +85,7 @@ class CommonLoginPolicyTest {
 
         LoginPolicy.Result result = commonLoginPolicy.isAllowed("principal");
 
-        assertTrue(result.isAllowed());
-        assertEquals(1, result.getFailureCount());
+        assertThat(result.isAllowed()).isTrue();
+        assertThat(result.getFailureCount()).isOne();
     }
 }

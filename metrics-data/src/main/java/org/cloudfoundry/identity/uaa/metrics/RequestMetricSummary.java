@@ -22,13 +22,13 @@ import static org.cloudfoundry.identity.uaa.metrics.MetricsUtil.addToAverage;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class RequestMetricSummary {
-    long count = 0;
+    long count;
     double averageTime = 0;
-    long intolerableCount = 0;
+    long intolerableCount;
     double averageIntolerableTime = 0;
-    long databaseQueryCount = 0;
+    long databaseQueryCount;
     double averageDatabaseQueryTime = 0;
-    long databaseIntolerableQueryCount = 0;
+    long databaseIntolerableQueryCount;
     double averageDatabaseIntolerableQueryTime = 0;
 
     public RequestMetricSummary() {
@@ -36,13 +36,13 @@ public class RequestMetricSummary {
 
     @JsonCreator
     public RequestMetricSummary(@JsonProperty("count") long count,
-                                @JsonProperty("averageTime") double averageTime,
-                                @JsonProperty("intolerableCount") long intolerableCount,
-                                @JsonProperty("averageIntolerableTime") double averageIntolerableTime,
-                                @JsonProperty("databaseQueryCount") long databaseQueryCount,
-                                @JsonProperty("averageDatabaseQueryTime") double averageDatabaseQueryTime,
-                                @JsonProperty("databaseIntolerableQueryCount") long databaseIntolerableQueryCount,
-                                @JsonProperty("averageDatabaseIntolerableQueryTime") double averageDatabaseIntolerableQueryTime) {
+            @JsonProperty("averageTime") double averageTime,
+            @JsonProperty("intolerableCount") long intolerableCount,
+            @JsonProperty("averageIntolerableTime") double averageIntolerableTime,
+            @JsonProperty("databaseQueryCount") long databaseQueryCount,
+            @JsonProperty("averageDatabaseQueryTime") double averageDatabaseQueryTime,
+            @JsonProperty("databaseIntolerableQueryCount") long databaseIntolerableQueryCount,
+            @JsonProperty("averageDatabaseIntolerableQueryTime") double averageDatabaseIntolerableQueryTime) {
         this.count = count;
         this.averageTime = averageTime;
         this.intolerableCount = intolerableCount;

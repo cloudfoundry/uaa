@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -13,26 +14,33 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.ServerRunningExtension;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.TestAccountExtension;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -40,36 +48,23 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertFalse;
-import static junit.framework.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-
 
 /**
  * @author Dave Syer
@@ -78,84 +73,85 @@ import static org.junit.Assert.assertNull;
 public class ClientAdminEndpointsIntegrationTests {
 
     public static final String SECRET_TOO_LONG = "adfdfdasgdasgasdgafsgasfgfasgfadsgfagsagasddsafdsafsdfdafsdafdsfasdffasfasdfasdfdsfds" +
-        "ewrewrewqrweqrewqrewqrewerwqqweewqrdsadsfewqrewqrtewrewrewrewrererererererererererdfadsafasfdasfsdaf" +
-        "dsfasdfdsagfdsao43o4p43adfsfasdvcdasfmdsafzxcvaddsaaddfsafdsafdsfdsdfsfdsfdsasdfadfsadfsasadfsdfadfs";
-    @Rule
-    public ServerRunning serverRunning = ServerRunning.isRunning();
+            "ewrewrewqrweqrewqrewqrewerwqqweewqrdsadsfewqrewqrtewrewrewrewrererererererererererdfadsafasfdasfsdaf" +
+            "dsfasdfdsagfdsao43o4p43adfsfasdvcdasfmdsafzxcvaddsaaddfsafdsafdsfdsdfsfdsfdsasdfadfsadfsasadfsdfadfs";
+    private static final Base64.Encoder ENCODER = Base64.getEncoder();
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+    @RegisterExtension
+    private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
-    @Rule
-    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    private static final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
+
+    @RegisterExtension
+    private static final TestAccountExtension testAccountExtension = TestAccountExtension.standard(serverRunning, testAccounts);
 
     private OAuth2AccessToken token;
     private HttpHeaders headers;
     private List<ClientDetailsModification> clientDetailsModifications;
 
-    @Before
-    public void setUp() throws Exception {
+    @BeforeEach
+    void setUp() {
         token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         headers = getAuthenticatedHeaders(token);
     }
 
     @Test
-    public void testGetClient() throws Exception {
-        HttpHeaders headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
-        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/cf", headers);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertTrue(result.getBody().contains("cf"));
+    void getClient() {
+        HttpHeaders myHeaders = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
+        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/cf", myHeaders);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).contains("cf");
     }
 
     @Test
-    public void testListClients() throws Exception {
-        HttpHeaders headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
-        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients", headers);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        // System.err.println(result.getBody());
-        assertTrue(result.getBody().contains("\"client_id\":\"cf\""));
-        assertFalse(result.getBody().contains("secret\":"));
+    void listClients() {
+        HttpHeaders myHeaders = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
+        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients", myHeaders);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).contains("\"client_id\":\"cf\"")
+                .doesNotContain("secret\":");
     }
 
-    @Before
-    public void setupClients() {
+    @BeforeEach
+    void setupClients() {
         clientDetailsModifications = new ArrayList<>();
     }
 
-    @After
-    public void teardownClients() {
+    @AfterEach
+    void teardownClients() {
         for (ClientDetailsModification clientDetailsModification : clientDetailsModifications) {
             serverRunning.getRestTemplate()
-                .exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
-                    new HttpEntity<BaseClientDetails>(clientDetailsModification, headers), Void.class,
-                    clientDetailsModification.getClientId());
+                    .exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
+                            new HttpEntity<UaaClientDetails>(clientDetailsModification, headers), Void.class,
+                            clientDetailsModification.getClientId());
         }
     }
 
     @Test
-    public void testListClientsWithExtremePagination_defaultsTo500() throws Exception {
+    void listClientsWithExtremePaginationDefaultsTo500() throws Exception {
         for (int i = 0; i < 502; i++) {
             clientDetailsModifications.add(createClient("client_credentials"));
         }
 
-        HttpHeaders headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
-        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients?count=3000", headers);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+        HttpHeaders myHeaders = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
+        ResponseEntity<String> result = serverRunning.getForString("/oauth/clients?count=3000", myHeaders);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         SearchResults searchResults = new ObjectMapper().readValue(result.getBody(), SearchResults.class);
-        assertThat(searchResults.getItemsPerPage(), is(500));
-        assertThat((List<?>) searchResults.getResources(), hasSize(500));
-        assertThat(searchResults.getTotalResults(), greaterThan(500));
+        assertThat(searchResults.getItemsPerPage()).isEqualTo(500);
+        assertThat(searchResults.getResources()).hasSize(500);
+        assertThat(searchResults.getTotalResults()).isGreaterThan(500);
     }
 
     @Test
-    public void testCreateClient() throws Exception {
+    void testCreateClient() {
         createClient("client_credentials");
     }
 
     @Test
-    public void createClientWithSecondarySecret() {
-        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
-        HttpHeaders headers = getAuthenticatedHeaders(token);
+    void createClientWithSecondarySecret() {
+        OAuth2AccessToken myToken = getClientCredentialsAccessToken("clients.read,clients.write");
+        HttpHeaders myHeaders = getAuthenticatedHeaders(myToken);
         var client = new ClientDetailsCreation();
         client.setClientId(new RandomValueStringGenerator().generate());
         client.setClientSecret("primarySecret");
@@ -164,16 +160,45 @@ public class ClientAdminEndpointsIntegrationTests {
 
         ResponseEntity<Void> result = serverRunning.getRestTemplate()
                 .exchange(serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-                        new HttpEntity<>(client, headers), Void.class);
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+                        new HttpEntity<>(client, myHeaders), Void.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
-    public void testCreateClients() throws Exception {
+    void createClientWithEmptySecret() {
+        OAuth2AccessToken myToken = getClientCredentialsAccessToken("clients.admin");
+        HttpHeaders myHeaders = getAuthenticatedHeaders(myToken);
+        var client = new ClientDetailsCreation();
+        client.setClientId(new RandomValueStringGenerator().generate());
+        client.setClientSecret(UaaStringUtils.EMPTY_STRING);
+        client.setAuthorizedGrantTypes(List.of("password"));
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate()
+                .exchange(serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                        new HttpEntity<>(client, myHeaders), Void.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    }
+
+    @Test
+    void createClients() {
         doCreateClients();
     }
 
-    public ClientDetailsModification[] doCreateClients() throws Exception {
+    @Test
+    void createClientWithValidLongRedirectUris() {
+        // redirectUri shorter than the database column size
+        HashSet<String> uris = new HashSet<>();
+        for (int i = 0; i < 666; ++i) {
+            uris.add("http://example.com/myuri/foo/bar/abcdefg/abcdefg" + i);
+        }
+
+        UaaClientDetails client = createClientWithSecretAndRedirectUri("secret", uris, "client_credentials");
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
+                HttpMethod.POST, new HttpEntity<>(client, headers), Void.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+    }
+
+    public ClientDetailsModification[] doCreateClients() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         RandomValueStringGenerator gen = new RandomValueStringGenerator();
@@ -193,29 +218,29 @@ public class ClientAdminEndpointsIntegrationTests {
             clients[i].setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
         }
         ResponseEntity<ClientDetailsModification[]> result =
-            serverRunning.getRestTemplate().exchange(
-                serverRunning.getUrl("/oauth/clients/tx"),
-                HttpMethod.POST,
-                new HttpEntity<ClientDetailsModification[]>(clients, headers),
-                ClientDetailsModification[].class);
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+                serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients/tx"),
+                        HttpMethod.POST,
+                        new HttpEntity<>(clients, headers),
+                        ClientDetailsModification[].class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         validateClients(clients, result.getBody());
         for (String id : ids) {
             ClientDetails client = getClient(id);
-            assertNotNull(client);
+            assertThat(client).isNotNull();
         }
         return result.getBody();
     }
 
     @Test
-    public void createClientWithCommaDelimitedScopesValidatesAllTheScopes() throws Exception {
+    void createClientWithCommaDelimitedScopesValidatesAllTheScopes() {
         // log in as admin
         OAuth2AccessToken adminToken = getClientCredentialsAccessToken("");
         HttpHeaders adminHeaders = getAuthenticatedHeaders(adminToken);
 
         // make client that can create other clients
         String newClientId = new RandomValueStringGenerator().generate();
-        BaseClientDetails clientCreator = new BaseClientDetails(
+        UaaClientDetails clientCreator = new UaaClientDetails(
                 newClientId,
                 "",
                 "clients.write,uaa.user",
@@ -224,18 +249,18 @@ public class ClientAdminEndpointsIntegrationTests {
         );
         clientCreator.setClientSecret("secret");
         ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-            new HttpEntity<>(clientCreator, adminHeaders), UaaException.class);
+                serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                new HttpEntity<>(clientCreator, adminHeaders), UaaException.class);
 
         // ensure success
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         // log in as new client
-        OAuth2AccessToken token = getClientCredentialsAccessToken(clientCreator.getClientId(), clientCreator.getClientSecret(), "");
-        HttpHeaders headers = getAuthenticatedHeaders(token);
+        OAuth2AccessToken myToken = getClientCredentialsAccessToken(clientCreator.getClientId(), clientCreator.getClientSecret(), "");
+        HttpHeaders myHeaders = getAuthenticatedHeaders(myToken);
 
         // make client with restricted scopes
-        BaseClientDetails invalidClient = new BaseClientDetails(
+        UaaClientDetails invalidClient = new UaaClientDetails(
                 new RandomValueStringGenerator().generate(),
                 "",
                 newClientId + ".admin,uaa.admin",
@@ -243,73 +268,72 @@ public class ClientAdminEndpointsIntegrationTests {
                 "uaa.none"
         );
         invalidClient.setClientSecret("secret");
-        ResponseEntity<UaaException> invalidClientRequest = serverRunning.getRestTemplate().exchange(
+        ResponseEntity<InvalidClientException> invalidClientRequest = serverRunning.getRestTemplate().exchange(
                 serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-                new HttpEntity<>(invalidClient, headers), UaaException.class);
+                new HttpEntity<>(invalidClient, myHeaders), InvalidClientException.class);
 
         // ensure correct failure
-        assertEquals(HttpStatus.BAD_REQUEST, invalidClientRequest.getStatusCode());
-        assertEquals("invalid_client", invalidClientRequest.getBody().getErrorCode());
-        assertTrue("Error message is unexpected", invalidClientRequest.getBody().getMessage().startsWith("uaa.admin is not an allowed scope for caller"));
+        assertThat(invalidClientRequest.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(invalidClientRequest.getBody().getOAuth2ErrorCode()).isEqualTo("invalid_client");
+        assertThat(invalidClientRequest.getBody().getMessage()).as("Error message is unexpected").startsWith("uaa.admin is not an allowed scope for caller");
     }
 
     @Test
-    public void createClientWithoutSecretIsRejected() throws Exception {
-        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
-        HttpHeaders headers = getAuthenticatedHeaders(token);
-        BaseClientDetails invalidSecretClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-            "client_credentials", "uaa.none");
+    void createClientWithoutSecretIsRejected() {
+        OAuth2AccessToken myToken = getClientCredentialsAccessToken("clients.read,clients.write");
+        HttpHeaders myHeaders = getAuthenticatedHeaders(myToken);
+        UaaClientDetails invalidSecretClient = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "client_credentials", "uaa.none");
         invalidSecretClient.setClientSecret("tooLongSecret");
-        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-            new HttpEntity<BaseClientDetails>(invalidSecretClient, headers), UaaException.class);
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertEquals("invalid_client", result.getBody().getErrorCode());
+        ResponseEntity<InvalidClientException> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                new HttpEntity<>(invalidSecretClient, myHeaders), InvalidClientException.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(result.getBody().getOAuth2ErrorCode()).isEqualTo("invalid_client");
     }
 
-
     @Test
-    public void createClientWithTooLongSecretIsRejected() throws Exception {
-        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
-        HttpHeaders headers = getAuthenticatedHeaders(token);
-        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-            "client_credentials", "uaa.none");
+    void createClientWithTooLongSecretIsRejected() {
+        OAuth2AccessToken myToken = getClientCredentialsAccessToken("clients.read,clients.write");
+        HttpHeaders myHeaders = getAuthenticatedHeaders(myToken);
+        UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "client_credentials", "uaa.none");
         client.setClientSecret(SECRET_TOO_LONG);
-        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-            new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertEquals("invalid_client", result.getBody().getErrorCode());
+        ResponseEntity<InvalidClientException> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                new HttpEntity<>(client, myHeaders), InvalidClientException.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(result.getBody().getOAuth2ErrorCode()).isEqualTo("invalid_client");
     }
 
     @Test
-    public void createClientWithTooLongSecondarySecretIsRejected() throws Exception {
-        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
-        HttpHeaders headers = getAuthenticatedHeaders(token);
+    void createClientWithTooLongSecondarySecretIsRejected() {
+        OAuth2AccessToken myToken = getClientCredentialsAccessToken("clients.read,clients.write");
+        HttpHeaders myHeaders = getAuthenticatedHeaders(myToken);
         var client = new ClientDetailsCreation();
         client.setClientId(new RandomValueStringGenerator().generate());
         client.setClientSecret("primarySecret");
         client.setSecondaryClientSecret(SECRET_TOO_LONG);
         client.setAuthorizedGrantTypes(List.of("client_credentials"));
 
-        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
+        ResponseEntity<InvalidClientException> result = serverRunning.getRestTemplate().exchange(
                 serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-                new HttpEntity<>(client, headers), UaaException.class);
+                new HttpEntity<>(client, myHeaders), InvalidClientException.class);
 
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertEquals("invalid_client", result.getBody().getErrorCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(result.getBody().getOAuth2ErrorCode()).isEqualTo("invalid_client");
     }
 
     @Test
-    public void createClientWithStrictSecretPolicyTest() throws Exception {
-        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+    void createClientWithStrictSecretPolicyTest() {
+        assertThat(doesSupportZoneDNS()).as("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1").isTrue();
         String testZoneId = "testzone1";
 
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret"));
+        IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret"));
         RestTemplate identityClient = IntegrationTestUtils
-            .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
-                new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+                .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                        new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
 
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         //min length 5, max length 12, requires 1 uppercase lowercase digit and specialChar, expries 6 months.
@@ -317,28 +341,28 @@ public class ClientAdminEndpointsIntegrationTests {
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
 
 
-        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-            "client_credentials", "uaa.none");
+        UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "client_credentials", "uaa.none");
         client.setClientSecret("Secret1@");
 
         String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(serverRunning.getBaseUrl(), serverRunning, testZoneId);
         HttpHeaders xZoneHeaders = getAuthenticatedHeaders(zoneAdminToken);
         xZoneHeaders.add(IdentityZoneSwitchingFilter.HEADER, testZoneId);
         ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getBaseUrl() + "/oauth/clients", HttpMethod.POST,
-            new HttpEntity<BaseClientDetails>(client, xZoneHeaders), UaaException.class);
+                serverRunning.getBaseUrl() + "/oauth/clients", HttpMethod.POST,
+                new HttpEntity<>(client, xZoneHeaders), UaaException.class);
 
-        Assert.assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
         //Negative Test
-        BaseClientDetails failClient = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-            "client_credentials", "uaa.none");
+        UaaClientDetails failClient = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "client_credentials", "uaa.none");
         failClient.setClientSecret("badsecret");
         result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getBaseUrl() + "/oauth/clients", HttpMethod.POST,
-            new HttpEntity<BaseClientDetails>(failClient, xZoneHeaders), UaaException.class);
+                serverRunning.getBaseUrl() + "/oauth/clients", HttpMethod.POST,
+                new HttpEntity<>(failClient, xZoneHeaders), UaaException.class);
 
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
         //cleanup
         config.setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
@@ -346,65 +370,65 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     @Test
-    public void testClientSecretExpiryCannotBeSet() {
-        assertTrue("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+    void clientSecretExpiryCannotBeSet() {
+        assertThat(doesSupportZoneDNS()).as("Expected testzone1.localhost and testzone2.localhost to resolve to 127.0.0.1").isTrue();
         String testZoneId = "testzone1";
 
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret"));
+        IntegrationTestUtils.getClientCredentialsTemplate(
+                IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret"));
         RestTemplate identityClient = IntegrationTestUtils
-            .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
-                new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
+                .getClientCredentialsTemplate(IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(),
+                        new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret"));
 
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         //min length 5, max length 12, requires 1 uppercase lowercase digit and specialChar, expries 6 months.
         config.setClientSecretPolicy(new ClientSecretPolicy(5, 12, 1, 1, 1, 1, 6));
         IdentityZone createdZone = IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
-        assertEquals(-1, createdZone.getConfig().getClientSecretPolicy().getExpireSecretInMonths());
+        assertThat(createdZone.getConfig().getClientSecretPolicy().getExpireSecretInMonths()).isEqualTo(-1);
         config.setClientSecretPolicy(new ClientSecretPolicy(0, 255, 0, 0, 0, 0, 6));
         IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, serverRunning.getBaseUrl(), testZoneId, testZoneId, config);
     }
 
     @Test
-    public void nonImplicitGrantClientWithoutSecretIsRejectedTxFails() throws Exception {
+    void nonImplicitGrantClientWithSecret() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         String grantTypes = "client_credentials";
         RandomValueStringGenerator gen = new RandomValueStringGenerator();
         String[] ids = new String[5];
-        BaseClientDetails[] clients = new BaseClientDetails[ids.length];
+        UaaClientDetails[] clients = new UaaClientDetails[ids.length];
         for (int i = 0; i < ids.length; i++) {
             ids[i] = gen.generate();
-            clients[i] = new BaseClientDetails(ids[i], "", "foo,bar", grantTypes, "uaa.none");
+            clients[i] = new UaaClientDetails(ids[i], "", "foo,bar", grantTypes, "uaa.none");
             clients[i].setClientSecret("secret");
             clients[i].setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
                     Collections.singletonList("bar")));
         }
         clients[clients.length - 1].setClientSecret(null);
         ResponseEntity<UaaException> result =
-            serverRunning.getRestTemplate().exchange(
-                serverRunning.getUrl("/oauth/clients/tx"),
-                HttpMethod.POST,
-                new HttpEntity<BaseClientDetails[]>(clients, headers),
-                UaaException.class);
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+                serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients/tx"),
+                        HttpMethod.POST,
+                        new HttpEntity<>(clients, headers),
+                        UaaException.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         for (String id : ids) {
             ClientDetails client = getClient(id);
-            assertNull(client);
+            assertThat(client).isNotNull();
         }
     }
 
     @Test
-    public void duplicateIdsIsRejectedTxFails() throws Exception {
+    void duplicateIdsIsRejectedTxFails() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
         String grantTypes = "client_credentials";
         RandomValueStringGenerator gen = new RandomValueStringGenerator();
         String[] ids = new String[5];
-        BaseClientDetails[] clients = new BaseClientDetails[ids.length];
+        UaaClientDetails[] clients = new UaaClientDetails[ids.length];
         for (int i = 0; i < ids.length; i++) {
             ids[i] = gen.generate();
-            clients[i] = new BaseClientDetails(ids[i], "", "foo,bar", grantTypes, "uaa.none");
+            clients[i] = new UaaClientDetails(ids[i], "", "foo,bar", grantTypes, "uaa.none");
             clients[i].setClientSecret("secret");
             clients[i].setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
                     Collections.singletonList("bar")));
@@ -412,70 +436,70 @@ public class ClientAdminEndpointsIntegrationTests {
         }
         clients[clients.length - 1].setClientId(ids[0]);
         ResponseEntity<UaaException> result =
-            serverRunning.getRestTemplate().exchange(
-                serverRunning.getUrl("/oauth/clients/tx"),
-                HttpMethod.POST,
-                new HttpEntity<BaseClientDetails[]>(clients, headers),
-                UaaException.class);
-        assertEquals(HttpStatus.CONFLICT, result.getStatusCode());
+                serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients/tx"),
+                        HttpMethod.POST,
+                        new HttpEntity<>(clients, headers),
+                        UaaException.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         for (String id : ids) {
             ClientDetails client = getClient(id);
-            assertNull(client);
+            assertThat(client).isNull();
         }
     }
 
     @Test
-    public void implicitAndAuthCodeGrantClient() {
-        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-            "implicit,authorization_code", "uaa.none");
-        ResponseEntity<UaaException> result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
-            new HttpEntity<BaseClientDetails>(client, headers), UaaException.class);
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-        assertEquals("invalid_client", result.getBody().getErrorCode());
+    void implicitAndAuthCodeGrantClient() {
+        UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "implicit,authorization_code", "uaa.none");
+        ResponseEntity<InvalidClientException> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients"), HttpMethod.POST,
+                new HttpEntity<>(client, headers), InvalidClientException.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(result.getBody().getOAuth2ErrorCode()).isEqualTo("invalid_client");
     }
 
     @Test
-    public void implicitGrantClientWithoutSecretIsOk() {
-        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-            "implicit", "uaa.none", "http://redirect.url");
+    void implicitGrantClientWithoutSecretIsOk() {
+        UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "implicit", "uaa.none", "http://redirect.url");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-            HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+                HttpMethod.POST, new HttpEntity<>(client, headers), Void.class);
 
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
-    public void passwordGrantClientWithoutSecretIsOk() {
-        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
-            "password", "uaa.none", "http://redirect.url");
+    void passwordGrantClientWithoutSecretIsOk() {
+        UaaClientDetails client = new UaaClientDetails(new RandomValueStringGenerator().generate(), "", "foo,bar",
+                "password", "uaa.none", "http://redirect.url");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-            HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
+                HttpMethod.POST, new HttpEntity<>(client, headers), Void.class);
 
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     }
 
     @Test
-    public void authzCodeGrantAutomaticallyAddsRefreshToken() throws Exception {
-        BaseClientDetails client = createClient(GRANT_TYPE_AUTHORIZATION_CODE);
+    void authzCodeGrantAutomaticallyAddsRefreshToken() {
+        UaaClientDetails client = createClient(GRANT_TYPE_AUTHORIZATION_CODE);
 
         ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/" + client.getClientId(), headers);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertTrue(result.getBody().contains("\"authorized_grant_types\":[\"authorization_code\",\"refresh_token\"]"));
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).contains("\"authorized_grant_types\":[\"authorization_code\",\"refresh_token\"]");
     }
 
     @Test
-    public void passwordGrantAutomaticallyAddsRefreshToken() throws Exception {
-        BaseClientDetails client = createClient("password");
+    void passwordGrantAutomaticallyAddsRefreshToken() {
+        UaaClientDetails client = createClient("password");
 
         ResponseEntity<String> result = serverRunning.getForString("/oauth/clients/" + client.getClientId(), headers);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertTrue(result.getBody().contains("\"authorized_grant_types\":[\"password\",\"refresh_token\"]"));
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(result.getBody()).contains("\"authorized_grant_types\":[\"password\",\"refresh_token\"]");
     }
 
     @Test
-    public void testUpdateClient() throws Exception {
-        BaseClientDetails client = createClient("client_credentials");
+    void updateClient() {
+        UaaClientDetails client = createClient("client_credentials");
 
         client.setResourceIds(Collections.singleton("foo"));
         client.setClientSecret(null);
@@ -486,92 +510,91 @@ public class ClientAdminEndpointsIntegrationTests {
                 Collections.singletonList("rab")));
 
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getUrl("/oauth/clients/{client}"),
-            HttpMethod.PUT, new HttpEntity<BaseClientDetails>(client, headers), Void.class,
-            client.getClientId());
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+                serverRunning.getUrl("/oauth/clients/{client}"),
+                HttpMethod.PUT, new HttpEntity<>(client, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         ResponseEntity<String> response = serverRunning.getForString("/oauth/clients/" + client.getClientId(), headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         String body = response.getBody();
-        assertTrue(body.contains(client.getClientId()));
-        assertTrue(body.contains("some.crap"));
-        assertTrue(body.contains("refresh_token_validity\":120"));
-        assertTrue(body.contains("access_token_validity\":60"));
-        assertTrue("Wrong body: " + body, body.contains("\"foo\":[\"rab\"]"));
-
+        assertThat(body).contains(client.getClientId())
+                .contains("some.crap")
+                .contains("refresh_token_validity\":120")
+                .contains("access_token_validity\":60")
+                .as("Wrong body: " + body).contains("\"foo\":[\"rab\"]");
     }
 
     @Test
-    public void testUpdateClients() throws Exception {
-        BaseClientDetails[] clients = doCreateClients();
+    void updateClients() {
+        UaaClientDetails[] clients = doCreateClients();
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
-        for (BaseClientDetails c : clients) {
+        for (UaaClientDetails c : clients) {
             c.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("some.crap"));
             c.setAccessTokenValiditySeconds(60);
             c.setRefreshTokenValiditySeconds(120);
         }
-        ResponseEntity<BaseClientDetails[]> result =
-            serverRunning.getRestTemplate().exchange(
-                serverRunning.getUrl("/oauth/clients/tx"),
-                HttpMethod.PUT,
-                new HttpEntity<BaseClientDetails[]>(clients, headers),
-                BaseClientDetails[].class);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+        ResponseEntity<UaaClientDetails[]> result =
+                serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients/tx"),
+                        HttpMethod.PUT,
+                        new HttpEntity<>(clients, headers),
+                        UaaClientDetails[].class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         validateClients(clients, result.getBody());
-        for (BaseClientDetails c : clients) {
+        for (UaaClientDetails c : clients) {
             ClientDetails client = getClient(c.getClientId());
-            assertNotNull(client);
-            assertEquals((Integer) 120, client.getRefreshTokenValiditySeconds());
-            assertEquals((Integer) 60, client.getAccessTokenValiditySeconds());
+            assertThat(client).isNotNull();
+            assertThat(client.getRefreshTokenValiditySeconds()).isEqualTo((Integer) 120);
+            assertThat(client.getAccessTokenValiditySeconds()).isEqualTo((Integer) 60);
         }
     }
 
     @Test
-    public void testDeleteClients() throws Exception {
-        BaseClientDetails[] clients = doCreateClients();
+    void deleteClients() {
+        UaaClientDetails[] clients = doCreateClients();
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret,clients.admin"));
         headers.add("Accept", "application/json");
-        ResponseEntity<BaseClientDetails[]> result =
-            serverRunning.getRestTemplate().exchange(
-                serverRunning.getUrl("/oauth/clients/tx/delete"),
-                HttpMethod.POST,
-                    new HttpEntity<>(clients, headers),
-                BaseClientDetails[].class);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+        ResponseEntity<UaaClientDetails[]> result =
+                serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients/tx/delete"),
+                        HttpMethod.POST,
+                        new HttpEntity<>(clients, headers),
+                        UaaClientDetails[].class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         validateClients(clients, result.getBody());
-        for (BaseClientDetails c : clients) {
+        for (UaaClientDetails c : clients) {
             ClientDetails client = getClient(c.getClientId());
-            assertNull(client);
+            assertThat(client).isNull();
         }
     }
 
     @Test
-    public void testDeleteClientsMissingId() throws Exception {
-        BaseClientDetails[] clients = doCreateClients();
+    void deleteClientsMissingId() {
+        UaaClientDetails[] clients = doCreateClients();
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret,clients.admin"));
         headers.add("Accept", "application/json");
         String oldId = clients[clients.length - 1].getClientId();
         clients[clients.length - 1].setClientId("unknown.id");
-        ResponseEntity<BaseClientDetails[]> result =
-            serverRunning.getRestTemplate().exchange(
-                serverRunning.getUrl("/oauth/clients/tx/delete"),
-                HttpMethod.POST,
-                new HttpEntity<BaseClientDetails[]>(clients, headers),
-                BaseClientDetails[].class);
-        assertEquals(HttpStatus.NOT_FOUND, result.getStatusCode());
+        ResponseEntity<UaaClientDetails[]> result =
+                serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients/tx/delete"),
+                        HttpMethod.POST,
+                        new HttpEntity<>(clients, headers),
+                        UaaClientDetails[].class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         clients[clients.length - 1].setClientId(oldId);
-        for (BaseClientDetails c : clients) {
+        for (UaaClientDetails c : clients) {
             ClientDetails client = getClient(c.getClientId());
-            assertNotNull(client);
+            assertThat(client).isNotNull();
         }
     }
 
     @Test
-    public void testChangeSecret() throws Exception {
+    void changeSecret() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret,uaa.admin"));
-        BaseClientDetails client = createClient("client_credentials");
+        UaaClientDetails client = createClient("client_credentials");
 
         client.setResourceIds(Collections.singleton("foo"));
 
@@ -579,17 +602,97 @@ public class ClientAdminEndpointsIntegrationTests {
         change.setOldSecret(client.getClientSecret());
         change.setSecret("newsecret");
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getUrl("/oauth/clients/{client}/secret"),
-            HttpMethod.PUT, new HttpEntity<SecretChangeRequest>(change, headers), Void.class,
-            client.getClientId());
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+                serverRunning.getUrl("/oauth/clients/{client}/secret"),
+                HttpMethod.PUT, new HttpEntity<>(change, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
+    @Test
+    void changeJwtConfig() {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
+        UaaClientDetails client = createClient("client_credentials");
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
+        def.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        def.setClientId("admin");
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+                HttpMethod.PUT, new HttpEntity<>(def, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
 
     @Test
-    public void testCreateClientsWithStrictSecretPolicy() throws Exception {
+    void testChangeFederatedJwtConfig() {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
+        UaaClientDetails client = createClient("client_credentials");
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest("admin", "http://localhost:8080/uaa/token_key", null);
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+                HttpMethod.PUT, new HttpEntity<>(def, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+
+        def = new ClientJwtChangeRequest();
+        def.setIssuer("http://localhost:8080/uaa");
+        def.setSubject("client-admin-id");
+        def.setClientId("admin");
+
+        result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+                HttpMethod.PUT, new HttpEntity<>(def, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    void testChangeJwtConfigNoAuthorization() {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.trust,uaa.admin"));
+        UaaClientDetails client = createClient("client_credentials");
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write"));
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
+        def.setJsonWebKeyUri("http://localhost:8080/uaa/token_key");
+        def.setClientId("admin");
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+                HttpMethod.PUT, new HttpEntity<>(def, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+    }
+
+    @Test
+    void changeJwtConfigInvalidTokenKey() {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret,uaa.admin"));
-        BaseClientDetails client = createClient("client_credentials");
+        UaaClientDetails client = createClient("client_credentials");
+
+        client.setResourceIds(Collections.singleton("foo"));
+
+        ClientJwtChangeRequest def = new ClientJwtChangeRequest(null, null, null);
+        def.setJsonWebKeyUri("no uri");
+        def.setClientId("admin");
+
+        ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
+                serverRunning.getUrl("/oauth/clients/{client}/clientjwt"),
+                HttpMethod.PUT, new HttpEntity<>(def, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+    }
+
+    @Test
+    void createClientsWithStrictSecretPolicy() {
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret,uaa.admin"));
+        UaaClientDetails client = createClient("client_credentials");
 
         client.setResourceIds(Collections.singleton("foo"));
 
@@ -597,27 +700,27 @@ public class ClientAdminEndpointsIntegrationTests {
         change.setOldSecret(client.getClientSecret());
         change.setSecret(SECRET_TOO_LONG);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(
-            serverRunning.getUrl("/oauth/clients/{client}/secret"),
-            HttpMethod.PUT, new HttpEntity<SecretChangeRequest>(change, headers), Void.class,
-            client.getClientId());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+                serverRunning.getUrl("/oauth/clients/{client}/secret"),
+                HttpMethod.PUT, new HttpEntity<>(change, headers), Void.class,
+                client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     }
 
     @Test
-    public void testDeleteClient() throws Exception {
-        BaseClientDetails client = createClient("client_credentials");
+    void deleteClient() {
+        UaaClientDetails client = createClient("client_credentials");
 
         client.setResourceIds(Collections.singleton("foo"));
 
         ResponseEntity<Void> result = serverRunning.getRestTemplate()
-            .exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
-                new HttpEntity<BaseClientDetails>(client, headers), Void.class,
-                client.getClientId());
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+                .exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
+                        new HttpEntity<>(client, headers), Void.class,
+                        client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
-    public void testAddUpdateAndDeleteTx() throws Exception {
+    void addUpdateAndDeleteTx() {
         ClientDetailsModification[] clients = doCreateClients();
         for (int i = 1; i < clients.length; i++) {
             clients[i] = new ClientDetailsModification(clients[i]);
@@ -633,61 +736,60 @@ public class ClientAdminEndpointsIntegrationTests {
         clients[0].setClientId(new RandomValueStringGenerator().generate());
         clients[clients.length - 1].setAction(ClientDetailsModification.DELETE);
 
-
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin"));
         headers.add("Accept", "application/json");
         String oldId = clients[clients.length - 1].getClientId();
-        ResponseEntity<BaseClientDetails[]> result =
-            serverRunning.getRestTemplate().exchange(
-                serverRunning.getUrl("/oauth/clients/tx/modify"),
-                HttpMethod.POST,
-                new HttpEntity<ClientDetailsModification[]>(clients, headers),
-                BaseClientDetails[].class);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+        ResponseEntity<UaaClientDetails[]> result =
+                serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients/tx/modify"),
+                        HttpMethod.POST,
+                        new HttpEntity<>(clients, headers),
+                        UaaClientDetails[].class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         //set the deleted client ID so we can verify it is gone.
         clients[clients.length - 1].setClientId(oldId);
         for (int i = 0; i < clients.length; i++) {
             ClientDetails client = getClient(clients[i].getClientId());
             if (i == (clients.length - 1)) {
-                assertNull(client);
+                assertThat(client).isNull();
             } else {
-                assertNotNull(client);
+                assertThat(client).isNotNull();
             }
         }
     }
 
     @Test
-    // CFID-372
-    public void testCreateExistingClientFails() throws Exception {
-        BaseClientDetails client = createClient("client_credentials");
+        // CFID-372
+    void createExistingClientFails() {
+        UaaClientDetails client = createClient("client_credentials");
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> attempt = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-            HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Map.class);
-        assertEquals(HttpStatus.CONFLICT, attempt.getStatusCode());
+                HttpMethod.POST, new HttpEntity<>(client, headers), Map.class);
+        assertThat(attempt.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         @SuppressWarnings("unchecked")
         Map<String, String> map = attempt.getBody();
-        assertEquals("invalid_client", map.get("error"));
+        assertThat(map).containsEntry("error", "invalid_client");
     }
 
     @Test
-    public void testClientApprovalsDeleted() throws Exception {
+    void clientApprovalsDeleted() {
         //create client
-        BaseClientDetails client = createClient("client_credentials", "password");
-        assertNotNull(getClient(client.getClientId()));
+        UaaClientDetails client = createClient("client_credentials", "password");
+        assertThat(getClient(client.getClientId())).isNotNull();
         //issue a user token for this client
         OAuth2AccessToken userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(), "oauth.approvals");
         //make sure we don't have any approvals
         Approval[] approvals = getApprovals(userToken.getValue(), client.getClientId());
-        Assert.assertEquals(0, approvals.length);
+        assertThat(approvals).isEmpty();
         //create three approvals
         addApprovals(userToken.getValue(), client.getClientId());
         approvals = getApprovals(userToken.getValue(), client.getClientId());
-        Assert.assertEquals(3, approvals.length);
+        assertThat(approvals).hasSize(3);
         //delete the client
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/{client}"), HttpMethod.DELETE,
-            new HttpEntity<BaseClientDetails>(client, getAuthenticatedHeaders(token)), Void.class, client.getClientId());
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+                new HttpEntity<>(client, getAuthenticatedHeaders(token)), Void.class, client.getClientId());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         //create a client that can read another clients approvals
         String deletedClientId = client.getClientId();
@@ -695,118 +797,117 @@ public class ClientAdminEndpointsIntegrationTests {
         userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(), "oauth.approvals");
         //make sure we don't have any approvals
         approvals = getApprovals(userToken.getValue(), deletedClientId);
-        Assert.assertEquals(0, approvals.length);
-        assertNull(getClient(deletedClientId));
+        assertThat(approvals).isEmpty();
+        assertThat(getClient(deletedClientId)).isNull();
     }
 
     @Test
-    public void testClientTxApprovalsDeleted() throws Exception {
+    void clientTxApprovalsDeleted() {
         //create client
-        BaseClientDetails client = createClient("client_credentials", "password");
-        assertNotNull(getClient(client.getClientId()));
+        UaaClientDetails client = createClient("client_credentials", "password");
+        assertThat(getClient(client.getClientId())).isNotNull();
         //issue a user token for this client
         OAuth2AccessToken userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(), "oauth.approvals");
         //make sure we don't have any approvals
         Approval[] approvals = getApprovals(userToken.getValue(), client.getClientId());
-        Assert.assertEquals(0, approvals.length);
+        assertThat(approvals).isEmpty();
         //create three approvals
         addApprovals(userToken.getValue(), client.getClientId());
         approvals = getApprovals(userToken.getValue(), client.getClientId());
-        Assert.assertEquals(3, approvals.length);
+        assertThat(approvals).hasSize(3);
         //delete the client
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/tx/delete"), HttpMethod.POST,
-            new HttpEntity<BaseClientDetails[]>(new BaseClientDetails[]{client}, getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin"))), Void.class);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+                new HttpEntity<>(new UaaClientDetails[]{client}, getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin"))), Void.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         //create a client that can read another clients approvals
         String deletedClientId = client.getClientId();
         client = createApprovalsClient("password");
         userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(), "oauth.approvals");
         //make sure we don't have any approvals
         approvals = getApprovals(userToken.getValue(), deletedClientId);
-        Assert.assertEquals(0, approvals.length);
-        assertNull(getClient(deletedClientId));
+        assertThat(approvals).isEmpty();
+        assertThat(getClient(deletedClientId)).isNull();
     }
 
     @Test
-    public void testClientTxModifyApprovalsDeleted() throws Exception {
+    void clientTxModifyApprovalsDeleted() {
         //create client
         ClientDetailsModification client = createClient("client_credentials", "password");
-        assertNotNull(getClient(client.getClientId()));
+        assertThat(getClient(client.getClientId())).isNotNull();
         //issue a user token for this client
         OAuth2AccessToken userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(), "oauth.approvals");
         //make sure we don't have any approvals
         Approval[] approvals = getApprovals(userToken.getValue(), client.getClientId());
-        Assert.assertEquals(0, approvals.length);
+        assertThat(approvals).isEmpty();
         //create three approvals
         addApprovals(userToken.getValue(), client.getClientId());
         approvals = getApprovals(userToken.getValue(), client.getClientId());
-        Assert.assertEquals(3, approvals.length);
+        assertThat(approvals).hasSize(3);
         //delete the client
         client.setAction(ClientDetailsModification.DELETE);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients/tx/modify"), HttpMethod.POST,
-            new HttpEntity<BaseClientDetails[]>(new BaseClientDetails[]{client}, getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin"))), Void.class);
-        assertEquals(HttpStatus.OK, result.getStatusCode());
+                new HttpEntity<>(new UaaClientDetails[]{client}, getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin"))), Void.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
         //create a client that can read another clients approvals
         String deletedClientId = client.getClientId();
         client = createApprovalsClient("password");
         userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(), "oauth.approvals");
         //make sure we don't have any approvals
         approvals = getApprovals(userToken.getValue(), deletedClientId);
-        Assert.assertEquals(0, approvals.length);
-        assertNull(getClient(deletedClientId));
+        assertThat(approvals).isEmpty();
+        assertThat(getClient(deletedClientId)).isNull();
     }
 
     private Approval[] getApprovals(String token, String clientId) {
         String filter = "client_id eq \"" + clientId + "\"";
-        HttpHeaders headers = getAuthenticatedHeaders(token);
+        HttpHeaders myHeaders = getAuthenticatedHeaders(token);
 
         ResponseEntity<Approval[]> approvals =
-            serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/approvals"),
-                HttpMethod.GET,
-                new HttpEntity<>(headers),
-                Approval[].class,
-                filter);
-        assertEquals(HttpStatus.OK, approvals.getStatusCode());
+                serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/approvals"),
+                        HttpMethod.GET,
+                        new HttpEntity<>(myHeaders),
+                        Approval[].class,
+                        filter);
+        assertThat(approvals.getStatusCode()).isEqualTo(HttpStatus.OK);
         return Arrays.stream(approvals.getBody()).filter(a -> clientId.equals(a.getClientId())).toArray(Approval[]::new);
     }
-
 
     private Approval[] addApprovals(String token, String clientId) {
         Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
         Date expiresAt = new Date(System.currentTimeMillis() + 60000);
         Approval[] approvals = new Approval[]{
-            new Approval()
-                .setUserId(null)
-                .setClientId(clientId)
-                .setScope("cloud_controller.read")
-                .setExpiresAt(expiresAt)
-                .setStatus(Approval.ApprovalStatus.APPROVED)
-                .setLastUpdatedAt(oneMinuteAgo),
-            new Approval()
-                .setUserId(null)
-                .setClientId(clientId)
-                .setScope("openid")
-                .setExpiresAt(expiresAt)
-                .setStatus(Approval.ApprovalStatus.APPROVED)
-                .setLastUpdatedAt(oneMinuteAgo),
-            new Approval()
-                .setUserId(null)
-                .setClientId(clientId)
-                .setScope("password.write")
-                .setExpiresAt(expiresAt)
-                .setStatus(Approval.ApprovalStatus.APPROVED)
-                .setLastUpdatedAt(oneMinuteAgo)
+                new Approval()
+                        .setUserId(null)
+                        .setClientId(clientId)
+                        .setScope("cloud_controller.read")
+                        .setExpiresAt(expiresAt)
+                        .setStatus(Approval.ApprovalStatus.APPROVED)
+                        .setLastUpdatedAt(oneMinuteAgo),
+                new Approval()
+                        .setUserId(null)
+                        .setClientId(clientId)
+                        .setScope("openid")
+                        .setExpiresAt(expiresAt)
+                        .setStatus(Approval.ApprovalStatus.APPROVED)
+                        .setLastUpdatedAt(oneMinuteAgo),
+                new Approval()
+                        .setUserId(null)
+                        .setClientId(clientId)
+                        .setScope("password.write")
+                        .setExpiresAt(expiresAt)
+                        .setStatus(Approval.ApprovalStatus.APPROVED)
+                        .setLastUpdatedAt(oneMinuteAgo)
         };
 
-        HttpHeaders headers = getAuthenticatedHeaders(token);
-        HttpEntity<Approval[]> entity = new HttpEntity<Approval[]>(approvals, headers);
+        HttpHeaders myHeaders = getAuthenticatedHeaders(token);
+        HttpEntity<Approval[]> entity = new HttpEntity<>(approvals, myHeaders);
         ResponseEntity<Approval[]> response = serverRunning.getRestTemplate().exchange(
-            serverRunning.getUrl("/approvals/{clientId}"),
-            HttpMethod.PUT,
-            entity,
-            Approval[].class,
-            clientId);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+                serverRunning.getUrl("/approvals/{clientId}"),
+                HttpMethod.PUT,
+                entity,
+                Approval[].class,
+                clientId);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         return response.getBody();
     }
 
@@ -814,7 +915,8 @@ public class ClientAdminEndpointsIntegrationTests {
         return createClientWithSecret("secret", grantTypes);
     }
 
-    private ClientDetailsModification createClientWithSecret(String secret, String... grantTypes) {
+    private ClientDetailsModification createClientWithSecretAndRedirectUri(
+            String secret, Set<String> redirectUris, String... grantTypes) {
         ClientDetailsModification client = new ClientDetailsModification();
         client.setClientId(new RandomValueStringGenerator().generate());
         client.setScope(Arrays.asList("oauth.approvals", "foo", "bar"));
@@ -823,27 +925,28 @@ public class ClientAdminEndpointsIntegrationTests {
         client.setClientSecret(secret);
         client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
                 Collections.singletonList("bar")));
-        client.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
+        client.setRegisteredRedirectUri(redirectUris == null ?
+                Collections.singleton("http://redirect.url") : redirectUris);
+        return client;
+    }
+
+    private ClientDetailsModification createClientWithSecret(String secret, String... grantTypes) {
+        ClientDetailsModification client =
+                createClientWithSecretAndRedirectUri(secret,
+                        Collections.singleton("http://redirect.url"), grantTypes);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-            HttpMethod.POST, new HttpEntity<BaseClientDetails>(client, headers), Void.class);
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+                HttpMethod.POST, new HttpEntity<UaaClientDetails>(client, headers), Void.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         return client;
     }
 
     private ClientDetailsModification createApprovalsClient(String... grantTypes) {
-        ClientDetailsModification detailsModification = new ClientDetailsModification();
-        detailsModification.setClientId(new RandomValueStringGenerator().generate());
-        detailsModification.setScope(Arrays.asList("oauth.login", "oauth.approvals", "foo", "bar"));
-        detailsModification.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
-        detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
-        detailsModification.setClientSecret("secret");
-        detailsModification.setAdditionalInformation(Collections.<String, Object>singletonMap("foo",
-                Collections.singletonList("bar")));
-        detailsModification.setRegisteredRedirectUri(Collections.singleton("http://redirect.url"));
+        ClientDetailsModification client = createClientWithSecretAndRedirectUri("secret",
+                Collections.singleton("http://redirect.url"), grantTypes);
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
-            HttpMethod.POST, new HttpEntity<BaseClientDetails>(detailsModification, headers), Void.class);
-        assertEquals(HttpStatus.CREATED, result.getStatusCode());
-        return detailsModification;
+                HttpMethod.POST, new HttpEntity<UaaClientDetails>(client, headers), Void.class);
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return client;
     }
 
     public HttpHeaders getAuthenticatedHeaders(OAuth2AccessToken token) {
@@ -851,11 +954,11 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     public HttpHeaders getAuthenticatedHeaders(String token) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        headers.set("Authorization", "Bearer " + token);
-        return headers;
+        HttpHeaders myHeaders = new HttpHeaders();
+        myHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        myHeaders.setContentType(MediaType.APPLICATION_JSON);
+        myHeaders.set("Authorization", "Bearer " + token);
+        return myHeaders;
     }
 
     private OAuth2AccessToken getClientCredentialsAccessToken(String scope) {
@@ -866,18 +969,18 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     private OAuth2AccessToken getClientCredentialsAccessToken(String clientId, String clientSecret, String scope) {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "client_credentials");
         formData.add("client_id", clientId);
         formData.add("scope", scope);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.set("Authorization",
-            "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+        HttpHeaders myHeaders = new HttpHeaders();
+        myHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        myHeaders.set("Authorization",
+                "Basic " + new String(ENCODER.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, myHeaders);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
@@ -885,36 +988,34 @@ public class ClientAdminEndpointsIntegrationTests {
     }
 
     private OAuth2AccessToken getUserAccessToken(String clientId, String clientSecret, String username, String password, String scope) {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
         formData.add("client_id", clientId);
         formData.add("scope", scope);
         formData.add("username", username);
         formData.add("password", password);
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-        headers.set("Authorization",
-            "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+        HttpHeaders myHeaders = new HttpHeaders();
+        myHeaders.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
+        myHeaders.set("Authorization",
+                "Basic " + new String(ENCODER.encode("%s:%s".formatted(clientId, clientSecret).getBytes())));
 
         @SuppressWarnings("rawtypes")
-        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, myHeaders);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
         return accessToken;
-
     }
 
-    public ClientDetails getClient(String id) throws Exception {
-        HttpHeaders headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
-        ResponseEntity<BaseClientDetails> result =
-            serverRunning.getRestTemplate().exchange(
-                serverRunning.getUrl("/oauth/clients/" + id),
-                HttpMethod.GET,
-                new HttpEntity<Void>(null, headers),
-                BaseClientDetails.class);
-
+    public ClientDetails getClient(String id) {
+        HttpHeaders myHeaders = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read"));
+        ResponseEntity<UaaClientDetails> result =
+                serverRunning.getRestTemplate().exchange(
+                        serverRunning.getUrl("/oauth/clients/" + id),
+                        HttpMethod.GET,
+                        new HttpEntity<Void>(null, myHeaders),
+                        UaaClientDetails.class);
 
         if (result.getStatusCode() == HttpStatus.NOT_FOUND) {
             return null;
@@ -923,31 +1024,16 @@ public class ClientAdminEndpointsIntegrationTests {
         } else {
             throw new InvalidClientDetailsException("Unknown status code:" + result.getStatusCode());
         }
-
     }
 
-    public boolean validateClients(BaseClientDetails[] expected, BaseClientDetails[] actual) {
-        assertNotNull(expected);
-        assertNotNull(actual);
-        assertEquals(expected.length, actual.length);
+    public boolean validateClients(UaaClientDetails[] expected, UaaClientDetails[] actual) {
+        assertThat(expected).isNotNull();
+        assertThat(actual).hasSameSizeAs(expected);
         for (int i = 0; i < expected.length; i++) {
-            assertNotNull(expected[i]);
-            assertNotNull(actual[i]);
-            assertEquals(expected[i].getClientId(), actual[i].getClientId());
+            assertThat(expected[i]).isNotNull();
+            assertThat(actual[i]).isNotNull();
+            assertThat(actual[i].getClientId()).isEqualTo(expected[i].getClientId());
         }
         return true;
     }
-
-    private static class ClientIdComparator implements Comparator<BaseClientDetails> {
-        @Override
-        public int compare(BaseClientDetails o1, BaseClientDetails o2) {
-            return (o1.getClientId().compareTo(o2.getClientId()));
-        }
-
-        @Override
-        public boolean equals(Object obj) {
-            return obj == this;
-        }
-    }
-
 }

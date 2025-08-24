@@ -9,9 +9,16 @@ import org.cloudfoundry.identity.uaa.test.InMemoryLdapServer;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.io.File;
+
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
 import static org.hamcrest.Matchers.containsString;
@@ -39,7 +46,6 @@ class LdapMockMvcTests {
 
 class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
     private static InMemoryLdapServer ldapContainer;
-    private static int ldapPort = 44389;
 
     LdapSimpleBindTest() {
         super(
@@ -51,7 +57,7 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
 
     @BeforeAll
     static void beforeAll() {
-        ldapContainer = InMemoryLdapServer.startLdap(ldapPort);
+        ldapContainer = InMemoryLdapServer.startLdap();
     }
 
     @AfterAll
@@ -62,7 +68,7 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
     @Override
     protected void ensureLdapServerIsRunning() {
         if (!ldapContainer.isRunning()) {
-            ldapContainer = InMemoryLdapServer.startLdap(ldapPort);
+            ldapContainer = InMemoryLdapServer.startLdap();
         }
     }
 
@@ -74,15 +80,13 @@ class LdapSimpleBindTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected String getLdapOrLdapSBaseUrl() {
-        return "ldap://localhost:" + ldapPort;
+    protected String getLdapUrl() {
+        return ldapContainer.getUrl();
     }
 }
 
 class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
     private static InMemoryLdapServer ldapContainer;
-    private static int ldapPort = 44390;
-    private static int ldapSPort = 44337;
 
     LdapSearchAndCompareTest() {
         super(
@@ -94,7 +98,7 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
 
     @BeforeAll
     static void beforeAll() {
-        ldapContainer = InMemoryLdapServer.startLdapWithTls(ldapPort, ldapSPort, KEYSTORE);
+        ldapContainer = InMemoryLdapServer.startLdapWithTls(KEYSTORE);
     }
 
     @AfterAll
@@ -105,7 +109,7 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
     @Override
     protected void ensureLdapServerIsRunning() {
         if (!ldapContainer.isRunning()) {
-            ldapContainer = InMemoryLdapServer.startLdapWithTls(ldapPort, ldapSPort, KEYSTORE);
+            ldapContainer = InMemoryLdapServer.startLdapWithTls(KEYSTORE);
         }
     }
 
@@ -117,15 +121,13 @@ class LdapSearchAndCompareTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected String getLdapOrLdapSBaseUrl() {
-        return "ldaps://localhost:" + ldapSPort;
+    protected String getLdapUrl() {
+        return ldapContainer.getUrl();
     }
 }
 
 class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
     private static InMemoryLdapServer ldapContainer;
-    private static int ldapPort = 44391;
-    private static int ldapSPort = 44338;
 
     LdapSearchAndBindTest() {
         super(
@@ -137,7 +139,7 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
 
     @BeforeAll
     static void beforeAll() {
-        ldapContainer = InMemoryLdapServer.startLdapWithTls(ldapPort, ldapSPort, KEYSTORE);
+        ldapContainer = InMemoryLdapServer.startLdapWithTls(KEYSTORE);
     }
 
     @AfterAll
@@ -148,7 +150,7 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
     @Override
     protected void ensureLdapServerIsRunning() {
         if (!ldapContainer.isRunning()) {
-            ldapContainer = InMemoryLdapServer.startLdapWithTls(ldapPort, ldapSPort, KEYSTORE);
+            ldapContainer = InMemoryLdapServer.startLdapWithTls(KEYSTORE);
         }
     }
 
@@ -160,8 +162,8 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
     }
 
     @Override
-    protected String getLdapOrLdapSBaseUrl() {
-        return "ldap://localhost:" + ldapPort;
+    protected String getLdapUrl() {
+        return ldapContainer.getUrl();
     }
 
     @Nested
@@ -183,7 +185,7 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
             String zoneAdminToken = MockMvcUtils.getZoneAdminToken(getMockMvc(), adminAccessToken, zone.getId());
 
             definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                    getLdapOrLdapSBaseUrl(),
+                    getLdapUrl(),
                     "cn=admin,ou=Users,dc=test,dc=com",
                     "adminsecret",
                     "dc=test,dc=com",
@@ -289,36 +291,19 @@ class LdapSearchAndBindTest extends AbstractLdapMockMvcTest {
          */
         @Test
         void unableToConnectToLdapWithInvalidSsl() {
-            int port = 37000 + getRandomPortOffset();
-            int sslPort = 38000 + getRandomPortOffset();
-
-            try (InMemoryLdapServer inMemoryLdapServer = InMemoryLdapServer.startLdapWithTls(port, sslPort, null)) {
-                definition.setBaseUrl(inMemoryLdapServer.getLdapSBaseUrl());
+            File expiredKeystore = new File(getClass().getClassLoader().getResource("certs/expired-self-signed-ldap-cert.jks").getFile());
+            try (InMemoryLdapServer inMemoryLdapServer = InMemoryLdapServer.startLdapWithTls(expiredKeystore)) {
+                definition.setBaseUrl(inMemoryLdapServer.getUrl());
                 definition.setSkipSSLVerification(false);
 
                 getMockMvc().perform(
-                        baseRequest.content(JsonUtils.writeValueAsString(request)))
+                                baseRequest.content(JsonUtils.writeValueAsString(request)))
                         .andDo(print())
                         .andExpect(status().isBadRequest())
                         .andExpect(content().string(containsString("Caused by:")));
             } catch (Exception ignored) {
-
+                fail("should not be able to connect to LDAP server");
             }
-        }
-
-        /**
-         * TODO: We're not sure what this test is trying to do
-         * Is the UAA SSL configuration invalid?
-         * Is the LDAP server configuration invalid?
-         */
-        @Test
-        void ableToConnectToLdapWithInvalidSsl_WithSkipValidation() throws Exception {
-            definition.setBaseUrl("ldaps://localhost:" + ldapSPort);
-
-            getMockMvc().perform(
-                    baseRequest.content(JsonUtils.writeValueAsString(request)))
-                    .andExpect(status().isOk())
-                    .andExpect(content().string("\"ok\""));
         }
     }
 }

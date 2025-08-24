@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.restdocs.snippet.Snippet;
@@ -12,7 +12,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import java.util.Collections;
 import java.util.List;
 
-import static java.lang.String.format;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
@@ -26,14 +25,14 @@ import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserIdConversionEndpointDocs extends EndpointDocs {
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    private String clientId = generator.generate().toLowerCase();
-    private String clientSecret = generator.generate().toLowerCase();
+    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
+    private final String clientId = generator.generate().toLowerCase();
+    private final String clientSecret = generator.generate().toLowerCase();
     private ScimUser bob;
     private ScimUser dwayne;
     private String userLookupToken;
@@ -78,7 +77,7 @@ class UserIdConversionEndpointDocs extends EndpointDocs {
     void lookUpIds() throws Exception {
         MockHttpServletRequestBuilder get = get("/ids/Users")
                 .header("Authorization", "Bearer " + userLookupToken)
-                .param("filter", format("userName eq \"%s\" or id eq \"%s\"", bob.getUserName(), dwayne.getId()))
+                .param("filter", "userName eq \"%s\" or id eq \"%s\"".formatted(bob.getUserName(), dwayne.getId()))
                 .param("sortOrder", "descending")
                 .param("startIndex", "1")
                 .param("count", "10")
@@ -88,7 +87,7 @@ class UserIdConversionEndpointDocs extends EndpointDocs {
                 headerWithName("Authorization").description("Bearer token with authorization for `scim.userids` scope")
         );
 
-        Snippet requestParams = requestParameters(
+        Snippet requestParams = queryParameters(
                 parameterWithName("filter").required().description("SCIM filter for users over `userName`, `id`, and `origin`, using only the `eq` comparison operator").attributes(key("type").value(STRING)),
                 parameterWithName("sortOrder").optional("ascending").description("sort by username in `ascending` or `descending` order").attributes(key("type").value(STRING)),
                 parameterWithName("startIndex").optional("1").description("display paged results beginning at specified index").attributes(key("type").value(NUMBER)),

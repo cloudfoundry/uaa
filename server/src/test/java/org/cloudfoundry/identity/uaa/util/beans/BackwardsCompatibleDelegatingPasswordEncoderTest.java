@@ -6,9 +6,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -31,19 +30,19 @@ class BackwardsCompatibleDelegatingPasswordEncoderTest {
         @Test
         void encode() {
             when(mockPasswordEncoder.encode("password")).thenReturn("encodedPassword");
-            assertThat(encoder.encode("password"), is("encodedPassword"));
+            assertThat(encoder.encode("password")).isEqualTo("encodedPassword");
         }
 
         @Test
         void matches() {
             when(mockPasswordEncoder.matches("password", "encodedPassword")).thenReturn(true);
-            assertThat(encoder.matches("password", "encodedPassword"), is(true));
+            assertThat(encoder.matches("password", "encodedPassword")).isTrue();
         }
 
         @Test
         void onlyNullPasswordMatchesNullEncodedPassword() {
-            assertThat(encoder.matches(null, null), is(true));
-            assertThat(encoder.matches("", null), is(false));
+            assertThat(encoder.matches(null, null)).isTrue();
+            assertThat(encoder.matches("", null)).isFalse();
         }
     }
 
@@ -53,34 +52,32 @@ class BackwardsCompatibleDelegatingPasswordEncoderTest {
         @Test
         void encode() {
             when(mockPasswordEncoder.encode("password")).thenReturn("encodedPassword");
-            assertThat(encoder.encode("password"), is("encodedPassword"));
+            assertThat(encoder.encode("password")).isEqualTo("encodedPassword");
         }
 
         @Test
         void doesNotMatchArbitraryPrefix() {
-            assertThrowsWithMessageThat(
-                    IllegalArgumentException.class,
-                    () -> encoder.matches("password", "{prefix}encodedPassword"),
-                    is("Password encoding {prefix} is not supported"));
+            assertThatThrownBy(() -> encoder.matches("password", "{prefix}encodedPassword"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Password encoding {prefix} is not supported");
 
-            assertThrowsWithMessageThat(
-                    IllegalArgumentException.class,
-                    () -> encoder.matches("password", "{otherprefix}encodedPassword"),
-                    is("Password encoding {otherprefix} is not supported"));
+            assertThatThrownBy(() -> encoder.matches("password", "{otherprefix}encodedPassword"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessage("Password encoding {otherprefix} is not supported");
 
             verifyNoInteractions(mockPasswordEncoder);
         }
 
         @Test
         void doesNotMatchInvalidPrefix() {
-            assertThat(encoder.matches("password", "aaa{bcrypt}encodedPassword"), is(false));
+            assertThat(encoder.matches("password", "aaa{bcrypt}encodedPassword")).isFalse();
             verify(mockPasswordEncoder).matches("password", "aaa{bcrypt}encodedPassword");
         }
 
         @Test
         void matchesBcryptPrefixOnly() {
             when(mockPasswordEncoder.matches("password", "encodedPassword")).thenReturn(true);
-            assertThat(encoder.matches("password", "{bcrypt}encodedPassword"), is(true));
+            assertThat(encoder.matches("password", "{bcrypt}encodedPassword")).isTrue();
             verify(mockPasswordEncoder).matches("password", "encodedPassword");
         }
     }

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.web.beans;
 
+import org.cloudfoundry.identity.uaa.UaaProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,7 @@ import org.springframework.session.jdbc.config.annotation.web.http.JdbcHttpSessi
 @EnableJdbcHttpSession
 public class UaaJdbcSessionConfig extends UaaSessionConfig {
 
-    private final static Logger logger = LoggerFactory.getLogger(UaaJdbcSessionConfig.class);
+    private static final Logger logger = LoggerFactory.getLogger(UaaJdbcSessionConfig.class);
 
     public static class DatabaseConfigured implements Condition {
         @Override
@@ -32,8 +33,8 @@ public class UaaJdbcSessionConfig extends UaaSessionConfig {
     @Autowired
     public void customizeIdleTimeout(
             final JdbcHttpSessionConfiguration jdbcHttpSessionConfiguration,
-            final @Value("${servlet.idle-timeout:1800}") int idleTimeout) {
-        jdbcHttpSessionConfiguration.setMaxInactiveIntervalInSeconds(idleTimeout);
+            UaaProperties.Servlet servlet) {
+        jdbcHttpSessionConfiguration.setMaxInactiveIntervalInSeconds(servlet.idleTimeout());
     }
 
     @Autowired

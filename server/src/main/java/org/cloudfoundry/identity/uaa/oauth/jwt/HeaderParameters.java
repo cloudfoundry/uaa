@@ -19,6 +19,7 @@ public class HeaderParameters {
     @JsonInclude(Include.NON_NULL)
     String iv;
     @JsonProperty
+    @JsonInclude(Include.NON_NULL)
     String jku;
     @JsonProperty
     String kid;
@@ -29,13 +30,13 @@ public class HeaderParameters {
     String cty;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)
-    String jwk;
+    Object jwk;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)
     String x5u;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)
-    String x5c;
+    Object x5c;
     @JsonProperty
     @JsonInclude(Include.NON_NULL)
     String x5t;
@@ -52,8 +53,8 @@ public class HeaderParameters {
     }
 
     HeaderParameters(String alg,
-                     String kid,
-                     String jku) {
+            String kid,
+            String jku) {
         if (alg == null) {
             throw new IllegalArgumentException("alg is required");
         }
@@ -89,13 +90,21 @@ public class HeaderParameters {
 
     public void setTyp(String typ) {
         if (typ != null && !JWT.equalsIgnoreCase(typ)) {
-            throw new IllegalArgumentException(String.format("typ is not \"%s\"", JWT));
+            throw new IllegalArgumentException("typ is not \"%s\"".formatted(JWT));
         }
         this.typ = typ;
     }
 
     public String getTyp() {
         return typ;
+    }
+
+    public String getX5t() {
+        return this.x5t;
+    }
+
+    public void setX5t(final String x5t) {
+        this.x5t = x5t;
     }
 
 }

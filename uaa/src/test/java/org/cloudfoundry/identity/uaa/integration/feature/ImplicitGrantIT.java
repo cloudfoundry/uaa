@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,26 +13,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.isEmptyOrNullString;
-import static org.hamcrest.Matchers.not;
-
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.hamcrest.Matchers;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,11 +31,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
@@ -53,15 +39,23 @@ import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 import org.springframework.web.util.UriUtils;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
+// public for YamlProcessorTest
 public class ImplicitGrantIT {
 
     @Autowired
     TestAccounts testAccounts;
 
-    @Autowired @Rule
-    public IntegrationTestRule integrationTestRule;
+    @Autowired
+    @RegisterExtension
+    private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
     WebDriver webDriver;
@@ -69,30 +63,26 @@ public class ImplicitGrantIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
-    @Value("${integration.test.app_url}")
-    String appUrl;
-
     @Autowired
     RestOperations restOperations;
 
     @Autowired
     TestClient testClient;
 
-    @Before
-    @After
-    public void logout_and_clear_cookies() {
+    @BeforeEach
+    @AfterEach
+    void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
 
     @Test
-    public void testDefaultScopes() {
+    void defaultScopes() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
@@ -109,46 +99,36 @@ public class ImplicitGrantIT {
                 new HttpEntity<>(postBody, headers),
                 Void.class);
 
-        Assert.assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(responseEntity.getHeaders().getLocation()).build();
-        Assert.assertEquals("localhost", locationComponents.getHost());
-        Assert.assertEquals("/redirect/cf", locationComponents.getPath());
+        assertThat(locationComponents.getHost()).isEqualTo("localhost");
+        assertThat(locationComponents.getPath()).isEqualTo("/redirect/cf");
 
         MultiValueMap<String, String> params = parseFragmentParams(locationComponents);
 
-        Assert.assertThat(params.get("jti"), not(empty()));
-        Assert.assertEquals("bearer", params.getFirst("token_type"));
-        Assert.assertThat(Integer.parseInt(params.getFirst("expires_in")), Matchers.greaterThan(40000));
+        assertThat(params.get("jti")).isNotEmpty();
+        assertThat(params.getFirst("token_type")).isEqualTo("bearer");
+        assertThat(Integer.parseInt(params.getFirst("expires_in"))).isGreaterThan(40000);
 
         String[] scopes = UriUtils.decode(params.getFirst("scope"), "UTF-8").split(" ");
-        Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
-            "scim.userids",
-            "password.write",
-            "cloud_controller.write",
-            "openid",
-            "cloud_controller.read",
-            "uaa.user"
-        ));
+        assertThat(Arrays.asList(scopes)).containsExactlyInAnyOrder("scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read", "uaa.user");
 
-        Jwt access_token = JwtHelper.decode(params.getFirst("access_token"));
+        Jwt accessToken = JwtHelper.decode(params.getFirst("access_token"));
 
-        Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
+        Map<String, Object> claims = JsonUtils.readValue(accessToken.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
-        Assert.assertThat(claims.get("jti"), is(params.getFirst("jti")));
-        Assert.assertThat(claims.get("client_id"), is("cf"));
-        Assert.assertThat(claims.get("cid"), is("cf"));
-        Assert.assertThat(claims.get("user_name"), is(testAccounts.getUserName()));
-
-        Assert.assertThat(((List<String>) claims.get("scope")), containsInAnyOrder(scopes));
-
-        Assert.assertThat(((List<String>) claims.get("aud")), containsInAnyOrder(
-                "scim", "openid", "cloud_controller", "password", "cf", "uaa"));
+        assertThat(claims).containsEntry("jti", params.getFirst("jti"))
+                .containsEntry("client_id", "cf")
+                .containsEntry("cid", "cf")
+                .containsEntry("user_name", testAccounts.getUserName());
+        assertThat(((List<String>) claims.get("scope"))).containsExactlyInAnyOrder(scopes);
+        assertThat(((List<String>) claims.get("aud"))).containsExactlyInAnyOrder("scim", "openid", "cloud_controller", "password", "cf", "uaa");
     }
 
     @Test
-    public void testInvalidScopes() {
+    void invalidScopes() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
 
@@ -166,19 +146,19 @@ public class ImplicitGrantIT {
                 new HttpEntity<>(postBody, headers),
                 Void.class);
 
-        Assert.assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.FOUND);
 
         System.out.println("responseEntity.getHeaders().getLocation() = " + responseEntity.getHeaders().getLocation());
 
         UriComponents locationComponents = UriComponentsBuilder.fromUri(responseEntity.getHeaders().getLocation()).build();
-        Assert.assertEquals("localhost", locationComponents.getHost());
-        Assert.assertEquals("/redirect/cf", locationComponents.getPath());
+        assertThat(locationComponents.getHost()).isEqualTo("localhost");
+        assertThat(locationComponents.getPath()).isEqualTo("/redirect/cf");
 
         MultiValueMap<String, String> params = parseFragmentParams(locationComponents);
 
-        Assert.assertThat(params.getFirst("error"), is("invalid_scope"));
-        Assert.assertThat(params.getFirst("access_token"), isEmptyOrNullString());
-        Assert.assertThat(params.getFirst("credentials"), isEmptyOrNullString());
+        assertThat(params.getFirst("error")).isEqualTo("invalid_scope");
+        assertThat(params.getFirst("access_token")).isNullOrEmpty();
+        assertThat(params.getFirst("credentials")).isNullOrEmpty();
     }
 
     private MultiValueMap<String, String> parseFragmentParams(UriComponents locationComponents) {

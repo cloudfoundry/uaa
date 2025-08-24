@@ -4,32 +4,32 @@ import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.TokenValidation;
+import org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.security.oauth2.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildAccessTokenValidator;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.buildRefreshTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildAccessTokenValidator;
+import static org.cloudfoundry.identity.uaa.util.JwtTokenSignedByThisUAA.buildRefreshTokenValidator;
 
 public class TokenValidationService {
-    private RevocableTokenProvisioning revocableTokenProvisioning;
-    private TokenEndpointBuilder tokenEndpointBuilder;
-    private UaaUserDatabase userDatabase;
-    private MultitenantClientServices multitenantClientServices;
-    private KeyInfoService keyInfoService;
+    private final RevocableTokenProvisioning revocableTokenProvisioning;
+    private final TokenEndpointBuilder tokenEndpointBuilder;
+    private final UaaUserDatabase userDatabase;
+    private final MultitenantClientServices multitenantClientServices;
+    private final KeyInfoService keyInfoService;
 
     public TokenValidationService(RevocableTokenProvisioning revocableTokenProvisioning,
-                                  TokenEndpointBuilder tokenEndpointBuilder,
-                                  UaaUserDatabase userDatabase,
-                                  MultitenantClientServices multitenantClientServices,
-                                  KeyInfoService keyInfoService) {
+            TokenEndpointBuilder tokenEndpointBuilder,
+            UaaUserDatabase userDatabase,
+            MultitenantClientServices multitenantClientServices,
+            KeyInfoService keyInfoService) {
         this.revocableTokenProvisioning = revocableTokenProvisioning;
         this.tokenEndpointBuilder = tokenEndpointBuilder;
         this.userDatabase = userDatabase;
@@ -37,7 +37,7 @@ public class TokenValidationService {
         this.keyInfoService = keyInfoService;
     }
 
-    public TokenValidation validateToken(String token, boolean isAccessToken) {
+    public JwtTokenSignedByThisUAA validateToken(String token, boolean isAccessToken) {
         if (!UaaTokenUtils.isJwtToken(token)) {
             RevocableToken revocableToken;
             try {
@@ -48,15 +48,15 @@ public class TokenValidationService {
             token = revocableToken.getValue();
         }
 
-        TokenValidation tokenValidation = isAccessToken ?
+        JwtTokenSignedByThisUAA jwtToken = isAccessToken ?
                 buildAccessTokenValidator(token, keyInfoService) : buildRefreshTokenValidator(token, keyInfoService);
-        tokenValidation
+        jwtToken
                 .checkRevocableTokenStore(revocableTokenProvisioning)
                 .checkIssuer(tokenEndpointBuilder.getTokenEndpoint(IdentityZoneHolder.get()));
 
-        ClientDetails client = tokenValidation.getClientDetails(multitenantClientServices);
-        UaaUser user = tokenValidation.getUserDetails(userDatabase);
-        tokenValidation
+        ClientDetails client = jwtToken.getClientDetails(multitenantClientServices);
+        UaaUser user = jwtToken.getUserDetails(userDatabase);
+        jwtToken
                 .checkClientAndUser(client, user);
 
         List<String> clientSecrets = new ArrayList<>();
@@ -71,12 +71,8 @@ public class TokenValidationService {
             revocationSignatureList.add(UaaTokenUtils.getRevocableTokenSignature(client, clientSecret, user));
         }
 
-        tokenValidation = tokenValidation.checkRevocationSignature(revocationSignatureList);
+        jwtToken = jwtToken.checkRevocationSignature(revocationSignatureList);
 
-        return tokenValidation;
-    }
-
-    public void setUserDatabase(UaaUserDatabase userDatabase) {
-        this.userDatabase = userDatabase;
+        return jwtToken;
     }
 }

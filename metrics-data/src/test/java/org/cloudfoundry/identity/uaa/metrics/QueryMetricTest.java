@@ -3,8 +3,7 @@ package org.cloudfoundry.identity.uaa.metrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class QueryMetricTest {
 
@@ -17,21 +16,21 @@ class QueryMetricTest {
 
     @Test
     void getQuery() {
-        assertEquals("query", metric.getQuery());
+        assertThat(metric.getQuery()).isEqualTo("query");
     }
 
     @Test
     void isSuccess() {
-        assertTrue(metric.isIntolerable());
+        assertThat(metric.isIntolerable()).isTrue();
     }
 
     @Test
     void getRequestStartTime() {
-        assertEquals(1, metric.getRequestStartTime());
+        assertThat(metric.getRequestStartTime()).isOne();
     }
 
     @Test
     void getRequestCompleteTime() {
-        assertEquals(6, metric.getRequestCompleteTime());
+        assertThat(metric.getRequestCompleteTime()).isEqualTo(6);
     }
 }

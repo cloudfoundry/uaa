@@ -1,0 +1,34 @@
+name: Docker Image CI
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v78.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'liberica'
+          java-version: '21'
+          cache: 'gradle'
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Build the Docker image
+        run: |
+          echo running on branch ${GITHUB_REF##*/}
+          if [ "${GITHUB_REF##*/}" == "develop" ]; then
+            export BP_JVM_TYPE=JDK && ./gradlew --no-daemon --max-workers 1 bootBuildImage --imageName docker.io/cfidentity/uaa:${{ github.run_number }} --publishImage
+          else
+            export BP_JVM_TYPE=JDK && ./gradlew --no-daemon --max-workers 1 -Pversion=${GITHUB_REF##*/} bootBuildImage --imageName docker.io/cfidentity/uaa:${GITHUB_REF##*/} --publishImage
+          fi

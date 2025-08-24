@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import org.cloudfoundry.identity.uaa.util.UaaYamlUtils;
 import org.springframework.util.Assert;
 import org.yaml.snakeyaml.TypeDescription;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -30,12 +32,12 @@ import java.util.Map;
  * @author Luke Taylor
  */
 public class CustomPropertyConstructor extends Constructor {
-    private final Map<Class<?>, Map<String, Property>> properties = new HashMap<Class<?>, Map<String, Property>>();
+    private final Map<Class<?>, Map<String, Property>> properties = new HashMap<>();
     private final PropertyUtils propertyUtils = new PropertyUtils();
     private final Map<Class<?>, AliasSupportingTypeDescription> typeDescriptions = new HashMap<>();
 
     public CustomPropertyConstructor(Class<?> theRoot) {
-        super(theRoot);
+        super(theRoot, UaaYamlUtils.getDefaultLoaderOptions());
         TypeDescription typeDescription = createTypeDescription(theRoot);
         addTypeDescription(typeDescription);
         yamlClassConstructors.put(NodeId.mapping, new CustomPropertyConstructMapping());
@@ -47,7 +49,7 @@ public class CustomPropertyConstructor extends Constructor {
         typeDescriptions.put(clazz, typeDescription);
         return typeDescription;
     }
-    
+
     /**
      * Adds an alias for a Javabean property name on a particular type.
      * The values of YAML keys with the alias name will be mapped to the

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -117,7 +118,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String userDNPatternDelimiter;
 
     private String bindUserDn;
-    private String bindPassword;
+    private Object bindPassword;
     private String userSearchBase;
     private String userSearchFilter;
 
@@ -128,7 +129,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String mailSubstitute;
 
     private Boolean mailSubstituteOverridesLdap = false;
-    private String ldapGroupFile = null;
+    private String ldapGroupFile;
     private String groupSearchBase;
     private String groupSearchFilter;
     private Boolean groupsIgnorePartialResults;
@@ -141,20 +142,20 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String tlsConfiguration = LDAP_TLS_NONE;
 
     public static LdapIdentityProviderDefinition searchAndBindMapGroupToScopes(
-        String baseUrl,
-        String bindUserDn,
-        String bindPassword,
-        String userSearchBase,
-        String userSearchFilter,
-        String groupSearchBase,
-        String groupSearchFilter,
-        String mailAttributeName,
-        String mailSubstitute,
-        Boolean mailSubstituteOverridesLdap,
-        Boolean autoAddGroups,
-        Boolean groupSearchSubTree,
-        int groupMaxSearchDepth,
-        Boolean skipSSLVerification) {
+            String baseUrl,
+            String bindUserDn,
+            String bindPassword,
+            String userSearchBase,
+            String userSearchFilter,
+            String groupSearchBase,
+            String groupSearchFilter,
+            String mailAttributeName,
+            String mailSubstitute,
+            Boolean mailSubstituteOverridesLdap,
+            Boolean autoAddGroups,
+            Boolean groupSearchSubTree,
+            int groupMaxSearchDepth,
+            Boolean skipSSLVerification) {
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.baseUrl = baseUrl;
@@ -194,7 +195,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public String getBindPassword() {
-        return bindPassword;
+        return (String) bindPassword;
     }
 
     public String getBindUserDn() {
@@ -406,51 +407,84 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        if (!super.equals(o)) return false;
+        if (this == o) {
+            return true;
+        }
+        if (o == null || getClass() != o.getClass()) {
+            return false;
+        }
+        if (!super.equals(o)) {
+            return false;
+        }
 
         LdapIdentityProviderDefinition that = (LdapIdentityProviderDefinition) o;
 
-        if (maxGroupSearchDepth != that.maxGroupSearchDepth) return false;
-        if (!Objects.equals(ldapProfileFile, that.ldapProfileFile))
+        if (maxGroupSearchDepth != that.maxGroupSearchDepth) {
             return false;
-        if (!Objects.equals(baseUrl, that.baseUrl)) return false;
-        if (!Objects.equals(referral, that.referral)) return false;
-        if (!Objects.equals(userDNPattern, that.userDNPattern))
+        }
+        if (!Objects.equals(ldapProfileFile, that.ldapProfileFile)) {
             return false;
-        if (!Objects.equals(userDNPatternDelimiter, that.userDNPatternDelimiter))
+        }
+        if (!Objects.equals(baseUrl, that.baseUrl)) {
             return false;
-        if (!Objects.equals(bindUserDn, that.bindUserDn)) return false;
-        if (!Objects.equals(bindPassword, that.bindPassword)) return false;
-        if (!Objects.equals(userSearchBase, that.userSearchBase))
+        }
+        if (!Objects.equals(referral, that.referral)) {
             return false;
-        if (!Objects.equals(userSearchFilter, that.userSearchFilter))
+        }
+        if (!Objects.equals(userDNPattern, that.userDNPattern)) {
             return false;
-        if (!Objects.equals(passwordAttributeName, that.passwordAttributeName))
+        }
+        if (!Objects.equals(userDNPatternDelimiter, that.userDNPatternDelimiter)) {
             return false;
-        if (!Objects.equals(passwordEncoder, that.passwordEncoder))
+        }
+        if (!Objects.equals(bindUserDn, that.bindUserDn)) {
             return false;
-        if (!Objects.equals(localPasswordCompare, that.localPasswordCompare))
+        }
+        if (!Objects.equals(bindPassword, that.bindPassword)) {
             return false;
-        if (!Objects.equals(mailAttributeName, that.mailAttributeName))
+        }
+        if (!Objects.equals(userSearchBase, that.userSearchBase)) {
             return false;
-        if (!Objects.equals(mailSubstitute, that.mailSubstitute))
+        }
+        if (!Objects.equals(userSearchFilter, that.userSearchFilter)) {
             return false;
-        if (!Objects.equals(mailSubstituteOverridesLdap, that.mailSubstituteOverridesLdap))
+        }
+        if (!Objects.equals(passwordAttributeName, that.passwordAttributeName)) {
             return false;
-        if (!Objects.equals(ldapGroupFile, that.ldapGroupFile))
+        }
+        if (!Objects.equals(passwordEncoder, that.passwordEncoder)) {
             return false;
-        if (!Objects.equals(groupSearchBase, that.groupSearchBase))
+        }
+        if (!Objects.equals(localPasswordCompare, that.localPasswordCompare)) {
             return false;
-        if (!Objects.equals(groupSearchFilter, that.groupSearchFilter))
+        }
+        if (!Objects.equals(mailAttributeName, that.mailAttributeName)) {
             return false;
-        if (!Objects.equals(groupsIgnorePartialResults, that.groupsIgnorePartialResults))
+        }
+        if (!Objects.equals(mailSubstitute, that.mailSubstitute)) {
             return false;
-        if (!Objects.equals(autoAddGroups, that.autoAddGroups))
+        }
+        if (!Objects.equals(mailSubstituteOverridesLdap, that.mailSubstituteOverridesLdap)) {
             return false;
-        if (!Objects.equals(groupSearchSubTree, that.groupSearchSubTree))
+        }
+        if (!Objects.equals(ldapGroupFile, that.ldapGroupFile)) {
             return false;
+        }
+        if (!Objects.equals(groupSearchBase, that.groupSearchBase)) {
+            return false;
+        }
+        if (!Objects.equals(groupSearchFilter, that.groupSearchFilter)) {
+            return false;
+        }
+        if (!Objects.equals(groupsIgnorePartialResults, that.groupsIgnorePartialResults)) {
+            return false;
+        }
+        if (!Objects.equals(autoAddGroups, that.autoAddGroups)) {
+            return false;
+        }
+        if (!Objects.equals(groupSearchSubTree, that.groupSearchSubTree)) {
+            return false;
+        }
         return Objects.equals(groupRoleAttribute, that.groupRoleAttribute);
 
     }

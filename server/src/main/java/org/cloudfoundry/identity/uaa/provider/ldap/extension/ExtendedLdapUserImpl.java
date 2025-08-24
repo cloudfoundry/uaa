@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 
+import org.cloudfoundry.identity.uaa.authentication.NonStringPassword;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
@@ -32,14 +33,14 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     private String phoneNumberAttributeName;
     private String emailVerifiedAttributeName;
     private String dn;
-    private String password;
+    private transient NonStringPassword password = new NonStringPassword(null);
     private String username;
     private Collection<? extends GrantedAuthority> authorities = AuthorityUtils.NO_AUTHORITIES;
     private boolean accountNonExpired = true;
     private boolean accountNonLocked = true;
     private boolean credentialsNonExpired = true;
     private boolean enabled = true;
-    private Map<String,String[]> attributes = new HashMap<>();
+    private Map<String, String[]> attributes = new HashMap<>();
 
     public ExtendedLdapUserImpl(LdapUserDetails details) {
         setDn(details.getDn());
@@ -51,7 +52,8 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
         setAccountNonLocked(details.isAccountNonLocked());
         setAuthorities(details.getAuthorities());
     }
-    public ExtendedLdapUserImpl(LdapUserDetails details, Map<String,String[]> attributes) {
+
+    public ExtendedLdapUserImpl(LdapUserDetails details, Map<String, String[]> attributes) {
         this(details);
         this.attributes.putAll(attributes);
     }
@@ -64,7 +66,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     @Override
     public String[] getMail() {
         String[] mail = attributes.get(getMailAttributeName());
-        if (mail==null) {
+        if (mail == null) {
             mail = new String[0];
         }
         return mail;
@@ -77,7 +79,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     @Override
     public String[] getAttribute(String name, boolean caseSensitive) {
-        if (name==null) {
+        if (name == null) {
             return null;
         }
         String[] value = getAttributes().get(name);
@@ -90,7 +92,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
             }
         }
         return null;
-     }
+    }
 
     public String getDn() {
         return dn;
@@ -101,11 +103,11 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     public String getPassword() {
-        return password;
+        return password.getPassword();
     }
 
     public void setPassword(String password) {
-        this.password = password;
+        this.password = new NonStringPassword(password);
     }
 
     public String getUsername() {
@@ -184,17 +186,17 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     @Override
     public String getGivenName() {
-        return getFirst(givenNameAttributeName,false);
+        return getFirst(givenNameAttributeName, false);
     }
 
     @Override
     public String getFamilyName() {
-        return getFirst(familyNameAttributeName,false);
+        return getFirst(familyNameAttributeName, false);
     }
 
     @Override
     public String getPhoneNumber() {
-        return getFirst(phoneNumberAttributeName,false);
+        return getFirst(phoneNumberAttributeName, false);
     }
 
     @Override
@@ -213,7 +215,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     protected String getFirst(String attributeName, boolean caseSensitive) {
         String[] result = getAttribute(attributeName, caseSensitive);
-        if (result!=null && result.length>0) {
+        if (result != null && result.length > 0) {
             return result[0];
         }
         return null;

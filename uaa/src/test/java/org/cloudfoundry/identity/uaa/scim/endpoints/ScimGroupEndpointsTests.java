@@ -52,15 +52,11 @@ import java.util.Set;
 import java.util.UUID;
 
 import static java.util.Collections.emptyList;
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atLeastOnce;
@@ -103,8 +99,6 @@ class ScimGroupEndpointsTests {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private IdentityZone identityZone;
-
     @Autowired
     private IdentityZoneManager identityZoneManager;
 
@@ -118,10 +112,9 @@ class ScimGroupEndpointsTests {
     }
 
     private void setUpAfterSeeding(final IdentityZone identityZone) throws Exception {
-        this.identityZone = identityZone;
-        identityZoneManager.setCurrentIdentityZone(this.identityZone);
+        identityZoneManager.setCurrentIdentityZone(identityZone);
         TestUtils.deleteFrom(jdbcTemplate, "users", "groups", "group_membership");
-        this.identityZone.getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
+        identityZone.getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
         jdbcScimGroupProvisioning.createOrGet(new ScimGroup(null, "uaa.user", identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
 
         groupIds = new ArrayList<>();
@@ -137,7 +130,7 @@ class ScimGroupEndpointsTests {
                         createMember(ScimGroupMember.Type.GROUP)))
         );
 
-        ScimExternalGroupBootstrap externalGroupBootstrap = new ScimExternalGroupBootstrap(jdbcScimGroupProvisioning, jdbcScimGroupExternalMembershipManager);
+        ScimExternalGroupBootstrap externalGroupBootstrap = new ScimExternalGroupBootstrap(jdbcScimGroupProvisioning, jdbcScimGroupExternalMembershipManager, identityZoneManager);
         externalGroupBootstrap.setAddNonExistingGroups(true);
 
         Map<String, Map<String, List>> externalGroups = new HashMap<>();
@@ -181,27 +174,24 @@ class ScimGroupEndpointsTests {
     }
 
     private void validateSearchResults(SearchResults<?> results, int expectedSize) {
-        assertNotNull(results);
-        assertNotNull(results.getResources());
-        assertEquals(expectedSize, results.getResources().size());
+        assertThat(results).isNotNull();
+        assertThat(results.getResources()).hasSize(expectedSize);
     }
 
     private void validateGroup(ScimGroup g, String expectedName, int expectedMemberCount) {
-        assertNotNull(g);
-        assertNotNull(g.getId());
-        assertEquals(expectedName, g.getDisplayName());
-        assertNotNull(g.getMembers());
-        assertEquals(expectedMemberCount, g.getMembers().size());
+        assertThat(g).isNotNull();
+        assertThat(g.getId()).isNotNull();
+        assertThat(g.getDisplayName()).isEqualTo(expectedName);
+        assertThat(g.getMembers()).hasSize(expectedMemberCount);
     }
 
     private void validateUserGroups(String id, String... gnm) {
         ScimUser user = scimUserEndpoints.getUser(id, new MockHttpServletResponse());
         Set<String> expectedAuthorities = new HashSet<>(Arrays.asList(gnm));
         expectedAuthorities.add("uaa.user");
-        assertNotNull(user.getGroups());
-        assertEquals(expectedAuthorities.size(), user.getGroups().size());
+        assertThat(user.getGroups()).hasSameSizeAs(expectedAuthorities);
         for (ScimUser.Group g : user.getGroups()) {
-            assertTrue(expectedAuthorities.contains(g.getDisplay()));
+            assertThat(expectedAuthorities).contains(g.getDisplay());
         }
     }
 
@@ -241,16 +231,16 @@ class ScimGroupEndpointsTests {
 
     @Test
     void whenSettingAnInvalidGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
-        assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> new ScimGroupEndpoints(null, null, null, 0, null, null),
-                containsString("Invalid \"groupMaxCount\" value (got 0). Should be positive number."));
+        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, 0, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid \"groupMaxCount\" value (got 0). Should be positive number.");
     }
 
     @Test
     void whenSettingANegativeValueGroupsMaxCount_ScimGroupsEndpointShouldThrowAnException() {
-        assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> new ScimGroupEndpoints(null, null, null, -1, null, null),
-                containsString("Invalid \"groupMaxCount\" value (got -1). Should be positive number."));
+        assertThatThrownBy(() -> new ScimGroupEndpoints(null, null, null, -1, null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Invalid \"groupMaxCount\" value (got -1). Should be positive number.");
     }
 
     @Test
@@ -280,31 +270,31 @@ class ScimGroupEndpointsTests {
             "displayName eq \"test\""
     })
     void listExternalGroupsInvalidFilter(final String filter) {
-        assertThrows(ScimException.class, () -> scimGroupEndpoints.getExternalGroups(1, 100, filter, null, null));
+        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.getExternalGroups(1, 100, filter, null, null));
     }
 
     @Test
     void mapExternalGroup_truncatesLeadingAndTrailingSpaces_InExternalGroupName() {
         ScimGroupExternalMember member = getScimGroupExternalMember();
-        assertEquals("external_group_id", member.getExternalGroup());
+        assertThat(member.getExternalGroup()).isEqualTo("external_group_id");
     }
 
     @Test
     void unmapExternalGroup_truncatesLeadingAndTrailingSpaces_InExternalGroupName() {
         ScimGroupExternalMember member = getScimGroupExternalMember();
         member = scimGroupEndpoints.unmapExternalGroup(member.getGroupId(), "  \nexternal_group_id\n", OriginKeys.LDAP);
-        assertEquals("external_group_id", member.getExternalGroup());
+        assertThat(member.getExternalGroup()).isEqualTo("external_group_id");
     }
 
     @Test
     void unmapExternalGroupUsingName_truncatesLeadingAndTrailingSpaces_InExternalGroupName() {
         ScimGroupExternalMember member = getScimGroupExternalMember();
         member = scimGroupEndpoints.unmapExternalGroupUsingName(member.getDisplayName(), "  \nexternal_group_id\n");
-        assertEquals("external_group_id", member.getExternalGroup());
+        assertThat(member.getExternalGroup()).isEqualTo("external_group_id");
     }
 
     private ScimGroupExternalMember getScimGroupExternalMember() {
-        ScimGroupExternalMember member = new ScimGroupExternalMember(groupIds.get(0), "  external_group_id  ");
+        ScimGroupExternalMember member = new ScimGroupExternalMember(groupIds.getFirst(), "  external_group_id  ");
         member = scimGroupEndpoints.mapExternalGroup(member);
         return member;
     }
@@ -312,8 +302,8 @@ class ScimGroupEndpointsTests {
     @Test
     void findPageOfIds() {
         SearchResults<?> results = scimGroupEndpoints.listGroups("id", "id pr", null, "ascending", 1, 1);
-        assertEquals(11, results.getTotalResults());
-        assertEquals(1, results.getResources().size());
+        assertThat(results.getTotalResults()).isEqualTo(11);
+        assertThat(results.getResources()).hasSize(1);
     }
 
     @Test
@@ -322,8 +312,8 @@ class ScimGroupEndpointsTests {
         jdbcScimGroupProvisioning.setPageSize(1);
         try {
             SearchResults<?> results = scimGroupEndpoints.listGroups("id", "id pr", null, "ascending", 1, 100);
-            assertEquals(11, results.getTotalResults());
-            assertEquals(11, results.getResources().size());
+            assertThat(results.getTotalResults()).isEqualTo(11);
+            assertThat(results.getResources()).hasSize(11);
         } finally {
             jdbcScimGroupProvisioning.setPageSize(pageSize);
         }
@@ -343,9 +333,9 @@ class ScimGroupEndpointsTests {
 
     @Test
     void listGroupsWithInvalidFilterFails() {
-        assertThrowsWithMessageThat(ScimException.class,
-                () -> scimGroupEndpoints.listGroups("id,displayName", "displayName cr \"admin\"", "created", "ascending", 1, 100),
-                is("Invalid filter expression: [displayName cr &quot;admin&quot;]"));
+        assertThatThrownBy(() -> scimGroupEndpoints.listGroups("id,displayName", "displayName cr \"admin\"", "created", "ascending", 1, 100))
+                .isInstanceOf(ScimException.class)
+                .hasMessage("Invalid filter expression: [displayName cr &quot;admin&quot;]");
     }
 
     @Test
@@ -362,9 +352,10 @@ class ScimGroupEndpointsTests {
     void sqlInjectionAttackFailsCorrectly() {
         String sql = "displayName='something'; select " + SQL_INJECTION_FIELDS
                 + " from groups where displayName='something'";
-        assertThrows(ScimException.class,
-                () -> scimGroupEndpoints.listGroups("id,display", sql, "created", "ascending", 1, 100),
-                "Invalid filter expression");
+
+        assertThatThrownBy(() -> scimGroupEndpoints.listGroups("id,displayName", sql, "created", "ascending", 1, 100))
+                .isInstanceOf(ScimException.class)
+                .hasMessageContaining("Invalid filter expression");
     }
 
     @Test
@@ -381,9 +372,9 @@ class ScimGroupEndpointsTests {
 
     @Test
     void legacyTestListGroupsWithInvalidFilterFails() {
-        assertThrows(ScimException.class,
-                () -> scimGroupEndpoints.listGroups("id,displayName", "displayName cr 'admin'", "created", "ascending", 1, 100),
-                "Invalid filter expression");
+        assertThatThrownBy(() -> scimGroupEndpoints.listGroups("id,displayName", "displayName cr 'admin'", "created", "ascending", 1, 100))
+                .isInstanceOf(ScimException.class)
+                .hasMessageContaining("Invalid filter expression");
     }
 
     @Test
@@ -399,15 +390,14 @@ class ScimGroupEndpointsTests {
     @Test
     void getGroup() {
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        ScimGroup g = scimGroupEndpoints.getGroup(groupIds.get(groupIds.size() - 1), httpServletResponse);
+        ScimGroup g = scimGroupEndpoints.getGroup(groupIds.getLast(), httpServletResponse);
         validateGroup(g, "uaa.none", 2);
-        assertEquals("\"0\"", httpServletResponse.getHeader("ETag"));
+        assertThat(httpServletResponse.getHeader("ETag")).isEqualTo("\"0\"");
     }
 
     @Test
     void getNonExistentGroupFails() {
-        assertThrows(ScimResourceNotFoundException.class,
-                () -> scimGroupEndpoints.getGroup("wrongid", new MockHttpServletResponse()));
+        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> scimGroupEndpoints.getGroup("wrongid", new MockHttpServletResponse()));
     }
 
     @Test
@@ -416,11 +406,10 @@ class ScimGroupEndpointsTests {
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g1 = scimGroupEndpoints.createGroup(g, httpServletResponse);
-        assertEquals("\"0\"", httpServletResponse.getHeader("ETag"));
+        assertThat(httpServletResponse.getHeader("ETag")).isEqualTo("\"0\"");
 
         validateGroup(g1, "clients.read", 1);
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
-
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "clients.read");
         deleteGroup("clients.read");
     }
 
@@ -429,13 +418,10 @@ class ScimGroupEndpointsTests {
         ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
-        try {
-            scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
-            fail("must have thrown exception");
-        } catch (ScimResourceAlreadyExistsException ex) {
-            validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
-        }
-
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        assertThatThrownBy(() -> scimGroupEndpoints.createGroup(g, httpServletResponse))
+                .isInstanceOf(ScimResourceAlreadyExistsException.class);
+        validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         deleteGroup("clients.read");
     }
 
@@ -444,13 +430,10 @@ class ScimGroupEndpointsTests {
         ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER)));
 
-        try {
-            scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
-            fail("must have thrown exception");
-        } catch (InvalidScimResourceException ex) {
-            // ensure that the group was not created
-            validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 0);
-        }
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        assertThatThrownBy(() -> scimGroupEndpoints.createGroup(g, httpServletResponse))
+                .isInstanceOf(InvalidScimResourceException.class);
+        validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 0);
     }
 
     @Test
@@ -458,15 +441,14 @@ class ScimGroupEndpointsTests {
         ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "clients.read");
 
         g.setDisplayName("superadmin");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g1 = scimGroupEndpoints.updateGroup(g, g.getId(), "*", httpServletResponse);
-        assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
-
+        assertThat(httpServletResponse.getHeader("ETag")).isEqualTo("\"1\"");
         validateGroup(g1, "superadmin", 1);
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "superadmin");
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "superadmin");
     }
 
     @Test
@@ -474,15 +456,14 @@ class ScimGroupEndpointsTests {
         ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "clients.read");
 
         g.setDisplayName("superadmin");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g1 = scimGroupEndpoints.updateGroup(g, g.getId(), "\"*\"", httpServletResponse);
-        assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
-
+        assertThat(httpServletResponse.getHeader("ETag")).isEqualTo("\"1\"");
         validateGroup(g1, "superadmin", 1);
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "superadmin");
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "superadmin");
     }
 
     @Test
@@ -490,14 +471,13 @@ class ScimGroupEndpointsTests {
         ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "clients.read");
 
         g.setDisplayName("superadmin");
         g.setMembers(new ArrayList<>());
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
         ScimGroup g1 = scimGroupEndpoints.updateGroup(g, g.getId(), "*", httpServletResponse);
-        assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
-
+        assertThat(httpServletResponse.getHeader("ETag")).isEqualTo("\"1\"");
         validateGroup(g1, "superadmin", 0);
     }
 
@@ -506,12 +486,11 @@ class ScimGroupEndpointsTests {
         final ScimGroup scimGroup = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         scimGroup.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         final ScimGroup createdScimGroup = scimGroupEndpoints.createGroup(scimGroup, new MockHttpServletResponse());
-        validateUserGroups(scimGroup.getMembers().get(0).getMemberId(), "clients.read");
+        validateUserGroups(scimGroup.getMembers().getFirst().getMemberId(), "clients.read");
 
         scimGroup.setDisplayName("superadmin");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        assertThrows(ScimException.class,
-                () -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), null, httpServletResponse));
+        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), null, httpServletResponse));
     }
 
     @Test
@@ -519,12 +498,11 @@ class ScimGroupEndpointsTests {
         final ScimGroup scimGroup = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         scimGroup.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         final ScimGroup createdScimGroup = scimGroupEndpoints.createGroup(scimGroup, new MockHttpServletResponse());
-        validateUserGroups(scimGroup.getMembers().get(0).getMemberId(), "clients.read");
+        validateUserGroups(scimGroup.getMembers().getFirst().getMemberId(), "clients.read");
 
         scimGroup.setDisplayName("superadmin");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        assertThrows(ScimException.class,
-                () -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), "", httpServletResponse));
+        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), "", httpServletResponse));
     }
 
     @Test
@@ -532,33 +510,31 @@ class ScimGroupEndpointsTests {
         final ScimGroup scimGroup = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         scimGroup.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         final ScimGroup createdScimGroup = scimGroupEndpoints.createGroup(scimGroup, new MockHttpServletResponse());
-        validateUserGroups(scimGroup.getMembers().get(0).getMemberId(), "clients.read");
+        validateUserGroups(scimGroup.getMembers().getFirst().getMemberId(), "clients.read");
 
         scimGroup.setDisplayName("superadmin");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        assertThrows(ScimException.class,
-                () -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), "abc", httpServletResponse));
+        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.updateGroup(createdScimGroup, createdScimGroup.getId(), "abc", httpServletResponse));
     }
 
     @Test
     void updateNonUniqueDisplayNameFails() {
         ScimGroup g1 = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
-        g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
+        ScimGroup g1a = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
         ScimGroup g2 = new ScimGroup(null, "clients.write", identityZoneManager.getCurrentIdentityZoneId());
         g2.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
-        g2 = scimGroupEndpoints.createGroup(g2, new MockHttpServletResponse());
+        scimGroupEndpoints.createGroup(g2, new MockHttpServletResponse());
 
-        g1.setDisplayName("clients.write");
-        try {
-            scimGroupEndpoints.updateGroup(g1, g1.getId(), "*", new MockHttpServletResponse());
-            fail("must have thrown exception");
-        } catch (InvalidScimResourceException ex) {
-            validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 1);
-            validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
-        }
+        g1a.setDisplayName("clients.write");
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        String id = g1a.getId();
+        assertThatThrownBy(() -> scimGroupEndpoints.updateGroup(g1a, id, "*", httpServletResponse))
+                .isInstanceOf(InvalidScimResourceException.class);
 
+        validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 1);
+        validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         deleteGroup("clients.read");
         deleteGroup("clients.write");
     }
@@ -569,11 +545,7 @@ class ScimGroupEndpointsTests {
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
 
-        g1.setMembers(
-                Collections.singletonList(
-                        new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER)
-                )
-        );
+        g1.setMembers(Collections.singletonList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER)));
         g1.setDisplayName("clients.write");
 
         try {
@@ -585,7 +557,6 @@ class ScimGroupEndpointsTests {
             validateGroup(g1, "clients.read", 0);
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
         }
-
         deleteGroup("clients.read");
     }
 
@@ -600,11 +571,10 @@ class ScimGroupEndpointsTests {
         try {
             scimGroupEndpoints.updateGroup(g1, g1.getId(), "version", new MockHttpServletResponse());
         } catch (ScimException ex) {
-            assertTrue(ex.getMessage().contains("Invalid version"), "Wrong exception message");
+            assertThat(ex.getMessage()).as("Wrong exception message").contains("Invalid version");
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
-
         deleteGroup("clients.read");
     }
 
@@ -619,11 +589,10 @@ class ScimGroupEndpointsTests {
         try {
             scimGroupEndpoints.updateGroup(g1, g1.getId(), null, new MockHttpServletResponse());
         } catch (ScimException ex) {
-            assertTrue(ex.getMessage().contains("Missing If-Match"), "Wrong exception message");
+            assertThat(ex.getMessage()).as("Wrong exception message").contains("Missing If-Match");
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
-
         deleteGroup("clients.read");
     }
 
@@ -639,7 +608,6 @@ class ScimGroupEndpointsTests {
         scimGroupEndpoints.updateGroup(g1, g1.getId(), "*\"", new MockHttpServletResponse());
         validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 1);
         validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 0);
-
         deleteGroup("clients.write");
     }
 
@@ -648,7 +616,6 @@ class ScimGroupEndpointsTests {
         ScimGroup g1 = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g1.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g1 = scimGroupEndpoints.createGroup(g1, new MockHttpServletResponse());
-
         g1.setDisplayName("clients.write");
 
         try {
@@ -657,7 +624,6 @@ class ScimGroupEndpointsTests {
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.write\"", "id", "ASC", 1, 100), 0);
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
-
         deleteGroup("clients.read");
     }
 
@@ -666,13 +632,12 @@ class ScimGroupEndpointsTests {
         ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "clients.read");
 
         g.setDisplayName("someadmin");
         g.setMembers(null);
         ScimGroup g1 = scimGroupEndpoints.updateGroup(g, g.getId(), "*", new MockHttpServletResponse());
         validateGroup(g1, "someadmin", 0);
-
         deleteGroup("clients.read");
     }
 
@@ -681,15 +646,15 @@ class ScimGroupEndpointsTests {
         ScimGroup g = new ScimGroup(null, "clients.read", identityZoneManager.getCurrentIdentityZoneId());
         g.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
         g = scimGroupEndpoints.createGroup(g, new MockHttpServletResponse());
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "clients.read");
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "clients.read");
 
         g = scimGroupEndpoints.deleteGroup(g.getId(), "*", new MockHttpServletResponse());
-        try {
-            scimGroupEndpoints.getGroup(g.getId(), new MockHttpServletResponse());
-            fail("group should not exist");
-        } catch (ScimResourceNotFoundException ignored) {
-        }
-        validateUserGroups(g.getMembers().get(0).getMemberId(), "uaa.user");
+        String id = g.getId();
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        assertThatThrownBy(() -> scimGroupEndpoints.getGroup(id, httpServletResponse))
+                .isInstanceOf(ScimResourceNotFoundException.class);
+
+        validateUserGroups(g.getMembers().getFirst().getMemberId(), "uaa.user");
     }
 
     @Test
@@ -707,7 +672,7 @@ class ScimGroupEndpointsTests {
         scimGroupEndpoints.deleteGroup(member.getMemberId(), "*", new MockHttpServletResponse());
 
         List<ScimGroupMember> members = scimGroupEndpoints.listGroupMemberships(group.getId(), true, "").getBody();
-        assertEquals(0, members.size());
+        assertThat(members).isEmpty();
     }
 
     @Test
@@ -721,34 +686,23 @@ class ScimGroupEndpointsTests {
         } catch (ScimException ex) {
             validateSearchResults(scimGroupEndpoints.listGroups("id", "displayName eq \"clients.read\"", "id", "ASC", 1, 100), 1);
         }
-
         deleteGroup("clients.read");
     }
 
     @Test
     void deleteNonExistentGroupFails() {
-        assertThrows(ScimResourceNotFoundException.class,
-                () -> scimGroupEndpoints.deleteGroup("some id", "*", new MockHttpServletResponse()));
+        assertThatExceptionOfType(ScimResourceNotFoundException.class).isThrownBy(() -> scimGroupEndpoints.deleteGroup("some id", "*", new MockHttpServletResponse()));
     }
 
     @Test
     void exceptionHandler() {
-        Map<Class<? extends Exception>, HttpStatus> map = new HashMap<>();
-        map.put(IllegalArgumentException.class, HttpStatus.BAD_REQUEST);
-        map.put(UnsupportedOperationException.class, HttpStatus.BAD_REQUEST);
-        map.put(BadSqlGrammarException.class, HttpStatus.BAD_REQUEST);
-        map.put(DataIntegrityViolationException.class, HttpStatus.BAD_REQUEST);
-        map.put(HttpMessageConversionException.class, HttpStatus.BAD_REQUEST);
-        map.put(HttpMediaTypeException.class, HttpStatus.BAD_REQUEST);
-
         scimGroupEndpoints = new ScimGroupEndpoints(
                 jdbcScimGroupProvisioning,
                 jdbcScimGroupMembershipManager,
                 identityZoneManager,
                 20,
-                map,
+                exceptionToStatusMap,
                 jdbcScimGroupExternalMembershipManager);
-
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         validateView(scimGroupEndpoints.handleException(new ScimResourceNotFoundException(""), request), HttpStatus.NOT_FOUND);
@@ -762,13 +716,12 @@ class ScimGroupEndpointsTests {
 
     private void validateView(View view, HttpStatus status) {
         MockHttpServletResponse response = new MockHttpServletResponse();
-        try {
-            view.render(new HashMap<>(), new MockHttpServletRequest(), response);
-            assertNotNull(response.getContentAsString());
-        } catch (Exception e) {
-            fail("view should render correct status and body");
-        }
-        assertEquals(status.value(), response.getStatus());
+        assertThatNoException().as("view should render correct status and body")
+                .isThrownBy(() -> {
+                    view.render(new HashMap<>(), new MockHttpServletRequest(), response);
+                    assertThat(response.getContentAsString()).isNotNull();
+                });
+        assertThat(response.getStatus()).isEqualTo(status.value());
     }
 
     @Test
@@ -783,8 +736,8 @@ class ScimGroupEndpointsTests {
 
         patch = scimGroupEndpoints.patchGroup(patch, patch.getId(), Integer.toString(g1.getVersion()), new MockHttpServletResponse());
 
-        assertEquals("NewName", patch.getDisplayName());
-        assertEquals(g1.getDescription(), patch.getDescription());
+        assertThat(patch.getDisplayName()).isEqualTo("NewName");
+        assertThat(patch.getDescription()).isEqualTo(g1.getDescription());
     }
 
     @Test
@@ -792,8 +745,7 @@ class ScimGroupEndpointsTests {
         ScimGroup g1 = new ScimGroup(null, "name", identityZoneManager.getCurrentIdentityZoneId());
         g1.setDescription("description");
 
-        assertThrows(ScimException.class,
-                () -> scimGroupEndpoints.patchGroup(g1, "id", "0", new MockHttpServletResponse()));
+        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.patchGroup(g1, "id", "0", new MockHttpServletResponse()));
     }
 
     @Test
@@ -804,16 +756,16 @@ class ScimGroupEndpointsTests {
         g1 = jdbcScimGroupProvisioning.create(g1, identityZoneManager.getCurrentIdentityZoneId());
 
         ScimGroup patch = new ScimGroup();
-        assertNull(g1.getMembers());
-        assertNull(patch.getMembers());
+        assertThat(g1.getMembers()).isNull();
+        assertThat(patch.getMembers()).isNull();
         patch.setMembers(Collections.singletonList(createMember(ScimGroupMember.Type.USER)));
-        assertEquals(1, patch.getMembers().size());
+        assertThat(patch.getMembers()).hasSize(1);
 
         patch = scimGroupEndpoints.patchGroup(patch, g1.getId(), "0", new MockHttpServletResponse());
 
-        assertEquals(1, patch.getMembers().size());
-        ScimGroupMember member = patch.getMembers().get(0);
-        assertEquals(ScimGroupMember.Type.USER, member.getType());
+        assertThat(patch.getMembers()).hasSize(1);
+        ScimGroupMember member = patch.getMembers().getFirst();
+        assertThat(member.getType()).isEqualTo(ScimGroupMember.Type.USER);
     }
 
     @Test
@@ -826,7 +778,6 @@ class ScimGroupEndpointsTests {
         ScimGroup patch = new ScimGroup("NewName");
         patch.setId(scimGroup.getId());
 
-        assertThrows(ScimException.class,
-                () -> scimGroupEndpoints.patchGroup(patch, patch.getId(), Integer.toString(createdScimGroup.getVersion() + 1), new MockHttpServletResponse()));
+        assertThatExceptionOfType(ScimException.class).isThrownBy(() -> scimGroupEndpoints.patchGroup(patch, patch.getId(), Integer.toString(createdScimGroup.getVersion() + 1), new MockHttpServletResponse()));
     }
 }

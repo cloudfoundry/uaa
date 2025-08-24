@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -29,6 +30,16 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
 
     List<ScimUser> retrieveByUsernameAndZone(String username, String zoneId);
 
+    /**
+     * Retrieve all users that satisfy the given SCIM filter and stem from active IdPs.
+     */
+    List<ScimUser> retrieveByScimFilterOnlyActive(
+            String filter,
+            String sortBy,
+            boolean ascending,
+            String zoneId
+    );
+
     List<ScimUser> retrieveByUsernameAndOriginAndZone(String username, String origin, String zoneId);
 
     void changePassword(String id, String oldPassword, String newPassword, String zoneId) throws ScimResourceNotFoundException;
@@ -37,7 +48,7 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
 
     ScimUser verifyUser(String id, int version, String zoneId) throws ScimResourceNotFoundException, InvalidScimResourceException;
 
-    boolean checkPasswordMatches(String id, String password, String zoneId) throws ScimResourceNotFoundException;
+    boolean checkPasswordMatches(String id, CharSequence password, String zoneId) throws ScimResourceNotFoundException;
 
     boolean checkPasswordChangeIndividuallyRequired(String id, String zoneId) throws ScimResourceNotFoundException;
 

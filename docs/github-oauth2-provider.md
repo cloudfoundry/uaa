@@ -1,12 +1,12 @@
-# Registering Github as external OAuth provider in UAA
+# Registering GitHub as an external OAuth provider in UAA
 
-Github can be setup as an Oauth2 provider for UAA.
+GitHub can be setup as an Oauth2 provider for UAA.
 
-1. Create an OAuth “application” client in Github.
+1. Create an OAuth “application” client in GitHub.
    For example at: `https://github.com/organizations/{YOUR-ORG}/settings/applications/new`.
 
-   Add following URI in the “_Authorization callback URL_” text field:
-   `http://{UAA_HOST}/login/callback/{origin}`. Additional Github
+   Add the following URI in the “_Authorization callback URL_” text field:
+   `http://{UAA_HOST}/login/callback/{origin}`. Additional GitHub
    documentation for achieving this can be found here:
    [Creating an OAuth App](https://docs.github.com/en/free-pro-team@latest/developers/apps/creating-an-oauth-app)
    [Authorizing OAuth Apps](https://docs.github.com/en/free-pro-team@latest/developers/apps/authorizing-oauth-apps)

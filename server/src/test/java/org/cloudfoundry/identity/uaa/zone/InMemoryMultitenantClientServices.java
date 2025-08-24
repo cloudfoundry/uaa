@@ -1,11 +1,12 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientJwtCredential;
+import org.cloudfoundry.identity.uaa.provider.ClientAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.provider.ClientRegistrationException;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationException;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,18 +19,18 @@ import static java.util.Optional.ofNullable;
 
 public class InMemoryMultitenantClientServices extends MultitenantClientServices {
 
-    private ConcurrentMap<String, Map<String, BaseClientDetails>> services = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, Map<String, UaaClientDetails>> services = new ConcurrentHashMap<>();
 
     public InMemoryMultitenantClientServices(IdentityZoneManager identityZoneManager) {
         super(identityZoneManager);
     }
 
-    public void setClientDetailsStore(String zoneId, Map<String, BaseClientDetails> store) {
+    public void setClientDetailsStore(String zoneId, Map<String, UaaClientDetails> store) {
         services.put(zoneId, store);
     }
 
-    public Map<String, BaseClientDetails> getInMemoryService(String zoneId) {
-        Map<String, BaseClientDetails> clientDetailsStore = new HashMap<>();
+    public Map<String, UaaClientDetails> getInMemoryService(String zoneId) {
+        Map<String, UaaClientDetails> clientDetailsStore = new HashMap<>();
         services.putIfAbsent(zoneId, clientDetailsStore);
         return services.get(zoneId);
     }
@@ -49,8 +50,29 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
     }
 
     @Override
+    public void addClientJwtConfig(String clientId, String keyConfig, String zoneId, boolean overwrite) throws NoSuchClientException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addClientJwtCredential(String clientId, ClientJwtCredential keyConfig, String zoneId, boolean overwrite)
+            throws NoSuchClientException {
+        // ignore
+    }
+
+    @Override
+    public void deleteClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void deleteClientJwtCredential(String clientId, ClientJwtCredential keyConfig, String zoneId) throws NoSuchClientException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public void addClientDetails(ClientDetails clientDetails, String zoneId) throws ClientAlreadyExistsException {
-        getInMemoryService(zoneId).put(clientDetails.getClientId(), (BaseClientDetails) clientDetails);
+        getInMemoryService(zoneId).put(clientDetails.getClientId(), (UaaClientDetails) clientDetails);
     }
 
     @Override
@@ -60,9 +82,14 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
 
     @Override
     public void updateClientSecret(String clientId, String secret, String zoneId) throws NoSuchClientException {
-        ofNullable((BaseClientDetails) loadClientByClientId(clientId, zoneId)).ifPresent(client ->
+        ofNullable((UaaClientDetails) loadClientByClientId(clientId, zoneId)).ifPresent(client ->
                 client.setClientSecret(secret)
         );
+    }
+
+    @Override
+    public void updateClientJwtConfig(String clientId, String keyConfig, String zoneId) throws NoSuchClientException {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -77,7 +104,7 @@ public class InMemoryMultitenantClientServices extends MultitenantClientServices
 
     @Override
     public ClientDetails loadClientByClientId(String clientId, String zoneId) throws ClientRegistrationException {
-        BaseClientDetails result = getInMemoryService(zoneId).get(clientId);
+        UaaClientDetails result = getInMemoryService(zoneId).get(clientId);
         if (result == null) {
             throw new NoSuchClientException("No client with requested id: " + clientId);
         }

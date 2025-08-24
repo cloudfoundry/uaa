@@ -1,61 +1,155 @@
 package org.cloudfoundry.identity.uaa.logging;
 
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
-import org.junit.Before;
-import org.junit.Test;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class SanitizedLogFactoryTest {
+class SanitizedLogFactoryTest {
+
+    private final String dirtyMessage = "one\ntwo\tthree\rfour";
+    private final String sanitizedMsg = "one|two|three|four[SANITIZED]";
+    private final String cleanMessage = "one two three four";
 
     Logger mockLog;
+    SanitizedLogFactory.SanitizedLog log;
+    Exception ex;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         mockLog = mock(Logger.class);
+        log = new SanitizedLogFactory.SanitizedLog(mockLog);
+        ex = new Exception(RandomStringUtils.randomAlphanumeric(8));
     }
 
     @Test
-    public void testSanitizeDebug() {
-        SanitizedLogFactory.SanitizedLog log = new SanitizedLogFactory.SanitizedLog(mockLog);
-        log.debug("one\ntwo\tthree\rfour");
-        verify(mockLog).debug("one|two|three|four[SANITIZED]");
+    void init() {
+        assertThat(SanitizedLogFactory.getLog(SanitizedLogFactoryTest.class)).isNotNull();
     }
 
     @Test
-    public void testSanitizeDebugCleanMessage() {
-        SanitizedLogFactory.SanitizedLog log = new SanitizedLogFactory.SanitizedLog(mockLog);
-        log.debug("one two three four");
-        verify(mockLog).debug("one two three four");
+    void sanitizeInfo() {
+        when(mockLog.isInfoEnabled()).thenReturn(true);
+        log.info(dirtyMessage);
+        verify(mockLog).info(sanitizedMsg);
+        log.info(dirtyMessage, ex);
+        verify(mockLog).info(sanitizedMsg, ex);
     }
 
     @Test
-    public void testSanitizeInfo() {
-        SanitizedLogFactory.SanitizedLog log = new SanitizedLogFactory.SanitizedLog(mockLog);
-        log.info("one\ntwo\tthree\rfour");
-        verify(mockLog).info("one|two|three|four[SANITIZED]");
+    void sanitizeInfoCleanMessage() {
+        when(mockLog.isInfoEnabled()).thenReturn(true);
+        log.info(cleanMessage);
+        verify(mockLog).info(cleanMessage);
+        log.info(cleanMessage, ex);
+        verify(mockLog).info(cleanMessage, ex);
     }
 
     @Test
-    public void testSanitizeInfoCleanMessage() {
-        SanitizedLogFactory.SanitizedLog log = new SanitizedLogFactory.SanitizedLog(mockLog);
-        log.info("one two three four");
-        verify(mockLog).info("one two three four");
+    void sanitizeDebug() {
+        when(mockLog.isDebugEnabled()).thenReturn(true);
+        log.debug(dirtyMessage);
+        verify(mockLog).debug(sanitizedMsg);
+        log.debug(dirtyMessage, true);
+        verify(mockLog).debug(sanitizedMsg);
+        log.debug(dirtyMessage, ex);
+        verify(mockLog).debug(sanitizedMsg, ex);
     }
 
     @Test
-    public void testSanitizeWarn() {
-        SanitizedLogFactory.SanitizedLog log = new SanitizedLogFactory.SanitizedLog(mockLog);
-        log.warn("one\ntwo\tthree\rfour");
-        verify(mockLog).warn("one|two|three|four[SANITIZED]");
+    void sanitizeDebugCleanMessage() {
+        when(mockLog.isDebugEnabled()).thenReturn(true);
+        log.debug(cleanMessage);
+        verify(mockLog).debug(cleanMessage);
+        log.debug(cleanMessage, ex);
+        verify(mockLog).debug(cleanMessage, ex);
     }
 
     @Test
-    public void testSanitizeWarnCleanMessage() {
-        SanitizedLogFactory.SanitizedLog log = new SanitizedLogFactory.SanitizedLog(mockLog);
-        log.warn("one two three four");
-        verify(mockLog).warn("one two three four");
+    void sanitizeDebugCleanMessageNotEnabled() {
+        when(mockLog.isDebugEnabled()).thenReturn(false);
+        log.debug(cleanMessage);
+        verify(mockLog, never()).debug(cleanMessage);
+        log.debug(cleanMessage, ex);
+        verify(mockLog, never()).debug(cleanMessage, ex);
+        assertThat(log.isDebugEnabled()).isFalse();
     }
 
+    @Test
+    void sanitizeWarn() {
+        when(mockLog.isWarnEnabled()).thenReturn(true);
+        log.warn(dirtyMessage);
+        verify(mockLog).warn(sanitizedMsg);
+        log.warn(dirtyMessage, ex);
+        verify(mockLog).warn(sanitizedMsg, ex);
+    }
+
+    @Test
+    void sanitizeWarnCleanMessage() {
+        when(mockLog.isWarnEnabled()).thenReturn(true);
+        log.warn(cleanMessage);
+        verify(mockLog).warn(cleanMessage);
+        log.warn(cleanMessage, ex);
+        verify(mockLog).warn(cleanMessage, ex);
+    }
+
+    @Test
+    void sanitizeWarnCleanMessageNotEnabled() {
+        when(mockLog.isWarnEnabled()).thenReturn(false);
+        log.warn(cleanMessage);
+        verify(mockLog, never()).warn(cleanMessage);
+        log.warn(cleanMessage, ex);
+        verify(mockLog, never()).warn(cleanMessage, ex);
+    }
+
+    @Test
+    void sanitizeError() {
+        when(mockLog.isErrorEnabled()).thenReturn(true);
+        log.error(dirtyMessage);
+        verify(mockLog).error(sanitizedMsg);
+        log.error(dirtyMessage, ex);
+        verify(mockLog).error(sanitizedMsg, ex);
+    }
+
+    @Test
+    void sanitizeErrorCleanMessage() {
+        when(mockLog.isErrorEnabled()).thenReturn(true);
+        log.error(cleanMessage);
+        verify(mockLog).error(cleanMessage);
+        log.error(cleanMessage, ex);
+        verify(mockLog).error(cleanMessage, ex);
+    }
+
+    @Test
+    void sanitizeTrace() {
+        when(mockLog.isTraceEnabled()).thenReturn(true);
+        log.trace(dirtyMessage);
+        verify(mockLog).trace(sanitizedMsg);
+        log.trace(dirtyMessage, ex);
+        verify(mockLog).trace(sanitizedMsg, ex);
+    }
+
+    @Test
+    void sanitizeTraceCleanMessage() {
+        when(mockLog.isTraceEnabled()).thenReturn(true);
+        log.trace(cleanMessage);
+        verify(mockLog).trace(cleanMessage);
+        log.trace(cleanMessage, ex);
+        verify(mockLog).trace(cleanMessage, ex);
+    }
+
+    @Test
+    void sanitizeTraceCleanMessageWhenNotEnabled() {
+        when(mockLog.isTraceEnabled()).thenReturn(false);
+        log.trace(cleanMessage);
+        verify(mockLog, never()).trace(cleanMessage);
+        log.trace(cleanMessage, ex);
+        verify(mockLog, never()).trace(cleanMessage, ex);
+    }
 }

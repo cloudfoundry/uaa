@@ -7,15 +7,17 @@ import org.junit.jupiter.api.extension.ExtensionContext;
 import org.springframework.context.ApplicationContext;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+import java.sql.SQLException;
+
 public class PollutionPreventionExtension implements AfterAllCallback, BeforeAllCallback {
 
     @Override
-    public void beforeAll(ExtensionContext extensionContext) {
+    public void beforeAll(ExtensionContext extensionContext) throws SQLException {
         TestUtils.restoreToDefaults(getApplicationContextOrNull(extensionContext));
     }
 
     @Override
-    public void afterAll(ExtensionContext extensionContext) {
+    public void afterAll(ExtensionContext extensionContext) throws SQLException {
         TestUtils.restoreToDefaults(getApplicationContextOrNull(extensionContext));
     }
 

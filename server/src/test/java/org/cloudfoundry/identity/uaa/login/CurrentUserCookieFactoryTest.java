@@ -7,13 +7,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
-import javax.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class CurrentUserCookieFactoryTest {
 
@@ -38,45 +36,45 @@ class CurrentUserCookieFactoryTest {
     @Test
     void getCookie_returnsCookieWithNameCurrentUser() throws Exception {
         Cookie cookie = factory.getCookie(uaaPrincipal);
-        assertEquals("Current-User", cookie.getName());
+        assertThat(cookie.getName()).isEqualTo("Current-User");
     }
 
     @Test
     void getCookie_returnsCookieMaxAgeEqualToSessionTimeout() throws Exception {
         Cookie cookie = factory.getCookie(uaaPrincipal);
-        assertEquals(sessionTimeout, cookie.getMaxAge());
+        assertThat(cookie.getMaxAge()).isEqualTo(sessionTimeout);
     }
 
     @Test
     void getCookie_setsContextPath() throws Exception {
         Cookie cookie = factory.getCookie(uaaPrincipal);
-        assertEquals("/", cookie.getPath());
+        assertThat(cookie.getPath()).isEqualTo("/");
     }
 
     @Test
     void getCookie_containsUrlEncodedJsonBody() throws Exception {
         Cookie cookie = factory.getCookie(uaaPrincipal);
-        assertEquals("%7B%22userId%22%3A%22user-guid%22%7D", cookie.getValue());
+        assertThat(cookie.getValue()).isEqualTo("%7B%22userId%22%3A%22user-guid%22%7D");
         String decoded = URLDecoder.decode(cookie.getValue(), StandardCharsets.UTF_8);
         JsonNode parsedCookie = JsonUtils.readTree(decoded);
-        assertEquals("\"user-guid\"", parsedCookie.get("userId").toString());
+        assertThat(parsedCookie.get("userId")).hasToString("\"user-guid\"");
     }
 
     @Test
     void getNullCookie() {
         Cookie cookie = factory.getNullCookie();
 
-        assertEquals("Current-User", cookie.getName());
-        assertFalse(cookie.isHttpOnly());
-        assertEquals(0, cookie.getMaxAge());
-        assertEquals("/", cookie.getPath());
+        assertThat(cookie.getName()).isEqualTo("Current-User");
+        assertThat(cookie.isHttpOnly()).isFalse();
+        assertThat(cookie.getMaxAge()).isZero();
+        assertThat(cookie.getPath()).isEqualTo("/");
     }
 
     @Test
     void getCookie_doesNotIncludePersonallyIdentifiableInformation() throws Exception {
         Cookie cookie = factory.getCookie(uaaPrincipal);
-        assertThat(cookie.getValue(), not(containsString(username)));
-        assertThat(cookie.getValue(), not(containsString(email)));
+        assertThat(cookie.getValue()).doesNotContain(username)
+                .doesNotContain(email);
     }
 
     @Test
@@ -85,7 +83,6 @@ class CurrentUserCookieFactoryTest {
         // cookie if httpOnly is enabled.
 
         Cookie cookie = factory.getCookie(uaaPrincipal);
-        assertFalse(cookie.isHttpOnly());
+        assertThat(cookie.isHttpOnly()).isFalse();
     }
-
 }

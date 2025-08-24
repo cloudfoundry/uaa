@@ -7,8 +7,8 @@ import org.springframework.util.Assert;
 
 public class IdentityProviderAuthenticationFailureEvent extends AbstractUaaAuthenticationEvent {
 
-    private String username;
-    private String authenticationType;
+    private final String username;
+    private final String authenticationType;
 
     public String getUsername() {
         return username;

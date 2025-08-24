@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -24,7 +25,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
  */
 public class PrincipalNotFoundEvent extends AbstractUaaPrincipalEvent {
 
-    private String name;
+    private final String name;
 
     public PrincipalNotFoundEvent(String name, UaaAuthenticationDetails details, String zoneId) {
         super(details, zoneId);

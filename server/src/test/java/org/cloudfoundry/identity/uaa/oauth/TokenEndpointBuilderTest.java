@@ -4,20 +4,18 @@ import org.junit.jupiter.api.Test;
 
 import java.net.MalformedURLException;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatNoException;
 
 class TokenEndpointBuilderTest {
 
     @Test
     void validatesIssuerBaseUrl() {
-        assertThrows(MalformedURLException.class,
-                () -> new TokenEndpointBuilder("not-a-url"));
+        assertThatExceptionOfType(MalformedURLException.class).isThrownBy(() -> new TokenEndpointBuilder("not-a-url"));
     }
 
     @Test
     void acceptsValidUrls() {
-        assertDoesNotThrow(() -> new TokenEndpointBuilder("http://some.page.online"));
+        assertThatNoException().isThrownBy(() -> new TokenEndpointBuilder("http://some.page.online"));
     }
-
 }

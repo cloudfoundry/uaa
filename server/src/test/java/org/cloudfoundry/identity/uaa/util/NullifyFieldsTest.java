@@ -14,117 +14,119 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class NullifyFieldsTest {
-
-
+class NullifyFieldsTest {
     private A a;
     private B b;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
+        // reset static fields
         a = new A();
+        a.a1 = new Object();
+        a.a2 = new Object();
+
         b = new B();
+        b.b1 = new Object();
+        b.b2 = new Object();
     }
 
     @Test
-    public void testNullifyAllA() throws Exception {
+    void nullifyAllA() throws Exception {
         NullifyFields.nullifyFields(A.class, a, true);
-        assertNull(a.a1);
-        assertNull(a.a2);
-        assertNull(a.a3);
-        assertNull(a.a4);
-        assertNull(a.a5);
-        assertNotNull(A.a0);
-        assertNotNull(a.a6);
+        assertThat(a.a1).isNull();
+        assertThat(a.a2).isNull();
+        assertThat(a.a3).isNull();
+        assertThat(a.a4).isNull();
+        assertThat(a.a5).isNull();
+        assertThat(A.a0).isNotNull();
+        assertThat(a.a6).isNotNull();
     }
 
     @Test
-    public void testNullifyAllAInstanceFields() throws Exception {
+    void nullifyAllAInstanceFields() throws Exception {
         NullifyFields.nullifyFields(A.class, a, false);
-        assertNotNull(a.a1);
-        assertNotNull(a.a2);
-        assertNull(a.a3);
-        assertNull(a.a4);
-        assertNull(a.a5);
-        assertNotNull(A.a0);
-        assertNotNull(a.a6);
+        assertThat(a.a1).isNotNull();
+        assertThat(a.a2).isNotNull();
+        assertThat(a.a3).isNull();
+        assertThat(a.a4).isNull();
+        assertThat(a.a5).isNull();
+        assertThat(A.a0).isNotNull();
+        assertThat(a.a6).isNotNull();
     }
 
     @Test
-    public void testNullifyAllAClassFields() throws Exception {
+    void nullifyAllAClassFields() throws Exception {
         NullifyFields.nullifyFields(A.class, null, true);
-        assertNull(a.a1);
-        assertNull(a.a2);
-        assertNotNull(a.a3);
-        assertNotNull(a.a4);
-        assertNotNull(a.a5);
-        assertNotNull(A.a0);
-        assertNotNull(a.a6);
+        assertThat(a.a1).isNull();
+        assertThat(a.a2).isNull();
+        assertThat(a.a3).isNotNull();
+        assertThat(a.a4).isNotNull();
+        assertThat(a.a5).isNotNull();
+        assertThat(A.a0).isNotNull();
+        assertThat(a.a6).isNotNull();
     }
 
     @Test
-    public void testNullifyAllB() throws Exception {
+    void nullifyAllB() throws Exception {
         NullifyFields.nullifyFields(B.class, b, true);
-        assertNull(b.b1);
-        assertNull(b.b2);
-        assertNull(b.b3);
-        assertNull(b.b4);
-        assertNull(b.b5);
-        assertNull(b.a1);
-        assertNull(((A)b).a2);
-        assertNull(b.a3);
-        assertNull(b.a4);
-        assertNull(((A)b).a5);
-        assertNotNull(A.a0);
-        assertNotNull(B.b0);
-        assertNotNull(((A)b).a6);
-        assertNotNull(b.b6);
+        assertThat(b.b1).isNull();
+        assertThat(b.b2).isNull();
+        assertThat(b.b3).isNull();
+        assertThat(b.b4).isNull();
+        assertThat(b.b5).isNull();
+        assertThat(b.a1).isNull();
+        assertThat(((A) b).a2).isNull();
+        assertThat(b.a3).isNull();
+        assertThat(b.a4).isNull();
+        assertThat(((A) b).a5).isNull();
+        assertThat(A.a0).isNotNull();
+        assertThat(B.b0).isNotNull();
+        assertThat(((A) b).a6).isNotNull();
+        assertThat(b.b6).isNotNull();
     }
 
     @Test
-    public void testNullifyAllBInstance() throws Exception {
+    void nullifyAllBInstance() throws Exception {
         NullifyFields.nullifyFields(B.class, b, false);
-        assertNotNull(b.b1);
-        assertNotNull(b.b2);
-        assertNull(b.b3);
-        assertNull(b.b4);
-        assertNull(b.b5);
-        assertNotNull(b.a1);
-        assertNotNull(((A) b).a2);
-        assertNull(b.a3);
-        assertNull(b.a4);
-        assertNull(((A)b).a5);
-        assertNotNull(A.a0);
-        assertNotNull(B.b0);
-        assertNotNull(((A)b).a6);
-        assertNotNull(b.b6);
+        assertThat(b.b1).isNotNull();
+        assertThat(b.b2).isNotNull();
+        assertThat(b.b3).isNull();
+        assertThat(b.b4).isNull();
+        assertThat(b.b5).isNull();
+        assertThat(b.a1).isNotNull();
+        assertThat(((A) b).a2).isNotNull();
+        assertThat(b.a3).isNull();
+        assertThat(b.a4).isNull();
+        assertThat(((A) b).a5).isNull();
+        assertThat(A.a0).isNotNull();
+        assertThat(B.b0).isNotNull();
+        assertThat(((A) b).a6).isNotNull();
+        assertThat(b.b6).isNotNull();
     }
 
     @Test
-    public void testNullifyAllBClassFields() throws Exception {
+    void nullifyAllBClassFields() throws Exception {
         NullifyFields.nullifyFields(B.class, null, true);
-        assertNull(a.a1);
-        assertNull(a.a2);
-        assertNotNull(a.a3);
-        assertNotNull(a.a4);
-        assertNotNull(a.a5);
-        assertNull(b.b1);
-        assertNull(b.b2);
-        assertNotNull(b.b3);
-        assertNotNull(b.b4);
-        assertNotNull(b.b5);
-        assertNotNull(A.a0);
-        assertNotNull(B.b0);
-        assertNotNull(((A)b).a6);
-        assertNotNull(b.b6);
+        assertThat(a.a1).isNull();
+        assertThat(a.a2).isNull();
+        assertThat(a.a3).isNotNull();
+        assertThat(a.a4).isNotNull();
+        assertThat(a.a5).isNotNull();
+        assertThat(b.b1).isNull();
+        assertThat(b.b2).isNull();
+        assertThat(b.b3).isNotNull();
+        assertThat(b.b4).isNotNull();
+        assertThat(b.b5).isNotNull();
+        assertThat(A.a0).isNotNull();
+        assertThat(B.b0).isNotNull();
+        assertThat(((A) b).a6).isNotNull();
+        assertThat(b.b6).isNotNull();
     }
-
 
     public static class A {
         public static final Object a0 = new Object();
@@ -134,10 +136,9 @@ public class NullifyFieldsTest {
         protected Object a4 = new Object();
         private Object a5 = new Object();
         private final Object a6 = new Object();
-
     }
 
-    public static class B extends  A {
+    public static class B extends A {
         public static final Object b0 = new Object();
         public static Object b1 = new Object();
         private static Object b2 = new Object();
@@ -145,6 +146,5 @@ public class NullifyFieldsTest {
         protected Object b4 = new Object();
         private Object b5 = new Object();
         private final Object b6 = new Object();
-
     }
- }
+}

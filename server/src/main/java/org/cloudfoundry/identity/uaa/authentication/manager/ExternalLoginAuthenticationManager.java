@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.apache.commons.lang.StringUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.user.VerifiableUser;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -47,7 +48,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import static java.util.Collections.EMPTY_SET;
+import static java.util.Collections.emptySet;
 import static java.util.Optional.ofNullable;
 
 public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
@@ -114,7 +115,9 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
-        logger.debug("Starting external authentication for:"+request);
+        if (logger.isDebugEnabled()) {
+            logger.debug("Starting external authentication for:{}", UaaStringUtils.getCleanedUserControlString(request.toString()));
+        }
         ExternalAuthenticationDetails authenticationData = getExternalAuthenticationDetails(request);
         UaaUser userFromRequest = getUser(request, authenticationData);
         if (userFromRequest == null) {
@@ -124,10 +127,10 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         UaaUser userFromDb;
 
         try {
-            logger.debug(String.format("Searching for user by (username:%s , origin:%s)", userFromRequest.getUsername(), getOrigin()));
+            logger.debug("Searching for user by (username:{} , origin:{})", userFromRequest.getUsername(), getOrigin());
             userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
         } catch (UsernameNotFoundException e) {
-            logger.debug(String.format("Searching for user by (email:%s , origin:%s)", userFromRequest.getEmail(), getOrigin()));
+            logger.debug("Searching for user by (email:{} , origin:{})", userFromRequest.getEmail(), getOrigin());
             userFromDb = userDatabase.retrieveUserByEmail(userFromRequest.getEmail(), getOrigin());
         }
 
@@ -136,7 +139,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             if (!isAddNewShadowUser()) {
                 throw new AccountNotPreCreatedException("The user account must be pre-created. Please contact your system administrator.");
             }
-            publish(new NewUserAuthenticatedEvent(userFromRequest));
+            publish(new NewUserAuthenticatedEvent(userFromRequest.authorities(List.of())));
             try {
                 userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
             } catch (UsernameNotFoundException ex) {
@@ -160,23 +163,22 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     }
 
     protected void populateAuthenticationAttributes(UaaAuthentication authentication, Authentication request, ExternalAuthenticationDetails authenticationData) {
-        if (request.getPrincipal() instanceof UserDetails) {
-            UserDetails userDetails = (UserDetails) request.getPrincipal();
+        if (request.getPrincipal() instanceof UserDetails userDetails) {
             authentication.setUserAttributes(getUserAttributes(userDetails));
             authentication.setExternalGroups(new HashSet<>(getExternalUserAuthorities(userDetails)));
         }
 
-        if (authentication.getAuthenticationMethods()==null) {
+        if (authentication.getAuthenticationMethods() == null) {
             authentication.setAuthenticationMethods(new HashSet<>());
         }
         authentication.getAuthenticationMethods().add("ext");
         if ((hasUserAttributes(authentication) || hasExternalGroups(authentication)) && getProviderProvisioning() != null) {
             IdentityProvider<ExternalIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
-            if (provider.getConfig()!=null && provider.getConfig().isStoreCustomAttributes()) {
-                logger.debug("Storing custom attributes for user_id:"+authentication.getPrincipal().getId());
+            if (provider.getConfig() != null && provider.getConfig().isStoreCustomAttributes()) {
+                logger.debug("Storing custom attributes for user_id:{}", authentication.getPrincipal().getId());
                 UserInfo userInfo = new UserInfo()
-                    .setUserAttributes(authentication.getUserAttributes())
-                    .setRoles(new LinkedList(ofNullable(authentication.getExternalGroups()).orElse(EMPTY_SET)));
+                        .setUserAttributes(authentication.getUserAttributes())
+                        .setRoles(new LinkedList<>(ofNullable(authentication.getExternalGroups()).orElse(emptySet())));
                 getUserDatabase().storeUserInfo(authentication.getPrincipal().getId(), userInfo);
             }
         }
@@ -190,7 +192,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         return authentication.getUserAttributes() != null && !authentication.getUserAttributes().isEmpty();
     }
 
-    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException{
+    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException {
         return null;
     }
 
@@ -222,68 +224,68 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
             userDetails = (UserDetails) request.getPrincipal();
         } else if (request instanceof UsernamePasswordAuthenticationToken) {
             String username = request.getPrincipal().toString();
-            String password = request.getCredentials() != null ? request.getCredentials().toString() : "";
-            userDetails = new User(username, password, true, true, true, true, UaaAuthority.USER_AUTHORITIES);
+            Object credentials = request.getCredentials();
+            userDetails = new User(username, credentials != null ? credentials.toString() : "",
+                    true, true, true, true, UaaAuthority.USER_AUTHORITIES);
         } else if (request.getPrincipal() == null) {
-            logger.debug(this.getClass().getName() + "[" + name + "] cannot process null principal");
+            logger.debug("{}[{}] cannot process null principal", this.getClass().getName(), name);
             return null;
         } else {
-            logger.debug(this.getClass().getName() + "[" + name + "] cannot process request of type: " + request.getClass().getName());
+            logger.debug("{}[{}] cannot process request of type: {}", this.getClass().getName(), name, request.getClass().getName());
             return null;
         }
 
         String name = userDetails.getUsername();
         String email = null;
 
-        if (userDetails instanceof Mailable) {
-            email = ((Mailable) userDetails).getEmailAddress();
+        if (userDetails instanceof Mailable mailable) {
+            email = mailable.getEmailAddress();
 
             if (name == null) {
                 name = email;
             }
         }
 
-        if (email == null) {
-            email = generateEmailIfNull(name);
+        if (UaaStringUtils.isEmpty(email)) {
+            email = generateEmailIfNullOrEmpty(name);
         }
 
         String givenName = null;
         String familyName = null;
-        if (userDetails instanceof Named) {
-            Named names = (Named) userDetails;
+        if (userDetails instanceof Named names) {
             givenName = names.getGivenName();
             familyName = names.getFamilyName();
         }
 
-        String phoneNumber = (userDetails instanceof DialableByPhone) ? ((DialableByPhone) userDetails).getPhoneNumber() : null;
-        String externalId = (userDetails instanceof ExternallyIdentifiable) ? ((ExternallyIdentifiable) userDetails).getExternalId() : name;
-        boolean verified = (userDetails instanceof VerifiableUser) ? ((VerifiableUser) userDetails).isVerified() : false;
+        String phoneNumber = userDetails instanceof DialableByPhone dbp ? dbp.getPhoneNumber() : null;
+        String externalId = userDetails instanceof ExternallyIdentifiable ei ? ei.getExternalId() : name;
+        boolean verified = userDetails instanceof VerifiableUser vu ? vu.isVerified() : false;
         UaaUserPrototype userPrototype = new UaaUserPrototype()
-            .withVerified(verified)
-            .withUsername(name)
-            .withPassword("")
-            .withEmail(email)
-            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-            .withGivenName(givenName)
-            .withFamilyName(familyName)
-            .withCreated(new Date())
-            .withModified(new Date())
-            .withOrigin(getOrigin())
-            .withExternalId(externalId)
-            .withZoneId(IdentityZoneHolder.get().getId())
-            .withPhoneNumber(phoneNumber);
+                .withVerified(verified)
+                .withUsername(name)
+                .withPassword("")
+                .withEmail(email)
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withCreated(new Date())
+                .withModified(new Date())
+                .withOrigin(getOrigin())
+                .withExternalId(externalId)
+                .withZoneId(IdentityZoneHolder.get().getId())
+                .withPhoneNumber(phoneNumber);
 
         return new UaaUser(userPrototype);
     }
 
-    protected String generateEmailIfNull(String name) {
+    protected String generateEmailIfNullOrEmpty(String name) {
         String email;
         if (name != null) {
             if (name.contains("@")) {
                 if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
                     email = name;
                 } else {
-                    email = name.replaceAll("@", "") + "@user.from." + getOrigin() + ".cf";
+                    email = name.replace("@", "") + "@user.from." + getOrigin() + ".cf";
                 }
             } else {
                 email = name + "@user.from." + getOrigin() + ".cf";
@@ -295,16 +297,13 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     }
 
     protected boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
-        if (!StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
-            !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail()) || !StringUtils.equals(existingUser.getExternalId(), user.getExternalId())) {
-            return true;
-        }
-        return false;
+        return !StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
+                !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail()) || !StringUtils.equals(existingUser.getExternalId(), user.getExternalId());
     }
 
-    protected List<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
-        List<GrantedAuthority> result = new LinkedList<>();
-        for (GrantedAuthority authority : authorities ) {
+    protected List<SimpleGrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
+        List<SimpleGrantedAuthority> result = new LinkedList<>();
+        for (GrantedAuthority authority : authorities) {
             String externalGroup = authority.getAuthority();
             for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
                 result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
@@ -317,5 +316,4 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     public void setBeanName(String name) {
         this.name = name;
     }
-
 }

@@ -2,53 +2,52 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.logging.SanitizedLogFactory;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.event.TokenRevocationEvent;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.WebResponseExceptionTranslator;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.DefaultWebResponseExceptionTranslator;
+import org.cloudfoundry.identity.uaa.oauth.provider.expression.OAuth2ExpressionUtils;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
-import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
-import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.OK;
-import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 @Controller
 public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
 
-    protected final Logger logger = LoggerFactory.getLogger(getClass());
+    protected final SanitizedLogFactory.SanitizedLog logger = SanitizedLogFactory.getLog(getClass());
 
     private final MultitenantJdbcClientDetailsService clientDetailsService;
     private final ScimUserProvisioning userProvisioning;
     private final RevocableTokenProvisioning tokenProvisioning;
 
-    private final WebResponseExceptionTranslator exceptionTranslator;
+    private final WebResponseExceptionTranslator<OAuth2Exception> exceptionTranslator;
     private final RandomValueStringGenerator generator;
 
     private ApplicationEventPublisher eventPublisher;
@@ -94,7 +93,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
     public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
         String zoneId = IdentityZoneHolder.get().getId();
-        BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId, zoneId);
+        UaaClientDetails client = (UaaClientDetails) clientDetailsService.loadClientByClientId(clientId, zoneId);
         client.addAdditionalInformation(ClientConstants.TOKEN_SALT, generator.generate());
         clientDetailsService.updateClientDetails(client, zoneId);
         eventPublisher.publishEvent(new TokenRevocationEvent(null, clientId, zoneId, SecurityContextHolder.getContext().getAuthentication()));
@@ -103,7 +102,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         return new ResponseEntity<>(OK);
     }
 
-    @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = DELETE)
+    @DeleteMapping(value = "/oauth/token/revoke/{tokenId}")
     public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId) {
         logger.debug("Revoking token with ID:" + tokenId);
         String zoneId = IdentityZoneHolder.get().getId();
@@ -113,7 +112,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         return new ResponseEntity<>(OK);
     }
 
-    @RequestMapping(value = "/oauth/token/list", method = GET)
+    @GetMapping(value = "/oauth/token/list")
     public ResponseEntity<List<RevocableToken>> listUserTokens(OAuth2Authentication authentication) {
         UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
         String userId = principal.getId();
@@ -128,7 +127,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         result.forEach(t -> t.setValue(null));
     }
 
-    @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)
+    @GetMapping(value = "/oauth/token/list/user/{userId}")
     public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId, OAuth2Authentication authentication) {
         if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for user:" + userId);
@@ -140,7 +139,7 @@ public class TokenRevocationEndpoint implements ApplicationEventPublisherAware {
         }
     }
 
-    @RequestMapping(value = "/oauth/token/list/client/{clientId}", method = GET)
+    @GetMapping(value = "/oauth/token/list/client/{clientId}")
     public ResponseEntity<List<RevocableToken>> listClientTokens(@PathVariable String clientId, OAuth2Authentication authentication) {
         if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[]{"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for client:" + clientId);

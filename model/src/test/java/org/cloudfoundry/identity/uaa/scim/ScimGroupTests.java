@@ -15,17 +15,17 @@
 package org.cloudfoundry.identity.uaa.scim;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.Collections;
 
 import static java.util.Collections.emptyList;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 
-public class ScimGroupTests {
+class ScimGroupTests {
     private static final String GROUP_BEFORE_DESCRIPTION = "{\"meta\":{\"version\":0,\"created\":\"2016-01-13T09:01:33.909Z\"},\"zoneId\":\"zoneId\",\"displayName\":\"name\",\"schemas\":[\"urn:scim:schemas:core:1.0\"],\"id\":\"id\"}";
     ScimGroup group;
     private ScimGroup patch;
@@ -33,9 +33,9 @@ public class ScimGroupTests {
     private ScimGroupMember member2;
     private ScimGroupMember member3;
 
-    @Before
-    public void setUp() {
-        group = new ScimGroup("id","name","zoneId");
+    @BeforeEach
+    void setUp() {
+        group = new ScimGroup("id", "name", "zoneId");
         group.setDescription("description");
 
         patch = new ScimGroup();
@@ -49,99 +49,100 @@ public class ScimGroupTests {
     }
 
     @Test
-    public void testDeSerializeWithoutDescription() {
+    void deSerializeWithoutDescription() {
         group = JsonUtils.readValue(GROUP_BEFORE_DESCRIPTION, ScimGroup.class);
-        assertEquals("id", group.getId());
-        assertEquals("name", group.getDisplayName());
-        assertEquals("zoneId", group.getZoneId());
-        assertNull(group.getDescription());
+        assertThat(group.getId()).isEqualTo("id");
+        assertThat(group.getDisplayName()).isEqualTo("name");
+        assertThat(group.getZoneId()).isEqualTo("zoneId");
+        assertThat(group.getDescription()).isNull();
     }
 
     @Test
-    public void testSerializeWithDescription() {
+    void serializeWithDescription() {
         group.setDescription("description");
         String json = JsonUtils.writeValueAsString(group);
         group = JsonUtils.readValue(json, ScimGroup.class);
-        assertEquals("id", group.getId());
-        assertEquals("name", group.getDisplayName());
-        assertEquals("zoneId", group.getZoneId());
-        assertEquals("description", group.getDescription());
+        assertThat(group.getId()).isEqualTo("id");
+        assertThat(group.getDisplayName()).isEqualTo("name");
+        assertThat(group.getZoneId()).isEqualTo("zoneId");
+        assertThat(group.getDescription()).isEqualTo("description");
     }
 
     @Test
-    public void testPatch(){
+    void patch() {
         group.patch(patch);
-        assertEquals(patch.getId(), group.getId());
-        assertEquals("NewName",group.getDisplayName());
-        assertEquals("NewDescription", group.getDescription());
+        assertThat(group.getId()).isEqualTo(patch.getId());
+        assertThat(group.getDisplayName()).isEqualTo("NewName");
+        assertThat(group.getDescription()).isEqualTo("NewDescription");
     }
 
     @Test
-    public void testPatchZoneIdFails(){
+    void patchZoneIdFails() {
         group.setZoneId("uaa");
         patch.setZoneId("zoneid");
 
-        assertEquals("uaa", group.getZoneId());
-        assertEquals("zoneid", patch.getZoneId());
+        assertThat(group.getZoneId()).isEqualTo("uaa");
+        assertThat(patch.getZoneId()).isEqualTo("zoneid");
 
         group.patch(patch);
 
-        assertEquals("uaa", group.getZoneId());
-        assertEquals("zoneid", patch.getZoneId());
+        assertThat(group.getZoneId()).isEqualTo("uaa");
+        assertThat(patch.getZoneId()).isEqualTo("zoneid");
     }
 
     @Test
-    public void testPatchDeleteMetaAttributes(){
-        assertEquals("description", group.getDescription());
+    void patchDeleteMetaAttributes() {
+        assertThat(group.getDescription()).isEqualTo("description");
         String[] attributes = new String[]{"description"};
         patch.getMeta().setAttributes(attributes);
         group.patch(patch);
-        assertEquals("NewDescription", group.getDescription());
+        assertThat(group.getDescription()).isEqualTo("NewDescription");
 
         patch.setDescription(null);
         group.patch(patch);
-        assertNull(group.getDescription());
+        assertThat(group.getDescription()).isNull();
     }
 
-
     @Test
-    public void testDropDisplayName(){
+    void dropDisplayName() {
         patch.setDisplayName("NewDisplayName");
         group.setDisplayName("display");
-        assertEquals("display", group.getDisplayName());
+        assertThat(group.getDisplayName()).isEqualTo("display");
         String[] attributes = new String[]{"displayname"};
         patch.getMeta().setAttributes(attributes);
         group.patch(patch);
-        assertEquals("NewDisplayName", group.getDisplayName());
+        assertThat(group.getDisplayName()).isEqualTo("NewDisplayName");
 
         patch.setDisplayName(null);
         group.patch(patch);
-        assertNull(group.getDisplayName());
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void cant_drop_zone_id() {
-        patch.getMeta().setAttributes(new String[] {"zoneID"});
-        group.patch(patch);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void cant_drop_id() {
-        patch.getMeta().setAttributes(new String[] {"id"});
-        group.patch(patch);
+        assertThat(group.getDisplayName()).isNull();
     }
 
     @Test
-    public void testDropAllMembers(){
+    void cant_drop_zone_id() {
+        patch.getMeta().setAttributes(new String[]{"zoneID"});
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                group.patch(patch));
+    }
+
+    @Test
+    void cant_drop_id() {
+        patch.getMeta().setAttributes(new String[]{"id"});
+        assertThatExceptionOfType(IllegalArgumentException.class).isThrownBy(() ->
+                group.patch(patch));
+    }
+
+    @Test
+    void dropAllMembers() {
         group.setMembers(Arrays.asList(member1, member2, member3));
-        assertEquals(3, group.getMembers().size());
-        patch.getMeta().setAttributes(new String[] {"members"});
+        assertThat(group.getMembers()).hasSize(3);
+        patch.getMeta().setAttributes(new String[]{"members"});
         group.patch(patch);
-        assertEquals(0, group.getMembers().size());
+        assertThat(group.getMembers()).isEmpty();
     }
 
     @Test
-    public void testDropOneMembers(){
+    void dropOneMembers() {
         group.setMembers(Arrays.asList(member1, member2, member3));
         ScimGroupMember member = new ScimGroupMember(member1.getMemberId());
         member.setOperation("DELETE");
@@ -149,39 +150,36 @@ public class ScimGroupTests {
                 member
         ));
         group.patch(patch);
-        assertEquals(2, group.getMembers().size());
+        assertThat(group.getMembers()).hasSize(2);
     }
 
     @Test
-    public void testDropAllMembersUsingOperation() {
+    void dropAllMembersUsingOperation() {
         member1.setOperation("delete");
         member2.setOperation("delete");
         member3.setOperation("delete");
         group.setMembers(Arrays.asList(member1, member2, member3));
         patch.setMembers(group.getMembers());
-        assertEquals(3, group.getMembers().size());
+        assertThat(group.getMembers()).hasSize(3);
         group.patch(patch);
-        assertEquals(0, group.getMembers().size());
-
+        assertThat(group.getMembers()).isEmpty();
     }
 
     @Test
-    public void testAddAllMembers() {
+    void addAllMembers() {
         patch.setMembers(Arrays.asList(member1, member2, member3));
         group.setMembers(emptyList());
-        assertEquals(0, group.getMembers().size());
+        assertThat(group.getMembers()).isEmpty();
         group.patch(patch);
-        assertEquals(3, group.getMembers().size());
-
+        assertThat(group.getMembers()).hasSize(3);
     }
 
     @Test
-    public void testAddOneMember() {
+    void addOneMember() {
         patch.setMembers(Collections.singletonList(member1));
         group.setMembers(Arrays.asList(member2, member3));
-        assertEquals(2, group.getMembers().size());
+        assertThat(group.getMembers()).hasSize(2);
         group.patch(patch);
-        assertEquals(3, group.getMembers().size());
-
+        assertThat(group.getMembers()).hasSize(3);
     }
 }

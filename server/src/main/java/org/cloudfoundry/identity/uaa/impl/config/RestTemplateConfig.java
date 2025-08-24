@@ -20,14 +20,20 @@ public class RestTemplateConfig {
     @Value("${rest.template.maxKeepAlive:0}")
     public int maxKeepAlive;
 
+    @Value("${rest.template.validateAfterInactivity:2000}")
+    public int validateAfterInactivity;
+
+    @Value("${rest.template.retryCount:0}")
+    public int retryCount;
+
     @Bean
     public RestTemplate nonTrustingRestTemplate() {
-        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, timeout, maxTotal, maxPerRoute, maxKeepAlive));
+        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(false, timeout, timeout, maxTotal, maxPerRoute, maxKeepAlive, validateAfterInactivity, retryCount));
     }
 
     @Bean
     public RestTemplate trustingRestTemplate() {
-        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true, timeout, maxTotal, maxPerRoute, maxKeepAlive));
+        return new RestTemplate(UaaHttpRequestUtils.createRequestFactory(true, timeout, timeout, maxTotal, maxPerRoute, maxKeepAlive, validateAfterInactivity, retryCount));
     }
 
     public static RestTemplateConfig createDefaults() {
@@ -36,6 +42,8 @@ public class RestTemplateConfig {
         restTemplateConfig.maxTotal = 10;
         restTemplateConfig.maxPerRoute = 5;
         restTemplateConfig.maxKeepAlive = 0;
+        restTemplateConfig.validateAfterInactivity = 2000;
+        restTemplateConfig.retryCount = 0;
         return restTemplateConfig;
     }
 }

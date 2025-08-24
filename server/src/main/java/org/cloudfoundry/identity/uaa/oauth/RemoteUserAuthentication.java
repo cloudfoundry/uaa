@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -27,12 +28,12 @@ import org.springframework.security.core.GrantedAuthority;
  */
 public class RemoteUserAuthentication extends AbstractAuthenticationToken implements Authentication {
 
-    private String id;
-    private String username;
-    private String email;
+    private final String id;
+    private final String username;
+    private final String email;
 
     public RemoteUserAuthentication(String id, String username, String email,
-                    Collection<? extends GrantedAuthority> authorities) {
+            Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
         this.id = id;
         this.username = username;

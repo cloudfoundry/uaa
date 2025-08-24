@@ -14,9 +14,10 @@
  */
 package org.cloudfoundry.identity.uaa.db;
 
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.flywaydb.core.api.migration.jdbc.JdbcMigration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
@@ -36,11 +37,11 @@ import java.util.Set;
  * several migrations where made in 3.10.0
  * This restores these migrations
  */
-public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
+public class FixFailedBackportMigrations_4_0_4  extends BaseJavaMigration {
 
     private static final Logger logger = LoggerFactory.getLogger(FixFailedBackportMigrations_4_0_4.class);
 
-    private String type;
+    private final String type;
 
     private final Map<String, String> scripts;
     private final String checkExistsSql = "SELECT count(*) FROM schema_version WHERE version = ?";
@@ -57,13 +58,14 @@ public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
     }
 
     @Override
-    public void migrate(Connection connection) {
+    public void migrate(Context context) {
         if ("hsqldb".equals(type)) {
             //we don't have this problem with hsqldb
-            logger.info("Skipping 4.0.4 migration for " + type + ", not affected by 3.9.9 back ports.");
+            logger.info("Skipping 4.0.4 migration for {}, not affected by 3.9.9 back ports.", type);
             return;
         }
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
+        Connection connection = context.getConnection();
         SingleConnectionDataSource dataSource = new SingleConnectionDataSource(connection, true);
         JdbcTemplate template = new JdbcTemplate(dataSource);
         boolean run = false;
@@ -71,7 +73,7 @@ public class FixFailedBackportMigrations_4_0_4 implements JdbcMigration {
             int count = template.queryForObject(checkExistsSql, Integer.class, script.getKey());
             if (count == 0) {
                 String path = "org/cloudfoundry/identity/uaa/db/" + type + "/" + script.getValue();
-                logger.info(String.format("[4.0.4] Adding script for version %s with path %s", script.getKey(), path));
+                logger.info("[4.0.4] Adding script for version %s with path %s".formatted(script.getKey(), path));
                 populator.addScript(new ClassPathResource(path));
                 run = true;
             }

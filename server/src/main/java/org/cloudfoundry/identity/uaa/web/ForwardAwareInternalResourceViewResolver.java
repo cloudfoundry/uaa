@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -23,7 +24,7 @@ import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.AbstractView;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Locale;
 
@@ -44,10 +45,10 @@ public class ForwardAwareInternalResourceViewResolver extends InternalResourceVi
     protected View createView(String viewName, Locale locale) throws Exception {
         View view = super.createView(viewName, locale);
         if (viewName.startsWith(FORWARD_URL_PREFIX) || viewName.startsWith(REDIRECT_URL_PREFIX)) {
-            if (view instanceof AbstractView) {
+            if (view instanceof AbstractView abstractView) {
                 MediaType requestedMediaType = getRequestedMediaType();
                 if (requestedMediaType != null) {
-                    ((AbstractView) view).setContentType(requestedMediaType.toString());
+                    abstractView.setContentType(requestedMediaType.toString());
                 }
             }
         }
@@ -66,7 +67,7 @@ public class ForwardAwareInternalResourceViewResolver extends InternalResourceVi
         if (StringUtils.hasText(acceptHeader)) {
             try {
                 List<MediaType> acceptableMediaTypes = MediaType.parseMediaTypes(acceptHeader);
-                return acceptableMediaTypes.isEmpty() ? null : acceptableMediaTypes.get(0);
+                return acceptableMediaTypes.isEmpty() ? null : acceptableMediaTypes.getFirst();
             } catch (IllegalArgumentException ex) {
                 if (logger.isDebugEnabled()) {
                     logger.debug("Could not parse accept header [" + acceptHeader + "]: " + ex.getMessage());

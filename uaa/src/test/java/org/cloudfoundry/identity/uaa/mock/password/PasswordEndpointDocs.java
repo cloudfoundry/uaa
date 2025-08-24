@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.mock.password;
 
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,7 +20,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 
 class PasswordEndpointDocs extends EndpointDocs {
@@ -34,7 +34,7 @@ class PasswordEndpointDocs extends EndpointDocs {
         clientId = "login";
         loginToken = MockMvcUtils.getClientOAuthAccessToken(mockMvc, clientId, "loginsecret", "oauth.login");
         String adminToken = MockMvcUtils.getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", null);
-        String userName = "user-" + new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
+        String userName = "user-" + new AlphanumericRandomValueStringGenerator().generate().toLowerCase() + "@test.org";
         user = new ScimUser(null, userName, "given", "last");
         user.setPassword("password");
         user.setPrimaryEmail(user.getUserName());
@@ -48,7 +48,7 @@ class PasswordEndpointDocs extends EndpointDocs {
                 fieldWithPath("user_id").type(STRING).description("The UUID identifying the user.")
         );
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 parameterWithName("client_id").optional(null).type(STRING).description("Optional client_id "),
                 parameterWithName("redirect_uri").optional(null).type(STRING).description("Optional redirect_uri to be used if the `/reset_password` flow is completed.")
         );
@@ -68,7 +68,7 @@ class PasswordEndpointDocs extends EndpointDocs {
                 .accept(APPLICATION_JSON);
 
         mockMvc.perform(post)
-                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, requestParameters, responseFields));
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, queryParameters, responseFields));
 
     }
 }

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -14,15 +15,18 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
-import org.springframework.util.StringUtils;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
+
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Contains additional information about the authentication request which may be
@@ -38,6 +42,7 @@ public class UaaAuthenticationDetails implements Serializable {
     public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
 
     private static final String[] filteredParamKeys = {"username", "password", "passcode"};
+    private static final String UNKNOWN_STRING = "unknown";
 
     private UaaLoginHint loginHint;
 
@@ -50,25 +55,39 @@ public class UaaAuthenticationDetails implements Serializable {
     private String clientId;
 
     @JsonIgnore
-    private Map<String,String[]> parameterMap;
+    private String authenticationMethod;
 
-    private UaaAuthenticationDetails() {
-        this.origin = "unknown";
-        this.sessionId = "unknown";
-        this.clientId = "unknown";
+    @JsonIgnore
+    private final String requestPath;
+
+    @JsonIgnore
+    private final boolean isAuthorizationSet;
+
+    @JsonIgnore
+    private Map<String, String[]> parameterMap;
+
+    protected UaaAuthenticationDetails() {
+        this.origin = UNKNOWN_STRING;
+        this.sessionId = UNKNOWN_STRING;
+        this.clientId = UNKNOWN_STRING;
+        this.requestPath = UNKNOWN_STRING;
+        this.isAuthorizationSet = false;
     }
 
     public UaaAuthenticationDetails(HttpServletRequest request) {
         this(request, null);
     }
+
     public UaaAuthenticationDetails(HttpServletRequest request, String clientId) {
         WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
         this.origin = webAuthenticationDetails.getRemoteAddress();
         this.sessionId = webAuthenticationDetails.getSessionId();
+        this.requestPath = StringUtils.removeEnd(request.getRequestURI().substring(request.getContextPath().length()), "/");
+        this.isAuthorizationSet = request.getHeader(HttpHeaders.AUTHORIZATION) != null;
 
         if (clientId == null) {
             this.clientId = request.getParameter("client_id");
-            if(!StringUtils.hasText(this.clientId)) {
+            if (!hasText(this.clientId)) {
                 this.clientId = (String) request.getAttribute("clientId");
             }
         } else {
@@ -82,13 +101,15 @@ public class UaaAuthenticationDetails implements Serializable {
     }
 
     public UaaAuthenticationDetails(@JsonProperty("addNew") boolean addNew,
-                                    @JsonProperty("clientId") String clientId,
-                                    @JsonProperty("origin") String origin,
-                                    @JsonProperty("sessionId") String sessionId) {
+            @JsonProperty("clientId") String clientId,
+            @JsonProperty("origin") String origin,
+            @JsonProperty("sessionId") String sessionId) {
         this.addNew = addNew;
         this.clientId = clientId;
         this.origin = origin;
         this.sessionId = sessionId;
+        this.requestPath = UNKNOWN_STRING;
+        this.isAuthorizationSet = false;
     }
 
     public String getOrigin() {
@@ -120,7 +141,27 @@ public class UaaAuthenticationDetails implements Serializable {
     }
 
     public Map<String, String[]> getParameterMap() {
-        return new HashMap<>(parameterMap);
+        return parameterMap != null ? new HashMap<>(parameterMap) : null;
+    }
+
+    @JsonIgnore
+    public String getAuthenticationMethod() {
+        return this.authenticationMethod;
+    }
+
+    @JsonIgnore
+    protected void setAuthenticationMethod(final String authenticationMethod) {
+        this.authenticationMethod = authenticationMethod;
+    }
+
+    @JsonIgnore
+    public String getRequestPath() {
+        return this.requestPath;
+    }
+
+    @JsonIgnore
+    public boolean isAuthorizationSet() {
+        return this.isAuthorizationSet;
     }
 
     @Override
@@ -148,39 +189,45 @@ public class UaaAuthenticationDetails implements Serializable {
     public int hashCode() {
         final int prime = 31;
         int result = 1;
-        result = prime * result + ((clientId == null) ? 0 : clientId.hashCode());
-        result = prime * result + ((origin == null) ? 0 : origin.hashCode());
-        result = prime * result + ((sessionId == null) ? 0 : sessionId.hashCode());
+        result = prime * result + (clientId == null ? 0 : clientId.hashCode());
+        result = prime * result + (origin == null ? 0 : origin.hashCode());
+        result = prime * result + (sessionId == null ? 0 : sessionId.hashCode());
         return result;
     }
 
     @Override
     public boolean equals(Object obj) {
-        if (this == obj)
+        if (this == obj) {
             return true;
-        if (obj == null)
+        }
+        if (obj == null) {
             return false;
-        if (getClass() != obj.getClass())
+        }
+        if (getClass() != obj.getClass()) {
             return false;
+        }
         UaaAuthenticationDetails other = (UaaAuthenticationDetails) obj;
         if (clientId == null) {
-            if (other.clientId != null)
+            if (other.clientId != null) {
                 return false;
-        }
-        else if (!clientId.equals(other.clientId))
+            }
+        } else if (!clientId.equals(other.clientId)) {
             return false;
+        }
         if (origin == null) {
-            if (other.origin != null)
+            if (other.origin != null) {
                 return false;
-        }
-        else if (!origin.equals(other.origin))
+            }
+        } else if (!origin.equals(other.origin)) {
             return false;
+        }
         if (sessionId == null) {
-            if (other.sessionId != null)
+            if (other.sessionId != null) {
                 return false;
-        }
-        else if (!sessionId.equals(other.sessionId))
+            }
+        } else if (!sessionId.equals(other.sessionId)) {
             return false;
+        }
         return true;
     }
 

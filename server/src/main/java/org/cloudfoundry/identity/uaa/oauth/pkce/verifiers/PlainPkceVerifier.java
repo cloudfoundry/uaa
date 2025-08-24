@@ -8,10 +8,10 @@ import org.cloudfoundry.identity.uaa.oauth.pkce.PkceVerifier;
  * @author Zoltan Maradics
  *
  */
-public class PlainPkceVerifier implements PkceVerifier{
+public class PlainPkceVerifier implements PkceVerifier {
 
-    private final String codeChallengeMethod = "plain"; 
-    
+    private final String codeChallengeMethod = "plain";
+
     @Override
     public boolean verify(String codeVerifier, String codeChallenge) {
         if (codeVerifier == null || codeChallenge == null) {

@@ -5,6 +5,8 @@ import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -15,20 +17,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
-import java.util.*;
-import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.*;
 
 class UserInfoEndpointTests {
 
@@ -37,44 +40,44 @@ class UserInfoEndpointTests {
     private static final String ID = "12345";
 
     private static final UaaUser user = new UaaUser(new UaaUserPrototype()
-        .withId(ID)
-        .withPhoneNumber("8505551234")
-        .withUsername("olds")
-        .withPassword("")
-        .withEmail("olds@vmware.com")
-        .withFamilyName("Olds")
-        .withGivenName("Dale")
-        .withCreated(new Date())
-        .withModified(new Date())
-        .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-        .withOrigin(OriginKeys.UAA)
-        .withExternalId("externalId")
-        .withVerified(false)
-        .withZoneId(IdentityZoneHolder.get().getId())
-        .withSalt("12345")
-        .withPasswordLastModified(new Date())
-        .withLastLogonSuccess(1000L)
-        .withPreviousLogonSuccess(1000L));
+            .withId(ID)
+            .withPhoneNumber("8505551234")
+            .withUsername("olds")
+            .withPassword("")
+            .withEmail("olds@vmware.com")
+            .withFamilyName("Olds")
+            .withGivenName("Dale")
+            .withCreated(new Date())
+            .withModified(new Date())
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+            .withOrigin(OriginKeys.UAA)
+            .withExternalId("externalId")
+            .withVerified(false)
+            .withZoneId(IdentityZoneHolder.get().getId())
+            .withSalt("12345")
+            .withPasswordLastModified(new Date())
+            .withLastLogonSuccess(1000L)
+            .withPreviousLogonSuccess(1000L));
 
     private static final UaaUser verifiedUser = new UaaUser(new UaaUserPrototype()
-        .withId(ID + "v")
-        .withPhoneNumber("8505551234")
-        .withUsername("somename")
-        .withPassword("")
-        .withEmail("comr@dstal.in")
-        .withVerified(true)
-        .withFamilyName("Olds")
-        .withGivenName("Dale")
-        .withCreated(new Date())
-        .withModified(new Date())
-        .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-        .withOrigin(OriginKeys.UAA)
-        .withExternalId("externalId")
-        .withZoneId(IdentityZoneHolder.get().getId())
-        .withSalt("12345")
-        .withPasswordLastModified(new Date())
-        .withLastLogonSuccess(1000L)
-        .withPreviousLogonSuccess(1000L));
+            .withId(ID + "v")
+            .withPhoneNumber("8505551234")
+            .withUsername("somename")
+            .withPassword("")
+            .withEmail("comr@dstal.in")
+            .withVerified(true)
+            .withFamilyName("Olds")
+            .withGivenName("Dale")
+            .withCreated(new Date())
+            .withModified(new Date())
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+            .withOrigin(OriginKeys.UAA)
+            .withExternalId("externalId")
+            .withZoneId(IdentityZoneHolder.get().getId())
+            .withSalt("12345")
+            .withPasswordLastModified(new Date())
+            .withLastLogonSuccess(1000L)
+            .withPreviousLogonSuccess(1000L));
 
     private InMemoryUaaUserDatabase userDatabase;
     private UserInfoEndpoint endpoint;
@@ -90,8 +93,8 @@ class UserInfoEndpointTests {
         customAttributes.add(SINGLE_VALUE, "value3");
         roles = Arrays.asList("group1", "group1");
         info = new UserInfo()
-            .setUserAttributes(customAttributes)
-            .setRoles(roles);
+                .setUserAttributes(customAttributes)
+                .setRoles(roles);
         userDatabase.storeUserInfo(ID, info);
     }
 
@@ -99,32 +102,32 @@ class UserInfoEndpointTests {
     void sunnyDay() {
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
-            "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
+                "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
 
         UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
                 "openid")), authentication));
 
-        assertEquals("olds", userInfoResponse.getUserName());
-        assertEquals("Dale Olds", userInfoResponse.getFullName());
-        assertEquals("olds@vmware.com", userInfoResponse.getEmail());
-        assertEquals("8505551234", userInfoResponse.getPhoneNumber());
-        assertFalse(userInfoResponse.isEmailVerified());
-        assertEquals(1000, (long) userInfoResponse.getPreviousLogonSuccess());
-        assertEquals(user.getId(), userInfoResponse.getSub());
-        assertNull(userInfoResponse.getUserAttributes());
+        assertThat(userInfoResponse.getUserName()).isEqualTo("olds");
+        assertThat(userInfoResponse.getFullName()).isEqualTo("Dale Olds");
+        assertThat(userInfoResponse.getEmail()).isEqualTo("olds@vmware.com");
+        assertThat(userInfoResponse.getPhoneNumber()).isEqualTo("8505551234");
+        assertThat(userInfoResponse.isEmailVerified()).isFalse();
+        assertThat((long) userInfoResponse.getPreviousLogonSuccess()).isEqualTo(1000);
+        assertThat(userInfoResponse.getSub()).isEqualTo(user.getId());
+        assertThat(userInfoResponse.getUserAttributes()).isNull();
     }
 
     @Test
     void verifiedUser() {
         UaaUser user = userDatabase.retrieveUserByName("somename", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "somename",
-            "comr@dstal.in", new HashSet<>(Collections.singletonList("openid")));
+                "comr@dstal.in", new HashSet<>(Collections.singletonList("openid")));
 
         UserInfoResponse userInfoResponse = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
                 "openid")), authentication));
 
-        assertEquals("somename", userInfoResponse.getUserName());
-        assertTrue(userInfoResponse.isEmailVerified());
+        assertThat(userInfoResponse.getUserName()).isEqualTo("somename");
+        assertThat(userInfoResponse.isEmailVerified()).isTrue();
     }
 
     @Test
@@ -132,62 +135,60 @@ class UserInfoEndpointTests {
         user.setPreviousLogonTime(null);
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
-            "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
+                "olds@vmware.com", new HashSet<>(Collections.singletonList("openid")));
 
         UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(createOauthRequest(Collections.singletonList(
                 "openid")), authentication));
 
-        assertNull(map.getPreviousLogonSuccess());
+        assertThat(map.getPreviousLogonSuccess()).isNull();
     }
 
     @Test
     void sunnyDay_WithCustomAttributes() {
         UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(
-            user.getId(),
-            "olds",
-            "olds@vmware.com"
+                user.getId(),
+                "olds",
+                "olds@vmware.com"
         );
         OAuth2Request request = createOauthRequest(Arrays.asList(USER_ATTRIBUTES, "openid", ROLES));
         UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(request, authentication));
-        assertEquals("olds", map.getUserName());
-        assertEquals("Dale Olds", map.getFullName());
-        assertEquals("olds@vmware.com", map.getEmail());
-        assertEquals("8505551234", map.getPhoneNumber());
-        assertEquals(user.getId(), map.getSub());
-        assertEquals(user.getGivenName(), map.getGivenName());
-        assertEquals(user.getFamilyName(), map.getFamilyName());
-        assertNotNull(map.getUserAttributes());
+        assertThat(map.getUserName()).isEqualTo("olds");
+        assertThat(map.getFullName()).isEqualTo("Dale Olds");
+        assertThat(map.getEmail()).isEqualTo("olds@vmware.com");
+        assertThat(map.getPhoneNumber()).isEqualTo("8505551234");
+        assertThat(map.getSub()).isEqualTo(user.getId());
+        assertThat(map.getGivenName()).isEqualTo(user.getGivenName());
+        assertThat(map.getFamilyName()).isEqualTo(user.getFamilyName());
+        assertThat(map.getUserAttributes()).isNotNull();
         Map<String, List<String>> userAttributes = map.getUserAttributes();
-        assertEquals(info.getUserAttributes().get(MULTI_VALUE), userAttributes.get(MULTI_VALUE));
-        assertEquals(info.getUserAttributes().get(SINGLE_VALUE), userAttributes.get(SINGLE_VALUE));
-        assertNull(userAttributes.get(USER_ID));
+        assertThat(userAttributes).containsEntry(MULTI_VALUE, info.getUserAttributes().get(MULTI_VALUE))
+                .containsEntry(SINGLE_VALUE, info.getUserAttributes().get(SINGLE_VALUE))
+                .doesNotContainKey(USER_ID);
         List<String> infoRoles = info.getRoles();
-        assertNotNull(infoRoles);
-        assertThat(infoRoles, containsInAnyOrder(roles.toArray()));
+        assertThat(infoRoles).containsExactlyInAnyOrderElementsOf(roles);
 
         //remove permissions
         request = createOauthRequest(Collections.singletonList("openid"));
         map = endpoint.loginInfo(new OAuth2Authentication(request, authentication));
-        assertNull(map.getUserAttributes());
-        assertNull(map.getRoles());
+        assertThat(map.getUserAttributes()).isNull();
+        assertThat(map.getRoles()).isNull();
     }
 
     @Test
     void missingUser() {
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("nonexist-id", "Dale",
-            "olds@vmware.com");
-        assertThrows(UsernameNotFoundException.class,
-                () -> endpoint.loginInfo(
-                        new OAuth2Authentication(createOauthRequest(
-                                Collections.singletonList("openid")),
-                                authentication)));
+                "olds@vmware.com");
+        assertThatExceptionOfType(UsernameNotFoundException.class).isThrownBy(() -> endpoint.loginInfo(
+                new OAuth2Authentication(createOauthRequest(
+                        Collections.singletonList("openid")),
+                        authentication)));
     }
 
     private static OAuth2Request createOauthRequest(final List<String> scopes) {
         return new OAuth2Request(Collections.emptyMap(),
                 "clientId",
-                scopes.stream().map(SimpleGrantedAuthority::new).collect(Collectors.toList()),
+                scopes.stream().map(SimpleGrantedAuthority::new).toList(),
                 true,
                 new HashSet<>(scopes),
                 Collections.emptySet(),

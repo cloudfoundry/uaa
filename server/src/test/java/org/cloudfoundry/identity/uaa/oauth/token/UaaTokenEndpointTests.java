@@ -1,24 +1,24 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.security.Principal;
 import java.util.Set;
 
 import static java.util.Collections.emptyMap;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -27,32 +27,30 @@ import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.POST;
 
+@ExtendWith(MockitoExtension.class)
 class UaaTokenEndpointTests {
 
     private UaaTokenEndpoint endpoint;
 
+    @Mock
     private ResponseEntity mockResponseEntity;
 
     @BeforeEach
     void setup() {
         endpoint = spy(new UaaTokenEndpoint(null, null, null, null, null));
-        mockResponseEntity = mock(ResponseEntity.class);
     }
 
     @Test
     void allowsGetByDefault() throws Exception {
         doReturn(mockResponseEntity).when(endpoint).postAccessToken(any(), any());
         ResponseEntity<OAuth2AccessToken> result = endpoint.doDelegateGet(mock(Principal.class), emptyMap());
-        assertSame(mockResponseEntity, result);
+        assertThat(result).isSameAs(mockResponseEntity);
     }
 
     @Test
-    void getIsDisabled() throws Exception {
+    void getIsDisabled() {
         endpoint = spy(new UaaTokenEndpoint(null, null, null, null, false));
-        ResponseEntity response = mock(ResponseEntity.class);
-        doReturn(response).when(endpoint).postAccessToken(any(), any());
-        assertThrows(HttpRequestMethodNotSupportedException.class,
-                () -> endpoint.doDelegateGet(mock(Principal.class), emptyMap()));
+        assertThatExceptionOfType(HttpRequestMethodNotSupportedException.class).isThrownBy(() -> endpoint.doDelegateGet(mock(Principal.class), emptyMap()));
     }
 
     @Test
@@ -61,36 +59,32 @@ class UaaTokenEndpointTests {
         when(request.getQueryString()).thenReturn("some-parameter=some-value");
         doReturn(mockResponseEntity).when(endpoint).postAccessToken(any(), any());
         ResponseEntity<OAuth2AccessToken> result = endpoint.doDelegatePost(mock(Principal.class), emptyMap(), request);
-        assertSame(mockResponseEntity, result);
+        assertThat(result).isSameAs(mockResponseEntity);
     }
 
     @Test
     void setAllowedRequestMethods() {
         Set<HttpMethod> methods = (Set<HttpMethod>) ReflectionTestUtils.getField(endpoint, "allowedRequestMethods");
-        assertNotNull(methods);
-        assertEquals(2, methods.size());
-        assertThat(methods, containsInAnyOrder(POST, GET));
+        assertThat(methods)
+                .hasSize(2)
+                .containsExactlyInAnyOrder(POST, GET);
     }
 
     @Test
     void callToGetAlwaysThrowsSuperMethod() {
-        UaaTokenEndpoint endpoint = new UaaTokenEndpoint(null, null, null, null, false);
+        endpoint = new UaaTokenEndpoint(null, null, null, null, false);
 
-        HttpRequestMethodNotSupportedException e =
-                assertThrows(
-                        HttpRequestMethodNotSupportedException.class,
-                        () -> endpoint.getAccessToken(mock(Principal.class), emptyMap()));
-        assertEquals("GET", e.getMethod());
+        assertThatThrownBy(() -> endpoint.getAccessToken(mock(Principal.class), emptyMap()))
+                .isInstanceOf(HttpRequestMethodNotSupportedException.class)
+                .satisfies(e -> assertThat(((HttpRequestMethodNotSupportedException) e).getMethod()).isEqualTo("GET"));
     }
 
     @Test
     void callToGetAlwaysThrowsOverrideMethod() {
-        UaaTokenEndpoint endpoint = new UaaTokenEndpoint(null, null, null, null, false);
+        endpoint = new UaaTokenEndpoint(null, null, null, null, false);
 
-        HttpRequestMethodNotSupportedException e =
-                assertThrows(
-                        HttpRequestMethodNotSupportedException.class,
-                        () -> endpoint.doDelegateGet(mock(Principal.class), emptyMap()));
-        assertEquals("GET", e.getMethod());
+        assertThatThrownBy(() -> endpoint.doDelegateGet(mock(Principal.class), emptyMap()))
+                .isInstanceOf(HttpRequestMethodNotSupportedException.class)
+                .satisfies(e -> assertThat(((HttpRequestMethodNotSupportedException) e).getMethod()).isEqualTo("GET"));
     }
 }

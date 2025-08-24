@@ -16,7 +16,8 @@ package org.cloudfoundry.identity.uaa.constants;
 
 public final class OriginKeys {
 
-    private OriginKeys() {}
+    private OriginKeys() {
+    }
 
     public static final String ORIGIN = "origin";
     public static final String UAA = "uaa";

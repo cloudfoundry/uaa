@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -53,7 +54,7 @@ public class PasswordConfirmationValidation {
         private final String email;
 
         public PasswordConfirmationException(String messageCode, String email) {
-            super("Passwords do not match for:"+email);
+            super("Passwords do not match for:" + email);
             this.messageCode = messageCode;
             this.email = email;
         }

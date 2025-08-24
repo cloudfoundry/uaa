@@ -7,6 +7,8 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -14,18 +16,23 @@ import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import java.sql.Timestamp;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 
+@Service
 public class EmailChangeEmailService implements ChangeEmailService {
 
     static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
@@ -38,12 +45,13 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final MultitenantClientServices clientDetailsService;
     private final IdentityZoneManager identityZoneManager;
 
-    EmailChangeEmailService(final TemplateEngine templateEngine,
-                            final MessageService messageService,
-                            final ScimUserProvisioning scimUserProvisioning,
-                            final ExpiringCodeStore codeStore,
-                            final MultitenantClientServices clientDetailsService,
-                            final IdentityZoneManager identityZoneManager) {
+    EmailChangeEmailService(
+            @Qualifier("mailTemplateEngine") final TemplateEngine templateEngine,
+            final MessageService messageService,
+            final ScimUserProvisioning scimUserProvisioning,
+            final ExpiringCodeStore codeStore,
+            final MultitenantClientServices clientDetailsService,
+            final IdentityZoneManager identityZoneManager) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.scimUserProvisioning = scimUserProvisioning;

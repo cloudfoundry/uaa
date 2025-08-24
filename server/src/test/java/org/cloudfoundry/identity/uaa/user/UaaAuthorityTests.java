@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,42 +13,41 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * @author Dave Syer
- *
  */
-public class UaaAuthorityTests {
+class UaaAuthorityTests {
 
     @Test
-    public void testGetAuthority() {
-        assertEquals("uaa.user", UaaAuthority.UAA_USER.getAuthority());
+    void getAuthority() {
+        assertThat(UaaAuthority.UAA_USER.getAuthority()).isEqualTo("uaa.user");
     }
 
     @Test
-    public void testValueOf() {
-        assertEquals(0, UaaAuthority.UAA_USER.value());
-        assertEquals(1, UaaAuthority.UAA_ADMIN.value());
+    void valueOf() {
+        assertThat(UaaAuthority.UAA_USER.value()).isZero();
+        assertThat(UaaAuthority.UAA_ADMIN.value()).isOne();
     }
 
     @Test
-    public void testAdminFromAuthorities() {
-        assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.fromAuthorities("uaa.user,uaa.admin"));
+    void adminFromAuthorities() {
+        assertThat(UaaAuthority.fromAuthorities("uaa.user,uaa.admin")).isEqualTo(UaaAuthority.UAA_ADMIN);
     }
 
     @Test
-    public void testAuthority() {
-        assertEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.authority("uaa.admin"));
-        assertEquals(UaaAuthority.UAA_USER, UaaAuthority.authority("uaa.user"));
-        assertEquals(new SimpleGrantedAuthority("tacos"), UaaAuthority.authority("tacos"));
+    void authority() {
+        assertThat(UaaAuthority.authority("uaa.admin")).isEqualTo(UaaAuthority.UAA_ADMIN);
+        assertThat(UaaAuthority.authority("uaa.user")).isEqualTo(UaaAuthority.UAA_USER);
+        assertThat(UaaAuthority.authority("tacos")).isEqualTo(new SimpleGrantedAuthority("tacos"));
     }
 
     @Test
-    public void testSubstringAuthority() {
-        assertNotEquals(UaaAuthority.UAA_ADMIN, UaaAuthority.authority("some.scope.with.subscope.uaa.admin"));
+    void substringAuthority() {
+        assertThat(UaaAuthority.authority("some.scope.with.subscope.uaa.admin")).isNotEqualTo(UaaAuthority.UAA_ADMIN);
     }
 }

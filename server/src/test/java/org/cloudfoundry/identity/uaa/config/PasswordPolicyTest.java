@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -17,17 +17,17 @@ import static org.junit.Assert.*;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-public class PasswordPolicyTest {
+class PasswordPolicyTest {
     @Test
-    public void allPresentAndPositive_makesSureNothingUnset() {
+    void allPresentAndPositive_makesSureNothingUnset() {
         PasswordPolicy passwordPolicy = new PasswordPolicy();
-        assertFalse(passwordPolicy.allPresentAndPositive());
-        assertFalse(passwordPolicy.setMinLength(1).allPresentAndPositive());
-        assertFalse(passwordPolicy.setMaxLength(22).allPresentAndPositive());
-        assertFalse(passwordPolicy.setRequireUpperCaseCharacter(0).allPresentAndPositive());
-        assertFalse(passwordPolicy.setRequireLowerCaseCharacter(1).allPresentAndPositive());
-        assertFalse(passwordPolicy.setRequireDigit(0).allPresentAndPositive());
-        assertFalse(passwordPolicy.setRequireSpecialCharacter(2).allPresentAndPositive());
-        assertTrue(passwordPolicy.setExpirePasswordInMonths(23).allPresentAndPositive());
+        assertThat(passwordPolicy.allPresentAndPositive()).isFalse();
+        assertThat(passwordPolicy.setMinLength(1).allPresentAndPositive()).isFalse();
+        assertThat(passwordPolicy.setMaxLength(22).allPresentAndPositive()).isFalse();
+        assertThat(passwordPolicy.setRequireUpperCaseCharacter(0).allPresentAndPositive()).isFalse();
+        assertThat(passwordPolicy.setRequireLowerCaseCharacter(1).allPresentAndPositive()).isFalse();
+        assertThat(passwordPolicy.setRequireDigit(0).allPresentAndPositive()).isFalse();
+        assertThat(passwordPolicy.setRequireSpecialCharacter(2).allPresentAndPositive()).isFalse();
+        assertThat(passwordPolicy.setExpirePasswordInMonths(23).allPresentAndPositive()).isTrue();
     }
 }

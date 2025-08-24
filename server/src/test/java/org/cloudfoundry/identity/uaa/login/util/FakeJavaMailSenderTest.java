@@ -15,43 +15,42 @@
 package org.cloudfoundry.identity.uaa.login.util;
 
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.internet.MimeMessage;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertSame;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class FakeJavaMailSenderTest {
+class FakeJavaMailSenderTest {
 
     @Test
-    public void testSendDoesntCreateMemoryLeak() {
+    void sendDoesntCreateMemoryLeak() {
         FakeJavaMailSender sender = new FakeJavaMailSender();
         sender.setMaxMessages(100);
         MimeMessage m = sender.createMimeMessage();
-        for (int i=0; i<200; i++) {
+        for (int i = 0; i < 200; i++) {
             sender.send(m);
         }
 
-        assertEquals(100, sender.getMaxMessages());
-        assertEquals(100, sender.getSentMessages().size());
+        assertThat(sender.getMaxMessages()).isEqualTo(100);
+        assertThat(sender.getSentMessages()).hasSize(100);
 
         MimeMessage lastMessage = sender.createMimeMessage();
         sender.send(lastMessage);
-        assertEquals(100, sender.getSentMessages().size());
-        assertSame(lastMessage, sender.getSentMessages().get(99).getMessage());
+        assertThat(sender.getSentMessages()).hasSize(100);
+        assertThat(sender.getSentMessages().get(99).getMessage()).isSameAs(lastMessage);
     }
 
     @Test
-    public void testDoesntStore0Messages() {
+    void doesntStore0Messages() {
         FakeJavaMailSender sender = new FakeJavaMailSender();
         sender.setMaxMessages(-1);
         MimeMessage m = sender.createMimeMessage();
-        for (int i=0; i<200; i++) {
+        for (int i = 0; i < 200; i++) {
             sender.send(m);
         }
 
-        assertEquals(0, sender.getMaxMessages());
-        assertEquals(0, sender.getSentMessages().size());
+        assertThat(sender.getMaxMessages()).isZero();
+        assertThat(sender.getSentMessages()).isEmpty();
     }
 }

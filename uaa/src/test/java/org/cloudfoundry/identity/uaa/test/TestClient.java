@@ -15,7 +15,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TestClient {
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     public TestClient(MockMvc mockMvc) {
         this.mockMvc = mockMvc;
@@ -26,34 +26,35 @@ public class TestClient {
     }
 
     public String getClientCredentialsOAuthAccessToken(String clientId, String clientSecret, String scope, String subdomain)
-        throws Exception {
+            throws Exception {
         String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
+                + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-            .header("Authorization", basicDigestHeaderValue)
-            .param("grant_type", "client_credentials")
-            .param("client_id", clientId)
-            .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-            .param("scope", scope);
-        if (subdomain != null && !subdomain.equals(""))
+                .header("Authorization", basicDigestHeaderValue)
+                .param("grant_type", "client_credentials")
+                .param("client_id", clientId)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+                .param("scope", scope);
+        if (subdomain != null && !"".equals(subdomain)) {
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
+        }
         MvcResult result = mockMvc.perform(oauthTokenPost)
-            .andExpect(status().isOk())
-            .andReturn();
+                .andExpect(status().isOk())
+                .andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }
 
     public String getUserOAuthAccessToken(String clientId, String clientSecret, String username, String password, String scope)
-        throws Exception {
+            throws Exception {
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-            .with(httpBasic(clientId, clientSecret))
-            .param("grant_type", "password")
-            .param("client_id", clientId)
-            .param("username", username)
-            .param("password", password)
-            .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
-            .param("scope", scope);
+                .with(httpBasic(clientId, clientSecret))
+                .param("grant_type", "password")
+                .param("client_id", clientId)
+                .param("username", username)
+                .param("password", password)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, OPAQUE.getStringValue())
+                .param("scope", scope);
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
@@ -61,14 +62,14 @@ public class TestClient {
 
     public String getUserOAuthAccessTokenForZone(String clientId, String clientSecret, String username, String password, String scope, String subdomain) throws Exception {
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-            .with(httpBasic(clientId, clientSecret))
-            .param("grant_type", "password")
-            .param("client_id", clientId)
-            .param("username", username)
-            .param("password", password)
-            .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.JWT.getStringValue())
-            .param("scope", scope);
-        oauthTokenPost.header("Host", subdomain+".localhost");
+                .with(httpBasic(clientId, clientSecret))
+                .param("grant_type", "password")
+                .param("client_id", clientId)
+                .param("username", username)
+                .param("password", password)
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.TokenFormat.JWT.getStringValue())
+                .param("scope", scope);
+        oauthTokenPost.header("Host", subdomain + ".localhost");
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;

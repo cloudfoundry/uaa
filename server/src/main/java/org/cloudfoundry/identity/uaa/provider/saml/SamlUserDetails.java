@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -21,10 +22,10 @@ import org.springframework.security.core.userdetails.User;
 public class SamlUserDetails extends User {
 
     public SamlUserDetails(String username, String password, boolean enabled, boolean accountNonExpired,
-                    boolean credentialsNonExpired, boolean accountNonLocked,
-                    Collection<? extends GrantedAuthority> authorities) {
+            boolean credentialsNonExpired, boolean accountNonLocked,
+            Collection<? extends GrantedAuthority> authorities) {
         super(username, password == null ? "" : password, enabled, accountNonExpired, credentialsNonExpired,
-                        accountNonLocked, authorities);
+                accountNonLocked, authorities);
     }
 
 }

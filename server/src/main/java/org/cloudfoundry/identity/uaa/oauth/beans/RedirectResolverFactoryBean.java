@@ -1,8 +1,9 @@
 package org.cloudfoundry.identity.uaa.oauth.beans;
 
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.RedirectResolver;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.oauth2.provider.endpoint.RedirectResolver;
+
 import org.springframework.stereotype.Component;
 
 @Component

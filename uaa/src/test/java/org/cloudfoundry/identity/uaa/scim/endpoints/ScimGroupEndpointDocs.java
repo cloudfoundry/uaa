@@ -2,12 +2,12 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang3.ArrayUtils;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,14 +47,14 @@ import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class ScimGroupEndpointDocs extends EndpointDocs {
 
-    private final RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private final AlphanumericRandomValueStringGenerator generator = new AlphanumericRandomValueStringGenerator();
     private final FieldDescriptor displayNameRequestField = fieldWithPath("displayName").required().description("An identifier, unique within the identity zone");
     private final FieldDescriptor descriptionRequestField = fieldWithPath("description").optional(null).type(STRING).description("Human readable description of the group, displayed e.g. when approving scopes");
     private final FieldDescriptor membersRequestField = fieldWithPath("members").optional(null).type(ARRAY).description("Members to be included in the group");
@@ -69,7 +69,7 @@ class ScimGroupEndpointDocs extends EndpointDocs {
     private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zoneId>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
     private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin` scope/token, indicates what zone this request goes to by supplying a subdomain.");
 
-    private FieldDescriptor[] responseFieldDescriptors = {
+    private final FieldDescriptor[] responseFieldDescriptors = {
             fieldWithPath("id").description("The globally unique group ID"),
             fieldWithPath("displayName").description("The identifier specified upon creation of the group, unique within the identity zone"),
             fieldWithPath("description").description("Human readable description of the group, displayed e.g. when approving scopes"),
@@ -142,9 +142,7 @@ class ScimGroupEndpointDocs extends EndpointDocs {
 
         scimGroup.setDisplayName("Cooler Group Name for Update");
 
-
         // Update
-
         MockHttpServletRequestBuilder put = put("/Groups/{groupId}", scimGroup.getId())
                 .header("Authorization", "Bearer " + scimWriteToken)
                 .header("If-Match", scimGroup.getVersion())
@@ -208,12 +206,10 @@ class ScimGroupEndpointDocs extends EndpointDocs {
                         ),
                         responseFields));
 
-
         // List
-
         scimGroup = JsonUtils.readValue(retrieveResult.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 parameterWithName("filter").optional("id pr").type(STRING).description("A SCIM filter over groups"),
                 parameterWithName("sortBy").optional("created").type(STRING).description("The field of the SCIM group to sort by"),
                 parameterWithName("sortOrder").optional("ascending").type(NUMBER).description("Sort in `ascending` or `descending` order"),
@@ -223,7 +219,7 @@ class ScimGroupEndpointDocs extends EndpointDocs {
 
         MockHttpServletRequestBuilder getList = get("/Groups")
                 .header("Authorization", "Bearer " + scimReadToken)
-                .param("filter", String.format("id eq \"%s\" or displayName eq \"%s\"", scimGroup.getId(), scimGroup.getDisplayName()))
+                .param("filter", "id eq \"%s\" or displayName eq \"%s\"".formatted(scimGroup.getId(), scimGroup.getDisplayName()))
                 .param("sortBy", "lastModified")
                 .param("count", "50")
                 .param("sortOrder", "descending")
@@ -248,7 +244,7 @@ class ScimGroupEndpointDocs extends EndpointDocs {
                                 IDENTITY_ZONE_ID_HEADER,
                                 IDENTITY_ZONE_SUBDOMAIN_HEADER
                         ),
-                        requestParameters,
+                        queryParameters,
                         listGroupResponseFields));
 
         // Check Membership
@@ -344,7 +340,7 @@ class ScimGroupEndpointDocs extends EndpointDocs {
                         pathParameters(
                                 parameterWithName("groupId").required().description("The globally unique identifier of the group")
                         ),
-                        requestParameters(
+                        queryParameters(
                                 parameterWithName("returnEntities").type(BOOLEAN).optional("false").description("Set to `true` to return the SCIM entities which have membership in the group")
                         ),
                         requestHeaders(

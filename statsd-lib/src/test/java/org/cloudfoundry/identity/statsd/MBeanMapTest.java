@@ -9,8 +9,7 @@ import javax.management.ObjectName;
 import java.util.Map;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class MBeanMapTest {
 
@@ -28,11 +27,11 @@ class MBeanMapTest {
     void listDomain() throws Exception {
         Set<ObjectName> names = server.queryNames(ObjectName.getInstance("java.lang:type=Runtime,*"), null);
         System.err.println(names);
-        assertEquals(1, names.size());
+        assertThat(names).hasSize(1);
         MBeanMap result = new MBeanMap(server, names.iterator().next());
         @SuppressWarnings("unchecked")
         Map<String, String> properties = (Map<String, String>) result.get("system_properties");
-        assertTrue(properties.containsKey("java.vm.version"));
+        assertThat(properties).containsKey("java.vm.version");
     }
 
 }

@@ -1,0 +1,35 @@
+server:
+  http:
+    port: 8080
+    address: "127.0.0.1"
+    connection-timeout: 20000
+    keep-alive-timeout: 120000
+    max-http-header-size: 14336
+    bind-on-init: true
+  port: 8443
+  max-http-header-size: 14336
+  tomcat:
+    basedir: "${uaa.location.tomcat}"
+    connection-timeout: 20000
+    keep-alive-timeout: 120000
+    remoteip:
+      remote-ip-header: "x-forwarded-for"
+      protocol-header: "x-forwarded-proto"
+      internal-proxies: "127\\.1\\.0\\.1|127\\.1\\.0\\.2|127\\.1\\.0\\.3|10\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}|192\\.168\\.\\d{1,3}\\.\\d{1,3}|169\\.254\\.\\d{1,3}\\.\\d{1,3}|127\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}"
+      port-header: "X-Forwarded-Port"
+    accesslog:
+      enabled: true
+      directory: "${uaa.location.tomcat}"
+      prefix: "localhost_access"
+      suffix: ".log"
+      rotate: false
+      pattern: "%h %l %u %t &quot;%m %U %H&quot; %s %{Content-Length}i %b &quot;X-Vcap-Request-Id: %{X-Vcap-Request-Id}i&quot; %I"
+  ssl:
+    enabled: true
+    enabled-protocols: "TLSv1.2,TLSv1.3"
+    ciphers: "TLS_DHE_RSA_WITH_AES_128_GCM_SHA256,TLS_DHE_RSA_WITH_AES_256_GCM_SHA384,TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,TLS_AES_128_GCM_SHA256,TLS_AES_256_GCM_SHA384"
+    protocol: TLS
+    key-store: "${uaa.location.certificate}/uaa_keystore.p12"
+    key-store-type: "PKCS12"
+    key-alias: "uaa_ssl_cert"
+    key-store-password: "k0*l*s3cur1tyr0ck$"

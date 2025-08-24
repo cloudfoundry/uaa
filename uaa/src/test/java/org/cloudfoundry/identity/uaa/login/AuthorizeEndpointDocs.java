@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.mock.EndpointDocs;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
@@ -11,8 +10,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.AlphanumericRandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,10 +26,15 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.RESPONSE_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.SCOPE;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.STATE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.ID_TOKEN_HINT_PROMPT_NONE;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
-import static org.hamcrest.Matchers.containsString;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
@@ -38,13 +42,8 @@ import static org.springframework.restdocs.headers.HeaderDocumentation.responseH
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
-import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.restdocs.request.RequestDocumentation.queryParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.SCOPE;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.STATE;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -65,7 +64,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
 
     @BeforeEach
     void setUp() {
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).get(0);
+        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"", IdentityZoneHolder.get().getId()).getFirst();
         UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
         principal = new UaaAuthentication(uaaPrincipal, Collections.singletonList(UaaAuthority.fromAuthorities("uaa.user")), null);
     }
@@ -89,7 +88,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(PkceValidationService.CODE_CHALLENGE_METHOD, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256)
                 .session(session);
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 responseTypeParameter.description("Space-delimited list of response types. Here, `code` for requesting an authorization code for an access token, as per OAuth spec"),
                 clientIdParameter,
                 scopesParameter,
@@ -102,7 +101,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
         mockMvc.perform(get)
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
-                        requestParameters));
+                        queryParameters));
     }
 
     @Test
@@ -125,9 +124,9 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(REDIRECT_URI, "http://localhost/redirect/cf")
                 .param(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE)
                 .param(PkceValidationService.CODE_CHALLENGE_METHOD, UaaTestAccounts.CODE_CHALLENGE_METHOD_S256)
-                .param(STATE, new RandomValueStringGenerator().generate());
+                .param(STATE, new AlphanumericRandomValueStringGenerator().generate());
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 responseTypeParameter.description("Space-delimited list of response types. Here, `code` for requesting an authorization code for an access token, as per OAuth spec"),
                 clientIdParameter,
                 redirectParameter,
@@ -139,7 +138,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
         mockMvc.perform(get)
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
-                        requestParameters,
+                        queryParameters,
                         requestHeaders(headerWithName("Authorization").description("Bearer token containing uaa.user scope - the authentication for this user"))));
     }
 
@@ -160,7 +159,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 responseTypeParameter.description("Space-delimited list of response types. Here, `token`, i.e. an access token"),
                 clientIdParameter,
                 scopesParameter,
@@ -174,9 +173,9 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
                         responseHeaders,
-                        requestParameters)).andReturn();
+                        queryParameters)).andReturn();
         String location = mvcResult.getResponse().getHeader("Location");
-        Assert.assertThat(location, containsString("access_token="));
+        assertThat(location).contains("access_token=");
     }
 
     @Test
@@ -190,7 +189,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param(ID_TOKEN_HINT_PROMPT, ID_TOKEN_HINT_PROMPT_NONE)
                 .param(REDIRECT_URI, "http://localhost:8080/app/");
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 responseTypeParameter.description("Space-delimited list of response types. Here, `token`, i.e. an access token"),
                 clientIdParameter,
                 scopesParameter,
@@ -204,7 +203,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
                         responseHeaders,
-                        requestParameters)).andReturn();
+                        queryParameters)).andReturn();
     }
 
     @Test
@@ -224,7 +223,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 responseTypeParameter.description("Space-delimited list of response types. Here, `id_token`"),
                 clientIdParameter,
                 scopesParameter,
@@ -239,9 +238,9 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .andDo(print())
                 .andDo(document("{ClassName}/{methodName}",
                         responseHeaders,
-                        requestParameters)).andReturn();
+                        queryParameters)).andReturn();
         String location = mvcResult.getResponse().getHeader("Location");
-        Assert.assertThat(location, containsString("id_token="));
+        assertThat(location).contains("id_token=");
     }
 
     @Test
@@ -261,7 +260,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 responseTypeParameter.description("Space-delimited list of response types. Here, `token id_token`, indicating both an access token and an ID token."),
                 clientIdParameter,
                 scopesParameter,
@@ -276,10 +275,10 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .andDo(print())
                 .andDo(document("{ClassName}/{methodName}",
                         responseHeaders,
-                        requestParameters)).andReturn();
+                        queryParameters)).andReturn();
         String location = mvcResult.getResponse().getHeader("Location");
-        Assert.assertThat(location, containsString("id_token="));
-        Assert.assertThat(location, containsString("access_token="));
+        assertThat(location).contains("id_token=")
+                .contains("access_token=");
     }
 
     @Test
@@ -299,7 +298,7 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .param("login_hint", URLEncoder.encode("{\"origin\":\"uaa\"}", StandardCharsets.UTF_8))
                 .session(session);
 
-        Snippet requestParameters = requestParameters(
+        Snippet queryParameters = queryParameters(
                 responseTypeParameter.description("Space-delimited list of response types. Here, `id_token code`, indicating a request for an ID token and an authorization code."),
                 clientIdParameter,
                 scopesParameter,
@@ -314,14 +313,14 @@ class AuthorizeEndpointDocs extends EndpointDocs {
                 .andDo(print())
                 .andDo(document("{ClassName}/{methodName}",
                         responseHeaders,
-                        requestParameters)).andReturn();
+                        queryParameters)).andReturn();
         String location = mvcResult.getResponse().getHeader("Location");
-        Assert.assertThat(location, containsString("id_token="));
-        Assert.assertThat(location, containsString("code="));
+        assertThat(location).contains("id_token=")
+                .contains("code=");
     }
 
     private static void resetMarissaPassword(ScimUserProvisioning scimUserProvisioning) {
-        ScimUser marissa = scimUserProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId()).get(0);
+        ScimUser marissa = scimUserProvisioning.query("username eq \"marissa\"", IdentityZoneHolder.get().getId()).getFirst();
 
         scimUserProvisioning.changePassword(
                 marissa.getId(),

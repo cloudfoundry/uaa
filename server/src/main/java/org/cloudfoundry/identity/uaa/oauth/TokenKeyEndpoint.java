@@ -14,16 +14,14 @@ import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.jwk.JsonWebKey.KeyType.RSA;
 
@@ -42,7 +40,7 @@ public class TokenKeyEndpoint {
         this.keyInfoService = keyInfoService;
     }
 
-    @RequestMapping(value = "/token_key", method = RequestMethod.GET)
+    @GetMapping("/token_key")
     @ResponseBody
     public ResponseEntity<VerificationKeyResponse> getKey(Principal principal,
                                                           @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
@@ -57,7 +55,7 @@ public class TokenKeyEndpoint {
     }
 
 
-    @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
+    @GetMapping("/token_keys")
     @ResponseBody
     public ResponseEntity<VerificationKeysListResponse> getKeys(Principal principal,
                                                                 @RequestHeader(value = "If-None-Match", required = false, defaultValue = "NaN") String eTag) {
@@ -96,7 +94,7 @@ public class TokenKeyEndpoint {
     }
 
     private boolean unmodifiedResource(String eTag, String lastModified) {
-        return !eTag.equals("NaN") && lastModified.equals(eTag);
+        return !"NaN".equals(eTag) && lastModified.equals(eTag);
     }
 
     /**
@@ -114,7 +112,7 @@ public class TokenKeyEndpoint {
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
                 .filter(k -> includeSymmetric || RSA.name().equals(k.type()))
                 .map(TokenKeyEndpoint::getVerificationKeyResponse)
-                .collect(Collectors.toList());
+                .toList();
         return new VerificationKeysListResponse(keyResponses);
     }
 
@@ -122,8 +120,7 @@ public class TokenKeyEndpoint {
         if (principal != null) {
             if (principal instanceof AnonymousAuthenticationToken) {
                 return false;
-            } else if (principal instanceof Authentication) {
-                Authentication auth = (Authentication) principal;
+            } else if (principal instanceof Authentication auth) {
                 if (auth.getAuthorities() != null) {
                     for (GrantedAuthority authority : auth.getAuthorities()) {
                         if ("uaa.resource".equals(authority.getAuthority())) {

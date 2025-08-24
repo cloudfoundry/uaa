@@ -15,7 +15,6 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.client.UaaScopes;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,23 +22,23 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class UaaScopesTests {
+class UaaScopesTests {
 
-    private UaaScopes uaaScopes = new UaaScopes();
+    private final UaaScopes uaaScopes = new UaaScopes();
 
     @Test
-    public void testGetUaaScopes() {
-        assertEquals(31, uaaScopes.getUaaScopes().size());
-        assertEquals(31, uaaScopes.getUaaAuthorities().size());
+    void getUaaScopes() {
+        assertThat(uaaScopes.getUaaScopes()).hasSize(31);
+        assertThat(uaaScopes.getUaaAuthorities()).hasSize(31);
     }
 
     @Test
-    public void testGetUaaAuthorities() {
+    void getUaaAuthorities() {
         List<GrantedAuthority> authorities = uaaScopes.getUaaAuthorities();
         List<GrantedAuthority> expected = getGrantedAuthorities();
-        assertEquals(expected, authorities);
+        assertThat(authorities).isEqualTo(expected);
     }
 
     protected List<GrantedAuthority> getGrantedAuthorities() {
@@ -51,32 +50,30 @@ public class UaaScopesTests {
     }
 
     @Test
-    public void testIsWildcardScope() {
+    void isWildcardScope() {
         for (String s : uaaScopes.getUaaScopes()) {
             if (s.contains("*")) {
-                assertTrue(uaaScopes.isWildcardScope(s));
-                assertTrue(uaaScopes.isWildcardScope(new SimpleGrantedAuthority(s)));
+                assertThat(uaaScopes.isWildcardScope(s)).isTrue();
+                assertThat(uaaScopes.isWildcardScope(new SimpleGrantedAuthority(s))).isTrue();
             } else {
-                assertFalse(uaaScopes.isWildcardScope(s));
-                assertFalse(uaaScopes.isWildcardScope(new SimpleGrantedAuthority(s)));
+                assertThat(uaaScopes.isWildcardScope(s)).isFalse();
+                assertThat(uaaScopes.isWildcardScope(new SimpleGrantedAuthority(s))).isFalse();
             }
         }
     }
 
     @Test
-    public void testIsUaaScope() {
+    void isUaaScope() {
         for (String scope : uaaScopes.getUaaScopes()) {
-            assertTrue(uaaScopes.isUaaScope(scope));
+            assertThat(uaaScopes.isUaaScope(scope)).isTrue();
         }
 
         for (GrantedAuthority scope : uaaScopes.getUaaAuthorities()) {
-            assertTrue(uaaScopes.isUaaScope(scope));
+            assertThat(uaaScopes.isUaaScope(scope)).isTrue();
         }
 
         for (GrantedAuthority scope : getGrantedAuthorities()) {
-            assertTrue(uaaScopes.isUaaScope(scope));
+            assertThat(uaaScopes.isUaaScope(scope)).isTrue();
         }
     }
-
-
 }

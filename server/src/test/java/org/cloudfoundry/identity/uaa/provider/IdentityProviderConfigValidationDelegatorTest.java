@@ -13,12 +13,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
@@ -47,11 +47,9 @@ class IdentityProviderConfigValidationDelegatorTest {
 
     @Test
     void null_identity_provider() {
-        assertThrowsWithMessageThat(
-                IllegalArgumentException.class,
-                () -> identityProviderConfigValidationDelegator.validate(null),
-                org.hamcrest.Matchers.is("Provider cannot be null")
-        );
+        assertThatThrownBy(() -> identityProviderConfigValidationDelegator.validate(null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Provider cannot be null");
     }
 
     @Test
@@ -101,11 +99,9 @@ class IdentityProviderConfigValidationDelegatorTest {
         identityProvider.setType(type);
         identityProvider.setOriginKey(LDAP);
 
-        assertThrowsWithMessageThat(
-                IllegalArgumentException.class,
-                () -> identityProviderConfigValidationDelegator.validate(identityProvider),
-                org.hamcrest.Matchers.is("Origin \"ldap\" not allowed for type \"" + type + "\"")
-        );
+        assertThatThrownBy(() -> identityProviderConfigValidationDelegator.validate(identityProvider))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Origin \"ldap\" not allowed for type \"" + type + "\"");
     }
 
     @ParameterizedTest(name = "invalid provider with type {0} and origin uaa")
@@ -118,10 +114,8 @@ class IdentityProviderConfigValidationDelegatorTest {
         identityProvider.setType(type);
         identityProvider.setOriginKey(UAA);
 
-        assertThrowsWithMessageThat(
-                IllegalArgumentException.class,
-                () -> identityProviderConfigValidationDelegator.validate(identityProvider),
-                org.hamcrest.Matchers.is("Origin \"uaa\" not allowed for type \"" + type + "\"")
-        );
+        assertThatThrownBy(() -> identityProviderConfigValidationDelegator.validate(identityProvider))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Origin \"uaa\" not allowed for type \"" + type + "\"");
     }
 }

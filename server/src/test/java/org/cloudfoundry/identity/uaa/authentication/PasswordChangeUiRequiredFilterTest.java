@@ -16,24 +16,20 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.savedrequest.SavedRequest;
 
-import javax.servlet.FilterChain;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-import java.util.Arrays;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
@@ -66,24 +62,6 @@ class PasswordChangeUiRequiredFilterTest {
     @AfterEach
     void tearDown() {
         SecurityContextHolder.clearContext();
-    }
-
-    @Test
-    void isIgnored() {
-        for (String s : Arrays.asList("/login/mfa", "/login/mfa/register", "/login/mfa/verify.do")) {
-            mockHttpServletRequest.setPathInfo(s);
-            assertThat("Is ignored:" + s, passwordChangeUiRequiredFilter.isIgnored(mockHttpServletRequest), is(true));
-        }
-    }
-
-    @Test
-    void requestToMfa() throws Exception {
-        SecurityContextHolder.getContext().setAuthentication(mockUaaAuthentication);
-        mockHttpServletRequest.setPathInfo("/login/mfa/register");
-        passwordChangeUiRequiredFilter.doFilterInternal(mockHttpServletRequest, mockHttpServletResponse, mockFilterChain);
-        verify(mockFilterChain, times(1)).doFilter(same(mockHttpServletRequest), same(mockHttpServletResponse));
-        verifyNoInteractions(mockHttpServletResponse);
-        verifyNoInteractions(mockRequestCache);
     }
 
     @Test

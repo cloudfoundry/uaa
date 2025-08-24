@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -13,31 +14,29 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.openqa.selenium.Dimension;
+import org.cloudfoundry.identity.uaa.test.UaaWebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.logging.LogType;
-import org.openqa.selenium.logging.LoggingPreferences;
-import org.openqa.selenium.remote.CapabilityType;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
-import org.springframework.security.oauth2.client.test.TestAccounts;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
-import java.util.concurrent.TimeUnit;
-import java.util.logging.Level;
+import java.time.Duration;
 
 @PropertySource("classpath:integration.test.properties")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD, hierarchyMode = DirtiesContext.HierarchyMode.EXHAUSTIVE)
 public class DefaultIntegrationTestConfig {
-    static final int IMPLICIT_WAIT_TIME = 15;
-    static final int PAGE_LOAD_TIMEOUT = 20;
-    static final int SCRIPT_TIMEOUT = 15;
+    static final Duration IMPLICIT_WAIT_TIME = Duration.ofSeconds(30L);
+    static final Duration PAGE_LOAD_TIMEOUT = Duration.ofSeconds(40L);
+    static final Duration SCRIPT_TIMEOUT = Duration.ofSeconds(30L);
 
     private final int timeoutMultiplier;
 
@@ -46,9 +45,9 @@ public class DefaultIntegrationTestConfig {
     }
 
     @Bean
-    public IntegrationTestRule integrationTestRule(
+    public IntegrationTestExtension integrationTestExtension(
             final @Value("${integration.test.base_url}") String baseUrl) {
-        return new IntegrationTestRule(baseUrl);
+        return new IntegrationTestExtension(baseUrl);
     }
 
     @Bean
@@ -57,35 +56,37 @@ public class DefaultIntegrationTestConfig {
     }
 
     @Bean(destroyMethod = "quit")
-    public ChromeDriver webDriver() {
+    public UaaWebDriver webDriver() {
         System.setProperty("webdriver.chrome.logfile", "/tmp/chromedriver.log");
         System.setProperty("webdriver.chrome.verboseLogging", "true");
+        System.setProperty("webdriver.http.factory", "jdk-http-client");
 
+        ChromeDriver driver = new ChromeDriver(getChromeOptions());
+        driver.manage().timeouts()
+                .implicitlyWait(IMPLICIT_WAIT_TIME.multipliedBy(timeoutMultiplier))
+                .pageLoadTimeout(PAGE_LOAD_TIMEOUT.multipliedBy(timeoutMultiplier))
+                .scriptTimeout(SCRIPT_TIMEOUT.multipliedBy(timeoutMultiplier));
+        return new UaaWebDriver(driver);
+    }
+
+    private static ChromeOptions getChromeOptions() {
         ChromeOptions options = new ChromeOptions();
         options.addArguments(
-          "--verbose",
-          "--headless",
-          "--disable-web-security",
-          "--ignore-certificate-errors",
-          "--allow-running-insecure-content",
-          "--allow-insecure-localhost",
-          "--no-sandbox",
-          "--disable-gpu"
+                "--verbose",
+                // Comment the following line to run selenium test browser in Headed Mode
+                "--headless",
+                "--guest", //attempt to disable password checkups that disrupt the flow
+                "--disable-web-security",
+                "--ignore-certificate-errors",
+                "--allow-running-insecure-content",
+                "--allow-insecure-localhost",
+                "--no-sandbox",
+                "--disable-gpu",
+                "--remote-allow-origins=*"
         );
-
-        LoggingPreferences logs = new LoggingPreferences();
-        logs.enable(LogType.PERFORMANCE, Level.ALL);
-        options.setCapability(CapabilityType.LOGGING_PREFS, logs);
         options.setAcceptInsecureCerts(true);
 
-        ChromeDriver driver = new ChromeDriver(options);
-
-        driver.manage().timeouts()
-                .implicitlyWait(IMPLICIT_WAIT_TIME * timeoutMultiplier, TimeUnit.SECONDS)
-                .pageLoadTimeout(PAGE_LOAD_TIMEOUT * timeoutMultiplier, TimeUnit.SECONDS)
-                .setScriptTimeout(SCRIPT_TIMEOUT * timeoutMultiplier, TimeUnit.SECONDS);
-        driver.manage().window().setSize(new Dimension(1024, 768));
-        return driver;
+        return options;
     }
 
     @Bean(destroyMethod = "stop")
@@ -110,9 +111,16 @@ public class DefaultIntegrationTestConfig {
     }
 
     public static class HttpClientFactory extends SimpleClientHttpRequestFactory {
+        @Override
         protected void prepareConnection(HttpURLConnection connection, String httpMethod) throws IOException {
             super.prepareConnection(connection, httpMethod);
             connection.setInstanceFollowRedirects(false);
         }
     }
+
+    @Bean
+    public SamlServerConfig samlServerConfig(@Value("${integration.test.saml.url}") String serverUrl) {
+        return new SamlServerConfig(serverUrl);
+    }
+
 }

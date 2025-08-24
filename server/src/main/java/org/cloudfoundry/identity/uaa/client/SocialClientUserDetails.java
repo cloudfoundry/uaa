@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -49,20 +50,15 @@ public class SocialClientUserDetails extends AbstractAuthenticationToken {
             String key = userInfoUrl.toLowerCase().replaceAll(".*//([a-z.]*)/.*", "$1");
             if (userInfoUrl.contains("cloudfoundry.com")) {
                 key = CLOUD_FOUNDRY;
-            }
-            else if (userInfoUrl.contains("google.com") || userInfoUrl.contains("googleapis.com")) {
+            } else if (userInfoUrl.contains("google.com") || userInfoUrl.contains("googleapis.com")) {
                 key = GOOGLE;
-            }
-            else if (userInfoUrl.contains("github.com")) {
+            } else if (userInfoUrl.contains("github.com")) {
                 key = GITHUB;
-            }
-            else if (userInfoUrl.contains("twitter.com")) {
+            } else if (userInfoUrl.contains("twitter.com")) {
                 key = TWITTER;
-            }
-            else if (userInfoUrl.contains("linkedin.com")) {
+            } else if (userInfoUrl.contains("linkedin.com")) {
                 key = LINKEDIN;
-            }
-            else {
+            } else {
                 String[] keys = key.split("\\.");
                 if (keys.length > 1) {
                     key = keys[keys.length - 2];
@@ -75,7 +71,7 @@ public class SocialClientUserDetails extends AbstractAuthenticationToken {
         }
     }
 
-    private String username;
+    private final String username;
 
     private String email;
 
@@ -87,8 +83,8 @@ public class SocialClientUserDetails extends AbstractAuthenticationToken {
 
     @JsonCreator
     public SocialClientUserDetails(
-                    @JsonProperty("username") String username,
-                    @JsonProperty("authorities") @JsonDeserialize(contentAs = UaaAuthority.class) Collection<? extends GrantedAuthority> authorities) {
+            @JsonProperty("username") String username,
+            @JsonProperty("authorities") @JsonDeserialize(contentAs = UaaAuthority.class) Collection<? extends GrantedAuthority> authorities) {
         super(authorities);
         setAuthenticated(authorities != null && !authorities.isEmpty());
         this.username = username;

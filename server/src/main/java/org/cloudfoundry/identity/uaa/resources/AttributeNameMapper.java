@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -20,10 +21,6 @@ public interface AttributeNameMapper {
 
     String mapToInternal(String attr);
 
-    String[] mapToInternal(String[] attr);
-
     String mapFromInternal(String attr);
-
-    String[] mapFromInternal(String[] attr);
 
 }

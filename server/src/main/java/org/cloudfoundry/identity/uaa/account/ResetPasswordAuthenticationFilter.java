@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -19,35 +20,51 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.Timestamp;
 
 public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
     private final ResetPasswordService service;
-    private final AuthenticationSuccessHandler handler;
     private final AuthenticationEntryPoint entryPoint;
     private final ExpiringCodeStore expiringCodeStore;
+    public static final String RESET_PASSWORD_URL = "/reset_password.do";
+    private static final RequestMatcher matcher = new AntPathRequestMatcher(RESET_PASSWORD_URL, "POST");
 
-    public ResetPasswordAuthenticationFilter(ResetPasswordService service, AuthenticationSuccessHandler handler, AuthenticationEntryPoint entryPoint, ExpiringCodeStore expiringCodeStore) {
+    public ResetPasswordAuthenticationFilter(
+            ResetPasswordService service,
+            AuthenticationEntryPoint entryPoint,
+            ExpiringCodeStore expiringCodeStore) {
         this.service = service;
-        this.handler = handler;
         this.entryPoint = entryPoint;
         this.expiringCodeStore = expiringCodeStore;
     }
 
+    public ResetPasswordAuthenticationFilter(
+            ResetPasswordService service,
+            ExpiringCodeStore expiringCodeStore) {
+        this(service, new ResetPasswordAuthenticationEntryPoint(), expiringCodeStore);
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        if (!matcher.matches(request)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
         String email = request.getParameter("email");
         String code = request.getParameter("code");
         String password = request.getParameter("password");
@@ -63,21 +80,24 @@ public class ResetPasswordAuthenticationFilter extends OncePerRequestFilter {
             }
             ResetPasswordService.ResetPasswordResponse resetPasswordResponse = service.resetPassword(expiringCode, password);
             String redirectUri = resetPasswordResponse.getRedirectUri();
-            if (!StringUtils.hasText(redirectUri) || redirectUri.equals("home")) {
+            if (!StringUtils.hasText(redirectUri) || "home".equals(redirectUri)) {
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset");
             } else {
                 response.sendRedirect(request.getContextPath() + "/login?success=password_reset&form_redirect_uri=" + redirectUri);
             }
         } catch (InvalidPasswordException e) {
-            refreshCode(request, expiringCode);
+            if (expiringCode != null) {
+                refreshCode(request, expiringCode);
+            }
             entryPoint.commence(request, response, new BadCredentialsException(e.getMessagesAsOneString(), e));
         } catch (UaaException e) {
             entryPoint.commence(request, response, new InternalAuthenticationServiceException(e.getMessage(), e));
         } catch (PasswordConfirmationException pe) {
-            refreshCode(request, expiringCode);
+            if (expiringCode != null) {
+                refreshCode(request, expiringCode);
+            }
             entryPoint.commence(request, response, new BadCredentialsException("Password did not pass validation.", pe));
         }
-        return;
     }
 
     private void refreshCode(HttpServletRequest request, ExpiringCode expiringCode) {

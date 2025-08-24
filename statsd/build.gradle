@@ -25,3 +25,7 @@ test {
 integrationTest {}.onlyIf { //disable since we don't have any
     false
 }
+
+tasks.named('bootRun') {
+    enabled = false
+}

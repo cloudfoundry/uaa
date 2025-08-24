@@ -9,11 +9,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator.Mode.CREATE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator.Mode.DELETE;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator.Mode.MODIFY;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.same;
@@ -23,7 +23,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(PollutionPreventionExtension.class)
 @ExtendWith(MockitoExtension.class)
-public class GeneralIdentityZoneValidatorTests {
+class GeneralIdentityZoneValidatorTests {
 
     @Mock
     GeneralIdentityZoneConfigurationValidator zoneConfigurationValidator;
@@ -46,15 +46,15 @@ public class GeneralIdentityZoneValidatorTests {
         for (IdentityZoneValidator.Mode mode : Arrays.asList(CREATE, MODIFY, DELETE)) {
             try {
                 validator.validate(uaaZone, mode);
-                fail();
+                fail("");
             } catch (InvalidIdentityZoneDetailsException e) {
-                assertEquals("The default zone cannot be set inactive.", e.getMessage());
+                assertThat(e.getMessage()).isEqualTo("The default zone cannot be set inactive.");
             }
         }
     }
 
     @Test
-    public void otherZoneInactiveSucceeds() throws InvalidIdentityZoneConfigurationException, InvalidIdentityZoneDetailsException {
+    void otherZoneInactiveSucceeds() throws InvalidIdentityZoneConfigurationException, InvalidIdentityZoneDetailsException {
         IdentityZone zone = MultitenancyFixture.identityZone("id", "domain");
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         zone.setConfig(config);

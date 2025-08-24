@@ -1,14 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationException;
+
+import static org.cloudfoundry.identity.uaa.oauth.ClientRefreshTokenValidity.getClientDetails;
 
 public class ClientAccessTokenValidity implements ClientTokenValidity {
-    private static final Logger logger = LoggerFactory.getLogger(ClientAccessTokenValidity.class);
 
     private final MultitenantClientServices multitenantClientServices;
     private final IdentityZoneManager identityZoneManager;
@@ -22,15 +20,8 @@ public class ClientAccessTokenValidity implements ClientTokenValidity {
 
     @Override
     public Integer getValiditySeconds(String clientId) {
-        ClientDetails clientDetails;
-
-        try {
-            clientDetails = multitenantClientServices.loadClientByClientId(clientId, identityZoneManager.getCurrentIdentityZoneId());
-        } catch (ClientRegistrationException e) {
-            logger.info("Could not load details for client " + clientId, e);
-            return null;
-        }
-        return clientDetails.getAccessTokenValiditySeconds();
+        ClientDetails clientDetails = getClientDetails(clientId, multitenantClientServices, identityZoneManager);
+        return clientDetails != null ? clientDetails.getAccessTokenValiditySeconds() : null;
     }
 
     @Override

@@ -1,18 +1,25 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidScopeException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.UnauthorizedClientException;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.hamcrest.Matchers;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,27 +27,27 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
-import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class UaaAuthorizationRequestManagerTests {
@@ -53,11 +60,11 @@ class UaaAuthorizationRequestManagerTests {
 
     private IdentityProviderProvisioning providerProvisioning = mock(IdentityProviderProvisioning.class);
 
-    private Map<String, String> parameters = new HashMap<String, String>();
+    private Map<String, String> parameters = new HashMap<>();
 
-    private BaseClientDetails client = new BaseClientDetails();
+    private UaaClientDetails client = new UaaClientDetails();
 
-    private UaaUser user = null;
+    private UaaUser user;
 
     private SecurityContextAccessor mockSecurityContextAccessor;
 
@@ -65,11 +72,11 @@ class UaaAuthorizationRequestManagerTests {
     void initUaaAuthorizationRequestManagerTests() {
         mockSecurityContextAccessor = mock(SecurityContextAccessor.class);
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
-        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection) AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz"));
         parameters.put("client_id", "foo");
-        factory = new UaaAuthorizationRequestManager(clientDetailsService, mockSecurityContextAccessor, uaaUserDatabase, providerProvisioning);
+        factory = new UaaAuthorizationRequestManager(clientDetailsService, mockSecurityContextAccessor, uaaUserDatabase, providerProvisioning, new IdentityZoneManagerImpl());
         when(clientDetailsService.loadClientByClientId("foo", "uaa")).thenReturn(client);
-        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaaZoneId(), "testid", new Date());
+        user = new UaaUser("testid", "testuser", "", "test@test.org", AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"), "givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaaZoneId(), "testid", new Date());
         when(uaaUserDatabase.retrieveUserById(any())).thenReturn(user);
     }
 
@@ -80,222 +87,262 @@ class UaaAuthorizationRequestManagerTests {
     }
 
     @Test
-    void testClientIDPAuthorizationInUAAzoneNoList() {
+    void clientIDPAuthorizationInUAAzoneNoList() {
         factory.checkClientIdpAuthorization(client, user);
     }
 
     @Test
-    void testClientIDPAuthorizationInNonUAAzoneNoList() {
+    void clientIDPAuthorizationInNonUAAzoneNoList() {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("test", "test"));
         factory.checkClientIdpAuthorization(client, user);
     }
 
     @Test
-    void testClientIDPAuthorizationInUAAzoneListSucceeds() {
+    void clientIDPAuthorizationInUAAzoneListSucceeds() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random"));
         factory.checkClientIdpAuthorization(client, user);
     }
 
     @Test
-    void testClientIDPAuthorizationInUAAzoneListFails() {
+    void clientIDPAuthorizationInUAAzoneListFails() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(MultitenancyFixture.identityProvider("random", "random"));
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
-        assertThrows(UnauthorizedClientException.class, () -> factory.checkClientIdpAuthorization(client, user));
+        assertThatExceptionOfType(UnauthorizedClientException.class).isThrownBy(() -> factory.checkClientIdpAuthorization(client, user));
     }
 
     @Test
-    void testClientIDPAuthorizationInUAAzoneNullProvider() {
+    void clientIDPAuthorizationInUAAzoneNullProvider() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(null);
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
-        assertThrows(UnauthorizedClientException.class, () -> factory.checkClientIdpAuthorization(client, user));
+        assertThatExceptionOfType(UnauthorizedClientException.class).isThrownBy(() -> factory.checkClientIdpAuthorization(client, user));
     }
 
     @Test
-    void testClientIDPAuthorizationInUAAzoneEmptyResultSetException() {
+    void clientIDPAuthorizationInUAAzoneEmptyResultSetException() {
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenThrow(new EmptyResultDataAccessException(1));
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList("random2"));
-        assertThrows(UnauthorizedClientException.class, () -> factory.checkClientIdpAuthorization(client, user));
+        assertThatExceptionOfType(UnauthorizedClientException.class).isThrownBy(() -> factory.checkClientIdpAuthorization(client, user));
     }
 
     @Test
-    void testTokenRequestIncludesResourceIds() {
+    void tokenRequestIncludesResourceIds() {
         when(mockSecurityContextAccessor.isUser()).thenReturn(false);
-        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("aud1.test aud2.test"));
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection) AuthorityUtils.commaSeparatedStringToAuthorityList("aud1.test aud2.test"));
         parameters.put("scope", "aud1.test aud2.test");
         parameters.put("client_id", client.getClientId());
         parameters.put(OAuth2Utils.GRANT_TYPE, "client_credentials");
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("aud1.test"));
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
-        assertEquals(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"), new TreeSet<>(request.getScope()));
-        assertEquals(StringUtils.commaDelimitedListToSet("aud1,aud2"), new TreeSet<>(request.getResourceIds()));
+        assertThat(new TreeSet<>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"));
+        assertThat(new TreeSet<>(request.getResourceIds())).isEqualTo(StringUtils.commaDelimitedListToSet("aud1,aud2"));
     }
 
     @Test
-    void test_user_token_request() {
+    void tokenRequestEquals() {
+        client.setClientId("foo");
+        assertThat(factory.createTokenRequest(parameters, client).hashCode()).isNotZero();
+        assertThat(factory.createTokenRequest(parameters, client)).isEqualTo(factory.createTokenRequest(parameters, client));
+        factory.setScopeSeparator(".");
+        factory.setScopesToResources(Map.of("aud1.test", "aud2.test"));
+        assertThat(factory.createOAuth2Request(client, factory.createTokenRequest(Map.of("client_id", client.getClientId()), client))).isNotEqualTo(factory.createTokenRequest(parameters, client));
+        assertThat(factory.createTokenRequest(parameters, client)).isNotEqualTo(factory.createOAuth2Request(factory.createAuthorizationRequest(Map.of("client_id", client.getClientId()))))
+                .isNotEqualTo(factory.createTokenRequest(factory.createAuthorizationRequest(Map.of("client_id", client.getClientId())), ""));
+    }
+
+    @Test
+    void user_token_request() {
+        OAuth2Authentication oAuth2Authentication = mock(OAuth2Authentication.class);
+        OAuth2Request oAuth2Request = mock(OAuth2Request.class);
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
-        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.user,requested.scope"));
-        BaseClientDetails recipient = new BaseClientDetails("recipient", "requested", "requested.scope", "password", "");
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection) AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.user,requested.scope"));
+        when(oAuth2Authentication.getOAuth2Request()).thenReturn(oAuth2Request);
+        when(oAuth2Request.getExtensions()).thenReturn(Map.of("client_auth_method", "none"));
+        SecurityContextHolder.getContext().setAuthentication(oAuth2Authentication);
+        UaaClientDetails recipient = new UaaClientDetails("recipient", "requested", "requested.scope", "password", "");
         parameters.put("scope", "requested.scope");
         parameters.put("client_id", recipient.getClientId());
         parameters.put("expires_in", "44000");
         parameters.put(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("uaa.user"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(null); // all groups allowed
         client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test,uaa.user"));
         when(clientDetailsService.loadClientByClientId(recipient.getClientId(), "uaa")).thenReturn(recipient);
         ReflectionTestUtils.setField(factory, "uaaUserDatabase", null);
         client.setClientId("requestingId");
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(recipient);
-        assertEquals(recipient.getClientId(), request.getClientId());
-        assertEquals(recipient.getClientId(), request.getRequestParameters().get(CLIENT_ID));
-        assertEquals(client.getClientId(), request.getRequestParameters().get(TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID));
-        assertEquals(StringUtils.commaDelimitedListToSet("requested.scope"), new TreeSet<>(request.getScope()));
-        assertEquals(StringUtils.commaDelimitedListToSet(recipient.getClientId()+",requested"), new TreeSet<>(request.getResourceIds()));
-        assertEquals("44000", request.getRequestParameters().get("expires_in"));
+        assertThat(request.getClientId()).isEqualTo(recipient.getClientId());
+        assertThat(request.getRequestParameters()).containsEntry(CLIENT_ID, recipient.getClientId())
+                .containsEntry(TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID, client.getClientId());
+        assertThat(new TreeSet<>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("requested.scope"));
+        assertThat(new TreeSet<>(request.getResourceIds())).isEqualTo(StringUtils.commaDelimitedListToSet(recipient.getClientId() + ",requested"));
+        assertThat(request.getRequestParameters()).containsEntry("expires_in", "44000");
     }
 
     @Test
-    void testFactoryProducesSomething() {
-        assertNotNull(factory.createAuthorizationRequest(parameters));
+    void factoryProducesSomething() {
+        assertThat(factory.createAuthorizationRequest(parameters)).isNotNull();
     }
 
-
     @Test
-    void testScopeIncludesAuthoritiesForUser() {
+    void scopeIncludesAuthoritiesForUser() {
         client.setScope(StringUtils.commaDelimitedListToSet("one,two,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("foo.bar"), new TreeSet<String>(request.getScope()));
+        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("foo.bar"));
         factory.validateParameters(request.getRequestParameters(), client);
     }
 
     @Test
-    void testWildcardScopesIncludesAuthoritiesForUser() {
+    void scopesIncludesAllowedAuthoritiesForUser() {
         when(mockSecurityContextAccessor.isUser()).thenReturn(true);
-        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection)AuthorityUtils.commaSeparatedStringToAuthorityList("space.1.developer,space.2.developer,space.1.admin"));
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection) AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid", "foo.bar"));
+        client.setScope(StringUtils.commaDelimitedListToSet("foo.bar,spam.baz,space.1.developer"));
+        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
+        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("foo.bar"));
+        factory.validateParameters(request.getRequestParameters(), client);
+    }
+
+    @Test
+    void wildcardScopesIncludesAuthoritiesForUser() {
+        when(mockSecurityContextAccessor.isUser()).thenReturn(true);
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection) AuthorityUtils.commaSeparatedStringToAuthorityList("space.1.developer,space.2.developer,space.1.admin"));
         client.setScope(StringUtils.commaDelimitedListToSet("space.*.developer"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("space.1.developer,space.2.developer"), new TreeSet<String>(request.getScope()));
+        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("space.1.developer,space.2.developer"));
         factory.validateParameters(request.getRequestParameters(), client);
     }
 
     @Test
-    void testOpenidScopeIncludeIsAResourceId() {
+    void wildcardScopesIncludesAllowedAuthoritiesForUser() {
+        when(mockSecurityContextAccessor.isUser()).thenReturn(true);
+        when(mockSecurityContextAccessor.getAuthorities()).thenReturn((Collection) AuthorityUtils.commaSeparatedStringToAuthorityList("space.1.developer,space.2.developer,space.1.admin"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid", "space.1.developer"));
+        client.setScope(StringUtils.commaDelimitedListToSet("space.*.developer"));
+        AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
+        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("space.1.developer"));
+        factory.validateParameters(request.getRequestParameters(), client);
+    }
+
+    @Test
+    void openidScopeIncludeIsAResourceId() {
         parameters.put("scope", "openid foo.bar");
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(Collections.singletonList("openid"));
+        IdentityZoneHolder.get().getConfig().getUserConfig().setAllowedGroups(Arrays.asList("openid", "foo.bar"));
         client.setScope(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet("openid,foo.bar"), new TreeSet<String>(request.getScope()));
-        assertEquals(StringUtils.commaDelimitedListToSet("openid,foo"), new TreeSet<String>(request.getResourceIds()));
+        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet("openid,foo.bar"));
+        assertThat(new TreeSet<String>(request.getResourceIds())).isEqualTo(StringUtils.commaDelimitedListToSet("openid,foo"));
     }
 
     @Test
-    void testEmptyScopeOkForClientWithNoScopes() {
+    void emptyScopeOkForClientWithNoScopes() {
         client.setScope(StringUtils.commaDelimitedListToSet("")); // empty
         AuthorizationRequest request = factory.createAuthorizationRequest(parameters);
-        assertEquals(StringUtils.commaDelimitedListToSet(""), new TreeSet<String>(request.getScope()));
+        assertThat(new TreeSet<String>(request.getScope())).isEqualTo(StringUtils.commaDelimitedListToSet(""));
     }
 
     @Test
-    void testEmptyScopeFailsClientWithScopes() {
+    void emptyScopeFailsClientWithScopes() {
         client.setScope(StringUtils.commaDelimitedListToSet("one,two")); // not empty
-        assertThrowsWithMessageThat(InvalidScopeException.class, () -> factory.createAuthorizationRequest(parameters), Matchers.containsString("[one, two] is invalid. This user is not allowed any of the requested scopes"));
+        assertThatThrownBy(() -> factory.createAuthorizationRequest(parameters))
+                .isInstanceOf(InvalidScopeException.class)
+                .hasMessageContaining("[one, two] is invalid. This user is not allowed any of the requested scopes");
     }
 
     @Test
-    void testScopesValid() {
-        parameters.put("scope","read");
-        factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write", "implicit", null));
+    void scopesValid() {
+        parameters.put("scope", "read");
+        factory.validateParameters(parameters, new UaaClientDetails("foo", null, "read,write", "implicit", null));
     }
 
     @Test
-    void testScopesValidWithWildcard() {
-        parameters.put("scope","read write space.1.developer space.2.developer");
-        factory.validateParameters(parameters, new BaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null));
+    void scopesValidWithWildcard() {
+        parameters.put("scope", "read write space.1.developer space.2.developer");
+        factory.validateParameters(parameters, new UaaClientDetails("foo", null, "read,write,space.*.developer", "implicit", null));
     }
 
     @Test
-    void testScopesInvValidWithWildcard() {
-        parameters.put("scope","read write space.1.developer space.2.developer space.1.admin");
-        assertThrowsWithMessageThat(InvalidScopeException.class,
-                () -> factory.validateParameters(parameters,
-                        new BaseClientDetails("foo", null, "read,write,space.*.developer", "implicit", null)),
-                Matchers.containsString("space.1.admin is invalid. Please use a valid scope name in the request"));
+    void scopesInvValidWithWildcard() {
+        parameters.put("scope", "read write space.1.developer space.2.developer space.1.admin");
+        assertThatThrownBy(() -> factory.validateParameters(parameters, new UaaClientDetails("foo", null, "read,write,space.*.developer", "implicit", null)))
+                .isInstanceOf(InvalidScopeException.class)
+                .hasMessageContaining("space.1.admin is invalid. Please use a valid scope name in the request");
     }
 
     @Test
-    void testScopesInvalid() {
+    void scopesInvalid() {
         parameters.put("scope", "admin");
-        assertThrowsWithMessageThat(InvalidScopeException.class,
-                () -> factory.validateParameters(parameters,
-                        new BaseClientDetails("foo", null, "read,write", "implicit", null)),
-                Matchers.containsString("admin is invalid. Please use a valid scope name in the request"));
+        assertThatThrownBy(() -> factory.validateParameters(parameters,
+                new UaaClientDetails("foo", null, "read,write", "implicit", null)))
+                .isInstanceOf(InvalidScopeException.class)
+                .hasMessageContaining("admin is invalid. Please use a valid scope name in the request");
     }
 
     @Test
-    void testWildcardIntersect1() {
+    void wildcardIntersect1() {
         Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer"));
-        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
+        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer", "space.2.developer", "space.1.admin", "space.3.operator"));
 
         Set<String> result = factory.intersectScopes(client, client, user);
-        assertEquals(2, result.size());
-        assertTrue(result.contains("space.1.developer"));
-        assertTrue(result.contains("space.2.developer"));
+        assertThat(result).hasSize(2)
+                .contains("space.1.developer")
+                .contains("space.2.developer");
     }
 
     @Test
-    void testWildcardIntersect2() {
+    void wildcardIntersect2() {
         Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer"));
         Set<String> requested = new HashSet<>(Collections.singletonList("space.1.developer"));
-        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
+        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer", "space.2.developer", "space.1.admin", "space.3.operator"));
 
         Set<String> result = factory.intersectScopes(requested, client, user);
-        assertEquals(1, result.size());
-        assertTrue(result.contains("space.1.developer"));
+        assertThat(result).hasSize(1)
+                .contains("space.1.developer");
     }
 
     @Test
-    void testWildcardIntersect3() {
+    void wildcardIntersect3() {
         Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer"));
         Set<String> requested = new HashSet<>(Collections.singletonList("space.*.admin"));
-        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
+        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer", "space.2.developer", "space.1.admin", "space.3.operator"));
 
         Set<String> result = factory.intersectScopes(requested, client, user);
-        assertEquals(0, result.size());
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void testWildcardIntersect4() {
-        Set<String> client = new HashSet<>(Arrays.asList("space.*.developer","space.*.admin"));
+    void wildcardIntersect4() {
+        Set<String> client = new HashSet<>(Arrays.asList("space.*.developer", "space.*.admin"));
         Set<String> requested = new HashSet<>(Collections.singletonList("space.*.admin"));
-        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
+        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer", "space.2.developer", "space.1.admin", "space.3.operator"));
 
         Set<String> result = factory.intersectScopes(requested, client, user);
-        assertEquals(1, result.size());
-        assertTrue(result.contains("space.1.admin"));
+        assertThat(result).hasSize(1)
+                .contains("space.1.admin");
     }
 
     @Test
-    void testWildcardIntersect5() {
-        Set<String> client = new HashSet<>(Arrays.asList("space.*.developer","space.*.admin", "space.3.operator"));
-        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
+    void wildcardIntersect5() {
+        Set<String> client = new HashSet<>(Arrays.asList("space.*.developer", "space.*.admin", "space.3.operator"));
+        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer", "space.2.developer", "space.1.admin", "space.3.operator"));
 
         Set<String> result = factory.intersectScopes(client, client, user);
-        assertEquals(4, result.size());
-        assertTrue(result.contains("space.1.admin"));
-        assertTrue(result.contains("space.3.operator"));
-        assertTrue(result.contains("space.1.developer"));
-        assertTrue(result.contains("space.2.developer"));
+        assertThat(result).hasSize(4)
+                .contains("space.1.admin")
+                .contains("space.3.operator")
+                .contains("space.1.developer")
+                .contains("space.2.developer");
     }
 
     @Test
-    void testWildcardIntersect6() {
+    void wildcardIntersect6() {
         Set<String> client = new HashSet<>(Collections.singletonList("space.*.developer,space.*.admin"));
         Set<String> requested = new HashSet<>(Collections.singletonList("space.*.admin"));
-        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer","space.2.developer","space.1.admin","space.3.operator"));
+        Set<String> user = new HashSet<>(Arrays.asList("space.1.developer", "space.2.developer", "space.1.admin", "space.3.operator"));
 
         Set<String> result = factory.intersectScopes(requested, client, user);
-        assertEquals(0, result.size());
+        assertThat(result).isEmpty();
     }
-
 }

@@ -4,12 +4,16 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.authentication.OAuth2AuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.extensions.PollutionPreventionExtension;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,18 +22,12 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.stream.Collectors;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(PollutionPreventionExtension.class)
 class DefaultSecurityContextAccessorTests {
@@ -51,7 +49,7 @@ class DefaultSecurityContextAccessorTests {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("client", "secret", UaaAuthority.ADMIN_AUTHORITIES));
 
-        assertFalse(defaultSecurityContextAccessor.isUser());
+        assertThat(defaultSecurityContextAccessor.isUser()).isFalse();
     }
 
     @Test
@@ -59,7 +57,7 @@ class DefaultSecurityContextAccessorTests {
         SecurityContextHolder.getContext().setAuthentication(
                 UaaAuthenticationTestFactory.getAuthentication("1234", "user", "user@test.org"));
 
-        assertTrue(defaultSecurityContextAccessor.isUser());
+        assertThat(defaultSecurityContextAccessor.isUser()).isTrue();
     }
 
     @Test
@@ -67,21 +65,21 @@ class DefaultSecurityContextAccessorTests {
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken("user", "password", UaaAuthority.ADMIN_AUTHORITIES));
 
-        assertTrue(defaultSecurityContextAccessor.isAdmin());
+        assertThat(defaultSecurityContextAccessor.isAdmin()).isTrue();
     }
 
     @Test
     void adminClientIsAdmin() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest("admin", null);
-        authorizationRequest.setScope(UaaAuthority.ADMIN_AUTHORITIES.stream().map(UaaAuthority::getAuthority).collect(Collectors.toList()));
+        authorizationRequest.setScope(UaaAuthority.ADMIN_AUTHORITIES.stream().map(UaaAuthority::getAuthority).toList());
         SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null));
 
-        assertTrue(defaultSecurityContextAccessor.isAdmin());
+        assertThat(defaultSecurityContextAccessor.isAdmin()).isTrue();
     }
 
     @Test
     void zoneAdminUserIsAdmin() {
-        BaseClientDetails client = new BaseClientDetails();
+        UaaClientDetails client = new UaaClientDetails();
         List<SimpleGrantedAuthority> authorities = new LinkedList<>();
         authorities.add(new SimpleGrantedAuthority("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         client.setAuthorities(authorities);
@@ -93,12 +91,12 @@ class DefaultSecurityContextAccessorTests {
         authorizationRequest.setResourceIdsAndAuthoritiesFromClientDetails(client);
         SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication));
 
-        assertTrue(defaultSecurityContextAccessor.isAdmin());
+        assertThat(defaultSecurityContextAccessor.isAdmin()).isTrue();
     }
 
     @Test
     void zoneAdminUserIsNotAdmin_BecauseOriginIsNotUaa() {
-        BaseClientDetails client = new BaseClientDetails();
+        UaaClientDetails client = new UaaClientDetails();
         List<SimpleGrantedAuthority> authorities = new LinkedList<>();
         authorities.add(new SimpleGrantedAuthority("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         client.setAuthorities(authorities);
@@ -110,7 +108,7 @@ class DefaultSecurityContextAccessorTests {
         authorizationRequest.setResourceIdsAndAuthoritiesFromClientDetails(client);
         SecurityContextHolder.getContext().setAuthentication(new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication));
 
-        assertFalse(defaultSecurityContextAccessor.isAdmin());
+        assertThat(defaultSecurityContextAccessor.isAdmin()).isFalse();
     }
 
     @Test
@@ -123,6 +121,6 @@ class DefaultSecurityContextAccessorTests {
         authentication.setDetails(new OAuth2AuthenticationDetails(request));
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
-        assertTrue(defaultSecurityContextAccessor.isAdmin());
+        assertThat(defaultSecurityContextAccessor.isAdmin()).isTrue();
     }
 }

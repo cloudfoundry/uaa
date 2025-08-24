@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,37 +13,33 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.ServerRunningExtension;
+import org.cloudfoundry.identity.uaa.oauth.client.test.OAuth2ContextConfiguration;
 import org.cloudfoundry.identity.uaa.util.LinkedMaskingMultiValueMap;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.http.RequestEntity;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
-public class PasswordIT {
+class PasswordIT {
 
-    @Rule
-    public ServerRunning serverRunning = ServerRunning.isRunning();
+    @RegisterExtension
+    private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
     @Value("${integration.test.base_url}")
     String baseUrl;
@@ -59,27 +56,28 @@ public class PasswordIT {
     }
 
     @Test
-    public void getClientCredentials() {
+    void getClientCredentials() {
         MultiValueMap<String, String> headers = new LinkedMaskingMultiValueMap<>();
         RestTemplate restTemplate = getPostTemplate(headers);
         RequestEntity requestEntity = getRequestEntity(headers,
-            "/oauth/token?client_id=client_with_bcrypt_prefix&client_secret=password&grant_type=client_credentials");
+                "/oauth/token?client_id=client_with_bcrypt_prefix&client_secret=password&grant_type=client_credentials");
         ResponseEntity<Void> responseEntity = restTemplate.exchange(requestEntity, Void.class);
 
-        assertEquals(responseEntity.getStatusCodeValue(), 200);
+        assertThat(responseEntity.getStatusCodeValue()).as("Status 200 expected").isEqualTo(200);
     }
 
     @Test
-    public void getClientCredentialsInvalid() {
+    void getClientCredentialsInvalid() {
         MultiValueMap<String, String> headers = new LinkedMaskingMultiValueMap<>();
         headers.add("Authorization", "Basic YWRtaW4lMDA6YWRtaW5zZWNyZXQ=");
         RestTemplate restTemplate = getPostTemplate(headers);
         RequestEntity requestEntity = getRequestEntity(headers,
-            "/oauth/token?grant_type=client_credentials");
+                "/oauth/token?grant_type=client_credentials");
         try {
             restTemplate.exchange(requestEntity, Void.class);
-        } catch( HttpClientErrorException ex) {
-            assertTrue(ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).get(0).contains("error_description=\"Bad credentials\""));
+        } catch (HttpClientErrorException ex) {
+            assertThat(ex.getStatusCode().value()).as("Status 401 expected, but received: " + ex.getStatusCode().value()
+                    + " with description " + ex.getResponseHeaders().get(HttpHeaders.WWW_AUTHENTICATE).getFirst()).isEqualTo(401);
             return;
         }
         fail("not expected");

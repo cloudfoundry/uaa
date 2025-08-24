@@ -15,21 +15,20 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.ArgumentMatchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class SocialClientUserDetailsSourceTests{
+public class SocialClientUserDetailsSourceTests {
 
     public static final String USER_ID = "user_id";
     public static final String EMAIL = "email";
@@ -48,10 +47,10 @@ public class SocialClientUserDetailsSourceTests{
 
     RestTemplate restTemplate;
     SocialClientUserDetailsSource source;
-    Map<String,String> map;
+    Map<String, String> map;
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         restTemplate = mock(RestTemplate.class);
         source = new SocialClientUserDetailsSource();
         source.setRestTemplate(restTemplate);
@@ -75,55 +74,57 @@ public class SocialClientUserDetailsSourceTests{
         map.put(USER_NAME, USER_NAME);
         map.put(LOGIN, LOGIN);
         map.put(SCREEN_NAME, SCREEN_NAME);
-        when(restTemplate.getForObject(anyString(), ArgumentMatchers.any())).thenReturn(map);
+        when(restTemplate.getForObject(anyString(), any())).thenReturn(map);
     }
 
     @Test
-    public void testGetPrincipalUsername() {
-        assertEquals(USERNAME, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
+    void getPrincipalUsername() {
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getUsername()).isEqualTo(USERNAME);
         map.remove(USERNAME);
-        assertEquals(EMAIL, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getUsername()).isEqualTo(EMAIL);
         source.setUserInfoUrl("twitter.com");
-        assertEquals(SCREEN_NAME, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getUsername()).isEqualTo(SCREEN_NAME);
         source.setUserInfoUrl("github.com");
-        assertEquals(LOGIN, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getUsername()).isEqualTo(LOGIN);
         source.setUserInfoUrl("run.pivotal.io");
-        assertEquals(USER_NAME, ((SocialClientUserDetails)source.getPrincipal()).getUsername());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getUsername()).isEqualTo(USER_NAME);
         map.remove(USER_NAME);
         map.remove(EMAIL);
-        assertEquals(ID, ((SocialClientUserDetails) source.getPrincipal()).getUsername());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getUsername()).isEqualTo(ID);
     }
 
     @Test
-    public void testGetPrincipalUserId() {
-        assertEquals(ID, ((SocialClientUserDetails)source.getPrincipal()).getExternalId());
+    void getPrincipalUserId() {
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getExternalId()).isEqualTo(ID);
         source.setUserInfoUrl("run.pivotal.io");
-        assertEquals(USER_ID, ((SocialClientUserDetails)source.getPrincipal()).getExternalId());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getExternalId()).isEqualTo(USER_ID);
     }
 
     @Test
-    public void testGetPrincipalFullname() {
-        assertEquals(NAME, ((SocialClientUserDetails)source.getPrincipal()).getFullName());
+    void getPrincipalFullname() {
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getFullName()).isEqualTo(NAME);
         map.remove(NAME);
-        assertEquals(FORMATTED_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getFullName()).isEqualTo(FORMATTED_NAME);
         map.remove(FORMATTED_NAME);
-        assertEquals(FULL_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getFullName()).isEqualTo(FULL_NAME);
         map.remove(FULL_NAME);
-        assertEquals(GIVEN_NAME + " " + FAMILY_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getFullName()).isEqualTo(GIVEN_NAME + " " + FAMILY_NAME);
         map.remove(GIVEN_NAME);
-        assertEquals(FIRST_NAME + " " + FAMILY_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getFullName()).isEqualTo(FIRST_NAME + " " + FAMILY_NAME);
         map.remove(FAMILY_NAME);
-        assertEquals(FIRST_NAME + " " + LAST_NAME, ((SocialClientUserDetails) source.getPrincipal()).getFullName());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getFullName()).isEqualTo(FIRST_NAME + " " + LAST_NAME);
         map.remove(FIRST_NAME);
         map.remove(LAST_NAME);
-        assertNull(((SocialClientUserDetails)source.getPrincipal()).getFullName());
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getFullName()).isNull();
+        when(restTemplate.getForObject(anyString(), any())).thenReturn(null);
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getFullName()).isNull();
     }
 
     @Test
-    public void testGetPrincipalFields() {
-        assertEquals(EMAIL, ((SocialClientUserDetails) source.getPrincipal()).getEmail());
-        assertEquals(USERNAME, source.getPrincipal().getName());
-        assertEquals(USERNAME, source.getPrincipal().getPrincipal());
-        assertEquals("N/A", source.getPrincipal().getCredentials());
+    void getPrincipalFields() {
+        assertThat(((SocialClientUserDetails) source.getPrincipal()).getEmail()).isEqualTo(EMAIL);
+        assertThat(source.getPrincipal().getName()).isEqualTo(USERNAME);
+        assertThat(source.getPrincipal().getPrincipal()).isEqualTo(USERNAME);
+        assertThat(source.getPrincipal().getCredentials()).isEqualTo("N/A");
     }
 }

@@ -4,15 +4,15 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import org.cloudfoundry.identity.uaa.test.JsonTranslation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.json.BasicJsonTester;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Field;
 
-import static org.cloudfoundry.identity.uaa.test.JsonMatcher.isJsonFile;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
+    private final BasicJsonTester json = new BasicJsonTester(getClass());
 
     @BeforeEach
     void setup() {
@@ -25,32 +25,29 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
     void defaultClaims() {
         OpenIdConfiguration defaultConfig = new OpenIdConfiguration("/uaa", "issuer");
 
-        assertEquals("issuer", defaultConfig.getIssuer());
-        assertEquals("/uaa/oauth/authorize", defaultConfig.getAuthUrl());
-        assertEquals("/uaa/oauth/token", defaultConfig.getTokenUrl());
-        assertArrayEquals(new String[]{"client_secret_basic", "client_secret_post"}, defaultConfig.getTokenAMR());
-        assertArrayEquals(new String[]{"RS256", "HS256"}, defaultConfig.getTokenEndpointAuthSigningValues());
-        assertEquals("/uaa/userinfo", defaultConfig.getUserInfoUrl());
-        assertEquals("/uaa/token_keys", defaultConfig.getJwksUri());
-        assertEquals("/uaa/logout.do", defaultConfig.getLogoutEndpoint());
-        assertArrayEquals(new String[]{"openid", "profile", "email", "phone", "roles", "user_attributes"}, defaultConfig.getScopes());
-        assertArrayEquals(new String[]{"code", "code id_token", "id_token", "token id_token"}, defaultConfig.getResponseTypes());
-        assertArrayEquals(new String[]{"public"}, defaultConfig.getSubjectTypesSupported());
-        assertArrayEquals(new String[]{"RS256", "HS256"}, defaultConfig.getIdTokenSigningAlgValues());
-        assertArrayEquals(new String[]{"none"}, defaultConfig.getRequestObjectSigningAlgValues());
-        assertArrayEquals(new String[]{"normal"}, defaultConfig.getClaimTypesSupported());
-        assertArrayEquals(
-                new String[]{
-                        "sub", "user_name", "origin", "iss", "auth_time",
-                        "amr", "acr", "client_id", "aud", "zid", "grant_type",
-                        "user_id", "azp", "scope", "exp", "iat", "jti", "rev_sig",
-                        "cid", "given_name", "family_name", "phone_number", "email"},
-                defaultConfig.getClaimsSupported()
-        );
-        assertFalse(defaultConfig.isClaimsParameterSupported());
-        assertEquals("http://docs.cloudfoundry.org/api/uaa/", defaultConfig.getServiceDocumentation());
-        assertArrayEquals(new String[]{"en-US"}, defaultConfig.getUiLocalesSupported());
-        assertArrayEquals(new String[]{"S256", "plain"}, defaultConfig.getCodeChallengeMethodsSupported());
+        assertThat(defaultConfig.getIssuer()).isEqualTo("issuer");
+        assertThat(defaultConfig.getAuthUrl()).isEqualTo("/uaa/oauth/authorize");
+        assertThat(defaultConfig.getTokenUrl()).isEqualTo("/uaa/oauth/token");
+        assertThat(defaultConfig.getTokenAMR()).containsExactly(new String[]{"client_secret_basic", "client_secret_post", "private_key_jwt"});
+        assertThat(defaultConfig.getTokenEndpointAuthSigningValues()).containsExactly(new String[]{"RS256", "HS256"});
+        assertThat(defaultConfig.getUserInfoUrl()).isEqualTo("/uaa/userinfo");
+        assertThat(defaultConfig.getJwksUri()).isEqualTo("/uaa/token_keys");
+        assertThat(defaultConfig.getLogoutEndpoint()).isEqualTo("/uaa/logout.do");
+        assertThat(defaultConfig.getScopes()).containsExactly(new String[]{"openid", "profile", "email", "phone", "roles", "user_attributes"});
+        assertThat(defaultConfig.getResponseTypes()).containsExactly(new String[]{"code", "code id_token", "id_token", "token id_token"});
+        assertThat(defaultConfig.getSubjectTypesSupported()).containsExactly(new String[]{"public"});
+        assertThat(defaultConfig.getIdTokenSigningAlgValues()).containsExactly(new String[]{"RS256", "HS256"});
+        assertThat(defaultConfig.getRequestObjectSigningAlgValues()).containsExactly(new String[]{"none"});
+        assertThat(defaultConfig.getClaimTypesSupported()).containsExactly(new String[]{"normal"});
+        assertThat(defaultConfig.getClaimsSupported()).containsExactly(new String[]{
+                "sub", "user_name", "origin", "iss", "auth_time",
+                "amr", "acr", "client_id", "aud", "zid", "grant_type",
+                "user_id", "azp", "scope", "exp", "iat", "jti", "rev_sig",
+                "cid", "given_name", "family_name", "phone_number", "email"});
+        assertThat(defaultConfig.isClaimsParameterSupported()).isFalse();
+        assertThat(defaultConfig.getServiceDocumentation()).isEqualTo("http://docs.cloudfoundry.org/api/uaa/");
+        assertThat(defaultConfig.getUiLocalesSupported()).containsExactly(new String[]{"en-US"});
+        assertThat(defaultConfig.getCodeChallengeMethodsSupported()).containsExactly(new String[]{"S256", "plain"});
     }
 
     @Test
@@ -64,10 +61,9 @@ class OpenIdConfigurationTests extends JsonTranslation<OpenIdConfiguration> {
             }
             ReflectionTestUtils.setField(openIdConfiguration, field.getName(), null);
         }
+        getObjectMapper().writeValueAsString(openIdConfiguration);
 
-        String actual = getObjectMapper().writeValueAsString(openIdConfiguration);
-
-        assertThat(actual, isJsonFile(this.getClass(), "OpenIdConfiguration-nulls.json"));
-
+        assertThat(json.from("OpenIdConfiguration-nulls.json", this.getClass()))
+                .hasEmptyJsonPathValue("issuer");
     }
 }

@@ -1,32 +1,28 @@
 package org.cloudfoundry.identity.uaa.integration;
 
-import org.apache.http.impl.client.BasicCookieStore;
-import org.apache.http.impl.cookie.BasicClientCookie;
-import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.apache.hc.client5.http.cookie.BasicCookieStore;
+import org.cloudfoundry.identity.uaa.ServerRunningExtension;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.integration.feature.DefaultIntegrationTestConfig;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.AuthorizationCodeResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.client.resource.ClientCredentialsResourceDetails;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.DefaultUserAuthenticationConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
+import org.cloudfoundry.identity.uaa.test.TestAccountExtension;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.token.DefaultUserAuthenticationConverter;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
@@ -36,29 +32,27 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getHeaders;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
-import static org.junit.Assert.*;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
-public class IntrospectEndpointIntegrationTests {
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
+class IntrospectEndpointIntegrationTests {
+    @RegisterExtension
+    private static final ServerRunningExtension serverRunning = ServerRunningExtension.connect();
 
-    @Rule
-    public ServerRunning serverRunning = ServerRunning.isRunning();
+    private static final UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
 
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(serverRunning);
-
-    @Rule
-    public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
+    @RegisterExtension
+    private static final TestAccountExtension testAccountExtension = TestAccountExtension.standard(serverRunning, testAccounts);
 
     @Value("${integration.test.base_url}")
     String baseUrl;
 
     @Test
-    public void testDecodeToken() {
+    void decodeToken() {
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
         BasicCookieStore cookies = new BasicCookieStore();
 
@@ -66,28 +60,17 @@ public class IntrospectEndpointIntegrationTests {
                 .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
                 .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
         ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), getHeaders(cookies));
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
         String location = result.getHeaders().getLocation().toString();
-
-        if (result.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
-            }
-        }
+        IntegrationTestUtils.extractCookies(result, cookies);
 
         ResponseEntity<String> response = serverRunning.getForString(location, getHeaders(cookies));
+        IntegrationTestUtils.extractCookies(response, cookies);
 
-        if (response.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : response.getHeaders().get("Set-Cookie")) {
-                int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
-            }
-        }
         // should be directed to the login screen...
-        assertTrue(response.getBody().contains("/login.do"));
-        assertTrue(response.getBody().contains("username"));
-        assertTrue(response.getBody().contains("password"));
+        assertThat(response.getBody()).contains("/login.do")
+                .contains("username")
+                .contains("password");
         String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -97,39 +80,28 @@ public class IntrospectEndpointIntegrationTests {
 
         // Should be redirected to the original URL, but now authenticated
         result = serverRunning.postForResponse("/login.do", getHeaders(cookies), formData);
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
-
-        if (result.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
-            }
-        }
+        assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
+        IntegrationTestUtils.extractCookies(result, cookies);
 
         response = serverRunning.getForString(result.getHeaders().getLocation().toString(), getHeaders(cookies));
-        if (response.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : response.getHeaders().get("Set-Cookie")) {
-                int nameLength = cookie.indexOf('=');
-                cookies.addCookie(new BasicClientCookie(cookie.substring(0, nameLength), cookie.substring(nameLength + 1)));
-            }
-        }
+        IntegrationTestUtils.extractCookies(response, cookies);
+
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
-            assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
+            assertThat(response.getBody()).contains("<h1>Application Authorization</h1>");
 
             formData.clear();
             formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             formData.add(USER_OAUTH_APPROVAL, "true");
             result = serverRunning.postForResponse("/oauth/authorize", getHeaders(cookies), formData);
-            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = result.getHeaders().getLocation().toString();
         } else {
             // Token cached so no need for second approval
-            assertEquals(HttpStatus.FOUND, response.getStatusCode());
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FOUND);
             location = response.getHeaders().getLocation().toString();
         }
-        assertTrue("Wrong location: " + location,
-                location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
+        assertThat(location).as("Wrong location: " + location).matches(resource.getPreEstablishedRedirectUri() + ".*code=.+");
 
         formData.clear();
         formData.add("client_id", resource.getClientId());
@@ -141,7 +113,7 @@ public class IntrospectEndpointIntegrationTests {
                 testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
         OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(introspectResponse.getBody());
@@ -153,21 +125,21 @@ public class IntrospectEndpointIntegrationTests {
         formData.add("token", accessToken.getValue());
 
         introspectResponse = serverRunning.postForMap("/introspect", formData, headers);
-        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
-        assertNotNull(map.get("iss"));
-        assertEquals(testAccounts.getUserName(), map.get("user_name"));
-        assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        Map<String, Object> map = introspectResponse.getBody();
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail())
+                .containsEntry("active", Boolean.TRUE);
 
         // Test that Spring's default converter can create an auth from the response.
-        Authentication auth = (new DefaultUserAuthenticationConverter()).extractAuthentication(map);
+        (new DefaultUserAuthenticationConverter()).extractAuthentication(map);
     }
 
     @Test
-    public void testUnauthorized() {
+    void unauthorized() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
@@ -175,15 +147,15 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/introspect", formData, headers);
-        assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
-        assertTrue(map.containsKey("error"));
+        assertThat(map).containsKey("error");
     }
 
     @Test
-    public void testForbidden() {
+    void forbidden() {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("token", "FOO");
         HttpHeaders headers = new HttpHeaders();
@@ -192,15 +164,15 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/introspect", formData, headers);
-        assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = response.getBody();
-        assertTrue(map.containsKey("error"));
+        assertThat(map).containsKey("error");
     }
 
     @Test
-    public void testTokenWithoutAppResourceAuthority() {
+    void tokenWithoutAppResourceAuthority() {
         OAuth2AccessToken accessToken = getAdminToken();
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -213,11 +185,11 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.FORBIDDEN, introspectResponse.getStatusCode());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
-    public void testValidPasswordGrant_ClientSecretAuth() {
+    void validPasswordGrantClientSecretAuth() {
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader("app", "appclientsecret"));
 
@@ -227,20 +199,43 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
-        assertNotNull(introspectResponse.getBody());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(introspectResponse.getBody()).isNotNull();
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
-        assertNotNull(map.get("iss"));
-        assertEquals(testAccounts.getUserName(), map.get("user_name"));
-        assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        Map<String, Object> map = introspectResponse.getBody();
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
+        assertThat((Boolean) map.get("active")).isEqualTo(Boolean.valueOf(true));
     }
 
     @Test
-    public void testValidPasswordGrant_ClientTokenAuth() {
+    void validPasswordGrantClientSecretAuthWithSpecialCharacters() {
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        tokenHeaders.set("Authorization", testAccounts.getAuthorizationHeader("appspecial", "appclient|secret!"));
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        String userAccessToken = getUserToken(null);
+        formData.add("token", userAccessToken);
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(introspectResponse.getBody()).isNotNull();
+        System.out.println(introspectResponse.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> map = introspectResponse.getBody();
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
+        assertThat((Boolean) map.get("active")).isEqualTo(Boolean.valueOf(true));
+    }
+
+    @Test
+    void validPasswordGrantClientTokenAuth() {
         HttpHeaders tokenHeaders = new HttpHeaders();
         final String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "app", "appclientsecret");
         tokenHeaders.set("Authorization", "Bearer " + clientCredentialsToken);
@@ -251,20 +246,44 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
-        assertNotNull(introspectResponse.getBody());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(introspectResponse.getBody()).isNotNull();
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
-        assertNotNull(map.get("iss"));
-        assertEquals(testAccounts.getUserName(), map.get("user_name"));
-        assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        Map<String, Object> map = introspectResponse.getBody();
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
+        assertThat((Boolean) map.get("active")).isEqualTo(Boolean.valueOf(true));
     }
 
     @Test
-    public void testValidPasswordGrant_ValidClientTokenAndInvalidBasicAuth() {
+    void validPasswordGrantClientTokenAuthWithSpecialCharacters() {
+        HttpHeaders tokenHeaders = new HttpHeaders();
+        final String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "appspecial", "appclient|secret!");
+        tokenHeaders.set("Authorization", "Bearer " + clientCredentialsToken);
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        String userAccessToken = getUserToken(null);
+        formData.add("token", userAccessToken);
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(introspectResponse.getBody()).isNotNull();
+        System.out.println(introspectResponse.getBody());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> map = introspectResponse.getBody();
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
+        assertThat((Boolean) map.get("active")).isEqualTo(Boolean.valueOf(true));
+    }
+
+    @Test
+    void validPasswordGrantValidClientTokenAndInvalidBasicAuth() {
         HttpHeaders tokenHeaders = new HttpHeaders();
         final String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "app", "appclientsecret");
         tokenHeaders.add("Authorization", "Bearer " + clientCredentialsToken);
@@ -276,20 +295,20 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
-        assertNotNull(introspectResponse.getBody());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(introspectResponse.getBody()).isNotNull();
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
-        assertNotNull(map.get("iss"));
-        assertEquals(testAccounts.getUserName(), map.get("user_name"));
-        assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        Map<String, Object> map = introspectResponse.getBody();
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
+        assertThat((Boolean) map.get("active")).isEqualTo(Boolean.valueOf(true));
     }
 
     @Test
-    public void testValidPasswordGrant_InValidClientTokenAndValidBasicAuth() {
+    void validPasswordGrantInValidClientTokenAndValidBasicAuth() {
         HttpHeaders tokenHeaders = new HttpHeaders();
         tokenHeaders.set("Authorization", "Bearer not-a-real-client-token");
         tokenHeaders.add("Authorization", testAccounts.getAuthorizationHeader("app", "appclientsecret"));
@@ -300,11 +319,11 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.UNAUTHORIZED, introspectResponse.getStatusCode());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
     }
 
     @Test
-    public void testValidPasswordGrant_ValidClientTokenWithoutAppResourceAndValidBasicAuth() {
+    void validPasswordGrantValidClientTokenWithoutAppResourceAndValidBasicAuth() {
         HttpHeaders tokenHeaders = new HttpHeaders();
         final String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "notifications", "notificationssecret");
         tokenHeaders.add("Authorization", "Bearer " + clientCredentialsToken);
@@ -316,14 +335,14 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.FORBIDDEN, introspectResponse.getStatusCode());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
-    public void testValidPasswordGrant_RequiresClientCredentialsToken() {
+    void validPasswordGrantRequiresClientCredentialsToken() {
         final String adminClientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning, "admin", "adminsecret");
 
-        BaseClientDetails clientDetails = new BaseClientDetails();
+        UaaClientDetails clientDetails = new UaaClientDetails();
         clientDetails.setClientId("clientIdWithUaaResourceScope");
         clientDetails.setClientSecret("secret");
         clientDetails.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
@@ -364,11 +383,11 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.FORBIDDEN, introspectResponse.getStatusCode());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
     }
 
     @Test
-    public void testAddidionalAttributes() {
+    void addidionalAttributes() {
         String accessToken = getUserToken("{\"az_attr\":{\"external_group\":\"domain\\\\group1\",\"external_id\":\"abcd1234\"}}");
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -380,20 +399,20 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
-        assertNotNull(introspectResponse.getBody());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(introspectResponse.getBody()).isNotNull();
         System.out.println(introspectResponse.getBody());
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
-        assertNotNull(map.get("iss"));
-        assertEquals(testAccounts.getUserName(), map.get("user_name"));
-        assertEquals(testAccounts.getEmail(), map.get("email"));
-        assertEquals(true, map.get("active"));
+        Map<String, Object> map = introspectResponse.getBody();
+        assertThat(map).containsKey("iss")
+                .containsEntry("user_name", testAccounts.getUserName())
+                .containsEntry("email", testAccounts.getEmail());
+        assertThat((Boolean) map.get("active")).isEqualTo(Boolean.valueOf(true));
     }
 
     @Test
-    public void testInvalidAddidionalAttributes() {
+    void invalidAddidionalAttributes() {
         String accessToken = getUserToken("{\"az_attr\":{\"external_group\":true,\"external_id\":{\"nested_group\":true,\"nested_id\":1234}} }");
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
@@ -405,12 +424,12 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> introspectResponse = serverRunning.postForMap("/introspect", formData, tokenHeaders);
-        assertEquals(HttpStatus.OK, introspectResponse.getStatusCode());
+        assertThat(introspectResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         @SuppressWarnings("unchecked")
-        Map<String, String> map = introspectResponse.getBody();
-        assertNull(map.get("az_attr"));
-        assertEquals(true, map.get("active"));
+        Map<String, Object> map = introspectResponse.getBody();
+        assertThat(map).doesNotContainKey("az_attr")
+                .containsEntry("active", true);
     }
 
     @SuppressWarnings("unchecked")
@@ -426,7 +445,7 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         return DefaultOAuth2AccessToken.valueOf(response.getBody());
     }
@@ -449,7 +468,7 @@ public class IntrospectEndpointIntegrationTests {
 
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap("/oauth/token", formData, headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 
         return DefaultOAuth2AccessToken.valueOf(response.getBody()).getValue();
     }

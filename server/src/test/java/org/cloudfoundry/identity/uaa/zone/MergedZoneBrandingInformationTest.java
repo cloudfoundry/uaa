@@ -4,9 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.cloudfoundry.identity.uaa.test.ModelTestUtils.getResourceAsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 
 class MergedZoneBrandingInformationTest {
 
@@ -39,7 +38,7 @@ class MergedZoneBrandingInformationTest {
         IdentityZoneHolder.get().getConfig().setBranding(zoneBranding);
 
         BrandingInformationSource brandingInformationSource = MergedZoneBrandingInformation.resolveBranding();
-        assertEquals(brandingInformationSource.getProductLogo(), zoneBranding.getProductLogo());
+        assertThat(zoneBranding.getProductLogo()).isEqualTo(brandingInformationSource.getProductLogo());
     }
 
     @Test
@@ -49,7 +48,7 @@ class MergedZoneBrandingInformationTest {
         IdentityZoneHolder.get().getConfig().setBranding(new BrandingInformation());
 
         BrandingInformationSource brandingInformationSource = MergedZoneBrandingInformation.resolveBranding();
-        assertNull(brandingInformationSource.getProductLogo());
+        assertThat(brandingInformationSource.getProductLogo()).isNull();
     }
 
     @Test
@@ -57,6 +56,6 @@ class MergedZoneBrandingInformationTest {
         IdentityZoneHolder.set(fakeUaa);
 
         BrandingInformationSource brandingInformationSource = MergedZoneBrandingInformation.resolveBranding();
-        assertEquals(brandingInformationSource.getProductLogo(), defaultZoneBranding.getProductLogo());
+        assertThat(defaultZoneBranding.getProductLogo()).isEqualTo(brandingInformationSource.getProductLogo());
     }
 }

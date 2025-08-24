@@ -1,12 +1,15 @@
 package org.cloudfoundry.identity.statsd.integration;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.ArgumentsProvider;
-import org.junit.jupiter.params.provider.ArgumentsSource;
-import org.springframework.http.*;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
@@ -18,20 +21,22 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.*;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_PASSWORD;
+import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.TEST_USERNAME;
+import static org.cloudfoundry.identity.statsd.integration.IntegrationTestUtils.UAA_BASE_URL;
 
 class UaaMetricsEmitterIT {
-    private static final int WAIT_FOR_MESSAGE = 5500;
+    private static final long WAIT_FOR_MESSAGE = TimeUnit.MILLISECONDS.toNanos(5500);
     private static DatagramSocket serverSocket;
     private static byte[] receiveData;
     private static DatagramPacket receivePacket;
     private static Map<String, String> firstBatch;
 
-    private static List<String> METRIC_FRAGMENTS = Arrays.asList(
+    private static final List<String> METRIC_FRAGMENTS = Arrays.asList(
             "uaa.audit_service.user_authentication_count",
             "uaa.audit_service.principal_not_found_count",
             "uaa.audit_service.client_authentication_failure_count",
@@ -90,31 +95,27 @@ class UaaMetricsEmitterIT {
         secondBatch = getMessages(METRIC_FRAGMENTS);
     }
 
-    static class MetricFragmentArguments implements ArgumentsProvider {
-
-        @Override
-        public Stream<? extends Arguments> provideArguments(ExtensionContext context) {
-            return METRIC_FRAGMENTS.stream().map(Arguments::of);
-        }
+    public static Stream<Arguments> parameters() {
+        return METRIC_FRAGMENTS.stream().map(Arguments::of);
     }
 
     @ParameterizedTest(name = "{index}: fragment[{0}]")
-    @ArgumentsSource(MetricFragmentArguments.class)
+    @MethodSource("parameters")
     void assertGenericMetrics(String statsDKey) {
         String data1 = firstBatch.get(statsDKey);
         String data2 = secondBatch.get(statsDKey);
 
-        assertNotNull("Expected to find message for:'" + statsDKey + "' in the first batch.", data1);
+        assertThat(data1).as("Expected to find message for:'" + statsDKey + "' in the first batch.").isNotNull();
         long first = IntegrationTestUtils.getStatsDValueFromMessage(data1);
-        assertThat(statsDKey + " first value must have a positive value.", first, greaterThanOrEqualTo(0L));
+        assertThat(first).as(statsDKey + " first value must have a positive value.").isNotNegative();
 
-        assertNotNull("Expected to find message for:'" + statsDKey + "' in the second batch.", data2);
+        assertThat(data2).as("Expected to find message for:'" + statsDKey + "' in the second batch.").isNotNull();
         long second = IntegrationTestUtils.getStatsDValueFromMessage(data2);
-        assertThat(statsDKey + " second value must have a positive value.", second, greaterThanOrEqualTo(0L));
+        assertThat(second).as(statsDKey + " second value must have a positive value.").isNotNegative();
     }
 
     private static Map<String, String> getMessages(List<String> fragments) throws IOException {
-        long startTime = System.currentTimeMillis();
+        long startTime = System.nanoTime();
         Map<String, String> results = new HashMap<>();
         do {
             receiveData = new byte[65535];
@@ -130,7 +131,7 @@ class UaaMetricsEmitterIT {
             } catch (SocketTimeoutException e) {
                 //expected so that we keep looping
             }
-        } while (results.size() < fragments.size() && (System.currentTimeMillis() < (startTime + UaaMetricsEmitterIT.WAIT_FOR_MESSAGE)));
+        } while (results.size() < fragments.size() && (System.nanoTime() < (startTime + UaaMetricsEmitterIT.WAIT_FOR_MESSAGE)));
         return results;
     }
 
@@ -144,11 +145,7 @@ class UaaMetricsEmitterIT {
                 new HttpEntity<>(null, headers),
                 String.class);
 
-        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
-            }
-        }
+        IntegrationTestUtils.copyCookies(loginResponse, headers);
         String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
 
         LinkedMultiValueMap<String, String> body = new LinkedMultiValueMap<>();
@@ -159,7 +156,7 @@ class UaaMetricsEmitterIT {
                 HttpMethod.POST,
                 new HttpEntity<>(body, headers),
                 String.class);
-        assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
+        assertThat(loginResponse.getStatusCode()).isEqualTo(HttpStatus.FOUND);
     }
 
     private static void performSimpleGet() {

@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.authentication.manager.LoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.AuthenticationResponse;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -14,15 +16,13 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,16 +39,16 @@ public class RemoteAuthenticationEndpoint {
 
     public RemoteAuthenticationEndpoint(
             final @Qualifier("zoneAwareAuthzAuthenticationManager") AuthenticationManager authenticationManager,
-            final @Qualifier("loginAuthenticationMgr") AuthenticationManager loginAuthenticationManager) {
+            LoginAuthenticationManager loginAuthenticationManager) {
         this.authenticationManager = authenticationManager;
         this.loginAuthenticationManager = loginAuthenticationManager;
     }
 
-    @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST)
+    @PostMapping({"/authenticate"})
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                                                           @RequestParam(value = "username") String username,
-                                                           @RequestParam(value = "password") String password) {
+            @RequestParam String username,
+            @RequestParam String password) {
         AuthenticationResponse response = new AuthenticationResponse();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
@@ -77,12 +77,12 @@ public class RemoteAuthenticationEndpoint {
         return new ResponseEntity<>(response, status);
     }
 
-    @RequestMapping(value = {"/authenticate"}, method = RequestMethod.POST, params = {"source", "origin", UaaAuthenticationDetails.ADD_NEW})
+    @PostMapping(value = {"/authenticate"}, params = {"source", "origin", UaaAuthenticationDetails.ADD_NEW})
     @ResponseBody
     public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
-                                                           @RequestParam(value = "username") String username,
-                                                           @RequestParam(value = OriginKeys.ORIGIN) String origin,
-                                                           @RequestParam(value = "email", required = false) String email) {
+            @RequestParam String username,
+            @RequestParam(value = OriginKeys.ORIGIN) String origin,
+            @RequestParam(required = false) String email) {
         AuthenticationResponse response = new AuthenticationResponse();
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 

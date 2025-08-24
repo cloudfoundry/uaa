@@ -3,26 +3,26 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidRequestException;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceValidationService;
 import org.cloudfoundry.identity.uaa.oauth.pkce.PkceVerifier;
 import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.PlainPkceVerifier;
 import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.approval.DefaultUserApprovalHandler;
+import org.cloudfoundry.identity.uaa.oauth.provider.code.AuthorizationCodeServices;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeToken;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.oauth2.common.exceptions.InvalidRequestException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.approval.DefaultUserApprovalHandler;
-import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
@@ -35,19 +35,15 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_IMPLICIT;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.instanceOf;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-public class UaaAuthorizationEndpointTest {
+class UaaAuthorizationEndpointTest {
 
     private OAuth2RequestFactory oAuth2RequestFactory;
     private UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
@@ -56,19 +52,19 @@ public class UaaAuthorizationEndpointTest {
     private OpenIdSessionStateCalculator openIdSessionStateCalculator;
     private PkceValidationService pkceValidationService;
 
-    private HashMap<String, Object> model = new HashMap<>();
-    private SimpleSessionStatus sessionStatus = new SimpleSessionStatus();
-    private UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken("foo", "bar", Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")));
+    private final HashMap<String, Object> model = new HashMap<>();
+    private final SimpleSessionStatus sessionStatus = new SimpleSessionStatus();
+    private final UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken("foo", "bar", Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")));
 
-    @Before
-    public void setup() {
+    @BeforeEach
+    void setup() {
         oAuth2RequestFactory = mock(OAuth2RequestFactory.class);
         authorizationCodeServices = mock(AuthorizationCodeServices.class);
         openIdSessionStateCalculator = mock(OpenIdSessionStateCalculator.class);
 
         PlainPkceVerifier plainPkceVerifier = new PlainPkceVerifier();
         S256PkceVerifier s256PkceVerifier = new S256PkceVerifier();
-        Map<String,PkceVerifier> pkceVerifiers = new HashMap<String,PkceVerifier>();
+        Map<String, PkceVerifier> pkceVerifiers = new HashMap<>();
         pkceVerifiers.put(plainPkceVerifier.getCodeChallengeMethod(), plainPkceVerifier);
         pkceVerifiers.put(s256PkceVerifier.getCodeChallengeMethod(), s256PkceVerifier);
         pkceValidationService = new PkceValidationService(pkceVerifiers);
@@ -79,11 +75,11 @@ public class UaaAuthorizationEndpointTest {
                 null,
                 authorizationCodeServices,
                 null,
-                openIdSessionStateCalculator,
                 oAuth2RequestFactory,
                 null,
                 null,
                 pkceValidationService);
+        uaaAuthorizationEndpoint.setOpenIdSessionStateCalculator(openIdSessionStateCalculator);
         responseTypes = new HashSet<>();
 
         when(openIdSessionStateCalculator.calculate("userid", null, "http://example.com")).thenReturn("opbshash");
@@ -91,57 +87,57 @@ public class UaaAuthorizationEndpointTest {
     }
 
     @Test
-    public void testGetGrantType_id_token_only_is_implicit() {
+    void getGrantTypeIdTokenOnlyIsImplicit() {
         responseTypes.add("id_token");
-        assertEquals(GRANT_TYPE_IMPLICIT, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
+        assertThat(uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes)).isEqualTo(GRANT_TYPE_IMPLICIT);
     }
 
     @Test
-    public void testGetGrantType_token_as_response_is_implcit() {
+    void getGrantTypeTokenAsResponseIsImplcit() {
         responseTypes.add("token");
-        assertEquals(GRANT_TYPE_IMPLICIT, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
+        assertThat(uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes)).isEqualTo(GRANT_TYPE_IMPLICIT);
     }
 
     @Test
-    public void testGetGrantType_code_is_auth_code() {
+    void getGrantTypeCodeIsAuthCode() {
         responseTypes.add("code");
-        assertEquals(GRANT_TYPE_AUTHORIZATION_CODE, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
+        assertThat(uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes)).isEqualTo(GRANT_TYPE_AUTHORIZATION_CODE);
     }
 
     @Test
-    public void testGetGrantType_code_and_token_is_implicit() {
+    void getGrantTypeCodeAndTokenIsImplicit() {
         responseTypes.add("code");
         responseTypes.add("token");
-        assertEquals(GRANT_TYPE_IMPLICIT, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
+        assertThat(uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes)).isEqualTo(GRANT_TYPE_IMPLICIT);
     }
 
     @Test
-    public void testGetGrantType_id_token_and_token_is_implicit() {
-        responseTypes.add("id_token");
-        responseTypes.add("token");
-        assertEquals(GRANT_TYPE_IMPLICIT, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
-    }
-
-    @Test
-    public void testGetGrantType_code_and_id_token_is_authorization_code() {
-        responseTypes.add("code");
-        responseTypes.add("id_token");
-        assertEquals(GRANT_TYPE_AUTHORIZATION_CODE, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
-    }
-
-    @Test
-    public void testGetGrantType_code_id_token_and_token_is_implicit() {
-        responseTypes.add("code");
+    void getGrantTypeIdTokenAndTokenIsImplicit() {
         responseTypes.add("id_token");
         responseTypes.add("token");
-        assertEquals(GRANT_TYPE_IMPLICIT, uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes));
+        assertThat(uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes)).isEqualTo(GRANT_TYPE_IMPLICIT);
     }
 
     @Test
-    public void testBuildRedirectURI_doesNotIncludeSessionStateWhenNotPromptNone() {
+    void getGrantTypeCodeAndIdTokenIsAuthorizationCode() {
+        responseTypes.add("code");
+        responseTypes.add("id_token");
+        assertThat(uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes)).isEqualTo(GRANT_TYPE_AUTHORIZATION_CODE);
+    }
+
+    @Test
+    void getGrantTypeCodeIdTokenAndTokenIsImplicit() {
+        responseTypes.add("code");
+        responseTypes.add("id_token");
+        responseTypes.add("token");
+        assertThat(uaaAuthorizationEndpoint.deriveGrantTypeFromResponseType(responseTypes)).isEqualTo(GRANT_TYPE_IMPLICIT);
+    }
+
+    @Test
+    void buildRedirectURIDoesNotIncludeSessionStateWhenNotPromptNone() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest();
         authorizationRequest.setRedirectUri("http://example.com/somepath");
-        authorizationRequest.setResponseTypes(new HashSet<String>() {
+        authorizationRequest.setResponseTypes(new HashSet<>() {
             {
                 add("code");
                 add("token");
@@ -161,21 +157,21 @@ public class UaaAuthorizationEndpointTest {
 
         String result = uaaAuthorizationEndpoint.buildRedirectURI(authorizationRequest, accessToken, authUser);
 
-        assertThat(result, containsString("http://example.com/somepath#"));
-        assertThat(result, containsString("token_type=bearer"));
-        assertThat(result, containsString("access_token=TOKEN_VALUE+%3D"));
-        assertThat(result, containsString("id_token=idTokenValue"));
-        assertThat(result, containsString("code=ABCD"));
-        assertThat(result, containsString("state=California"));
-        assertThat(result, containsString("expires_in="));
-        assertThat(result, containsString("scope=null"));
+        assertThat(result).contains("http://example.com/somepath#")
+                .contains("token_type=bearer")
+                .contains("access_token=TOKEN_VALUE+%3D")
+                .contains("id_token=idTokenValue")
+                .contains("code=ABCD")
+                .contains("state=California")
+                .contains("expires_in=")
+                .contains("scope=null");
     }
 
     @Test
-    public void buildRedirectURI_includesSessionStateForPromptEqualsNone() {
+    void buildRedirectURI_includesSessionStateForPromptEqualsNone() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest();
         authorizationRequest.setRedirectUri("http://example.com/somepath");
-        authorizationRequest.setRequestParameters(new HashMap<String, String>() {
+        authorizationRequest.setRequestParameters(new HashMap<>() {
             {
                 put("prompt", "none");
             }
@@ -188,11 +184,11 @@ public class UaaAuthorizationEndpointTest {
 
         String result = uaaAuthorizationEndpoint.buildRedirectURI(authorizationRequest, accessToken, authUser);
 
-        assertThat(result, containsString("session_state=opbshash"));
+        assertThat(result).contains("session_state=opbshash");
     }
 
     @Test
-    public void approveUnmodifiedRequest() {
+    void approveUnmodifiedRequest() {
         AuthorizationRequest authorizationRequest = getAuthorizationRequest("foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
         model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
@@ -203,119 +199,117 @@ public class UaaAuthorizationEndpointTest {
         when(authorizationCodeServices.createAuthorizationCode(any(OAuth2Authentication.class))).thenReturn("code");
 
         View view = uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
-        assertThat(view, notNullValue());
-        assertThat(view, instanceOf(RedirectView.class));
-        assertThat(((RedirectView) view).getUrl(), not(containsString("error=invalid_scope")));
+        assertThat(view).isInstanceOf(RedirectView.class);
+        assertThat(((RedirectView) view).getUrl()).doesNotContain("error=invalid_scope");
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testApproveWithModifiedScope() {
+    @Test
+    void approveWithModifiedScope() {
         AuthorizationRequest authorizationRequest = getAuthorizationRequest(
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
         model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-
-        authorizationRequest.setScope(Arrays.asList("read", "write"));        // Modify authorization request
+        authorizationRequest.setScope(Arrays.asList("read", "write"));
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-
-        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testApproveWithModifiedClientId() {
+    @Test
+    void approveWithModifiedClientId() {
         AuthorizationRequest authorizationRequest = getAuthorizationRequest(
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
         model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setClientId("bar");        // Modify authorization request
+        authorizationRequest.setClientId("bar");
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-
-        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testApproveWithModifiedState() {
+    @Test
+    void approveWithModifiedState() {
         AuthorizationRequest authorizationRequest = getAuthorizationRequest(
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
         model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setState("state-5678");        // Modify authorization request
+        authorizationRequest.setState("state-5678");
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-
-        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testApproveWithModifiedRedirectUri() {
+    @Test
+    void approveWithModifiedRedirectUri() {
         AuthorizationRequest authorizationRequest = getAuthorizationRequest(
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
         model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setRedirectUri("http://somewhere.com");        // Modify authorization request
+        authorizationRequest.setRedirectUri("http://somewhere.com");
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-
-        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testApproveWithModifiedResponseTypes() {
+    @Test
+    void approveWithModifiedResponseTypes() {
         AuthorizationRequest authorizationRequest = getAuthorizationRequest(
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
         model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setResponseTypes(Collections.singleton("implicit"));        // Modify authorization request
+        authorizationRequest.setResponseTypes(Collections.singleton("implicit"));
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-
-        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testApproveWithModifiedApproved() {
+    @Test
+    void approveWithModifiedApproved() {
         AuthorizationRequest authorizationRequest = getAuthorizationRequest(
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         authorizationRequest.setApproved(false);
         model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
         model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setApproved(true);        // Modify authorization request
+        authorizationRequest.setApproved(true);
         Map<String, String> approvalParameters = new HashMap<>();
         approvalParameters.put("user_oauth_approval", "true");
-
-        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
-    }
-
-    @Test(expected = InvalidRequestException.class)
-    public void testApproveWithModifiedResourceIds() {
-        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
-                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
-        model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
-        model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setResourceIds(Collections.singleton("resource-other"));        // Modify authorization request
-        Map<String, String> approvalParameters = new HashMap<>();
-        approvalParameters.put("user_oauth_approval", "true");
-
-        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
-    }
-
-    @Test(expected = InvalidRequestException.class)
-    public void testApproveWithModifiedAuthorities() {
-        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
-                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
-        model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
-        model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
-        authorizationRequest.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("authority-other"));        // Modify authorization request
-        Map<String, String> approvalParameters = new HashMap<>();
-        approvalParameters.put("user_oauth_approval", "true");
-
-        uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
     }
 
     @Test
-    public void testApproveWithModifiedApprovalParameters() {
+    void approveWithModifiedResourceIds() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
+        model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setResourceIds(Collections.singleton("resource-other"));
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+    }
+
+    @Test
+    void approveWithModifiedAuthorities() {
+        AuthorizationRequest authorizationRequest = getAuthorizationRequest(
+                "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
+        model.put(UaaAuthorizationEndpoint.AUTHORIZATION_REQUEST, authorizationRequest);
+        model.put(UaaAuthorizationEndpoint.ORIGINAL_AUTHORIZATION_REQUEST, uaaAuthorizationEndpoint.unmodifiableMap(authorizationRequest));
+        authorizationRequest.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("authority-other"));
+        Map<String, String> approvalParameters = new HashMap<>();
+        approvalParameters.put("user_oauth_approval", "true");
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal));
+    }
+
+    @Test
+    void approveWithModifiedApprovalParameters() {
         AuthorizationRequest authorizationRequest = getAuthorizationRequest(
                 "foo", "http://anywhere.com", "state-1234", "read", Collections.singleton("code"));
         authorizationRequest.setApproved(false);
@@ -328,37 +322,48 @@ public class UaaAuthorizationEndpointTest {
 
         View view = uaaAuthorizationEndpoint.approveOrDeny(approvalParameters, model, sessionStatus, principal);
 
-        assertThat(view, instanceOf(RedirectView.class));
-        assertThat(((RedirectView) view).getUrl(), containsString("error=invalid_scope"));
+        assertThat(view).isInstanceOf(RedirectView.class);
+        assertThat(((RedirectView) view).getUrl()).contains("error=invalid_scope");
     }
 
-    @Test(expected = InvalidRequestException.class)
-    public void testShortCodeChallengeParameter() throws Exception {
-    	Map<String, String> parameters = new HashMap<String, String>();
-    	parameters.put(PkceValidationService.CODE_CHALLENGE, "ShortCodeChallenge");
-    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+    @Test
+    void shortCodeChallengeParameter() {
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put(PkceValidationService.CODE_CHALLENGE, "ShortCodeChallenge");
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters));
     }
-    
-    @Test(expected = InvalidRequestException.class)
-    public void testLongCodeChallengeParameter() throws Exception {
-    	Map<String, String> parameters = new HashMap<String, String>();
-    	parameters.put(PkceValidationService.CODE_CHALLENGE, "LongCodeChallenge12346574382823193700987654321326352173528351287635126532123452534234254323254325325325432342532532254325432532532");
-    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+
+    @Test
+    void longCodeChallengeParameter() {
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put(PkceValidationService.CODE_CHALLENGE, "LongCodeChallenge12346574382823193700987654321326352173528351287635126532123452534234254323254325325325432342532532254325432532532");
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters));
     }
-    
-    @Test(expected = InvalidRequestException.class)
-    public void testForbiddenCodeChallengeParameter() throws Exception {
-    	Map<String, String> parameters = new HashMap<String, String>();
-    	parameters.put(PkceValidationService.CODE_CHALLENGE, "#ForbiddenCodeChallenge098765445647544743211234657438282319370#");
-    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+
+    @Test
+    void forbiddenCodeChallengeParameter() {
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put(PkceValidationService.CODE_CHALLENGE, "#ForbiddenCodeChallenge098765445647544743211234657438282319370#");
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters));
     }
-    
-    @Test(expected = InvalidRequestException.class)
-    public void testUnsupportedCodeChallengeMethodParameter() throws Exception {
-    	Map<String, String> parameters = new HashMap<String, String>();
-    	parameters.put(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE);
-    	parameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, "unsupportedMethod");
-    	uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters);
+
+    @Test
+    void unsupportedCodeChallengeMethodParameter() {
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put(PkceValidationService.CODE_CHALLENGE, UaaTestAccounts.CODE_CHALLENGE);
+        parameters.put(PkceValidationService.CODE_CHALLENGE_METHOD, "unsupportedMethod");
+        assertThatExceptionOfType(InvalidRequestException.class).isThrownBy(() ->
+                uaaAuthorizationEndpoint.validateAuthorizationRequestPkceParameters(parameters));
+    }
+
+    @Test
+    void newSetters() {
+        uaaAuthorizationEndpoint.setUserApprovalHandler(new DefaultUserApprovalHandler());
+        uaaAuthorizationEndpoint.setOAuth2RequestValidator(new UaaOauth2RequestValidator());
+        assertThat(uaaAuthorizationEndpoint).isNotNull();
     }
 
     private AuthorizationRequest getAuthorizationRequest(String clientId, String redirectUri, String state,
@@ -377,8 +382,7 @@ public class UaaAuthorizationEndpointTest {
         if (responseTypes != null) {
             parameters.put(OAuth2Utils.RESPONSE_TYPE, OAuth2Utils.formatParameterList(responseTypes));
         }
-        return new AuthorizationRequest(parameters, Collections.emptyMap(),
-                parameters.get(OAuth2Utils.CLIENT_ID),
+        return new AuthorizationRequest(parameters, parameters.get(OAuth2Utils.CLIENT_ID),
                 OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.SCOPE)), null, null, false,
                 parameters.get(OAuth2Utils.STATE), parameters.get(OAuth2Utils.REDIRECT_URI),
                 OAuth2Utils.parseParameterList(parameters.get(OAuth2Utils.RESPONSE_TYPE)));

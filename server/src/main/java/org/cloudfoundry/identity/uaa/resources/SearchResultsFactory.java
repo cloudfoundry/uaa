@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -28,76 +29,76 @@ import java.util.Map;
 
 public class SearchResultsFactory {
     public static <T> SearchResults<Map<String, Object>> cropAndBuildSearchResultFrom(
-        List<T> input,
-        int startIndex,
-        int count,
-        int total,
-        String[] attributes,
-        List<String> schemas)  {
+            List<T> input,
+            int startIndex,
+            int count,
+            int total,
+            String[] attributes,
+            List<String> schemas) {
 
         if (startIndex <= 0) {
             //must start with 1
             startIndex = 1;
         }
-        if ( (startIndex -1) >= input.size() ) {
+        if ((startIndex - 1) >= input.size()) {
             //start index is past the last result
             count = 0;
         }
-        if ( ((startIndex-1)+count) >= input.size()) {
+        if (((startIndex - 1) + count) >= input.size()) {
             //we're past the last result
             count = input.size() - (startIndex - 1);
         }
         count = Math.max(count, 0);
-        input = count>0 ? input.subList(startIndex-1, startIndex-1+count) : Collections.emptyList();
+        input = count > 0 ? input.subList(startIndex - 1, startIndex - 1 + count) : Collections.emptyList();
 
         return buildSearchResultFrom(
-            input,
-            startIndex,
-            count,
-            total,
-            attributes,
-            new SimpleAttributeNameMapper(Collections.emptyMap()),
-            schemas);
+                input,
+                startIndex,
+                count,
+                total,
+                attributes,
+                new SimpleAttributeNameMapper(Collections.emptyMap()),
+                schemas);
 
     }
 
 
     public static <T> SearchResults<Map<String, Object>> buildSearchResultFrom(
-        List<T> input,
-        int startIndex,
-        int count,
-        int total,
-        String[] attributes,
-        List<String> schemas)  {
+            List<T> input,
+            int startIndex,
+            int count,
+            int total,
+            String[] attributes,
+            List<String> schemas) {
 
         return buildSearchResultFrom(
-            input,
-            startIndex,
-            count,
-            total,
-            attributes,
-            new SimpleAttributeNameMapper(Collections.emptyMap()),
-            schemas);
+                input,
+                startIndex,
+                count,
+                total,
+                attributes,
+                new SimpleAttributeNameMapper(Collections.emptyMap()),
+                schemas);
 
     }
 
     public static <T> SearchResults<Map<String, Object>> buildSearchResultFrom(
-        List<T> input,
-        int startIndex,
-        int count,
-        int total,
-        String[] attributes,
-        AttributeNameMapper mapper,
-        List<String> schemas) {
+            List<T> input,
+            int startIndex,
+            int count,
+            int total,
+            String[] attributes,
+            AttributeNameMapper mapper,
+            List<String> schemas) {
 
         Assert.state(input.size() <= count,
-                        "Cannot build search results from parent list. Use subList before you call this method.");
+                "Cannot build search results from parent list. Use subList before you call this method.");
 
         Map<String, JsonPath> jsonPaths = Arrays.stream(attributes)
-            .collect(new MapCollector<>(attribute -> attribute, attribute -> {
-                String jsonPath = "$." + mapper.mapToInternal(attribute);
-                return JsonPath.compile(jsonPath);
-            }));
+                .collect(new MapCollector<>(attribute -> attribute, attribute -> {
+                    String jsonPath = "$." + mapper.mapToInternal(attribute);
+                    return JsonPath.compile(jsonPath);
+                }));
 
         Collection<Map<String, Object>> results = new ArrayList<>();
         for (T object : input) {

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -14,7 +15,6 @@ package org.cloudfoundry.identity.uaa.approval;
 
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.cloudfoundry.identity.uaa.approval.Approval;
 
 public class DescribedApproval extends Approval {
     private String description;
@@ -24,12 +24,12 @@ public class DescribedApproval extends Approval {
 
     public DescribedApproval(Approval approval) {
         this
-            .setLastUpdatedAt(approval.getLastUpdatedAt())
-            .setUserId(approval.getUserId())
-            .setStatus(approval.getStatus())
-            .setExpiresAt(approval.getExpiresAt())
-            .setScope(approval.getScope())
-            .setClientId(approval.getClientId());
+                .setLastUpdatedAt(approval.getLastUpdatedAt())
+                .setUserId(approval.getUserId())
+                .setStatus(approval.getStatus())
+                .setExpiresAt(approval.getExpiresAt())
+                .setScope(approval.getScope())
+                .setClientId(approval.getClientId());
     }
 
     @JsonIgnore

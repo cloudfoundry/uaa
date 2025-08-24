@@ -15,36 +15,36 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.common.DefaultOAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Request;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2RequestFactory;
+import org.cloudfoundry.identity.uaa.oauth.provider.TokenRequest;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AbstractTokenGranter;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.AuthorizationServerTokenServices;
 import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.TokenRequest;
-import org.springframework.security.oauth2.provider.token.AbstractTokenGranter;
-import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils.CLIENT_ID;
 
-public class UserTokenGranter  extends AbstractTokenGranter {
+public class UserTokenGranter extends AbstractTokenGranter {
 
-    private MultitenantClientServices clientDetailsService;
-    private RevocableTokenProvisioning tokenStore;
+    private final MultitenantClientServices clientDetailsService;
+    private final RevocableTokenProvisioning tokenStore;
 
     public UserTokenGranter(AuthorizationServerTokenServices tokenServices,
-                            MultitenantClientServices clientDetailsService,
-                            OAuth2RequestFactory requestFactory,
-                            RevocableTokenProvisioning tokenStore) {
+            MultitenantClientServices clientDetailsService,
+            OAuth2RequestFactory requestFactory,
+            RevocableTokenProvisioning tokenStore) {
         super(tokenServices, clientDetailsService, requestFactory, TokenConstants.GRANT_TYPE_USER_TOKEN);
         this.clientDetailsService = clientDetailsService;
         this.tokenStore = tokenStore;
@@ -55,10 +55,10 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         //swap the client ID for the recipient
         //so that the rest of the flow continues as normal
         TokenRequest adjusted = new TokenRequest(
-            tokenRequest.getRequestParameters(),
-            tokenRequest.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID),
-            tokenRequest.getScope(),
-            tokenRequest.getGrantType()
+                tokenRequest.getRequestParameters(),
+                tokenRequest.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID),
+                tokenRequest.getScope(),
+                tokenRequest.getGrantType()
         );
         return super.grant(grantType, adjusted);
     }
@@ -73,16 +73,16 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         //1. Authentication must exist and be authenticated
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !authentication.isAuthenticated() || !(authentication instanceof UaaOauth2Authentication)) {
-            throw new InsufficientAuthenticationException("Invalid authentication object:"+authentication);
+            throw new InsufficientAuthenticationException("Invalid authentication object:" + authentication);
         }
-        UaaOauth2Authentication oauth2Authentication = (UaaOauth2Authentication)authentication;
+        UaaOauth2Authentication oauth2Authentication = (UaaOauth2Authentication) authentication;
         //2. authentication must be a user, and authenticated
         if (oauth2Authentication.getUserAuthentication() == null || !oauth2Authentication.getUserAuthentication().isAuthenticated()) {
             throw new InsufficientAuthenticationException("Authentication containing a user is required");
         }
         //3. parameter requesting_client_id must be present
-        if (request.getRequestParameters()==null || request.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID)==null) {
-            throw new InvalidGrantException("Parameter "+USER_TOKEN_REQUESTING_CLIENT_ID+" is required.");
+        if (request.getRequestParameters() == null || request.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID) == null) {
+            throw new InvalidGrantException("Parameter " + USER_TOKEN_REQUESTING_CLIENT_ID + " is required.");
         }
         //4. grant_type must be user_token
         if (!TokenConstants.GRANT_TYPE_USER_TOKEN.equals(request.getGrantType())) {

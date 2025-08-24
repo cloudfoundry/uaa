@@ -12,4 +12,4 @@
 --
 
 -- add zone id to the groups table
-ALTER TABLE groups ADD COLUMN description varchar(255);
+ALTER TABLE `groups` ADD COLUMN description varchar(255);

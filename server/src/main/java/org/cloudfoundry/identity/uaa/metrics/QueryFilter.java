@@ -28,8 +28,8 @@ public class QueryFilter extends SlowQueryReport {
 
     protected void report(String query, long start, long delta) {
         RequestMetric metric = MetricsAccessor.getCurrent();
-        if (metric!=null) {
-            metric.addQuery(new QueryMetric(query, start, delta, delta>getThreshold()));
+        if (metric != null) {
+            metric.addQuery(new QueryMetric(query, start, delta, delta > getThreshold()));
         }
     }
 
@@ -42,7 +42,7 @@ public class QueryFilter extends SlowQueryReport {
 
     @Override
     protected String reportFailedQuery(String query, Object[] args,
-                                       String name, long start, Throwable t) {
+            String name, long start, Throwable t) {
         String sql = super.reportFailedQuery(query, args, name, start, t);
         long delta = timeService.getCurrentTimeMillis() - start;
         report(sql, start, delta);
@@ -51,7 +51,7 @@ public class QueryFilter extends SlowQueryReport {
 
     @Override
     protected String reportQuery(String query, Object[] args,
-                                 String name, long start, long delta) {
+            String name, long start, long delta) {
         String sql = super.reportQuery(query, args, name, start, delta);
         report(sql, start, delta);
         return sql;
@@ -59,7 +59,7 @@ public class QueryFilter extends SlowQueryReport {
 
     @Override
     protected String reportSlowQuery(String query, Object[] args,
-                                     String name, long start, long delta) {
+            String name, long start, long delta) {
         return reportQuery(query, args, name, start, delta);
     }
 

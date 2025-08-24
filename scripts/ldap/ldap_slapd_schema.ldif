@@ -1,0 +1,67 @@
+dn: cn=module,cn=config
+objectclass: olcModuleList
+cn: module
+
+# Create an in memory directory database
+dn: olcDatabase={1}mdb,cn=config
+objectClass: olcDatabaseConfig
+objectClass: olcMdbConfig
+olcDatabase: {1}mdb
+olcDbDirectory: /var/lib/ldap
+olcSuffix: dc=test,dc=com
+olcDbMaxSize: 1073741824
+olcLastMod: TRUE
+olcMaxDerefDepth: 15
+olcRootDN: cn=admin,dc=test,dc=com
+olcRootPW: {SSHA}bycWaE1yKM3DpXpxrx3UAdbxWAk0pcm4
+# Indices in database to speed up searches
+olcDbIndex: uid pres,eq
+olcDbIndex: cn,sn,mail pres,eq,approx,sub
+olcDbIndex: objectClass eq
+# Allow users to change their own password
+# Allow anonymous to authenticate against the password
+# Allow admin to change any password
+olcAccess: to attrs=userPassword
+  by self write
+  by anonymous auth
+  by dn.base="cn=admin,dc=test,dc=com" write
+  by dn.base="cn=admin,ou=Users,dc=test,dc=com" read
+  by * none
+# Allow users to change their own record
+# Allow anyone to read directory
+olcAccess: to *
+  by self write
+  by dn.base="cn=admin,dc=test,dc=com" write
+  by * read
+
+dn: cn=uaaschema,cn=schema,cn=config
+changetype: add
+objectClass: olcSchemaConfig
+cn: uaaschema
+olcAttributeTypes: (
+  1.3.6.1.4.1.35015.1.2.4
+  NAME 'costCenter'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+ )
+olcAttributeTypes: (
+  1.3.6.1.4.1.35015.1.2.5
+  NAME 'uaaManager'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+ )
+olcAttributeTypes: (
+  1.3.6.1.4.1.35015.1.2.6
+  NAME 'memberOf'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+ )
+olcAttributeTypes: (
+  1.3.6.1.4.1.35015.1.2.7
+  NAME 'emailVerified'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+ )
+olcObjectClasses: (
+  1.3.6.1.4.1.35015.1.2.8
+  NAME 'customUaaUser'
+  SUP top
+  AUXILIARY
+  MUST (uaaManager $ costCenter $ emailVerified $ memberOf)
+ )

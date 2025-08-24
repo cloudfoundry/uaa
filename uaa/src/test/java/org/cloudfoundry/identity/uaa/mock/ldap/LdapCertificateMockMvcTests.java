@@ -13,7 +13,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.FileSystemUtils;
 import org.springframework.web.context.WebApplicationContext;
@@ -32,13 +32,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DefaultTestContext
 @ExtendWith(InMemoryLdapServer.LdapTrustStoreExtension.class)
 class LdapCertificateMockMvcTests {
-    private static final int LDAP_VALID_LDAP_PORT = 33390;
-    private static final int LDAP_EXPIRED_LDAP_PORT = LDAP_VALID_LDAP_PORT + 1;
-    private static final int LDAP_VALID_LDAPS_PORT = 33637;
-    private static final int LDAP_EXPIRED_LDAPS_PORT = LDAP_VALID_LDAPS_PORT + 1;
-
-    private static File LDAP_ROOT_DIRECTORY_EXPIRED;
-    private static File LDAP_ROOT_DIRECTORY_VALID;
+    private static File ldapRootDirectoryExpired;
+    private static File ldapRootDirectoryValid;
     private static InMemoryLdapServer validLdapCertServer;
     private static InMemoryLdapServer expiredLdapCertServer;
     private MockMvcUtils.IdentityZoneCreationResult trustedCertZone;
@@ -51,23 +46,23 @@ class LdapCertificateMockMvcTests {
     @BeforeAll
     static void startLdapsServers() {
         ClassLoader classLoader = LdapCertificateMockMvcTests.class.getClassLoader();
-        
+
         File expiredKeystore = new File(classLoader.getResource("certs/expired-self-signed-ldap-cert.jks").getFile());
         File validKeystore = new File(classLoader.getResource("certs/valid-self-signed-ldap-cert.jks").getFile());
         RandomValueStringGenerator generator = new RandomValueStringGenerator();
-        LDAP_ROOT_DIRECTORY_VALID = new File(System.getProperty("java.io.tmpdir"), generator.generate());
-        LDAP_ROOT_DIRECTORY_EXPIRED = new File(System.getProperty("java.io.tmpdir"), generator.generate());
+        ldapRootDirectoryValid = new File(System.getProperty("java.io.tmpdir"), generator.generate());
+        ldapRootDirectoryExpired = new File(System.getProperty("java.io.tmpdir"), generator.generate());
 
-        validLdapCertServer = InMemoryLdapServer.startLdapWithTls(LDAP_VALID_LDAP_PORT, LDAP_VALID_LDAPS_PORT, validKeystore);
-        expiredLdapCertServer = InMemoryLdapServer.startLdapWithTls(LDAP_EXPIRED_LDAP_PORT, LDAP_EXPIRED_LDAPS_PORT, expiredKeystore);
+        validLdapCertServer = InMemoryLdapServer.startLdapWithTls(validKeystore);
+        expiredLdapCertServer = InMemoryLdapServer.startLdapWithTls(expiredKeystore);
     }
 
     @AfterAll
     static void stopLdapsServers() {
         validLdapCertServer.stop();
         expiredLdapCertServer.stop();
-        FileSystemUtils.deleteRecursively(LDAP_ROOT_DIRECTORY_VALID);
-        FileSystemUtils.deleteRecursively(LDAP_ROOT_DIRECTORY_EXPIRED);
+        FileSystemUtils.deleteRecursively(ldapRootDirectoryValid);
+        FileSystemUtils.deleteRecursively(ldapRootDirectoryExpired);
     }
 
     @BeforeEach
@@ -81,7 +76,7 @@ class LdapCertificateMockMvcTests {
                 null, IdentityZoneHolder.getCurrentZoneId());
 
         LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
-                validLdapCertServer.getLdapSBaseUrl(),
+                validLdapCertServer.getUrl(),
                 "cn=admin,ou=Users,dc=test,dc=com",
                 "adminsecret",
                 "dc=test,dc=com",
@@ -103,7 +98,7 @@ class LdapCertificateMockMvcTests {
                 mockMvc,
                 webApplicationContext,
                 null, IdentityZoneHolder.getCurrentZoneId());
-        definition.setBaseUrl(expiredLdapCertServer.getLdapSBaseUrl());
+        definition.setBaseUrl(expiredLdapCertServer.getUrl());
         MockMvcUtils.createIdentityProvider(mockMvc, trustedButExpiredCertZone, OriginKeys.LDAP, definition);
     }
 

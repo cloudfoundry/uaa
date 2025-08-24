@@ -2,18 +2,17 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.client.UaaClientDetails;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.provider.AuthorizationRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.InMemoryMultitenantClientServices;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.ui.ModelMap;
 import org.springframework.web.bind.support.SimpleSessionStatus;
 
@@ -23,10 +22,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.hamcrest.Matchers.hasEntry;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -34,12 +30,12 @@ import static org.mockito.Mockito.when;
 class AccessControllerTests {
 
     private AccessController controller;
-    private BaseClientDetails client;
+    private UaaClientDetails client;
     private ScimGroupProvisioning mockScimGroupProvisioning;
 
     @BeforeEach
     void setUp() {
-        client = new BaseClientDetails();
+        client = new UaaClientDetails();
         InMemoryMultitenantClientServices clientDetailsService = new InMemoryMultitenantClientServices(null);
         clientDetailsService.setClientDetailsStore(IdentityZoneHolder.get().getId(), Collections.singletonMap("client-id", client));
 
@@ -48,16 +44,16 @@ class AccessControllerTests {
     }
 
     @Test
-    void testSunnyDay() {
+    void sunnyDay() {
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
         String result = controller.confirm(new ModelMap(), new MockHttpServletRequest(), auth,
                 new SimpleSessionStatus());
-        assertEquals("access_confirmation", result);
+        assertThat(result).isEqualTo("access_confirmation");
     }
 
     @SuppressWarnings("unchecked")
     @Test
-    void testSchemePreserved() {
+    void schemePreserved() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("https");
         request.addHeader("Host", "foo");
@@ -66,12 +62,12 @@ class AccessControllerTests {
         Authentication auth = UaaAuthenticationTestFactory.getAuthentication("foo@bar.com", "Foo Bar", "foo@bar.com");
         controller.confirm(model, request, auth, new SimpleSessionStatus());
         Map<String, Object> options = (Map<String, Object>) ((Map<String, Object>) model.get("options")).get("confirm");
-        assertEquals("https://foo/oauth/authorize", options.get("location"));
-        assertEquals("/oauth/authorize", options.get("path"));
+        assertThat(options).containsEntry("location", "https://foo/oauth/authorize")
+                .containsEntry("path", "/oauth/authorize");
     }
 
     @Test
-    void testClientDisplayName() {
+    void clientDisplayName() {
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "The Client Name");
 
 
@@ -82,7 +78,7 @@ class AccessControllerTests {
 
         controller.confirm(model, new MockHttpServletRequest(), auth, new SimpleSessionStatus());
 
-        assertEquals("The Client Name", model.get("client_display_name"));
+        assertThat(model).containsEntry("client_display_name", "The Client Name");
     }
 
     @Test
@@ -113,7 +109,7 @@ class AccessControllerTests {
 
         controller.confirm(model, new MockHttpServletRequest(), auth, new SimpleSessionStatus());
         List<Map<String, String>> undecidedScopeDetails = (List<Map<String, String>>) model.get("undecided_scopes");
-        assertThat(undecidedScopeDetails, not(Matchers.hasItem(hasEntry("text", "resource.scope1"))));
-        assertThat(undecidedScopeDetails, not(Matchers.hasItem(hasEntry("text", "resource.scope2"))));
+        assertThat(undecidedScopeDetails).noneSatisfy(e -> assertThat(e).containsEntry("text", "resource.scope1"))
+                .noneSatisfy(e -> assertThat(e).containsEntry("text", "resource.scope2"));
     }
 }

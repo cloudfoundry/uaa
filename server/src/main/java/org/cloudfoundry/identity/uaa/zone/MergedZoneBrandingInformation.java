@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 import static java.util.Optional.ofNullable;
 
-public class MergedZoneBrandingInformation implements BrandingInformationSource {
+public final class MergedZoneBrandingInformation implements BrandingInformationSource {
 
     private MergedZoneBrandingInformation() {
 
@@ -31,6 +31,14 @@ public class MergedZoneBrandingInformation implements BrandingInformationSource 
     @Override
     public String getProductLogo() {
         return tryGet(IdentityZoneHolder.get(), BrandingInformationSource::getProductLogo).orElse(null);
+    }
+
+    public String getInlinedBase64PngLogo() {
+        String logo = getProductLogo();
+        if (logo != null) {
+            logo = "data:image/png;base64," + logo;
+        }
+        return logo;
     }
 
     @Override

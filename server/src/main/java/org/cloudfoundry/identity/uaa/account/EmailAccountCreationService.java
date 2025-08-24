@@ -1,38 +1,45 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.MergedZoneBrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.MultitenantClientServices;
 import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.thymeleaf.context.Context;
-import org.thymeleaf.spring5.SpringTemplateEngine;
+import org.thymeleaf.spring6.SpringTemplateEngine;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
+@Service
 public class EmailAccountCreationService implements AccountCreationService {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
@@ -48,7 +55,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final IdentityZoneManager identityZoneManager;
 
     public EmailAccountCreationService(
-            SpringTemplateEngine templateEngine,
+            @Qualifier("mailTemplateEngine") SpringTemplateEngine templateEngine,
             MessageService messageService,
             ExpiringCodeStore codeStore,
             ScimUserProvisioning scimUserProvisioning,
@@ -75,11 +82,11 @@ public class EmailAccountCreationService implements AccountCreationService {
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
         } catch (ScimResourceAlreadyExistsException e) {
             List<ScimUser> users = scimUserProvisioning.retrieveByUsernameAndOriginAndZone(email, OriginKeys.UAA, identityZoneManager.getCurrentIdentityZoneId());
-            if (users.size() > 0) {
-                if (users.get(0).isVerified()) {
+            if (!users.isEmpty()) {
+                if (users.getFirst().isVerified()) {
                     throw new UaaException("User already active.", HttpStatus.CONFLICT.value());
                 } else {
-                    generateAndSendCode(email, clientId, subject, users.get(0).getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
+                    generateAndSendCode(email, clientId, subject, users.getFirst().getId(), redirectUri, identityZoneManager.getCurrentIdentityZone());
                 }
             }
         }
@@ -138,7 +145,7 @@ public class EmailAccountCreationService implements AccountCreationService {
                     return matchingRedirectUri;
                 }
             } catch (NoSuchClientException nsce) {
-                logger.debug(String.format("Unable to find client with ID:%s for account activation redirect", clientId), nsce);
+                logger.debug("Unable to find client with ID:%s for account activation redirect".formatted(clientId), nsce);
             }
         }
 
@@ -175,7 +182,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         String companyName = MergedZoneBrandingInformation.resolveBranding().getCompanyName();
         boolean addBranding = StringUtils.hasText(companyName) && identityZoneManager.isCurrentZoneUaa();
         if (addBranding) {
-            return String.format("Activate your %s account", companyName);
+            return "Activate your %s account".formatted(companyName);
         } else {
             return "Activate your account";
         }

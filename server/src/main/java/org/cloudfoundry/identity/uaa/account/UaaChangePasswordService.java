@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -27,6 +28,7 @@ import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
@@ -34,6 +36,7 @@ import java.util.List;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
+@Service
 public class UaaChangePasswordService implements ChangePasswordService, ApplicationEventPublisherAware {
 
     private final ScimUserProvisioning scimUserProvisioning;
@@ -55,7 +58,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
         if (results.isEmpty()) {
             throw new ScimResourceNotFoundException("User not found");
         }
-        ScimUser user = results.get(0);
+        ScimUser user = results.getFirst();
         UaaUser uaaUser = getUaaUser(user);
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         try {
@@ -73,10 +76,10 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
     private UaaUser getUaaUser(ScimUser scimUser) {
         Date today = new Date();
         return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", scimUser.getPrimaryEmail(), null,
-            scimUser.getGivenName(),
-            scimUser.getFamilyName(), today, today,
-            scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
-            scimUser.getPasswordLastModified());
+                scimUser.getGivenName(),
+                scimUser.getFamilyName(), today, today,
+                scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
+                scimUser.getPasswordLastModified());
     }
 
     @Override
@@ -85,7 +88,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
     }
 
     protected void publish(ApplicationEvent event) {
-        if (publisher!=null) {
+        if (publisher != null) {
             publisher.publishEvent(event);
         }
     }

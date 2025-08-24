@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneEndpoints;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -16,14 +18,16 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.validation.AbstractBindingResult;
 import org.springframework.web.context.WebApplicationContext;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.MatcherAssert.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @DefaultTestContext
 public class TestZonifyGroupSchema_V2_4_1 {
@@ -37,9 +41,9 @@ public class TestZonifyGroupSchema_V2_4_1 {
 
         RandomValueStringGenerator generator = new RandomValueStringGenerator(16);
 
-        Map<IdentityZone,List<ScimGroup>> zones = new HashMap<>();
+        Map<IdentityZone, List<ScimGroup>> zones = new HashMap<>();
 
-        for (int i=0; i<ENTITY_COUNT; i++) {
+        for (int i = 0; i < ENTITY_COUNT; i++) {
             String subdomain = generator.generate();
             IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
             webApplicationContext.getBean(IdentityZoneEndpoints.class).createIdentityZone(zone, new AbstractBindingResult(null) {
@@ -55,7 +59,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
             });
             List<ScimGroup> groups = new LinkedList<>();
             IdentityZoneHolder.set(zone);
-            for (int j=0; j<ENTITY_COUNT; j++) {
+            for (int j = 0; j < ENTITY_COUNT; j++) {
                 ScimGroup group = new ScimGroup(null, generator.generate(), null);
                 group = webApplicationContext.getBean(ScimGroupEndpoints.class).createGroup(group, new MockHttpServletResponse());
                 groups.add(group);
@@ -67,7 +71,7 @@ public class TestZonifyGroupSchema_V2_4_1 {
         Map<IdentityZone, List<ScimUser>> zoneUsers = new HashMap<>();
         for (Map.Entry<IdentityZone, List<ScimGroup>> zone : zones.entrySet()) {
             List<ScimUser> users = new LinkedList<>();
-            for (int i=0; i<ENTITY_COUNT; i++) {
+            for (int i = 0; i < ENTITY_COUNT; i++) {
                 String id = generator.generate();
                 String email = id + "@test.org";
                 ScimUser user = new ScimUser(null, id, id, id);
@@ -80,8 +84,8 @@ public class TestZonifyGroupSchema_V2_4_1 {
                     ScimGroupMember member = new ScimGroupMember(user.getId());
                     ScimGroup group = webApplicationContext.getBean(ScimGroupEndpoints.class).getGroup(zone.getValue().get(i).getId(), new MockHttpServletResponse());
                     group.setMembers(Collections.singletonList(member));
-                    webApplicationContext.getBean(ScimGroupEndpoints.class).updateGroup(group, group.getId(),String.valueOf(group.getVersion()), new MockHttpServletResponse());
-                }finally {
+                    webApplicationContext.getBean(ScimGroupEndpoints.class).updateGroup(group, group.getId(), String.valueOf(group.getVersion()), new MockHttpServletResponse());
+                } finally {
                     IdentityZoneHolder.clear();
                 }
 
@@ -91,9 +95,10 @@ public class TestZonifyGroupSchema_V2_4_1 {
     }
 
     @Test
-    void test_Ensure_That_New_Fields_NotNull() {
-        assertThat(webApplicationContext.getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL", Integer.class), is(0));
-        assertThat(webApplicationContext.getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL", Integer.class), is(0));
+    void ensure_that_new_fields_not_null() throws Exception {
+        JdbcTemplate jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
+        DbUtils dbUtils = webApplicationContext.getBean(DbUtils.class);
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL", Integer.class)).isZero();
+        assertThat(jdbcTemplate.queryForObject("SELECT count(*) FROM " + dbUtils.getQuotedIdentifier("groups", jdbcTemplate) + " WHERE identity_zone_id IS NULL", Integer.class)).isZero();
     }
-
 }

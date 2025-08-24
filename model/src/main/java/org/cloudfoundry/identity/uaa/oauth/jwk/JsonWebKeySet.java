@@ -15,12 +15,18 @@
 
 package org.cloudfoundry.identity.uaa.oauth.jwk;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -28,20 +34,35 @@ import java.util.Set;
  */
 public class JsonWebKeySet<T extends JsonWebKey> {
 
+    private static final String JSON_PROPERTY_KEYS = "keys";
     private final List<T> keys;
 
-    public JsonWebKeySet(@JsonProperty("keys") List<T> keys) {
+    public JsonWebKeySet(@JsonProperty(JSON_PROPERTY_KEYS) List<T> keys) {
         Set<T> set = new LinkedHashSet<>();
         //rules for how to override duplicates
         for (T key : keys) {
-            if(key == null) continue;
+            if (key == null) {
+                continue;
+            }
             set.remove(key);
             set.add(key);
         }
-        this.keys = new LinkedList(set);
+        this.keys = new LinkedList<>(set);
     }
 
     public List<T> getKeys() {
         return Collections.unmodifiableList(keys);
+    }
+
+    @JsonIgnore
+    public Map<String, Object> getKeySetMap() {
+        Map<String, Object> keySet = new HashMap<>();
+        ArrayList<Map<String, Object>> keyArray = new ArrayList<>();
+        long keyCount = Optional.ofNullable(keys).orElseThrow(() -> new IllegalStateException("No keys found.")).stream()
+                .map(k -> keyArray.add(k.getKeyProperties())).filter(Objects::nonNull).count();
+        if (keyCount > 0) {
+            keySet.put(JSON_PROPERTY_KEYS, keyArray);
+        }
+        return keySet;
     }
 }

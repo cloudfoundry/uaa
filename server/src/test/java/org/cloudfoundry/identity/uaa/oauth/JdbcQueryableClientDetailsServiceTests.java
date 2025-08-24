@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,12 +15,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.sql.SQLException;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.core.Is.is;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @WithDatabaseContext
 @ExtendWith(PollutionPreventionExtension.class)
@@ -32,7 +35,7 @@ class JdbcQueryableClientDetailsServiceTests {
     private MultitenantJdbcClientDetailsService multitenantJdbcClientDetailsService;
 
     @Autowired
-    private JdbcTemplate jdbcTemplate;
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     @Autowired
     private LimitSqlAdapter limitSqlAdapter;
@@ -43,19 +46,20 @@ class JdbcQueryableClientDetailsServiceTests {
     @BeforeEach
     void setUp() {
         multitenantJdbcClientDetailsService = new MultitenantJdbcClientDetailsService(
-                jdbcTemplate,
+                namedParameterJdbcTemplate,
                 null,
                 passwordEncoder);
         jdbcQueryableClientDetailsService = new JdbcQueryableClientDetailsService(
                 multitenantJdbcClientDetailsService,
-                jdbcTemplate,
+                new IdentityZoneManagerImpl(),
+                namedParameterJdbcTemplate,
                 new JdbcPagingListFactory(
-                        jdbcTemplate,
+                        namedParameterJdbcTemplate,
                         limitSqlAdapter));
     }
 
     @AfterEach
-    void tearDown(@Autowired ApplicationContext applicationContext) {
+    void tearDown(@Autowired ApplicationContext applicationContext) throws SQLException {
         TestUtils.restoreToDefaults(applicationContext);
     }
 
@@ -98,34 +102,33 @@ class JdbcQueryableClientDetailsServiceTests {
 
     @Test
     void queryEquals() {
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimEquality(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "zoneOneId");
     }
 
     @Test
     void queryExists() {
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimPresent(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "zoneOneId");
     }
 
     @Test
     void queryEqualsInAnotherZone() {
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
-        verifyScimEquality(jdbcTemplate, jdbcQueryableClientDetailsService, "otherZoneId");
-        assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
+        verifyScimEquality(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimEquality(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "otherZoneId");
+        assertThat(multitenantJdbcClientDetailsService.getTotalCount()).isEqualTo(8);
     }
 
     @Test
     void queryExistsInAnotherZone() {
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "zoneOneId");
-        verifyScimPresent(jdbcTemplate, jdbcQueryableClientDetailsService, "otherZoneId");
-        assertEquals(8, multitenantJdbcClientDetailsService.getTotalCount());
+        verifyScimPresent(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "zoneOneId");
+        verifyScimPresent(namedParameterJdbcTemplate.getJdbcTemplate(), jdbcQueryableClientDetailsService, "otherZoneId");
+        assertThat(multitenantJdbcClientDetailsService.getTotalCount()).isEqualTo(8);
     }
 
     @Test
     void throwsExceptionWhenSortByIncludesPrivateFieldClientSecret() {
-        assertThrowsWithMessageThat(IllegalArgumentException.class,
-                () -> jdbcQueryableClientDetailsService.query("client_id pr", "client_id,client_secret", true, "zoneOneId").size(),
-                is("Invalid sort field: client_secret")
-        );
+        assertThatThrownBy(() -> jdbcQueryableClientDetailsService.query("client_id pr", "client_id,client_secret", true, "zoneOneId").size())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Invalid sort field: client_secret");
     }
 
     private static void verifyScimEquality(
@@ -133,8 +136,8 @@ class JdbcQueryableClientDetailsServiceTests {
             final JdbcQueryableClientDetailsService jdbcQueryableClientDetailsService,
             final String zoneId) {
         addClients(jdbcTemplate, zoneId);
-        assertEquals(4, jdbcQueryableClientDetailsService.retrieveAll(zoneId).size());
-        assertEquals(2, jdbcQueryableClientDetailsService.query("authorized_grant_types eq \"client_credentials\"", zoneId).size());
+        assertThat(jdbcQueryableClientDetailsService.retrieveAll(zoneId)).hasSize(4);
+        assertThat(jdbcQueryableClientDetailsService.query("authorized_grant_types eq \"client_credentials\"", zoneId)).hasSize(2);
     }
 
     private static void verifyScimPresent(
@@ -142,8 +145,8 @@ class JdbcQueryableClientDetailsServiceTests {
             final JdbcQueryableClientDetailsService jdbcQueryableClientDetailsService,
             final String zoneId) {
         addClients(jdbcTemplate, zoneId);
-        assertEquals(4, jdbcQueryableClientDetailsService.retrieveAll(zoneId).size());
-        assertEquals(4, jdbcQueryableClientDetailsService.query("scope pr", zoneId).size());
+        assertThat(jdbcQueryableClientDetailsService.retrieveAll(zoneId)).hasSize(4);
+        assertThat(jdbcQueryableClientDetailsService.query("scope pr", zoneId)).hasSize(4);
     }
 
 }

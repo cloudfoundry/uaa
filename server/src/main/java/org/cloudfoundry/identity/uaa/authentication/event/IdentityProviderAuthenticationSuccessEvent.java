@@ -40,6 +40,8 @@ public class IdentityProviderAuthenticationSuccessEvent extends AbstractUaaAuthe
         return user;
     }
 
-    public String getAuthenticationType() { return authenticationType; }
+    public String getAuthenticationType() {
+        return authenticationType;
+    }
 
 }

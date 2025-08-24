@@ -1,5 +1,6 @@
-/*******************************************************************************
- *     Cloud Foundry 
+/*
+ * *****************************************************************************
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,12 +14,10 @@
 
 package org.cloudfoundry.identity.uaa.login;
 
-import static org.junit.Assert.assertSame;
-
 import org.cloudfoundry.identity.uaa.authentication.manager.UsernamePasswordExtractingAuthenticationManager;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -28,45 +27,46 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 /**
  * @author Dave Syer
- * 
  */
-public class UsernamePasswordExtractingAuthenticationManagerTests {
+class UsernamePasswordExtractingAuthenticationManagerTests {
 
-    private AuthenticationManager delegate = Mockito.mock(AuthenticationManager.class);
+    private final AuthenticationManager delegate = Mockito.mock(AuthenticationManager.class);
 
-    private UsernamePasswordExtractingAuthenticationManager manager = new UsernamePasswordExtractingAuthenticationManager(
-                    delegate);
+    private final UsernamePasswordExtractingAuthenticationManager manager = new UsernamePasswordExtractingAuthenticationManager(
+            delegate);
 
-    @Before
-    public void setUp() {
+    @BeforeEach
+    void setUp() {
         SecurityContextHolder.clearContext();
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         SecurityContextHolder.clearContext();
     }
 
     @Test
-    public void testAuthenticate() {
+    void authenticate() {
         Authentication expected = new TestingAuthenticationToken("bar", "foo",
-                        AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
+                AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
         Mockito.when(delegate.authenticate(ArgumentMatchers.any(UsernamePasswordAuthenticationToken.class)))
-                        .thenReturn(expected);
+                .thenReturn(expected);
         Authentication output = manager.authenticate(new TestingAuthenticationToken("foo", "bar"));
-        assertSame(expected, output);
+        assertThat(output).isSameAs(expected);
     }
 
     @Test
-    public void testUsernamePassword() {
+    void usernamePassword() {
         Authentication expected = new UsernamePasswordAuthenticationToken("bar", "foo",
-                        AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
+                AuthorityUtils.commaSeparatedStringToAuthorityList("USER"));
         Mockito.when(delegate.authenticate(ArgumentMatchers.any(UsernamePasswordAuthenticationToken.class)))
-                        .thenReturn(expected);
+                .thenReturn(expected);
         Authentication output = manager.authenticate(expected);
-        assertSame(expected, output);
+        assertThat(output).isSameAs(expected);
     }
 
 }

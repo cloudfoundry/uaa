@@ -15,10 +15,10 @@
 package org.cloudfoundry.identity.uaa.security.web;
 
 
+import org.cloudfoundry.identity.uaa.oauth.provider.endpoint.TokenEndpoint;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.oauth2.provider.endpoint.TokenEndpoint;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -32,8 +32,7 @@ public class TokenEndpointPostProcessor implements BeanPostProcessor {
 
     @Override
     public Object postProcessAfterInitialization(Object bean, String beanName) throws BeansException {
-        if (bean != null && bean instanceof TokenEndpoint) {
-            TokenEndpoint endpoint = (TokenEndpoint)bean;
+        if (bean != null && bean instanceof TokenEndpoint endpoint) {
             Set<HttpMethod> methods = new HashSet<>();
             methods.add(HttpMethod.POST);
             methods.add(HttpMethod.GET);

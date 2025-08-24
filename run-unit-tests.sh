@@ -6,7 +6,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 CONTAINER_SCRIPT_DIR='/root/uaa'
 GRADLE_LOCK_DIR='/root/uaa/.gradle/'
 
-case "$1" in
+DB="${1:-hsqldb}"
+
+case "${DB}" in
     hsqldb)
         DB_IMAGE_NAME=postgresql # we don't have a container image for hsqldb, and can use any image
         DB=hsqldb
@@ -19,10 +21,22 @@ case "$1" in
         PROFILE_NAME=mysql
         ;;
 
-    postgresql|mysql)
+    postgresql|postgresql-15|postgresql-11)
         DB_IMAGE_NAME=$1
-        DB=$1
-        PROFILE_NAME=$1
+        DB=postgresql
+        PROFILE_NAME=postgresql
+        ;;
+
+    mysql|mysql-8)
+        DB_IMAGE_NAME=mysql-8
+        DB=mysql
+        PROFILE_NAME=mysql
+        ;;
+
+    mysql-5)
+        DB_IMAGE_NAME=mysql
+        DB=mysql
+        PROFILE_NAME=mysql
         ;;
 
     *)
@@ -43,4 +57,4 @@ docker run \
   --volume "${GRADLE_LOCK_DIR}" \
   --env DB="${DB}" \
   "${DOCKER_IMAGE}" \
-  /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME},default" "${CONTAINER_SCRIPT_DIR}"
+  /root/uaa/scripts/unit-tests.sh "${PROFILE_NAME}" "${CONTAINER_SCRIPT_DIR}"

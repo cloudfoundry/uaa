@@ -13,7 +13,7 @@ import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -40,8 +40,7 @@ class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
         ((JdbcExpiringCodeStore) expiringCodeStore).setDataSource(mockDataSource);
         String data = "{}";
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + 10000000);
-        assertThrows(DataAccessException.class,
-                () -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
+        assertThatExceptionOfType(DataAccessException.class).isThrownBy(() -> expiringCodeStore.generateCode(data, expiresAt, null, IdentityZone.getUaaZoneId()));
     }
 
     @Test
@@ -49,12 +48,11 @@ class JdbcExpiringCodeStoreTest extends ExpiringCodeStoreTests {
         when(mockTimeService.getCurrentTimeMillis()).thenReturn(System.currentTimeMillis());
         jdbcTemplate.update(JdbcExpiringCodeStore.insert, "test", System.currentTimeMillis() - 1000, "{}", null, IdentityZone.getUaaZoneId());
         ((JdbcExpiringCodeStore) expiringCodeStore).cleanExpiredEntries();
-        assertThrows(EmptyResultDataAccessException.class,
-                () -> jdbcTemplate.queryForObject(
-                        JdbcExpiringCodeStore.selectAllFields,
-                        new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(),
-                        "test",
-                        IdentityZone.getUaaZoneId()));
+        assertThatExceptionOfType(EmptyResultDataAccessException.class).isThrownBy(() -> jdbcTemplate.queryForObject(
+                JdbcExpiringCodeStore.selectAllFields,
+                new JdbcExpiringCodeStore.JdbcExpiringCodeMapper(),
+                "test",
+                IdentityZone.getUaaZoneId()));
     }
 
     @Override

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,13 +13,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.db;
 
-import java.sql.Connection;
-
-import org.flywaydb.core.api.migration.jdbc.JdbcMigration;
+import org.flywaydb.core.api.migration.BaseJavaMigration;
+import org.flywaydb.core.api.migration.Context;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
-
+import java.sql.Connection;
 
 /**
  * Created by pivotal on 2/13/14.
@@ -33,19 +33,23 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
  * as brand new databases.
  *
  */
-public class InitialPreDatabaseVersioningSchemaCreator implements JdbcMigration {
+public class InitialPreDatabaseVersioningSchemaCreator extends BaseJavaMigration {
 
-    private String type;
+    private final String type;
 
     public InitialPreDatabaseVersioningSchemaCreator(String type) {
         this.type = type;
     }
 
     @Override
-    public void migrate(Connection connection) throws Exception {
+    public void migrate(Context context) throws Exception {
+        migrate(context.getConnection());
+    }
+
+    protected void migrate(Connection connection) {
         ResourceDatabasePopulator populator = new ResourceDatabasePopulator();
         populator.addScript(new ClassPathResource("org/cloudfoundry/identity/uaa/db/" + type
-                        + "/V1_5_2__initial_db.sql"));
+                + "/V1_5_2__initial_db.sql"));
         populator.setContinueOnError(true);
         populator.setIgnoreFailedDrops(true);
         populator.populate(connection);

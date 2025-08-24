@@ -2,16 +2,15 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.test.TestAccounts;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.OIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -21,9 +20,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
@@ -37,24 +34,21 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
-import static org.junit.Assert.fail;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
-public class PasswordGrantIT {
+@SpringJUnitConfig(classes = DefaultIntegrationTestConfig.class)
+class PasswordGrantIT {
     @Autowired
-    @Rule
-    public IntegrationTestRule integrationTestRule;
+    @RegisterExtension
+    private IntegrationTestExtension integrationTestExtension;
 
     @Autowired
     WebDriver webDriver;
 
     @Value("${integration.test.base_url}")
     String baseUrl;
-
-    @Value("${integration.test.app_url}")
-    String appUrl;
 
     @Autowired
     RestOperations restOperations;
@@ -65,21 +59,20 @@ public class PasswordGrantIT {
     @Autowired
     TestAccounts testAccounts;
 
-    @Before
-    @After
-    public void logout_and_clear_cookies() {
+    @BeforeEach
+    @AfterEach
+    void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
 
     @Test
-    public void testUserLoginViaPasswordGrant() {
+    void userLoginViaPasswordGrant() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
@@ -90,15 +83,15 @@ public class PasswordGrantIT {
         postBody.add("password", testAccounts.getPassword());
 
         ResponseEntity<Void> responseEntity = restOperations.exchange(baseUrl + "/oauth/token",
-            HttpMethod.POST,
-            new HttpEntity<>(postBody, headers),
-            Void.class);
+                HttpMethod.POST,
+                new HttpEntity<>(postBody, headers),
+                Void.class);
 
-        Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantLoginHintUaa() {
+    void userLoginViaPasswordGrantLoginHintUaa() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
@@ -114,11 +107,11 @@ public class PasswordGrantIT {
                 new HttpEntity<>(postBody, headers),
                 Void.class);
 
-        Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantLoginHintUaaDoubleEncoded() {
+    void userLoginViaPasswordGrantLoginHintUaaDoubleEncoded() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
@@ -134,18 +127,18 @@ public class PasswordGrantIT {
                 new HttpEntity<>(postBody, headers),
                 Void.class);
 
-        Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantLoginHintOidc() throws Exception {
+    void userLoginViaPasswordGrantLoginHintOidc() throws Exception {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         try {
             createOidcProvider(clientCredentialsToken);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+            headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
             postBody.add("grant_type", "password");
@@ -158,21 +151,21 @@ public class PasswordGrantIT {
                     new HttpEntity<>(postBody, headers),
                     Void.class);
 
-            Assert.assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+            assertThat(responseEntity.getStatusCode()).isEqualTo(HttpStatus.OK);
         } finally {
             IntegrationTestUtils.deleteProvider(clientCredentialsToken, baseUrl, "uaa", "puppy");
         }
     }
 
     @Test
-    public void testUserDataChangedOnPwGrant() throws Exception {
+    void userDataChangedOnPwGrant() throws Exception {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         try {
             createOidcProvider(clientCredentialsToken);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+            headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
             postBody.add("grant_type", "password");
@@ -186,33 +179,33 @@ public class PasswordGrantIT {
 
             // get the uaa user in order to update it (use case: IDP user has changed)
             ScimUser user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
-            String oldMail = user.getEmails().get(0).getValue();
+            String oldMail = user.getEmails().getFirst().getValue();
             String newMail = oldMail + "-new";
 
             // verify that the puppy user has the correct family and given name
             ScimUser puppyUser = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "puppy", "marissa");
-            Assert.assertEquals(oldMail, puppyUser.getFamilyName());
-            Assert.assertEquals(oldMail, puppyUser.getGivenName());
+            assertThat(puppyUser.getFamilyName()).isEqualTo(oldMail);
+            assertThat(puppyUser.getGivenName()).isEqualTo(oldMail);
 
             // update uaa user email
-            user.getEmails().get(0).setValue(newMail);
+            user.getEmails().getFirst().setValue(newMail);
             IntegrationTestUtils.updateUser(clientCredentialsToken, baseUrl, user);
 
             // do password grant again to provision user changes to user with origin "puppy"
             restOperations.exchange(baseUrl + "/oauth/token", HttpMethod.POST, new HttpEntity<>(postBody, headers), String.class);
             // verify that given and family have been updated accordingly
             puppyUser = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "puppy", "marissa");
-            Assert.assertEquals(newMail, puppyUser.getFamilyName());
-            Assert.assertEquals(newMail, puppyUser.getGivenName());
+            assertThat(puppyUser.getFamilyName()).isEqualTo(newMail);
+            assertThat(puppyUser.getGivenName()).isEqualTo(newMail);
 
             // get new user instance to get current version count and revert the update from above
             user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
-            user.getEmails().get(0).setValue(oldMail);
+            user.getEmails().getFirst().setValue(oldMail);
             IntegrationTestUtils.updateUser(clientCredentialsToken, baseUrl, user);
 
             // verify that the email is the old one
             user = IntegrationTestUtils.getUser(clientCredentialsToken, baseUrl, "uaa", "marissa");
-            Assert.assertEquals(oldMail, user.getEmails().get(0).getValue());
+            assertThat(user.getEmails().getFirst().getValue()).isEqualTo(oldMail);
         } finally {
             IntegrationTestUtils.deleteProvider(clientCredentialsToken, baseUrl, "uaa", "puppy");
         }
@@ -220,14 +213,14 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantLoginHintOidcFails() throws Exception {
+    void userLoginViaPasswordGrantLoginHintOidcFails() throws Exception {
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
         try {
             createOidcProvider(clientCredentialsToken);
 
             HttpHeaders headers = new HttpHeaders();
             headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
-            headers.add("Authorization", ((UaaTestAccounts)testAccounts).getAuthorizationHeader("cf", ""));
+            headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
 
             LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
             postBody.add("grant_type", "password");
@@ -241,7 +234,7 @@ public class PasswordGrantIT {
                         new HttpEntity<>(postBody, headers),
                         Void.class);
             } catch (HttpClientErrorException e) {
-                Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+                assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
             }
             //Check Audit events?
 
@@ -251,7 +244,7 @@ public class PasswordGrantIT {
     }
 
     @Test
-    public void testUserLoginViaPasswordGrantInvalidLoginHint() {
+    void userLoginViaPasswordGrantInvalidLoginHint() {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Collections.singletonList(MediaType.APPLICATION_JSON));
         headers.add("Authorization", ((UaaTestAccounts) testAccounts).getAuthorizationHeader("cf", ""));
@@ -267,14 +260,14 @@ public class PasswordGrantIT {
                     HttpMethod.POST,
                     new HttpEntity<>(postBody, headers),
                     Void.class);
-            fail();
+            fail("");
         } catch (HttpClientErrorException e) {
-            Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNAUTHORIZED);
         }
     }
 
     @Test
-    public void testUnverifiedUserLoginViaPasswordGrant() throws Exception {
+    void unverifiedUserLoginViaPasswordGrant() throws Exception {
         String userEmail = createUnverifiedUser();
 
         HttpHeaders headers = new HttpHeaders();
@@ -288,11 +281,11 @@ public class PasswordGrantIT {
 
         try {
             restOperations.exchange(baseUrl + "/oauth/token",
-                HttpMethod.POST,
-                new HttpEntity<>(postBody, headers),
-                Void.class);
+                    HttpMethod.POST,
+                    new HttpEntity<>(postBody, headers),
+                    Void.class);
         } catch (HttpClientErrorException e) {
-            Assert.assertEquals(HttpStatus.FORBIDDEN, e.getStatusCode());
+            assertThat(e.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         }
 
     }

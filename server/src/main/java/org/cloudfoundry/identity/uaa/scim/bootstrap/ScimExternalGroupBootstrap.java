@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,6 +13,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -19,7 +21,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 
 import java.util.ArrayList;
@@ -43,6 +44,8 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
 
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
+    private final IdentityZoneManager identityZoneManager;
+
     public boolean isAddNonExistingGroups() {
         return addNonExistingGroups;
     }
@@ -51,12 +54,13 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
         this.addNonExistingGroups = addNonExistingGroups;
     }
 
-    private boolean addNonExistingGroups = false;
+    private boolean addNonExistingGroups;
 
     public ScimExternalGroupBootstrap(ScimGroupProvisioning scimGroupProvisioning,
-                    ScimGroupExternalMembershipManager externalMembershipManager) {
+            ScimGroupExternalMembershipManager externalMembershipManager, IdentityZoneManager identityZoneManager) {
         this.scimGroupProvisioning = scimGroupProvisioning;
         this.externalMembershipManager = externalMembershipManager;
+        this.identityZoneManager = identityZoneManager;
     }
 
     public void setExternalGroupMaps(Map<String, Map<String, List>> externalGroupMaps) {
@@ -65,38 +69,38 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
 
 
     protected ScimGroup addGroup(String groupName) {
-        ScimGroup group = new ScimGroup(null,groupName,IdentityZoneHolder.get().getId());
+        ScimGroup group = new ScimGroup(null, groupName, identityZoneManager.getCurrentIdentityZoneId());
         try {
-            return getScimGroupProvisioning().create(group, IdentityZoneHolder.get().getId());
+            return getScimGroupProvisioning().create(group, identityZoneManager.getCurrentIdentityZoneId());
         } catch (ScimResourceAlreadyExistsException x) {
-            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, groupName, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
-            if (groups != null && groups.size() > 0) {
-                return groups.get(0);
+            List<ScimGroup> groups = getScimGroupProvisioning().query(GROUP_BY_NAME_AND_ZONE_FILTER.formatted(groupName, identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
+            if (groups != null && !groups.isEmpty()) {
+                return groups.getFirst();
             } else {
-                throw new RuntimeException("Unable to create or return group with name:"+groupName);
+                throw new RuntimeException("Unable to create or return group with name:" + groupName);
             }
         }
     }
 
     @Override
     public void afterPropertiesSet() {
-        for (String origin : externalGroupMaps.keySet()) {
-            Map<String, List> externalGroupMappingsByOrigin = externalGroupMaps.get(origin);
+        for (Map.Entry<String, Map<String, List>> entry : externalGroupMaps.entrySet()) {
+            Map<String, List> externalGroupMappingsByOrigin = entry.getValue();
             if (externalGroupMappingsByOrigin != null) {
-                for (String externalGroup : externalGroupMappingsByOrigin.keySet()) {
-                    List<String> internalGroups = externalGroupMappingsByOrigin.get(externalGroup);
+                for (Map.Entry<String, List> e : externalGroupMappingsByOrigin.entrySet()) {
+                    List<String> internalGroups = e.getValue();
                     if (internalGroups != null) {
                         internalGroups.removeAll(Collections.singleton(null));
                         for (String internalGroup : internalGroups) {
-                            List<ScimGroup> groups = getScimGroupProvisioning().query(String.format(GROUP_BY_NAME_AND_ZONE_FILTER, internalGroup, IdentityZoneHolder.get().getId()), IdentityZoneHolder.get().getId());
+                            List<ScimGroup> groups = getScimGroupProvisioning().query(GROUP_BY_NAME_AND_ZONE_FILTER.formatted(internalGroup, identityZoneManager.getCurrentIdentityZoneId()), identityZoneManager.getCurrentIdentityZoneId());
 
-                            if (groups == null || groups.size() == 0 && isAddNonExistingGroups()) {
+                            if (groups == null || groups.isEmpty() && isAddNonExistingGroups()) {
                                 groups = new ArrayList<>();
                                 groups.add(addGroup(internalGroup));
-                            } else if (groups == null || groups.size() == 0 && !isAddNonExistingGroups()) {
+                            } else if (groups == null || groups.isEmpty() && !isAddNonExistingGroups()) {
                                 continue;
                             }
-                            addGroupMap(groups.get(0).getId(), externalGroup, origin);
+                            addGroupMap(groups.getFirst().getId(), e.getKey(), entry.getKey());
                         }
                     }
                 }
@@ -105,7 +109,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     }
 
     private void addGroupMap(String groupId, String externalGroup, String origin) {
-        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin, IdentityZoneHolder.get().getId());
-        logger.debug("adding external group mapping: " + externalGroupMapping);
+        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin, identityZoneManager.getCurrentIdentityZoneId());
+        logger.debug("adding external group mapping: {}", externalGroupMapping);
     }
 }

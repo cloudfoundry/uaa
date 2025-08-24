@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -10,14 +12,9 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller
 public class ChangePasswordController {
@@ -28,12 +25,12 @@ public class ChangePasswordController {
         this.changePasswordService = changePasswordService;
     }
 
-    @RequestMapping(value = "/change_password", method = GET)
+    @GetMapping("/change_password")
     public String changePasswordPage() {
         return "change_password";
     }
 
-    @RequestMapping(value = "/change_password.do", method = POST)
+    @PostMapping("/change_password.do")
     public String changePassword(
             Model model,
             @RequestParam("current_password") String currentPassword,
@@ -56,9 +53,9 @@ public class ChangePasswordController {
         try {
             changePasswordService.changePassword(username, currentPassword, newPassword);
             request.getSession().invalidate();
+            //request.logout();
             request.getSession(true);
-            if (authentication instanceof UaaAuthentication) {
-                UaaAuthentication uaaAuthentication = (UaaAuthentication) authentication;
+            if (authentication instanceof UaaAuthentication uaaAuthentication) {
                 uaaAuthentication.setAuthenticatedTime(System.currentTimeMillis());
                 uaaAuthentication.setAuthenticationDetails(new UaaAuthenticationDetails(request));
             }

@@ -5,7 +5,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEncoder {
 
-    private final String OPTIONAL_BCRYPT_PREFIX = "bcrypt";
+    private static final String OPTIONAL_BCRYPT_PREFIX = "bcrypt";
     private final BCryptPasswordEncoder defaultPasswordEncoder;
 
     public BackwardsCompatibleDelegatingPasswordEncoder(final BCryptPasswordEncoder defaultPasswordEncoder) {
@@ -23,7 +23,7 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
             return true;
         }
 
-        if (encodedPassword == null) {
+        if (rawPassword == null || encodedPassword == null) {
             return false;
         }
 
@@ -40,7 +40,7 @@ public class BackwardsCompatibleDelegatingPasswordEncoder implements PasswordEnc
 
         String prefix = encodedPassword.substring(startIndex + 1, endIndex);
         if (!prefix.equals(OPTIONAL_BCRYPT_PREFIX)) {
-            throw new IllegalArgumentException(String.format("Password encoding {%s} is not supported", prefix));
+            throw new IllegalArgumentException("Password encoding {%s} is not supported".formatted(prefix));
         }
         return encodedPassword.substring(endIndex + 1);
     }

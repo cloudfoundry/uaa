@@ -1,27 +1,26 @@
 package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
+import org.cloudfoundry.identity.uaa.db.beans.DatabaseProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class TestDataSourcePool {
 
     @Autowired
-    @Qualifier("validationQuery")
-    private String validationQuery;
+    private DatabaseProperties databaseProperties;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
     @Test
-    void testValidationQuery() {
-        int i = jdbcTemplate.queryForObject(this.validationQuery, Integer.class);
-        assertEquals(1, i);
+    void validationQuery() {
+        int i = jdbcTemplate.queryForObject(this.databaseProperties.getValidationQuery(), Integer.class);
+        assertThat(i).isOne();
     }
 
 }

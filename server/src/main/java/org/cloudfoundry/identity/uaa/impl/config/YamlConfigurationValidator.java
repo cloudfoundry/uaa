@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -24,10 +25,10 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.error.YAMLException;
 
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.Validation;
-import javax.validation.Validator;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import java.util.Arrays;
 import java.util.Set;
 
@@ -40,9 +41,9 @@ import java.util.Set;
  */
 public class YamlConfigurationValidator<T> implements FactoryBean<T>, InitializingBean, EnvironmentAware {
 
-    private static Logger logger = LoggerFactory.getLogger(YamlConfigurationValidator.class);
+    private static final Logger logger = LoggerFactory.getLogger(YamlConfigurationValidator.class);
 
-    private Constructor constructor;
+    private final Constructor constructor;
 
     private boolean exceptionIfInvalid;
 
@@ -58,7 +59,7 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
      * @param constructor the validation constructor, must not be {@literal null}
      */
     public YamlConfigurationValidator(Constructor constructor) {
-        Assert.notNull(constructor);
+        Assert.notNull(constructor, "must not be null");
         this.constructor = constructor;
     }
 
@@ -82,18 +83,18 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
         Validator validator = Validation.buildDefaultValidatorFactory().getValidator();
 
         try {
-            logger.trace("Yaml document is\n" + yaml);
+            logger.trace("Yaml document is\n{}", yaml);
             configuration = (T) (new Yaml(constructor)).load(yaml);
             Set<ConstraintViolation<T>> errors = validator.validate(configuration);
 
             if (!errors.isEmpty()) {
                 logger.error("YAML configuration failed validation");
                 for (ConstraintViolation<?> error : errors) {
-                    logger.error(error.getPropertyPath() + ": " + error.getMessage());
+                    logger.error("{}: {}", error.getPropertyPath(), error.getMessage());
                 }
                 if (exceptionIfInvalid) {
                     @SuppressWarnings("rawtypes")
-                    ConstraintViolationException summary = new ConstraintViolationException((Set) errors);
+                    ConstraintViolationException summary = new ConstraintViolationException(errors);
                     throw summary;
                 }
             }
@@ -130,7 +131,7 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
         if (Arrays.asList(environment.getActiveProfiles()).contains("strict")) {
             this.exceptionIfInvalid = true;
         }
-            
+
     }
 
 }

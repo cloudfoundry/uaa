@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,11 +13,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
-import static org.junit.Assert.*;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class ScimGroupMemberTests {
+class ScimGroupMemberTests {
 
     private static final ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
     private static final ScimGroupMember m2 = new ScimGroupMember("m1", ScimGroupMember.Type.USER);
@@ -27,27 +28,27 @@ public class ScimGroupMemberTests {
     private static final ScimGroupMember m7 = new ScimGroupMember("m2", ScimGroupMember.Type.USER);
 
     @Test
-    public void testHashCode() {
-        assertEquals(m1.hashCode(), new ScimGroupMember(m1.getMemberId(), m1.getType()).hashCode());
-        assertEquals(m4.hashCode(), new ScimGroupMember(m1.getMemberId(), m4.getType()).hashCode());
-        assertEquals(m1.hashCode(), m2.hashCode());
-        assertEquals(m1.hashCode(), m3.hashCode());
-        assertNotEquals(m1.hashCode(), m4.hashCode());
-        assertNotEquals(m1.hashCode(), m5.hashCode());
-        assertNotEquals(m1.hashCode(), m6.hashCode());
-        assertNotEquals(m1.hashCode(), m7.hashCode());
+    void testHashCode() {
+        assertThat(new ScimGroupMember(m1.getMemberId(), m1.getType())).hasSameHashCodeAs(m1);
+        assertThat(new ScimGroupMember(m1.getMemberId(), m4.getType())).hasSameHashCodeAs(m4);
+        assertThat(m2).hasSameHashCodeAs(m1);
+        assertThat(m3).hasSameHashCodeAs(m1);
+        assertThat(m1).doesNotHaveSameHashCodeAs(m4)
+                .doesNotHaveSameHashCodeAs(m5)
+                .doesNotHaveSameHashCodeAs(m6)
+                .doesNotHaveSameHashCodeAs(m7);
     }
 
     @Test
-    public void testEquals() {
-        assertEquals(m1, new ScimGroupMember(m1.getMemberId(), m1.getType()));
-        assertEquals(m3, new ScimGroupMember(m3.getMemberId(), m3.getType()));
-        assertEquals(m6, new ScimGroupMember(m6.getMemberId(), m6.getType()));
-        assertNotSame(m7, m1);
-        assertEquals(m1, m2);
-        assertEquals(m1, m3);
-        assertNotSame(m1, m4);
-        assertNotSame(m1, m5);
-        assertNotSame(m1, m6);
+    void equals() {
+        assertThat(new ScimGroupMember(m1.getMemberId(), m1.getType())).isEqualTo(m1);
+        assertThat(new ScimGroupMember(m3.getMemberId(), m3.getType())).isEqualTo(m3);
+        assertThat(new ScimGroupMember(m6.getMemberId(), m6.getType())).isEqualTo(m6);
+        assertThat(m7).isNotSameAs(m1);
+        assertThat(m2).isEqualTo(m1);
+        assertThat(m3).isEqualTo(m1);
+        assertThat(m1).isNotSameAs(m4)
+                .isNotSameAs(m5)
+                .isNotSameAs(m6);
     }
 }

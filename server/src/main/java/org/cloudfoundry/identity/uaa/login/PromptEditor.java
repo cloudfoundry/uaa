@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -26,8 +27,7 @@ public class PromptEditor extends PropertyEditorSupport {
     public void setAsText(String text) throws IllegalArgumentException {
         if (StringUtils.hasText(text)) {
             setValue(Prompt.valueOf(text));
-        }
-        else {
+        } else {
             setValue(null);
         }
     }
@@ -35,7 +35,7 @@ public class PromptEditor extends PropertyEditorSupport {
     @Override
     public String getAsText() {
         Prompt value = (Prompt) getValue();
-        return (value != null ? value.toString() : "");
+        return value != null ? value.toString() : "";
     }
 
 }

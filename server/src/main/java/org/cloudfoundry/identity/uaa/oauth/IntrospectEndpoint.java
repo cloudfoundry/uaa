@@ -1,23 +1,21 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.cloudfoundry.identity.uaa.oauth.common.OAuth2AccessToken;
+import org.cloudfoundry.identity.uaa.oauth.provider.token.ResourceServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.token.IntrospectionClaims;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.token.IntrospectionClaims;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import javax.servlet.http.HttpServletRequest;
-
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Controller
 public class IntrospectEndpoint {
@@ -30,9 +28,9 @@ public class IntrospectEndpoint {
         this.resourceServerTokenServices = resourceServerTokenServices;
     }
 
-    @RequestMapping(value = "/introspect", method = POST)
+    @PostMapping("/introspect")
     @ResponseBody
-    public IntrospectionClaims introspect(@RequestParam("token") String token) {
+    public IntrospectionClaims introspect(@RequestParam String token) {
         IntrospectionClaims introspectionClaims = new IntrospectionClaims();
 
         try {
@@ -42,7 +40,7 @@ public class IntrospectEndpoint {
                 return introspectionClaims;
             }
             resourceServerTokenServices.loadAuthentication(token);
-            introspectionClaims = getClaimsForToken(oAuth2AccessToken.getValue());
+            introspectionClaims = UaaTokenUtils.getClaims(oAuth2AccessToken.getValue(), IntrospectionClaims.class);
             introspectionClaims.setActive(true);
         } catch (InvalidTokenException e) {
             introspectionClaims.setActive(false);
@@ -56,22 +54,5 @@ public class IntrospectEndpoint {
     @ResponseBody
     public IntrospectionClaims methodNotSupported(HttpServletRequest request) throws HttpRequestMethodNotSupportedException {
         throw new HttpRequestMethodNotSupportedException(request.getMethod());
-    }
-
-
-    private IntrospectionClaims getClaimsForToken(String token) {
-        org.springframework.security.jwt.Jwt tokenJwt;
-        tokenJwt = JwtHelper.decode(token);
-
-        IntrospectionClaims claims;
-        try {
-            // we assume token.getClaims is never null due to previously parsing token when verifying the token
-            claims = JsonUtils.readValue(tokenJwt.getClaims(), IntrospectionClaims.class);
-        } catch (JsonUtils.JsonUtilException e) {
-            logger.error("Can't parse introspection claims in token. Is it a valid JSON?");
-            throw new InvalidTokenException("Cannot read token claims", e);
-        }
-
-        return claims;
     }
 }

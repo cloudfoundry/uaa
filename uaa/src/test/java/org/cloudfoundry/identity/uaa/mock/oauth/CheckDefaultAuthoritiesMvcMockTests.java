@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -13,7 +14,6 @@
 package org.cloudfoundry.identity.uaa.mock.oauth;
 
 import org.cloudfoundry.identity.uaa.DefaultTestContext;
-import org.junit.Assert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,8 +21,10 @@ import org.springframework.web.context.WebApplicationContext;
 
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 @DefaultTestContext
-public class CheckDefaultAuthoritiesMvcMockTests {
+class CheckDefaultAuthoritiesMvcMockTests {
     @Autowired
     public WebApplicationContext webApplicationContext;
 
@@ -50,10 +52,10 @@ public class CheckDefaultAuthoritiesMvcMockTests {
     }
 
     @Test
-    void testDefaultAuthorities() {
-        Assert.assertEquals(14, defaultAuthorities.size());
+    void defaultAuthorities() {
+        assertThat(defaultAuthorities).hasSize(14);
         for (String s : EXPECTED_DEFAULT_GROUPS) {
-            Assert.assertTrue("Expecting authority to be present:" + s, defaultAuthorities.contains(s));
+            assertThat(defaultAuthorities).as("Expecting authority to be present:" + s).contains(s);
         }
     }
 }

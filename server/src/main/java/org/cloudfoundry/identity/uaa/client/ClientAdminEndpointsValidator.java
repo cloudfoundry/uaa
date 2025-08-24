@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,18 +13,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsCreation;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.beans.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.ClientSecretValidator;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -40,6 +41,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYP
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_PASSWORD;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_SAML2_BEARER;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_TOKEN_EXCHANGE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 
 public class ClientAdminEndpointsValidator implements InitializingBean, ClientDetailsValidator {
@@ -48,18 +50,19 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     private final Logger logger = LoggerFactory.getLogger(getClass());
 
     public static final Set<String> VALID_GRANTS =
-        new HashSet<>(
-                Arrays.asList(
-                        GRANT_TYPE_IMPLICIT,
-                        GRANT_TYPE_PASSWORD,
-                        GRANT_TYPE_CLIENT_CREDENTIALS,
-                        GRANT_TYPE_AUTHORIZATION_CODE,
-                        GRANT_TYPE_REFRESH_TOKEN,
-                        GRANT_TYPE_USER_TOKEN,
-                        GRANT_TYPE_SAML2_BEARER,
-                        GRANT_TYPE_JWT_BEARER
-                )
-        );
+            new HashSet<>(
+                    Arrays.asList(
+                            GRANT_TYPE_IMPLICIT,
+                            GRANT_TYPE_PASSWORD,
+                            GRANT_TYPE_CLIENT_CREDENTIALS,
+                            GRANT_TYPE_AUTHORIZATION_CODE,
+                            GRANT_TYPE_REFRESH_TOKEN,
+                            GRANT_TYPE_USER_TOKEN,
+                            GRANT_TYPE_SAML2_BEARER,
+                            GRANT_TYPE_JWT_BEARER,
+                            GRANT_TYPE_TOKEN_EXCHANGE
+                    )
+            );
 
     private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Collections.singletonList(
             "password"));
@@ -73,12 +76,16 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final SecurityContextAccessor securityContextAccessor;
 
-    private Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
+    private final IdentityZoneManager identityZoneManager;
+
+    private final Set<String> reservedClientIds = StringUtils.commaDelimitedListToSet(OriginKeys.UAA);
 
     private final Set<Character> invalidClientIdsCharacters = Set.of('/', '\\');
 
-    public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor) {
+    public ClientAdminEndpointsValidator(final SecurityContextAccessor securityContextAccessor,
+                                         final IdentityZoneManager identityZoneManager) {
         this.securityContextAccessor = securityContextAccessor;
+        this.identityZoneManager = identityZoneManager;
     }
 
     /**
@@ -103,11 +110,11 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     public ClientDetails validate(ClientDetails prototype, boolean create, boolean checkAdmin) throws InvalidClientDetailsException {
 
-        BaseClientDetails client = new UaaClientDetails(prototype);
-        if (prototype instanceof BaseClientDetails) {
-            Set<String> scopes = ((BaseClientDetails)prototype).getAutoApproveScopes();
-            if (scopes!=null) {
-                client.setAutoApproveScopes(((BaseClientDetails) prototype).getAutoApproveScopes());
+        UaaClientDetails client = new UaaClientDetails(prototype);
+        if (prototype instanceof UaaClientDetails details) {
+            Set<String> scopes = details.getAutoApproveScopes();
+            if (scopes != null) {
+                client.setAutoApproveScopes(details.getAutoApproveScopes());
             }
         }
 
@@ -117,7 +124,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             if (reservedClientIds.contains(clientId)) {
                 throw new InvalidClientDetailsException("Not allowed: " + clientId + " is a reserved client_id");
             }
-            if (invalidClientIdsCharacters.stream().filter(c -> clientId.indexOf(c) > -1).findAny().isPresent()) {
+            if (invalidClientIdsCharacters.stream().anyMatch(c -> clientId.indexOf(c) > -1)) {
                 throw new InvalidClientDetailsException("Not allowed characters: " + clientId + " must not contain any of " + invalidClientIdsCharacters);
             }
         }
@@ -127,50 +134,56 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         Set<String> requestedGrantTypes = client.getAuthorizedGrantTypes();
         if (requestedGrantTypes.isEmpty()) {
             throw new InvalidClientDetailsException("An authorized grant type must be provided. Must be one of: "
-                            + VALID_GRANTS.toString());
+                    + VALID_GRANTS.toString());
         }
         checkRequestedGrantTypes(requestedGrantTypes);
 
         if ((requestedGrantTypes.contains(GRANT_TYPE_AUTHORIZATION_CODE) || requestedGrantTypes.contains(GRANT_TYPE_PASSWORD))
-                        && !requestedGrantTypes.contains(GRANT_TYPE_REFRESH_TOKEN)) {
-            logger.debug("requested grant type missing refresh_token: " + clientId);
+                && !requestedGrantTypes.contains(GRANT_TYPE_REFRESH_TOKEN)) {
+            logger.debug("requested grant type missing refresh_token: {}", clientId);
 
             requestedGrantTypes.add(GRANT_TYPE_REFRESH_TOKEN);
         }
 
-        if(requestedGrantTypes.contains(GRANT_TYPE_JWT_BEARER)) {
-            if(client.getScope() == null || client.getScope().isEmpty()) {
-                logger.debug("Invalid client: " + clientId + ". Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
-                throw new InvalidClientDetailsException("Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
-            }
-            if(create && !StringUtils.hasText(client.getClientSecret())) {
-                logger.debug("Invalid client: " + clientId + ". Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
-                throw new InvalidClientDetailsException("Client secret is required for grant type " + GRANT_TYPE_JWT_BEARER);
+        if (requestedGrantTypes.contains(GRANT_TYPE_JWT_BEARER) && (client.getScope() == null || client.getScope().isEmpty())) {
+            logger.debug("Invalid client: {}. Scope cannot be empty for grant_type {}", clientId, GRANT_TYPE_JWT_BEARER);
+            throw new InvalidClientDetailsException("Scope cannot be empty for grant_type " + GRANT_TYPE_JWT_BEARER);
+        }
+
+        if (requestedGrantTypes.contains(GRANT_TYPE_TOKEN_EXCHANGE)) {
+            if (
+                    (requestedGrantTypes.contains(GRANT_TYPE_REFRESH_TOKEN) && requestedGrantTypes.size()>2) ||
+                    (!requestedGrantTypes.contains(GRANT_TYPE_REFRESH_TOKEN) && requestedGrantTypes.size()>1)
+            ) {
+                throw new InvalidClientDetailsException(
+                        GRANT_TYPE_TOKEN_EXCHANGE +
+                                " is a privileged grant_type, and cannot be used in conjunction with other grant types."
+                );
             }
         }
 
         if (checkAdmin &&
-            !(securityContextAccessor.isAdmin() || securityContextAccessor.getScopes().contains("clients.admin"))
-            ) {
+                !(securityContextAccessor.isAdmin() || securityContextAccessor.getScopes().contains("clients.admin"))
+        ) {
 
             // Not admin, so be strict with grant types and scopes
             for (String grant : requestedGrantTypes) {
                 if (NON_ADMIN_INVALID_GRANTS.contains(grant)) {
                     throw new InvalidClientDetailsException(grant
-                                    + " is not an allowed grant type for non-admin caller.");
+                            + " is not an allowed grant type for non-admin caller.");
                 }
             }
 
             if (requestedGrantTypes.contains(GRANT_TYPE_IMPLICIT)
                     && requestedGrantTypes.contains(GRANT_TYPE_AUTHORIZATION_CODE)) {
                 throw new InvalidClientDetailsException(
-                                "Not allowed: implicit grant type is not allowed together with authorization_code");
+                        "Not allowed: implicit grant type is not allowed together with authorization_code");
             }
 
             String callerId = securityContextAccessor.getClientId();
             ClientDetails caller = null;
             try {
-                caller = clientDetailsService.retrieve(callerId, IdentityZoneHolder.get().getId());
+                caller = clientDetailsService.retrieve(callerId, identityZoneManager.getCurrentIdentityZoneId());
             } catch (Exception e) {
                 // best effort to get the caller, but the caller might not belong to this zone.
             }
@@ -194,14 +207,13 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                     }
                 }
 
-            }
-            else {
+            } else {
                 if (!client.getScope().isEmpty()) {
                     throw new InvalidClientDetailsException("No scopes alllowed for null caller and client_id=" + clientId + ".");
                 }
             }
 
-            Set<String> validAuthorities = new HashSet<String>(NON_ADMIN_VALID_AUTHORITIES);
+            Set<String> validAuthorities = new HashSet<>(NON_ADMIN_VALID_AUTHORITIES);
             if (requestedGrantTypes.contains(GRANT_TYPE_CLIENT_CREDENTIALS)) {
                 // If client_credentials is used then the client might be a
                 // resource server
@@ -211,7 +223,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             for (String authority : AuthorityUtils.authorityListToSet(client.getAuthorities())) {
                 if (!validAuthorities.contains(authority)) {
                     throw new InvalidClientDetailsException(authority + " is not an allowed authority for caller="
-                                    + callerId + ". Must be one of: " + validAuthorities.toString());
+                            + callerId + ". Must be one of: " + validAuthorities.toString());
                 }
             }
 
@@ -229,21 +241,23 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             client.setScope(Collections.singleton("uaa.none"));
         }
 
-        if (requestedGrantTypes.contains(GRANT_TYPE_IMPLICIT)) {
-            if (StringUtils.hasText(client.getClientSecret())) {
-                throw new InvalidClientDetailsException("Implicit grant should not have a client_secret");
-            }
+        if (requestedGrantTypes.contains(GRANT_TYPE_IMPLICIT) && StringUtils.hasText(client.getClientSecret())) {
+            throw new InvalidClientDetailsException("Implicit grant should not have a client_secret");
         }
         if (create) {
-            // Only check for missing secret if client is being created.
-            if (requestedGrantTypes.contains(GRANT_TYPE_CLIENT_CREDENTIALS)
-                    || requestedGrantTypes.contains(GRANT_TYPE_AUTHORIZATION_CODE)) {
-                if(!StringUtils.hasText(client.getClientSecret())) {
-                    logger.debug("Client secret is required for client_credentials and authorization_code grant types");
-                    throw new InvalidClientDetailsException(
-                            "Client secret is required for client_credentials and authorization_code grant types");
+            clientSecretValidator.validate(client.getClientSecret());
+
+            if (prototype instanceof ClientDetailsCreation clientDetailsCreation) {
+                if (StringUtils.hasText(clientDetailsCreation.getJsonWebKeyUri()) || StringUtils.hasText(clientDetailsCreation.getJsonWebKeySet())) {
+                    ClientJwtConfiguration clientJwtConfiguration = ClientJwtConfiguration.parse(clientDetailsCreation.getJsonWebKeyUri(),
+                            clientDetailsCreation.getJsonWebKeySet());
+                    if (clientJwtConfiguration != null) {
+                        clientJwtConfiguration.writeValue(client);
+                    } else {
+                        throw new InvalidClientDetailsException(
+                                "Client with client jwt configuration not valid");
+                    }
                 }
-                clientSecretValidator.validate(client.getClientSecret());
             }
         }
 
@@ -254,17 +268,17 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
     public void validateClientRedirectUri(ClientDetails client) {
         Set<String> uris = client.getRegisteredRedirectUri();
 
-        for(String grant_type: Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT)) {
-            if(client.getAuthorizedGrantTypes().contains(grant_type)) {
+        for (String grantType : Arrays.asList(GRANT_TYPE_AUTHORIZATION_CODE, GRANT_TYPE_IMPLICIT)) {
+            if (client.getAuthorizedGrantTypes().contains(grantType)) {
 
                 if (isMissingRedirectUris(uris)) {
-                    throw new InvalidClientDetailsException(grant_type + " grant type requires at least one redirect URL.");
+                    throw new InvalidClientDetailsException(grantType + " grant type requires at least one redirect URL.");
                 }
 
                 for (String uri : uris) {
-                    if (!UaaUrlUtils.isValidRegisteredRedirectUrl(uri)) {
+                    if (!UaaUrlUtils.isValidRegisteredRedirectUrl(uri) || uri.contains(",")) {
                         throw new InvalidClientDetailsException(
-                            String.format("One of the redirect_uri is invalid: %s", uri));
+                                "One of the redirect_uri is invalid: %s".formatted(uri));
                     }
                 }
             }
@@ -279,7 +293,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         for (String grant : requestedGrantTypes) {
             if (!VALID_GRANTS.contains(grant)) {
                 throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
-                                + VALID_GRANTS.toString());
+                        + VALID_GRANTS.toString());
             }
         }
     }

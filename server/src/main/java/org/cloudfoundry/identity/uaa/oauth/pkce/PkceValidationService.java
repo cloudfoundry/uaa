@@ -1,9 +1,12 @@
 package org.cloudfoundry.identity.uaa.oauth.pkce;
 
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidGrantException;
+import org.cloudfoundry.identity.uaa.oauth.provider.ClientDetails;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -18,7 +21,7 @@ import java.util.regex.Pattern;
  */
 
 public class PkceValidationService {
-    
+
     /*
      * Regular expression match with any string:
      *  - Length between 43 and 128
@@ -36,7 +39,7 @@ public class PkceValidationService {
     public PkceValidationService() {
         this(Collections.emptyMap());
     }
-    
+
     public PkceValidationService(Map<String, PkceVerifier> pkceVerifiers) {
         this.pkceVerifiers = pkceVerifiers;
     }
@@ -46,8 +49,7 @@ public class PkceValidationService {
      * @return Set of supported code challenge methods.
      */
     public Set<String> getSupportedCodeChallengeMethods() {
-    	Set<String> supportedCodeChallengeMethods = this.pkceVerifiers.keySet();
-        return supportedCodeChallengeMethods;
+        return this.pkceVerifiers.keySet();
     }
 
     /**
@@ -63,13 +65,15 @@ public class PkceValidationService {
         }
         return this.pkceVerifiers.containsKey(codeChallengeMethod);
     }
-    
+
     /**
      * Check presence of PKCE parameters and validate.
      * @param requestParameters
      *        Map of query parameters of Authorization request.
      * @param codeVerifier
      *        Code verifier.
+     * @param clientDetails
+     *        Allow public information from client
      * @return true: (1) in case of Authorization Code Grant without PKCE.
      *               (2) in case of Authorization Code Grant with PKCE and code verifier
      *                   matched with code challenge based on code challenge method.
@@ -79,15 +83,19 @@ public class PkceValidationService {
      *         (1) Code verifier must be provided for this authorization code.
      *         (2) Code verifier not required for this authorization code.
      */
-    public boolean checkAndValidate(Map<String, String> requestParameters, String codeVerifier) throws PkceValidationException {
+    public boolean checkAndValidate(Map<String, String> requestParameters, String codeVerifier, ClientDetails clientDetails) throws PkceValidationException {
         if (!hasPkceParameters(requestParameters, codeVerifier)) {
             return true;
         }
         String codeChallengeMethod = extractCodeChallengeMethod(requestParameters);
+        if (!"S256".equalsIgnoreCase(codeChallengeMethod) && clientDetails != null && clientDetails.getAdditionalInformation() != null
+                && clientDetails.getAdditionalInformation().get(ClientConstants.ALLOW_PUBLIC) != null) {
+            throw new InvalidGrantException("Public client must use code challange method S256");
+        }
         return pkceVerifiers.get(codeChallengeMethod).verify(codeVerifier,
                 requestParameters.get(PkceValidationService.CODE_CHALLENGE));
     }
-    
+
     /**
      * Check if PKCE parameters are present. 
      * @param requestParameters
@@ -100,20 +108,20 @@ public class PkceValidationService {
      *         (1) Code verifier must be provided for this authorization code.
      *         (2) Code verifier not required for this authorization code.
      */
-    protected boolean hasPkceParameters(Map<String, String> requestParameters, String codeVerifier) throws PkceValidationException{
+    protected boolean hasPkceParameters(Map<String, String> requestParameters, String codeVerifier) throws PkceValidationException {
         String codeChallenge = requestParameters.get(CODE_CHALLENGE);
         if (codeChallenge != null) {
             if (codeVerifier != null && !codeVerifier.isEmpty()) {
                 return true;
-            }else {
+            } else {
                 throw new PkceValidationException("Code verifier must be provided for this authorization code.");
             }
-        }else if (codeVerifier != null && !codeVerifier.isEmpty()){
+        } else if (codeVerifier != null && !codeVerifier.isEmpty()) {
             throw new PkceValidationException("Code verifier not required for this authorization code.");
         }
         return false;
     }
-    
+
     /**
      * Extract code challenge method from request.
      * @param requestParameters: Authorization request parameters.
@@ -125,11 +133,11 @@ public class PkceValidationService {
         String codeChallengeMethod = requestParameters.get(CODE_CHALLENGE_METHOD);
         if (codeChallengeMethod == null) {
             return "plain";
-        }else {
+        } else {
             return codeChallengeMethod;
         }
     }
-    
+
     /**
      * Validate the code verifier parameter based on RFC 7636 recommendations.
      * 

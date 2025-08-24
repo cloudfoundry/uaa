@@ -5,7 +5,6 @@ import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
@@ -57,5 +56,4 @@ class AuditListenerTests {
         auditListener.onApplicationEvent(new UserAuthenticationFailureEvent(mockUser, mockAuthentication, zoneId.get()));
         verify(mockUaaAuditService).log(isA(AuditEvent.class), eq(zoneId.get()));
     }
-
 }

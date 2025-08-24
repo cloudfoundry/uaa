@@ -1,51 +1,44 @@
 package org.cloudfoundry.identity.uaa.error;
 
-import org.junit.Test;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public class UaaExceptionTests {
+class UaaExceptionTests {
 
     @Test
-    public void testGetErrorCode() {
+    void getErrorCode() {
         UaaException x = new UaaException("msg", new Exception());
-        assertEquals("unknown_error", x.getErrorCode());
+        assertThat(x.getErrorCode()).isEqualTo("unknown_error");
         x = new UaaException("msg");
-        assertEquals("unknown_error", x.getErrorCode());
+        assertThat(x.getErrorCode()).isEqualTo("unknown_error");
         x = new UaaException("msg", 500);
-        assertEquals("unknown_error", x.getErrorCode());
+        assertThat(x.getErrorCode()).isEqualTo("unknown_error");
         x = new UaaException("Error", "description", 500);
-        assertEquals("Error", x.getErrorCode());
+        assertThat(x.getErrorCode()).isEqualTo("Error");
     }
 
     @Test
-    public void testGetHttpStatus() {
+    void getHttpStatus() {
         UaaException x = new UaaException("msg", new Exception());
-        assertEquals(400, x.getHttpStatus());
+        assertThat(x.getHttpStatus()).isEqualTo(400);
         x = new UaaException("msg");
-        assertEquals(400, x.getHttpStatus());
+        assertThat(x.getHttpStatus()).isEqualTo(400);
         x = new UaaException("msg", 500);
-        assertEquals(500, x.getHttpStatus());
+        assertThat(x.getHttpStatus()).isEqualTo(500);
         x = new UaaException("Error", "description", 500);
-        assertEquals(500, x.getHttpStatus());
+        assertThat(x.getHttpStatus()).isEqualTo(500);
 
-        assertNotNull(x.getSummary());
+        assertThat(x.getSummary()).isNotNull();
     }
 
     @Test
-    public void testAddAdditionalInformation() {
-
-    }
-
-
-    @Test
-    public void testValueOf() {
+    void valueOf() {
         Map<String, String> params = new HashMap<>();
         params.put("error", "error");
         params.put("error_description", "error_description");
@@ -53,36 +46,45 @@ public class UaaExceptionTests {
         params.put("additional1", "additional1");
         params.put("additional2", "additional2");
         UaaException x = UaaException.valueOf(params);
-        assertEquals("error", x.getErrorCode());
-        assertEquals("error_description", x.getMessage());
-        assertEquals(403, x.getHttpStatus());
-        assertEquals("additional1", x.getAdditionalInformation().get("additional1"));
-        assertEquals("additional2", x.getAdditionalInformation().get("additional2"));
+        assertThat(x.getErrorCode()).isEqualTo("error");
+        assertThat(x.getMessage()).isEqualTo("error_description");
+        assertThat(x.getHttpStatus()).isEqualTo(403);
+        assertThat(x.getAdditionalInformation()).containsEntry("additional1", "additional1")
+                .containsEntry("additional2", "additional2");
 
-        params.put("status","test");
+        params.put("status", "test");
         x = UaaException.valueOf(params);
-        assertEquals("error", x.getErrorCode());
-        assertEquals("error_description", x.getMessage());
-        assertEquals(400, x.getHttpStatus());
-        assertEquals("additional1", x.getAdditionalInformation().get("additional1"));
-        assertEquals("additional2", x.getAdditionalInformation().get("additional2"));
-        assertNull(x.getAdditionalInformation().get("additional3"));
+        assertThat(x.getErrorCode()).isEqualTo("error");
+        assertThat(x.getMessage()).isEqualTo("error_description");
+        assertThat(x.getHttpStatus()).isEqualTo(400);
+        assertThat(x.getAdditionalInformation()).containsEntry("additional1", "additional1")
+                .containsEntry("additional2", "additional2")
+                .doesNotContainKey("additional3");
 
         x.addAdditionalInformation("additional3", "additional3");
-        assertEquals("additional1", x.getAdditionalInformation().get("additional1"));
-        assertEquals("additional2", x.getAdditionalInformation().get("additional2"));
-        assertEquals("additional3", x.getAdditionalInformation().get("additional3"));
+        assertThat(x.getAdditionalInformation()).containsEntry("additional1", "additional1")
+                .containsEntry("additional2", "additional2")
+                .containsEntry("additional3", "additional3");
 
-        assertNotNull(x.getSummary());
-        assertTrue(x.getSummary().contains("error=\"error\""));
-        assertTrue(x.getSummary().contains("additional3=\"additional3\""));
+        assertThat(x.getSummary()).isNotNull()
+                .contains("error=\"error\"")
+                .contains("additional3=\"additional3\"");
     }
 
     @Test
-    public void testToString() {
+    void testToString() {
         UaaException x = new UaaException("test");
-        assertNotNull(x.toString());
+        assertThat(x.toString()).isNotNull();
     }
 
-
+    @Test
+    void serialize() {
+        Map<String, String> params = Map.of("error", "invalid_request", "error_description", "error_description");
+        UaaException x = UaaException.valueOf(params);
+        String uaaExceptionString = JsonUtils.writeValueAsString(x);
+        OAuth2Exception deserialized = JsonUtils.readValue(uaaExceptionString, UaaException.class);
+        assertThat(JsonUtils.writeValueAsString(deserialized)).isEqualTo(uaaExceptionString);
+        UaaException newException = new UaaException(deserialized, deserialized.getOAuth2ErrorCode(), "error_description", 400);
+        assertThat(x).hasToString(newException.toString());
+    }
 }

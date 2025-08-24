@@ -15,32 +15,37 @@
 
 package org.cloudfoundry.identity.uaa.metrics;
 
-public class MetricsUtil {
+public final class MetricsUtil {
     public static final String GLOBAL_GROUP = "uaa.global.metrics";
 
+    // Utility classes should not have public constructors
+    private MetricsUtil() {
+        throw new IllegalStateException("Utility class");
+    }
+
     public static double addAverages(double oldCount,
-                                     double oldAverage,
-                                     double newCount,
-                                     double newAverage) {
-        if (newCount==0) {
+            double oldAverage,
+            double newCount,
+            double newAverage) {
+        if (newCount == 0) {
             return oldAverage;
         }
         return
-            ((oldCount) / (newCount + oldCount) * oldAverage) +
-                (newCount / (newCount + oldCount) * newAverage);
+                (oldCount / (newCount + oldCount) * oldAverage) +
+                        (newCount / (newCount + oldCount) * newAverage);
     }
 
     public static double addToAverage(double oldCount,
-                                      double oldAverage,
-                                      double newCount,
-                                      double newTotalTime) {
-        if (newCount==0) {
+            double oldAverage,
+            double newCount,
+            double newTotalTime) {
+        if (newCount == 0) {
             return oldAverage;
         }
         double newAverage = newTotalTime / newCount;
         return
-            ((oldCount) / (newCount + oldCount) * oldAverage) +
-                (newCount / (newCount + oldCount) * newAverage);
+                (oldCount / (newCount + oldCount) * oldAverage) +
+                        (newCount / (newCount + oldCount) * newAverage);
     }
 
     public static class MutableLong {
@@ -64,7 +69,7 @@ public class MetricsUtil {
 
         @Override
         public String toString() {
-            return Long.valueOf(get()).toString();
+            return Long.toString(get());
         }
     }
 
@@ -89,7 +94,7 @@ public class MetricsUtil {
 
         @Override
         public String toString() {
-            return Double.valueOf(get()).toString();
+            return Double.toString(get());
         }
     }
 }

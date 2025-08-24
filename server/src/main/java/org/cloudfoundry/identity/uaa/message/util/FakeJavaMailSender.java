@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -18,11 +19,11 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessagePreparator;
 import org.springframework.util.StreamUtils;
 
-import javax.mail.Address;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Session;
-import javax.mail.internet.MimeMessage;
+import jakarta.mail.Address;
+import jakarta.mail.Message;
+import jakarta.mail.MessagingException;
+import jakarta.mail.Session;
+import jakarta.mail.internet.MimeMessage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -52,7 +53,7 @@ public class FakeJavaMailSender implements JavaMailSender {
     }
 
     public void setMaxMessages(int maxMessages) {
-        if (maxMessages<0) {
+        if (maxMessages < 0) {
             this.maxMessages = 0;
         } else {
             this.maxMessages = maxMessages;
@@ -65,24 +66,24 @@ public class FakeJavaMailSender implements JavaMailSender {
     }
 
     @Override
-    public MimeMessage createMimeMessage(InputStream inputStream)  {
+    public MimeMessage createMimeMessage(InputStream inputStream) {
         throw new UnsupportedOperationException();
     }
 
     @Override
     public synchronized void send(MimeMessage mimeMessage) throws MailException {
-        if (getMaxMessages()>0) {
+        if (getMaxMessages() > 0) {
             sentMessages.add(new MimeMessageWrapper(mimeMessage));
         }
 
-        while (sentMessages.size()>getMaxMessages()) {
-            sentMessages.remove(0);
+        while (sentMessages.size() > getMaxMessages()) {
+            sentMessages.removeFirst();
         }
     }
 
     @Override
     public void send(MimeMessage[] mimeMessages) throws MailException {
-        if (mimeMessages!=null) {
+        if (mimeMessages != null) {
             for (MimeMessage m : mimeMessages) {
                 send(m);
             }
@@ -130,7 +131,9 @@ public class FakeJavaMailSender implements JavaMailSender {
         }
 
         public String getContentString() throws MessagingException, IOException {
-            return StreamUtils.copyToString(mimeMessage.getDataHandler().getInputStream(), StandardCharsets.UTF_8);
+            try (InputStream in = mimeMessage.getDataHandler().getInputStream()) {
+                return StreamUtils.copyToString(in, StandardCharsets.UTF_8);
+            }
         }
 
         public MimeMessage getMessage() {
@@ -139,12 +142,12 @@ public class FakeJavaMailSender implements JavaMailSender {
 
         @Override
         public String toString() {
-            final StringBuffer sb = new StringBuffer("MimeMessageWrapper{");
+            final StringBuilder sb = new StringBuilder("MimeMessageWrapper{");
             try {
                 sb.append("From=").append(Arrays.toString(getFrom().toArray()));
                 sb.append("; To=").append(Arrays.toString(getRecipients(Message.RecipientType.TO).toArray()));
                 sb.append("; Content=").append(getContentString());
-            }catch (MessagingException | IOException x) {
+            } catch (MessagingException | IOException x) {
                 sb.append("Message=").append(mimeMessage);
             }
             sb.append('}');

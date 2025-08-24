@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,14 +13,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.codestore;
 
+import org.cloudfoundry.identity.uaa.oauth.common.util.RandomValueStringGenerator;
+import org.cloudfoundry.identity.uaa.util.TimeService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.cloudfoundry.identity.uaa.util.TimeService;
+import org.springframework.boot.sql.init.dependency.DependsOnDatabaseInitialization;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
 import javax.sql.DataSource;
@@ -28,6 +31,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.concurrent.atomic.AtomicLong;
 
+@Component(value = "codeStore")
+@DependsOnDatabaseInitialization
 public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     public static final String tableName = "expiring_code_store";
@@ -44,14 +49,14 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     private Logger logger = LoggerFactory.getLogger(getClass());
 
-    private RandomValueStringGenerator generator = new RandomValueStringGenerator(10);
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator(32);
 
     private JdbcTemplate jdbcTemplate;
 
     private TimeService timeService;
 
     private AtomicLong lastExpired = new AtomicLong();
-    private long expirationInterval = 60 * 1000; // once a minute
+    private long expirationInterval = 60 * 1_000L; // once a minute
 
     public long getExpirationInterval() {
         return expirationInterval;
@@ -59,10 +64,6 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     public void setExpirationInterval(long expirationInterval) {
         this.expirationInterval = expirationInterval;
-    }
-
-    protected JdbcExpiringCodeStore() {
-        // package protected for unit tests only
     }
 
     public JdbcExpiringCodeStore(DataSource dataSource, TimeService timeService) {
@@ -99,7 +100,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
                 if (update == 1) {
                     return new ExpiringCode(code, expiresAt, data, intent);
                 } else {
-                    logger.warn("Unable to store expiring code:" + code);
+                    logger.warn("Unable to store expiring code:{}", code);
                 }
             } catch (DataIntegrityViolationException x) {
                 if (count == 3) {
@@ -121,7 +122,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
         try {
             ExpiringCode expiringCode = jdbcTemplate.queryForObject(selectAllFields, rowMapper, code, zoneId);
-            if (expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
+            if (expiringCode != null && expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
                 expiringCode = null;
             }
             return expiringCode;
@@ -143,7 +144,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
             if (expiringCode != null) {
                 jdbcTemplate.update(delete, code, zoneId);
             }
-            if (expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
+            if (expiringCode != null && expiringCode.getExpiresAt().getTime() < timeService.getCurrentTimeMillis()) {
                 expiringCode = null;
             }
             return expiringCode;
@@ -159,7 +160,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     @Override
     public void expireByIntent(String intent, String zoneId) {
-        Assert.hasText(intent);
+        Assert.hasText(intent, "must have text; it must not be null, empty, or blank");
 
         jdbcTemplate.update(deleteIntent, intent, zoneId);
     }
@@ -170,7 +171,7 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
         if ((now - lastCheck) > expirationInterval && lastExpired.compareAndSet(lastCheck, now)) {
             int count = jdbcTemplate.update(deleteExpired, now);
-            logger.debug("Expiring code sweeper complete, deleted " + count + " entries.");
+            logger.debug("Expiring code sweeper complete, deleted {} entries.", count);
             return count;
         }
 

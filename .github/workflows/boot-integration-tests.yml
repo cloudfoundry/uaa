@@ -1,0 +1,38 @@
+name: Boot Integration Tests - Executable WAR
+on:
+  pull_request:
+    branches: [ develop ]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  container-test-job:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        database: [ 'postgresql-11', 'postgresql-15', 'postgresql-16', 'mysql', 'mysql-8' ]
+    container:
+      image: cfidentity/uaa-${{ matrix.database }}
+      volumes:
+        - ${{ github.workspace }}:/root/uaa
+      options: --privileged --tty --interactive --shm-size=1G
+    steps:
+      - name: Set env
+        run: echo "DB=$(echo ${{ matrix.database }} | sed 's/[-0-9]//g')" >> $GITHUB_ENV
+      - name: Check out repository code
+        uses: actions/checkout@v5
+      - name: Integration tests on container
+        id: testrun
+        run: /root/uaa/scripts/integration-tests.sh $DB,default boot
+        continue-on-error: true
+      - name: Test result upload
+        uses: actions/upload-artifact@v4
+        if: steps.testrun.outcome == 'failure'
+        with:
+          name: Server test
+          path: /root/uaa/*/build/reports/tests/integrationTest/
+      - name: Check error Result
+        run: exit 1
+        if: steps.testrun.outcome == 'failure'

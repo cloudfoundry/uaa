@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry 
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,30 +13,36 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.InvalidTokenException;
+import org.cloudfoundry.identity.uaa.oauth.common.exceptions.OAuth2Exception;
+import org.cloudfoundry.identity.uaa.oauth.provider.OAuth2Authentication;
+import org.cloudfoundry.identity.uaa.oauth.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.List;
 
 public class ScopeAuthenticationFilter implements Filter {
-    private AuthenticationManager authenticationManager;
+    private final ScopeAuthenticationManager authenticationManager;
     private AuthenticationEntryPoint authenticationEntryPoint = new OAuth2AuthenticationEntryPoint();
+
+    public ScopeAuthenticationFilter() {
+        this.authenticationManager = new ScopeAuthenticationManager();
+        this.authenticationManager.setRequiredScopes(List.of("oauth.login"));
+    }
 
     public AuthenticationEntryPoint getAuthenticationEntryPoint() {
         return authenticationEntryPoint;
@@ -49,10 +56,6 @@ public class ScopeAuthenticationFilter implements Filter {
         return authenticationManager;
     }
 
-    public void setAuthenticationManager(AuthenticationManager authenticationManager) {
-        this.authenticationManager = authenticationManager;
-    }
-
     @Override
     public void init(FilterConfig filterConfig) {
 
@@ -62,19 +65,19 @@ public class ScopeAuthenticationFilter implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         try {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-            if (authentication==null || (!(authentication instanceof OAuth2Authentication))) {
+            if (authentication == null || (!(authentication instanceof OAuth2Authentication))) {
                 throw new InvalidTokenException("Missing oauth token.");
             }
             authenticationManager.authenticate(authentication);
-            chain.doFilter(request,response);
+            chain.doFilter(request, response);
         } catch (OAuth2Exception e) {
             authenticationEntryPoint.commence(
-                (HttpServletRequest)request,
-                (HttpServletResponse)response,
-                new InsufficientAuthenticationException("Insufficient authentication", e));
+                    (HttpServletRequest) request,
+                    (HttpServletResponse) response,
+                    new InsufficientAuthenticationException("Insufficient authentication", e));
             SecurityContextHolder.clearContext();
         } catch (AuthenticationException e) {
-            authenticationEntryPoint.commence((HttpServletRequest)request,(HttpServletResponse)response,e);
+            authenticationEntryPoint.commence((HttpServletRequest) request, (HttpServletResponse) response, e);
             SecurityContextHolder.clearContext();
         }
     }

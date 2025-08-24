@@ -12,11 +12,11 @@ public class LimitSqlAdapterFactory {
     }
 
     static LimitSqlAdapter getLimitSqlAdapter(String profiles) {
-        if(contains(profiles, "postgresql")) {
+        if (contains(profiles, "postgresql")) {
             return new PostgresLimitSqlAdapter();
         }
 
-        if(contains(profiles, "mysql")) {
+        if (contains(profiles, "mysql")) {
             return new MySqlLimitSqlAdapter();
         }
 

@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -19,11 +20,14 @@ import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.springframework.security.core.Authentication;
 
+import java.io.Serial;
+
 public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
 
+    @Serial
     private static final long serialVersionUID = -4559543713244231262L;
 
-    private AuditEventType eventType;
+    private final AuditEventType eventType;
 
     protected static final String dataFormat = "id=%s; type=%s; origin=%s; zone=%s";
 
@@ -34,15 +38,15 @@ public class IdentityProviderModifiedEvent extends AbstractUaaEvent {
 
     @Override
     public AuditEvent getAuditEvent() {
-        IdentityProvider provider = (IdentityProvider)source;
+        IdentityProvider provider = (IdentityProvider) source;
         return createAuditRecord(getSource().toString(),
-                                 eventType,
-                                 getOrigin(getAuthentication()),
-                                 String.format(IdentityProviderModifiedEvent.dataFormat,
-                                               provider.getId(),
-                                               provider.getType(),
-                                               provider.getOriginKey(),
-                                               provider.getIdentityZoneId())
+                eventType,
+                getOrigin(getAuthentication()),
+                IdentityProviderModifiedEvent.dataFormat.formatted(
+                        provider.getId(),
+                        provider.getType(),
+                        provider.getOriginKey(),
+                        provider.getIdentityZoneId())
         );
     }
 

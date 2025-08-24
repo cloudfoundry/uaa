@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -12,11 +13,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -50,19 +52,19 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     private static final String FIELDS = "user_id,client_id,scope,expiresAt,status,lastModifiedAt,identity_zone_id";
 
     private static final String ADD_AUTHZ_SQL =
-        String.format("insert into %s ( %s ) values (?,?,?,?,?,?,?)",
-                      TABLE_NAME,
-                      FIELDS);
+            "insert into %s ( %s ) values (?,?,?,?,?,?,?)".formatted(
+                    TABLE_NAME,
+                    FIELDS);
 
     private static final String REFRESH_AUTHZ_SQL =
-        String.format("update %s set lastModifiedAt=?, expiresAt=?, status=? where user_id=? and client_Id=? and scope=? and identity_zone_id=?",
-                      TABLE_NAME);
+            "update %s set lastModifiedAt=?, expiresAt=?, status=? where user_id=? and client_Id=? and scope=? and identity_zone_id=?".formatted(
+                    TABLE_NAME);
 
-    private static final String GET_AUTHZ_SQL = String.format("select %s from %s", FIELDS, TABLE_NAME);
+    private static final String GET_AUTHZ_SQL = "select %s from %s".formatted(FIELDS, TABLE_NAME);
 
-    private static final String DELETE_AUTHZ_SQL = String.format("delete from %s", TABLE_NAME);
+    private static final String DELETE_AUTHZ_SQL = "delete from %s".formatted(TABLE_NAME);
 
-    private static final String EXPIRE_AUTHZ_SQL = String.format("update %s set expiresAt = :expiry", TABLE_NAME);
+    private static final String EXPIRE_AUTHZ_SQL = "update %s set expiresAt = :expiry".formatted(TABLE_NAME);
 
     protected static final String DELETE_ZONE_APPROVALS = "delete from authz_approvals where identity_zone_id = ?";
 
@@ -73,11 +75,11 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public static final String DELETE_OF_USER_APPROVALS_BY_PROVIDER = "delete from authz_approvals where user_id in (select id from users where origin = ? and identity_zone_id = ?)";
 
 
-    private boolean handleRevocationsAsExpiry = false;
+    private boolean handleRevocationsAsExpiry;
     private ApplicationEventPublisher applicationEventPublisher;
 
     public JdbcApprovalStore(JdbcTemplate jdbcTemplate) {
-        Assert.notNull(jdbcTemplate);
+        Assert.notNull(jdbcTemplate, "jdbcTemplate is required");
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -86,7 +88,9 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     public boolean refreshApproval(final Approval approval, final String zoneId) {
-        logger.debug(String.format("refreshing approval: [%s]", approval));
+        if (logger.isDebugEnabled()) {
+            logger.debug("refreshing approval: [{}]", UaaStringUtils.getCleanedUserControlString(approval.toString()));
+        }
         int refreshed = jdbcTemplate.update(REFRESH_AUTHZ_SQL, ps -> {
             ps.setTimestamp(1, new Timestamp(approval.getLastUpdatedAt().getTime()));
             ps.setTimestamp(2, new Timestamp(approval.getExpiresAt().getTime()));
@@ -104,7 +108,9 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
 
     @Override
     public boolean addApproval(final Approval approval, final String zoneId) {
-        logger.debug(String.format("adding approval: [%s]", approval));
+        if (logger.isDebugEnabled()) {
+            logger.debug("adding approval: [{}]", UaaStringUtils.getCleanedUserControlString(approval.toString()));
+        }
         try {
             refreshApproval(approval, zoneId); // try to refresh the approval
         } catch (DataIntegrityViolationException ex) { // could not find the
@@ -118,7 +124,9 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
                 ps.setTimestamp(6, new Timestamp(approval.getLastUpdatedAt().getTime()));
                 ps.setString(7, zoneId);
             });
-            if (count == 0) throw new EmptyResultDataAccessException("Approval add failed", 1);
+            if (count == 0) {
+                throw new EmptyResultDataAccessException("Approval add failed", 1);
+            }
         }
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         publish(new ApprovalModifiedEvent(approval, authentication));
@@ -180,10 +188,10 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         logger.debug("Purging expired approvals from database");
         try {
             int deleted = jdbcTemplate.update(DELETE_AUTHZ_SQL + " where expiresAt <= ?",
-                                              ps -> { //PreparedStatementSetter
-                                                  ps.setTimestamp(1, new Timestamp(new Date().getTime()));
-                                              });
-            logger.debug(deleted + " expired approvals deleted");
+                    //PreparedStatementSetter
+                    ps -> ps.setTimestamp(1, new Timestamp(new Date().getTime()))
+            );
+            logger.debug("{} expired approvals deleted", deleted);
         } catch (DataAccessException ex) {
             logger.error("Error purging expired approvals", ex);
             return false;
@@ -195,13 +203,13 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public List<Approval> getApprovalsForUser(String userId, final String zoneId) {
         String sql = GET_AUTHZ_SQL + " WHERE user_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
-            sql,
+                sql,
                 ps -> {
                     int pos = 1;
                     ps.setString(pos++, userId);
                     ps.setString(pos++, zoneId);
                 },
-            rowMapper
+                rowMapper
         );
     }
 
@@ -209,13 +217,13 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public List<Approval> getApprovalsForClient(String clientId, final String zoneId) {
         String sql = GET_AUTHZ_SQL + " WHERE client_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
-            sql,
+                sql,
                 ps -> {
                     int pos = 1;
                     ps.setString(pos++, clientId);
                     ps.setString(pos++, zoneId);
                 },
-            rowMapper
+                rowMapper
         );
     }
 
@@ -223,14 +231,14 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     public List<Approval> getApprovals(String userId, String clientId, final String zoneId) {
         String sql = GET_AUTHZ_SQL + " WHERE user_id = ? AND client_id = ? AND identity_zone_id = ?";
         return jdbcTemplate.query(
-            sql,
+                sql,
                 ps -> {
                     int pos = 1;
                     ps.setString(pos++, userId);
                     ps.setString(pos++, clientId);
                     ps.setString(pos++, zoneId);
                 },
-            rowMapper
+                rowMapper
         );
     }
 
@@ -248,28 +256,28 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     @Override
     public int deleteByIdentityZone(String zoneId) {
         int approvalCount = jdbcTemplate.update(DELETE_ZONE_APPROVALS, zoneId);
-        getLogger().debug(String.format("Deleted zone approvals '%s' and count:%s", zoneId, approvalCount));
+        getLogger().debug("Deleted zone approvals '{}' and count:{}", zoneId, approvalCount);
         return approvalCount;
     }
 
     @Override
     public int deleteByOrigin(String origin, String zoneId) {
         int approvalCount = jdbcTemplate.update(DELETE_OF_USER_APPROVALS_BY_PROVIDER, origin, zoneId);
-        getLogger().debug(String.format("Deleted provider approvals '%s'/%s and count:%s", origin, zoneId, approvalCount));
+        getLogger().debug("Deleted provider approvals '{}'/{} and count:{}", origin, zoneId, approvalCount);
         return approvalCount;
     }
 
     @Override
     public int deleteByClient(String clientId, String zoneId) {
         int approvalCount = jdbcTemplate.update(DELETE_CLIENT_APPROVALS, clientId, zoneId);
-        getLogger().debug(String.format("Deleted client '%s' and %s approvals", clientId, approvalCount));
+        getLogger().debug("Deleted client '{}' and {} approvals", clientId, approvalCount);
         return approvalCount;
     }
 
     @Override
     public int deleteByUser(String userId, String zoneId) {
         int approvalCount = jdbcTemplate.update(DELETE_USER_APPROVALS, userId, zoneId);
-        getLogger().debug(String.format("Deleted user '%s' and %s approvals", userId, approvalCount));
+        getLogger().debug("Deleted user '{}' and {} approvals", userId, approvalCount);
         return approvalCount;
     }
 
@@ -279,7 +287,6 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
     }
 
     private static class AuthorizationRowMapper implements RowMapper<Approval> {
-
         @Override
         public Approval mapRow(ResultSet rs, int rowNum) throws SQLException {
             String userId = rs.getString(1);
@@ -290,12 +297,12 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             Date lastUpdatedAt = rs.getTimestamp(6);
 
             return new Approval()
-                .setUserId(userId)
-                .setClientId(clientId)
-                .setScope(scope)
-                .setExpiresAt(expiresAt)
-                .setStatus(ApprovalStatus.valueOf(status))
-                .setLastUpdatedAt(lastUpdatedAt);
+                    .setUserId(userId)
+                    .setClientId(clientId)
+                    .setScope(scope)
+                    .setExpiresAt(expiresAt)
+                    .setStatus(ApprovalStatus.valueOf(status))
+                    .setLastUpdatedAt(lastUpdatedAt);
         }
     }
 }

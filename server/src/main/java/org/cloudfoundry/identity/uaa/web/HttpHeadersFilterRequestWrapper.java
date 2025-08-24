@@ -17,8 +17,8 @@ package org.cloudfoundry.identity.uaa.web;
 
 import org.cloudfoundry.identity.uaa.util.EmptyEnumerationOfString;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
@@ -58,7 +58,7 @@ public class HttpHeadersFilterRequestWrapper extends HttpServletRequestWrapper {
     @Override
     public Enumeration<String> getHeaderNames() {
         List<String> headerNames = Collections.list(super.getHeaderNames());
-        headerNames.removeIf(header -> shouldFilter(header));
+        headerNames.removeIf(this::shouldFilter);
         return Collections.enumeration(headerNames);
     }
 }

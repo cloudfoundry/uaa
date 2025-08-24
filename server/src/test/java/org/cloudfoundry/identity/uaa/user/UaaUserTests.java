@@ -5,11 +5,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.Date;
 
-import static org.cloudfoundry.identity.uaa.user.UaaUserMatcher.aUaaUser;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
-import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class UaaUserTests {
     @Nested
@@ -19,7 +15,7 @@ class UaaUserTests {
             @Test
             void constructsEmailFromInputAndDefaultDomain() {
                 final String name = "user";
-                assertEquals(name + "@" + UaaUser.DEFAULT_EMAIL_DOMAIN, UaaUser.emailFrom(name));
+                assertThat(UaaUser.emailFrom(name)).isEqualTo(name + "@" + UaaUser.DEFAULT_EMAIL_DOMAIN);
             }
         }
 
@@ -28,7 +24,7 @@ class UaaUserTests {
             @Test
             void constructsEmailFromInputAndDefaultDomain() {
                 final String name = "user";
-                assertEquals(name + "@" + UaaUser.DEFAULT_EMAIL_DOMAIN, UaaUser.emailFrom("@" + name));
+                assertThat(UaaUser.emailFrom("@" + name)).isEqualTo(name + "@" + UaaUser.DEFAULT_EMAIL_DOMAIN);
             }
         }
 
@@ -37,7 +33,7 @@ class UaaUserTests {
             @Test
             void constructsEmailFromInputAndDefaultDomain() {
                 final String name = "user";
-                assertEquals(name + "@" + UaaUser.DEFAULT_EMAIL_DOMAIN, UaaUser.emailFrom(name + "@"));
+                assertThat(UaaUser.emailFrom(name + "@")).isEqualTo(name + "@" + UaaUser.DEFAULT_EMAIL_DOMAIN);
             }
         }
 
@@ -46,7 +42,7 @@ class UaaUserTests {
             @Test
             void returnsTheInput() {
                 final String name = "user@example.com";
-                assertEquals(name, UaaUser.emailFrom(name));
+                assertThat(UaaUser.emailFrom(name)).isEqualTo(name);
             }
         }
     }
@@ -58,13 +54,14 @@ class UaaUserTests {
             @Test
             void defaultsUsernameToEmail() {
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withEmail("user@example.com"));
-                assertThat(user, is(aUaaUser().withUsername("user@example.com")));
+                assertThat(user.getUsername()).isEqualTo("user@example.com");
             }
 
             @Test
             void defaultsUsernameToUnknownWhenNoEmailPresent() {
-                UaaUser user = UaaUser.createWithDefaults(u -> {});
-                assertThat(user, is(aUaaUser().withUsername(UaaUser.DEFAULT_USER_NAME)));
+                UaaUser user = UaaUser.createWithDefaults(u -> {
+                });
+                assertThat(user.getUsername()).isEqualTo(UaaUser.DEFAULT_USER_NAME);
             }
         }
 
@@ -73,7 +70,7 @@ class UaaUserTests {
             @Test
             void defaultsEmailFromUsername() {
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("name"));
-                assertThat(user, is(aUaaUser().withEmail("name" + "@" + UaaUser.DEFAULT_EMAIL_DOMAIN)));
+                assertThat(user.getEmail()).isEqualTo("name" + "@" + UaaUser.DEFAULT_EMAIL_DOMAIN);
             }
         }
 
@@ -82,13 +79,13 @@ class UaaUserTests {
             @Test
             void defaultsGivenNameByExtractingTheUsernameFromAValidEmailAddress() {
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user").withEmail("name@example.com"));
-                assertThat(user, is(aUaaUser().withGivenName("name")));
+                assertThat(user.getGivenName()).isEqualTo("name");
             }
 
             @Test
             void defaultsGivenNameByExtractingTheUsernameFromAnInvalidEmailAddress() {
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user").withEmail("invalid-email"));
-                assertThat(user, is(aUaaUser().withGivenName("invalid-email")));
+                assertThat(user.getGivenName()).isEqualTo("invalid-email");
             }
         }
 
@@ -97,7 +94,7 @@ class UaaUserTests {
             @Test
             void defaultsFamilyNameByExtractingTheUsernameFromTheEmailAddress() {
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user").withEmail("name@example.com"));
-                assertThat(user, is(aUaaUser().withFamilyName("example.com")));
+                assertThat(user.getFamilyName()).isEqualTo("example.com");
             }
 
             @Test
@@ -108,7 +105,7 @@ class UaaUserTests {
                                 .withEmail("not-an-email");
 
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user").withEmail("invalid-email"));
-                assertThat(user, is(aUaaUser().withGivenName("invalid-email")));
+                assertThat(user.getGivenName()).isEqualTo("invalid-email");
             }
         }
 
@@ -117,9 +114,8 @@ class UaaUserTests {
             @Test
             void defaultsToNow() {
                 Date now = new Date();
-
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user"));
-                assertThat(user, is(aUaaUser().withCreated(greaterThanOrEqualTo(now))));
+                assertThat(user.getCreated()).isAfterOrEqualTo(now);
             }
         }
 
@@ -128,10 +124,9 @@ class UaaUserTests {
             @Test
             void defaultsToNow() {
                 Date now = new Date();
-
                 UaaUser user = UaaUser.createWithDefaults(u -> u.withUsername("user"));
-                assertThat(user, is(aUaaUser().withModified(greaterThanOrEqualTo(user.getCreated()))));
-                assertThat(user, is(aUaaUser().withModified(greaterThanOrEqualTo(now))));
+                assertThat(user.getModified()).isAfterOrEqualTo(now)
+                        .isAfterOrEqualTo(user.getCreated());
             }
         }
     }

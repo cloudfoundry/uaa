@@ -9,7 +9,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.function.Executable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.MailAuthenticationException;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
@@ -18,9 +17,8 @@ import org.springframework.test.context.TestPropertySource;
 
 import java.util.Random;
 
-import static org.cloudfoundry.identity.uaa.util.AssertThrowsWithMessage.assertThrowsWithMessageThat;
-import static org.hamcrest.Matchers.is;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class SmtpConfigurationTest {
 
@@ -64,17 +62,12 @@ class SmtpConfigurationTest {
 
         @Test
         void verifyThatBadUserAndBadPasswordCantSendMessages() {
-            Executable sendMessage = () -> emailService.sendMessage(
-                    "asdf@example.com",
-                    MessageType.INVITATION,
-                    "email subject",
-                    "email html Content");
-
-            assertThrowsWithMessageThat(
-                    MailAuthenticationException.class,
-                    sendMessage,
-                    is("Authentication failed; nested exception is javax.mail.AuthenticationFailedException: 535 5.7.8  Authentication credentials invalid\n")
-            );
+            assertThatThrownBy(() -> emailService.sendMessage("asdf@example.com", MessageType.INVITATION,
+                    "email subject", "email html Content"))
+                    .isInstanceOf(MailAuthenticationException.class)
+                    .rootCause()
+                    .isInstanceOf(jakarta.mail.AuthenticationFailedException.class)
+                    .hasMessage("535 5.7.8  Authentication credentials invalid\n");
         }
     }
 
@@ -100,13 +93,8 @@ class SmtpConfigurationTest {
 
         @Test
         void verifyThatBadUserAndBadPasswordCantSendMessages() {
-            Executable sendMessage = () -> emailService.sendMessage(
-                    "asdf@example.com",
-                    MessageType.INVITATION,
-                    "email subject",
-                    "email html Content");
-
-            assertDoesNotThrow(sendMessage);
+            assertThatNoException().isThrownBy(() -> emailService.sendMessage("asdf@example.com",
+                    MessageType.INVITATION, "email subject", "email html Content"));
         }
     }
 }

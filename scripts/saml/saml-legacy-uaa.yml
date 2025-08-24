@@ -1,0 +1,308 @@
+# SAML Configuration with legacy key configuration
+# Added 2 Example IdPs
+login:
+  saml:
+    providers:
+      simple.saml.invalid:
+        idpMetadata: http://simplesamlphp.cfapps.io/saml2/idp/metadata.php
+        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+        assertionConsumerIndex: 0
+        showSamlLoginLink: true
+        linkText: Invalid SAML Login
+      simple.saml.login:
+        idpMetadata: |
+          <?xml version="1.0" encoding="utf-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://uaa-acceptance.cf-app.com/saml-idp">  <md:IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">    <md:KeyDescriptor use="signing">      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">        <ds:X509Data>          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>        </ds:X509Data>      </ds:KeyInfo>    </md:KeyDescriptor>    <md:KeyDescriptor use="encryption">      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">        <ds:X509Data>          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>        </ds:X509Data>      </ds:KeyInfo>    </md:KeyDescriptor>    <md:SingleLogoutService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://simplesamlphp.uaa-acceptance.cf-app.com/module.php/saml/idp/singleLogout"/>    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>    <md:SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="http://simplesamlphp.uaa-acceptance.cf-app.com/module.php/saml/idp/singleSignOnService"/>  </md:IDPSSODescriptor>  <md:ContactPerson contactType="technical">    <md:GivenName>TAS Identity &amp; Credentials</md:GivenName>    <md:EmailAddress>mailto:tas-identity-and-credentials@groups.vmware.com</md:EmailAddress>  </md:ContactPerson></md:EntityDescriptor>
+        showSamlLoginLink: true
+        linkText: Login with simple-saml-login
+        attributeMappings:
+          family_name: last_name
+          given_name: first_name
+          email: email
+        metadataTrustCheck: false
+        addShadowUserOnLogin: true
+  serviceProviderKey: |
+    -----BEGIN RSA PRIVATE KEY-----
+    MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5
+    L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA
+    fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB
+    AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges
+    7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu
+    lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp
+    ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX
+    kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL
+    gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK
+    vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe
+    A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS
+    N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB
+    qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
+    -----END RSA PRIVATE KEY-----
+  serviceProviderCertificate: |
+    -----BEGIN CERTIFICATE-----
+    MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO
+    MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO
+    MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h
+    cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx
+    CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM
+    BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb
+    BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN
+    ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W
+    qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw
+    znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha
+    MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc
+    gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD
+    VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD
+    VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh
+    QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ
+    0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC
+    KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK
+    RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=
+    -----END CERTIFICATE-----
+
+
+#The secret that an external login server will use to authenticate to the uaa using the id `login`
+LOGIN_SECRET: loginsecret
+
+jwt:
+  token:
+    policy:
+      activeKeyId: key-id-1
+      keys:
+        key-id-1:
+          signingAlg: RS256
+          signingKey: |
+            -----BEGIN PRIVATE KEY-----
+            MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCowKUlfOfJxXZt
+            DWkVs3xb4BZJiGlLYxUAaGRY2WbG/YjHT/6frOOK+N2jFyrtElHiRXJyhV4PTsOJ
+            YSVhKdAt15A+AoBwGLCKVHfRTLINMpyoNBDmuQKDY42XBXRoyyDvgppd5exXrncB
+            KzcVgS25LVoP8Nvn4XJcXweQejzHLX01SeqwNZCeHUeGSXKfG7a29bR/DagMTWnA
+            2X5YsRU+2VykK1/hVK/4ZrC0GIjrGZiwYEwL3Db0RIcWo/DQ1IJGGXIl/qsME0f/
+            vrqbMr+8TMDivMZMERSoPFOD/wmlGGH0PeqWNKyaoK2lCiWg4BpQoKpIlv+Eo+yl
+            77uv1xibAgMBAAECggEADtC4jwJ/MDuZ6pGtvKSBEgKp7wzyJZa00ZzYo0sVSi1L
+            58FSDiW15Zqn84YSR2iY1l//eY0HVYCDC6aDC07W9cQoaArjLzQ6GslQqm6GOtqX
+            +CJ3q2Uc+RKkuL7XWgEfZDexb4+PwNQfb/OIOgCZCY1kP0sHm3BNEIDQheXD1gtq
+            8KTOBy/TtN7rV940LoudgQ8vzz+ShhmG7Dt5yws/QzaBpryLncGsGYZSDnvvEBYY
+            dlbYQEgfLmzdKSDKW3DNV+duaBDeArxZViD7EqPpQxIOawBvl5bs6Radz7OEGZ7k
+            hTr2fYU4JGn4WJl61yJg4Xm6pp9cJmi+BIgwLrvXNQKBgQDTPjZ6jCPXAfY6WRVD
+            +hTKgrdhMzNALuiZeyWNSKiiDKgtx1A8OhUAgGzY/PeqmDabiVWKtso+EazfMwa+
+            BrScf+HEZFUvNJ5tGxe6nEEFCx0n5ELUM/L4SWCtD6eFCNYcAY1XvzPD1F3KzewE
+            vw8FbT34fef+YayuIF3PPODtJwKBgQDMgcEnXARRzsIC7i1ggqSU8N0OUSu+rA/h
+            Md9Uh9HsY18p8JtNezAQ2vV4RL3R/CUPGXeDvCBYWhXlkNmjdCAsk24DZHs2Q18x
+            TeHZ15PUtmd2tH/tAxANDi6RTTjpQI3w2poXHl2ZVuT8M+XkTv0WzI0c8TNog2RA
+            SzHd5z5JbQKBgQCDlvim5E+bKzywYjfuDYYQFNeZNCTT8aSxn1XoKf/qWooVYlin
+            ++KDWnzzurmpSoKR5z4jV/SqL6aJr6aej1zJNJx2E65A5r1d6AejFp0mQCMca4P5
+            3paXdlZD2EGZjMSb05extojPj6YRpK9G0aHQ1plJB12SSFQicEUfyKOw9wKBgD09
+            ScLoih6ZRH2uJwZ0eKZlLj0AT5IsYiD0V0Uv2svnwfKEK21bSzxw5Prb0t/TmqFX
+            5fMb3a+3YkE5TALnXk8a4uG/MCpCqHnSMaSTKqCS8o6YZIpr1V2jdoxqTHWEsDyE
+            qYnsvOiTHcTsIZZplN5D6KnXDKbqWZXrLoadnYhNAoGACESLgCy552WcM7vNt4Fw
+            7lR/O3gEnwD41gIx5EGa/UoA08Q+i7sBt9PkL4oQrJ/MYCcVNnmg9KrJdlqF4AlE
+            HYeZSkMuQDYHcaO9xtYP3QdhD+nLXbNrCxaSSaSX8tS4BjdcSH1yMyLFg5OqiJYg
+            wYFiptyKFm5QqFhFTY+20aE=
+            -----END PRIVATE KEY-----
+    revocable: false
+    refresh:
+      format: opaque
+      rotate: false
+      unique: false
+
+ratelimit:
+  loggingOption: AllCalls
+  credentialID: 'JWT:Claims+"sub"\s*:\s*"(.*?)"'
+  limiterMappings:
+    - name: AuthToken
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/oauth/token"
+    - name: AuthAuthorize
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/oauth/authorize"
+    - name: LoginPage
+      withCallerRemoteAddressID: 50r/1s
+      pathSelectors:
+        - "equals:/login"
+    - name: LoginDo
+      withCallerRemoteAddressID: 50r/s
+      pathSelectors:
+        - "equals:/login.do"
+    - name: InfoLimit
+      withCallerRemoteAddressID: 20r/s
+      pathSelectors:
+        - "equals:/info"
+    - name: SCIM
+      withCallerCredentialsID: 500r/s
+      pathSelectors:
+        - "startsWith:/Users"
+        - "startsWith:/Groups"
+    - name: EverythingElse
+      global: 200r/s
+      pathSelectors:
+        - "other"
+
+scim:
+  userids_enabled: true
+  users:
+    - marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user
+    - testbootuser|password|testbootuser@test.org|Test|Bootstrap|uaa.user,scim.read
+    - admin|admin|admin|||foo.bar,uaa.admin|uaa
+  external_groups:
+    - organizations.acme|cn=test_org,ou=people,o=springsource,o=org
+    - internal.read|cn=developers,ou=scopes,dc=test,dc=com
+    - internal.write|cn=operators,ou=scopes,dc=test,dc=com
+    - internal.everything|cn=superusers,ou=scopes,dc=test,dc=com
+    - internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com
+
+oauth:
+  client:
+    autoapprove:
+      - cf
+      - my
+      - support
+    override: true
+  clients:
+    admin:
+      authorized-grant-types: client_credentials
+      scope: uaa.none
+      authorities: 'uaa.admin,clients.read,clients.write,clients.secret,clients.trust,scim.read,scim.write,clients.admin'
+      secret: "adminsecret"
+      jwks: '{"alg":"RS256","e":"AQAB","kid":"cUiuzP1rw1zm9MV8F0vtrws7BLc","kty":"RSA","n":"rWuIqrVV8kuqeorvRuLio1_pdQm_z7HZJKIcCD5SQqGO0AsKyf1xa5TPzHM0lqEh2GcPTer4u7MYQZzXAAvzOsSaTmgSlenLKDYCDZy2bwOjK0izVLbJwYqiiqyiMGhKeWsYokyDNoYaefjz8izDrp47XDHnwC2eeyJ43cE8GP0JJXRyxIPFecO8rfpe3AzTrHszJ9lPSX9E8QGppSFmcnUDUQYDRipNMzXXp2FHdR7T2MZkvxzjFhVSSMiaDTmAca-Wv_Uct2HpOfC3IuKSy1jpu8yr_GT6aBsDkt1XC1iARuFf9dE83R39oNgvVMICPjeWgNoyhK-ddQAUnRDeqw"}'
+    cf:
+      secret: ''
+      authorized-grant-types: 'implicit,password,refresh_token'
+      scope: 'uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write'
+      redirect-uri: 'http://localhost:8080/**,http://localhost:7000/**'
+      authorities: uaa.none
+      autoapprove: 'true'
+    app:
+      secret: appclientsecret
+      authorized-grant-types: password,implicit,authorization_code,client_credentials,refresh_token
+      scope: cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme
+      authorities: uaa.resource
+      autoapprove: [ openid ]
+      redirect-uri: http://localhost:8080/**,http://localhost:7000/**
+      signup_redirect_url: http://localhost:8080/app/
+      change_email_redirect_url: http://localhost:8080/app/
+      name: The Ultimate Oauth App
+    appspecial:
+      secret: appclient|secret!
+      authorized-grant-types: password,implicit,authorization_code,client_credentials,refresh_token
+      scope: cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme
+      authorities: uaa.resource
+      autoapprove: [ openid ]
+      redirect-uri: http://localhost:8080/**,http://localhost:7000/**
+      signup_redirect_url: http://localhost:8080/app/
+      change_email_redirect_url: http://localhost:8080/app/
+      name: The Ultimate Oauth App - Special
+    login:
+      secret: loginsecret
+      scope: 'openid,oauth.approvals'
+      authorized-grant-types: 'client_credentials,authorization_code'
+      redirect-uri: 'http://localhost/**'
+      authorities: 'oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write'
+      autoapprove: 'true'
+      allowpublic: 'true'
+    dashboard:
+      secret: dashboardsecret
+      scope: 'dashboard.user,openid'
+      authorized-grant-types: authorization_code
+      authorities: uaa.resource
+      redirect-uri: 'http://localhost:8080/uaa/'
+    notifications:
+      secret: notificationssecret
+      authorized-grant-types: client_credentials
+      authorities: 'cloud_controller.admin,scim.read'
+    identity:
+      secret: identitysecret
+      authorized-grant-types: 'authorization_code,client_credentials,refresh_token,password'
+      scope: 'cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write'
+      authorities: 'scim.zones,zones.read,cloud_controller.read,uaa.resource,zones.write'
+      autoapprove: 'true'
+      redirect-uri: 'http://localhost/*,http://localhost:8080/**,http://oidcloginit.localhost:8080/uaa/**'
+    oauth_showcase_authorization_code:
+      secret: secret
+      authorized-grant-types: authorization_code
+      scope: openid
+      authorities: uaa.resource
+      redirect-uri: http://localhost:8080/uaa/
+      allowedproviders: [ uaa ]
+    oauth_showcase_client_credentials:
+      secret: secret
+      authorized-grant-types: client_credentials
+      scope: uaa.none
+      authorities: 'uaa.resource,clients.read'
+    oauth_showcase_password_grant:
+      secret: secret
+      authorized-grant-types: password
+      scope: openid
+      authorities: uaa.resource
+    oauth_showcase_implicit_grant:
+      authorized-grant-types: implicit
+      scope: openid
+      authorities: uaa.resource
+      redirect-uri: 'http://localhost:8080/uaa/'
+    oauth_showcase_user_token:
+      authorized-grant-types: 'user_token,password,refresh_token'
+      scope: 'openid,uaa.user'
+      secret: secret
+    oauth_showcase_user_token_public:
+      secret: ''
+      authorized-grant-types: 'user_token,password,authorization_code'
+      scope: 'openid,uaa.user'
+      redirect-uri: 'http://localhost:8080/uaa/'
+      allowpublic: 'true'
+    oauth_showcase_saml2_bearer:
+      authorized-grant-types: 'password,urn:ietf:params:oauth:grant-type:saml2-bearer'
+      scope: 'openid,uaa.user'
+      secret: secret
+    some_client_that_contains_redirect_uri_matching_request_param:
+      authorized-grant-types: 'uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin'
+      scope: openid
+      authorities: uaa.resource
+      redirect-uri: 'http://redirect.localhost'
+    client_with_bcrypt_prefix:
+      secret: password
+      authorized-grant-types: client_credentials
+      authorities: uaa.none
+      use-bcrypt-prefix: 'true'
+    jku_test:
+      secret: secret
+      authorized-grant-types: 'password,client_credentials,refresh_token,authorization_code'
+      authorities: uaa.none
+      autoapprove: 'true'
+      scope: 'openid,oauth.approvals,user_attributes'
+      redirect-uri: 'http://localhost/**'
+    jku_test_without_autoapprove:
+      secret: secret
+      authorized-grant-types: 'password,client_credentials,refresh_token,authorization_code'
+      authorities: uaa.none
+      autoapprove: 'false'
+      scope: 'openid,oauth.approvals,user_attributes'
+      redirect-uri: 'http://localhost/**'
+    client_without_openid:
+      secret: secret
+      authorized-grant-types: 'password,client_credentials,refresh_token,authorization_code'
+      authorities: uaa.none
+      autoapprove: 'true'
+      scope: password.write
+      redirect-uri: 'http://localhost/**'
+    client_with_jwks_trust:
+      authorized-grant-types: 'authorization_code,client_credentials,refresh_token,password'
+      scope: 'openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write'
+      authorities: 'password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource'
+      autoapprove: 'true'
+      redirect-uri: 'http://localhost/*,http://localhost:8080/**,http://localhost:7000/**'
+      jwks: '{"kty":"RSA","e":"AQAB","use":"sig","kid":"key-id-1","alg":"RS256","n":"qMClJXznycV2bQ1pFbN8W-AWSYhpS2MVAGhkWNlmxv2Ix0_-n6zjivjdoxcq7RJR4kVycoVeD07DiWElYSnQLdeQPgKAcBiwilR30UyyDTKcqDQQ5rkCg2ONlwV0aMsg74KaXeXsV653ASs3FYEtuS1aD_Db5-FyXF8HkHo8xy19NUnqsDWQnh1Hhklynxu2tvW0fw2oDE1pwNl-WLEVPtlcpCtf4VSv-GawtBiI6xmYsGBMC9w29ESHFqPw0NSCRhlyJf6rDBNH_766mzK_vEzA4rzGTBEUqDxTg_8JpRhh9D3qljSsmqCtpQoloOAaUKCqSJb_hKPspe-7r9cYmw"}'
+    client_with_allowpublic_and_jwks_uri_trust:
+      authorized-grant-types: 'authorization_code,client_credentials,refresh_token,password,urn:ietf:params:oauth:grant-type:jwt-bearer'
+      scope: 'openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write'
+      authorities: 'password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource'
+      autoapprove: 'true'
+      allowpublic: 'true'
+      redirect-uri: 'http://localhost/*,http://localhost:8080/**,http://localhost:7000/**'
+      jwks_uri: 'http://localhost:8080/uaa/token_keys'
+    client_federated_jwt_trust:
+      authorized-grant-types: 'authorization_code,client_credentials,refresh_token,password,urn:ietf:params:oauth:grant-type:jwt-bearer'
+      scope: 'openid,password.write,scim.userids,cloud_controller.read,cloud_controller.write'
+      authorities: 'password.write,scim.userids,cloud_controller.read,cloud_controller.write,uaa.resource'
+      autoapprove: 'true'
+      redirect-uri: 'http://localhost/*,http://localhost:8080/**,http://localhost:7000/**'
+      jwt_creds: '[{"iss":"http://localhost:8080/uaa/oauth/token","sub":"client_with_jwks_trust","aud":"client_with_jwks_trust"}]'

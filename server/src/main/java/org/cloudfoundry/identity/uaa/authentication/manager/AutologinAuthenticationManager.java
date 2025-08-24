@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
@@ -24,6 +25,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
+import org.cloudfoundry.identity.uaa.oauth.common.util.OAuth2Utils;
+import org.cloudfoundry.identity.uaa.provider.NoSuchClientException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -35,8 +38,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
+
 
 import java.util.Map;
 
@@ -46,14 +48,14 @@ import java.util.Map;
  */
 public class AutologinAuthenticationManager implements AuthenticationManager {
 
-    private Logger logger = LoggerFactory.getLogger(getClass());
+    private final Logger logger = LoggerFactory.getLogger(getClass());
 
     private ExpiringCodeStore codeStore;
     private MultitenantClientServices clientDetailsService;
     private UaaUserDatabase userDatabase;
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
-        this.codeStore= expiringCodeStore;
+        this.codeStore = expiringCodeStore;
     }
 
     public void setClientDetailsService(MultitenantClientServices clientDetailsService) {
@@ -69,7 +71,6 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
     }
 
 
-
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
 
@@ -82,14 +83,15 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
         String code = info.get("code");
 
         ExpiringCode expiringCode = doRetrieveCode(code);
-        Map<String,String> codeData = null;
+        Map<String, String> codeData = null;
         try {
             if (expiringCode == null) {
                 logger.debug("Autologin code has expired");
                 throw new InvalidCodeException("expired_code", "Expired code", 422);
             }
-            codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
-            if(!isAutologinCode(expiringCode.getIntent(), codeData.get("action"))) {
+            codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {
+            });
+            if (!isAutologinCode(expiringCode.getIntent(), codeData.get("action"))) {
                 logger.debug("Code is not meant for autologin");
                 throw new InvalidCodeException("invalid_code", "Not an autologin code", 422);
             }

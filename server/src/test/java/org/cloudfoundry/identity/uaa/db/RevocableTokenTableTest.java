@@ -11,13 +11,12 @@ import java.sql.ResultSet;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
 @WithDatabaseContext
 class RevocableTokenTableTest {
 
-    private List<TestColumn> TEST_COLUMNS = Arrays.asList(
+    private List<TestColumn> testColumns = Arrays.asList(
             new TestColumn("token_id", "varchar/nvarchar", 36),
             new TestColumn("client_id", "varchar/nvarchar", 255),
             new TestColumn("user_id", "varchar/nvarchar", 36),
@@ -30,7 +29,7 @@ class RevocableTokenTableTest {
             new TestColumn("identity_zone_id", "varchar/nvarchar", 36)
     );
 
-    private List<TestColumn> TEST_INDEX = Arrays.asList(
+    private List<TestColumn> testIndex = Arrays.asList(
             new TestColumn("idx_revocable_token_client_id", "", 0),
             new TestColumn("idx_revocable_token_user_id", "", 0),
             new TestColumn("idx_revocable_token_expires_at", "", 0)
@@ -38,7 +37,7 @@ class RevocableTokenTableTest {
     );
 
     public boolean testColumn(String name, String type, int size) {
-        return testColumn(TEST_COLUMNS, name, type, size);
+        return testColumn(testColumns, name, type, size);
     }
 
     public boolean testColumn(List<TestColumn> columns, String name, String type, int size) {
@@ -66,37 +65,37 @@ class RevocableTokenTableTest {
                 int actualColumnSize = rs.getInt("COLUMN_SIZE");
                 if (tableName.equalsIgnoreCase(rstableName)) {
                     String actualColumnType = rs.getString("TYPE_NAME");
-                    assertTrue(testColumn(rscolumnName, actualColumnType, actualColumnSize), "Testing column:" + rscolumnName);
+                    assertThat(testColumn(rscolumnName, actualColumnType, actualColumnSize)).as("Testing column:" + rscolumnName).isTrue();
                     foundTable = true;
                     foundColumn++;
                 }
             }
             rs.close();
-            assertTrue(foundTable, "Table " + tableName + " not found!");
-            assertEquals(TEST_COLUMNS.size(), foundColumn, "Table " + tableName + " is missing columns!");
+            assertThat(foundTable).as("Table " + tableName + " not found!").isTrue();
+            assertThat(foundColumn).as("Table " + tableName + " is missing columns!").isEqualTo(testColumns.size());
 
 
             rs = meta.getIndexInfo(connection.getCatalog(), null, tableName, false, false);
             if (!rs.next()) {
                 rs = meta.getIndexInfo(connection.getCatalog(), null, tableName.toUpperCase(), false, false);
-                assertTrue(rs.next());
+                assertThat(rs.next()).isTrue();
             }
             int indexCount = 0;
             do {
                 String indexName = rs.getString("INDEX_NAME");
                 short indexType = rs.getShort("TYPE");
                 if (shouldCompareIndex(indexName)) {
-                    assertTrue(testColumn(TEST_INDEX, indexName, "", indexType), "Testing index: " + indexName);
+                    assertThat(testColumn(testIndex, indexName, "", indexType)).as("Testing index: " + indexName).isTrue();
                     indexCount++;
 
                 }
             } while (rs.next());
-            assertEquals(TEST_INDEX.size(), indexCount, "One or more indices are missing");
+            assertThat(indexCount).as("One or more indices are missing").isEqualTo(testIndex.size());
         }
     }
 
     boolean shouldCompareIndex(String indexName) {
-        for (TestColumn c : TEST_INDEX) {
+        for (TestColumn c : testIndex) {
             if (c.name.equalsIgnoreCase(indexName)) {
                 return true;
             }

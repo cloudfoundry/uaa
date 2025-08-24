@@ -1,47 +1,42 @@
 package org.cloudfoundry.identity.uaa.oauth.pkce.verifiers;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import org.cloudfoundry.identity.uaa.oauth.pkce.verifiers.S256PkceVerifier;
-import org.junit.Before;
-import org.junit.Test;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
- * 
  * @author Zoltan Maradics
- *
  */
-public class S256PkceVerifierTest {
-    
+class S256PkceVerifierTest {
+
     private S256PkceVerifier s256CodeChallengeMethod;
-    
-    private final String validCodeChallenge = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
-    private final String validCodeVerifier = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
-    
-    @Before
-    public void createS256CodeChallengeMethod() throws Exception {
+
+    private static final String VALID_CODE_CHALLENGE = "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM";
+    private static final String VALID_CODE_VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk";
+
+    @BeforeEach
+    void createS256CodeChallengeMethod() {
         s256CodeChallengeMethod = new S256PkceVerifier();
     }
-    
+
     @Test
-    public void testCodeVerifierMethodWithMatchParameters() throws Exception {
-        assertTrue(s256CodeChallengeMethod.verify(validCodeVerifier, validCodeChallenge));
-    }
-    
-    @Test
-    public void testCodeVerifierMethodWithMismatchParameters() throws Exception {
-        assertFalse(s256CodeChallengeMethod.verify(validCodeVerifier, validCodeVerifier));
-    }
-    
-    @Test
-    public void testCodeChallengeIsNull() throws Exception {
-        assertFalse(s256CodeChallengeMethod.verify(validCodeVerifier, null));
-    }
-    
-    @Test
-    public void testCodeVerifierIsNull() throws Exception {
-        assertFalse(s256CodeChallengeMethod.verify(null, validCodeChallenge));
+    void codeVerifierMethodWithMatchParameters() {
+        assertThat(s256CodeChallengeMethod.verify(VALID_CODE_VERIFIER, VALID_CODE_CHALLENGE)).isTrue();
     }
 
+    @Test
+    void codeVerifierMethodWithMismatchParameters() {
+        assertThat(s256CodeChallengeMethod.verify(VALID_CODE_VERIFIER, VALID_CODE_VERIFIER)).isFalse();
+    }
+
+    @Test
+    void codeChallengeIsNull() {
+        assertThat(s256CodeChallengeMethod.verify(VALID_CODE_VERIFIER, null)).isFalse();
+    }
+
+    @Test
+    void codeVerifierIsNull() {
+        assertThat(s256CodeChallengeMethod.verify(null, VALID_CODE_CHALLENGE)).isFalse();
+    }
 }

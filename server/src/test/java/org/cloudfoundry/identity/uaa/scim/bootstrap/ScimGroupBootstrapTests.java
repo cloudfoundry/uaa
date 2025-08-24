@@ -3,25 +3,30 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 import org.cloudfoundry.identity.uaa.annotations.WithDatabaseContext;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
-import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.util.TimeServiceImpl;
+import org.cloudfoundry.identity.uaa.util.beans.DbUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.beans.IdentityZoneManagerImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -29,9 +34,8 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.emptyList;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.tuple;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -51,18 +55,22 @@ class ScimGroupBootstrapTests {
     private JdbcTemplate jdbcTemplate;
 
     @Autowired
+    NamedParameterJdbcTemplate namedJdbcTemplate;
+
+    @Autowired
     private LimitSqlAdapter limitSqlAdapter;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
     @BeforeEach
-    void initScimGroupBootstrapTests() {
+    void initScimGroupBootstrapTests() throws SQLException {
         JdbcTemplate template = jdbcTemplate;
-        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(template, limitSqlAdapter);
-        gDB = new JdbcScimGroupProvisioning(template, pagingListFactory);
-        uDB = new JdbcScimUserProvisioning(template, pagingListFactory, passwordEncoder);
-        mDB = new JdbcScimGroupMembershipManager(template, new TimeServiceImpl(), uDB, null);
+        JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(namedJdbcTemplate, limitSqlAdapter);
+        DbUtils dbUtils = new DbUtils();
+        gDB = new JdbcScimGroupProvisioning(namedJdbcTemplate, pagingListFactory, dbUtils);
+        uDB = new JdbcScimUserProvisioning(namedJdbcTemplate, pagingListFactory, passwordEncoder, new IdentityZoneManagerImpl(), new JdbcIdentityZoneProvisioning(jdbcTemplate), new SimpleSearchQueryConverter(), new SimpleSearchQueryConverter(), new TimeServiceImpl(), true);
+        mDB = new JdbcScimGroupMembershipManager(new IdentityZoneManagerImpl(), template, new TimeServiceImpl(), uDB, null, dbUtils);
         mDB.setScimGroupProvisioning(gDB);
 
         uDB.deleteByIdentityZone(IdentityZone.getUaaZoneId());
@@ -76,26 +84,26 @@ class ScimGroupBootstrapTests {
         uDB.createUser(TestUtils.scimUserInstance("mgr1"), "test", IdentityZone.getUaaZoneId());
         uDB.createUser(TestUtils.scimUserInstance("hr1"), "test", IdentityZone.getUaaZoneId());
 
-        assertEquals(7, uDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
-        assertEquals(0, gDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
+        assertThat(uDB.retrieveAll(IdentityZone.getUaaZoneId())).hasSize(7);
+        assertThat(gDB.retrieveAll(IdentityZone.getUaaZoneId())).isEmpty();
 
-        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
+        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB, new IdentityZoneManagerImpl());
     }
 
     @Test
-    void canAddGroups() throws Exception {
+    void canAddGroups() {
         bootstrap.setGroups(StringUtils.commaDelimitedListToSet("org1.dev,org1.qa,org1.engg,org1.mgr,org1.hr").stream().collect(new MapCollector<>(s -> s, s -> null)));
         bootstrap.afterPropertiesSet();
-        assertEquals(5, gDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
-        assertNotNull(bootstrap.getGroup("org1.dev"));
-        assertNotNull(bootstrap.getGroup("org1.qa"));
-        assertNotNull(bootstrap.getGroup("org1.engg"));
-        assertNotNull(bootstrap.getGroup("org1.mgr"));
-        assertNotNull(bootstrap.getGroup("org1.hr"));
+        assertThat(gDB.retrieveAll(IdentityZone.getUaaZoneId())).hasSize(5);
+        assertThat(bootstrap.getGroup("org1.dev")).isNotNull();
+        assertThat(bootstrap.getGroup("org1.qa")).isNotNull();
+        assertThat(bootstrap.getGroup("org1.engg")).isNotNull();
+        assertThat(bootstrap.getGroup("org1.mgr")).isNotNull();
+        assertThat(bootstrap.getGroup("org1.hr")).isNotNull();
     }
 
     @Test
-    void allowsBootstrapFromOtherInstance() throws Exception {
+    void allowsBootstrapFromOtherInstance() {
         //original bootstrap
         bootstrap.setGroups(StringUtils.commaDelimitedListToSet("multiple_bootstrap_group").stream().collect(new MapCollector<>(s -> s, s -> null)));
         bootstrap.afterPropertiesSet();
@@ -112,22 +120,22 @@ class ScimGroupBootstrapTests {
         when(gDB.getByName(anyString(), anyString())).thenReturn(multipleBootstrapGroupAfter);
 
         //second bootstrap
-        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB);
+        bootstrap = new ScimGroupBootstrap(gDB, uDB, mDB, new IdentityZoneManagerImpl());
         bootstrap.setGroups(StringUtils.commaDelimitedListToSet("multiple_bootstrap_group").stream().collect(new MapCollector<>(s -> s, s -> s)));
         bootstrap.afterPropertiesSet();
 
-        assertNotNull(bootstrap.getGroup("multiple_bootstrap_group"));
+        assertThat(bootstrap.getGroup("multiple_bootstrap_group")).isNotNull();
     }
 
     @Test
-    void testNullGroups() throws Exception {
+    void nullGroups() {
         bootstrap.setGroups(null);
         bootstrap.afterPropertiesSet();
-        assertEquals(0, gDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
+        assertThat(gDB.retrieveAll(IdentityZone.getUaaZoneId())).isEmpty();
     }
 
     @Test
-    void canAddMembers() throws Exception {
+    void canAddMembers() {
         IdentityZoneHolder.get().getConfig().getUserConfig().setDefaultGroups(emptyList());
 
         bootstrap.setGroupMembers(Arrays.asList(
@@ -140,16 +148,16 @@ class ScimGroupBootstrapTests {
         ));
         bootstrap.afterPropertiesSet();
 
-        assertEquals(5, gDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
-        assertEquals(7, uDB.retrieveAll(IdentityZone.getUaaZoneId()).size());
-        assertEquals(2, bootstrap.getGroup("org1.qa").getMembers().size());
-        assertEquals(1, bootstrap.getGroup("org1.hr").getMembers().size());
-        assertEquals(3, bootstrap.getGroup("org1.engg").getMembers().size());
-        assertEquals(5, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), false, IdentityZone.getUaaZoneId()).size());
+        assertThat(gDB.retrieveAll(IdentityZone.getUaaZoneId())).hasSize(5);
+        assertThat(uDB.retrieveAll(IdentityZone.getUaaZoneId())).hasSize(7);
+        assertThat(bootstrap.getGroup("org1.qa").getMembers()).hasSize(2);
+        assertThat(bootstrap.getGroup("org1.hr").getMembers()).hasSize(1);
+        assertThat(bootstrap.getGroup("org1.engg").getMembers()).hasSize(3);
+        assertThat(mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), false, IdentityZone.getUaaZoneId())).hasSize(5);
     }
 
     @Test
-    void stripsWhitespaceFromGroupNamesAndDescriptions() throws Exception {
+    void stripsWhitespaceFromGroupNamesAndDescriptions() {
         Map<String, String> groups = new HashMap<>();
         groups.put("print", "Access the network printer");
         groups.put("   something", "        Do something else");
@@ -157,14 +165,14 @@ class ScimGroupBootstrapTests {
         bootstrap.afterPropertiesSet();
 
         ScimGroup group;
-        assertNotNull(group = bootstrap.getGroup("something"));
-        assertNotNull(group = gDB.retrieve(group.getId(), IdentityZone.getUaaZoneId()));
-        assertEquals("something", group.getDisplayName());
-        assertEquals("Do something else", group.getDescription());
+        assertThat(group = bootstrap.getGroup("something")).isNotNull();
+        assertThat(group = gDB.retrieve(group.getId(), IdentityZone.getUaaZoneId())).isNotNull();
+        assertThat(group.getDisplayName()).isEqualTo("something");
+        assertThat(group.getDescription()).isEqualTo("Do something else");
     }
 
     @Test
-    void fallsBackToMessagesProperties() throws Exception {
+    void fallsBackToMessagesProperties() {
         // set up default groups
         HashMap<String, Object> defaultDescriptions = new HashMap<>();
         defaultDescriptions.put("pets.cat", "Access the cat");
@@ -184,14 +192,14 @@ class ScimGroupBootstrapTests {
 
         List<ScimGroup> bootstrappedGroups = gDB.retrieveAll(IdentityZone.getUaaZoneId());
 
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "pets.cat".equals(group.getDisplayName()) && "Access the cat".equals(group.getDescription())));
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "pets.dog".equals(group.getDisplayName()) && "Dog your data".equals(group.getDescription())));
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "pony".equals(group.getDisplayName()) && "The magic of friendship".equals(group.getDescription())));
-
+        assertThat(bootstrappedGroups).extracting(ScimGroup::getDisplayName, ScimGroup::getDescription)
+                .contains(tuple("pets.cat", "Access the cat"),
+                        tuple("pets.dog", "Dog your data"),
+                        tuple("pony", "The magic of friendship"));
     }
 
     @Test
-    void prefersNonBlankYmlOverMessagesProperties() throws Exception {
+    void prefersNonBlankYmlOverMessagesProperties() {
         // set up default groups
         HashMap<String, Object> defaults = new HashMap<>();
         defaults.put("records.read", "");
@@ -220,16 +228,19 @@ class ScimGroupBootstrapTests {
 
         List<ScimGroup> bootstrappedGroups = gDB.retrieveAll(IdentityZone.getUaaZoneId());
 
-        // print: only specified in the configured groups, so it should get its description from there
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "print".equals(group.getDisplayName()) && "Access the network printer".equals(group.getDescription())));
-        // records.read: exists in the message property source but should get its description from configuration
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "records.read".equals(group.getDisplayName()) && "Read important data".equals(group.getDescription())));
-        // pets.cat: read: exists in the message property source but should get its description from configuration
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "pets.cat".equals(group.getDisplayName()) && "Pet the cat".equals(group.getDescription())));
-        // pets.dog: specified in configuration with no description, so it should retain the default description
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "pets.dog".equals(group.getDisplayName()) && "Dog your data".equals(group.getDescription())));
-        // fish.nemo: never gets a description
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "fish.nemo".equals(group.getDisplayName()) && group.getDescription() == null));
-        assertThat(bootstrappedGroups, PredicateMatcher.has(group -> "water.drink".equals(group.getDisplayName()) && "Drink the water".equals(group.getDescription())));
+        assertThat(bootstrappedGroups).extracting(ScimGroup::getDisplayName, ScimGroup::getDescription)
+                .containsExactlyInAnyOrder(
+                        // print: only specified in the configured groups, so it should get its description from there
+                        tuple("print", "Access the network printer"),
+                        // records.read: exists in the message property source but should get its description from configuration
+                        tuple("records.read", "Read important data"),
+                        // pets.cat: read: exists in the message property source but should get its description from configuration
+                        tuple("pets.cat", "Pet the cat"),
+                        // pets.dog: specified in configuration with no description, so it should retain the default description
+                        tuple("pets.dog", "Dog your data"),
+                        // fish.nemo: never gets a description
+                        tuple("fish.nemo", null),
+                        tuple("water.drink", "Drink the water")
+                );
     }
 }

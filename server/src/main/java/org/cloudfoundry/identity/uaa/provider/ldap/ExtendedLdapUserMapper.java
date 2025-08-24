@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -39,39 +40,39 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     private String givenNameAttributeName;
     private String familyNameAttributeName;
     private String phoneNumberAttributeName;
-    private String mailSubstitute = null;
-    private boolean mailSubstituteOverrides = false;
-    private String emailVerifiedAttributeName = null;
+    private String mailSubstitute;
+    private boolean mailSubstituteOverrides;
+    private String emailVerifiedAttributeName;
 
     @Override
     public UserDetails mapUserFromContext(DirContextOperations ctx, String username, Collection<? extends GrantedAuthority> authorities) {
         LdapUserDetails ldapUserDetails = (LdapUserDetails) super.mapUserFromContext(ctx, username, authorities);
 
         DirContextAdapter adapter = (DirContextAdapter) ctx;
-        Map<String, String[]> record = new HashMap<String, String[]>();
+        Map<String, String[]> record = new HashMap<>();
         List<String> attributeNames = Collections.list(adapter.getAttributes().getIDs());
         for (String attributeName : attributeNames) {
             try {
                 Object[] objValues = adapter.getObjectAttributes(attributeName);
                 String[] values = new String[objValues != null ? objValues.length : 0];
                 for (int i = 0; i < values.length; i++) {
-                    if (objValues[i] != null) {
+                    if (objValues != null && objValues[i] != null) {
                         if (objValues[i].getClass().isAssignableFrom(String.class)) {
                             values[i] = (String) objValues[i];
-                        } else if (objValues[i] instanceof byte[]) {
-                            values[i] = new String((byte[]) objValues[i]);
+                        } else if (objValues[i] instanceof byte[] bytes) {
+                            values[i] = new String(bytes);
                         } else {
                             values[i] = objValues[i].toString();
                         }
                     }
                 }
                 if (values == null || values.length == 0) {
-                    logger.debug("No attribute value found for '" + attributeName + "'");
+                    logger.debug("No attribute value found for '{}'", attributeName);
                 } else {
                     record.put(attributeName, values);
                 }
             } catch (ArrayStoreException x) {
-                logger.debug("Attribute value is not a string for '" + attributeName + "'");
+                logger.debug("Attribute value is not a string for '{}'", attributeName);
             }
         }
         record.put(DN_KEY, new String[]{adapter.getDn().toString()});

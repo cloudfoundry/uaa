@@ -1,4 +1,5 @@
-/*******************************************************************************
+/*
+ * *****************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
@@ -87,6 +88,10 @@ public class ExternalOAuthCodeToken implements Authentication {
 
     @Override
     public Object getDetails() {
+        return details;
+    }
+
+    public UaaAuthenticationDetails getUaaAuthenticationDetails() {
         return details;
     }
 

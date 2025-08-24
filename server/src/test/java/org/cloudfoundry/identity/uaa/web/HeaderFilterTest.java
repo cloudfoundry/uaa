@@ -15,22 +15,21 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
-import javax.servlet.FilterChain;
+import jakarta.servlet.FilterChain;
 
 import static java.util.Collections.emptyList;
-import static org.junit.Assert.assertNotNull;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 
-public class HeaderFilterTest {
+class HeaderFilterTest {
     @Test
-    public void doFilter() throws Exception {
+    void doFilter() throws Exception {
         FilterChain mockChain = Mockito.mock(FilterChain.class);
         HeaderFilter filter = new HeaderFilter(emptyList());
         MockHttpServletRequest request = new MockHttpServletRequest();
@@ -38,13 +37,12 @@ public class HeaderFilterTest {
         filter.doFilter(request, response, mockChain);
         ArgumentCaptor<HttpHeadersFilterRequestWrapper> args = ArgumentCaptor.forClass(HttpHeadersFilterRequestWrapper.class);
         Mockito.verify(mockChain, Mockito.times(1)).doFilter(args.capture(), any());
-        Assert.assertTrue(args.getValue() instanceof HttpHeadersFilterRequestWrapper);
+        assertThat(args.getValue()).isInstanceOf(HttpHeadersFilterRequestWrapper.class);
     }
 
     @Test
-    public void allows_null_argument() {
+    void allows_null_argument() {
         HeaderFilter filter = new HeaderFilter(null);
-        assertNotNull(filter.getFilteredHeaderNames());
+        assertThat(filter.getFilteredHeaderNames()).isNotNull();
     }
-
 }

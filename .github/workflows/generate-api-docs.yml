@@ -1,0 +1,26 @@
+name: Generate API docs
+on:
+  pull_request:
+    branches: [ develop ]
+
+permissions:
+  pull-requests: read
+
+jobs:
+  generate-api-docs:
+    runs-on: ubuntu-latest
+    container:
+      image: cfidentity/uaa-generate-docs
+      volumes:
+        - ${{ github.workspace }}:/root/uaa
+      options: --privileged --tty --interactive --shm-size=1G
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v5
+      - name: Generate https://docs.cloudfoundry.org/api/uaa/
+        run: /root/uaa/scripts/generate-docs.sh
+      - name: Documentation Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: Docs folder
+          path: /root/uaa/uaa/build/docs/version/
