@@ -27,6 +27,8 @@ resources:
 
 issuer:
   uri: http://localhost:8080/uaa
+deployment:
+  region: us-west-2
 
 tomcat:
   accessLoggingEnabled: "y"

@@ -454,3 +454,4 @@ task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
     }
     dependsOn subprojects.test
 }
+

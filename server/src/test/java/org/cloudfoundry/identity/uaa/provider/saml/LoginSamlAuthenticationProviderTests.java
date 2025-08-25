@@ -572,6 +572,7 @@ class LoginSamlAuthenticationProviderTests {
         assertTrue(authprovider.haveUserAttributesChanged(existing, modified), "Last name modified");
     }
 
+
     @Test
     void shadowAccount_createdWith_MappedUserAttributes() {
         Map<String, Object> attributeMappings = new HashMap<>();

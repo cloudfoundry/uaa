@@ -21,8 +21,11 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -31,14 +34,22 @@ import org.springframework.security.core.Authentication;
 
 public class AuthenticationSuccessListener implements ApplicationListener<AbstractUaaAuthenticationEvent>, ApplicationEventPublisherAware {
 
+    private final static Logger logger = LoggerFactory.getLogger(AuthenticationSuccessListener.class);
+
     private final ScimUserProvisioning scimUserProvisioning;
+    private final UaaUserDatabase userDatabase;
     private final MfaChecker checker;
+    private final UserAttributeChangeEventPublisher userAttributeChangeEventPublisher;
     private ApplicationEventPublisher publisher;
 
     public AuthenticationSuccessListener(ScimUserProvisioning scimUserProvisioning,
-                                         MfaChecker checker) {
+                                         UaaUserDatabase userDatabase,
+                                         MfaChecker checker,
+                                         UserAttributeChangeEventPublisher userAttributeChangeEventPublisher) {
         this.scimUserProvisioning = scimUserProvisioning;
+        this.userDatabase = userDatabase;
         this.checker = checker;
+        this.userAttributeChangeEventPublisher = userAttributeChangeEventPublisher;
     }
 
     @Override
@@ -71,9 +82,23 @@ public class AuthenticationSuccessListener implements ApplicationListener<Abstra
         }
         UaaAuthentication authentication = (UaaAuthentication) event.getAuthentication();
         authentication.setLastLoginSuccessTime(user.getLastLogonTime());
+        
+        // Use previousUser from the user object if available (set by SAML flow when attributes changed)
+        // This captures the state before SAML attribute modifications
+        UaaUser userBeforeLastLogonUpdate = user.getPreviousUser();
+        if (userBeforeLastLogonUpdate == null) {
+            // For non-SAML flows or when no SAML attributes changed, use current user state
+            userBeforeLastLogonUpdate = user;
+        }
+        
         scimUserProvisioning.updateLastLogonTime(user.getId(), zoneId);
+        UaaUser userAfterLastLogonUpdate = userDatabase.retrieveUserById(user.getId());
+    
+        if (userAfterLastLogonUpdate != null) {
+            // Now this will capture BOTH SAML attribute changes AND lastLogonTime change in a single event
+            userAttributeChangeEventPublisher.publishUserAttributeChangeEventAsync(this, userBeforeLastLogonUpdate, userAfterLastLogonUpdate);
+        }
     }
-
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {

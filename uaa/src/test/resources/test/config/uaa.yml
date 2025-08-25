@@ -2,6 +2,11 @@ uaa:
   url: http://localhost:8080/uaa
 issuer:
   uri: http://localhost:8080/uaa
+
+# Deployment region configuration for AWS services
+deployment:
+  region: us-west-2
+
 encryption:
   active_key_label: key-1
   encryption_keys:

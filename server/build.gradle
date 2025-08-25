@@ -5,6 +5,7 @@ description = "CloudFoundry Identity Server JAR"
 dependencies {
     implementation(project(":cloudfoundry-identity-metrics-data"))
     implementation(project(":cloudfoundry-identity-model"))
+    implementation(project(":iam-k8s-utils")) 
 
     implementation(libraries.tomcatJdbc)
     providedCompile(libraries.tomcatEmbed)

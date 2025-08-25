@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.mfa.MfaChecker;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,9 +22,11 @@ class AuthenticationSuccessListenerTests {
 
     private AuthenticationSuccessListener listener;
     private ScimUserProvisioning mockScimUserProvisioning;
+    private UaaUserDatabase mockUaaUserDatabase;
     private UaaAuthentication mockUaaAuthentication;
     private MfaChecker mockMfaChecker;
     private ApplicationEventPublisher mockApplicationEventPublisher;
+    private UserAttributeChangeEventPublisher mockUserAttributeChangeEventPublisher;
     private String id;
     private UaaUserPrototype userPrototype;
     private UaaUser user;
@@ -34,7 +37,9 @@ class AuthenticationSuccessListenerTests {
         mockApplicationEventPublisher = mock(ApplicationEventPublisher.class);
         mockMfaChecker = mock(MfaChecker.class);
         mockScimUserProvisioning = mock(ScimUserProvisioning.class);
-        listener = new AuthenticationSuccessListener(mockScimUserProvisioning, mockMfaChecker);
+        mockUaaUserDatabase = mock(UaaUserDatabase.class);
+        mockUserAttributeChangeEventPublisher = mock(UserAttributeChangeEventPublisher.class);
+        listener = new AuthenticationSuccessListener(mockScimUserProvisioning, mockUaaUserDatabase, mockMfaChecker, mockUserAttributeChangeEventPublisher);
         listener.setApplicationEventPublisher(mockApplicationEventPublisher);
         id = "user-id";
         userPrototype = new UaaUserPrototype()
@@ -127,6 +132,35 @@ class AuthenticationSuccessListenerTests {
         );
         listener.onApplicationEvent(event);
         verify(mockApplicationEventPublisher, times(1)).publishEvent(isA(UserAuthenticationSuccessEvent.class));
+    }
+
+    @Test
+    void userAttributeChangeEventPublisher_is_called_when_user_logs_in() {
+        UserAuthenticationSuccessEvent event = getEvent();
+        final String zoneId = event.getIdentityZoneId();
+        
+        UaaUser updatedUser = new UaaUser(userPrototype.withLastLogonSuccess(System.currentTimeMillis()));
+        when(mockScimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
+        when(mockUaaUserDatabase.retrieveUserById(id)).thenReturn(updatedUser);
+        
+        listener.onApplicationEvent(event);
+        
+        verify(mockUserAttributeChangeEventPublisher, times(1))
+                .publishUserAttributeChangeEventAsync(eq(listener), any(UaaUser.class), any(UaaUser.class));
+    }
+
+    @Test
+    void userAttributeChangeEventPublisher_is_not_called_when_user_is_null() {
+        UserAuthenticationSuccessEvent event = getEvent();
+        final String zoneId = event.getIdentityZoneId();
+        
+        when(mockScimUserProvisioning.retrieve(id, zoneId)).thenReturn(getScimUser(event.getUser()));
+        when(mockUaaUserDatabase.retrieveUserById(id)).thenReturn(null);
+        
+        listener.onApplicationEvent(event);
+        
+        verify(mockUserAttributeChangeEventPublisher, never())
+                .publishUserAttributeChangeEventAsync(any(), any(UaaUser.class), any(UaaUser.class));
     }
 
     private UserAuthenticationSuccessEvent getEvent() {

@@ -1,6 +1,10 @@
 servlet:
   session-store: database
 
+# Deployment region configuration for AWS services
+deployment:
+  region: us-west-2
+
 encryption:
   active_key_label: CHANGE-THIS-KEY
   encryption_keys:
