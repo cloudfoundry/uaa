@@ -29,7 +29,14 @@ updates:
   - dependency-name: "org.apache.tomcat:*"
   ignore:
   - dependency-name: "org.apache.tomcat:*"
-    update-types: ["version-update:semver-major"] # Stay in Tomcat major version and do updates manually, based on Spring Boot version.
+    versions:
+    - ">= 11"  # Stay in Tomcat major version 10 and do updates manually, based on Spring Boot version.
+  - dependency-name: "org.springframework.spring-*"
+    versions:
+    - ">= 7"  # Stay in Spring Framework and Security major version 6 and do updates manually, based on Spring Boot version.
+  - dependency-name: "org.springframework.boot:*"
+    versions:
+    - ">= 4"  # Stay in Spring Boot major version 3 and do updates manually.
   - dependency-name: org.flywaydb:flyway-core
     versions:
     - ">= 8" # Version 8+ no longer supports MySQL 5.7, we're not ready to drop MySQL 5.7 support yet. Tracker story: https://www.pivotaltracker.com/story/show/180879913.
