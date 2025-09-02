@@ -171,9 +171,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
         return authentication.getUserAttributes() != null && !authentication.getUserAttributes().isEmpty();
     }
 
-    protected ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException {
-        return null;
-    }
+    protected abstract ExternalAuthenticationDetails getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException;
 
     protected abstract boolean isAddNewShadowUser();
 

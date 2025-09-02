@@ -24,6 +24,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
@@ -102,6 +103,11 @@ class ExternalLoginAuthenticationManagerTest {
         when(inputAuth.getPrincipal()).thenReturn(userDetails);
 
         manager = new ExternalLoginAuthenticationManager(null) {
+            @Override
+            protected Object getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException {
+                return null;
+            }
+
             @Override
             protected boolean isAddNewShadowUser() {
                 return true;

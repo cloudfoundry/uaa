@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.MultiValueMap;
@@ -56,6 +57,11 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     protected void populateAuthenticationAttributes(UaaAuthentication authentication, Authentication request, Object authenticationData) {
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
         authentication.getAuthenticationMethods().add("pwd");
+    }
+
+    @Override
+    protected Object getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException {
+        return null;
     }
 
     @Override
