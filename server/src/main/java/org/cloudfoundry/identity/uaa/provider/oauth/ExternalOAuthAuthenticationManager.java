@@ -513,6 +513,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     }
 
     private List<SimpleGrantedAuthority> extractExternalOAuthUserAuthorities(Map<String, Object> attributeMappings, Map<String, Object> claims) {
+        // determine the claims that are configured to contain the groups in the token obtained from the IdP
         List<String> groupNames = new LinkedList<>();
         if (attributeMappings.get(GROUP_ATTRIBUTE_NAME) instanceof String string) {
             groupNames.add(string);
@@ -521,6 +522,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
         log.debug("Extracting ExternalOAuth group names:{}", groupNames);
 
+        // extract the values from the claims
         Set<String> scopes = new HashSet<>();
         for (String g : groupNames) {
             Object roles = claims.get(g);
@@ -531,12 +533,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             }
         }
 
-        List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        for (String scope : scopes) {
-            authorities.add(new SimpleGrantedAuthority(scope));
-        }
-
-        return authorities;
+        return scopes.stream().map(SimpleGrantedAuthority::new).toList();
     }
 
     @Override
