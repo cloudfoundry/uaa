@@ -16,6 +16,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -51,6 +52,19 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     public LdapLoginAuthenticationManager(final @Qualifier("identityProviderProvisioning") IdentityProviderProvisioning providerProvisioning) {
         super(providerProvisioning);
+    }
+
+    private String origin = OriginKeys.LDAP;
+
+    @Override
+    public String getOrigin() {
+        return origin;
+    }
+
+    @Override
+    public void setOrigin(String origin) {
+        // only used in LdapAuthenticationManagerTests
+        this.origin = origin;
     }
 
     @Override

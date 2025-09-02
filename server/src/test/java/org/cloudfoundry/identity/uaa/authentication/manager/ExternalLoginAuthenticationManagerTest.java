@@ -103,6 +103,18 @@ class ExternalLoginAuthenticationManagerTest {
         when(inputAuth.getPrincipal()).thenReturn(userDetails);
 
         manager = new ExternalLoginAuthenticationManager(null) {
+            private String origin = "unknown";
+
+            @Override
+            public String getOrigin() {
+                return origin;
+            }
+
+            @Override
+            public void setOrigin(String origin) {
+                this.origin = origin;
+            }
+
             @Override
             protected Object getExternalAuthenticationDetails(Authentication authentication) throws AuthenticationException {
                 return null;

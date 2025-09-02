@@ -9,7 +9,6 @@ import org.cloudfoundry.identity.uaa.cache.UrlContentCache;
 import org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator;
 import org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
@@ -340,7 +339,6 @@ public class SpringServletXmlBeansConfiguration {
     ) {
         LdapLoginAuthenticationManager bean = new LdapLoginAuthenticationManager(provisioning);
         bean.setUserDatabase(userDatabase);
-        bean.setOrigin(OriginKeys.LDAP);
         return bean;
     }
 

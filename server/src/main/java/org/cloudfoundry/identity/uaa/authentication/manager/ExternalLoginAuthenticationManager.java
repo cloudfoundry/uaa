@@ -70,10 +70,6 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
 
     @Getter
     @Setter
-    private String origin = "unknown";
-
-    @Getter
-    @Setter
     private IdentityProviderProvisioning providerProvisioning;
 
     @Getter
@@ -88,6 +84,10 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
     public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
         this.eventPublisher = eventPublisher;
     }
+
+    public abstract String getOrigin();
+
+    public abstract void setOrigin(String origin);
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
