@@ -81,7 +81,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
     }
 
     @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
+    public final void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
         this.eventPublisher = eventPublisher;
     }
 
