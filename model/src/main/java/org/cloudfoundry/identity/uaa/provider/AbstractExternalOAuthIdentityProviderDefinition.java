@@ -27,10 +27,20 @@ import java.util.Objects;
 @Getter
 @JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class AbstractExternalOAuthIdentityProviderDefinition<T extends AbstractExternalOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
+
     public enum OAuthGroupMappingMode {
+        /**
+         * Evaluate the external group mappings with the external groups and only include the mapped internal groups in
+         * the UAA token.
+         */
         EXPLICITLY_MAPPED,
+
+        /**
+         * Directly include the external groups as scopes in the UAA token.
+         */
         AS_SCOPES
     }
+
     private URL authUrl;
     private URL tokenUrl;
     private URL tokenKeyUrl;
