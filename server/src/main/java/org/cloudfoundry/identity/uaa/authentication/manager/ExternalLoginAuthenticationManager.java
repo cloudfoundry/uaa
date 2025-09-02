@@ -291,7 +291,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
      *         'external_groups' attribute mapping of the IdP
      * @return the internal groups
      */
-    protected List<SimpleGrantedAuthority> evaluateExternalGroupMappings(String origin, Collection<? extends GrantedAuthority> externalGroups) {
+    protected final List<SimpleGrantedAuthority> evaluateExternalGroupMappings(String origin, Collection<? extends GrantedAuthority> externalGroups) {
         List<SimpleGrantedAuthority> result = new LinkedList<>();
         for (GrantedAuthority authority : externalGroups) {
             String externalGroup = authority.getAuthority();
