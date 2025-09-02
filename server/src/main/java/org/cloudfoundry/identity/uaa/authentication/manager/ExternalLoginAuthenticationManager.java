@@ -56,6 +56,8 @@ import static java.util.Collections.emptySet;
 public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
     public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
+    private static final String FALLBACK_EMAIL_DOMAIN_TEMPLATE = "user.from.%s.cf";
+
     protected final Logger logger = LoggerFactory.getLogger(getClass());
 
     private ApplicationEventPublisher eventPublisher;
@@ -258,14 +260,15 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     protected String generateEmailIfNullOrEmpty(String name) {
         String email;
         if (name != null) {
+            final String fallbackEmailDomain = FALLBACK_EMAIL_DOMAIN_TEMPLATE.formatted(getOrigin());
             if (name.contains("@")) {
                 if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
                     email = name;
                 } else {
-                    email = name.replace("@", "") + "@user.from." + getOrigin() + ".cf";
+                    email = name.replace("@", "") + "@" + fallbackEmailDomain;
                 }
             } else {
-                email = name + "@user.from." + getOrigin() + ".cf";
+                email = name + "@" + fallbackEmailDomain;
             }
         } else {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
