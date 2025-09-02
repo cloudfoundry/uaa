@@ -1040,8 +1040,21 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
     protected static class AuthenticationData {
         private Map<String, Object> claims;
         private String username;
+
+        /**
+         * The internal authorities after group mapping has been applied.
+         */
         private List<SimpleGrantedAuthority> authorities;
+
+        /**
+         * The external authorities as provided in the IdP token, before group mapping and after the group allowlist
+         * is applied.
+         */
         private List<SimpleGrantedAuthority> externalAuthorities;
+
+        /**
+         * The attribute mappings configured in the IdP that was used for authentication.
+         */
         private Map<String, Object> attributeMappings;
     }
 }
