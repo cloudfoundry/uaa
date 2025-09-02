@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.user.UserInfo;
 import org.cloudfoundry.identity.uaa.user.VerifiableUser;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.BeanNameAware;
@@ -81,7 +82,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
     }
 
     @Override
-    public final void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
+    public final void setApplicationEventPublisher(@NonNull ApplicationEventPublisher eventPublisher) {
         this.eventPublisher = eventPublisher;
     }
 
@@ -306,7 +307,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
     }
 
     @Override
-    public void setBeanName(String name) {
+    public void setBeanName(@NonNull String name) {
         this.name = name;
     }
 }
