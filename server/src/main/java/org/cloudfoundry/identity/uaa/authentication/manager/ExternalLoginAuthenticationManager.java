@@ -49,9 +49,9 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Optional;
 
 import static java.util.Collections.emptySet;
-import static java.util.Optional.ofNullable;
 
 public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
@@ -153,7 +153,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
                 logger.debug("Storing custom attributes for user_id:{}", authentication.getPrincipal().getId());
                 UserInfo userInfo = new UserInfo()
                         .setUserAttributes(authentication.getUserAttributes())
-                        .setRoles(new LinkedList<>(ofNullable(authentication.getExternalGroups()).orElse(emptySet())));
+                        .setRoles(new LinkedList<>(Optional.ofNullable(authentication.getExternalGroups()).orElse(emptySet())));
                 getUserDatabase().storeUserInfo(authentication.getPrincipal().getId(), userInfo);
             }
         }
