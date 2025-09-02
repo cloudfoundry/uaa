@@ -188,24 +188,37 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         }
     }
 
+    /**
+     * Resolve the IdP trust for the received ID token:
+     * <ol>
+     *  <li>if an IdP trust exists with idp.config.issuer equal to the "iss" claim of the token, return it</li>
+     *  <li>if the ID token is issued by UAA (e.g., when exchanging an ID token issued by UAA in a JWT bearer flow),
+     *  build a trust entry containing the issuer and origin key and return it</li>
+     *  <li>else: throw exception</li>
+     * </ol>
+     */
     public IdentityProvider resolveOriginProvider(String idToken) throws AuthenticationException {
         try {
+            // determine value of issuer claim
             Map<String, Object> claims = parseClaimsFromIdTokenString(idToken);
             String issuer = (String) claims.get(ClaimConstants.ISS);
             if (!hasLength(issuer)) {
                 throw new InsufficientAuthenticationException("Issuer is missing in id_token");
             }
-            //1. Check if issuer is registered provider
+
+            // 1. Check if there is an IdP with the 'iss' claim value equal to the 'issuer' field in its configuration
             try {
                 return retrieveRegisteredIdentityProviderByIssuer(issuer);
             } catch (IncorrectResultSizeDataAccessException x) {
                 logger.debug("No registered identity provider found for given issuer. Checking for uaa.");
             }
-            //2. If not, check if issuer is self
+
+            // 2. If not, check if the token was issued by UAA (the issuer is the token endpoint of the current zone)
             if (idTokenWasIssuedByTheUaa(issuer)) {
                 //3. If yes, handle origin correctly
                 String originKey = (String) claims.get(ClaimConstants.ORIGIN);
                 if (hasLength(originKey)) {
+                    // build an "artificial" IdP configuration that has the token endpoint of the current zone as issuer
                     return buildInternalUaaIdpConfig(issuer, originKey);
                 }
             }
