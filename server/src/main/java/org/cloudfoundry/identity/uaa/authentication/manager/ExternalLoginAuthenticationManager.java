@@ -272,7 +272,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
         return name.replace("@", "") + "@" + fallbackEmailDomain;
     }
 
-    protected boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
+    protected final boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
         return !StringUtils.equals(existingUser.getGivenName(), user.getGivenName())
                 || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName())
                 || !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber())
