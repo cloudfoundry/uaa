@@ -102,6 +102,10 @@ class ExternalLoginAuthenticationManagerTest {
         when(inputAuth.getPrincipal()).thenReturn(userDetails);
 
         manager = new ExternalLoginAuthenticationManager(null) {
+            @Override
+            protected boolean isAddNewShadowUser() {
+                return true;
+            }
         };
         setupManager();
     }

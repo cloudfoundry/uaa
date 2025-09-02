@@ -598,9 +598,6 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
     @Override
     protected boolean isAddNewShadowUser() {
-        if (!super.isAddNewShadowUser()) {
-            return false;
-        }
         IdentityProvider<AbstractExternalOAuthIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), identityZoneManager.getCurrentIdentityZoneId());
         return provider.getConfig().isAddShadowUserOnLogin();
     }

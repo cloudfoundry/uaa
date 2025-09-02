@@ -175,9 +175,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
         return null;
     }
 
-    protected boolean isAddNewShadowUser() {
-        return true;
-    }
+    protected abstract boolean isAddNewShadowUser();
 
     protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
         return new LinkedMultiValueMap<>();
