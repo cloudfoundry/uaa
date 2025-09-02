@@ -189,9 +189,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
         }
     }
 
-    protected UaaUser userAuthenticated(Authentication request, UaaUser userFromRequest, UaaUser userFromDb) {
-        return userFromDb;
-    }
+    protected abstract UaaUser userAuthenticated(Authentication request, UaaUser userFromRequest, UaaUser userFromDb);
 
     protected UaaUser getUser(Authentication request, ExternalAuthenticationDetails authDetails) {
         UserDetails userDetails;

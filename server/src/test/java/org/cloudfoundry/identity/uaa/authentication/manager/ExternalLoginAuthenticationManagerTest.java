@@ -124,6 +124,11 @@ class ExternalLoginAuthenticationManagerTest {
             protected boolean isAddNewShadowUser() {
                 return true;
             }
+
+            @Override
+            protected UaaUser userAuthenticated(Authentication request, UaaUser userFromRequest, UaaUser userFromDb) {
+                return userFromDb;
+            }
         };
         setupManager();
     }
