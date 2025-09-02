@@ -183,7 +183,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
         return new LinkedList<>();
     }
 
-    protected void publish(ApplicationEvent event) {
+    protected final void publish(ApplicationEvent event) {
         if (eventPublisher != null) {
             eventPublisher.publishEvent(event);
         }
