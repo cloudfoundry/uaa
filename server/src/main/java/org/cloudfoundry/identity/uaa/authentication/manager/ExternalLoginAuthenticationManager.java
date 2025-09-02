@@ -78,7 +78,6 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     @Setter
     private ScimGroupExternalMembershipManager externalMembershipManager;
 
-
     public ExternalLoginAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
     }
@@ -146,7 +145,10 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         if (authentication.getAuthenticationMethods() == null) {
             authentication.setAuthenticationMethods(new HashSet<>());
         }
+
         authentication.getAuthenticationMethods().add("ext");
+
+        // persist the user attributes and external groups in the user info table if configured in the IdP
         if ((hasUserAttributes(authentication) || hasExternalGroups(authentication)) && getProviderProvisioning() != null) {
             IdentityProvider<ExternalIdentityProviderDefinition> provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             if (provider.getConfig() != null && provider.getConfig().isStoreCustomAttributes()) {
@@ -234,7 +236,7 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
         String phoneNumber = userDetails instanceof DialableByPhone dbp ? dbp.getPhoneNumber() : null;
         String externalId = userDetails instanceof ExternallyIdentifiable ei ? ei.getExternalId() : name;
-        boolean verified = userDetails instanceof VerifiableUser vu ? vu.isVerified() : false;
+        boolean verified = userDetails instanceof VerifiableUser vu && vu.isVerified();
         UaaUserPrototype userPrototype = new UaaUserPrototype()
                 .withVerified(verified)
                 .withUsername(name)
@@ -272,8 +274,11 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     }
 
     protected boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
-        return !StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
-                !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail()) || !StringUtils.equals(existingUser.getExternalId(), user.getExternalId());
+        return !StringUtils.equals(existingUser.getGivenName(), user.getGivenName())
+                || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName())
+                || !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber())
+                || !StringUtils.equals(existingUser.getEmail(), user.getEmail())
+                || !StringUtils.equals(existingUser.getExternalId(), user.getExternalId());
     }
 
     /**
