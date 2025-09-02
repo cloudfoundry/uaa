@@ -106,7 +106,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     @Override
     protected List<String> getExternalUserAuthorities(UserDetails request) {
-        List<String> result = super.getExternalUserAuthorities(request);
+        List<String> result = new LinkedList<>();
         if (getProviderProvisioning() != null) {
             IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);

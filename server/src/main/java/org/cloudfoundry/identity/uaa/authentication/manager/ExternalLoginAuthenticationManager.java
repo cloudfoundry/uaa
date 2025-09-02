@@ -179,9 +179,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
         return new LinkedMultiValueMap<>();
     }
 
-    protected List<String> getExternalUserAuthorities(UserDetails request) {
-        return new LinkedList<>();
-    }
+    protected abstract List<String> getExternalUserAuthorities(UserDetails request);
 
     protected final void publish(ApplicationEvent event) {
         if (eventPublisher != null) {
