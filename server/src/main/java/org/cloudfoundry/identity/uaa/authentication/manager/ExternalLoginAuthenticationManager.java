@@ -301,13 +301,29 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
                 !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail()) || !StringUtils.equals(existingUser.getExternalId(), user.getExternalId());
     }
 
-    protected List<SimpleGrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
+    /**
+     * Determine the UAA-internal groups mapped to the given external groups as defined in the external group mappings
+     * configured for the given identity provider.
+     *
+     * @param origin
+     *         the origin key of the external identity provider
+     * @param externalGroups
+     *         the external groups, i.e., the values obtained from those IdP token claims that are defined in the
+     *         'external_groups' attribute mapping of the IdP
+     * @return the internal groups
+     */
+    protected List<SimpleGrantedAuthority> evaluateExternalGroupMappings(String origin, Collection<? extends GrantedAuthority> externalGroups) {
         List<SimpleGrantedAuthority> result = new LinkedList<>();
-        for (GrantedAuthority authority : authorities) {
+        for (GrantedAuthority authority : externalGroups) {
             String externalGroup = authority.getAuthority();
-            for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId())) {
-                result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
-            }
+
+            List<SimpleGrantedAuthority> internalGroups = externalMembershipManager
+                    .getExternalGroupMapsByExternalGroup(externalGroup, origin, IdentityZoneHolder.get().getId()).stream()
+                    .map(ScimGroupExternalMember::getDisplayName)
+                    .map(SimpleGrantedAuthority::new)
+                    .toList();
+
+            result.addAll(internalGroups);
         }
         return result;
     }
