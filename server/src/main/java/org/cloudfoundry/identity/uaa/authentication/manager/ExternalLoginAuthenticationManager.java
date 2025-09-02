@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import lombok.Getter;
+import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -58,14 +60,22 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
 
     private ApplicationEventPublisher eventPublisher;
 
+    @Getter
+    @Setter
     private UaaUserDatabase userDatabase;
 
     private String name;
 
+    @Getter
+    @Setter
     private String origin = "unknown";
 
+    @Getter
+    @Setter
     private IdentityProviderProvisioning providerProvisioning;
 
+    @Getter
+    @Setter
     private ScimGroupExternalMembershipManager externalMembershipManager;
 
 
@@ -73,44 +83,9 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
         this.providerProvisioning = providerProvisioning;
     }
 
-    public IdentityProviderProvisioning getProviderProvisioning() {
-        return providerProvisioning;
-    }
-
-    public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
-        this.providerProvisioning = providerProvisioning;
-    }
-
-    public ScimGroupExternalMembershipManager getExternalMembershipManager() {
-        return externalMembershipManager;
-    }
-
-    public void setExternalMembershipManager(ScimGroupExternalMembershipManager externalMembershipManager) {
-        this.externalMembershipManager = externalMembershipManager;
-    }
-
-    public String getOrigin() {
-        return origin;
-    }
-
-    public void setOrigin(String origin) {
-        this.origin = origin;
-    }
-
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher eventPublisher) {
         this.eventPublisher = eventPublisher;
-    }
-
-    /**
-     * @param userDatabase the userDatabase to set
-     */
-    public void setUserDatabase(UaaUserDatabase userDatabase) {
-        this.userDatabase = userDatabase;
-    }
-
-    public UaaUserDatabase getUserDatabase() {
-        return this.userDatabase;
     }
 
     @Override
