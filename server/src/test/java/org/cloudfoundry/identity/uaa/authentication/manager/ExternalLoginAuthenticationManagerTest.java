@@ -101,7 +101,8 @@ class ExternalLoginAuthenticationManagerTest {
         inputAuth = mock(Authentication.class);
         when(inputAuth.getPrincipal()).thenReturn(userDetails);
 
-        manager = new ExternalLoginAuthenticationManager(null);
+        manager = new ExternalLoginAuthenticationManager(null) {
+        };
         setupManager();
     }
 

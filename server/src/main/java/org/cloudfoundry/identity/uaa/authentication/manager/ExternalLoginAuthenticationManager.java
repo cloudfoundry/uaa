@@ -53,7 +53,7 @@ import java.util.Optional;
 
 import static java.util.Collections.emptySet;
 
-public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
+public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
     public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
     private static final String FALLBACK_EMAIL_DOMAIN_TEMPLATE = "user.from.%s.cf";
