@@ -119,6 +119,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_JWT_BEARER;
+import static org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.AS_SCOPES;
 import static org.cloudfoundry.identity.uaa.provider.AbstractExternalOAuthIdentityProviderDefinition.OAuthGroupMappingMode.EXPLICITLY_MAPPED;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_VERIFIED_ATTRIBUTE_NAME;
@@ -286,6 +287,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
 
             final Map<String, Object> attributeMappings = config.getAttributeMappings();
 
+            /* determine the username according to the claim configured in the "user_name" attribute mapping
+             * or fallback to the "sub" claim */
             final String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
             final String username;
             if (hasText(userNameAttributePrefix)) {
@@ -298,28 +301,25 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
             if (!hasText(username)) {
                 throw new InsufficientAuthenticationException("Unable to map claim to a username");
             }
-
             authenticationData.setUsername(username);
 
-            List<SimpleGrantedAuthority> oidcAuthorities = extractExternalOAuthUserAuthorities(attributeMappings, claims);
-            oidcAuthorities = filterOidcAuthorities(config, oidcAuthorities);
+            // determine the external groups according to the claim configured in the "external_groups" attribute mapping
+            List<SimpleGrantedAuthority> externalAuthorities = extractExternalOAuthUserAuthorities(attributeMappings, claims);
 
+            /* apply allowlist if configured in the IdP
+             * IMPORTANT: the allowlist is applied to the external groups, not the internal ones */
+            externalAuthorities = filterOidcAuthorities(config, externalAuthorities);
+
+            // evaluate group mapping according to the configured mode
             final OAuthGroupMappingMode groupMappingMode = Optional.ofNullable(config.getGroupMappingMode())
                     .orElse(EXPLICITLY_MAPPED);
+            final List<SimpleGrantedAuthority> authorities = mapExternalGroups(groupMappingMode, externalAuthorities, codeToken.getOrigin());
 
-            final List<SimpleGrantedAuthority> authorities;
-            switch (groupMappingMode) {
-                case AS_SCOPES:
-                    authorities = new LinkedList<>(oidcAuthorities);
-                    break;
-                case EXPLICITLY_MAPPED:
-                default:
-                    authorities = mapAuthorities(codeToken.getOrigin(), oidcAuthorities);
-                    break;
-            }
-            authenticationData.setAuthorities(authorities); //the filter should apply to external authorities - not internal
-            authenticationData.setExternalAuthorities(oidcAuthorities);
-            Optional.ofNullable(attributeMappings).ifPresent(map -> authenticationData.setAttributeMappings(new HashMap<>(map)));
+            // set external and internal authorities and attribute mappings in authentication data
+            authenticationData.setAuthorities(authorities);
+            authenticationData.setExternalAuthorities(externalAuthorities);
+            authenticationData.setAttributeMappings(new HashMap<>(attributeMappings));
+
             return authenticationData;
         }
         logger.debug("No identity provider found for origin:{} and zone:{}", getOrigin(), identityZoneManager.getCurrentIdentityZoneId());
@@ -833,6 +833,23 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                         );
         log.debug("Request completed with status:{}", responseEntity.getStatusCode());
         return Optional.ofNullable(responseEntity.getBody()).map(resBody -> resBody.get(getTokenFieldName(config))).orElse(UaaStringUtils.EMPTY_STRING);
+    }
+
+    /**
+     * Determine the mapped groups according to the group mapping mode configured in the IdP.
+     */
+    private List<SimpleGrantedAuthority> mapExternalGroups(
+            final OAuthGroupMappingMode groupMappingMode,
+            final List<SimpleGrantedAuthority> externalAuthorities,
+            final String originKey
+    ) {
+        if (groupMappingMode == AS_SCOPES) {
+            // propagate the external groups directly as scopes to the UAA token
+            return new LinkedList<>(externalAuthorities);
+        }
+
+        // evaluate the external group mappings configured for the IdP
+        return evaluateExternalGroupMappings(originKey, externalAuthorities);
     }
 
     private String getSessionValue(String value) {
