@@ -326,18 +326,33 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         return null;
     }
 
-    private static List<? extends GrantedAuthority> filterOidcAuthorities(AbstractExternalOAuthIdentityProviderDefinition<? extends ExternalIdentityProviderDefinition> definition, List<? extends GrantedAuthority> oidcAuthorities) {
-        List<String> whiteList = Optional.of(definition.getExternalGroupsWhitelist()).orElse(emptyList());
-        if (whiteList.isEmpty()) {
-            return oidcAuthorities;
-        } else {
-            Set<String> authorities = oidcAuthorities.stream().map(GrantedAuthority::getAuthority).collect(toSet());
-            Set<String> result = retainAllMatches(authorities, whiteList);
-            if (ObjectUtils.isNotEmpty(result)) {
-                log.debug("White listed external OIDC groups:'{}'", result);
-            }
-            return result.stream().map(SimpleGrantedAuthority::new).toList();
+    /**
+     * Filter the external authorities based on the allowlist (potentially) configured in the IdP.
+     *
+     * @param idpConfig the IdP configuration (containing the allowlist)
+     * @param externalAuthorities the external authorities extracted from the IdP token
+     * @return the filtered external authorities
+     */
+    private static List<SimpleGrantedAuthority> filterOidcAuthorities(
+            final ExternalIdentityProviderDefinition idpConfig,
+            final List<SimpleGrantedAuthority> externalAuthorities
+    ) {
+        final List<String> allowlist = Optional.of(idpConfig.getExternalGroupsWhitelist()).orElse(emptyList());
+        if (allowlist.isEmpty()) {
+            // no or empty allowlist configured in IdP -> allow all groups
+            return externalAuthorities;
         }
+
+        final Set<String> authorities = externalAuthorities.stream().map(GrantedAuthority::getAuthority).collect(toSet());
+
+        // intersect the external groups with the allowlist
+        final Set<String> filteredAuthorities = retainAllMatches(authorities, allowlist);
+
+        if (ObjectUtils.isNotEmpty(filteredAuthorities)) {
+            log.debug("White listed external OIDC groups:'{}'", filteredAuthorities);
+        }
+
+        return filteredAuthorities.stream().map(SimpleGrantedAuthority::new).toList();
     }
 
     @Override
