@@ -251,7 +251,7 @@ public abstract class ExternalLoginAuthenticationManager<ExternalAuthenticationD
         return new UaaUser(userPrototype);
     }
 
-    protected String generateEmailIfNullOrEmpty(String name) {
+    protected final String generateEmailIfNullOrEmpty(String name) {
         if (name == null) {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
         }
