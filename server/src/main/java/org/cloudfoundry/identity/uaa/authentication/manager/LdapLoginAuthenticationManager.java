@@ -46,7 +46,7 @@ import java.util.Set;
 import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.util.UaaStringUtils.retainAllMatches;
 
-public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
+public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager<Object> {
 
     protected static Logger logger = LoggerFactory.getLogger(LdapLoginAuthenticationManager.class);
 
@@ -93,7 +93,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                         String[] values = ldapDetails.getAttribute((String) entry.getValue(), false);
                         if (values != null && values.length > 0) {
                             result.put(key, Arrays.asList(values));
-                            logger.debug("Mappcustom attribute key:{} and value:{}", key, result.get(key));
+                            logger.debug("Map custom attribute key:{} and value:{}", key, result.get(key));
                         }
                     }
                 }
@@ -111,12 +111,12 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
             IdentityProvider provider = getProviderProvisioning().retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);
             List<String> externalWhiteList = ldapIdentityProviderDefinition.getExternalGroupsWhitelist();
-            result = new ArrayList<>(retainAllMatches(getAuthoritesAsNames(request.getAuthorities()), externalWhiteList));
+            result = new ArrayList<>(retainAllMatches(getAuthoritiesAsNames(request.getAuthorities()), externalWhiteList));
         }
         return result;
     }
 
-    protected Set<String> getAuthoritesAsNames(Collection<? extends GrantedAuthority> authorities) {
+    protected Set<String> getAuthoritiesAsNames(Collection<? extends GrantedAuthority> authorities) {
         Set<String> result = new HashSet<>();
         authorities = new LinkedList<>(authorities != null ? authorities : emptyList());
         for (GrantedAuthority a : authorities) {
