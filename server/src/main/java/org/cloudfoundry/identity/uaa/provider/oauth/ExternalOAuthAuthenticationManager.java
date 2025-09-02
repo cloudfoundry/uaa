@@ -380,16 +380,21 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                         log.debug("Unrecognized ACR claim[{}] for user_id: {}", values, authentication.getPrincipal().getId());
                     }
                 } else if (acr instanceof String string) {
-                    authentication.setAuthContextClassRef(new HashSet(singletonList(string)));
+                    authentication.setAuthContextClassRef(new HashSet<>(singletonList(string)));
                 } else {
                     log.debug("Unrecognized ACR claim[{}] for user_id: {}", acr, authentication.getPrincipal().getId());
                 }
             }
+
+            /* determine the user attributes from the IdP token according to the attribute mappings configured in the
+             * IdP (must have the prefix "user.attribute.") */
             MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
             log.debug("Mapping ExternalOAuth custom attributes");
             for (Map.Entry<String, Object> entry : authenticationData.getAttributeMappings().entrySet()) {
-                if (entry.getKey().startsWith(USER_ATTRIBUTE_PREFIX) && entry.getValue() != null) {
-                    String key = entry.getKey().substring(USER_ATTRIBUTE_PREFIX.length());
+                final String uaaAttribute = entry.getKey();
+                final Object externalIdpClaim = entry.getValue();
+                if (uaaAttribute.startsWith(USER_ATTRIBUTE_PREFIX) && externalIdpClaim != null) {
+                    String key = uaaAttribute.substring(USER_ATTRIBUTE_PREFIX.length());
                     Object values = claims.get(entry.getValue());
                     if (values != null) {
                         log.debug("Mapped ExternalOAuth attribute {} to {}", key, values);
@@ -407,6 +412,7 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
                 }
             }
             authentication.setUserAttributes(userAttributes);
+
             authentication.setExternalGroups(
                     Optional.ofNullable(authenticationData.getExternalAuthorities())
                             .orElse(emptyList())
@@ -423,6 +429,8 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         if (externalOAuthCodeToken.getIdToken() != null) {
             authentication.setIdpIdToken(externalOAuthCodeToken.getIdToken());
         }
+
+        // delegate to parent method -> persists user attributes and external groups if configured
         super.populateAuthenticationAttributes(authentication, request, authenticationData);
     }
 
