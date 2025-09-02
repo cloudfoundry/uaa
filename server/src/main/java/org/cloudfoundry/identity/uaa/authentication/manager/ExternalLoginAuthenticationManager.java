@@ -258,22 +258,24 @@ public class ExternalLoginAuthenticationManager<ExternalAuthenticationDetails> i
     }
 
     protected String generateEmailIfNullOrEmpty(String name) {
-        String email;
-        if (name != null) {
-            final String fallbackEmailDomain = FALLBACK_EMAIL_DOMAIN_TEMPLATE.formatted(getOrigin());
-            if (name.contains("@")) {
-                if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
-                    email = name;
-                } else {
-                    email = name.replace("@", "") + "@" + fallbackEmailDomain;
-                }
-            } else {
-                email = name + "@" + fallbackEmailDomain;
-            }
-        } else {
+        if (name == null) {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
         }
-        return email;
+
+        final String fallbackEmailDomain = FALLBACK_EMAIL_DOMAIN_TEMPLATE.formatted(getOrigin());
+
+        // use fallback domain if no '@' is present
+        if (!name.contains("@")) {
+            return name + "@" + fallbackEmailDomain;
+        }
+
+        // use as-is if it represents a valid e-mail address
+        if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
+            return name;
+        }
+
+        // otherwise, remove any '@' characters and use fallback domain
+        return name.replace("@", "") + "@" + fallbackEmailDomain;
     }
 
     protected boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
