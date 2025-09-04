@@ -42,7 +42,7 @@ jobs:
 
     - name: Set up Go
       id: go
-      uses: actions/setup-go@v5
+      uses: actions/setup-go@v6
       with:
         go-version: stable
       if: ${{ matrix.language == 'go' }}
