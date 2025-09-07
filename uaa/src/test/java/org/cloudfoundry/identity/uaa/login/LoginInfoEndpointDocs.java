@@ -73,7 +73,11 @@ class LoginInfoEndpointDocs extends EndpointDocs {
                 fieldWithPath("prompts.password").type(ARRAY).description("Information about the password prompt."),
                 fieldWithPath("prompts.passcode").optional().type(ARRAY).description("If a SAML identity provider is configured, this prompt contains a URL to where the user can initiate the SAML authentication flow."),
                 fieldWithPath("zone_name").type(STRING).description("The name of the zone invoked"),
-                fieldWithPath("showLoginLinks").optional(false).type(BOOLEAN).description("Set to true if there are SAML or OAUTH/OIDC providers with a visible link on the login page.")
+                fieldWithPath("showLoginLinks").optional(false).type(BOOLEAN).description("Set to true if there are SAML or OAUTH/OIDC providers with a visible link on the login page."),
+                fieldWithPath("providers").optional().type(ARRAY).description("A list of identity providers that are active in this zone"),
+                fieldWithPath("providers[].name").optional().type(STRING).description("The human readable name of the identity provider"),
+                fieldWithPath("providers[].origin").optional().type(STRING).description("The origin key of the identity provider"),
+                fieldWithPath("providers[].type").optional().type(STRING).description("The type (SAML, LDAP, OIDC, OAUTH2, etc) of identity provider")
         );
 
         Snippet requestHeaders = requestHeaders(
