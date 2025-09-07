@@ -361,6 +361,21 @@ public class LoginInfoEndpoint {
             returnLoginPrompts = false;
         }
 
+        if (jsonResponse && request.getRequestURI().endsWith("/info")) {
+            List<Map<String, String>> infoIdentityProviders = new java.util.ArrayList<>();
+            providerProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId())
+                    .forEach(provider -> {
+                        infoIdentityProviders.add(
+                                Map.of(
+                                        OriginKeys.ORIGIN, provider.getOriginKey(),
+                                        "name", provider.getName(),
+                                        "type", provider.getType()
+                                )
+                        );
+                    });
+            model.addAttribute("providers", infoIdentityProviders);
+        }
+
         // ldap or uaa not part of allowedIdentityProviderKeys
         if (allowedIdentityProviderKeys != null &&
                 !allowedIdentityProviderKeys.contains(OriginKeys.LDAP) &&
