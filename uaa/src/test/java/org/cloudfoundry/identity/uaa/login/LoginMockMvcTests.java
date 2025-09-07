@@ -2793,6 +2793,7 @@ public class LoginMockMvcTests {
 
     @Nested
     @DefaultTestContext
+    @DirtiesContext
     class ErrorAndSuccessMessages {
         @Test
         void hasValidError() throws Exception {
@@ -2820,6 +2821,118 @@ public class LoginMockMvcTests {
             mockMvc.perform(
                             get("/login?success=foobar&success=verify_success"))
                     .andExpect(content().string(containsString("Success!")));
+        }
+    }
+
+    @Nested
+    @DefaultTestContext
+    class IdentityProviderOnInfoEndpoint {
+        IdentityZone identityZone;
+        IdentityZoneCreationResult identityZoneCreationResult;
+        UaaClientDetails zoneAdminClient;
+        IdentityProvider samlProvider;
+        IdentityProvider ldapProvider;
+        IdentityProvider oidcProvider;
+        IdentityProvider inactiveOidcProvider;
+
+        @BeforeEach
+        void setupInfoProviders(@Autowired JdbcIdentityProviderProvisioning jdbcIdentityProviderProvisioning) throws Exception {
+            zoneAdminClient = new UaaClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
+            zoneAdminClient.setClientSecret("admin-secret");
+            identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("infoendpointIdp" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient, false, IdentityZoneHolder.getCurrentZoneId());
+            identityZone = identityZoneCreationResult.getIdentityZone();
+
+            String samlOrigin = "saml-" + new RandomValueStringGenerator().generate();
+            String samlMetadata = String.format(MockMvcUtils.IDP_META_DATA, new AlphanumericRandomValueStringGenerator().generate());
+            SamlIdentityProviderDefinition samlConfig = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
+                    .setMetaDataLocation(samlMetadata)
+                    .setIdpEntityAlias(samlOrigin)
+                    .setLinkText("Active SAML Provider")
+                    .setZoneId(identityZone.getId())
+                    .setEmailDomain(Collections.singletonList("test.org"));
+
+            samlProvider = MultitenancyFixture.identityProvider(samlOrigin, identityZone.getId());
+            samlProvider.setType(SAML);
+            samlProvider.setConfig(samlConfig);
+            samlProvider = createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, samlProvider);
+
+            ldapProvider = MultitenancyFixture.identityProvider(LDAP, identityZone.getId());
+            ldapProvider.setType(LDAP);
+            ldapProvider.setConfig(new LdapIdentityProviderDefinition().setEmailDomain(Collections.singletonList("testLdap.org")));
+            ldapProvider = createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, ldapProvider);
+
+            AbstractExternalOAuthIdentityProviderDefinition oidcConfig = new OIDCIdentityProviderDefinition();
+            oidcConfig.setEmailDomain(singletonList("test.org"));
+            oidcConfig.setAuthUrl(new URL("http://myauthurl.com"));
+            oidcConfig.setTokenKey("key");
+            oidcConfig.setTokenUrl(new URL("http://mytokenurl.com"));
+            oidcConfig.setRelyingPartyId("id");
+            oidcConfig.setRelyingPartySecret("secret");
+            oidcConfig.setLinkText("my oidc provider");
+            oidcConfig.setResponseType("token id_token");
+
+            String inactiveOidcOrigin = "inactive-" + new RandomValueStringGenerator().generate();
+            inactiveOidcProvider =  MultitenancyFixture.identityProvider(inactiveOidcOrigin, identityZone.getId());
+            inactiveOidcProvider = MultitenancyFixture.identityProvider(inactiveOidcOrigin, identityZone.getId());
+            inactiveOidcProvider.setType(OIDC10);
+            inactiveOidcProvider.setActive(false);
+            inactiveOidcProvider.setConfig(oidcConfig);
+            inactiveOidcProvider = createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, inactiveOidcProvider);
+
+            String oidcOrigin = "oidc-" + new RandomValueStringGenerator().generate();
+            oidcProvider = MultitenancyFixture.identityProvider(oidcOrigin, identityZone.getId());
+            oidcProvider.setType(OIDC10);
+            oidcProvider.setConfig(oidcConfig);
+            oidcProvider = createIdentityProvider(jdbcIdentityProviderProvisioning, identityZone, oidcProvider);
+        }
+
+        @Test
+        void activeProvidersShowUpInInfoJSON () throws Exception {
+            String jsonData = mockMvc.perform(get("/info").accept(APPLICATION_JSON).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse().getContentAsString();
+            Map<String, Object> infoJson = JsonUtils.readValueAsMap(jsonData);
+            List<Map<String, Object>> identityProviders = (List<Map<String, Object>>) infoJson.get("providers");
+            org.junit.Assert.assertNotNull(identityProviders);
+            org.junit.Assert.assertEquals(4, identityProviders.size());
+            org.junit.Assert.assertThat(identityProviders, org.hamcrest.Matchers.hasItem(
+                    Map.of(
+                            "origin", UAA,
+                            "name", UAA,
+                            "type", UAA
+                    )
+            ));
+            org.junit.Assert.assertThat(identityProviders, org.hamcrest.Matchers.hasItem(
+                    Map.of(
+                            "origin", LDAP,
+                            "name", ldapProvider.getName(),
+                            "type", LDAP
+                    )
+            ));
+            org.junit.Assert.assertThat(identityProviders, org.hamcrest.Matchers.hasItem(
+                    Map.of(
+                            "origin", samlProvider.getOriginKey(),
+                            "name", samlProvider.getName(),
+                            "type", SAML
+                    )
+            ));
+            org.junit.Assert.assertThat(identityProviders, org.hamcrest.Matchers.hasItem(
+                    Map.of(
+                            "origin", oidcProvider.getOriginKey(),
+                            "name", oidcProvider.getName(),
+                            "type", OIDC10
+                    )
+            ));
+        }
+
+        @Test
+        void noProviderInfoOnLoginEndpoint() throws Exception {
+            mockMvc.perform(
+                            get("/login").accept(APPLICATION_JSON)
+                    )
+                    .andExpect(status().isOk())
+                    .andExpect(model().attributeDoesNotExist("provider"));
         }
     }
 
