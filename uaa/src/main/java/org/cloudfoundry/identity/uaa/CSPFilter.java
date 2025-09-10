@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa;
 
+import org.springframework.context.ApplicationContextInitializer;
+import org.springframework.web.context.ConfigurableWebApplicationContext;
+import org.springframework.core.env.ConfigurableEnvironment;
 import java.io.IOException;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -9,7 +12,18 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletResponse;
 
-public class CSPFilter implements Filter {
+public class CSPFilter implements Filter, ApplicationContextInitializer<ConfigurableWebApplicationContext> {
+
+    private String cspReportUri = "";
+
+    @Override
+    public void initialize(ConfigurableWebApplicationContext applicationContext) {
+        ConfigurableEnvironment env = applicationContext.getEnvironment();
+        String uri = env.getProperty("cspReportUri");
+        if (uri != null && !uri.isEmpty()) {
+            cspReportUri = uri;
+        }
+    }
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
@@ -32,10 +46,9 @@ public class CSPFilter implements Filter {
                         "style-src 'self';" +
                         "object-src 'none';" +
                         "form-action 'self';" +
-                        "report-uri https://tenantporting-prod.run.aws-eu-central-1-pr.ice.predix.io/api/csp-report-uri;"
+                        "report-uri " + cspReportUri + ";"
         );
 
-        // Continue with the next filter in the chain
         chain.doFilter(request, response);
     }
 
