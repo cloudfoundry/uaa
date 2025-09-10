@@ -178,6 +178,16 @@ public class ExternalOAuthAuthenticationManager extends ExternalLoginAuthenticat
         this.origin.set(origin);
     }
 
+    @Override
+    public Authentication authenticate(final Authentication request) throws AuthenticationException {
+        final Authentication authentication = super.authenticate(request);
+
+        // clear ThreadLocal holding the origin key
+        origin.remove();
+
+        return authentication;
+    }
+
     public IdentityProvider resolveOriginProvider(String idToken) throws AuthenticationException {
         try {
             Map<String, Object> claims = parseClaimsFromIdTokenString(idToken);
