@@ -32,12 +32,12 @@ public class CSPFilter implements Filter, ApplicationContextInitializer<Configur
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+        throws IOException, ServletException {
 
         HttpServletResponse httpResponse = (HttpServletResponse) response;
 
-        httpResponse.setHeader("Content-Security-Policy",
-                "base-uri 'self'; frame-ancestors 'none'; font-src 'self' https://cdn.predix-ui.com; img-src 'self'; frame-src 'self';");
+httpResponse.setHeader("Content-Security-Policy",
+                       "base-uri 'self'; frame-ancestors 'none'; font-src 'self' https://cdn.predix-ui.com; img-src 'self'; frame-src 'self';");
 
         httpResponse.setHeader(
                 "Content-Security-Policy-Report-Only",
@@ -49,6 +49,7 @@ public class CSPFilter implements Filter, ApplicationContextInitializer<Configur
                         "report-uri " + cspReportUri + ";"
         );
 
+        // Continue with the next filter in the chain
         chain.doFilter(request, response);
     }
 
